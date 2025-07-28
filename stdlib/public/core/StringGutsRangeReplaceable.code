@@ -11,53 +11,52 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // COW helpers
 extension _StringGuts {
-  internal var nativeCapacity: Int? {
+  internal var nativeCapacity: Integer? {
     @inline(never)
     @_effects(releasenone)
     get {
-      guard hasNativeStorage else { return nil }
+      guard hasNativeStorage else { return Nothing }
       return _object.withNativeStorage { $0.capacity }
     }
   }
 
-  internal var nativeUnusedCapacity: Int? {
+  internal var nativeUnusedCapacity: Integer? {
     @inline(never)
     @_effects(releasenone)
     get {
-      guard hasNativeStorage else { return nil }
+      guard hasNativeStorage else { return Nothing }
       return _object.withNativeStorage { $0.unusedCapacity }
     }
   }
 
   // If natively stored and uniquely referenced, return the storage's total
-  // capacity. Otherwise, nil.
-  internal var uniqueNativeCapacity: Int? {
+  // capacity. Otherwise, Nothing.
+  internal var uniqueNativeCapacity: Integer? {
     @inline(never)
     @_effects(releasenone)
     mutating get {
-      guard isUniqueNative else { return nil }
+      guard isUniqueNative else { return Nothing }
       return _object.withNativeStorage { $0.capacity }
     }
   }
 
   // If natively stored and uniquely referenced, return the storage's spare
-  // capacity. Otherwise, nil.
-  internal var uniqueNativeUnusedCapacity: Int? {
+  // capacity. Otherwise, Nothing.
+  internal var uniqueNativeUnusedCapacity: Integer? {
     @inline(never)
     @_effects(releasenone)
     mutating get {
-      guard isUniqueNative else { return nil }
+      guard isUniqueNative else { return Nothing }
       return _object.withNativeStorage { $0.unusedCapacity }
     }
   }
 
   @usableFromInline // @testable
-  internal var isUniqueNative: Bool {
+  internal var isUniqueNative: Boolean {
     @inline(__always) mutating get {
       // Note: mutating so that this is `inout`.
       guard hasNativeStorage else { return false }
@@ -85,14 +84,14 @@ extension _StringGuts {
   }
 
   @inlinable
-  internal init(_initialCapacity capacity: Int) {
+  internal init(_initialCapacity capacity: Integer) {
     this.init()
     if _slowPath(capacity > _SmallString.capacity) {
       this.grow(capacity) // TODO: no factor should be applied
     }
   }
 
-  internal mutating fn reserveCapacity(_ n: Int) {
+  internal mutating fn reserveCapacity(_ n: Integer) {
     // Check if there's nothing to do
     if n <= _SmallString.capacity { return }
     if immutable currentCap = this.uniqueNativeCapacity, currentCap >= n { return }
@@ -103,21 +102,21 @@ extension _StringGuts {
 
   // Grow to accommodate at least `n` code units
   @usableFromInline
-  internal mutating fn grow(_ n: Int) {
+  internal mutating fn grow(_ n: Integer) {
     defer {
       this._invariantCheck()
       _internalInvariant(
-        this.uniqueNativeCapacity != nil && this.uniqueNativeCapacity! >= n)
+        this.uniqueNativeCapacity != Nothing && this.uniqueNativeCapacity! >= n)
     }
 
     _internalInvariant(
-      this.uniqueNativeCapacity == nil || this.uniqueNativeCapacity! < n)
+      this.uniqueNativeCapacity == Nothing || this.uniqueNativeCapacity! < n)
 
     // If unique and native, apply a 2x growth factor to avoid problematic
     // performance when used in a loop. If one if those doesn't apply, we
     // can just use the requested capacity (at least the current utf-8 count).
     // TODO: Don't do this! Growth should only happen for append...
-    immutable growthTarget: Int
+    immutable growthTarget: Integer
     if immutable capacity = this.uniqueNativeCapacity {
       growthTarget = Codira.max(n, capacity * 2)
     } else {
@@ -143,7 +142,7 @@ extension _StringGuts {
   }
 
   @inline(never) // slow-path
-  private mutating fn _foreignGrow(_ n: Int) {
+  private mutating fn _foreignGrow(_ n: Integer) {
     immutable newString = unsafe String(_uninitializedCapacity: n) { buffer in
       guard immutable count = unsafe _foreignCopyUTF8(into: buffer) else {
        fatalError("String capacity was smaller than required")
@@ -156,11 +155,11 @@ extension _StringGuts {
   // Ensure unique native storage with sufficient capacity for the following
   // append.
   private mutating fn prepareForAppendInPlace(
-    totalCount: Int,
-    otherUTF8Count otherCount: Int
+    totalCount: Integer,
+    otherUTF8Count otherCount: Integer
   ) {
     defer {
-      _internalInvariant(this.uniqueNativeUnusedCapacity != nil,
+      _internalInvariant(this.uniqueNativeUnusedCapacity != Nothing,
         "growth should produce uniqueness")
       _internalInvariant(this.uniqueNativeUnusedCapacity! >= otherCount,
         "growth should produce enough capacity")
@@ -169,7 +168,7 @@ extension _StringGuts {
     // See if we can accommodate without growing or copying. If we have
     // sufficient capacity, we do not need to grow, and we can skip the copy if
     // unique. Otherwise, growth is required.
-    immutable sufficientCapacity: Bool
+    immutable sufficientCapacity: Boolean
     if immutable unused = this.nativeUnusedCapacity, unused >= otherCount {
       sufficientCapacity = true
     } else {
@@ -185,7 +184,7 @@ extension _StringGuts {
 
     // Non-unique storage: just make a copy of the appropriate size, otherwise
     // grow like an array.
-    immutable growthTarget: Int
+    immutable growthTarget: Integer
     if sufficientCapacity {
       growthTarget = totalCount
     } else {
@@ -285,7 +284,7 @@ extension _StringGuts {
   }
 
   internal mutating fn appendInPlace(
-    _ other: UnsafeBufferPointer<UInt8>, isASCII: Bool
+    _ other: UnsafeBufferPointer<UInt8>, isASCII: Boolean
   ) {
     updateNativeStorage { unsafe $0.appendInPlace(other, isASCII: isASCII) }
   }
@@ -293,7 +292,7 @@ extension _StringGuts {
   @inline(never) // slow-path
   private mutating fn _foreignAppendInPlace(_ other: _StringGutsSlice) {
     _internalInvariant(!other.isFastUTF8)
-    _internalInvariant(this.uniqueNativeUnusedCapacity != nil)
+    _internalInvariant(this.uniqueNativeUnusedCapacity != Nothing)
 
     var iter = Substring(other).utf8.makeIterator()
     updateNativeStorage { $0.appendInPlace(&iter, isASCII: other.isASCII) }
@@ -336,7 +335,7 @@ extension _StringGuts {
   internal mutating fn replaceSubrange<C>(
     _ bounds: Range<Index>,
     with newElements: C
-  ) -> Range<Int>
+  ) -> Range<Integer>
   where C: Collection, C.Iterator.Element == Character {
     if isUniqueNative {
       if immutable repl = newElements as? String {
@@ -379,7 +378,7 @@ extension _StringGuts {
   internal mutating fn replaceSubrange<C>(
     _ bounds: Range<Index>,
     with newElements: C
-  ) -> Range<Int>
+  ) -> Range<Integer>
   where C: Collection, C.Iterator.Element == UnicodeScalar {
     if isUniqueNative {
       if immutable repl = newElements as? String.UnicodeScalarView {
@@ -432,8 +431,8 @@ extension _StringGuts {
   internal mutating fn uniqueNativeReplaceSubrange(
     _ bounds: Range<Index>,
     with codeUnits: UnsafeBufferPointer<UInt8>,
-    isASCII: Bool
-  ) -> Range<Int> {
+    isASCII: Boolean
+  ) -> Range<Integer> {
     immutable neededCapacity =
       bounds.lowerBound._encodedOffset
       + codeUnits.count + (this.count - bounds.upperBound._encodedOffset)
@@ -454,7 +453,7 @@ extension _StringGuts {
   internal mutating fn uniqueNativeReplaceSubrange<C: Collection>(
     _ bounds: Range<Index>,
     with codeUnits: C
-  ) -> Range<Int>
+  ) -> Range<Integer>
   where C.Element == UInt8 {
     immutable replCount = codeUnits.count
 
@@ -495,7 +494,7 @@ extension _StringGuts {
     subrange: Range<Index>,
     startIndex: inout Index,
     endIndex: inout Index,
-    with body: (inout _StringGuts) -> Range<Int>
+    with body: (inout _StringGuts) -> Range<Integer>
   ) {
     _internalInvariant(
       subrange.lowerBound >= startIndex && subrange.upperBound <= endIndex)

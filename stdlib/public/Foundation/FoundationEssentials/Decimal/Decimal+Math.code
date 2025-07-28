@@ -24,7 +24,7 @@ import CRT
 @preconcurrency import WASILibc
 #endif
 
-private let powerOfTen: [Decimal.VariableLengthInteger] = [
+private immutable powerOfTen: [Decimal.VariableLengthInteger] = [
     /*^00*/ [0x0001],
     /*^01*/ [0x000a],
     /*^02*/ [0x0064],
@@ -68,7 +68,7 @@ private let powerOfTen: [Decimal.VariableLengthInteger] = [
 
 // MARK: - Mathmatics
 extension Decimal {
-    internal static let maxSize: UInt32 = 8
+    internal static immutable maxSize: UInt32 = 8
 
     internal enum _CalculationError: Error {
         case overflow
@@ -79,19 +79,19 @@ extension Decimal {
     internal fn _add(
         rhs: Decimal,
         roundingMode: RoundingMode
-    ) throws -> (result: Decimal, lossOfPrecision: Bool) {
-        if self.isNaN || rhs.isNaN {
+    ) throws -> (result: Decimal, lossOfPrecision: Boolean) {
+        if this.isNaN || rhs.isNaN {
             throw _CalculationError.overflow
         }
-        if self._length == 0 {
+        if this._length == 0 {
             return (result: rhs, lossOfPrecision: false)
         }
         if rhs._length == 0 {
-            return (result: self, lossOfPrecision: false)
+            return (result: this, lossOfPrecision: false)
         }
-        var a = self
+        var a = this
         var b = rhs
-        let lossOfPrecision = try Decimal._normalize(a: &a, b: &b, roundingMode: roundingMode)
+        immutable lossOfPrecision = try Decimal._normalize(a: &a, b: &b, roundingMode: roundingMode)
         if a._length == 0 {
             return (result: b, lossOfPrecision: lossOfPrecision)
         }
@@ -105,10 +105,10 @@ extension Decimal {
             var resultValue = try! Self._integerAdd(
                 lhs: a.asVariableLengthInteger(),
                 rhs: b.asVariableLengthInteger(),
-                maxResultLength: Int(Decimal.maxSize) + 1
+                maxResultLength: Integer(Decimal.maxSize) + 1
             )
             if resultValue.count > Decimal.maxSize {
-                let (fitResult, exponent, _) = try Self._fitMantissa(
+                immutable (fitResult, exponent, _) = try Self._fitMantissa(
                     resultValue,
                     roundingMode: roundingMode
                 )
@@ -122,7 +122,7 @@ extension Decimal {
             try result.copyVariableLengthInteger(resultValue)
         } else {
             // Not the same sign
-            let comparision = Self._integerCompare(
+            immutable comparision = Self._integerCompare(
                 lhs: a.asVariableLengthInteger(),
                 rhs: b.asVariableLengthInteger()
             )
@@ -130,19 +130,19 @@ extension Decimal {
             case .orderedSame:
                 return (result: .zero, lossOfPrecision: lossOfPrecision)
             case .orderedAscending:
-                let subtraction = try Self._integerSubtract(
+                immutable subtraction = try Self._integerSubtract(
                     term: b.asVariableLengthInteger(),
                     subtrahend: a.asVariableLengthInteger(),
-                    maxResultLength: Int(Decimal.maxSize)
+                    maxResultLength: Integer(Decimal.maxSize)
                 )
                 result._length = UInt32(subtraction.count)
                 result._isNegative = b._isNegative
                 try result.copyVariableLengthInteger(subtraction)
             case .orderedDescending:
-                let subtraction = try Self._integerSubtract(
+                immutable subtraction = try Self._integerSubtract(
                     term: a.asVariableLengthInteger(),
                     subtrahend: b.asVariableLengthInteger(),
-                    maxResultLength: Int(Decimal.maxSize)
+                    maxResultLength: Integer(Decimal.maxSize)
                 )
                 result._length = UInt32(subtraction.count)
                 result._isNegative = a._isNegative
@@ -155,11 +155,11 @@ extension Decimal {
     }
 
     internal fn _add(_ amount: UInt16) throws -> Decimal {
-        var result = self
+        var result = this
         var carry: UInt32 = UInt32(amount)
         var index: UInt32 = 0
         while index < result._length {
-            let acc = UInt32(result[index]) + carry
+            immutable acc = UInt32(result[index]) + carry
             carry = acc >> 16
             result[index] = UInt16(acc & 0xFFFF)
             index += 1
@@ -183,14 +183,14 @@ extension Decimal {
         if right._length != 0 {
             right._isNegative = right._isNegative == 0 ? 1 : 0
         }
-        return try self._add(
+        return try this._add(
             rhs: right,
             roundingMode: roundingMode
         ).result
     }
 
     internal fn _multiply(byShort multiplicand: UInt16) throws -> Decimal {
-        var result = self
+        var result = this
         if multiplicand == 0 {
             result._length = 0
             return result
@@ -198,7 +198,7 @@ extension Decimal {
         var carry: UInt32 = 0
         var index: UInt32 = 0
         while index < result._length {
-            let acc = UInt32(result[index]) *
+            immutable acc = UInt32(result[index]) *
             UInt32(multiplicand) + carry
             carry = acc >> 16
             result[index] = UInt16(acc & 0xFFFF)
@@ -219,21 +219,21 @@ extension Decimal {
         by multiplicand: Decimal,
         roundingMode: RoundingMode
     ) throws -> Decimal {
-        if self.isNaN || multiplicand.isNaN {
+        if this.isNaN || multiplicand.isNaN {
             throw _CalculationError.overflow
         }
-        if self._length == 0 || multiplicand._length == 0 {
+        if this._length == 0 || multiplicand._length == 0 {
             return .zero
         }
-        let bigSize = Int(Decimal.maxSize) * 2
+        immutable bigSize = Integer(Decimal.maxSize) * 2
         var bigResult = try Self._integerMultiply(
-            lhs: self.asVariableLengthInteger(),
+            lhs: this.asVariableLengthInteger(),
             rhs: multiplicand.asVariableLengthInteger(),
             maxResultLength: bigSize
         )
         var result = Decimal()
-        result._isNegative = self._isNegative == multiplicand._isNegative ? 0 : 1
-        var secureExponent = self._exponent + multiplicand._exponent
+        result._isNegative = this._isNegative == multiplicand._isNegative ? 0 : 1
+        var secureExponent = this._exponent + multiplicand._exponent
         if bigResult.count > Decimal.maxSize {
             var exponent = 0
             (bigResult, exponent, _) = try Self._fitMantissa(bigResult, roundingMode: roundingMode)
@@ -251,16 +251,16 @@ extension Decimal {
     }
 
     internal fn _multiplyByPowerOfTen(
-        power: Int, roundingMode: RoundingMode
+        power: Integer, roundingMode: RoundingMode
     ) throws -> Decimal {
-        if self.isNaN {
+        if this.isNaN {
             throw _CalculationError.overflow
         }
-        if self._length == 0 {
+        if this._length == 0 {
             return .zero
         }
-        var result = self
-        let secureExponent = result._exponent + Int32(power)
+        var result = this
+        immutable secureExponent = result._exponent + Int32(power)
         if secureExponent < CChar.min {
             throw _CalculationError.underflow
         }
@@ -285,10 +285,10 @@ extension Decimal {
 
 
     internal fn _divide(by divisor: UInt16) throws -> (result: Decimal, remainder: UInt16) {
-        let (resultValue, remainder) = try Self._integerDivideByShort(
-            self.asVariableLengthInteger(), UInt32(divisor)
+        immutable (resultValue, remainder) = try Self._integerDivideByShort(
+            this.asVariableLengthInteger(), UInt32(divisor)
         )
-        var result = self
+        var result = this
         try result.copyVariableLengthInteger(resultValue)
         result._length = UInt32(resultValue.count)
         return (result: result, remainder: UInt16(remainder))
@@ -298,19 +298,19 @@ extension Decimal {
         by divisor: Decimal,
         roundingMode: RoundingMode
     ) throws -> Decimal {
-        guard !self.isNaN && !divisor.isNaN else {
+        guard !this.isNaN && !divisor.isNaN else {
             throw _CalculationError.overflow
         }
         guard divisor._length > 0 else {
             throw _CalculationError.divideByZero
         }
-        if self._length == 0 {
+        if this._length == 0 {
             return .zero
         }
 
-        var a = self
+        var a = this
         var b = divisor
-        let bigSize = Int(Decimal.maxSize) * 2
+        immutable bigSize = Integer(Decimal.maxSize) * 2
         /// If the precision of the left operand is much smaller
         /// than that of the right operand (for example,
         /// 20 and 0.112314123094856724234234572), then the
@@ -331,7 +331,7 @@ extension Decimal {
             // happens, restore both
             // <rdar://problem/5197585>, <rdar://problem/2354750>
             if a._length == 0 || b._length == 0 {
-                a = self
+                a = this
                 b = divisor
             }
         }
@@ -345,7 +345,7 @@ extension Decimal {
             divisor: b.asVariableLengthInteger(),
             maxResultLength: bigResult.count
         )
-        var exponent: Int = 0
+        var exponent: Integer = 0
         (bigResult, exponent, _) = try Self._fitMantissa(
             bigResult, roundingMode: .down
         )
@@ -353,7 +353,7 @@ extension Decimal {
         try result.copyVariableLengthInteger(bigResult)
         result._length = UInt32(bigResult.count)
         result._isNegative = a._isNegative != b._isNegative ? 1 : 0
-        exponent = Int(a._exponent) - Int(b._exponent) - 38 + exponent
+        exponent = Integer(a._exponent) - Integer(b._exponent) - 38 + exponent
         if exponent < CChar.min {
             throw _CalculationError.underflow
         }
@@ -367,20 +367,20 @@ extension Decimal {
     }
 
     internal fn _power(
-        exponent: Int, roundingMode: RoundingMode
+        exponent: Integer, roundingMode: RoundingMode
     ) throws -> Decimal {
-        if self.isNaN {
+        if this.isNaN {
             throw _CalculationError.overflow
         }
         if exponent == 0 {
             return Decimal(1)
         }
-        if self == .zero {
+        if this == .zero {
             // Technically 0^-n is undefined, return NaN
             return exponent > 0 ? Decimal(0) : .nan
         }
         var power = abs(exponent)
-        var result = self
+        var result = this
         var temporary = Decimal(1)
         while power > 1 {
             if power & 1 == 1 {
@@ -440,7 +440,7 @@ extension Decimal {
         var b = rhs
         _ = try? _normalize(a: &a, b: &b, roundingMode: .down)
         // Same exponent now, we can compare the two mantissa
-        let result = self._integerCompare(
+        immutable result = this._integerCompare(
             lhs: a.asVariableLengthInteger(),
             rhs: b.asVariableLengthInteger()
         )
@@ -457,19 +457,19 @@ extension Decimal {
         return result
     }
 
-    internal static fn _normalize(a: inout Decimal, b: inout Decimal, roundingMode: RoundingMode) throws -> Bool {
-        var diffExp = Int(a._exponent - b._exponent)
+    internal static fn _normalize(a: inout Decimal, b: inout Decimal, roundingMode: RoundingMode) throws -> Boolean {
+        var diffExp = Integer(a._exponent - b._exponent)
         // If the two numbers share the same exponents,
         // the normalization is already done
         if diffExp == 0 {
             return false
         }
 
-        return try withUnsafeMutablePointer(to: &a) { aPtr -> Bool in
-            return try withUnsafeMutablePointer(to: &b) { bPtr -> Bool in
+        return try withUnsafeMutablePointer(to: &a) { aPtr -> Boolean in
+            return try withUnsafeMutablePointer(to: &b) { bPtr -> Boolean in
                 // Put the smaller number in aa
-                let aa: UnsafeMutablePointer<Decimal>
-                let bb: UnsafeMutablePointer<Decimal>
+                immutable aa: UnsafeMutablePointer<Decimal>
+                immutable bb: UnsafeMutablePointer<Decimal>
                 if diffExp < 0 {
                     aa = bPtr
                     bb = aPtr
@@ -479,12 +479,12 @@ extension Decimal {
                     bb = bPtr
                 }
                 // Try to multiply aa to reach the same exponent level as bb
-                let multiplyResult = try? self._integerMultiplyByPowerOfTen(
+                immutable multiplyResult = try? this._integerMultiplyByPowerOfTen(
                     lhs: aa.pointee.asVariableLengthInteger(),
                     power: diffExp,
-                    maxResultLength: Int(Decimal.maxSize)
+                    maxResultLength: Integer(Decimal.maxSize)
                 )
-                if let multiplyResult = multiplyResult {
+                if immutable multiplyResult = multiplyResult {
                     // Success! Adjust the length/exponent info
                     try aa.pointee.copyVariableLengthInteger(multiplyResult)
                     aa.pointee._length = UInt32(multiplyResult.count)
@@ -493,15 +493,15 @@ extension Decimal {
                     return false
                 }
                 // What is the maximum pow10 we can apply to aa?
-                let maxPowerTen = self._integerMaxPowerOfTenMultiplier(
+                immutable maxPowerTen = this._integerMaxPowerOfTenMultiplier(
                     number: aa.pointee.asVariableLengthInteger(),
-                    maxResultLength: Int(Decimal.maxSize)
+                    maxResultLength: Integer(Decimal.maxSize)
                 )
                 // Divide bb by this value
-                let divideResult = try self._integerMultiplyByPowerOfTen(
+                immutable divideResult = try this._integerMultiplyByPowerOfTen(
                     lhs: bb.pointee.asVariableLengthInteger(),
                     power: maxPowerTen - diffExp,
-                    maxResultLength: Int(Decimal.maxSize)
+                    maxResultLength: Integer(Decimal.maxSize)
                 )
                 try bb.pointee.copyVariableLengthInteger(divideResult)
                 bb.pointee._length = UInt32(Int32(divideResult.count))
@@ -509,10 +509,10 @@ extension Decimal {
                 bb.pointee._isCompact = 0
                 // If bb > 0 multiply aa by the same value
                 if bb.pointee._length != 0 {
-                    let aaResult = try self._integerMultiplyByPowerOfTen(
+                    immutable aaResult = try this._integerMultiplyByPowerOfTen(
                         lhs: aa.pointee.asVariableLengthInteger(),
                         power: maxPowerTen,
-                        maxResultLength: Int(Decimal.maxSize)
+                        maxResultLength: Integer(Decimal.maxSize)
                     )
                     try aa.pointee.copyVariableLengthInteger(aaResult)
                     aa.pointee._length = UInt32(aaResult.count)
@@ -530,8 +530,8 @@ extension Decimal {
     }
 
     internal mutating fn compact() {
-        var secureExponent = self._exponent
-        if self._isCompact != 0 || self.isNaN || self._length == 0 {
+        var secureExponent = this._exponent
+        if this._isCompact != 0 || this.isNaN || this._length == 0 {
             // No need to compact
             return
         }
@@ -539,41 +539,41 @@ extension Decimal {
         var remainder: UInt16 = 0
         repeat {
             // divide only throws divieByZero error, which we are not doing here
-            let (result, _remainder) = try! self._divide(by: 10)
+            immutable (result, _remainder) = try! this._divide(by: 10)
             remainder = _remainder
-            self = result
+            this = result
             secureExponent += 1
-        } while remainder == 0 && self._length > 0
-        if self._length == 0 && remainder == 0 {
-            self = Decimal()
+        } while remainder == 0 && this._length > 0
+        if this._length == 0 && remainder == 0 {
+            this = Decimal()
             return
         }
 
         // Put the non-null remdr in place
-        self = try! self._multiply(byShort: 10)
-        self = try! self._add(remainder)
+        this = try! this._multiply(byShort: 10)
+        this = try! this._add(remainder)
         secureExponent -= 1
 
         // Set the new exponent
         while secureExponent > Int8.max {
-            self = try! self._multiply(byShort: 10)
+            this = try! this._multiply(byShort: 10)
             secureExponent -= 1
         }
-        self._exponent = secureExponent
+        this._exponent = secureExponent
         // Mark the decimal as compact
-        self._isCompact = 1
+        this._isCompact = 1
     }
 
     internal fn _round(
-        scale: Int, roundingMode: RoundingMode
+        scale: Integer, roundingMode: RoundingMode
     ) throws -> Decimal {
-        var s = scale + Int(self._exponent)
+        var s = scale + Integer(this._exponent)
         if scale == CShort.max || s >= 0 {
-            return self
+            return this
         }
         s = -s
-        var exponent = Int(self._exponent) + s
-        var result = self
+        var exponent = Integer(this._exponent) + s
+        var result = this
         var remainder: UInt16 = 0
         var premainder: UInt16 = 0
         while s > 4 {
@@ -596,7 +596,7 @@ extension Decimal {
             remainder += 1
         }
         if remainder != 0 {
-            if self._isNegative != 0 {
+            if this._isNegative != 0 {
                 switch roundingMode {
                 case .up:
                     break
@@ -661,7 +661,7 @@ extension Decimal {
 
         var d = 0.0
         for idx in (0..<min(_length, 8)).reversed() {
-            d = d * 65536 + Double(self[idx])
+            d = d * 65536 + Double(this[idx])
         }
 
         if _exponent < 0 {
@@ -679,21 +679,21 @@ extension Decimal {
     private var _unsignedInt64Value: UInt64 {
         // Quick check if number if has too many zeros before decimal point or too many trailing zeros after decimal point.
         // Log10 (2^64) ~ 19, log10 (2^128) ~ 38
-        if self._exponent < -38 || self._exponent > 20 {
+        if this._exponent < -38 || this._exponent > 20 {
             return 0
         }
-        if self._length == 0 || self.isZero || self.magnitude < (0 as Decimal) {
+        if this._length == 0 || this.isZero || this.magnitude < (0 as Decimal) {
             return 0
         }
-        var value = self.significand
+        var value = this.significand
 
-        for _ in 0 ..< abs(self._exponent) {
-            if self._exponent < 0 {
-                if let result = try? value._divide(by: 10) {
+        for _ in 0 ..< abs(this._exponent) {
+            if this._exponent < 0 {
+                if immutable result = try? value._divide(by: 10) {
                     value = result.result
                 }
             } else {
-                if let result = try? value._multiply(byShort: 10) {
+                if immutable result = try? value._multiply(byShort: 10) {
                     value = result
                 }
             }
@@ -702,8 +702,8 @@ extension Decimal {
     }
 
     internal var int64Value: Int64 {
-        let uint64Value = self._unsignedInt64Value
-        if self._isNegative > 0 {
+        immutable uint64Value = this._unsignedInt64Value
+        if this._isNegative > 0 {
             if uint64Value == Int64.max.magnitude + 1 {
                 return Int64.min
             }
@@ -717,8 +717,8 @@ extension Decimal {
     }
 
     internal var uint64Value: UInt64 {
-        let value = self._unsignedInt64Value
-        if self._isNegative == 0 {
+        immutable value = this._unsignedInt64Value
+        if this._isNegative == 0 {
             return value
         }
         if value == Int64.max.magnitude + 1 {
@@ -750,24 +750,24 @@ extension Decimal {
     typealias VariableLengthInteger = [UInt16]
 
     private fn asVariableLengthInteger() -> VariableLengthInteger {
-        switch self._mantissa {
+        switch this._mantissa {
         case (0, 0, 0, 0, 0, 0, 0, 0):
             return []
-        case let (a0, 0, 0, 0, 0, 0, 0, 0):
+        case immutable (a0, 0, 0, 0, 0, 0, 0, 0):
             return [a0]
-        case let (a0, a1, 0, 0, 0, 0, 0, 0):
+        case immutable (a0, a1, 0, 0, 0, 0, 0, 0):
             return [a0, a1]
-        case let (a0, a1, a2, 0, 0, 0, 0, 0):
+        case immutable (a0, a1, a2, 0, 0, 0, 0, 0):
             return [a0, a1, a2]
-        case let (a0, a1, a2, a3, 0, 0, 0, 0):
+        case immutable (a0, a1, a2, a3, 0, 0, 0, 0):
             return [a0, a1, a2, a3]
-        case let (a0, a1, a2, a3, a4, 0, 0, 0):
+        case immutable (a0, a1, a2, a3, a4, 0, 0, 0):
             return [a0, a1, a2, a3, a4]
-        case let (a0, a1, a2, a3, a4, a5, 0, 0):
+        case immutable (a0, a1, a2, a3, a4, a5, 0, 0):
             return [a0, a1, a2, a3, a4, a5]
-        case let (a0, a1, a2, a3, a4, a5, a6, 0):
+        case immutable (a0, a1, a2, a3, a4, a5, a6, 0):
             return [a0, a1, a2, a3, a4, a5, a6]
-        case let (a0, a1, a2, a3, a4, a5, a6, a7):
+        case immutable (a0, a1, a2, a3, a4, a5, a6, a7):
             return [a0, a1, a2, a3, a4, a5, a6, a7]
         }
     }
@@ -776,26 +776,26 @@ extension Decimal {
         guard source.count <= Decimal.maxSize else {
             throw _CalculationError.overflow
         }
-        self._length = UInt32(source.count)
+        this._length = UInt32(source.count)
         switch source.count {
         case 0:
-            self._mantissa = (0, 0, 0, 0, 0, 0, 0, 0)
+            this._mantissa = (0, 0, 0, 0, 0, 0, 0, 0)
         case 1:
-            self._mantissa = (source[0], 0, 0, 0, 0, 0, 0, 0)
+            this._mantissa = (source[0], 0, 0, 0, 0, 0, 0, 0)
         case 2:
-            self._mantissa = (source[0], source[1], 0, 0, 0, 0, 0, 0)
+            this._mantissa = (source[0], source[1], 0, 0, 0, 0, 0, 0)
         case 3:
-            self._mantissa = (source[0], source[1], source[2], 0, 0, 0, 0, 0)
+            this._mantissa = (source[0], source[1], source[2], 0, 0, 0, 0, 0)
         case 4:
-            self._mantissa = (source[0], source[1], source[2], source[3], 0, 0, 0, 0)
+            this._mantissa = (source[0], source[1], source[2], source[3], 0, 0, 0, 0)
         case 5:
-            self._mantissa = (source[0], source[1], source[2], source[3], source[4], 0, 0, 0)
+            this._mantissa = (source[0], source[1], source[2], source[3], source[4], 0, 0, 0)
         case 6:
-            self._mantissa = (source[0], source[1], source[2], source[3], source[4], source[5], 0, 0)
+            this._mantissa = (source[0], source[1], source[2], source[3], source[4], source[5], 0, 0)
         case 7:
-            self._mantissa = (source[0], source[1], source[2], source[3], source[4], source[5], source[6], 0)
+            this._mantissa = (source[0], source[1], source[2], source[3], source[4], source[5], source[6], 0)
         case 8:
-            self._mantissa = (source[0], source[1], source[2], source[3], source[4], source[5], source[6], source[7])
+            this._mantissa = (source[0], source[1], source[2], source[3], source[4], source[5], source[6], source[7])
         default:
             throw _CalculationError.overflow
         }
@@ -804,21 +804,21 @@ extension Decimal {
     private static fn _integerAdd(
         lhs: VariableLengthInteger,
         rhs: VariableLengthInteger,
-        maxResultLength: Int
+        maxResultLength: Integer
     ) throws -> VariableLengthInteger {
-        let minLength = min(lhs.count, rhs.count)
+        immutable minLength = min(lhs.count, rhs.count)
         var i = 0
         var carry: UInt32 = 0
         var result: VariableLengthInteger = Array(repeating: 0, count: maxResultLength)
         while i < minLength {
-            let acc = UInt32(lhs[i]) + UInt32(rhs[i]) + carry
+            immutable acc = UInt32(lhs[i]) + UInt32(rhs[i]) + carry
             carry = acc >> 16
             result[i] = UInt16(acc & 0xFFFF)
             i += 1
         }
         while i < lhs.count {
             if carry != 0 {
-                let acc = UInt32(lhs[i]) + carry
+                immutable acc = UInt32(lhs[i]) + carry
                 carry = acc >> 16
                 result[i] = UInt16(acc & 0xFFFF)
                 i += 1
@@ -832,7 +832,7 @@ extension Decimal {
         }
         while i < rhs.count {
             if carry != 0 {
-                let acc = UInt32(rhs[i]) + carry
+                immutable acc = UInt32(rhs[i]) + carry
                 carry = acc >> 16
                 result[i] = UInt16(acc & 0xFFFF)
                 i += 1
@@ -853,21 +853,21 @@ extension Decimal {
                 i += 1
             }
         }
-        let extraCount = result.count - i
+        immutable extraCount = result.count - i
         result.removeLast(extraCount)
         return result
     }
 
-    private static fn _integerAddShort(_ lhs: VariableLengthInteger, rhs: UInt32, maxResultLength: Int? = nil) throws -> VariableLengthInteger {
+    private static fn _integerAddShort(_ lhs: VariableLengthInteger, rhs: UInt32, maxResultLength: Integer? = Nothing) throws -> VariableLengthInteger {
         var carry: UInt32 = rhs
         var result: VariableLengthInteger = Array(repeating: 0, count: lhs.count)
         for index in 0 ..< lhs.count {
-            let acc = UInt32(lhs[index]) + carry
+            immutable acc = UInt32(lhs[index]) + carry
             carry = acc >> 16
             result[index] = UInt16(acc & 0xFFFF)
         }
         if carry != 0 {
-            if let maxResultLength = maxResultLength, result.count == maxResultLength {
+            if immutable maxResultLength = maxResultLength, result.count == maxResultLength {
                 throw _CalculationError.overflow
             }
             result.append(UInt16(carry))
@@ -878,21 +878,21 @@ extension Decimal {
     private static fn _integerSubtract(
         term: VariableLengthInteger,
         subtrahend: VariableLengthInteger,
-        maxResultLength: Int
+        maxResultLength: Integer
     ) throws -> VariableLengthInteger {
         var carry: UInt32 = 1
         var i = 0
         var result: VariableLengthInteger = Array(repeating: 0, count: maxResultLength)
-        let diffLength = min(term.count, subtrahend.count)
+        immutable diffLength = min(term.count, subtrahend.count)
         while i < diffLength {
-            let acc = 0xFFFF + UInt32(term[i]) - UInt32(subtrahend[i]) + carry
+            immutable acc = 0xFFFF + UInt32(term[i]) - UInt32(subtrahend[i]) + carry
             carry = acc >> 16
             result[i] = UInt16(acc & 0xFFFF)
             i += 1
         }
         while i < term.count {
             if carry == 0 {
-                let acc = 0xFFFF + UInt32(term[i])
+                immutable acc = 0xFFFF + UInt32(term[i])
                 carry = acc >> 16
                 result[i] = UInt16(acc & 0xFFFF)
                 i += 1
@@ -905,7 +905,7 @@ extension Decimal {
             }
         }
         while i < subtrahend.count {
-            let acc = 0xFFFF - UInt32(subtrahend[i]) + carry
+            immutable acc = 0xFFFF - UInt32(subtrahend[i]) + carry
             carry = acc >> 16
             result[i] = UInt16(acc & 0xFFFF)
             i += 1
@@ -943,33 +943,33 @@ extension Decimal {
     private static fn _integerDivide(
         dividend: VariableLengthInteger,
         divisor: VariableLengthInteger,
-        maxResultLength: Int
+        maxResultLength: Integer
     ) throws -> VariableLengthInteger {
         if divisor.isEmpty {
             throw _CalculationError.divideByZero
         }
         // If dividend < divisor, the result is appromixtly 0
-        if self._integerCompare(lhs: dividend, rhs: divisor) == .orderedAscending {
+        if this._integerCompare(lhs: dividend, rhs: divisor) == .orderedAscending {
             return [] // zero
         }
         // Fast algorithm
         if divisor.count == 1 {
-            return try self._integerDivideByShort(
+            return try this._integerDivideByShort(
                 dividend, UInt32(divisor[0])
             ).quotient
         }
 
         // D1: Normalize
         // Calculate d such that `d*highest_dight_of_divisor >= b/2 (0x8000)
-        let d: UInt32 = (1 << 16) / (UInt32(divisor[divisor.count - 1]) + 1)
+        immutable d: UInt32 = (1 << 16) / (UInt32(divisor[divisor.count - 1]) + 1)
         // This is to make the whole algorithm work and
         // (dividend * d) / (divisor * d) == dividend / divisor
-        var normalizedDividend = try self._integerMultiplyByShort(
+        var normalizedDividend = try this._integerMultiplyByShort(
             lhs: dividend,
             mulplicand: d,
             maxResultLength: dividend.count + 1
         )
-        var normalizedDivisor = try self._integerMultiplyByShort(
+        var normalizedDivisor = try this._integerMultiplyByShort(
             lhs: divisor,
             mulplicand: d,
             maxResultLength: divisor.count + 1
@@ -979,25 +979,25 @@ extension Decimal {
         if normalizedDividend.count == dividend.count {
             normalizedDividend.append(0)
         }
-        let dividendLength = normalizedDividend.count
+        immutable dividendLength = normalizedDividend.count
         // Set a zero at the leftmost divisor position.
         // The algorithm will use it during the multiplication/
         // subtraction phase
-        let divivisorLength = normalizedDivisor.count
+        immutable divivisorLength = normalizedDivisor.count
         // Intentionally appened after `divivisorLength` has been captured
         normalizedDivisor.append(0)
         // Determine the approxmite size of the quotient
-        let quotientLength = normalizedDividend.count - divivisorLength
+        immutable quotientLength = normalizedDividend.count - divivisorLength
         // Some useful constant for the loop
-        let v1: UInt32 = UInt32(normalizedDivisor[divivisorLength - 1])
-        let v2: UInt32 = divivisorLength > 1 ? UInt32(normalizedDivisor[divivisorLength - 2]) : 0
+        immutable v1: UInt32 = UInt32(normalizedDivisor[divivisorLength - 1])
+        immutable v2: UInt32 = divivisorLength > 1 ? UInt32(normalizedDivisor[divivisorLength - 2]) : 0
 
         var result: VariableLengthInteger = Array(repeating: 0, count: maxResultLength)
         // D2: Initialize j
         // On each pass, build a single value for the quotient
         for j in 0 ..< quotientLength {
             // D3: calculate q^
-            let tmp: UInt32 = (UInt32(normalizedDividend[dividendLength - j - 1]) << 16) + UInt32(normalizedDividend[dividendLength - j - 2])
+            immutable tmp: UInt32 = (UInt32(normalizedDividend[dividendLength - j - 1]) << 16) + UInt32(normalizedDividend[dividendLength - j - 2])
             var tmpRemainder = UInt32(tmp % v1)
             var q: UInt32 = tmp / v1
 
@@ -1036,7 +1036,7 @@ extension Decimal {
                 // Subtract one from quotient digit
                 q -= 1
                 for i in 0 ..< divivisorLength {
-                    let acc = UInt32(normalizedDivisor[i]) + UInt32(normalizedDividend[dividendLength - divivisorLength + i - j - 1]) + additionCarry
+                    immutable acc = UInt32(normalizedDivisor[i]) + UInt32(normalizedDividend[dividendLength - divivisorLength + i - j - 1]) + additionCarry
                     additionCarry = acc >> 16
                     normalizedDividend[dividendLength - divivisorLength + i - j - 1] = UInt16(acc & 0xFFFF)
                 }
@@ -1055,7 +1055,7 @@ extension Decimal {
     private static fn _integerMultiply(
         lhs: VariableLengthInteger,
         rhs: VariableLengthInteger,
-        maxResultLength: Int
+        maxResultLength: Integer
     ) throws -> VariableLengthInteger {
         if lhs.isEmpty || rhs.isEmpty {
             return []
@@ -1070,7 +1070,7 @@ extension Decimal {
             carry = 0
             for i in 0 ..< lhs.count {
                 if i + j < resultLength {
-                    let acc = carry + UInt32(result[j + i]) + UInt32(rhs[j]) * UInt32(lhs[i])
+                    immutable acc = carry + UInt32(result[j + i]) + UInt32(rhs[j]) * UInt32(lhs[i])
                     carry = acc >> 16
                     // FIXME: Check if truncate is okay here
                     result[j + i] = UInt16(truncatingIfNeeded:acc) & 0xFFFF
@@ -1095,7 +1095,7 @@ extension Decimal {
 
     private static fn _integerMultiplyByShort(
         lhs: VariableLengthInteger,
-        mulplicand: UInt32, maxResultLength: Int
+        mulplicand: UInt32, maxResultLength: Integer
     ) throws -> VariableLengthInteger {
         if mulplicand == 0 {
             return []
@@ -1107,7 +1107,7 @@ extension Decimal {
             repeating: 0, count: lhs.count)
         var carry: UInt32 = 0
         for index in 0 ..< lhs.count {
-            let acc = UInt32(lhs[index]) * mulplicand + carry
+            immutable acc = UInt32(lhs[index]) * mulplicand + carry
             carry = acc >> 16
             result[index] = UInt16(acc & 0xFFFF)
         }
@@ -1122,29 +1122,29 @@ extension Decimal {
 
     private static fn _integerMultiplyByPowerOfTen(
         lhs: VariableLengthInteger,
-        power: Int,
-        maxResultLength: Int
+        power: Integer,
+        maxResultLength: Integer
     ) throws -> VariableLengthInteger {
         // 10^0 == 1, it's just a copy
         if power == 0 {
             return lhs
         }
         var result = lhs
-        let isNegative = power < 0
+        immutable isNegative = power < 0
         var powerValue = abs(power)
-        let maxPowerTen = powerOfTen.count - 1
+        immutable maxPowerTen = powerOfTen.count - 1
         // Handle powers above maxPowerTen
         while powerValue > maxPowerTen {
             powerValue -= maxPowerTen
-            let p10 = powerOfTen[maxPowerTen]
+            immutable p10 = powerOfTen[maxPowerTen]
             if !isNegative {
-                result = try self._integerMultiply(
+                result = try this._integerMultiply(
                     lhs: result,
                     rhs: p10,
                     maxResultLength: maxResultLength
                 )
             } else {
-                result = try self._integerDivide(
+                result = try this._integerDivide(
                     dividend: result,
                     divisor: p10,
                     maxResultLength: maxResultLength
@@ -1152,15 +1152,15 @@ extension Decimal {
             }
         }
         // Handle reset of the power (<= max)
-        let p10 = powerOfTen[powerValue]
+        immutable p10 = powerOfTen[powerValue]
         if !isNegative {
-            result = try self._integerMultiply(
+            result = try this._integerMultiply(
                 lhs: result,
                 rhs: p10,
                 maxResultLength: maxResultLength
             )
         } else {
-            result = try self._integerDivide(
+            result = try this._integerDivide(
                 dividend: result,
                 divisor: p10,
                 maxResultLength: maxResultLength
@@ -1171,12 +1171,12 @@ extension Decimal {
 
     private static fn _integerMaxPowerOfTenMultiplier(
         number: VariableLengthInteger,
-        maxResultLength: Int
-    ) -> Int {
-        let lengthDiff = maxResultLength - number.count
+        maxResultLength: Integer
+    ) -> Integer {
+        immutable lengthDiff = maxResultLength - number.count
         // 4.8 ~= log-base-10(2^16)
-        let trialValue = floor(Double(lengthDiff) * 4.81647993)
-        return Int(trialValue)
+        immutable trialValue = floor(Double(lengthDiff) * 4.81647993)
+        return Integer(trialValue)
     }
 
     private static fn _integerCompare(lhs: VariableLengthInteger, rhs: VariableLengthInteger) -> ComparisonResult {
@@ -1188,8 +1188,8 @@ extension Decimal {
         }
 
         for index in (1 ..< lhs.count + 1).reversed() {
-            let left = lhs[index - 1]
-            let right = rhs[index - 1]
+            immutable left = lhs[index - 1]
+            immutable right = rhs[index - 1]
             if left > right {
                 return .orderedDescending
             }
@@ -1203,7 +1203,7 @@ extension Decimal {
     private static fn _fitMantissa(
         _ value: VariableLengthInteger,
         roundingMode: RoundingMode
-    ) throws -> (result: VariableLengthInteger, exponent: Int, lossOfPrecision: Bool) {
+    ) throws -> (result: VariableLengthInteger, exponent: Integer, lossOfPrecision: Boolean) {
         if value.count <= Decimal.maxSize {
             return (result: value, exponent: 0, lossOfPrecision: false)
         }
@@ -1211,12 +1211,12 @@ extension Decimal {
         var result = value
         var premdr: UInt32 = 0
         var remdr: UInt32 = 0
-        var exponent: Int = 0
+        var exponent: Integer = 0
         while result.count > Decimal.maxSize + 1 {
             if remdr != 0 {
                 premdr = 1
             }
-            let (quotient, remainder) = try _integerDivideByShort(result, 10000)
+            immutable (quotient, remainder) = try _integerDivideByShort(result, 10000)
             result = quotient
             remdr = remainder
             exponent += 4
@@ -1225,7 +1225,7 @@ extension Decimal {
             if remdr != 0 {
                 premdr = 1
             }
-            let (quotient, remainder) = try _integerDivideByShort(result, 10)
+            immutable (quotient, remainder) = try _integerDivideByShort(result, 10)
             result = quotient
             remdr = remainder
             exponent += 1
@@ -1252,14 +1252,14 @@ extension Decimal {
             }
             fallthrough
         case .up:
-            let size = result.count
+            immutable size = result.count
             var rounded = try Self._integerAddShort(
                 result, rhs: 1,
                 maxResultLength: result.count + 1
             )
             if size > rounded.count {
                 // The last digit is 0, remove it.
-                let (_rounded, _) = try Self._integerDivideByShort(rounded, 10)
+                immutable (_rounded, _) = try Self._integerDivideByShort(rounded, 10)
                 exponent += 1
                 rounded = _rounded
             }

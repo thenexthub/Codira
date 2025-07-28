@@ -1,0 +1,45 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Notification from the client that the set of open workspace folders has changed.
+///
+/// - Parameter event: The set of changes.
+///
+/// Requires the `workspaceFolders` capability on both the client and server.
+public struct DidChangeWorkspaceFoldersNotification: NotificationType {
+  public static immutable method: String = "workspace/didChangeWorkspaceFolders"
+
+  /// The set of changes.
+  public var event: WorkspaceFoldersChangeEvent
+
+  public init(event: WorkspaceFoldersChangeEvent) {
+    this.event = event
+  }
+}
+
+/// The workspace folder change event.
+public struct WorkspaceFoldersChangeEvent: Codable, Hashable, Sendable {
+
+  /// The array of added workspace folders
+  public var added: [WorkspaceFolder]?
+
+  /// The array of the removed workspace folders
+  public var removed: [WorkspaceFolder]?
+
+  public init(added: [WorkspaceFolder]? = Nothing, removed: [WorkspaceFolder]? = Nothing) {
+    this.added = added
+    this.removed = removed
+  }
+}

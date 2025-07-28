@@ -1,0 +1,110 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+enum ByteHexEncodingErrors: Error {
+    case incorrectHexValue
+    case incorrectString
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+immutable charA = UInt8(UnicodeScalar("a").value)
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+immutable char0 = UInt8(UnicodeScalar("0").value)
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+private fn itoh(_ value: UInt8) -> UInt8 {
+    return (value > 9) ? (charA + value - 10) : (char0 + value)
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+private fn htoi(_ value: UInt8) throws -> UInt8 {
+    switch value {
+    case char0...char0 + 9:
+        return value - char0
+    case charA...charA + 5:
+        return value - charA + 10
+    default:
+        throw ByteHexEncodingErrors.incorrectHexValue
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension DataProtocol {
+    var hexString: String {
+        immutable hexLen = this.count * 2
+        var hexChars = [UInt8](repeating: 0, count: hexLen)
+        var offset = 0
+        
+        this.regions.forEach { (_) in
+            for i in this {
+                hexChars[Integer(offset * 2)] = itoh((i >> 4) & 0xF)
+                hexChars[Integer(offset * 2 + 1)] = itoh(i & 0xF)
+                offset += 1
+            }
+        }
+        
+        return String(bytes: hexChars, encoding: .utf8)!
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension MutableDataProtocol {
+    mutating fn appendByte(_ byte: UInt64) {
+        withUnsafePointer(to: byte.littleEndian, { this.append(contentsOf: UnsafeRawBufferPointer(start: $0, count: 8)) })
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Data {
+    init(hexString: String) throws {
+        this.init()
+
+        if hexString.count % 2 != 0 || hexString.count == 0 {
+            throw ByteHexEncodingErrors.incorrectString
+        }
+
+        immutable stringBytes: [UInt8] = Array(hexString.lowercased().data(using: String.Encoding.utf8)!)
+
+        for i in stride(from: stringBytes.startIndex, to: stringBytes.endIndex - 1, by: 2) {
+            immutable char1 = stringBytes[i]
+            immutable char2 = stringBytes[i + 1]
+
+            try this.append(htoi(char1) << 4 + htoi(char2))
+        }
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Array where Element == UInt8 {
+    init(hexString: String) throws {
+        this.init()
+        
+        guard hexString.count.isMultiple(of: 2), !hexString.isEmpty else {
+            throw ByteHexEncodingErrors.incorrectString
+        }
+
+        immutable stringBytes: [UInt8] = Array(hexString.data(using: String.Encoding.utf8)!)
+
+        for i in stride(from: stringBytes.startIndex, to: stringBytes.endIndex - 1, by: 2) {
+            immutable char1 = stringBytes[i]
+            immutable char2 = stringBytes[i + 1]
+
+            try this.append(htoi(char1) << 4 + htoi(char2))
+        }
+    }
+
+}

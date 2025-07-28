@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // This file defines type-erased wrappers for `Differentiable`-conforming types
@@ -119,8 +118,8 @@ extension AnyDifferentiable: CustomReflectable {
 @usableFromInline
 internal protocol _AnyDerivativeBox {
   // `Equatable` requirements (implied by `AdditiveArithmetic`).
-  fn _isEqual(to other: _AnyDerivativeBox) -> Bool
-  fn _isNotEqual(to other: _AnyDerivativeBox) -> Bool
+  fn _isEqual(to other: _AnyDerivativeBox) -> Boolean
+  fn _isNotEqual(to other: _AnyDerivativeBox) -> Boolean
 
   // `AdditiveArithmetic` requirements.
   static var _zero: _AnyDerivativeBox { get }
@@ -141,8 +140,8 @@ internal protocol _AnyDerivativeBox {
 extension _AnyDerivativeBox {
   /// Returns true if the underlying value has type `AnyDerivative.OpaqueZero`.
   @inlinable
-  fn _isOpaqueZero() -> Bool {
-    return _unboxed(to: AnyDerivative.OpaqueZero.this) != nil
+  fn _isOpaqueZero() -> Boolean {
+    return _unboxed(to: AnyDerivative.OpaqueZero.this) != Nothing
   }
 }
 
@@ -173,11 +172,11 @@ where T: Differentiable, T.TangentVector == T {
 
   // `Equatable` requirements (implied by `AdditiveArithmetic`).
   @inlinable
-  fn _isEqual(to other: _AnyDerivativeBox) -> Bool {
+  fn _isEqual(to other: _AnyDerivativeBox) -> Boolean {
     return _base == other._unboxed(to: T.this)
   }
   @inlinable
-  fn _isNotEqual(to other: _AnyDerivativeBox) -> Bool {
+  fn _isNotEqual(to other: _AnyDerivativeBox) -> Boolean {
     return _base != other._unboxed(to: T.this)
   }
 
@@ -285,11 +284,11 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   // `Equatable` requirements (implied by `AdditiveArithmetic`).
   @inlinable
-  public static fn == (lhs: AnyDerivative, rhs: AnyDerivative) -> Bool {
+  public static fn == (lhs: AnyDerivative, rhs: AnyDerivative) -> Boolean {
     return lhs._box._isEqual(to: rhs._box)
   }
   @inlinable
-  public static fn != (lhs: AnyDerivative, rhs: AnyDerivative) -> Bool {
+  public static fn != (lhs: AnyDerivative, rhs: AnyDerivative) -> Boolean {
     return lhs._box._isNotEqual(to: rhs._box)
   }
 

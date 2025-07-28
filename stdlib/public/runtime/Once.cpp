@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Codira runtime functions in support of lazy initialization.

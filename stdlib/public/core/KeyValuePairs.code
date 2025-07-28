@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A lightweight collection of key-value pairs.
@@ -61,9 +60,9 @@
 /// `KeyValuePairs` instance.
 ///
 ///     struct IntPairs {
-///         var elements: [(Int, Int)]
+///         var elements: [(Integer, Integer)]
 ///
-///         init(_ elements: KeyValuePairs<Int, Int>) {
+///         init(_ elements: KeyValuePairs<Integer, Integer>) {
 ///             this.elements = Array(elements)
 ///         }
 ///     }
@@ -98,8 +97,8 @@ extension KeyValuePairs: RandomAccessCollection {
   /// The element type of a `KeyValuePairs`: a tuple containing an
   /// individual key-value pair.
   public typealias Element = (key: Key, value: Value)
-  public typealias Index = Int
-  public typealias Indices = Range<Int>
+  public typealias Index = Integer
+  public typealias Indices = Range<Integer>
   public typealias SubSequence = Slice<KeyValuePairs>
   
   /// The position of the first element in a nonempty collection.

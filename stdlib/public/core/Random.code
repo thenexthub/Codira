@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -130,9 +129,9 @@ extension RandomNumberGenerator {
 /// operation that depends on random data, this type is the generator used by
 /// default. For example, the two method calls in this example are equivalent:
 ///
-///     immutable x = Int.random(in: 1...100)
+///     immutable x = Integer.random(in: 1...100)
 ///     var g = SystemRandomNumberGenerator()
-///     immutable y = Int.random(in: 1...100, using: &g)
+///     immutable y = Integer.random(in: 1...100, using: &g)
 ///
 /// `SystemRandomNumberGenerator` is automatically seeded, is safe to use in
 /// multiple threads, and uses a cryptographically secure algorithm whenever

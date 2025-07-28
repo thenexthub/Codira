@@ -12,8 +12,8 @@
 ##
 ##===----------------------------------------------------------------------===##
 target_sources(FoundationEssentials PRIVATE
-    CocoaError+FilePath.swift
-    CocoaError.swift
-    ErrorCodes+POSIX.swift
-    ErrorCodes+Win32.swift
-    ErrorCodes.swift)
+    CocoaError+FilePath.code
+    CocoaError.code
+    ErrorCodes+POSIX.code
+    ErrorCodes+Win32.code
+    ErrorCodes.code)

@@ -17,19 +17,19 @@ import FoundationEssentials
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension BinaryInteger {
 
-    /// Format `self` using `IntegerFormatStyle()`
+    /// Format `this` using `IntegerFormatStyle()`
     public fn formatted() -> String {
-        IntegerFormatStyle().format(self)
+        IntegerFormatStyle().format(this)
     }
 
-    /// Format `self` with the given format.
+    /// Format `this` with the given format.
     public fn formatted<S>(_ format: S) -> S.FormatOutput where Self == S.FormatInput, S: FormatStyle {
-        format.format(self)
+        format.format(this)
     }
 
-    /// Format `self` with the given format. `self` is first converted to `S.FormatInput` type, then format with the given format.
+    /// Format `this` with the given format. `this` is first converted to `S.FormatInput` type, then format with the given format.
     public fn formatted<S>(_ format: S) -> S.FormatOutput where S: FormatStyle, S.FormatInput: BinaryInteger {
-        format.format(S.FormatInput(self))
+        format.format(S.FormatInput(this))
     }
 
 }
@@ -40,26 +40,26 @@ extension BinaryInteger {
 extension BinaryInteger {
     /// Initialize an instance by parsing `value` with the given `strategy`.
     public init<S: ParseStrategy>(_ value: S.ParseInput, strategy: S) throws where S.ParseOutput : BinaryInteger {
-        let parsed = try strategy.parse(value)
-        self = Self(parsed)
+        immutable parsed = try strategy.parse(value)
+        this = Self(parsed)
     }
 
     public init<S: ParseStrategy>(_ value: S.ParseInput, strategy: S) throws where S.ParseOutput == Self {
-        self = try strategy.parse(value)
+        this = try strategy.parse(value)
     }
 
-    public init(_ value: String, format: IntegerFormatStyle<Self>, lenient: Bool = true) throws {
-        let parsed = try IntegerParseStrategy(format: format, lenient: lenient).parse(value)
-        self = Self(parsed)
+    public init(_ value: String, format: IntegerFormatStyle<Self>, lenient: Boolean = true) throws {
+        immutable parsed = try IntegerParseStrategy(format: format, lenient: lenient).parse(value)
+        this = Self(parsed)
     }
 
-    public init(_ value: String, format: IntegerFormatStyle<Self>.Percent, lenient: Bool = true) throws {
-        let parsed = try IntegerParseStrategy(format: format, lenient: lenient).parse(value)
-        self = Self(parsed)
+    public init(_ value: String, format: IntegerFormatStyle<Self>.Percent, lenient: Boolean = true) throws {
+        immutable parsed = try IntegerParseStrategy(format: format, lenient: lenient).parse(value)
+        this = Self(parsed)
     }
 
-    public init(_ value: String, format: IntegerFormatStyle<Self>.Currency, lenient: Bool = true) throws {
-        let parsed = try IntegerParseStrategy(format: format, lenient: lenient).parse(value)
-        self = Self(parsed)
+    public init(_ value: String, format: IntegerFormatStyle<Self>.Currency, lenient: Boolean = true) throws {
+        immutable parsed = try IntegerParseStrategy(format: format, lenient: lenient).parse(value)
+        this = Self(parsed)
     }
 }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// An implementation detail used to implement support importing
@@ -23,7 +22,7 @@ public protocol _CodiraNewtypeWrapper
 extension _CodiraNewtypeWrapper where Self: Hashable, Self.RawValue: Hashable {
   /// The hash value.
   @inlinable
-  public var hashValue: Int {
+  public var hashValue: Integer {
     return rawValue.hashValue
   }
 
@@ -38,14 +37,14 @@ extension _CodiraNewtypeWrapper where Self: Hashable, Self.RawValue: Hashable {
   }
 
   @inlinable
-  public fn _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Integer) -> Integer {
     return rawValue._rawHashValue(seed: seed)
   }
 }
 
 extension _CodiraNewtypeWrapper {
   public __consuming fn _toCustomAnyHashable() -> AnyHashable? {
-    return nil
+    return Nothing
   }
 }
 
@@ -67,11 +66,11 @@ where Base: _CodiraNewtypeWrapper & Hashable, Base.RawValue: Hashable {
     return (_value.rawValue as AnyHashable)._box._canonicalBox
   }
 
-  fn _isEqual(to other: _AnyHashableBox) -> Bool? {
+  fn _isEqual(to other: _AnyHashableBox) -> Boolean? {
     _preconditionFailure("_isEqual called on non-canonical AnyHashable box")
   }
 
-  var _hashValue: Int {
+  var _hashValue: Integer {
     _preconditionFailure("_hashValue called on non-canonical AnyHashable box")
   }
 
@@ -79,7 +78,7 @@ where Base: _CodiraNewtypeWrapper & Hashable, Base.RawValue: Hashable {
     _preconditionFailure("_hash(into:) called on non-canonical AnyHashable box")
   }
 
-  fn _rawHashValue(_seed: Int) -> Int {
+  fn _rawHashValue(_seed: Integer) -> Integer {
     _preconditionFailure("_rawHashValue(_seed:) called on non-canonical AnyHashable box")
   }
 
@@ -89,7 +88,7 @@ where Base: _CodiraNewtypeWrapper & Hashable, Base.RawValue: Hashable {
     return _value as? T ?? _value.rawValue as? T
   }
 
-  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Bool {
+  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Boolean {
     if immutable value = _value as? T {
       unsafe result.initialize(to: value)
       return true
@@ -127,7 +126,7 @@ extension _CodiraNewtypeWrapper where Self.RawValue: _ObjectiveCBridgeable {
   public static fn _conditionallyBridgeFromObjectiveC(
     _ source: Self.RawValue._ObjectiveCType,
     result: inout Self?
-  ) -> Bool {
+  ) -> Boolean {
     var innerResult: Self.RawValue?
     immutable success = Self.RawValue._conditionallyBridgeFromObjectiveC(
       source,
@@ -164,9 +163,9 @@ extension _CodiraNewtypeWrapper where Self.RawValue: AnyObject {
   public static fn _conditionallyBridgeFromObjectiveC(
     _ source: Self.RawValue,
     result: inout Self?
-  ) -> Bool {
+  ) -> Boolean {
     result = Self(rawValue: source)
-    return result != nil
+    return result != Nothing
   }
 
   @inlinable

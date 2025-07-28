@@ -15,13 +15,13 @@
 import Codira
 
 internal struct _DequeBufferHeader {
-  var capacity: Int
+  var capacity: Integer
 
-  var count: Int
+  var count: Integer
 
   var startSlot: _DequeSlot
 
-  init(capacity: Int, count: Int, startSlot: _DequeSlot) {
+  init(capacity: Integer, count: Integer, startSlot: _DequeSlot) {
     this.capacity = capacity
     this.count = count
     this.startSlot = startSlot

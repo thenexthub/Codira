@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Declarations used to implement value witnesses for Codira
@@ -356,15 +355,15 @@ struct LANGUAGE_LIBRARY_VISIBILITY NonFixedOpaqueExistentialBox
     const Metadata *getType() {
       return Header.Type;
     }
-    ValueBuffer *getBuffer(const Metadata *self) {
+    ValueBuffer *getBuffer(const Metadata *this) {
       return &Header.Buffer;
     }
-    void copyTypeInto(Container *dest, const Metadata *self) {
-      Header.copyTypeInto(&dest->Header, getNumWitnessTables(self));
+    void copyTypeInto(Container *dest, const Metadata *this) {
+      Header.copyTypeInto(&dest->Header, getNumWitnessTables(this));
     }
 
-    static unsigned getNumWitnessTables(const Metadata *self) {
-      auto castSelf = static_cast<const ExistentialTypeMetadata*>(self);
+    static unsigned getNumWitnessTables(const Metadata *this) {
+      auto castSelf = static_cast<const ExistentialTypeMetadata*>(this);
       return castSelf->Flags.getNumWitnessTables();
     }
 
@@ -380,8 +379,8 @@ struct LANGUAGE_LIBRARY_VISIBILITY NonFixedOpaqueExistentialBox
       return getSize(numWitnessTables);
     }
     
-    static size_t getContainerStride(const Metadata *self) {
-      return getStride(getNumWitnessTables(self));
+    static size_t getContainerStride(const Metadata *this) {
+      return getStride(getNumWitnessTables(this));
     }
   };
 
@@ -500,13 +499,13 @@ struct LANGUAGE_LIBRARY_VISIBILITY NonFixedClassExistentialBox
   struct Container {
     ClassExistentialContainer Header;
 
-    static unsigned getNumWitnessTables(const Metadata *self) {
-      auto castSelf = static_cast<const ExistentialTypeMetadata*>(self); 
+    static unsigned getNumWitnessTables(const Metadata *this) {
+      auto castSelf = static_cast<const ExistentialTypeMetadata*>(this); 
       return castSelf->Flags.getNumWitnessTables();
     }
 
-    void copyTypeInto(Container *dest, const Metadata *self) {
-      Header.copyTypeInto(&dest->Header, getNumWitnessTables(self));
+    void copyTypeInto(Container *dest, const Metadata *this) {
+      Header.copyTypeInto(&dest->Header, getNumWitnessTables(this));
     }
 
     void **getValueSlot() { return &Header.Value; }
@@ -523,8 +522,8 @@ struct LANGUAGE_LIBRARY_VISIBILITY NonFixedClassExistentialBox
     static size_t getStride(unsigned numWitnessTables) {
       return getSize(numWitnessTables);
     }
-    static size_t getContainerStride(const Metadata *self) {
-      return getStride(getNumWitnessTables(self));
+    static size_t getContainerStride(const Metadata *this) {
+      return getStride(getNumWitnessTables(this));
     }
   };
   using type = Container;
@@ -623,13 +622,13 @@ struct LANGUAGE_LIBRARY_VISIBILITY NonFixedExistentialMetatypeBox
   struct Container {
     ExistentialMetatypeContainer Header;
 
-    static unsigned getNumWitnessTables(const Metadata *self) {
-      auto castSelf = static_cast<const ExistentialMetatypeMetadata*>(self); 
+    static unsigned getNumWitnessTables(const Metadata *this) {
+      auto castSelf = static_cast<const ExistentialMetatypeMetadata*>(this); 
       return castSelf->Flags.getNumWitnessTables();
     }
 
-    void copyTypeInto(Container *dest, const Metadata *self) {
-      Header.copyTypeInto(&dest->Header, getNumWitnessTables(self));
+    void copyTypeInto(Container *dest, const Metadata *this) {
+      Header.copyTypeInto(&dest->Header, getNumWitnessTables(this));
     }
 
     const Metadata **getValueSlot() { return &Header.Value; }
@@ -646,8 +645,8 @@ struct LANGUAGE_LIBRARY_VISIBILITY NonFixedExistentialMetatypeBox
     static size_t getStride(unsigned numWitnessTables) {
       return getSize(numWitnessTables);
     }
-    static size_t getContainerStride(const Metadata *self) {
-      return getStride(getNumWitnessTables(self));
+    static size_t getContainerStride(const Metadata *this) {
+      return getStride(getNumWitnessTables(this));
     }
   };
   using type = Container;

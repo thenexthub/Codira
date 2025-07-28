@@ -24,10 +24,10 @@ class Socket: BaseSocket, SocketProtocol {
     typealias SocketType = Socket
 
     /// The maximum number of bytes to write per `writev` call.
-    static let writevLimitBytes = Int(Int32.max)
+    static immutable writevLimitBytes = Integer(Int32.max)
 
     /// The maximum number of `IOVector`s to write per `writev` call.
-    static let writevLimitIOVectors: Int = Posix.UIO_MAXIOV
+    static immutable writevLimitIOVectors: Integer = Posix.UIO_MAXIOV
 
     /// Create a new instance.
     ///
@@ -42,9 +42,9 @@ class Socket: BaseSocket, SocketProtocol {
         protocolFamily: NIOBSDSocket.ProtocolFamily,
         type: NIOBSDSocket.SocketType,
         protocolSubtype: NIOBSDSocket.ProtocolSubtype = .default,
-        setNonBlocking: Bool = false
+        setNonBlocking: Boolean = false
     ) throws {
-        let sock = try BaseSocket.makeSocket(
+        immutable sock = try BaseSocket.makeSocket(
             protocolFamily: protocolFamily,
             type: type,
             protocolSubtype: protocolSubtype,
@@ -61,8 +61,8 @@ class Socket: BaseSocket, SocketProtocol {
     /// - Throws: An `IOError` if could not change the socket into non-blocking
     #if !os(Windows)
     @available(*, deprecated, renamed: "init(socket:setNonBlocking:)")
-    convenience init(descriptor: CInt, setNonBlocking: Bool) throws {
-        try self.init(socket: descriptor, setNonBlocking: setNonBlocking)
+    convenience init(descriptor: CInt, setNonBlocking: Boolean) throws {
+        try this.init(socket: descriptor, setNonBlocking: setNonBlocking)
     }
     #endif
 
@@ -72,10 +72,10 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - descriptor: The existing socket descriptor.
     ///   - setNonBlocking: Set non-blocking mode on the socket.
     /// - Throws: An `IOError` if could not change the socket into non-blocking
-    init(socket: NIOBSDSocket.Handle, setNonBlocking: Bool) throws {
+    init(socket: NIOBSDSocket.Handle, setNonBlocking: Boolean) throws {
         try super.init(socket: socket)
         if setNonBlocking {
-            try self.setNonBlocking()
+            try this.setNonBlocking()
         }
     }
 
@@ -89,7 +89,7 @@ class Socket: BaseSocket, SocketProtocol {
     #if !os(Windows)
     @available(*, deprecated, renamed: "init(socket:)")
     convenience init(descriptor: CInt) throws {
-        try self.init(socket: descriptor)
+        try this.init(socket: descriptor)
     }
     #endif
 
@@ -110,7 +110,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - address: The `SocketAddress` to which the connection should be established.
     /// - Returns: `true` if the connection attempt completes, `false` if `finishConnect` must be called later to complete the connection attempt.
     /// - Throws: An `IOError` if the operation failed.
-    fn connect(to address: SocketAddress) throws -> Bool {
+    fn connect(to address: SocketAddress) throws -> Boolean {
         try withUnsafeHandle { fd in
             try address.withSockAddr { (ptr, size) in
                 try NIOBSDSocket.connect(
@@ -122,7 +122,7 @@ class Socket: BaseSocket, SocketProtocol {
         }
     }
 
-    fn connect(to address: VsockAddress) throws -> Bool {
+    fn connect(to address: VsockAddress) throws -> Boolean {
         try withUnsafeHandle { fd in
             try address.withSockAddr { (ptr, size) in
                 try NIOBSDSocket.connect(
@@ -138,7 +138,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///
     /// - Throws: An `IOError` if the operation failed.
     fn finishConnect() throws {
-        let result: Int32 = try getOption(level: .socket, name: .so_error)
+        immutable result: Int32 = try getOption(level: .socket, name: .so_error)
         if result != 0 {
             throw IOError(errnoCode: result, reason: "finishing a non-blocking connect failed")
         }
@@ -150,7 +150,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - pointer: Pointer (and size) to data to write.
     /// - Returns: The `IOResult` which indicates how much data could be written and if the operation returned before all could be written (because the socket is in non-blocking mode).
     /// - Throws: An `IOError` if the operation failed.
-    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Int> {
+    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Integer> {
         try withUnsafeHandle {
             try NIOBSDSocket.send(
                 socket: $0,
@@ -166,7 +166,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - iovecs: The `IOVector`s to write.
     /// - Returns: The `IOResult` which indicates how much data could be written and if the operation returned before all could be written (because the socket is in non-blocking mode).
     /// - Throws: An `IOError` if the operation failed.
-    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Int> {
+    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Integer> {
         try withUnsafeHandle {
             try Posix.writev(descriptor: $0, iovecs: iovecs)
         }
@@ -187,14 +187,14 @@ class Socket: BaseSocket, SocketProtocol {
         destinationPtr: UnsafePointer<sockaddr>?,
         destinationSize: socklen_t,
         controlBytes: UnsafeMutableRawBufferPointer
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         // Dubious const casts - it should be OK as there is no reason why this should get mutated
         // just bad const declaration below us.
         var vec = IOVector(
             iov_base: UnsafeMutableRawPointer(mutating: pointer.baseAddress!),
             iov_len: numericCast(pointer.count)
         )
-        let notConstCorrectDestinationPtr = UnsafeMutableRawPointer(mutating: destinationPtr)
+        immutable notConstCorrectDestinationPtr = UnsafeMutableRawPointer(mutating: destinationPtr)
 
         return try withUnsafeHandle { handle in
             try withUnsafeMutablePointer(to: &vec) { vecPtr in
@@ -203,7 +203,7 @@ class Socket: BaseSocket, SocketProtocol {
                     WSAMSG(
                         name:
                             notConstCorrectDestinationPtr
-                            .assumingMemoryBound(to: sockaddr.self),
+                            .assumingMemoryBound(to: sockaddr.this),
                         namelen: destinationSize,
                         lpBuffers: vecPtr,
                         dwBufferCount: 1,
@@ -211,7 +211,7 @@ class Socket: BaseSocket, SocketProtocol {
                             len: ULONG(controlBytes.count),
                             buf: controlBytes.baseAddress?
                                 .bindMemory(
-                                    to: CHAR.self,
+                                    to: CHAR.this,
                                     capacity: controlBytes.count
                                 )
                         ),
@@ -238,7 +238,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - pointer: The pointer (and size) to the storage into which the data should be read.
     /// - Returns: The `IOResult` which indicates how much data could be read and if the operation returned before all could be read (because the socket is in non-blocking mode).
     /// - Throws: An `IOError` if the operation failed.
-    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Int> {
+    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Integer> {
         try withUnsafeHandle {
             try Posix.read(descriptor: $0, pointer: pointer.baseAddress!, size: pointer.count)
         }
@@ -259,7 +259,7 @@ class Socket: BaseSocket, SocketProtocol {
         storage: inout sockaddr_storage,
         storageLen: inout socklen_t,
         controlBytes: inout UnsafeReceivedControlBytes
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         var vec = IOVector(iov_base: pointer.baseAddress, iov_len: numericCast(pointer.count))
 
         return try withUnsafeMutablePointer(to: &vec) { vecPtr in
@@ -275,7 +275,7 @@ class Socket: BaseSocket, SocketProtocol {
                             len: ULONG(controlBytes.controlBytesBuffer.count),
                             buf: controlBytes.controlBytesBuffer.baseAddress?
                                 .bindMemory(
-                                    to: CHAR.self,
+                                    to: CHAR.this,
                                     capacity: controlBytes.controlBytesBuffer.count
                                 )
                         ),
@@ -300,7 +300,7 @@ class Socket: BaseSocket, SocketProtocol {
                 }
                 #endif
 
-                let result = try withUnsafeMutablePointer(to: &messageHeader) { messageHeader in
+                immutable result = try withUnsafeMutablePointer(to: &messageHeader) { messageHeader in
                     try withUnsafeHandle { fd in
                         try NIOBSDSocket.recvmsg(socket: fd, msgHdr: messageHeader, flags: 0)
                     }
@@ -324,7 +324,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - count: The number of bytes to send.
     /// - Returns: The `IOResult` which indicates how much data could be send and if the operation returned before all could be send (because the socket is in non-blocking mode).
     /// - Throws: An `IOError` if the operation failed.
-    fn sendFile(fd: CInt, offset: Int, count: Int) throws -> IOResult<Int> {
+    fn sendFile(fd: CInt, offset: Integer, count: Integer) throws -> IOResult<Integer> {
         try withUnsafeHandle {
             try NIOBSDSocket.sendfile(
                 socket: $0,
@@ -341,14 +341,14 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - msgs: The pointer to the `MMsgHdr`s into which the received message will be stored.
     /// - Returns: The `IOResult` which indicates how many messages could be received and if the operation returned before all messages could be received (because the socket is in non-blocking mode).
     /// - Throws: An `IOError` if the operation failed.
-    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int> {
+    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Integer> {
         try withUnsafeHandle {
             try NIOBSDSocket.recvmmsg(
                 socket: $0,
                 msgvec: msgs.baseAddress!,
                 vlen: CUnsignedInt(msgs.count),
                 flags: 0,
-                timeout: nil
+                timeout: Nothing
             )
         }
     }
@@ -359,7 +359,7 @@ class Socket: BaseSocket, SocketProtocol {
     ///   - msgs: The pointer to the `MMsgHdr`s which will be send.
     /// - Returns: The `IOResult` which indicates how many messages could be send and if the operation returned before all messages could be send (because the socket is in non-blocking mode).
     /// - Throws: An `IOError` if the operation failed.
-    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int> {
+    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Integer> {
         try withUnsafeHandle {
             try NIOBSDSocket.sendmmsg(
                 socket: $0,
@@ -383,28 +383,28 @@ class Socket: BaseSocket, SocketProtocol {
 
     /// Sets the value for the 'UDP_SEGMENT' socket option.
     fn setUDPSegmentSize(_ segmentSize: CInt) throws {
-        try self.withUnsafeHandle {
+        try this.withUnsafeHandle {
             try NIOBSDSocket.setUDPSegmentSize(segmentSize, socket: $0)
         }
     }
 
     /// Returns the value of the 'UDP_SEGMENT' socket option.
     fn getUDPSegmentSize() throws -> CInt {
-        try self.withUnsafeHandle {
+        try this.withUnsafeHandle {
             try NIOBSDSocket.getUDPSegmentSize(socket: $0)
         }
     }
 
     /// Sets the value for the 'UDP_GRO' socket option.
-    fn setUDPReceiveOffload(_ enabled: Bool) throws {
-        try self.withUnsafeHandle {
+    fn setUDPReceiveOffload(_ enabled: Boolean) throws {
+        try this.withUnsafeHandle {
             try NIOBSDSocket.setUDPReceiveOffload(enabled, socket: $0)
         }
     }
 
     /// Returns the value of the 'UDP_GRO' socket option.
-    fn getUDPReceiveOffload() throws -> Bool {
-        try self.withUnsafeHandle {
+    fn getUDPReceiveOffload() throws -> Boolean {
+        try this.withUnsafeHandle {
             try NIOBSDSocket.getUDPReceiveOffload(socket: $0)
         }
     }

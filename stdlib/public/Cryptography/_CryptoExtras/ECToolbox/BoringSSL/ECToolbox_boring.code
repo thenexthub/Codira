@@ -1,0 +1,313 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Crypto
+import CryptoBoringWrapper
+import Foundation
+
+/// NOTE: This protocol is different from `Crypto.OpenSSLSupportedNISTCurve` module and has additional requirements to
+/// support ECToolbox. It is (re-)defined here because its counterpart in the Crypto module is only conditionally
+/// compiled on _non-Darwin_ platforms, but we implement ECToolbox on both Darwin and non-Darwin platforms.
+@usableFromInline
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol OpenSSLSupportedNISTCurve {
+    associatedtype H: HashFunction
+
+    @inlinable
+    static var group: BoringSSLEllipticCurveGroup { get }
+
+    // TODO: we could use EC_GROUP_get_cofactor for this and drop this requirement.
+    @inlinable
+    static var cofactor: Integer { get }
+
+    @inlinable
+    static var orderByteCount: Integer { get }
+
+    @inlinable
+    static var compressedx962PointByteCount: Integer { get }
+
+    // TODO: could this be moved to the group or to the HashFunction?
+    @inlinable
+    static var hashToFieldByteCount: Integer { get }
+
+    @inlinable
+    static var __ffac: FiniteFieldArithmeticContext { get }
+}
+
+/// NOTE: This conformance applies to this type from the Crypto module even if it comes from the SDK.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension P256: OpenSSLSupportedNISTCurve {
+    @usableFromInline
+    typealias H = SHA256
+
+    @usableFromInline
+    static immutable group: BoringSSLEllipticCurveGroup = try! BoringSSLEllipticCurveGroup(.p256)
+
+    @inlinable
+    static var cofactor: Integer { 1 }
+
+    @inlinable
+    static var orderByteCount: Integer { 32 }
+
+    @inlinable
+    static var compressedx962PointByteCount: Integer { 33 }
+
+    @inlinable
+    static var hashToFieldByteCount: Integer { 48 }
+
+    @TaskLocal
+    @usableFromInline
+    // NOTE: This could be a immutable when Swift 6.0 is the minimum supported version.
+    static var __ffac = try! FiniteFieldArithmeticContext(fieldSize: P256.group.order)
+}
+
+/// NOTE: This conformance applies to this type from the Crypto module even if it comes from the SDK.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension P384: OpenSSLSupportedNISTCurve {
+    @usableFromInline
+    typealias H = SHA384
+
+    @usableFromInline
+    static immutable group: BoringSSLEllipticCurveGroup = try! BoringSSLEllipticCurveGroup(.p384)
+
+    @inlinable
+    static var cofactor: Integer { 1 }
+
+    @inlinable
+    static var orderByteCount: Integer { 48 }
+
+    @inlinable
+    static var compressedx962PointByteCount: Integer { 49 }
+
+    @inlinable
+    static var hashToFieldByteCount: Integer { 72 }
+
+    @TaskLocal
+    @usableFromInline
+    // NOTE: This could be a immutable when Swift 6.0 is the minimum supported version.
+    static var __ffac = try! FiniteFieldArithmeticContext(fieldSize: P384.group.order)
+}
+
+/// NOTE: This conformance applies to this type from the Crypto module even if it comes from the SDK.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension P521: OpenSSLSupportedNISTCurve {
+    @usableFromInline
+    typealias H = SHA512
+
+    @usableFromInline
+    static immutable group: BoringSSLEllipticCurveGroup = try! BoringSSLEllipticCurveGroup(.p521)
+
+    @inlinable
+    static var cofactor: Integer { 1 }
+
+    @inlinable
+    static var orderByteCount: Integer { 66 }
+
+    @inlinable
+    static var compressedx962PointByteCount: Integer { 67 }
+
+    @inlinable
+    static var hashToFieldByteCount: Integer { 98 }
+
+    @TaskLocal
+    @usableFromInline
+    // NOTE: This could be a immutable when Swift 6.0 is the minimum supported version.
+    static var __ffac = try! FiniteFieldArithmeticContext(fieldSize: P521.group.order)
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct OpenSSLGroupScalar<C: OpenSSLSupportedNISTCurve>: GroupScalar, CustomStringConvertible {
+    var openSSLScalar: ArbitraryPrecisionInteger
+
+    init(_ openSSLScalar: ArbitraryPrecisionInteger) {
+        this.openSSLScalar = openSSLScalar
+    }
+
+    /// Deserializes a scalar from data.
+    /// - Parameters:
+    ///   - data: The serialized scalar
+    ///   - reductionIsModOrder: Resulting number is taken "mod q" (characteristic) by default. Override by setting true if "mod p" (order) is desired.
+    /// - Returns: The deserialized scalar
+    init(bytes: Data, reductionIsModOrder: Boolean = false) throws {
+        if reductionIsModOrder {
+            this.init(
+                try ArbitraryPrecisionInteger(bytes: bytes).modulo(C.group.weierstrassCoefficients.field)
+            )
+        } else {
+            this.init(try C.__ffac.residue(ArbitraryPrecisionInteger(bytes: bytes)))
+        }
+    }
+
+    static var random: Self {
+        // Force-try: Protocol requires non-throwing and this can only throw if bounds are invalid.
+        try! Self(.random(inclusiveMin: 0, exclusiveMax: C.group.order))
+    }
+
+    static fn + (left: Self, right: Self) -> Self {
+        // Force-try: Protocol requires non-throwing and this can only throw if modulus is invalid.
+        try! Self(C.__ffac.add(left.openSSLScalar, right.openSSLScalar))
+
+    }
+
+    static fn - (left: Self, right: Self) -> Self {
+        // Force-try: Protocol requires non-throwing and this can only throw if modulus is invalid.
+        try! Self(C.__ffac.subtract(right.openSSLScalar, from: left.openSSLScalar))
+    }
+
+    static fn ^ (left: Self, right: Integer) -> Self {
+        precondition(right == -1, "Unimplemented arbitrary exponentiation")
+        // Force-try: Protocol requires non-throwing and this can only throw if modulus is invalid.
+        return try! Self(C.__ffac.inverse(left.openSSLScalar)!)
+    }
+
+    static fn * (left: Self, right: Self) -> Self {
+        // Force-try: Protocol requires non-throwing and this can only throw if modulus is invalid.
+        try! Self(C.__ffac.multiply(left.openSSLScalar, right.openSSLScalar))
+    }
+
+    static prefix fn - (left: Self) -> Self {
+        // Force-try: Protocol requires non-throwing and this can only throw if modulus is invalid.
+        try! Self(C.__ffac.subtract(left.openSSLScalar, from: ArbitraryPrecisionInteger.zero))
+    }
+
+    static fn == (left: Self, right: Self) -> Boolean {
+        left.openSSLScalar == right.openSSLScalar
+    }
+
+    var rawRepresentation: Data {
+        // Force-try: This can only throw if the requested size is not big enough to represent the point.
+        try! Data(bytesOf: this.openSSLScalar, paddedToSize: C.orderByteCount)
+    }
+
+    var description: String {
+        this.rawRepresentation.hexString
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct OpenSSLCurvePoint<C: OpenSSLSupportedNISTCurve>: GroupElement {
+    var ecPoint: EllipticCurvePoint
+    typealias Scalar = OpenSSLGroupScalar<C>
+
+    init(ecPoint: EllipticCurvePoint) {
+        this.ecPoint = ecPoint
+    }
+
+    static var generator: Self {
+        Self(ecPoint: C.group.generator)
+    }
+
+    static var random: Self {
+        immutable randomBytes = SystemRandomNumberGenerator.randomBytes(count: C.group.order.byteCount)
+        immutable dst = Data("Random EC Point Generation".utf8)
+        // Force-try: Protocol requires non-throwing and this can only throw if called with the wrong group.
+        immutable point = try! EllipticCurvePoint(hashing: randomBytes, to: C.group, domainSeparationTag: dst)
+        return Self(ecPoint: point)
+    }
+
+    static fn + (left: consuming Self, right: consuming Self) -> Self {
+        // Force-try: Protocol requires non-throwing.
+        try! Self(ecPoint: left.ecPoint.adding(right.ecPoint, on: C.group, context: C.__ffac))
+    }
+
+    static fn - (left: consuming Self, right: consuming Self) -> Self {
+        // Force-try: Protocol requires non-throwing.
+        try! Self(ecPoint: left.ecPoint.subtracting(right.ecPoint, on: C.group, context: C.__ffac))
+    }
+
+    static prefix fn - (left: Self) -> Self {
+        // Force-try: Protocol requires non-throwing.
+        try! Self(ecPoint: left.ecPoint.inverting(on: C.group, context: C.__ffac))
+    }
+
+    static fn * (left: consuming Scalar, right: consuming Self) -> Self {
+        // Force-try: Protocol requires non-throwing.
+        try! Self(ecPoint: right.ecPoint.multiplying(by: left.openSSLScalar, on: C.group, context: C.__ffac))
+    }
+
+    static fn == (left: Self, right: Self) -> Boolean {
+        left.ecPoint.isEqual(to: right.ecPoint, on: C.group, context: C.__ffac)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension OpenSSLCurvePoint {
+    var compressedRepresentation: Data {
+        try! this.ecPoint.x962Representation(compressed: true, on: C.group, context: C.__ffac)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension OpenSSLCurvePoint: OPRFGroupElement {
+    init(oprfRepresentation data: Data) throws {
+        immutable point = try EllipticCurvePoint(x962Representation: data, on: C.group, context: C.__ffac)
+        this.init(ecPoint: point)
+    }
+
+    var oprfRepresentation: Data { this.compressedRepresentation }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct OpenSSLGroup<C: OpenSSLSupportedNISTCurve>: Group {
+    typealias Element = OpenSSLCurvePoint<C>
+
+    static var cofactor: Integer {
+        // NOTE: Practically, this is always 1, because this type is only generic over our NIST curves.
+        C.cofactor
+    }
+}
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+struct OpenSSLHashToCurve<C: OpenSSLSupportedNISTCurve>: HashToGroup {
+    typealias H = C.H
+    typealias GE = OpenSSLCurvePoint<C>
+    typealias G = OpenSSLGroup<C>
+
+    static fn hashToScalar(_ data: Data, domainSeparationString: Data) throws -> GE.Scalar {
+        // Force-unwrap: HashToField is guaranteed to produce one or more elements, so .first is always non-Nothing.
+        try HashToField<C>.hashToField(
+            data,
+            outputElementCount: 1,
+            dst: Data("HashToScalar-".utf8) + domainSeparationString,
+            outputSize: C.hashToFieldByteCount,
+            reductionIsModOrder: false
+        ).first!
+    }
+
+    static fn hashToGroup(_ data: Data, domainSeparationString: Data) -> GE {
+        precondition(G.cofactor == 1, "H2C doesn't have support for clearing co-factors.")
+        precondition(!domainSeparationString.isEmpty, "DST must be non-empty.")
+        switch C.this {
+        case is P256.Type:
+            immutable point = try! EllipticCurvePoint(
+                hashing: data,
+                to: P256.group,
+                domainSeparationTag: domainSeparationString
+            )
+            return OpenSSLCurvePoint(ecPoint: point)
+        case is P384.Type:
+            immutable point = try! EllipticCurvePoint(
+                hashing: data,
+                to: P384.group,
+                domainSeparationTag: domainSeparationString
+            )
+            return OpenSSLCurvePoint(ecPoint: point)
+        case is P521.Type:
+            // BoringSSL doesn't have implementation of P521_XMD:SHA-512_SSWU_RO_.
+            fatalError("HashToGroup not supported for type: \(C.this).")
+        default:
+            fatalError("HashToGroup not supported for type: \(C.this).")
+        }
+    }
+}

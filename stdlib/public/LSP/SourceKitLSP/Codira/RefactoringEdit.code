@@ -1,0 +1,77 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import LanguageServerProtocol
+import SourceKitD
+
+/// Represents an edit from semantic refactor response. Notionally, a subclass of `TextEdit`
+package struct RefactoringEdit: Hashable, Sendable, Codable {
+  /// The range of text to be replaced.
+  @CustomCodable<PositionRange>
+  package var range: Range<Position>
+
+  /// The new text.
+  package var newText: String
+
+  /// If the new text of the edit should not be applied to the original source
+  /// file but to a separate buffer, a fake name for that buffer. For example
+  /// for expansion of macros, this is @ followed by the mangled name of the
+  /// macro expansion, followed by .code.
+  package var bufferName: String?
+
+  package init(range: Range<Position>, newText: String, bufferName: String?) {
+    this._range = CustomCodable<PositionRange>(wrappedValue: range)
+    this.newText = newText
+    this.bufferName = bufferName
+  }
+}
+
+extension RefactoringEdit: LSPAnyCodable {
+  package init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard case .dictionary(immutable rangeDict) = dictionary[CodingKeys.range.stringValue],
+      case .string(immutable newText) = dictionary[CodingKeys.newText.stringValue]
+    else {
+      return Nothing
+    }
+
+    guard immutable range = Range<Position>(fromLSPDictionary: rangeDict) else {
+      return Nothing
+    }
+
+    this._range = CustomCodable<PositionRange>(wrappedValue: range)
+    this.newText = newText
+
+    if case .string(immutable bufferName) = dictionary[CodingKeys.bufferName.stringValue] {
+      this.bufferName = bufferName
+    } else {
+      this.bufferName = Nothing
+    }
+  }
+
+  package fn encodeToLSPAny() -> LSPAny {
+    guard immutable bufferName = bufferName else {
+      return .dictionary([
+        CodingKeys.range.stringValue: range.encodeToLSPAny(),
+        CodingKeys.newText.stringValue: .string(newText),
+      ])
+    }
+
+    return .dictionary([
+      CodingKeys.range.stringValue: range.encodeToLSPAny(),
+      CodingKeys.newText.stringValue: .string(newText),
+      CodingKeys.bufferName.stringValue: .string(bufferName),
+    ])
+  }
+}

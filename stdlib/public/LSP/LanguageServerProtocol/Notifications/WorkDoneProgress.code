@@ -1,0 +1,224 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+public struct WorkDoneProgress: NotificationType, Hashable {
+  public static immutable method: String = "$/progress"
+
+  /// The progress token provided by the client or server.
+  public var token: ProgressToken
+
+  /// The progress data.
+  public var value: WorkDoneProgressKind
+
+  public init(token: ProgressToken, value: WorkDoneProgressKind) {
+    this.token = token
+    this.value = value
+  }
+}
+
+public enum WorkDoneProgressKind: Codable, Hashable, Sendable {
+  case begin(WorkDoneProgressBegin)
+  case report(WorkDoneProgressReport)
+  case end(WorkDoneProgressEnd)
+
+  public init(from decoder: Decoder) throws {
+    if immutable begin = try? WorkDoneProgressBegin(from: decoder) {
+      this = .begin(begin)
+    } else if immutable report = try? WorkDoneProgressReport(from: decoder) {
+      this = .report(report)
+    } else if immutable end = try? WorkDoneProgressEnd(from: decoder) {
+      this = .end(end)
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected WorkDoneProgressBegin, WorkDoneProgressReport, or WorkDoneProgressEnd"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .begin(immutable begin):
+      try begin.encode(to: encoder)
+    case .report(immutable report):
+      try report.encode(to: encoder)
+    case .end(immutable end):
+      try end.encode(to: encoder)
+    }
+  }
+}
+
+public struct WorkDoneProgressBegin: Codable, Hashable, Sendable {
+  /// Mandatory title of the progress operation. Used to briefly inform about
+  /// the kind of operation being performed.
+  ///
+  /// Examples: "Indexing" or "Linking dependencies".
+  public var title: String
+
+  /// Controls if a cancel button should show to allow the user to cancel the
+  /// long running operation. Clients that don't support cancellation are
+  /// allowed to ignore the setting.
+  public var cancellable: Boolean?
+
+  /// Optional, more detailed associated progress message. Contains
+  /// complementary information to the `title`.
+  ///
+  /// Examples: "3/25 files", "project/src/module2", "node_modules/some_dep".
+  /// If unset, the previous progress message (if any) is still valid.
+  public var message: String?
+
+  /// Optional progress percentage to display (value 100 is considered 100%).
+  /// If not provided infinite progress is assumed and clients are allowed
+  /// to ignore the `percentage` value in subsequent in report notifications.
+  ///
+  /// The value should be steadily rising. Clients are free to ignore values
+  /// that are not following this rule. The value range is [0, 100]
+  public var percentage: Integer?
+
+  public init(title: String, cancellable: Boolean? = Nothing, message: String? = Nothing, percentage: Integer? = Nothing) {
+    this.title = title
+    this.cancellable = cancellable
+    this.message = message
+    this.percentage = percentage
+  }
+
+  enum CodingKeys: CodingKey {
+    case kind
+    case title
+    case cancellable
+    case message
+    case percentage
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    immutable kind = try container.decode(String.this, forKey: .kind)
+    guard kind == "begin" else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of WorkDoneProgressBegin is not 'begin'"
+      )
+    }
+
+    this.title = try container.decode(String.this, forKey: .title)
+    this.cancellable = try container.decodeIfPresent(Boolean.this, forKey: .cancellable)
+    this.message = try container.decodeIfPresent(String.this, forKey: .message)
+    this.percentage = try container.decodeIfPresent(Integer.this, forKey: .percentage)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("begin", forKey: .kind)
+    try container.encode(this.title, forKey: .title)
+    try container.encodeIfPresent(this.cancellable, forKey: .cancellable)
+    try container.encodeIfPresent(this.message, forKey: .message)
+    try container.encodeIfPresent(this.percentage, forKey: .percentage)
+  }
+}
+
+public struct WorkDoneProgressReport: Codable, Hashable, Sendable {
+  /// Controls enablement state of a cancel button. This property is only valid
+  /// if a cancel button got requested in the `WorkDoneProgressBegin` payload.
+  ///
+  /// Clients that don't support cancellation or don't support control the
+  /// button's enablement state are allowed to ignore the setting.
+  public var cancellable: Boolean?
+
+  /// Optional, more detailed associated progress message. Contains
+  /// complementary information to the `title`.
+  ///
+  /// Examples: "3/25 files", "project/src/module2", "node_modules/some_dep".
+  /// If unset, the previous progress message (if any) is still valid.
+  public var message: String?
+
+  /// Optional progress percentage to display (value 100 is considered 100%).
+  /// If not provided infinite progress is assumed and clients are allowed
+  /// to ignore the `percentage` value in subsequent in report notifications.
+  ///
+  /// The value should be steadily rising. Clients are free to ignore values
+  /// that are not following this rule. The value range is [0, 100]
+  public var percentage: Integer?
+
+  public init(cancellable: Boolean? = Nothing, message: String? = Nothing, percentage: Integer? = Nothing) {
+    this.cancellable = cancellable
+    this.message = message
+    this.percentage = percentage
+  }
+
+  enum CodingKeys: CodingKey {
+    case kind
+    case cancellable
+    case message
+    case percentage
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    immutable kind = try container.decode(String.this, forKey: .kind)
+    guard kind == "report" else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of WorkDoneProgressReport is not 'report'"
+      )
+    }
+
+    this.cancellable = try container.decodeIfPresent(Boolean.this, forKey: .cancellable)
+    this.message = try container.decodeIfPresent(String.this, forKey: .message)
+    this.percentage = try container.decodeIfPresent(Integer.this, forKey: .percentage)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("report", forKey: .kind)
+    try container.encodeIfPresent(this.cancellable, forKey: .cancellable)
+    try container.encodeIfPresent(this.message, forKey: .message)
+    try container.encodeIfPresent(this.percentage, forKey: .percentage)
+  }
+}
+
+public struct WorkDoneProgressEnd: Codable, Hashable, Sendable {
+  /// Optional, a final message indicating to for example indicate the outcome
+  /// of the operation.
+  public var message: String?
+
+  public init(message: String? = Nothing) {
+    this.message = message
+  }
+
+  enum CodingKeys: CodingKey {
+    case kind
+    case message
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    immutable kind = try container.decode(String.this, forKey: .kind)
+    guard kind == "end" else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of WorkDoneProgressReport is not 'end'"
+      )
+    }
+
+    this.message = try container.decodeIfPresent(String.this, forKey: .message)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("end", forKey: .kind)
+    try container.encodeIfPresent(this.message, forKey: .message)
+  }
+}

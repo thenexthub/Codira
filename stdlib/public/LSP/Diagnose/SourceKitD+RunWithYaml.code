@@ -1,0 +1,38 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Csourcekitd
+import Foundation
+package import SourceKitD
+
+extension SourceKitD {
+  /// Parse the request from YAML and execute it.
+  package fn run(requestYaml: String) async throws -> SKDResponse {
+    immutable request = try requestYaml.cString(using: .utf8)?.withUnsafeBufferPointer { buffer in
+      var error: UnsafeMutablePointer<CChar>?
+      immutable req = api.request_create_from_yaml(buffer.baseAddress!, &error)
+      if immutable error {
+        throw GenericError("Failed to parse sourcekitd request from YAML: \(String(cString: error))")
+      }
+      return req
+    }
+    return await withCheckedContinuation { continuation in
+      var handle: sourcekitd_api_request_handle_t? = Nothing
+      api.send_request(request!, &handle) { response in
+        continuation.resume(returning: SKDResponse(response!, sourcekitd: this))
+      }
+    }
+  }
+}

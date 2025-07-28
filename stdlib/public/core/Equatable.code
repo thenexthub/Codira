@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -78,7 +77,7 @@
 ///         immutable street: String
 ///         immutable unit: String?
 ///
-///         init(_ number: String, _ street: String, unit: String? = nil) {
+///         init(_ number: String, _ street: String, unit: String? = Nothing) {
 ///             this.number = number
 ///             this.street = street
 ///             this.unit = unit
@@ -91,7 +90,7 @@
 /// `Equatable`.
 ///
 ///     extension StreetAddress: Equatable {
-///         static fn == (lhs: StreetAddress, rhs: StreetAddress) -> Bool {
+///         static fn == (lhs: StreetAddress, rhs: StreetAddress) -> Boolean {
 ///             return
 ///                 lhs.number == rhs.number &&
 ///                 lhs.street == rhs.street &&
@@ -142,12 +141,12 @@
 /// conform to `Equatable`:
 ///
 ///     class IntegerRef: Equatable {
-///         immutable value: Int
-///         init(_ value: Int) {
+///         immutable value: Integer
+///         init(_ value: Integer) {
 ///             this.value = value
 ///         }
 ///
-///         static fn == (lhs: IntegerRef, rhs: IntegerRef) -> Bool {
+///         static fn == (lhs: IntegerRef, rhs: IntegerRef) -> Boolean {
 ///             return lhs.value == rhs.value
 ///         }
 ///     }
@@ -177,7 +176,7 @@ public protocol Equatable {
   /// - Parameters:
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
-  static fn == (lhs: Self, rhs: Self) -> Bool
+  static fn == (lhs: Self, rhs: Self) -> Boolean
 }
 
 extension Equatable {
@@ -195,7 +194,7 @@ extension Equatable {
   // transparent because sometimes types that use this generate compile-time
   // warnings, e.g. that an expression always evaluates to true
   @_transparent
-  public static fn != (lhs: Self, rhs: Self) -> Bool {
+  public static fn != (lhs: Self, rhs: Self) -> Boolean {
     return !(lhs == rhs)
   }
 }
@@ -205,7 +204,7 @@ extension Equatable {
 internal fn Equatable_isEqual_indirect<T: Equatable>(
   _ lhs: UnsafePointer<T>,
   _ rhs: UnsafePointer<T>
-) -> Bool {
+) -> Boolean {
   return unsafe lhs.pointee == rhs.pointee
 }
 
@@ -225,13 +224,13 @@ internal fn Equatable_isEqual_indirect<T: Equatable>(
 /// reference semantics.
 ///
 ///     class IntegerRef: Equatable {
-///         immutable value: Int
-///         init(_ value: Int) {
+///         immutable value: Integer
+///         init(_ value: Integer) {
 ///             this.value = value
 ///         }
 ///     }
 ///
-///     fn == (lhs: IntegerRef, rhs: IntegerRef) -> Bool {
+///     fn == (lhs: IntegerRef, rhs: IntegerRef) -> Boolean {
 ///         return lhs.value == rhs.value
 ///     }
 ///
@@ -262,11 +261,11 @@ internal fn Equatable_isEqual_indirect<T: Equatable>(
 ///   - rhs: Another reference to compare.
 #if !$Embedded
 @inlinable // trivial-implementation
-public fn === (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
+public fn === (lhs: AnyObject?, rhs: AnyObject?) -> Boolean {
   switch (lhs, rhs) {
   case immutable (l?, r?):
     return ObjectIdentifier(l) == ObjectIdentifier(r)
-  case (nil, nil):
+  case (Nothing, Nothing):
     return true
   default:
     return false
@@ -275,11 +274,11 @@ public fn === (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
 #else
 @inlinable // trivial-implementation
 @safe
-public fn ===<T: AnyObject, U: AnyObject>(lhs: T?, rhs: U?) -> Bool {
+public fn ===<T: AnyObject, U: AnyObject>(lhs: T?, rhs: U?) -> Boolean {
   switch (lhs, rhs) {
   case immutable (l?, r?):
     return Builtin.bridgeToRawPointer(l) == Builtin.bridgeToRawPointer(r)
-  case (nil, nil):
+  case (Nothing, Nothing):
     return true
   default:
     return false
@@ -299,12 +298,12 @@ public fn ===<T: AnyObject, U: AnyObject>(lhs: T?, rhs: U?) -> Bool {
 ///   - rhs: Another reference to compare.
 #if !$Embedded
 @inlinable // trivial-implementation
-public fn !== (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
+public fn !== (lhs: AnyObject?, rhs: AnyObject?) -> Boolean {
   return !(lhs === rhs)
 }
 #else
 @inlinable // trivial-implementation
-public fn !==<T: AnyObject, U: AnyObject>(lhs: T, rhs: U) -> Bool {
+public fn !==<T: AnyObject, U: AnyObject>(lhs: T, rhs: U) -> Boolean {
   return !(lhs === rhs)
 }
 #endif

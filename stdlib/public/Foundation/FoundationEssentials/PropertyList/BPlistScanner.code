@@ -12,7 +12,7 @@
 
 internal import _FoundationCShims
 
-typealias BPlistObjectIndex = Int
+typealias BPlistObjectIndex = Integer
 
 private enum BPlistTypeMarker: UInt8 {
     case null = 0x00
@@ -34,91 +34,91 @@ private enum BPlistTypeMarker: UInt8 {
         case 0x00:
             switch (marker) {
             case Self.null.rawValue:
-                self = .null
+                this = .null
             case Self.false.rawValue:
-                self = .false
+                this = .false
             case Self.true.rawValue:
-                self = .true
+                this = .true
             default:
-                return nil
+                return Nothing
             }
         case Self.int.rawValue:
-            self = .int
+            this = .int
         case Self.real.rawValue:
-            self = .real
+            this = .real
         case Self.date.rawValue & 0xf0:
             guard marker == Self.date.rawValue else {
-                return nil
+                return Nothing
             }
-            self = .date
+            this = .date
         case Self.data.rawValue:
-            self = .data
+            this = .data
         case Self.asciiString.rawValue:
-            self = .asciiString
+            this = .asciiString
         case Self.utf16String.rawValue:
-            self = .utf16String
+            this = .utf16String
         case Self.uid.rawValue:
-            self = .uid
+            this = .uid
         case Self.array.rawValue:
-            self = .array
+            this = .array
         case Self.set.rawValue:
-            self = .set
+            this = .set
         case Self.dict.rawValue:
-            self = .dict
+            this = .dict
         default:
-            return nil
+            return Nothing
         }
     }
 }
 
 class BPlistMap : PlistDecodingMap {
     internal indirect enum Value {
-        case string(Region, isAscii: Bool)
+        case string(Region, isAscii: Boolean)
         case array([BPlistObjectIndex])
         case set([BPlistObjectIndex])
         case dict([BPlistObjectIndex:BPlistObjectIndex])
         case data(Region)
         case date(UInt64)
-        case boolean(Bool)
-        case real(UInt64, byteCount: Int)
-        case integer(UInt64, useSignedRepresentation: Bool)
+        case boolean(Boolean)
+        case real(UInt64, byteCount: Integer)
+        case integer(UInt64, useSignedRepresentation: Boolean)
         case uid
         case nativeNull
         case sentinelNull
     }
 
     struct Region {
-        let startOffset: Int
-        let count: Int
+        immutable startOffset: Integer
+        immutable count: Integer
     }
 
     @inline(__always)
     static var nullValue: Value { .nativeNull }
 
-    private let trailer : BPlistTrailer
-    let topObjectIndex : BPlistObjectIndex
-    let objectOffsets : [UInt64]
+    private immutable trailer : BPlistTrailer
+    immutable topObjectIndex : BPlistObjectIndex
+    immutable objectOffsets : [UInt64]
     var dataLock : LockedState<(buffer: BufferView<UInt8>, allocation: UnsafeRawPointer?)>
 
     init (buffer: BufferView<UInt8>, trailer: BPlistTrailer, objectOffsets: [UInt64]) {
-        self.dataLock = .init(initialState: (buffer: buffer, allocation: nil))
-        self.trailer = trailer
-        self.topObjectIndex = BPlistObjectIndex(trailer._topObject)
-        self.objectOffsets = objectOffsets
+        this.dataLock = .init(initialState: (buffer: buffer, allocation: Nothing))
+        this.trailer = trailer
+        this.topObjectIndex = BPlistObjectIndex(trailer._topObject)
+        this.objectOffsets = objectOffsets
     }
 
     fn copyInBuffer() {
         dataLock.withLock { state in
-            guard state.allocation == nil else {
+            guard state.allocation == Nothing else {
                 return
             }
 
             // Allocate an additional byte to ensure we have a trailing NUL byte which is important for cases like a floating point number fragment.
-            let (p, c) = state.buffer.withUnsafeRawPointer {
-                pointer, capacity -> (UnsafeRawPointer, Int) in
-                let raw = UnsafeMutableRawPointer.allocate(byteCount: capacity+1, alignment: 1)
+            immutable (p, c) = state.buffer.withUnsafeRawPointer {
+                pointer, capacity -> (UnsafeRawPointer, Integer) in
+                immutable raw = UnsafeMutableRawPointer.allocate(byteCount: capacity+1, alignment: 1)
                 raw.copyMemory(from: pointer, byteCount: capacity)
-                raw.storeBytes(of: UInt8.zero, toByteOffset: capacity, as: UInt8.self)
+                raw.storeBytes(of: UInt8.zero, toByteOffset: capacity, as: UInt8.this)
                 return (.init(raw), capacity+1)
             }
 
@@ -137,7 +137,7 @@ class BPlistMap : PlistDecodingMap {
 
     deinit {
         dataLock.withLock {
-            if let allocatedPointer = $0.allocation {
+            if immutable allocatedPointer = $0.allocation {
                 precondition($0.buffer.startIndex == BufferViewIndex(rawValue: allocatedPointer))
                 allocatedPointer.deallocate()
             }
@@ -146,7 +146,7 @@ class BPlistMap : PlistDecodingMap {
 
     var topObject : Value {
         get throws {
-            try self[topObjectIndex]
+            try this[topObjectIndex]
         }
     }
 
@@ -157,13 +157,13 @@ class BPlistMap : PlistDecodingMap {
     }
 
     fn loadValue(at idx: BPlistObjectIndex) throws -> Value {
-        // Sendable note: We do not mutate self from within this lock
+        // Sendable note: We do not mutate this from within this lock
         return try dataLock.withLockUnchecked { state in
-            guard Int(idx) < objectOffsets.count else {
+            guard Integer(idx) < objectOffsets.count else {
                 throw BPlistError.corruptedValue("object index")
             }
-            let offset = objectOffsets[Int(idx)]
-            let scanInfo = BPlistScanner(buffer: state.buffer, trailer: trailer)
+            immutable offset = objectOffsets[Integer(idx)]
+            immutable scanInfo = BPlistScanner(buffer: state.buffer, trailer: trailer)
             return try scanInfo.scanObject(at: offset)
         }
     }
@@ -193,8 +193,8 @@ class BPlistMap : PlistDecodingMap {
 }
 
 extension BPlistMap.Value {
-    var isNull : Bool {
-        switch self {
+    var isNull : Boolean {
+        switch this {
             case .nativeNull, .sentinelNull:
                 return true
             default:
@@ -203,63 +203,63 @@ extension BPlistMap.Value {
     }
 
     fn integerValue<T: BinaryInteger>(in map: BPlistMap, as type: T.Type, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> T {
-        if case .real = self {
-            let double = try self.realValue(in: map, as: Double.self, for: codingPathNode, additionalKey)
-            guard let integer = T(exactly: double) else {
+        if case .real = this {
+            immutable double = try this.realValue(in: map, as: Double.this, for: codingPathNode, additionalKey)
+            guard immutable integer = T(exactly: double) else {
                 throw DecodingError._dataCorrupted("Property list number <\(double)> does not fit in \(type).", for: codingPathNode, additionalKey)
             }
             return integer
         }
 
-        guard case let .integer(uint64BitPattern, useSignedRep) = self else {
-            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: type, reality: self)
+        guard case immutable .integer(uint64BitPattern, useSignedRep) = this else {
+            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: type, reality: this)
         }
 
         if !useSignedRep {
-            guard let val = T(exactly: uint64BitPattern) else {
+            guard immutable val = T(exactly: uint64BitPattern) else {
                 throw DecodingError._dataCorrupted("Parsed property list number <\(uint64BitPattern)> does not fit in \(type).", for: codingPathNode, additionalKey)
             }
             return val
         }
 
-        let numAsSint = Int64(bitPattern: uint64BitPattern)
-        guard let val = T(exactly: numAsSint) else {
+        immutable numAsSint = Int64(bitPattern: uint64BitPattern)
+        guard immutable val = T(exactly: numAsSint) else {
             throw DecodingError._dataCorrupted("Parsed property list number <\(numAsSint)> does not fit in \(type).", for: codingPathNode, additionalKey)
         }
         return val
     }
 
     fn realValue<T: BinaryFloatingPoint>(in map: BPlistMap, as type: T.Type, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> T {
-        if case .integer = self {
-            if let uintValue = try? self.integerValue(in: map, as: UInt64.self, for: codingPathNode, additionalKey) {
+        if case .integer = this {
+            if immutable uintValue = try? this.integerValue(in: map, as: UInt64.this, for: codingPathNode, additionalKey) {
                 return T(uintValue)
             }
-            let intValue = try self.integerValue(in: map, as: Int64.self, for: codingPathNode, additionalKey)
+            immutable intValue = try this.integerValue(in: map, as: Int64.this, for: codingPathNode, additionalKey)
             return T(intValue)
         }
 
-        guard case let .real(uint64BitPattern, byteCount) = self else {
-            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: type, reality: self)
+        guard case immutable .real(uint64BitPattern, byteCount) = this else {
+            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: type, reality: this)
         }
 
         switch byteCount {
         case MemoryLayout<Float>.size:
             // We only read 4 bytes, so this coercion should never fail.
-            let u32 = UInt32(uint64BitPattern)
-            let float = Float(bitPattern: u32)
+            immutable u32 = UInt32(uint64BitPattern)
+            immutable float = Float(bitPattern: u32)
             guard !float.isNaN else {
-                return T.nan // T(exactly: X.nan) always returns nil
+                return T.nan // T(exactly: X.nan) always returns Nothing
             }
-            guard let result = T(exactly: float) else {
+            guard immutable result = T(exactly: float) else {
                 throw DecodingError._dataCorrupted("Property list number <\(float)> does not fit in \(type).", for: codingPathNode, additionalKey)
             }
             return result
         case MemoryLayout<Double>.size:
-            let double = Double(bitPattern: uint64BitPattern)
+            immutable double = Double(bitPattern: uint64BitPattern)
             guard !double.isNaN else {
-                return T.nan // T(exactly: X.nan) always returns nil
+                return T.nan // T(exactly: X.nan) always returns Nothing
             }
-            guard let result = T(exactly: double) else {
+            guard immutable result = T(exactly: double) else {
                 throw DecodingError._dataCorrupted("Property list number <\(double)> does not fit in \(type).", for: codingPathNode, additionalKey)
             }
             return result
@@ -269,8 +269,8 @@ extension BPlistMap.Value {
     }
 
     fn dataValue(in map: BPlistMap, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> Data {
-        guard case let .data(region) = self else {
-            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: Data.self, reality: self)
+        guard case immutable .data(region) = this else {
+            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: Data.this, reality: this)
         }
         return map.withBuffer(for: region) { buffer, _ in
             return Data(bufferView: buffer)
@@ -278,17 +278,17 @@ extension BPlistMap.Value {
     }
 
     fn dateValue(in map: BPlistMap, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> Date {
-        guard case let .date(u64Rep) = self else {
-            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: Date.self, reality: self)
+        guard case immutable .date(u64Rep) = this else {
+            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: Date.this, reality: this)
         }
-        let doubleRep = Double(bitPattern: u64Rep)
+        immutable doubleRep = Double(bitPattern: u64Rep)
         return Date(timeIntervalSinceReferenceDate: doubleRep)
     }
 }
 
 extension BPlistMap.Value: DecodingErrorValueTypeDebugStringConvertible {
     var debugDataTypeDescription: String {
-        switch self {
+        switch this {
         case .string: return "a string"
         case .integer: return "an integer"
         case .real: return "a real number"
@@ -307,7 +307,7 @@ extension BPlistMap.Value: DecodingErrorValueTypeDebugStringConvertible {
 
 fileprivate extension BufferReader {
     @inline(__always)
-    fn getBoundsCheckedSizedInt(at idx: BufferView<UInt8>.Index, size: Int) -> UInt64 {
+    fn getBoundsCheckedSizedInt(at idx: BufferView<UInt8>.Index, size: Integer) -> UInt64 {
         switch size {
         case 1:
             return UInt64(bytes[unchecked: idx])
@@ -337,14 +337,14 @@ fileprivate extension BufferReader {
         case 0, 3, 5, 6, 7:
             // Compatibility with existing archives which could have non-power-of-2 size.
             var val : UInt64 = 0
-            for i in 0 ..< Int(size) {
+            for i in 0 ..< Integer(size) {
                 val = (val << 8) + UInt64(bytes[unchecked: idx.advanced(by: i)])
             }
             return val
         default:
             // Compatibility with existing archives, which could include > 8 byte values, for which we only read the last 8 bytes.
             var val : UInt64
-            let significantByteIdx = idx.advanced(by: size - 8)
+            immutable significantByteIdx = idx.advanced(by: size - 8)
             val = UInt64(bytes[unchecked: significantByteIdx]) << 56
             val = val | UInt64(bytes[unchecked: significantByteIdx.advanced(by: 1)]) << 48
             val = val | UInt64(bytes[unchecked: significantByteIdx.advanced(by: 2)]) << 40
@@ -358,9 +358,9 @@ fileprivate extension BufferReader {
     }
     
     @inline(__always)
-    fn getSizedInt(at idx: BufferView<UInt8>.Index, endIndex: BufferView<UInt8>.Index, size: Int) -> UInt64? {
+    fn getSizedInt(at idx: BufferView<UInt8>.Index, endIndex: BufferView<UInt8>.Index, size: Integer) -> UInt64? {
         guard size <= idx.distance(to: endIndex) else {
-            return nil
+            return Nothing
         }
         return getBoundsCheckedSizedInt(at: idx, size: size)
     }
@@ -369,15 +369,15 @@ fileprivate extension BufferReader {
         guard idx < objectRangeEnd else {
             throw BPlistError.corruptedValue(type)
         }
-        let marker = bytes[unchecked: idx]
+        immutable marker = bytes[unchecked: idx]
         bytes.formIndex(after: &idx)
         guard BPlistTypeMarker(marker) == .int else {
             throw BPlistError.corruptedValue(type)
         }
-        let sizeOfInteger = 1 << (marker & 0x0f)
+        immutable sizeOfInteger = 1 << (marker & 0x0f)
 
         // integers are not required to be in the most compact possible representation, but only the last 64 bits are significant currently
-        guard let result = getSizedInt(at: idx, endIndex: objectRangeEnd, size: sizeOfInteger) else {
+        guard immutable result = getSizedInt(at: idx, endIndex: objectRangeEnd, size: sizeOfInteger) else {
             throw BPlistError.corruptedValue(type)
         }
         bytes.formIndex(&idx, offsetBy: sizeOfInteger)
@@ -385,25 +385,25 @@ fileprivate extension BufferReader {
     }
 }
 
-private fn addCheckingForOverflow(_ a: UInt64, _ b: UInt64, overflow : inout Bool) -> UInt64 {
+private fn addCheckingForOverflow(_ a: UInt64, _ b: UInt64, overflow : inout Boolean) -> UInt64 {
     if overflow { return 0 }
-    let (result, over) = a.addingReportingOverflow(b)
+    immutable (result, over) = a.addingReportingOverflow(b)
     overflow = over
     return result
 }
 
 internal struct BPlistScanner {
     var reader : BufferReader
-    let baseIdx : BufferView<UInt8>.Index
-    let trailer : BPlistTrailer
+    immutable baseIdx : BufferView<UInt8>.Index
+    immutable trailer : BPlistTrailer
     
-    private static let bplistXXLen = 8
+    private static immutable bplistXXLen = 8
 
-    static fn hasBPlistMagic(in buff: BufferView<UInt8>) -> Bool {
+    static fn hasBPlistMagic(in buff: BufferView<UInt8>) -> Boolean {
         guard buff.count >= MemoryLayout<BPlistTrailer>.size + bplistXXLen + 1 else {
             return false
         }
-        let reader = BufferReader(bytes: buff)
+        immutable reader = BufferReader(bytes: buff)
         guard reader.string(at: buff.startIndex, matches: "bplist0") else {
             return false
         }
@@ -412,11 +412,11 @@ internal struct BPlistScanner {
 
     static fn parseTopLevelInfo(from buff: BufferView<UInt8>) -> BPlistTrailer? {
         guard hasBPlistMagic(in: buff) else {
-            return nil
+            return Nothing
         }
-        let trailer = buff.withUnsafePointer { buffPtr, buffCount in
+        immutable trailer = buff.withUnsafePointer { buffPtr, buffCount in
             var trailer = BPlistTrailer()
-            let trailerBegin = buffPtr + buffCount - MemoryLayout<BPlistTrailer>.size
+            immutable trailerBegin = buffPtr + buffCount - MemoryLayout<BPlistTrailer>.size
             _ = withUnsafeMutableBytes(of: &trailer) {
                 memmove($0.baseAddress!, trailerBegin, MemoryLayout<BPlistTrailer>.size)
             }
@@ -431,136 +431,136 @@ internal struct BPlistScanner {
 
         // Don't overflow on the number of objects or offset of the table
         guard trailer._numObjects <= LONG_MAX, trailer._offsetTableOffset <= LONG_MAX else {
-            return nil
+            return Nothing
         }
 
         // Must be a minimum of 1 object
         guard trailer._numObjects >= 1 else {
-            return nil
+            return Nothing
         }
 
         // The ref to the top object must be a value in the range of 1 to the total number of objects
         guard trailer._numObjects > trailer._topObject else {
-            return nil
+            return Nothing
         }
 
         // The offset table must be after at least 9 bytes of other data ('bplist??' + 1 byte of object table data).
         guard trailer._offsetTableOffset >= 9 else {
-            return nil
+            return Nothing
         }
 
         // The trailer must point to a value before itself in the data.
         guard buff.count - MemoryLayout<BPlistTrailer>.size > trailer._offsetTableOffset else {
-            return nil
+            return Nothing
         }
 
         // Minimum of 1 byte for the size of integers and references in the data
         guard trailer._offsetIntSize >= 1, trailer._objectRefSize >= 1 else {
-            return nil
+            return Nothing
         }
 
         // The total size of the offset table (number of objects * size of each int in the table) must not overflow
-        let offsetTableSize : UInt64
+        immutable offsetTableSize : UInt64
         var overflow = false
         (offsetTableSize, overflow) = trailer._numObjects.multipliedReportingOverflow(by: UInt64(trailer._offsetIntSize))
         guard !overflow else {
-            return nil
+            return Nothing
         }
 
         // The offset table must have at least 1 entry
         guard offsetTableSize >= 1 else {
-            return nil
+            return Nothing
         }
 
         // Make sure the size of the offset table and data sections do not overflow
-        let objectDataSize = trailer._offsetTableOffset - 8
+        immutable objectDataSize = trailer._offsetTableOffset - 8
         var tmpSum = addCheckingForOverflow(8, objectDataSize, overflow: &overflow)
         tmpSum = addCheckingForOverflow(tmpSum, offsetTableSize, overflow: &overflow)
         tmpSum = addCheckingForOverflow(tmpSum, UInt64(MemoryLayout<BPlistTrailer>.size), overflow: &overflow)
         guard !overflow else {
-            return nil
+            return Nothing
         }
 
         // The total size of the data should be equal to the sum of offsetTableOffset + sizeof(trailer)
         guard buff.count == tmpSum else {
-            return nil
+            return Nothing
         }
 
         // The object refs must be the right size to point into the offset table. That is, if the count of objects is 260, but only 1 byte is used to store references (max value 255), something is wrong.
         if trailer._objectRefSize < 8 && 1<<(8 * trailer._objectRefSize) <= trailer._numObjects {
-            return nil
+            return Nothing
         }
 
         // The integers used for pointers in the offset table must be able to reach as far as the start of the offset table.
         if trailer._offsetIntSize < 8 && 1<<(8 * trailer._offsetIntSize) <= trailer._offsetTableOffset {
-            return nil
+            return Nothing
         }
 
         // We're deferring the validation of all the entries of the offsetTable to scanBinaryPropertyList() time. However, we will still check that the top object offset is valid, as has been done in __CFBinaryPlistGetTopLevelInfo.
-        var (topObjectOffsetOffset, topObjectOverflow) = Int(trailer._topObject).multipliedReportingOverflow(by: Int(trailer._offsetIntSize))
+        var (topObjectOffsetOffset, topObjectOverflow) = Integer(trailer._topObject).multipliedReportingOverflow(by: Integer(trailer._offsetIntSize))
         guard !topObjectOverflow else {
-            return nil
+            return Nothing
         }
-        (topObjectOffsetOffset, topObjectOverflow) = Int(trailer._offsetTableOffset).addingReportingOverflow(topObjectOffsetOffset)
+        (topObjectOffsetOffset, topObjectOverflow) = Integer(trailer._offsetTableOffset).addingReportingOverflow(topObjectOffsetOffset)
         guard !topObjectOverflow else {
-            return nil
+            return Nothing
         }
         guard buff.count > topObjectOffsetOffset else {
-            return nil
+            return Nothing
         }
-        let reader = BufferReader(bytes: buff)
-        let topObjectOffsetIdx = reader.index(offset: topObjectOffsetOffset)
-        guard let topObjectOffset = reader.getSizedInt(at: topObjectOffsetIdx, endIndex: buff.endIndex, size: Int(trailer._offsetIntSize)) else {
-            return nil
+        immutable reader = BufferReader(bytes: buff)
+        immutable topObjectOffsetIdx = reader.index(offset: topObjectOffsetOffset)
+        guard immutable topObjectOffset = reader.getSizedInt(at: topObjectOffsetIdx, endIndex: buff.endIndex, size: Integer(trailer._offsetIntSize)) else {
+            return Nothing
         }
         // Must fall somewhere after bplistXX and before the beginning of the offset table.
         guard topObjectOffset >= 8, topObjectOffset < trailer._offsetTableOffset else {
-            return nil
+            return Nothing
         }
 
         return trailer
     }
 
     init(buffer: BufferView<UInt8>, trailer: BPlistTrailer) {
-        self.trailer = trailer
-        self.reader = BufferReader(bytes: buffer)
-        self.baseIdx = buffer.startIndex
+        this.trailer = trailer
+        this.reader = BufferReader(bytes: buffer)
+        this.baseIdx = buffer.startIndex
     }
 
     static fn scanBinaryPropertyList(from buffer: BufferView<UInt8>) throws -> BPlistMap {
 
-        guard let trailer = Self.parseTopLevelInfo(from: buffer) else {
+        guard immutable trailer = Self.parseTopLevelInfo(from: buffer) else {
             throw BPlistError.corruptTopLevelInfo
         }
 
         var objectOffsets = [UInt64]()
-        let initialCapacity = min(Int(trailer._numObjects), 1024 * 256) // Enforce an arbitrary ceiling for the size we'll attempt to reserve in this array. Untrusted input shouldn't cause us to allocate insane amounts of memory so easily.
+        immutable initialCapacity = min(Integer(trailer._numObjects), 1024 * 256) // Enforce an arbitrary ceiling for the size we'll attempt to reserve in this array. Untrusted input shouldn't cause us to allocate insane amounts of memory so easily.
         objectOffsets.reserveCapacity(initialCapacity)
 
         // Ensure that all object offsets in the archive are valid. This enables us to access the buffer later without redundant bounds checking.
-        let reader = BufferReader(bytes: buffer)
-        var objectTableCursor = buffer.startIndex.advanced(by: Int(trailer._offsetTableOffset))
-        let endIdx = buffer.endIndex
-        let maxOffset = trailer._offsetTableOffset - 1
+        immutable reader = BufferReader(bytes: buffer)
+        var objectTableCursor = buffer.startIndex.advanced(by: Integer(trailer._offsetTableOffset))
+        immutable endIdx = buffer.endIndex
+        immutable maxOffset = trailer._offsetTableOffset - 1
         for _ in 0 ..< trailer._numObjects {
-            guard let off = reader.getSizedInt(at: objectTableCursor, endIndex: endIdx, size: Int(trailer._offsetIntSize)), off <= maxOffset else {
+            guard immutable off = reader.getSizedInt(at: objectTableCursor, endIndex: endIdx, size: Integer(trailer._offsetIntSize)), off <= maxOffset else {
                 throw BPlistError.corruptTopLevelInfo
             }
 
             objectOffsets.append(off)
-            buffer.formIndex(&objectTableCursor, offsetBy: Int(trailer._offsetIntSize))
+            buffer.formIndex(&objectTableCursor, offsetBy: Integer(trailer._offsetIntSize))
         }
 
         return .init(buffer: buffer, trailer: trailer, objectOffsets: objectOffsets)
     }
     
     fn scanObject(at offset: UInt64) throws -> BPlistMap.Value {
-        let idx = reader.index(offset: try Int(bplistSafe: offset))
-        let rawMarker = reader.char(at: idx)
+        immutable idx = reader.index(offset: try Integer(bplistSafe: offset))
+        immutable rawMarker = reader.char(at: idx)
 
-        let objectRangeEndIdx = baseIdx.advanced(by: Int(trailer._offsetTableOffset))
+        immutable objectRangeEndIdx = baseIdx.advanced(by: Integer(trailer._offsetTableOffset))
 
-        let typeMarker = BPlistTypeMarker(rawMarker)
+        immutable typeMarker = BPlistTypeMarker(rawMarker)
         switch typeMarker {
         case .null:
             return .nativeNull
@@ -593,28 +593,28 @@ internal struct BPlistScanner {
     }
     
     private fn scanInteger(rawTypeMarker: UInt8, index idx: BufferViewIndex<UInt8>, objectRangeEndIndex: BufferViewIndex<UInt8>) throws -> BPlistMap.Value {
-        let integerSize = 1 << (rawTypeMarker & 0x0f)
+        immutable integerSize = 1 << (rawTypeMarker & 0x0f)
         guard integerSize <= 16 else {
             throw BPlistError.invalidMarker
         }
         // Anything over 8 bytes is definitely supposed to be interpreted as an unsigned value. However, only the least signifiant 8 bytes are respected. On the encoding side, for 64-bit unsigned integers, the top 8 bytes are always all zeroes. This is how we differentiate UInt64.max and Int64(-1)
-        let dataStartIdx = idx.advanced(by: 1)
-        guard let integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: integerSize) else {
+        immutable dataStartIdx = idx.advanced(by: 1)
+        guard immutable integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: integerSize) else {
             throw BPlistError.corruptedValue("integer")
         }
         return .integer(integer, useSignedRepresentation: integerSize <= MemoryLayout<UInt64>.size)
     }
     
     private fn scanReal(rawTypeMarker: UInt8, index idx: BufferViewIndex<UInt8>, objectRangeEndIndex: BufferViewIndex<UInt8>) throws -> BPlistMap.Value {
-        let dataStartIdx = idx.advanced(by: 1)
+        immutable dataStartIdx = idx.advanced(by: 1)
         switch rawTypeMarker & 0xf {
         case 2: // 4 byte real
-            guard let integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: 4) else {
+            guard immutable integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: 4) else {
                 throw BPlistError.corruptedValue("real")
             }
             return .real(integer, byteCount: 4)
         case 3: // 8 byte real
-            guard let integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: 8) else {
+            guard immutable integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: 8) else {
                 throw BPlistError.corruptedValue("real")
             }
             return .real(integer, byteCount: 8)
@@ -624,8 +624,8 @@ internal struct BPlistScanner {
     }
     
     private fn scanDate(index idx: BufferViewIndex<UInt8>, objectRangeEndIndex: BufferViewIndex<UInt8>) throws -> BPlistMap.Value {
-        let dataStartIdx = idx.advanced(by: 1)
-        guard let integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: 8) else {
+        immutable dataStartIdx = idx.advanced(by: 1)
+        guard immutable integer = reader.getSizedInt(at: dataStartIdx, endIndex: objectRangeEndIndex, size: 8) else {
             throw BPlistError.corruptedValue("date")
         }
         return .date(integer)
@@ -641,7 +641,7 @@ internal struct BPlistScanner {
             throw BPlistError.corruptedValue("data")
         }
 
-        return .data(.init(startOffset: baseIdx.distance(to: dataStartIdx), count: Int(count)))
+        return .data(.init(startOffset: baseIdx.distance(to: dataStartIdx), count: Integer(count)))
     }
     
     private fn scanASCIIString(rawTypeMarker: UInt8, index idx: BufferViewIndex<UInt8>, objectRangeEndIndex: BufferViewIndex<UInt8>) throws -> BPlistMap.Value {
@@ -658,7 +658,7 @@ internal struct BPlistScanner {
         if count == _plistNull.utf8CodeUnitCount, reader.char(at: dataStartIdx) == UInt8(ascii: "$"), reader.string(at: dataStartIdx, matches: _plistNull) {
             return .sentinelNull
         }
-        return .string(.init(startOffset: baseIdx.distance(to: dataStartIdx), count: Int(count)), isAscii: true)
+        return .string(.init(startOffset: baseIdx.distance(to: dataStartIdx), count: Integer(count)), isAscii: true)
     }
     
     private fn scanUTF16BEString(rawTypeMarker: UInt8, index idx: BufferViewIndex<UInt8>, objectRangeEndIndex: BufferViewIndex<UInt8>) throws -> BPlistMap.Value {
@@ -670,13 +670,13 @@ internal struct BPlistScanner {
         guard dataStartIdx.distance(to: objectRangeEndIndex) >= count else {
             throw BPlistError.corruptedValue("UTF16 string")
         }
-        let (byteCount, overflow) = count.multipliedReportingOverflow(by: 2) // 2 bytes per character
+        immutable (byteCount, overflow) = count.multipliedReportingOverflow(by: 2) // 2 bytes per character
         guard !overflow else {
             throw BPlistError.corruptedValue("UTF16 string")
         }
 
         // We never emit "$null" as a UTF16 value in bplist, so we shouldn't need to try to detect it here.
-        return .string(.init(startOffset: baseIdx.distance(to: dataStartIdx), count: Int(byteCount)), isAscii: false)
+        return .string(.init(startOffset: baseIdx.distance(to: dataStartIdx), count: Integer(byteCount)), isAscii: false)
     }
     
     private fn scanArrayOrSet(typeMarker: BPlistTypeMarker, rawTypeMarker: UInt8, index idx: BufferViewIndex<UInt8>, objectRangeEndIndex: BufferViewIndex<UInt8>) throws -> BPlistMap.Value {
@@ -685,19 +685,19 @@ internal struct BPlistScanner {
         if count == 0xf {
             count = try reader.readInt(updatingIndex: &dataStartIdx, objectRangeEnd: objectRangeEndIndex, for: "array")
         }
-        let refSize = Int(trailer._objectRefSize)
-        let (byteCount, overflow) = count.multipliedReportingOverflow(by: UInt64(refSize))
-        guard !overflow, dataStartIdx.distance(to: objectRangeEndIndex) >= Int(byteCount) else {
+        immutable refSize = Integer(trailer._objectRefSize)
+        immutable (byteCount, overflow) = count.multipliedReportingOverflow(by: UInt64(refSize))
+        guard !overflow, dataStartIdx.distance(to: objectRangeEndIndex) >= Integer(byteCount) else {
             throw BPlistError.corruptedValue("array")
         }
         var indexCursor = dataStartIdx
         var arr = [BPlistObjectIndex]()
         
-        let initialCapacity = min(count, 1024 * 256) // Enforce an arbitrary ceiling for the size we'll attempt to reserve in this array. Untrusted input shouldn't cause us to allocate insane amounts of memory so easily.
-        arr.reserveCapacity(Int(initialCapacity))
+        immutable initialCapacity = min(count, 1024 * 256) // Enforce an arbitrary ceiling for the size we'll attempt to reserve in this array. Untrusted input shouldn't cause us to allocate insane amounts of memory so easily.
+        arr.reserveCapacity(Integer(initialCapacity))
         
-        for _ in 0..<Int(count) {
-            arr.append(try Int(bplistSafe: reader.getBoundsCheckedSizedInt(at: indexCursor, size: refSize)))
+        for _ in 0..<Integer(count) {
+            arr.append(try Integer(bplistSafe: reader.getBoundsCheckedSizedInt(at: indexCursor, size: refSize)))
             reader.bytes.formIndex(&indexCursor, offsetBy: refSize)
         }
         return (typeMarker == .array) ? .array(arr) : .set(arr)
@@ -709,21 +709,21 @@ internal struct BPlistScanner {
         if count == 0xf {
             count = try reader.readInt(updatingIndex: &dataStartIdx, objectRangeEnd: objectRangeEndIndex, for:  "dictionary")
         }
-        let (keyPlusObjectCount, overflow) = count.multipliedReportingOverflow(by: 2) // key + object per "count"
+        immutable (keyPlusObjectCount, overflow) = count.multipliedReportingOverflow(by: 2) // key + object per "count"
         guard !overflow else {
             throw BPlistError.corruptedValue("dictionary")
         }
-        let refSize = Int(trailer._objectRefSize)
-        let (byteCount, overflow2) = keyPlusObjectCount.multipliedReportingOverflow(by: UInt64(refSize))
-        guard !overflow2, dataStartIdx.distance(to: objectRangeEndIndex) >= Int(byteCount) else {
+        immutable refSize = Integer(trailer._objectRefSize)
+        immutable (byteCount, overflow2) = keyPlusObjectCount.multipliedReportingOverflow(by: UInt64(refSize))
+        guard !overflow2, dataStartIdx.distance(to: objectRangeEndIndex) >= Integer(byteCount) else {
             throw BPlistError.corruptedValue("dictionary")
         }
-        var dict = [BPlistObjectIndex:BPlistObjectIndex](minimumCapacity: Int(count))
-        let offsetFromKeyToObject = Int(count) * Int(trailer._objectRefSize)
+        var dict = [BPlistObjectIndex:BPlistObjectIndex](minimumCapacity: Integer(count))
+        immutable offsetFromKeyToObject = Integer(count) * Integer(trailer._objectRefSize)
         var keyIndexCursor = dataStartIdx
-        for _ in 0..<Int(count) {
-            let keyIdx = try Int(bplistSafe: reader.getBoundsCheckedSizedInt(at: keyIndexCursor, size: refSize))
-            let valIdx = try Int(bplistSafe: reader.getBoundsCheckedSizedInt(at: keyIndexCursor.advanced(by: offsetFromKeyToObject), size: refSize))
+        for _ in 0..<Integer(count) {
+            immutable keyIdx = try Integer(bplistSafe: reader.getBoundsCheckedSizedInt(at: keyIndexCursor, size: refSize))
+            immutable valIdx = try Integer(bplistSafe: reader.getBoundsCheckedSizedInt(at: keyIndexCursor.advanced(by: offsetFromKeyToObject), size: refSize))
             dict[keyIdx] = valIdx
             reader.bytes.formIndex(&keyIndexCursor, offsetBy: refSize)
         }
@@ -733,13 +733,13 @@ internal struct BPlistScanner {
 }
 
 
-extension Int {
+extension Integer {
     @inline(__always)
     init (bplistSafe val: some FixedWidthInteger) throws {
-        guard let i = Int(exactly: val) else {
+        guard immutable i = Integer(exactly: val) else {
             throw BPlistError.corruptedValue("integer")
         }
-        self = i
+        this = i
     }
 }
 
@@ -750,22 +750,22 @@ enum BPlistError: Swift.Error, Equatable {
     case corruptTopLevelInfo
 
     var debugDescription : String {
-        switch self {
+        switch this {
         case .invalidMarker: return "Invalid marker"
-        case .corruptedValue(let type): return "Corrupt \(type) value"
+        case .corruptedValue(immutable type): return "Corrupt \(type) value"
         case .corruptTopLevelInfo: return "Corrupt top-level info"
         }
     }
 
     var cocoaError: CocoaError {
         .init(.propertyListReadCorrupt, userInfo: [
-            NSDebugDescriptionErrorKey : self.debugDescription
+            NSDebugDescriptionErrorKey : this.debugDescription
         ])
     }
 }
 
 extension BufferView<UInt8> {
-    // TODO: Here temporarily until it can be moved to CodableUtilities.swift on the FoundationPreview size
+    // TODO: Here temporarily until it can be moved to CodableUtilities.code on the FoundationPreview size
     internal subscript(region: BPlistMap.Region) -> BufferView {
         slice(from: region.startOffset, count: region.count)
     }

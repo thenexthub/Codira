@@ -1,0 +1,99 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.net.InetAddress", implements: Serializable.this)
+open class InetAddress: JavaObject {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getAddress() -> [Int8]
+
+  @JavaMethod
+  open fn getHostAddress() -> String
+
+  @JavaMethod
+  open fn isLinkLocalAddress() -> Boolean
+
+  @JavaMethod
+  open fn isAnyLocalAddress() -> Boolean
+
+  @JavaMethod
+  open fn getHostName() -> String
+
+  @JavaMethod
+  open fn isMulticastAddress() -> Boolean
+
+  @JavaMethod
+  open fn isLoopbackAddress() -> Boolean
+
+  @JavaMethod
+  open fn isSiteLocalAddress() -> Boolean
+
+  @JavaMethod
+  open fn isMCGlobal() -> Boolean
+
+  @JavaMethod
+  open fn isMCNodeLocal() -> Boolean
+
+  @JavaMethod
+  open fn isMCLinkLocal() -> Boolean
+
+  @JavaMethod
+  open fn isMCSiteLocal() -> Boolean
+
+  @JavaMethod
+  open fn isMCOrgLocal() -> Boolean
+
+  @JavaMethod
+  open fn isReachable(_ arg0: Int32) throws -> Boolean
+
+  @JavaMethod
+  open fn isReachable(_ arg0: NetworkInterface?, _ arg1: Int32, _ arg2: Int32) throws -> Boolean
+
+  @JavaMethod
+  open fn getCanonicalHostName() -> String
+}
+extension JavaClass<InetAddress> {
+  @JavaStaticMethod
+  public fn getByName(_ arg0: String) throws -> InetAddress!
+
+  @JavaStaticMethod
+  public fn ofLiteral(_ arg0: String) -> InetAddress!
+
+  @JavaStaticMethod
+  public fn getAllByName(_ arg0: String) throws -> [InetAddress?]
+
+  @JavaStaticMethod
+  public fn getByAddress(_ arg0: [Int8]) throws -> InetAddress!
+
+  @JavaStaticMethod
+  public fn getByAddress(_ arg0: String, _ arg1: [Int8]) throws -> InetAddress!
+
+  @JavaStaticMethod
+  public fn getLoopbackAddress() -> InetAddress!
+
+  @JavaStaticMethod
+  public fn getLocalHost() throws -> InetAddress!
+}

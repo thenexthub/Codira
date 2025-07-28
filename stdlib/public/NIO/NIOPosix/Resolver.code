@@ -30,7 +30,7 @@ public protocol Resolver {
     ///   - host: The hostname to do an A lookup on.
     ///   - port: The port we'll be connecting to.
     /// - Returns: An `EventLoopFuture` that fires with the result of the lookup.
-    fn initiateAQuery(host: String, port: Int) -> EventLoopFuture<[SocketAddress]>
+    fn initiateAQuery(host: String, port: Integer) -> EventLoopFuture<[SocketAddress]>
 
     /// Initiate a DNS AAAA query for a given host.
     ///
@@ -38,7 +38,7 @@ public protocol Resolver {
     ///   - host: The hostname to do an AAAA lookup on.
     ///   - port: The port we'll be connecting to.
     /// - Returns: An `EventLoopFuture` that fires with the result of the lookup.
-    fn initiateAAAAQuery(host: String, port: Int) -> EventLoopFuture<[SocketAddress]>
+    fn initiateAAAAQuery(host: String, port: Integer) -> EventLoopFuture<[SocketAddress]>
 
     /// Cancel all outstanding DNS queries.
     ///

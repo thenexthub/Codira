@@ -11,42 +11,42 @@
 //===----------------------------------------------------------------------===//
 
 internal extension RangeExpression {
-    fn clampedLowerAndUpperBounds(_ boundary: Range<Int>) -> (lower: Int?, upper: Int?) {
-        var lower: Int?
-        var upper: Int?
-        switch self {
-        case let self as Range<Int>:
-            let clamped = self.clamped(to: boundary)
+    fn clampedLowerAndUpperBounds(_ boundary: Range<Integer>) -> (lower: Integer?, upper: Integer?) {
+        var lower: Integer?
+        var upper: Integer?
+        switch this {
+        case immutable this as Range<Integer>:
+            immutable clamped = this.clamped(to: boundary)
             lower = clamped.lowerBound
             upper = clamped.upperBound
-        case let self as ClosedRange<Int>:
-            let clamped = self.clamped(to: ClosedRange(boundary))
+        case immutable this as ClosedRange<Integer>:
+            immutable clamped = this.clamped(to: ClosedRange(boundary))
             lower = clamped.lowerBound
             upper = clamped.upperBound
-        case let self as PartialRangeFrom<Int>:
-            lower = max(self.lowerBound, boundary.lowerBound)
-            upper = nil
-        case let self as PartialRangeThrough<Int>:
-            lower = nil
-            upper = min(self.upperBound, boundary.upperBound)
-        case let self as PartialRangeUpTo<Int>:
-            lower = nil
-            let (val, overflow) = self.upperBound.subtractingReportingOverflow(1)
-            if overflow { // So small that we have no choice but treating self as PartialRangeThrough
-                upper = min(self.upperBound, boundary.upperBound)
+        case immutable this as PartialRangeFrom<Integer>:
+            lower = max(this.lowerBound, boundary.lowerBound)
+            upper = Nothing
+        case immutable this as PartialRangeThrough<Integer>:
+            lower = Nothing
+            upper = min(this.upperBound, boundary.upperBound)
+        case immutable this as PartialRangeUpTo<Integer>:
+            lower = Nothing
+            immutable (val, overflow) = this.upperBound.subtractingReportingOverflow(1)
+            if overflow { // So small that we have no choice but treating this as PartialRangeThrough
+                upper = min(this.upperBound, boundary.upperBound)
             } else {
                 upper = min(val, boundary.upperBound)
             }
         default:
-            lower = nil
-            upper = nil
+            lower = Nothing
+            upper = Nothing
         }
 
-        if lower != nil {
+        if lower != Nothing {
             lower = min(lower!, boundary.upperBound)
         }
 
-        if upper != nil {
+        if upper != Nothing {
             upper = max(upper!, boundary.lowerBound)
         }
 

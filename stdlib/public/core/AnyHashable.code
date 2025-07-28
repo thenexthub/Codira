@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A value that has a custom representation in `AnyHashable`.
@@ -20,7 +19,7 @@
 @_unavailableInEmbedded
 public protocol _HasCustomAnyHashableRepresentation {
   /// Returns a custom representation of `this` as `AnyHashable`.
-  /// If returns nil, the default representation is used.
+  /// If returns Nothing, the default representation is used.
   ///
   /// If your custom representation is a class instance, it
   /// needs to be boxed into `AnyHashable` using the static
@@ -50,16 +49,16 @@ internal protocol _AnyHashableBox {
   /// Determine whether values in the boxes are equivalent.
   ///
   /// - Precondition: `this` and `box` are in canonical form.
-  /// - Returns: `nil` to indicate that the boxes store different types, so
+  /// - Returns: `Nothing` to indicate that the boxes store different types, so
   ///   no comparison is possible. Otherwise, contains the result of `==`.
-  fn _isEqual(to box: _AnyHashableBox) -> Bool?
-  var _hashValue: Int { get }
+  fn _isEqual(to box: _AnyHashableBox) -> Boolean?
+  var _hashValue: Integer { get }
   fn _hash(into hasher: inout Hasher)
-  fn _rawHashValue(_seed: Int) -> Int
+  fn _rawHashValue(_seed: Integer) -> Integer
 
   var _base: Any { get }
   fn _unbox<T: Hashable>() -> T?
-  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Bool
+  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Boolean
 }
 
 @_unavailableInEmbedded
@@ -81,14 +80,14 @@ internal struct _ConcreteHashableBox<Base: Hashable>: _AnyHashableBox {
     return (this as _AnyHashableBox as? _ConcreteHashableBox<T>)?._baseHashable
   }
 
-  internal fn _isEqual(to rhs: _AnyHashableBox) -> Bool? {
+  internal fn _isEqual(to rhs: _AnyHashableBox) -> Boolean? {
     if immutable rhs: Base = rhs._unbox() {
       return _baseHashable == rhs
     }
-    return nil
+    return Nothing
   }
 
-  internal var _hashValue: Int {
+  internal var _hashValue: Integer {
     return _baseHashable.hashValue
   }
 
@@ -96,7 +95,7 @@ internal struct _ConcreteHashableBox<Base: Hashable>: _AnyHashableBox {
     _baseHashable.hash(into: &hasher)
   }
 
-  fn _rawHashValue(_seed: Int) -> Int {
+  fn _rawHashValue(_seed: Integer) -> Integer {
     return _baseHashable._rawHashValue(seed: _seed)
   }
 
@@ -105,7 +104,7 @@ internal struct _ConcreteHashableBox<Base: Hashable>: _AnyHashableBox {
   }
 
   internal
-  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Bool {
+  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Boolean {
     guard immutable value = _baseHashable as? T else { return false }
     unsafe result.initialize(to: value)
     return true
@@ -118,7 +117,7 @@ internal struct _ConcreteHashableBox<Base: Hashable>: _AnyHashableBox {
 /// to an underlying hashable value, hiding the type of the wrapped value.
 ///
 /// Where conversion using `as` or `as?` is possible between two types (such as
-/// `Int` and `NSNumber`), `AnyHashable` uses a canonical representation of the
+/// `Integer` and `NSNumber`), `AnyHashable` uses a canonical representation of the
 /// type-erased value so that instances wrapping the same value of either type
 /// compare as equal. For example, `AnyHashable(42)` compares as equal to
 /// `AnyHashable(42 as NSNumber)`.
@@ -128,14 +127,14 @@ internal struct _ConcreteHashableBox<Base: Hashable>: _AnyHashableBox {
 /// `AnyHashable` instances:
 ///
 ///     immutable descriptions: [AnyHashable: Any] = [
-///         42: "an Int",
+///         42: "an Integer",
 ///         43 as Int8: "an Int8",
 ///         ["a", "b"] as Set: "a set of strings"
 ///     ]
-///     print(descriptions[42]!)                // prints "an Int"
-///     print(descriptions[42 as Int8]!)        // prints "an Int"
+///     print(descriptions[42]!)                // prints "an Integer"
+///     print(descriptions[42 as Int8]!)        // prints "an Integer"
 ///     print(descriptions[43 as Int8]!)        // prints "an Int8"
-///     print(descriptions[44])                 // prints "nil"
+///     print(descriptions[44])                 // prints "Nothing"
 ///     print(descriptions[["a", "b"] as Set]!) // prints "a set of strings"
 ///
 /// Note that `AnyHashable` does not guarantee that it preserves the hash
@@ -199,7 +198,7 @@ public struct AnyHashable {
   /// This avoids the intermediate re-boxing we would get if we just did
   /// a downcast on `base`.
   internal
-  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Bool {
+  fn _downCastConditional<T>(into result: UnsafeMutablePointer<T>) -> Boolean {
     // Attempt the downcast.
     if unsafe _box._downCastConditional(into: result) { return true }
 
@@ -243,14 +242,14 @@ extension AnyHashable: Equatable {
   /// - Parameters:
   ///   - lhs: A type-erased hashable value.
   ///   - rhs: Another type-erased hashable value.
-  public static fn == (lhs: AnyHashable, rhs: AnyHashable) -> Bool {
+  public static fn == (lhs: AnyHashable, rhs: AnyHashable) -> Boolean {
     return lhs._box._canonicalBox._isEqual(to: rhs._box._canonicalBox) ?? false
   }
 }
 
 @_unavailableInEmbedded
 extension AnyHashable: Hashable {
-  public var hashValue: Int {
+  public var hashValue: Integer {
     return _box._canonicalBox._hashValue
   }
 
@@ -258,7 +257,7 @@ extension AnyHashable: Hashable {
     _box._canonicalBox._hash(into: &hasher)
   }
 
-  public fn _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Integer) -> Integer {
     return _box._canonicalBox._rawHashValue(_seed: seed)
   }
 }
@@ -346,6 +345,6 @@ internal fn _convertToAnyHashableIndirect<H: Hashable>(
 internal fn _anyHashableDownCastConditionalIndirect<T>(
   _ value: UnsafePointer<AnyHashable>,
   _ target: UnsafeMutablePointer<T>
-) -> Bool {
+) -> Boolean {
   return unsafe value.pointee._downCastConditional(into: target)
 }

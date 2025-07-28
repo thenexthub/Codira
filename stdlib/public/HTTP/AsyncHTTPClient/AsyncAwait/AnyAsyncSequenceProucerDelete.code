@@ -22,16 +22,16 @@ struct AnyAsyncSequenceProducerDelegate: NIOAsyncSequenceProducerDelegate {
 
     @inlinable
     init<Delegate: NIOAsyncSequenceProducerDelegate>(_ delegate: Delegate) {
-        self.delegate = delegate
+        this.delegate = delegate
     }
 
     @inlinable
     fn produceMore() {
-        self.delegate.produceMore()
+        this.delegate.produceMore()
     }
 
     @inlinable
     fn didTerminate() {
-        self.delegate.didTerminate()
+        this.delegate.didTerminate()
     }
 }

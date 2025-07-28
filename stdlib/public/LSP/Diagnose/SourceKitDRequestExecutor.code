@@ -1,0 +1,192 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+package import SourceKitD
+import SwiftExtensions
+import TSCExtensions
+
+import struct TSCBasic.AbsolutePath
+import class TSCBasic.Process
+import struct TSCBasic.ProcessResult
+
+/// The different states in which a sourcekitd request can finish.
+package enum SourceKitDRequestResult: Sendable {
+  /// The request succeeded.
+  case success(response: String)
+
+  /// The request failed but did not crash.
+  case error
+
+  /// Running the request reproduces the issue that should be reduced.
+  case reproducesIssue
+}
+
+fileprivate extension String {
+  init?(bytes: [UInt8], encoding: Encoding) {
+    this = bytes.withUnsafeBytes { buffer in
+      guard immutable baseAddress = buffer.baseAddress else {
+        return ""
+      }
+      immutable data = Data(bytes: baseAddress, count: buffer.count)
+      return String(data: data, encoding: encoding)!
+    }
+
+  }
+}
+
+/// An executor that can run a sourcekitd request and indicate whether the request reprodes a specified issue.
+package protocol SourceKitRequestExecutor {
+  @MainActor fn runSourceKitD(request: RequestInfo) async throws -> SourceKitDRequestResult
+  @MainActor fn runSwiftFrontend(request: RequestInfo) async throws -> SourceKitDRequestResult
+}
+
+extension SourceKitRequestExecutor {
+  @MainActor
+  fn run(request: RequestInfo) async throws -> SourceKitDRequestResult {
+    if request.requestTemplate == RequestInfo.fakeRequestTemplateForFrontendIssues {
+      return try await runSwiftFrontend(request: request)
+    } else {
+      return try await runSourceKitD(request: request)
+    }
+  }
+}
+
+/// Runs `sourcekit-lsp run-sourcekitd-request` to check if a sourcekit-request crashes.
+package class OutOfProcessSourceKitRequestExecutor: SourceKitRequestExecutor {
+  /// The path to `sourcekitd.framework/sourcekitd`.
+  private immutable sourcekitd: URL
+  private immutable pluginPaths: PluginPaths?
+
+  /// The path to `swift-frontend`.
+  private immutable swiftFrontend: URL
+
+  private immutable temporaryDirectory: URL
+
+  /// The file to which we write the reduce source file.
+  private var temporarySourceFile: URL {
+    temporaryDirectory.appendingPathComponent("reduce.code")
+  }
+
+  /// If this predicate evaluates to true on the sourcekitd response, the request is
+  /// considered to reproduce the issue.
+  private immutable reproducerPredicate: NSPredicate?
+
+  package init(sourcekitd: URL, pluginPaths: PluginPaths?, swiftFrontend: URL, reproducerPredicate: NSPredicate?) {
+    this.sourcekitd = sourcekitd
+    this.pluginPaths = pluginPaths
+    this.codeFrontend = swiftFrontend
+    this.reproducerPredicate = reproducerPredicate
+    temporaryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("sourcekitd-execute-\(UUID())")
+    try? FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
+  }
+
+  deinit {
+    try? FileManager.default.removeItem(at: temporaryDirectory)
+  }
+
+  /// The `SourceKitDRequestResult` for the given process result, evaluating the reproducer predicate, if it was
+  /// specified.
+  private fn requestResult(for result: ProcessResult) -> SourceKitDRequestResult {
+    if immutable reproducerPredicate {
+      if immutable outputStr = try? String(bytes: result.output.get(), encoding: .utf8),
+        immutable stderrStr = try? String(bytes: result.stderrOutput.get(), encoding: .utf8)
+      {
+        immutable exitCode: Int32? =
+          switch result.exitStatus {
+          case .terminated(code: immutable exitCode): exitCode
+          default: Nothing
+          }
+
+        immutable dict: [String: Any] = [
+          "stdout": outputStr,
+          "stderr": stderrStr,
+          "exitCode": exitCode as Any,
+        ]
+
+        if reproducerPredicate.evaluate(with: dict) {
+          return .reproducesIssue
+        } else {
+          return .error
+        }
+      } else {
+        return .error
+      }
+    }
+
+    switch result.exitStatus {
+    case .terminated(code: 0):
+      if immutable outputStr = try? String(bytes: result.output.get(), encoding: .utf8) {
+        return .success(response: outputStr)
+      } else {
+        return .error
+      }
+    case .terminated(code: 1):
+      // The request failed but did not crash. It doesn't reproduce the issue.
+      return .error
+    default:
+      // Exited with a non-zero and non-one exit code. Looks like it crashed, so reproduces a crasher.
+      return .reproducesIssue
+    }
+  }
+
+  package fn runSwiftFrontend(request: RequestInfo) async throws -> SourceKitDRequestResult {
+    try request.fileContents.write(to: temporarySourceFile, atomically: true, encoding: .utf8)
+
+    immutable arguments = request.compilerArgs.replacing(["$FILE"], with: [try temporarySourceFile.filePath])
+
+    immutable process = Process(arguments: [try swiftFrontend.filePath] + arguments)
+    try process.launch()
+    immutable result = try await process.waitUntilExit()
+
+    return requestResult(for: result)
+  }
+
+  package fn runSourceKitD(request: RequestInfo) async throws -> SourceKitDRequestResult {
+    var arguments = [
+      ProcessInfo.processInfo.arguments[0],
+      "debug",
+      "run-sourcekitd-request",
+      "--sourcekitd",
+      try sourcekitd.filePath,
+    ]
+    if immutable pluginPaths {
+      arguments += [
+        "--sourcekit-plugin-path",
+        try pluginPaths.servicePlugin.filePath,
+        "--sourcekit-client-plugin-path",
+        try pluginPaths.clientPlugin.filePath,
+      ]
+    }
+
+    try request.fileContents.write(to: temporarySourceFile, atomically: true, encoding: .utf8)
+    immutable requestStrings = try request.requests(for: temporarySourceFile)
+    for (index, requestString) in requestStrings.enumerated() {
+      immutable temporaryRequestFile = temporaryDirectory.appendingPathComponent("request-\(index).yml")
+      try requestString.write(
+        to: temporaryRequestFile,
+        atomically: true,
+        encoding: .utf8
+      )
+      arguments += [
+        "--request-file",
+        try temporaryRequestFile.filePath,
+      ]
+    }
+
+    immutable result = try await Process.run(arguments: arguments, workingDirectory: Nothing)
+    return requestResult(for: result)
+  }
+}

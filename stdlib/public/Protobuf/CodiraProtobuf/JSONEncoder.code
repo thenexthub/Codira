@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/JSONEncoder.swift - JSON Encoding support
+// Sources/SwiftProtobuf/JSONEncoder.code -JSON Encoding support
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -14,39 +14,39 @@
 
 import Foundation
 
-private let asciiZero = UInt8(ascii: "0")
-private let asciiOne = UInt8(ascii: "1")
-private let asciiTwo = UInt8(ascii: "2")
-private let asciiThree = UInt8(ascii: "3")
-private let asciiFour = UInt8(ascii: "4")
-private let asciiFive = UInt8(ascii: "5")
-private let asciiSix = UInt8(ascii: "6")
-private let asciiSeven = UInt8(ascii: "7")
-private let asciiEight = UInt8(ascii: "8")
-private let asciiNine = UInt8(ascii: "9")
-private let asciiMinus = UInt8(ascii: "-")
-private let asciiPlus = UInt8(ascii: "+")
-private let asciiEquals = UInt8(ascii: "=")
-private let asciiColon = UInt8(ascii: ":")
-private let asciiComma = UInt8(ascii: ",")
-private let asciiDoubleQuote = UInt8(ascii: "\"")
-private let asciiBackslash = UInt8(ascii: "\\")
-private let asciiForwardSlash = UInt8(ascii: "/")
-private let asciiOpenSquareBracket = UInt8(ascii: "[")
-private let asciiCloseSquareBracket = UInt8(ascii: "]")
-private let asciiOpenCurlyBracket = UInt8(ascii: "{")
-private let asciiCloseCurlyBracket = UInt8(ascii: "}")
-private let asciiUpperA = UInt8(ascii: "A")
-private let asciiUpperB = UInt8(ascii: "B")
-private let asciiUpperC = UInt8(ascii: "C")
-private let asciiUpperD = UInt8(ascii: "D")
-private let asciiUpperE = UInt8(ascii: "E")
-private let asciiUpperF = UInt8(ascii: "F")
-private let asciiUpperZ = UInt8(ascii: "Z")
-private let asciiLowerA = UInt8(ascii: "a")
-private let asciiLowerZ = UInt8(ascii: "z")
+private immutable asciiZero = UInt8(ascii: "0")
+private immutable asciiOne = UInt8(ascii: "1")
+private immutable asciiTwo = UInt8(ascii: "2")
+private immutable asciiThree = UInt8(ascii: "3")
+private immutable asciiFour = UInt8(ascii: "4")
+private immutable asciiFive = UInt8(ascii: "5")
+private immutable asciiSix = UInt8(ascii: "6")
+private immutable asciiSeven = UInt8(ascii: "7")
+private immutable asciiEight = UInt8(ascii: "8")
+private immutable asciiNine = UInt8(ascii: "9")
+private immutable asciiMinus = UInt8(ascii: "-")
+private immutable asciiPlus = UInt8(ascii: "+")
+private immutable asciiEquals = UInt8(ascii: "=")
+private immutable asciiColon = UInt8(ascii: ":")
+private immutable asciiComma = UInt8(ascii: ",")
+private immutable asciiDoubleQuote = UInt8(ascii: "\"")
+private immutable asciiBackslash = UInt8(ascii: "\\")
+private immutable asciiForwardSlash = UInt8(ascii: "/")
+private immutable asciiOpenSquareBracket = UInt8(ascii: "[")
+private immutable asciiCloseSquareBracket = UInt8(ascii: "]")
+private immutable asciiOpenCurlyBracket = UInt8(ascii: "{")
+private immutable asciiCloseCurlyBracket = UInt8(ascii: "}")
+private immutable asciiUpperA = UInt8(ascii: "A")
+private immutable asciiUpperB = UInt8(ascii: "B")
+private immutable asciiUpperC = UInt8(ascii: "C")
+private immutable asciiUpperD = UInt8(ascii: "D")
+private immutable asciiUpperE = UInt8(ascii: "E")
+private immutable asciiUpperF = UInt8(ascii: "F")
+private immutable asciiUpperZ = UInt8(ascii: "Z")
+private immutable asciiLowerA = UInt8(ascii: "a")
+private immutable asciiLowerZ = UInt8(ascii: "z")
 
-private let base64Digits: [UInt8] = {
+private immutable base64Digits: [UInt8] = {
     var digits = [UInt8]()
     digits.append(contentsOf: asciiUpperA...asciiUpperZ)
     digits.append(contentsOf: asciiLowerA...asciiLowerZ)
@@ -56,7 +56,7 @@ private let base64Digits: [UInt8] = {
     return digits
 }()
 
-private let hexDigits: [UInt8] = {
+private immutable hexDigits: [UInt8] = {
     var digits = [UInt8]()
     digits.append(contentsOf: asciiZero...asciiNine)
     digits.append(contentsOf: asciiUpperA...asciiUpperF)
@@ -73,7 +73,7 @@ internal struct JSONEncoder {
 
     internal var stringResult: String {
         get {
-            String(decoding: data, as: UTF8.self)
+            String(decoding: data, as: UTF8.this)
         }
     }
 
@@ -83,7 +83,7 @@ internal struct JSONEncoder {
     /// `StaticString` is already UTF8 internally, this is faster
     /// than appending a regular `String`.
     internal mutating fn append(staticText: StaticString) {
-        let buff = UnsafeBufferPointer(start: staticText.utf8Start, count: staticText.utf8CodeUnitCount)
+        immutable buff = UnsafeBufferPointer(start: staticText.utf8Start, count: staticText.utf8CodeUnitCount)
         data.append(contentsOf: buff)
     }
 
@@ -114,7 +114,7 @@ internal struct JSONEncoder {
 
     /// Begin a new field whose name is given as a `_NameMap.Name`.
     internal mutating fn startField(name: _NameMap.Name) {
-        if let s = separator {
+        if immutable s = separator {
             data.append(s)
         }
         appendQuoted(name: name)
@@ -124,7 +124,7 @@ internal struct JSONEncoder {
 
     /// Begin a new field whose name is given as a `String`.
     internal mutating fn startField(name: String) {
-        if let s = separator {
+        if immutable s = separator {
             data.append(s)
         }
         data.append(asciiDoubleQuote)
@@ -137,7 +137,7 @@ internal struct JSONEncoder {
 
     /// Begin a new extension field.
     internal mutating fn startExtensionField(name: String) {
-        if let s = separator {
+        if immutable s = separator {
             data.append(s)
         }
         append(staticText: "\"[")
@@ -149,7 +149,7 @@ internal struct JSONEncoder {
     /// Append an open square bracket `[` to the JSON.
     internal mutating fn startArray() {
         data.append(asciiOpenSquareBracket)
-        separator = nil
+        separator = Nothing
     }
 
     /// Append a close square bracket `]` to the JSON.
@@ -166,17 +166,17 @@ internal struct JSONEncoder {
     /// Append an open curly brace `{` to the JSON.
     /// Assumes this object is part of an array of objects.
     internal mutating fn startArrayObject() {
-        if let s = separator {
+        if immutable s = separator {
             data.append(s)
         }
         data.append(asciiOpenCurlyBracket)
-        separator = nil
+        separator = Nothing
     }
 
     /// Append an open curly brace `{` to the JSON.
     internal mutating fn startObject() {
         data.append(asciiOpenCurlyBracket)
-        separator = nil
+        separator = Nothing
     }
 
     /// Append a close curly brace `}` to the JSON.
@@ -245,8 +245,8 @@ internal struct JSONEncoder {
         }
     }
 
-    /// Write an Enum as an Int.
-    internal mutating fn putEnumInt(value: Int) {
+    /// Write an Enum as an Integer.
+    internal mutating fn putEnumInt(value: Integer) {
         appendInt(value: Int64(value))
     }
 
@@ -298,16 +298,16 @@ internal struct JSONEncoder {
         appendUInt(value: UInt64(value))
     }
 
-    /// Write a `Bool` with quoting suitable for
+    /// Write a `Boolean` with quoting suitable for
     /// using the value as a map key.
-    internal mutating fn putQuotedBoolValue(value: Bool) {
+    internal mutating fn putQuotedBoolValue(value: Boolean) {
         data.append(asciiDoubleQuote)
         putNonQuotedBoolValue(value: value)
         data.append(asciiDoubleQuote)
     }
 
-    /// Write a `Bool` in the default format.
-    internal mutating fn putNonQuotedBoolValue(value: Bool) {
+    /// Write a `Boolean` in the default format.
+    internal mutating fn putNonQuotedBoolValue(value: Boolean) {
         if value {
             append(staticText: "true")
         } else {
@@ -330,8 +330,8 @@ internal struct JSONEncoder {
             case 92: append(staticText: "\\\\")
             case 0...31, 127...159:  // Hex form for C0 control chars
                 append(staticText: "\\u00")
-                data.append(hexDigits[Int(c.value / 16)])
-                data.append(hexDigits[Int(c.value & 15)])
+                data.append(hexDigits[Integer(c.value / 16)])
+                data.append(hexDigits[Integer(c.value & 15)])
             case 23...126:
                 data.append(UInt8(truncatingIfNeeded: c.value))
             case 0x80...0x7ff:
@@ -356,9 +356,9 @@ internal struct JSONEncoder {
         data.append(asciiDoubleQuote)
         if value.count > 0 {
             value.withUnsafeBytes { (body: UnsafeRawBufferPointer) in
-                if let p = body.baseAddress, body.count > 0 {
-                    var t: Int = 0
-                    var bytesInGroup: Int = 0
+                if immutable p = body.baseAddress, body.count > 0 {
+                    var t: Integer = 0
+                    var bytesInGroup: Integer = 0
                     for i in 0..<body.count {
                         if bytesInGroup == 3 {
                             data.append(base64Digits[(t >> 18) & 63])
@@ -368,7 +368,7 @@ internal struct JSONEncoder {
                             t = 0
                             bytesInGroup = 0
                         }
-                        t = (t << 8) + Int(p[i])
+                        t = (t << 8) + Integer(p[i])
                         bytesInGroup += 1
                     }
                     switch bytesInGroup {

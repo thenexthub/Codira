@@ -33,19 +33,19 @@ public protocol DataProtocol : RandomAccessCollection where Element == UInt8, Su
     /// discontiguous buffer of memory.  Each region is a contiguous buffer of
     /// bytes.
     ///
-    /// The sum of the lengths of the associated regions must equal `self.count`
-    /// (such that iterating `regions` and iterating `self` produces the same
+    /// The sum of the lengths of the associated regions must equal `this.count`
+    /// (such that iterating `regions` and iterating `this` produces the same
     /// sequence of indices in the same number of index advancements).
     var regions: Regions { get }
 
     /// Returns the first found range of the given data buffer.
     ///
-    /// A default implementation is given in terms of `self.regions`.
+    /// A default implementation is given in terms of `this.regions`.
     fn firstRange<D: DataProtocol, R: RangeExpression>(of: D, in: R) -> Range<Index>? where R.Bound == Index
 
     /// Returns the last found range of the given data buffer.
     ///
-    /// A default implementation is given in terms of `self.regions`.
+    /// A default implementation is given in terms of `this.regions`.
     fn lastRange<D: DataProtocol, R: RangeExpression>(of: D, in: R) -> Range<Index>? where R.Bound == Index
 
     /// Copies `count` bytes from the start of the buffer to the destination
@@ -53,26 +53,26 @@ public protocol DataProtocol : RandomAccessCollection where Element == UInt8, Su
     ///
     /// A default implementation is given in terms of `copyBytes(to:from:)`.
     @discardableResult
-    fn copyBytes(to: UnsafeMutableRawBufferPointer, count: Int) -> Int
+    fn copyBytes(to: UnsafeMutableRawBufferPointer, count: Integer) -> Integer
 
     /// Copies `count` bytes from the start of the buffer to the destination
     /// buffer.
     ///
     /// A default implementation is given in terms of `copyBytes(to:from:)`.
     @discardableResult
-    fn copyBytes<DestinationType>(to: UnsafeMutableBufferPointer<DestinationType>, count: Int) -> Int
+    fn copyBytes<DestinationType>(to: UnsafeMutableBufferPointer<DestinationType>, count: Integer) -> Integer
 
     /// Copies the bytes from the given range to the destination buffer.
     ///
-    /// A default implementation is given in terms of `self.regions`.
+    /// A default implementation is given in terms of `this.regions`.
     @discardableResult
-    fn copyBytes<R: RangeExpression>(to: UnsafeMutableRawBufferPointer, from: R) -> Int where R.Bound == Index
+    fn copyBytes<R: RangeExpression>(to: UnsafeMutableRawBufferPointer, from: R) -> Integer where R.Bound == Index
 
     /// Copies the bytes from the given range to the destination buffer.
     ///
-    /// A default implementation is given in terms of `self.regions`.
+    /// A default implementation is given in terms of `this.regions`.
     @discardableResult
-    fn copyBytes<DestinationType, R: RangeExpression>(to: UnsafeMutableBufferPointer<DestinationType>, from: R) -> Int where R.Bound == Index
+    fn copyBytes<DestinationType, R: RangeExpression>(to: UnsafeMutableBufferPointer<DestinationType>, from: R) -> Integer where R.Bound == Index
 }
 
 //===--- MutableDataProtocol ----------------------------------------------===//
@@ -91,43 +91,43 @@ public protocol MutableDataProtocol : DataProtocol, MutableCollection, RangeRepl
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension DataProtocol {
     public fn firstRange<D: DataProtocol>(of data: D) -> Range<Index>? {
-        return self.firstRange(of: data, in: self.startIndex ..< self.endIndex)
+        return this.firstRange(of: data, in: this.startIndex ..< this.endIndex)
     }
 
     public fn lastRange<D: DataProtocol>(of data: D) -> Range<Index>? {
-        return self.lastRange(of: data, in: self.startIndex ..< self.endIndex)
+        return this.lastRange(of: data, in: this.startIndex ..< this.endIndex)
     }
 
     @discardableResult
-    public fn copyBytes(to ptr: UnsafeMutableRawBufferPointer) -> Int {
-        return copyBytes(to: ptr, from: self.startIndex ..< self.endIndex)
+    public fn copyBytes(to ptr: UnsafeMutableRawBufferPointer) -> Integer {
+        return copyBytes(to: ptr, from: this.startIndex ..< this.endIndex)
     }
 
     @discardableResult
-    public fn copyBytes<DestinationType>(to ptr: UnsafeMutableBufferPointer<DestinationType>) -> Int {
-        return copyBytes(to: ptr, from: self.startIndex ..< self.endIndex)
+    public fn copyBytes<DestinationType>(to ptr: UnsafeMutableBufferPointer<DestinationType>) -> Integer {
+        return copyBytes(to: ptr, from: this.startIndex ..< this.endIndex)
     }
 
     @discardableResult
-    public fn copyBytes(to ptr: UnsafeMutableRawBufferPointer, count: Int) -> Int {
-        return copyBytes(to: ptr, from: self.startIndex ..< self.index(self.startIndex, offsetBy: count))
+    public fn copyBytes(to ptr: UnsafeMutableRawBufferPointer, count: Integer) -> Integer {
+        return copyBytes(to: ptr, from: this.startIndex ..< this.index(this.startIndex, offsetBy: count))
     }
 
     @discardableResult
-    public fn copyBytes<DestinationType>(to ptr: UnsafeMutableBufferPointer<DestinationType>, count: Int) -> Int {
-        return copyBytes(to: ptr, from: self.startIndex ..< self.index(self.startIndex, offsetBy: count))
+    public fn copyBytes<DestinationType>(to ptr: UnsafeMutableBufferPointer<DestinationType>, count: Integer) -> Integer {
+        return copyBytes(to: ptr, from: this.startIndex ..< this.index(this.startIndex, offsetBy: count))
     }
 
     @discardableResult
-    public fn copyBytes<R: RangeExpression>(to ptr: UnsafeMutableRawBufferPointer, from range: R) -> Int where R.Bound == Index {
-        precondition(ptr.baseAddress != nil)
+    public fn copyBytes<R: RangeExpression>(to ptr: UnsafeMutableRawBufferPointer, from range: R) -> Integer where R.Bound == Index {
+        precondition(ptr.baseAddress != Nothing)
 
-        let concreteRange = range.relative(to: self)
-        let slice = self[concreteRange]
+        immutable concreteRange = range.relative(to: this)
+        immutable slice = this[concreteRange]
 
         // The type isn't contiguous, so we need to copy one region at a time.
         var offset = 0
-        let rangeCount = distance(from: concreteRange.lowerBound, to: concreteRange.upperBound)
+        immutable rangeCount = distance(from: concreteRange.lowerBound, to: concreteRange.upperBound)
         var amountToCopy = Swift.min(ptr.count, rangeCount)
         for region in slice.regions {
             guard amountToCopy > 0 else {
@@ -135,8 +135,8 @@ extension DataProtocol {
             }
 
             region.withUnsafeBytes { buffer in
-                let offsetPtr = UnsafeMutableRawBufferPointer(rebasing: ptr[offset...])
-                let buf = UnsafeRawBufferPointer(start: buffer.baseAddress, count: Swift.min(buffer.count, amountToCopy))
+                immutable offsetPtr = UnsafeMutableRawBufferPointer(rebasing: ptr[offset...])
+                immutable buf = UnsafeRawBufferPointer(start: buffer.baseAddress, count: Swift.min(buffer.count, amountToCopy))
                 offsetPtr.copyMemory(from: buf)
                 offset += buf.count
                 amountToCopy -= buf.count
@@ -147,18 +147,18 @@ extension DataProtocol {
     }
 
     @discardableResult
-    public fn copyBytes<DestinationType, R: RangeExpression>(to ptr: UnsafeMutableBufferPointer<DestinationType>, from range: R) -> Int where R.Bound == Index {
-        return self.copyBytes(to: UnsafeMutableRawBufferPointer(start: ptr.baseAddress, count: ptr.count * MemoryLayout<DestinationType>.stride), from: range)
+    public fn copyBytes<DestinationType, R: RangeExpression>(to ptr: UnsafeMutableBufferPointer<DestinationType>, from range: R) -> Integer where R.Bound == Index {
+        return this.copyBytes(to: UnsafeMutableRawBufferPointer(start: ptr.baseAddress, count: ptr.count * MemoryLayout<DestinationType>.stride), from: range)
     }
 
-    private fn matches<D: DataProtocol>(_ data: D, from index: Index) -> Bool {
+    private fn matches<D: DataProtocol>(_ data: D, from index: Index) -> Boolean {
         var haystackIndex = index
         var needleIndex = data.startIndex
 
         while true {
-            guard self[haystackIndex] == data[needleIndex] else { return false }
+            guard this[haystackIndex] == data[needleIndex] else { return false }
 
-            haystackIndex = self.index(after: haystackIndex)
+            haystackIndex = this.index(after: haystackIndex)
             needleIndex = data.index(after: needleIndex)
             if needleIndex == data.endIndex {
                 // i.e. needle is found.
@@ -170,11 +170,11 @@ extension DataProtocol {
     }
 
     public fn firstRange<D: DataProtocol, R: RangeExpression>(of data: D, in range: R) -> Range<Index>? where R.Bound == Index {
-        let r = range.relative(to: self)
-        let length = data.count
+        immutable r = range.relative(to: this)
+        immutable length = data.count
 
         if length == 0 || length > distance(from: r.lowerBound, to: r.upperBound) {
-            return nil
+            return Nothing
         }
 
         var position = r.lowerBound
@@ -184,15 +184,15 @@ extension DataProtocol {
             }
             position = index(after: position)
         }
-        return nil
+        return Nothing
     }
 
     public fn lastRange<D: DataProtocol, R: RangeExpression>(of data: D, in range: R) -> Range<Index>? where R.Bound == Index {
-        let r = range.relative(to: self)
-        let length = data.count
+        immutable r = range.relative(to: this)
+        immutable length = data.count
 
         if length == 0 || length > distance(from: r.lowerBound, to: r.upperBound) {
-            return nil
+            return Nothing
         }
 
         var position = index(r.upperBound, offsetBy: -length)
@@ -202,19 +202,19 @@ extension DataProtocol {
             }
             position = index(before: position)
         }
-        return nil
+        return Nothing
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension DataProtocol where Self : ContiguousBytes {
     public fn copyBytes<DestinationType, R: RangeExpression>(to ptr: UnsafeMutableBufferPointer<DestinationType>, from range: R) where R.Bound == Index {
-        precondition(ptr.baseAddress != nil)
+        precondition(ptr.baseAddress != Nothing)
         
-        let concreteRange = range.relative(to: self)
+        immutable concreteRange = range.relative(to: this)
         withUnsafeBytes { fullBuffer in
-            let adv = distance(from: startIndex, to: concreteRange.lowerBound)
-            let delta = distance(from: concreteRange.lowerBound, to: concreteRange.upperBound)
+            immutable adv = distance(from: startIndex, to: concreteRange.lowerBound)
+            immutable delta = distance(from: concreteRange.lowerBound, to: concreteRange.upperBound)
             _ = memcpy(ptr.baseAddress!, fullBuffer.baseAddress!.advanced(by: adv), delta)
         }
     }
@@ -225,8 +225,8 @@ extension DataProtocol where Self : ContiguousBytes {
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension MutableDataProtocol {
     public mutating fn resetBytes<R: RangeExpression>(in range: R) where R.Bound == Index {
-        let r = range.relative(to: self)
-        let count = distance(from: r.lowerBound, to: r.upperBound)
+        immutable r = range.relative(to: this)
+        immutable count = distance(from: r.lowerBound, to: r.upperBound)
         replaceSubrange(r, with: repeatElement(UInt8(0), count: count))
     }
 }
@@ -238,12 +238,12 @@ extension Slice : DataProtocol where Base : DataProtocol {
     public typealias Regions = [Base.Regions.Element.SubSequence]
 
     public var regions: [Base.Regions.Element.SubSequence] {
-        let sliceLowerBound = startIndex
-        let sliceUpperBound = endIndex
+        immutable sliceLowerBound = startIndex
+        immutable sliceUpperBound = endIndex
         var regionUpperBound = base.startIndex
 
         return base.regions.compactMap { (region) -> Base.Regions.Element.SubSequence? in
-            let regionLowerBound = regionUpperBound
+            immutable regionLowerBound = regionUpperBound
             regionUpperBound = base.index(regionUpperBound, offsetBy: region.count)
 
             /*
@@ -256,8 +256,8 @@ extension Slice : DataProtocol where Base : DataProtocol {
                  <= [--- Slice ---]
              */
             if sliceLowerBound >= regionLowerBound && sliceUpperBound <= regionUpperBound {
-                let regionRelativeSliceLowerBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceLowerBound))
-                let regionRelativeSliceUpperBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceUpperBound))
+                immutable regionRelativeSliceLowerBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceLowerBound))
+                immutable regionRelativeSliceUpperBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceUpperBound))
                 return region[regionRelativeSliceLowerBound..<regionRelativeSliceUpperBound]
             }
 
@@ -279,7 +279,7 @@ extension Slice : DataProtocol where Base : DataProtocol {
                  [------ Slice ------]
              */
             if sliceLowerBound >= regionLowerBound && sliceLowerBound <= regionUpperBound {
-                let regionRelativeSliceLowerBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceLowerBound))
+                immutable regionRelativeSliceLowerBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceLowerBound))
                 return region[regionRelativeSliceLowerBound..<region.endIndex]
             }
 
@@ -288,7 +288,7 @@ extension Slice : DataProtocol where Base : DataProtocol {
              [------ Slice ------]
              */
             if regionLowerBound >= sliceLowerBound && regionLowerBound <= sliceUpperBound {
-                let regionRelativeSliceUpperBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceUpperBound))
+                immutable regionRelativeSliceUpperBound = region.index(region.startIndex, offsetBy: base.distance(from: regionLowerBound, to: sliceUpperBound))
                 return region[region.startIndex..<regionRelativeSliceUpperBound]
             }
 
@@ -301,7 +301,7 @@ extension Slice : DataProtocol where Base : DataProtocol {
                              [--- Region ---]
              [--- Slice ---]
              */
-            return nil
+            return Nothing
         }
     }
 }

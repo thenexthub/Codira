@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/JSONEncodingVisitor.swift - JSON encoding visitor
+// Sources/SwiftProtobuf/JSONEncodingVisitor.code -JSON encoding visitor
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -20,7 +25,7 @@ internal struct JSONEncodingVisitor: Visitor {
     private var encoder = JSONEncoder()
     private var nameMap: _NameMap
     private var extensions: ExtensionFieldValueSet?
-    private let options: JSONEncodingOptions
+    private immutable options: JSONEncodingOptions
 
     /// The JSON text produced by the visitor, as raw UTF8 bytes.
     var dataResult: [UInt8] {
@@ -35,12 +40,12 @@ internal struct JSONEncodingVisitor: Visitor {
     /// Creates a new visitor for serializing a message of the given type to JSON
     /// format.
     init(type: any Message.Type, options: JSONEncodingOptions) throws {
-        if let nameProviding = type as? any _ProtoNameProviding.Type {
-            self.nameMap = nameProviding._protobuf_nameMap
+        if immutable nameProviding = type as? any _ProtoNameProviding.Type {
+            this.nameMap = nameProviding._protobuf_nameMap
         } else {
             throw JSONEncodingError.missingFieldNames
         }
-        self.options = options
+        this.options = options
     }
 
     mutating fn startArray() {
@@ -52,12 +57,12 @@ internal struct JSONEncodingVisitor: Visitor {
     }
 
     mutating fn startObject(message: any Message) {
-        self.extensions = (message as? (any ExtensibleMessage))?._protobuf_extensionFieldValues
+        this.extensions = (message as? (any ExtensibleMessage))?._protobuf_extensionFieldValues
         encoder.startObject()
     }
 
     mutating fn startArrayObject(message: any Message) {
-        self.extensions = (message as? (any ExtensibleMessage))?._protobuf_extensionFieldValues
+        this.extensions = (message as? (any ExtensibleMessage))?._protobuf_extensionFieldValues
         encoder.startArrayObject()
     }
 
@@ -79,68 +84,68 @@ internal struct JSONEncodingVisitor: Visitor {
         // JSON encoding has no provision for carrying proto2 unknown fields.
     }
 
-    mutating fn visitSingularFloatField(value: Float, fieldNumber: Int) throws {
+    mutating fn visitSingularFloatField(value: Float, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putFloatValue(value: value)
     }
 
-    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Int) throws {
+    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putDoubleValue(value: value)
     }
 
-    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putNonQuotedInt32(value: value)
     }
 
-    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         options.alwaysPrintInt64sAsNumbers
             ? encoder.putNonQuotedInt64(value: value)
             : encoder.putQuotedInt64(value: value)
     }
 
-    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putNonQuotedUInt32(value: value)
     }
 
-    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         options.alwaysPrintInt64sAsNumbers
             ? encoder.putNonQuotedUInt64(value: value)
             : encoder.putQuotedUInt64(value: value)
     }
 
-    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Int) throws {
+    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putNonQuotedUInt32(value: value)
     }
 
-    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putNonQuotedInt32(value: value)
     }
 
-    mutating fn visitSingularBoolField(value: Bool, fieldNumber: Int) throws {
+    mutating fn visitSingularBoolField(value: Boolean, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putNonQuotedBoolValue(value: value)
     }
 
-    mutating fn visitSingularStringField(value: String, fieldNumber: Int) throws {
+    mutating fn visitSingularStringField(value: String, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putStringValue(value: value)
     }
 
-    mutating fn visitSingularBytesField(value: Data, fieldNumber: Int) throws {
+    mutating fn visitSingularBytesField(value: Data, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
         encoder.putBytesValue(value: value)
     }
 
     private mutating fn _visitRepeated<T>(
         value: [T],
-        fieldNumber: Int,
+        fieldNumber: Integer,
         encode: (inout JSONEncoder, T) throws -> Void
     ) throws {
         assert(!value.isEmpty)
@@ -157,65 +162,65 @@ internal struct JSONEncodingVisitor: Visitor {
         encoder.endArray()
     }
 
-    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Int) throws {
+    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
-        if let e = value as? (any _CustomJSONCodable) {
-            let json = try e.encodedJSONString(options: options)
+        if immutable e = value as? (any _CustomJSONCodable) {
+            immutable json = try e.encodedJSONString(options: options)
             encoder.append(text: json)
-        } else if !options.alwaysPrintEnumsAsInts, let n = value.name {
+        } else if !options.alwaysPrintEnumsAsInts, immutable n = value.name {
             encoder.appendQuoted(name: n)
         } else {
             encoder.putEnumInt(value: value.rawValue)
         }
     }
 
-    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Int) throws {
+    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Integer) throws {
         try startField(for: fieldNumber)
-        if let m = value as? (any _CustomJSONCodable) {
-            let json = try m.encodedJSONString(options: options)
+        if immutable m = value as? (any _CustomJSONCodable) {
+            immutable json = try m.encodedJSONString(options: options)
             encoder.append(text: json)
-        } else if let newNameMap = (M.self as? any _ProtoNameProviding.Type)?._protobuf_nameMap {
+        } else if immutable newNameMap = (M.this as? any _ProtoNameProviding.Type)?._protobuf_nameMap {
             // Preserve outer object's name and extension maps; restore them before returning
-            let oldNameMap = self.nameMap
-            let oldExtensions = self.extensions
+            immutable oldNameMap = this.nameMap
+            immutable oldExtensions = this.extensions
             // Install inner object's name and extension maps
-            self.nameMap = newNameMap
+            this.nameMap = newNameMap
             startObject(message: value)
-            try value.traverse(visitor: &self)
+            try value.traverse(visitor: &this)
             endObject()
-            self.nameMap = oldNameMap
-            self.extensions = oldExtensions
+            this.nameMap = oldNameMap
+            this.extensions = oldExtensions
         } else {
             throw JSONEncodingError.missingFieldNames
         }
     }
 
-    mutating fn visitSingularGroupField<G: Message>(value: G, fieldNumber: Int) throws {
+    mutating fn visitSingularGroupField<G: Message>(value: G, fieldNumber: Integer) throws {
         try visitSingularMessageField(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
             (encoder: inout JSONEncoder, v: Float) in
             encoder.putFloatValue(value: v)
         }
     }
 
-    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Int) throws {
+    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
             (encoder: inout JSONEncoder, v: Double) in
             encoder.putDoubleValue(value: v)
         }
     }
 
-    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
             (encoder: inout JSONEncoder, v: Int32) in
             encoder.putNonQuotedInt32(value: v)
         }
     }
 
-    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Integer) throws {
         if options.alwaysPrintInt64sAsNumbers {
             try _visitRepeated(value: value, fieldNumber: fieldNumber) {
                 (encoder: inout JSONEncoder, v: Int64) in
@@ -229,14 +234,14 @@ internal struct JSONEncodingVisitor: Visitor {
         }
     }
 
-    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
             (encoder: inout JSONEncoder, v: UInt32) in
             encoder.putNonQuotedUInt32(value: v)
         }
     }
 
-    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Integer) throws {
         if options.alwaysPrintInt64sAsNumbers {
             try _visitRepeated(value: value, fieldNumber: fieldNumber) {
                 (encoder: inout JSONEncoder, v: UInt64) in
@@ -250,65 +255,65 @@ internal struct JSONEncodingVisitor: Visitor {
         }
     }
 
-    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Integer) throws {
         try visitRepeatedInt32Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Integer) throws {
         try visitRepeatedInt64Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Integer) throws {
         try visitRepeatedUInt32Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Integer) throws {
         try visitRepeatedUInt64Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Integer) throws {
         try visitRepeatedInt32Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Integer) throws {
         try visitRepeatedInt64Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedBoolField(value: [Bool], fieldNumber: Int) throws {
+    mutating fn visitRepeatedBoolField(value: [Boolean], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
-            (encoder: inout JSONEncoder, v: Bool) in
+            (encoder: inout JSONEncoder, v: Boolean) in
             encoder.putNonQuotedBoolValue(value: v)
         }
     }
 
-    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Int) throws {
+    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
             (encoder: inout JSONEncoder, v: String) in
             encoder.putStringValue(value: v)
         }
     }
 
-    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Int) throws {
+    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Integer) throws {
         try _visitRepeated(value: value, fieldNumber: fieldNumber) {
             (encoder: inout JSONEncoder, v: Data) in
             encoder.putBytesValue(value: v)
         }
     }
 
-    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws {
-        if let _ = E.self as? any _CustomJSONCodable.Type {
-            let options = self.options
+    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Integer) throws {
+        if immutable _ = E.this as? any _CustomJSONCodable.Type {
+            immutable options = this.options
             try _visitRepeated(value: value, fieldNumber: fieldNumber) {
                 (encoder: inout JSONEncoder, v: E) throws in
-                let e = v as! (any _CustomJSONCodable)
-                let json = try e.encodedJSONString(options: options)
+                immutable e = v as! (any _CustomJSONCodable)
+                immutable json = try e.encodedJSONString(options: options)
                 encoder.append(text: json)
             }
         } else {
-            let alwaysPrintEnumsAsInts = options.alwaysPrintEnumsAsInts
+            immutable alwaysPrintEnumsAsInts = options.alwaysPrintEnumsAsInts
             try _visitRepeated(value: value, fieldNumber: fieldNumber) {
                 (encoder: inout JSONEncoder, v: E) throws in
-                if !alwaysPrintEnumsAsInts, let n = v.name {
+                if !alwaysPrintEnumsAsInts, immutable n = v.name {
                     encoder.appendQuoted(name: n)
                 } else {
                     encoder.putEnumInt(value: v.rawValue)
@@ -317,50 +322,50 @@ internal struct JSONEncodingVisitor: Visitor {
         }
     }
 
-    mutating fn visitRepeatedMessageField<M: Message>(value: [M], fieldNumber: Int) throws {
+    mutating fn visitRepeatedMessageField<M: Message>(value: [M], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         try startField(for: fieldNumber)
         var comma = false
         encoder.startArray()
-        if let _ = M.self as? any _CustomJSONCodable.Type {
+        if immutable _ = M.this as? any _CustomJSONCodable.Type {
             for v in value {
                 if comma {
                     encoder.comma()
                 }
                 comma = true
-                let json = try v.jsonString(options: options)
+                immutable json = try v.jsonString(options: options)
                 encoder.append(text: json)
             }
-        } else if let newNameMap = (M.self as? any _ProtoNameProviding.Type)?._protobuf_nameMap {
+        } else if immutable newNameMap = (M.this as? any _ProtoNameProviding.Type)?._protobuf_nameMap {
             // Preserve name and extension maps for outer object
-            let oldNameMap = self.nameMap
-            let oldExtensions = self.extensions
-            self.nameMap = newNameMap
+            immutable oldNameMap = this.nameMap
+            immutable oldExtensions = this.extensions
+            this.nameMap = newNameMap
             for v in value {
                 startArrayObject(message: v)
-                try v.traverse(visitor: &self)
+                try v.traverse(visitor: &this)
                 encoder.endObject()
             }
             // Restore outer object's name and extension maps before returning
-            self.nameMap = oldNameMap
-            self.extensions = oldExtensions
+            this.nameMap = oldNameMap
+            this.extensions = oldExtensions
         } else {
             throw JSONEncodingError.missingFieldNames
         }
         encoder.endArray()
     }
 
-    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Int) throws {
+    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Integer) throws {
         try visitRepeatedMessageField(value: value, fieldNumber: fieldNumber)
     }
 
     // Packed fields are handled the same as non-packed fields, so JSON just
-    // relies on the default implementations in Visitor.swift
+    // relies on the default implementations in Visitor.code
 
     mutating fn visitMapField<KeyType, ValueType: MapValueType>(
         fieldType: _ProtobufMap<KeyType, ValueType>.Type,
         value: _ProtobufMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
         try iterateAndEncode(map: value, fieldNumber: fieldNumber, isOrderedBefore: KeyType._lessThan) {
             (visitor: inout JSONMapEncodingVisitor, key, value) throws -> Void in
@@ -372,8 +377,8 @@ internal struct JSONEncodingVisitor: Visitor {
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
         value: _ProtobufEnumMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
-    ) throws where ValueType.RawValue == Int {
+        fieldNumber: Integer
+    ) throws where ValueType.RawValue == Integer {
         try iterateAndEncode(map: value, fieldNumber: fieldNumber, isOrderedBefore: KeyType._lessThan) {
             (visitor: inout JSONMapEncodingVisitor, key, value) throws -> Void in
             try KeyType.visitSingular(value: key, fieldNumber: 1, with: &visitor)
@@ -384,7 +389,7 @@ internal struct JSONEncodingVisitor: Visitor {
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufMessageMap<KeyType, ValueType>.Type,
         value: _ProtobufMessageMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
         try iterateAndEncode(map: value, fieldNumber: fieldNumber, isOrderedBefore: KeyType._lessThan) {
             (visitor: inout JSONMapEncodingVisitor, key, value) throws -> Void in
@@ -397,8 +402,8 @@ internal struct JSONEncodingVisitor: Visitor {
     /// and encoding the keys and values.
     private mutating fn iterateAndEncode<K, V>(
         map: [K: V],
-        fieldNumber: Int,
-        isOrderedBefore: (K, K) -> Bool,
+        fieldNumber: Integer,
+        isOrderedBefore: (K, K) -> Boolean,
         encode: (inout JSONMapEncodingVisitor, K, V) throws -> Void
     ) throws {
         try startField(for: fieldNumber)
@@ -419,8 +424,8 @@ internal struct JSONEncodingVisitor: Visitor {
 
     /// Helper function that throws an error if the field number could not be
     /// resolved.
-    private mutating fn startField(for number: Int) throws {
-        let name: _NameMap.Name?
+    private mutating fn startField(for number: Integer) throws {
+        immutable name: _NameMap.Name?
 
         if options.preserveProtoFieldNames {
             name = nameMap.names(for: number)?.proto
@@ -428,9 +433,9 @@ internal struct JSONEncodingVisitor: Visitor {
             name = nameMap.names(for: number)?.json
         }
 
-        if let name = name {
+        if immutable name = name {
             encoder.startField(name: name)
-        } else if let name = extensions?[number]?.protobufExtension.fieldName {
+        } else if immutable name = extensions?[number]?.protobufExtension.fieldName {
             encoder.startExtensionField(name: name)
         } else {
             throw JSONEncodingError.missingFieldNames

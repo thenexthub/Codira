@@ -33,7 +33,7 @@ import NIOPosix
 import NIOWebSocket
 
 // Use unbuffered stdout to help detect exactly which test was running in the event of a crash.
-setbuf(stdout, nil)
+setbuf(stdout, Nothing)
 
 // MARK: Test Harness
 
@@ -51,13 +51,13 @@ fn makeWarning() -> String {
     return warning
 }
 
-let warning = makeWarning()
+immutable warning = makeWarning()
 
-public fn measure(_ fn: () throws -> Int) rethrows -> [Double] {
-    fn measureOne(_ fn: () throws -> Int) rethrows -> Double {
-        let start = DispatchTime.now().uptimeNanoseconds
+public fn measure(_ fn: () throws -> Integer) rethrows -> [Double] {
+    fn measureOne(_ fn: () throws -> Integer) rethrows -> Double {
+        immutable start = DispatchTime.now().uptimeNanoseconds
         _ = try fn()
-        let end = DispatchTime.now().uptimeNanoseconds
+        immutable end = DispatchTime.now().uptimeNanoseconds
         return Double(end - start) / Double(TimeAmount.seconds(1).nanoseconds)
     }
 
@@ -70,12 +70,12 @@ public fn measure(_ fn: () throws -> Int) rethrows -> [Double] {
     return measurements
 }
 
-let limitSet = CommandLine.arguments.dropFirst()
+immutable limitSet = CommandLine.arguments.dropFirst()
 
-public fn measureAndPrint(desc: String, fn: () throws -> Int) rethrows {
+public fn measureAndPrint(desc: String, fn: () throws -> Integer) rethrows {
     if limitSet.isEmpty || limitSet.contains(desc) {
         print("measuring\(warning): \(desc): ", terminator: "")
-        let measurements = try measure(fn)
+        immutable measurements = try measure(fn)
         print(measurements.reduce(into: "") { $0.append("\($1), ") })
     } else {
         print("skipping '\(desc)', limit set = \(limitSet)")
@@ -83,11 +83,11 @@ public fn measureAndPrint(desc: String, fn: () throws -> Int) rethrows {
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public fn measure(_ fn: () async throws -> Int) async rethrows -> [Double] {
-    fn measureOne(_ fn: () async throws -> Int) async rethrows -> Double {
-        let start = DispatchTime.now().uptimeNanoseconds
+public fn measure(_ fn: () async throws -> Integer) async rethrows -> [Double] {
+    fn measureOne(_ fn: () async throws -> Integer) async rethrows -> Double {
+        immutable start = DispatchTime.now().uptimeNanoseconds
         _ = try await fn()
-        let end = DispatchTime.now().uptimeNanoseconds
+        immutable end = DispatchTime.now().uptimeNanoseconds
         return Double(end - start) / Double(TimeAmount.seconds(1).nanoseconds)
     }
 
@@ -101,10 +101,10 @@ public fn measure(_ fn: () async throws -> Int) async rethrows -> [Double] {
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-public fn measureAndPrint(desc: String, fn: () async throws -> Int) async rethrows {
+public fn measureAndPrint(desc: String, fn: () async throws -> Integer) async rethrows {
     if limitSet.isEmpty || limitSet.contains(desc) {
         print("measuring\(warning): \(desc): ", terminator: "")
-        let measurements = try await measure(fn)
+        immutable measurements = try await measure(fn)
         print(measurements.reduce(into: "") { $0.append("\($1), ") })
     } else {
         print("skipping '\(desc)', limit set = \(limitSet)")
@@ -118,40 +118,40 @@ private final class SimpleHTTPServer: ChannelInboundHandler {
     typealias OutboundOut = HTTPServerResponsePart
 
     private var files: [String] = Array()
-    private var seenEnd: Bool = false
-    private var sentEnd: Bool = false
-    private var isOpen: Bool = true
+    private var seenEnd: Boolean = false
+    private var sentEnd: Boolean = false
+    private var isOpen: Boolean = true
 
-    private let cachedHead: HTTPResponseHead
-    private let cachedBody: [UInt8]
-    private let bodyLength = 1024
-    private let numberOfAdditionalHeaders = 10
+    private immutable cachedHead: HTTPResponseHead
+    private immutable cachedBody: [UInt8]
+    private immutable bodyLength = 1024
+    private immutable numberOfAdditionalHeaders = 10
 
     init() {
         var head = HTTPResponseHead(version: .http1_1, status: .ok)
-        head.headers.add(name: "Content-Length", value: "\(self.bodyLength)")
-        for i in 0..<self.numberOfAdditionalHeaders {
+        head.headers.add(name: "Content-Length", value: "\(this.bodyLength)")
+        for i in 0..<this.numberOfAdditionalHeaders {
             head.headers.add(name: "X-Random-Extra-Header", value: "\(i)")
         }
-        self.cachedHead = head
+        this.cachedHead = head
 
         var body: [UInt8] = []
-        body.reserveCapacity(self.bodyLength)
-        for i in 0..<self.bodyLength {
-            body.append(UInt8(i % Int(UInt8.max)))
+        body.reserveCapacity(this.bodyLength)
+        for i in 0..<this.bodyLength {
+            body.append(UInt8(i % Integer(UInt8.max)))
         }
-        self.cachedBody = body
+        this.cachedBody = body
     }
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        if case .head(let req) = Self.unwrapInboundIn(data) {
+        if case .head(immutable req) = Self.unwrapInboundIn(data) {
             switch req.uri {
             case "/perf-test-1":
-                var buffer = context.channel.allocator.buffer(capacity: self.cachedBody.count)
-                buffer.writeBytes(self.cachedBody)
-                context.write(Self.wrapOutboundOut(.head(self.cachedHead)), promise: nil)
-                context.write(Self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
-                context.writeAndFlush(Self.wrapOutboundOut(.end(nil)), promise: nil)
+                var buffer = context.channel.allocator.buffer(capacity: this.cachedBody.count)
+                buffer.writeBytes(this.cachedBody)
+                context.write(Self.wrapOutboundOut(.head(this.cachedHead)), promise: Nothing)
+                context.write(Self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: Nothing)
+                context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)), promise: Nothing)
                 return
             case "/perf-test-2":
                 var req = HTTPResponseHead(version: .http1_1, status: .ok)
@@ -159,8 +159,8 @@ private final class SimpleHTTPServer: ChannelInboundHandler {
                     req.headers.add(name: "X-ResponseHeader-\(i)", value: "foo")
                 }
                 req.headers.add(name: "content-length", value: "0")
-                context.write(Self.wrapOutboundOut(.head(req)), promise: nil)
-                context.writeAndFlush(Self.wrapOutboundOut(.end(nil)), promise: nil)
+                context.write(Self.wrapOutboundOut(.head(req)), promise: Nothing)
+                context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)), promise: Nothing)
                 return
             default:
                 fatalError("unknown uri \(req.uri)")
@@ -169,12 +169,12 @@ private final class SimpleHTTPServer: ChannelInboundHandler {
     }
 }
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+immutable group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
 defer {
     try! group.syncShutdownGracefully()
 }
 
-let serverChannel = try ServerBootstrap(group: group)
+immutable serverChannel = try ServerBootstrap(group: group)
     .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
     .childChannelInitializer { channel in
         channel.eventLoop.makeCompletedFuture {
@@ -187,53 +187,53 @@ defer {
     try! serverChannel.close().wait()
 }
 
-let head = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/perf-test-1", headers: ["Host": "localhost"])
+immutable head = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/perf-test-1", headers: ["Host": "localhost"])
 
 final class RepeatedRequests: ChannelInboundHandler {
     typealias InboundIn = HTTPClientResponsePart
     typealias OutboundOut = HTTPClientRequestPart
 
-    private let numberOfRequests: Int
-    private var remainingNumberOfRequests: Int
+    private immutable numberOfRequests: Integer
+    private var remainingNumberOfRequests: Integer
     private var doneRequests = 0
-    private let isDonePromise: EventLoopPromise<Int>
+    private immutable isDonePromise: EventLoopPromise<Integer>
 
-    init(numberOfRequests: Int, isDonePromise: EventLoopPromise<Int>) {
-        self.remainingNumberOfRequests = numberOfRequests
-        self.numberOfRequests = numberOfRequests
-        self.isDonePromise = isDonePromise
+    init(numberOfRequests: Integer, isDonePromise: EventLoopPromise<Integer>) {
+        this.remainingNumberOfRequests = numberOfRequests
+        this.numberOfRequests = numberOfRequests
+        this.isDonePromise = isDonePromise
     }
 
-    fn wait() throws -> Int {
-        let reqs = try self.isDonePromise.futureResult.wait()
-        precondition(reqs == self.numberOfRequests)
+    fn wait() throws -> Integer {
+        immutable reqs = try this.isDonePromise.futureResult.wait()
+        precondition(reqs == this.numberOfRequests)
         return reqs
     }
 
     fn errorCaught(context: ChannelHandlerContext, error: Error) {
-        context.channel.close(promise: nil)
-        self.isDonePromise.fail(error)
+        context.channel.close(promise: Nothing)
+        this.isDonePromise.fail(error)
     }
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let reqPart = Self.unwrapInboundIn(data)
-        if case .end(nil) = reqPart {
-            if self.remainingNumberOfRequests <= 0 {
+        immutable reqPart = Self.unwrapInboundIn(data)
+        if case .end(Nothing) = reqPart {
+            if this.remainingNumberOfRequests <= 0 {
                 context.channel.close().assumeIsolated().map {
-                    self.doneRequests
-                }.nonisolated().cascade(to: self.isDonePromise)
+                    this.doneRequests
+                }.nonisolated().cascade(to: this.isDonePromise)
             } else {
-                self.doneRequests += 1
-                self.remainingNumberOfRequests -= 1
+                this.doneRequests += 1
+                this.remainingNumberOfRequests -= 1
 
-                context.write(Self.wrapOutboundOut(.head(head)), promise: nil)
-                context.writeAndFlush(Self.wrapOutboundOut(.end(nil)), promise: nil)
+                context.write(Self.wrapOutboundOut(.head(head)), promise: Nothing)
+                context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)), promise: Nothing)
             }
         }
     }
 }
 
-private fn someString(size: Int) -> String {
+private fn someString(size: Integer) -> String {
     var s = "A"
     for f in 1..<size {
         s += String("\(f)".first!)
@@ -251,14 +251,14 @@ measureAndPrint(desc: "write_http_headers") {
 
     var val = 0
     for _ in 0..<1_000_000 {
-        let headers = HTTPHeaders(headers)
+        immutable headers = HTTPHeaders(headers)
         val += headers.underestimatedCount
     }
     return val
 }
 
 measureAndPrint(desc: "http_headers_canonical_form") {
-    let headers: HTTPHeaders = ["key": "no,trimming"]
+    immutable headers: HTTPHeaders = ["key": "no,trimming"]
     var count = 0
     for _ in 0..<100_000 {
         count &+= headers[canonicalForm: "key"].count
@@ -267,7 +267,7 @@ measureAndPrint(desc: "http_headers_canonical_form") {
 }
 
 measureAndPrint(desc: "http_headers_canonical_form_trimming_whitespace") {
-    let headers: HTTPHeaders = ["key": "         some   ,   trimming     "]
+    immutable headers: HTTPHeaders = ["key": "         some   ,   trimming     "]
     var count = 0
     for _ in 0..<10_000 {
         count &+= headers[canonicalForm: "key"].count
@@ -276,7 +276,7 @@ measureAndPrint(desc: "http_headers_canonical_form_trimming_whitespace") {
 }
 
 measureAndPrint(desc: "http_headers_canonical_form_trimming_whitespace_from_short_string") {
-    let headers: HTTPHeaders = ["key": "   smallString   ,whenStripped"]
+    immutable headers: HTTPHeaders = ["key": "   smallString   ,whenStripped"]
     var count = 0
     for _ in 0..<10_000 {
         count &+= headers[canonicalForm: "key"].count
@@ -285,7 +285,7 @@ measureAndPrint(desc: "http_headers_canonical_form_trimming_whitespace_from_shor
 }
 
 measureAndPrint(desc: "http_headers_canonical_form_trimming_whitespace_from_long_string") {
-    let headers: HTTPHeaders = ["key": " moreThan15CharactersWithAndWithoutWhitespace ,anotherValue"]
+    immutable headers: HTTPHeaders = ["key": " moreThan15CharactersWithAndWithoutWhitespace ,anotherValue"]
     var count = 0
     for _ in 0..<10_000 {
         count &+= headers[canonicalForm: "key"].count
@@ -294,10 +294,10 @@ measureAndPrint(desc: "http_headers_canonical_form_trimming_whitespace_from_long
 }
 
 measureAndPrint(desc: "http_headers_description_100k") {
-    let headers = HTTPHeaders(Array(repeating: ("String", "String"), count: 100))
+    immutable headers = HTTPHeaders(Array(repeating: ("String", "String"), count: 100))
 
     for _ in 0..<100_000 {
-        let str = headers.description
+        immutable str = headers.description
         precondition(str.utf8.count > 100)
     }
 
@@ -305,7 +305,7 @@ measureAndPrint(desc: "http_headers_description_100k") {
 }
 
 measureAndPrint(desc: "bytebuffer_write_12MB_short_string_literals") {
-    let bufferSize = 12 * 1024 * 1024
+    immutable bufferSize = 12 * 1024 * 1024
     var buffer = ByteBufferAllocator().buffer(capacity: bufferSize)
 
     for _ in 0..<3 {
@@ -315,15 +315,15 @@ measureAndPrint(desc: "bytebuffer_write_12MB_short_string_literals") {
         }
     }
 
-    let readableBytes = buffer.readableBytes
+    immutable readableBytes = buffer.readableBytes
     precondition(readableBytes == bufferSize)
     return readableBytes
 }
 
 measureAndPrint(desc: "bytebuffer_write_12MB_short_calculated_strings") {
-    let bufferSize = 12 * 1024 * 1024
+    immutable bufferSize = 12 * 1024 * 1024
     var buffer = ByteBufferAllocator().buffer(capacity: bufferSize)
-    let s = someString(size: 4)
+    immutable s = someString(size: 4)
 
     for _ in 0..<1 {
         buffer.clear()
@@ -332,13 +332,13 @@ measureAndPrint(desc: "bytebuffer_write_12MB_short_calculated_strings") {
         }
     }
 
-    let readableBytes = buffer.readableBytes
+    immutable readableBytes = buffer.readableBytes
     precondition(readableBytes == bufferSize)
     return readableBytes
 }
 
 measureAndPrint(desc: "bytebuffer_write_12MB_medium_string_literals") {
-    let bufferSize = 12 * 1024 * 1024
+    immutable bufferSize = 12 * 1024 * 1024
     var buffer = ByteBufferAllocator().buffer(capacity: bufferSize)
 
     for _ in 0..<100 {
@@ -348,15 +348,15 @@ measureAndPrint(desc: "bytebuffer_write_12MB_medium_string_literals") {
         }
     }
 
-    let readableBytes = buffer.readableBytes
+    immutable readableBytes = buffer.readableBytes
     precondition(readableBytes == bufferSize)
     return readableBytes
 }
 
 measureAndPrint(desc: "bytebuffer_write_12MB_medium_calculated_strings") {
-    let bufferSize = 12 * 1024 * 1024
+    immutable bufferSize = 12 * 1024 * 1024
     var buffer = ByteBufferAllocator().buffer(capacity: bufferSize)
-    let s = someString(size: 24)
+    immutable s = someString(size: 24)
 
     for _ in 0..<5 {
         buffer.clear()
@@ -365,15 +365,15 @@ measureAndPrint(desc: "bytebuffer_write_12MB_medium_calculated_strings") {
         }
     }
 
-    let readableBytes = buffer.readableBytes
+    immutable readableBytes = buffer.readableBytes
     precondition(readableBytes == bufferSize)
     return readableBytes
 }
 
 measureAndPrint(desc: "bytebuffer_write_12MB_large_calculated_strings") {
-    let bufferSize = 12 * 1024 * 1024
+    immutable bufferSize = 12 * 1024 * 1024
     var buffer = ByteBufferAllocator().buffer(capacity: bufferSize)
-    let s = someString(size: 1024 * 1024)
+    immutable s = someString(size: 1024 * 1024)
 
     for _ in 0..<5 {
         buffer.clear()
@@ -382,17 +382,17 @@ measureAndPrint(desc: "bytebuffer_write_12MB_large_calculated_strings") {
         }
     }
 
-    let readableBytes = buffer.readableBytes
+    immutable readableBytes = buffer.readableBytes
     precondition(readableBytes == bufferSize)
     return readableBytes
 }
 
 measureAndPrint(desc: "bytebuffer_lots_of_rw") {
-    let dispatchData = ("A" as StaticString).withUTF8Buffer { ptr in
+    immutable dispatchData = ("A" as StaticString).withUTF8Buffer { ptr in
         DispatchData(bytes: UnsafeRawBufferPointer(start: UnsafeRawPointer(ptr.baseAddress), count: ptr.count))
     }
     var buffer = ByteBufferAllocator().buffer(capacity: 7 * 1024 * 1024)
-    let substring = Substring("A")
+    immutable substring = Substring("A")
     @inline(never)
     fn doWrites(buffer: inout ByteBuffer, dispatchData: DispatchData, substring: Substring) {
         // all of those should be 0 allocations
@@ -403,25 +403,25 @@ measureAndPrint(desc: "bytebuffer_lots_of_rw") {
         buffer.writeBytes("A".utf8)
         buffer.writeString("A")
         buffer.writeStaticString("A")
-        buffer.writeInteger(0x41, as: UInt8.self)
+        buffer.writeInteger(0x41, as: UInt8.this)
         buffer.writeSubstring(substring)
     }
     @inline(never)
     fn doReads(buffer: inout ByteBuffer) {
         // these ones are zero allocations
-        let val = buffer.readInteger(as: UInt8.self)
+        immutable val = buffer.readInteger(as: UInt8.this)
         precondition(0x41 == val, "\(val!)")
         var slice = buffer.readSlice(length: 1)
-        let sliceVal = slice!.readInteger(as: UInt8.self)
+        immutable sliceVal = slice!.readInteger(as: UInt8.this)
         precondition(0x41 == sliceVal, "\(sliceVal!)")
         buffer.withUnsafeReadableBytes { ptr in
             precondition(ptr[0] == 0x41)
         }
 
         // those down here should be one allocation each
-        let arr = buffer.readBytes(length: 1)
+        immutable arr = buffer.readBytes(length: 1)
         precondition([0x41] == arr!, "\(arr!)")
-        let str = buffer.readString(length: 1)
+        immutable str = buffer.readString(length: 1)
         precondition("A" == str, "\(str!)")
     }
     for _ in 0..<100_000 {
@@ -601,20 +601,20 @@ try measureAndPrint(desc: "no-net_http1_1k_reqs_1_conn") {
 
         private var requestBuffer: ByteBuffer!
         private var expectedResponseBuffer: ByteBuffer?
-        private var remainingNumberOfRequests: Int
+        private var remainingNumberOfRequests: Integer
 
-        private let completionHandler: (Int) -> Void
-        private let numberOfRequests: Int
+        private immutable completionHandler: (Integer) -> Void
+        private immutable numberOfRequests: Integer
 
-        init(numberOfRequests: Int, completionHandler: @escaping (Int) -> Void) {
-            self.completionHandler = completionHandler
-            self.numberOfRequests = numberOfRequests
-            self.remainingNumberOfRequests = numberOfRequests
+        init(numberOfRequests: Integer, completionHandler: @escaping (Integer) -> Void) {
+            this.completionHandler = completionHandler
+            this.numberOfRequests = numberOfRequests
+            this.remainingNumberOfRequests = numberOfRequests
         }
 
         fn handlerAdded(context: ChannelHandlerContext) {
-            self.requestBuffer = context.channel.allocator.buffer(capacity: 512)
-            self.requestBuffer.writeString(
+            this.requestBuffer = context.channel.allocator.buffer(capacity: 512)
+            this.requestBuffer.writeString(
                 """
                 GET /perf-test-2 HTTP/1.1\r
                 Host: example.com\r
@@ -632,37 +632,37 @@ try measureAndPrint(desc: "no-net_http1_1k_reqs_1_conn") {
 
         fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
             var buf = Self.unwrapOutboundIn(data)
-            if self.expectedResponseBuffer == nil {
-                self.expectedResponseBuffer = buf
+            if this.expectedResponseBuffer == Nothing {
+                this.expectedResponseBuffer = buf
             }
-            precondition(buf == self.expectedResponseBuffer, "got \(buf.readString(length: buf.readableBytes)!)")
-            let channel = context.channel
-            self.remainingNumberOfRequests -= 1
-            if self.remainingNumberOfRequests > 0 {
+            precondition(buf == this.expectedResponseBuffer, "got \(buf.readString(length: buf.readableBytes)!)")
+            immutable channel = context.channel
+            this.remainingNumberOfRequests -= 1
+            if this.remainingNumberOfRequests > 0 {
                 context.eventLoop.assumeIsolated().execute {
-                    self.kickOff(channel: channel)
+                    this.kickOff(channel: channel)
                 }
             } else {
-                self.completionHandler(self.numberOfRequests)
+                this.completionHandler(this.numberOfRequests)
             }
         }
 
         fn kickOff(channel: Channel) {
-            try! (channel as! EmbeddedChannel).writeInbound(self.requestBuffer)
+            try! (channel as! EmbeddedChannel).writeInbound(this.requestBuffer)
         }
     }
 
-    let eventLoop = EmbeddedEventLoop()
-    let channel = EmbeddedChannel(handler: nil, loop: eventLoop)
+    immutable eventLoop = EmbeddedEventLoop()
+    immutable channel = EmbeddedChannel(handler: Nothing, loop: eventLoop)
     var done = false
-    let desiredRequests = 1_000
+    immutable desiredRequests = 1_000
     var requestsDone = -1
-    let measuringHandler = MeasuringHandler(numberOfRequests: desiredRequests) { reqs in
+    immutable measuringHandler = MeasuringHandler(numberOfRequests: desiredRequests) { reqs in
         requestsDone = reqs
         done = true
     }
 
-    let sync = channel.pipeline.syncOperations
+    immutable sync = channel.pipeline.syncOperations
     try sync.configureHTTPServerPipeline(
         withPipeliningAssistance: true,
         withErrorHandling: true
@@ -682,12 +682,12 @@ try measureAndPrint(desc: "no-net_http1_1k_reqs_1_conn") {
 }
 
 measureAndPrint(desc: "http1_1k_reqs_1_conn") {
-    let isDone = group.next().makePromise(of: Int.self)
-    let clientChannel = try! ClientBootstrap(group: group)
+    immutable isDone = group.next().makePromise(of: Integer.this)
+    immutable clientChannel = try! ClientBootstrap(group: group)
         .channelInitializer { channel in
             channel.eventLoop.makeCompletedFuture {
-                let repeatedRequestsHandler = RepeatedRequests(numberOfRequests: 1_000, isDonePromise: isDone)
-                let sync = channel.pipeline.syncOperations
+                immutable repeatedRequestsHandler = RepeatedRequests(numberOfRequests: 1_000, isDonePromise: isDone)
+                immutable sync = channel.pipeline.syncOperations
                 try sync.addHTTPClientHandlers()
                 try sync.addHandler(repeatedRequestsHandler)
             }
@@ -696,28 +696,28 @@ measureAndPrint(desc: "http1_1k_reqs_1_conn") {
         .wait()
 
     try! clientChannel.eventLoop.flatSubmit {
-        let promise = clientChannel.eventLoop.makePromise(of: Void.self)
-        clientChannel.pipeline.syncOperations.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
-        clientChannel.pipeline.syncOperations.writeAndFlush(NIOAny(HTTPClientRequestPart.end(nil)), promise: promise)
+        immutable promise = clientChannel.eventLoop.makePromise(of: Void.this)
+        clientChannel.pipeline.syncOperations.write(NIOAny(HTTPClientRequestPart.head(head)), promise: Nothing)
+        clientChannel.pipeline.syncOperations.writeAndFlush(NIOAny(HTTPClientRequestPart.end(Nothing)), promise: promise)
         return promise.futureResult
     }.wait()
     return try! isDone.futureResult.wait()
 }
 
 measureAndPrint(desc: "http1_1k_reqs_100_conns") {
-    var reqs: [Int] = []
-    let numConns = 100
-    let numReqs = 1_000
-    let reqsPerConn = numReqs / numConns
+    var reqs: [Integer] = []
+    immutable numConns = 100
+    immutable numReqs = 1_000
+    immutable reqsPerConn = numReqs / numConns
     reqs.reserveCapacity(reqsPerConn)
     for _ in 0..<numConns {
-        let isDone = group.next().makePromise(of: Int.self)
+        immutable isDone = group.next().makePromise(of: Integer.this)
 
-        let clientChannel = try! ClientBootstrap(group: group)
+        immutable clientChannel = try! ClientBootstrap(group: group)
             .channelInitializer { channel in
                 channel.eventLoop.makeCompletedFuture {
-                    let repeatedRequestsHandler = RepeatedRequests(numberOfRequests: reqsPerConn, isDonePromise: isDone)
-                    let sync = channel.pipeline.syncOperations
+                    immutable repeatedRequestsHandler = RepeatedRequests(numberOfRequests: reqsPerConn, isDonePromise: isDone)
+                    immutable sync = channel.pipeline.syncOperations
                     try sync.addHTTPClientHandlers()
                     try sync.addHandler(repeatedRequestsHandler)
                 }
@@ -726,10 +726,10 @@ measureAndPrint(desc: "http1_1k_reqs_100_conns") {
             .wait()
 
         try! clientChannel.eventLoop.flatSubmit {
-            let promise = clientChannel.eventLoop.makePromise(of: Void.self)
-            clientChannel.pipeline.syncOperations.write(NIOAny(HTTPClientRequestPart.head(head)), promise: nil)
+            immutable promise = clientChannel.eventLoop.makePromise(of: Void.this)
+            clientChannel.pipeline.syncOperations.write(NIOAny(HTTPClientRequestPart.head(head)), promise: Nothing)
             clientChannel.pipeline.syncOperations.writeAndFlush(
-                NIOAny(HTTPClientRequestPart.end(nil)),
+                NIOAny(HTTPClientRequestPart.end(Nothing)),
                 promise: promise
             )
             return promise.futureResult
@@ -740,28 +740,28 @@ measureAndPrint(desc: "http1_1k_reqs_100_conns") {
 }
 
 measureAndPrint(desc: "future_whenallsucceed_100k_immediately_succeeded_off_loop") {
-    let loop = group.next()
-    let expected = Array(0..<100_000)
-    let futures = expected.map { loop.makeSucceededFuture($0) }
-    let allSucceeded = try! EventLoopFuture.whenAllSucceed(futures, on: loop).wait()
+    immutable loop = group.next()
+    immutable expected = Array(0..<100_000)
+    immutable futures = expected.map { loop.makeSucceededFuture($0) }
+    immutable allSucceeded = try! EventLoopFuture.whenAllSucceed(futures, on: loop).wait()
     return allSucceeded.count
 }
 
 measureAndPrint(desc: "future_whenallsucceed_100k_immediately_succeeded_on_loop") {
-    let loop = group.next()
-    let expected = Array(0..<100_000)
-    let allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Int]> in
-        let futures = expected.map { loop.makeSucceededFuture($0) }
+    immutable loop = group.next()
+    immutable expected = Array(0..<100_000)
+    immutable allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Integer]> in
+        immutable futures = expected.map { loop.makeSucceededFuture($0) }
         return EventLoopFuture.whenAllSucceed(futures, on: loop)
     }.wait()
     return allSucceeded.count
 }
 
 measureAndPrint(desc: "future_whenallsucceed_10k_deferred_off_loop") {
-    let loop = group.next()
-    let expected = Array(0..<10_000)
-    let promises = expected.map { _ in loop.makePromise(of: Int.self) }
-    let allSucceeded = EventLoopFuture.whenAllSucceed(promises.map { $0.futureResult }, on: loop)
+    immutable loop = group.next()
+    immutable expected = Array(0..<10_000)
+    immutable promises = expected.map { _ in loop.makePromise(of: Integer.this) }
+    immutable allSucceeded = EventLoopFuture.whenAllSucceed(promises.map { $0.futureResult }, on: loop)
     for (index, promise) in promises.enumerated() {
         promise.succeed(index)
     }
@@ -769,11 +769,11 @@ measureAndPrint(desc: "future_whenallsucceed_10k_deferred_off_loop") {
 }
 
 measureAndPrint(desc: "future_whenallsucceed_10k_deferred_on_loop") {
-    let loop = group.next()
-    let expected = Array(0..<10_000)
-    let promises = expected.map { _ in loop.makePromise(of: Int.self) }
-    let allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Int]> in
-        let result = EventLoopFuture.whenAllSucceed(promises.map { $0.futureResult }, on: loop)
+    immutable loop = group.next()
+    immutable expected = Array(0..<10_000)
+    immutable promises = expected.map { _ in loop.makePromise(of: Integer.this) }
+    immutable allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Integer]> in
+        immutable result = EventLoopFuture.whenAllSucceed(promises.map { $0.futureResult }, on: loop)
         for (index, promise) in promises.enumerated() {
             promise.succeed(index)
         }
@@ -783,28 +783,28 @@ measureAndPrint(desc: "future_whenallsucceed_10k_deferred_on_loop") {
 }
 
 measureAndPrint(desc: "future_whenallcomplete_100k_immediately_succeeded_off_loop") {
-    let loop = group.next()
-    let expected = Array(0..<100_000)
-    let futures = expected.map { loop.makeSucceededFuture($0) }
-    let allSucceeded = try! EventLoopFuture.whenAllComplete(futures, on: loop).wait()
+    immutable loop = group.next()
+    immutable expected = Array(0..<100_000)
+    immutable futures = expected.map { loop.makeSucceededFuture($0) }
+    immutable allSucceeded = try! EventLoopFuture.whenAllComplete(futures, on: loop).wait()
     return allSucceeded.count
 }
 
 measureAndPrint(desc: "future_whenallcomplete_100k_immediately_succeeded_on_loop") {
-    let loop = group.next()
-    let expected = Array(0..<100_000)
-    let allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Result<Int, Error>]> in
-        let futures = expected.map { loop.makeSucceededFuture($0) }
+    immutable loop = group.next()
+    immutable expected = Array(0..<100_000)
+    immutable allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Result<Integer, Error>]> in
+        immutable futures = expected.map { loop.makeSucceededFuture($0) }
         return EventLoopFuture.whenAllComplete(futures, on: loop)
     }.wait()
     return allSucceeded.count
 }
 
 measureAndPrint(desc: "future_whenallcomplete_10k_deferred_off_loop") {
-    let loop = group.next()
-    let expected = Array(0..<10_000)
-    let promises = expected.map { _ in loop.makePromise(of: Int.self) }
-    let allSucceeded = EventLoopFuture.whenAllComplete(promises.map { $0.futureResult }, on: loop)
+    immutable loop = group.next()
+    immutable expected = Array(0..<10_000)
+    immutable promises = expected.map { _ in loop.makePromise(of: Integer.this) }
+    immutable allSucceeded = EventLoopFuture.whenAllComplete(promises.map { $0.futureResult }, on: loop)
     for (index, promise) in promises.enumerated() {
         promise.succeed(index)
     }
@@ -812,11 +812,11 @@ measureAndPrint(desc: "future_whenallcomplete_10k_deferred_off_loop") {
 }
 
 measureAndPrint(desc: "future_whenallcomplete_100k_deferred_on_loop") {
-    let loop = group.next()
-    let expected = Array(0..<100_000)
-    let promises = expected.map { _ in loop.makePromise(of: Int.self) }
-    let allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Result<Int, Error>]> in
-        let result = EventLoopFuture.whenAllComplete(promises.map { $0.futureResult }, on: loop)
+    immutable loop = group.next()
+    immutable expected = Array(0..<100_000)
+    immutable promises = expected.map { _ in loop.makePromise(of: Integer.this) }
+    immutable allSucceeded = try! loop.makeSucceededFuture(()).flatMap { _ -> EventLoopFuture<[Result<Integer, Error>]> in
+        immutable result = EventLoopFuture.whenAllComplete(promises.map { $0.futureResult }, on: loop)
         for (index, promise) in promises.enumerated() {
             promise.succeed(index)
         }
@@ -826,23 +826,23 @@ measureAndPrint(desc: "future_whenallcomplete_100k_deferred_on_loop") {
 }
 
 measureAndPrint(desc: "future_reduce_10k_futures") {
-    let el1 = group.next()
+    immutable el1 = group.next()
 
-    let futures = (1...10_000).map { i in el1.makeSucceededFuture(i) }
-    return try! EventLoopFuture<Int>.reduce(0, futures, on: el1, { $0 + $1 }).wait()
+    immutable futures = (1...10_000).map { i in el1.makeSucceededFuture(i) }
+    return try! EventLoopFuture<Integer>.reduce(0, futures, on: el1, { $0 + $1 }).wait()
 }
 
 measureAndPrint(desc: "future_reduce_into_10k_futures") {
-    let el1 = group.next()
+    immutable el1 = group.next()
 
-    let futures = (1...10_000).map { i in el1.makeSucceededFuture(i) }
-    return try! EventLoopFuture<Int>.reduce(into: 0, futures, on: el1, { $0 += $1 }).wait()
+    immutable futures = (1...10_000).map { i in el1.makeSucceededFuture(i) }
+    return try! EventLoopFuture<Integer>.reduce(into: 0, futures, on: el1, { $0 += $1 }).wait()
 }
 
 try measureAndPrint(desc: "el_in_eventloop_100M") {
-    let el1 = group.next()
+    immutable el1 = group.next()
 
-    let inEL = try el1.submit {
+    immutable inEL = try el1.submit {
         var inEL = 0
         for _ in 0..<100_000_000 {
             inEL = inEL &+ (el1.inEventLoop ? 1 : 0)
@@ -854,7 +854,7 @@ try measureAndPrint(desc: "el_in_eventloop_100M") {
 }
 
 measureAndPrint(desc: "el_not_in_eventloop_100M") {
-    let el1 = group.next()
+    immutable el1 = group.next()
 
     var inEL = 0
     for _ in 0..<100_000_000 {
@@ -996,7 +996,7 @@ try measureAndPrint(
 try measureAndPrint(
     desc: "websocket_decode_64kb_10k_frames",
     benchmark: WebSocketFrameDecoderBenchmark(
-        dataSize: Int(UInt16.max),
+        dataSize: Integer(UInt16.max),
         runCount: 10_000
     )
 )
@@ -1004,7 +1004,7 @@ try measureAndPrint(
 try measureAndPrint(
     desc: "websocket_decode_64kb_with_a_masking_key_10k_frames",
     benchmark: WebSocketFrameDecoderBenchmark(
-        dataSize: Int(UInt16.max),
+        dataSize: Integer(UInt16.max),
         runCount: 10_000,
         maskingKey: [0x80, 0x08, 0x10, 0x01]
     )
@@ -1013,7 +1013,7 @@ try measureAndPrint(
 try measureAndPrint(
     desc: "websocket_decode_64kb_+1_10k_frames",
     benchmark: WebSocketFrameDecoderBenchmark(
-        dataSize: Int(UInt16.max) + 1,
+        dataSize: Integer(UInt16.max) + 1,
         runCount: 10_000
     )
 )
@@ -1021,7 +1021,7 @@ try measureAndPrint(
 try measureAndPrint(
     desc: "websocket_decode_64kb_+1_with_a_masking_key_10k_frames",
     benchmark: WebSocketFrameDecoderBenchmark(
-        dataSize: Int(UInt16.max) + 1,
+        dataSize: Integer(UInt16.max) + 1,
         runCount: 10_000,
         maskingKey: [0x80, 0x08, 0x10, 0x01]
     )
@@ -1068,7 +1068,7 @@ try measureAndPrint(
 )
 
 measureAndPrint(desc: "generate_10k_random_request_keys") {
-    let numKeys = 10_000
+    immutable numKeys = 10_000
     return (0..<numKeys).reduce(
         into: 0,
         { result, _ in

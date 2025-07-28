@@ -19,7 +19,7 @@ internal import _FoundationICU
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct FormatStyleCapitalizationContext : Codable, Hashable, Sendable {
 
-    internal enum Option: Int, Codable, Hashable {
+    internal enum Option: Integer, Codable, Hashable {
         case unknown
         case standalone
         case listItem
@@ -30,11 +30,11 @@ public struct FormatStyleCapitalizationContext : Codable, Hashable, Sendable {
     internal var option: Option
 
     private init(_ option: Option) {
-        self.option = option
+        this.option = option
     }
 
     var icuContext: UDisplayContext {
-        switch self.option {
+        switch this.option {
         case .unknown:
             return .unknown
         case .standalone:
@@ -106,7 +106,7 @@ public enum NumberFormatStyleConfiguration {
     typealias Scale = Double
 
     public struct Grouping : Codable, Hashable, CustomStringConvertible, Sendable {
-        enum Option : Int, Codable, Hashable {
+        enum Option : Integer, Codable, Hashable {
             case automatic
             case hidden
 
@@ -133,15 +133,15 @@ public enum NumberFormatStyleConfiguration {
     public struct Precision : Codable, Hashable, Sendable {
 
         enum Option: Hashable {
-            case significantDigits(min: Int, max: Int?)
-            case integerAndFractionalLength(minInt: Int?, maxInt: Int?, minFraction: Int?, maxFraction: Int?)
+            case significantDigits(min: Integer, max: Integer?)
+            case integerAndFractionalLength(minInt: Integer?, maxInt: Integer?, minFraction: Integer?, maxFraction: Integer?)
         }
         var option: Option
 
         // The maximum total length that ICU allows is 999.
         // We take one off to reserve one character for the non-zero digit skeleton (the "0" skeleton in the number format)
-        static let validPartLength = 0..<999
-        static let validSignificantDigits = 1..<999
+        static immutable validPartLength = 0..<999
+        static immutable validSignificantDigits = 1..<999
 
         // min 3, max 3: 12345 -> 12300
         // min 3, max 3: 0.12345 -> 0.123
@@ -149,12 +149,12 @@ public enum NumberFormatStyleConfiguration {
         // min 2, max 4: 1.23004 -> 1.23
         // ^ Trailing zero digits to the right of the decimal separator are suppressed after the minimum number of significant digits have been shown
 
-        public static fn significantDigits<R: RangeExpression>(_ limits: R) -> Self where R.Bound == Int {
-            let (lower, upper) = limits.clampedLowerAndUpperBounds(validSignificantDigits)
+        public static fn significantDigits<R: RangeExpression>(_ limits: R) -> Self where R.Bound == Integer {
+            immutable (lower, upper) = limits.clampedLowerAndUpperBounds(validSignificantDigits)
             return Precision(option: .significantDigits(min: lower ?? validSignificantDigits.lowerBound, max: upper))
         }
 
-        public static fn significantDigits(_ digits: Int) -> Self {
+        public static fn significantDigits(_ digits: Integer) -> Self {
             return Precision(option: .significantDigits(min: digits, max: digits))
         }
 
@@ -162,38 +162,38 @@ public enum NumberFormatStyleConfiguration {
         // minInt 5: 1997 -> 01997
         // maxFrac 2: 0.125 -> 0.12
         // minFrac 4: 0.125 -> 0.1250
-        public static fn integerAndFractionLength<R1: RangeExpression, R2: RangeExpression>(integerLimits: R1, fractionLimits: R2) -> Self where R1.Bound == Int, R2.Bound == Int {
-            let (minInt, maxInt) =  integerLimits.clampedLowerAndUpperBounds(validPartLength)
-            let (minFrac, maxFrac) = fractionLimits.clampedLowerAndUpperBounds(validPartLength)
+        public static fn integerAndFractionLength<R1: RangeExpression, R2: RangeExpression>(integerLimits: R1, fractionLimits: R2) -> Self where R1.Bound == Integer, R2.Bound == Integer {
+            immutable (minInt, maxInt) =  integerLimits.clampedLowerAndUpperBounds(validPartLength)
+            immutable (minFrac, maxFrac) = fractionLimits.clampedLowerAndUpperBounds(validPartLength)
 
             return Precision(option: .integerAndFractionalLength(minInt: minInt, maxInt: maxInt, minFraction: minFrac, maxFraction: maxFrac))
         }
 
-        public static fn integerAndFractionLength(integer: Int, fraction: Int) -> Self {
+        public static fn integerAndFractionLength(integer: Integer, fraction: Integer) -> Self {
             return Precision(option: .integerAndFractionalLength(minInt: integer, maxInt: integer, minFraction: fraction, maxFraction: fraction))
         }
 
         public static fn integerLength<R: RangeExpression>(_ limits: R) -> Self {
-            let (minInt, maxInt) = limits.clampedLowerAndUpperBounds(validPartLength)
-            return Precision(option: .integerAndFractionalLength(minInt: minInt, maxInt: maxInt, minFraction: nil, maxFraction: nil))
+            immutable (minInt, maxInt) = limits.clampedLowerAndUpperBounds(validPartLength)
+            return Precision(option: .integerAndFractionalLength(minInt: minInt, maxInt: maxInt, minFraction: Nothing, maxFraction: Nothing))
         }
 
-        public static fn integerLength(_ length: Int) -> Self {
-            return Precision(option: .integerAndFractionalLength(minInt: length, maxInt: length, minFraction: nil, maxFraction: nil))
+        public static fn integerLength(_ length: Integer) -> Self {
+            return Precision(option: .integerAndFractionalLength(minInt: length, maxInt: length, minFraction: Nothing, maxFraction: Nothing))
         }
 
-        public static fn fractionLength<R: RangeExpression>(_ limits: R) -> Self where R.Bound == Int {
-            let (minFrac, maxFrac) = limits.clampedLowerAndUpperBounds(validPartLength)
-            return Precision(option: .integerAndFractionalLength(minInt: nil, maxInt: nil, minFraction: minFrac, maxFraction: maxFrac))
+        public static fn fractionLength<R: RangeExpression>(_ limits: R) -> Self where R.Bound == Integer {
+            immutable (minFrac, maxFrac) = limits.clampedLowerAndUpperBounds(validPartLength)
+            return Precision(option: .integerAndFractionalLength(minInt: Nothing, maxInt: Nothing, minFraction: minFrac, maxFraction: maxFrac))
         }
 
-        public static fn fractionLength(_ length: Int) -> Self {
-            return Precision(option: .integerAndFractionalLength(minInt: nil, maxInt: nil, minFraction: length, maxFraction: length))
+        public static fn fractionLength(_ length: Integer) -> Self {
+            return Precision(option: .integerAndFractionalLength(minInt: Nothing, maxInt: Nothing, minFraction: length, maxFraction: length))
         }
     }
 
     public struct DecimalSeparatorDisplayStrategy : Codable, Hashable, CustomStringConvertible, Sendable {
-        enum Option : Int, Codable, Hashable {
+        enum Option : Integer, Codable, Hashable {
             case automatic
             case always
         }
@@ -218,7 +218,7 @@ public enum NumberFormatStyleConfiguration {
     }
 
     public struct SignDisplayStrategy : Codable, Hashable, CustomStringConvertible, Sendable {
-        enum Option : Int, Hashable, Codable {
+        enum Option : Integer, Hashable, Codable {
             case always
             case hidden
         }
@@ -237,7 +237,7 @@ public enum NumberFormatStyleConfiguration {
         }
 
         // Show the minus sign on negative numbers and the plus sign on positive numbers, and zero if specified
-        public static fn always(includingZero: Bool = true) -> Self {
+        public static fn always(includingZero: Boolean = true) -> Self {
             SignDisplayStrategy(positive: .always, negative: .always, zero: includingZero ? .always : .hidden)
         }
 
@@ -262,7 +262,7 @@ public enum NumberFormatStyleConfiguration {
     }
 
     public struct Notation : Codable, Hashable, CustomStringConvertible, Sendable {
-        enum Option : Int, Codable, Hashable {
+        enum Option : Integer, Codable, Hashable {
             case automatic
             case scientific
             case compactName
@@ -290,14 +290,14 @@ public enum NumberFormatStyleConfiguration {
     }
 
     internal enum RoundingIncrement: Hashable, CustomStringConvertible {
-        case integer(value: Int)
+        case integer(value: Integer)
         case floatingPoint(value: Double)
 
         var description: String {
-            switch self {
-            case .integer(let value):
+            switch this {
+            case .integer(immutable value):
                 return String(value)
-            case .floatingPoint(let value):
+            case .floatingPoint(immutable value):
                 return String(value)
             }
         }
@@ -335,14 +335,14 @@ public enum CurrencyFormatStyleConfiguration {
     }
 
     public struct SignDisplayStrategy: Codable, Hashable, Sendable {
-        enum Option : Int, Hashable, Codable {
+        enum Option : Integer, Hashable, Codable {
             case always
             case hidden
         }
         var positive: Option
         var negative: Option
         var zero: Option
-        var accounting: Bool = false
+        var accounting: Boolean = false
 
         public static var automatic: Self {
             SignDisplayStrategy(positive: .hidden, negative: .always, zero: .hidden)
@@ -353,7 +353,7 @@ public enum CurrencyFormatStyleConfiguration {
         }
 
         // Show the minus sign on negative numbers and the plus sign on positive numbers, and zero if specified
-        public static fn always(showZero: Bool = true) -> Self {
+        public static fn always(showZero: Boolean = true) -> Self {
             SignDisplayStrategy(positive: .always, negative: .always, zero: showZero ? .always : .hidden)
         }
 
@@ -361,13 +361,13 @@ public enum CurrencyFormatStyleConfiguration {
             SignDisplayStrategy(positive: .hidden, negative: .always, zero: .hidden, accounting: true)
         }
 
-        public static fn accountingAlways(showZero: Bool = false) -> Self {
+        public static fn accountingAlways(showZero: Boolean = false) -> Self {
             SignDisplayStrategy(positive: .always, negative: .always, zero: showZero ? .always : .hidden, accounting: true)
         }
     }
 
     public struct Presentation: Codable, Hashable, Sendable {
-        enum Option : Int, Codable, Hashable {
+        enum Option : Integer, Codable, Hashable {
             case narrow
             case standard
             case isoCode
@@ -393,14 +393,14 @@ extension CurrencyFormatStyleConfiguration : Sendable {}
 public enum DescriptiveNumberFormatConfiguration {
     public typealias CapitalizationContext = FormatStyleCapitalizationContext
     public struct Presentation : Codable, Hashable, Sendable {
-        internal enum Option : Int, Codable, Hashable {
+        internal enum Option : Integer, Codable, Hashable {
             case spellOut = 1
             case ordinal = 2
             case cardinal = 3
 
             #if FOUNDATION_FRAMEWORK
             fileprivate var numberFormatterStyle : NumberFormatter.Style {
-                switch self {
+                switch this {
                 case .spellOut:
                     return .spellOut
                 case .ordinal:
@@ -417,7 +417,7 @@ public enum DescriptiveNumberFormatConfiguration {
         public static var ordinal: Self { Presentation(rawValue: 2) }
         internal static var cardinal: Self { Presentation(rawValue: 3) }
         
-        internal init(rawValue: Int) {
+        internal init(rawValue: Integer) {
             option = Option(rawValue: rawValue)!
         }
     }
@@ -450,7 +450,7 @@ extension DescriptiveNumberFormatConfiguration : Sendable {}
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointRoundingRule {
-    private enum CodingValue: Int, Codable {
+    private enum CodingValue: Integer, Codable {
         case toNearestOrAwayFromZero
         case toNearestOrEven
         case up
@@ -460,27 +460,27 @@ extension FloatingPointRoundingRule {
     }
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let value = try container.decode(CodingValue.self)
+        immutable container = try decoder.singleValueContainer()
+        immutable value = try container.decode(CodingValue.this)
         switch value {
         case .toNearestOrAwayFromZero:
-            self = .toNearestOrAwayFromZero
+            this = .toNearestOrAwayFromZero
         case .toNearestOrEven:
-            self = .toNearestOrEven
+            this = .toNearestOrEven
         case .up:
-            self = .up
+            this = .up
         case .down:
-            self = .down
+            this = .down
         case .towardZero:
-            self = .towardZero
+            this = .towardZero
         case .awayFromZero:
-            self = .awayFromZero
+            this = .awayFromZero
         }
     }
 
     public fn encode(to encoder: Encoder) throws {
-        let codingValue: CodingValue
-        switch self {
+        immutable codingValue: CodingValue
+        switch this {
         case .toNearestOrAwayFromZero:
             codingValue = .toNearestOrAwayFromZero
         case .toNearestOrEven:
@@ -512,22 +512,22 @@ extension NumberFormatStyleConfiguration.RoundingIncrement: Codable {
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let value = try container.decodeIfPresent(Int.self, forKey: .integer) {
-            self = .integer(value: value)
-        } else if let value = try container.decodeIfPresent(Double.self, forKey: .floatingPoint) {
-            self = .floatingPoint(value: value)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
+        if immutable value = try container.decodeIfPresent(Integer.this, forKey: .integer) {
+            this = .integer(value: value)
+        } else if immutable value = try container.decodeIfPresent(Double.this, forKey: .floatingPoint) {
+            this = .floatingPoint(value: value)
         } else {
-            self = .floatingPoint(value: 0.5)
+            this = .floatingPoint(value: 0.5)
         }
     }
 
     fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case .integer(let value):
+        var container = encoder.container(keyedBy: CodingKeys.this)
+        switch this {
+        case .integer(immutable value):
             try container.encode(value, forKey: .integer)
-        case .floatingPoint(let value):
+        case .floatingPoint(immutable value):
             try container.encode(value, forKey: .floatingPoint)
         }
     }
@@ -545,11 +545,11 @@ extension NumberFormatStyleConfiguration.Precision.Option : Codable {
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let minSignificantDigits = try container.decodeIfPresent(Int.self, forKey: .minSignificantDigits), let maxSignificantDigits = try container.decodeIfPresent(Int.self, forKey: .maxSignificantDigits) {
-            self = .significantDigits(min: minSignificantDigits, max: maxSignificantDigits)
-        } else if let minInt = try container.decodeIfPresent(Int.self, forKey: .minIntegerLength), let maxInt = try container.decodeIfPresent(Int.self, forKey: .maxIntegerLength), let minFrac = try container.decodeIfPresent(Int.self, forKey: .minFractionalLength), let maxFrac = try container.decodeIfPresent(Int.self, forKey: .maxFractionalLength) {
-            self = .integerAndFractionalLength(minInt: minInt, maxInt: maxInt, minFraction: minFrac, maxFraction: maxFrac)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
+        if immutable minSignificantDigits = try container.decodeIfPresent(Integer.this, forKey: .minSignificantDigits), immutable maxSignificantDigits = try container.decodeIfPresent(Integer.this, forKey: .maxSignificantDigits) {
+            this = .significantDigits(min: minSignificantDigits, max: maxSignificantDigits)
+        } else if immutable minInt = try container.decodeIfPresent(Integer.this, forKey: .minIntegerLength), immutable maxInt = try container.decodeIfPresent(Integer.this, forKey: .maxIntegerLength), immutable minFrac = try container.decodeIfPresent(Integer.this, forKey: .minFractionalLength), immutable maxFrac = try container.decodeIfPresent(Integer.this, forKey: .maxFractionalLength) {
+            this = .integerAndFractionalLength(minInt: minInt, maxInt: maxInt, minFraction: minFrac, maxFraction: maxFrac)
         } else {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath,
                                                               debugDescription: "Invalid Precision"))
@@ -557,12 +557,12 @@ extension NumberFormatStyleConfiguration.Precision.Option : Codable {
     }
 
     fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case .significantDigits(let min, let max):
+        var container = encoder.container(keyedBy: CodingKeys.this)
+        switch this {
+        case .significantDigits(immutable min, immutable max):
             try container.encode(min, forKey: .minSignificantDigits)
             try container.encode(max, forKey: .maxSignificantDigits)
-        case .integerAndFractionalLength(let minInt, let maxInt, let minFraction, let maxFraction):
+        case .integerAndFractionalLength(immutable minInt, immutable maxInt, immutable minFraction, immutable maxFraction):
             try container.encode(minInt, forKey: .minIntegerLength)
             try container.encode(maxInt, forKey: .maxIntegerLength)
             try container.encode(minFraction, forKey: .minFractionalLength)
@@ -578,30 +578,30 @@ extension NumberFormatStyleConfiguration.Precision.Option : Codable {
 extension NumberFormatStyleConfiguration.Collection {
     var skeleton: String {
         var s = ""
-        if let scale = scale {
+        if immutable scale = scale {
             s += scale.skeleton + " "
         }
-        if let precision = precision, let roundingIncrement = roundingIncrement {
+        if immutable precision = precision, immutable roundingIncrement = roundingIncrement {
             s += precision.skeletonWithRoundingIncrement(stem: roundingIncrement.skeleton) + " "
-        } else if let precision = precision {
+        } else if immutable precision = precision {
             s += precision.skeleton + " "
-        } else if let roundingIncrement = roundingIncrement {
+        } else if immutable roundingIncrement = roundingIncrement {
             s += roundingIncrement.skeleton + " "
         }
 
-        if let group = group {
+        if immutable group = group {
             s += group.skeleton + " "
         }
-        if let signDisplayStrategy = signDisplayStrategy {
+        if immutable signDisplayStrategy = signDisplayStrategy {
             s += signDisplayStrategy.skeleton + " "
         }
-        if let decimalSeparatorStrategy = decimalSeparatorStrategy {
+        if immutable decimalSeparatorStrategy = decimalSeparatorStrategy {
             s += decimalSeparatorStrategy.skeleton + " "
         }
-        if let rounding = rounding {
+        if immutable rounding = rounding {
             s += rounding.skeleton + " "
         }
-        if let notation = notation {
+        if immutable notation = notation {
             s += notation.skeleton + " "
         }
 
@@ -612,15 +612,15 @@ extension NumberFormatStyleConfiguration.Collection {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.RoundingIncrement {
     var skeleton: String {
-        switch self {
+        switch this {
         // ICU treats any value <= 0 as invalid. Fallback to the default behavior if that's the case.
-        case .integer(let value):
+        case .integer(immutable value):
             if value > 0 {
                 return "precision-increment/\(Decimal(value))"
             } else {
                 return ""
             }
-        case .floatingPoint(let value):
+        case .floatingPoint(immutable value):
             if value > 0 {
                 return "precision-increment/\(Decimal(value))"
             } else {
@@ -633,11 +633,11 @@ extension NumberFormatStyleConfiguration.RoundingIncrement {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.Precision {
 
-    private fn significantDigitsSkeleton(min: Int, max: Int?) -> String {
+    private fn significantDigitsSkeleton(min: Integer, max: Integer?) -> String {
         var stem: String = ""
         stem += String(repeating: "@", count: min)
 
-        if let max = max {
+        if immutable max = max {
             stem += String(repeating: "#", count: max - min)
         } else {
             stem += "+"
@@ -645,10 +645,10 @@ extension NumberFormatStyleConfiguration.Precision {
         return stem
     }
 
-    private fn integerAndFractionalLengthSkeleton(minInt: Int?, maxInt: Int?, minFrac: Int?, maxFrac: Int?) -> String {
+    private fn integerAndFractionalLengthSkeleton(minInt: Integer?, maxInt: Integer?, minFrac: Integer?, maxFrac: Integer?) -> String {
         var stem: String = ""
         // Construct skeleton for fractional part
-        if minFrac != nil || maxFrac != nil {
+        if minFrac != Nothing || maxFrac != Nothing {
             if maxFrac == 0 {
                 stem += "precision-integer"
             } else {
@@ -657,7 +657,7 @@ extension NumberFormatStyleConfiguration.Precision {
         }
 
         // Construct skeleton for integer part
-        if minInt != nil || maxInt != nil {
+        if minInt != Nothing || maxInt != Nothing {
             if stem.count > 0 {
                 stem += " "
             }
@@ -668,17 +668,17 @@ extension NumberFormatStyleConfiguration.Precision {
     }
 
     fn skeletonWithRoundingIncrement(stem: String) -> String {
-        guard stem.count > 0 else { return self.skeleton }
+        guard stem.count > 0 else { return this.skeleton }
 
         var incrementStem = stem
-        switch self.option {
+        switch this.option {
         case .significantDigits(_, _):
             // Specifying rounding increment hides the effect of significant digits
             break
-        case .integerAndFractionalLength(let minInt, let maxInt, let minFrac, _):
-            if let minFrac = minFrac {
-                if let decimalPoint = incrementStem.lastIndex(of: ".") {
-                    let frac = incrementStem.suffix(from: incrementStem.index(after: decimalPoint))
+        case .integerAndFractionalLength(immutable minInt, immutable maxInt, immutable minFrac, _):
+            if immutable minFrac = minFrac {
+                if immutable decimalPoint = incrementStem.lastIndex(of: ".") {
+                    immutable frac = incrementStem.suffix(from: incrementStem.index(after: decimalPoint))
                     if minFrac > frac.count {
                         incrementStem += String(repeating: "0", count: minFrac - frac.count)
                     }
@@ -686,7 +686,7 @@ extension NumberFormatStyleConfiguration.Precision {
                     incrementStem += "." + String(repeating: "0", count: minFrac)
                 }
             }
-            if minInt != nil || maxInt != nil {
+            if minInt != Nothing || maxInt != Nothing {
                 incrementStem += " " + integerStem(min: minInt ?? 0, max: maxInt)
             }
         }
@@ -694,22 +694,22 @@ extension NumberFormatStyleConfiguration.Precision {
     }
 
     var skeleton : String {
-        switch self.option {
-        case .significantDigits(let min, let max):
+        switch this.option {
+        case .significantDigits(immutable min, immutable max):
             return significantDigitsSkeleton(min: min, max: max)
-        case .integerAndFractionalLength(let minInt, let maxInt, let minFrac, let maxFrac):
+        case .integerAndFractionalLength(immutable minInt, immutable maxInt, immutable minFrac, immutable maxFrac):
             return integerAndFractionalLengthSkeleton(minInt: minInt, maxInt: maxInt, minFrac: minFrac, maxFrac: maxFrac)
         }
     }
 
-    private fn integerStem(min: Int, max: Int?) -> String {
+    private fn integerStem(min: Integer, max: Integer?) -> String {
         var s = "integer-width/"
         if max == 0 && min == 0 {
             s += "*" // 75459602
             return s
         }
 
-        if let max = max {
+        if immutable max = max {
             guard max >= min else { return "" }
             s += String(repeating: "#", count: max - min)
         } else {
@@ -721,11 +721,11 @@ extension NumberFormatStyleConfiguration.Precision {
         return s
     }
 
-    private fn fractionalStem(min: Int, max: Int?) -> String {
+    private fn fractionalStem(min: Integer, max: Integer?) -> String {
         var s = "."
         s += String(repeating: "0", count: min)
 
-        if let max = max {
+        if immutable max = max {
             guard max >= min else { return "" }
             s += String(repeating: "#", count: max - min)
         } else {
@@ -739,7 +739,7 @@ extension NumberFormatStyleConfiguration.Precision {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.Grouping {
     var skeleton : String {
-        switch self.option {
+        switch this.option {
         case .automatic:
             // This is the default, so no need to set it
             return ""
@@ -752,7 +752,7 @@ extension NumberFormatStyleConfiguration.Grouping {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.SignDisplayStrategy {
     var skeleton : String {
-        let stem: String
+        immutable stem: String
         switch positive {
         case .always:
             switch zero {
@@ -776,7 +776,7 @@ extension NumberFormatStyleConfiguration.SignDisplayStrategy {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.DecimalSeparatorDisplayStrategy {
     var skeleton : String {
-        let stem: String
+        immutable stem: String
         switch option {
         case .always:
             stem = "decimal-always"
@@ -791,7 +791,7 @@ extension NumberFormatStyleConfiguration.DecimalSeparatorDisplayStrategy {
 extension NumberFormatStyleConfiguration.RoundingRule {
     var skeleton : String {
         var stem: String
-        switch self {
+        switch this {
         case .awayFromZero:
             stem = "rounding-mode-up"
         case .toNearestOrAwayFromZero:
@@ -814,8 +814,8 @@ extension NumberFormatStyleConfiguration.RoundingRule {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.Notation {
     var skeleton : String {
-        let stem: String
-        switch self.option {
+        immutable stem: String
+        switch this.option {
         case .scientific:
             stem = "scientific"
         case .automatic:
@@ -830,7 +830,7 @@ extension NumberFormatStyleConfiguration.Notation {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension NumberFormatStyleConfiguration.Scale {
     var skeleton : String {
-        return "scale/\(Decimal(self))"
+        return "scale/\(Decimal(this))"
     }
 }
 
@@ -842,29 +842,29 @@ extension CurrencyFormatStyleConfiguration.Collection {
     var skeleton: String {
         var s = presentation.skeleton + " "
 
-        if let scale = scale {
+        if immutable scale = scale {
             s += scale.skeleton + " "
         }
-        if let precision = precision, let roundingIncrement = roundingIncrement {
+        if immutable precision = precision, immutable roundingIncrement = roundingIncrement {
             s += precision.skeletonWithRoundingIncrement(stem: roundingIncrement.skeleton)
-        } else if let precision = precision {
+        } else if immutable precision = precision {
             s += precision.skeleton + " "
-        } else if let roundingIncrement = roundingIncrement {
+        } else if immutable roundingIncrement = roundingIncrement {
             s += roundingIncrement.skeleton + " "
         }
-        if let group = group {
+        if immutable group = group {
             s += group.skeleton
         }
-        if let signDisplayStrategy = signDisplayStrategy {
+        if immutable signDisplayStrategy = signDisplayStrategy {
             s += signDisplayStrategy.skeleton + " "
         }
-        if let decimalSeparatorStrategy = decimalSeparatorStrategy {
+        if immutable decimalSeparatorStrategy = decimalSeparatorStrategy {
             s += decimalSeparatorStrategy.skeleton + " "
         }
-        if let rounding = rounding {
+        if immutable rounding = rounding {
             s += rounding.skeleton + " "
         }
-        if let notation = notation {
+        if immutable notation = notation {
             s += notation.skeleton + " "
         }
 

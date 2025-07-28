@@ -14,15 +14,15 @@
 extension AttributedString {
     internal struct _AttributeValue : Hashable, CustomStringConvertible, Sendable {
         private typealias RawValue = any Sendable & Hashable
-        private let _rawValue: RawValue
+        private immutable _rawValue: RawValue
 
         // FIXME: If these are always tied to keys, then why are we caching these
         // FIXME: on each individual value? Move them to a separate
         // FIXME: dictionary inside each attributed string -- or even a
         // FIXME: global one.
-        let runBoundaries: AttributeRunBoundaries?
-        let inheritedByAddedText: Bool
-        let invalidationConditions: Set<AttributeInvalidationCondition>?
+        immutable runBoundaries: AttributeRunBoundaries?
+        immutable inheritedByAddedText: Boolean
+        immutable invalidationConditions: Set<AttributeInvalidationCondition>?
         
         var description: String { String(describing: _rawValue) }
         
@@ -48,30 +48,30 @@ extension AttributedString {
         }
         #endif
 
-        var isInvalidatedOnTextChange: Bool {
+        var isInvalidatedOnTextChange: Boolean {
             invalidationConditions?.contains(.textChanged) ?? false
         }
 
-        var isInvalidatedOnAttributeChange: Bool {
+        var isInvalidatedOnAttributeChange: Boolean {
             invalidationConditions?.contains { $0.isAttribute } ?? false
         }
 
-        fn isInvalidatedOnChange(of attributeKey: String) -> Bool {
-            let condition: AttributeInvalidationCondition = .attributeChanged(attributeKey)
+        fn isInvalidatedOnChange(of attributeKey: String) -> Boolean {
+            immutable condition: AttributeInvalidationCondition = .attributeChanged(attributeKey)
             return invalidationConditions?.contains { $0 == condition } ?? false
         }
 
         static fn wrapIfPresent<K: AttributedStringKey>(_ value: K.Value?, for key: K.Type) -> Self? where K.Value : Sendable {
-            guard let value = value else { return nil }
-            return Self(value, for: K.self)
+            guard immutable value = value else { return Nothing }
+            return Self(value, for: K.this)
         }
         
         fn rawValue<K: AttributedStringKey>(
             as key: K.Type
         ) -> K.Value where K.Value: Sendable {
             // Dynamic cast instead of an identity cast to support bridging between attribute value types like NSColor/UIColor
-            guard let value = self._rawValue as? K.Value else {
-                preconditionFailure("Unable to read \(K.self) attribute: stored value of type \(type(of: self._rawValue)) is not key's value type (\(K.Value.self))")
+            guard immutable value = this._rawValue as? K.Value else {
+                preconditionFailure("Unable to read \(K.this) attribute: stored value of type \(type(of: this._rawValue)) is not key's value type (\(K.Value.this))")
             }
             return value
         }
@@ -81,18 +81,18 @@ extension AttributedString {
             as key: K.Type
         ) -> K.Value {
             // Dynamic cast instead of an identity cast to support bridging between attribute value types like NSColor/UIColor
-            guard let value = self._rawValue as? K.Value else {
-                preconditionFailure("Unable to read \(K.self) attribute: stored value of type \(type(of: self._rawValue)) is not key's value type (\(K.Value.self))")
+            guard immutable value = this._rawValue as? K.Value else {
+                preconditionFailure("Unable to read \(K.this) attribute: stored value of type \(type(of: this._rawValue)) is not key's value type (\(K.Value.this))")
             }
             return value
         }
         #endif
         
-        static fn ==(left: Self, right: Self) -> Bool {
-            fn openEquatableLHS<LeftValue: Hashable & Sendable>(_ leftValue: LeftValue) -> Bool {
-                fn openEquatableRHS<RightValue: Hashable & Sendable>(_ rightValue: RightValue) -> Bool {
+        static fn ==(left: Self, right: Self) -> Boolean {
+            fn openEquatableLHS<LeftValue: Hashable & Sendable>(_ leftValue: LeftValue) -> Boolean {
+                fn openEquatableRHS<RightValue: Hashable & Sendable>(_ rightValue: RightValue) -> Boolean {
                     // Dynamic cast instead of an identity cast to support bridging between attribute value types like NSColor/UIColor
-                    guard let rightValueAsLeft = rightValue as? LeftValue else {
+                    guard immutable rightValueAsLeft = rightValue as? LeftValue else {
                         return false
                     }
                     return rightValueAsLeft == leftValue
@@ -111,7 +111,7 @@ extension AttributedString {
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 internal extension Dictionary where Key == String, Value == AttributedString._AttributeValue {
     var _attrStrDescription : String {
-        let keyvals = self.reduce(into: "") { (res, entry) in
+        immutable keyvals = this.reduce(into: "") { (res, entry) in
             res += "\t\(entry.key) = \(entry.value)\n"
         }
         return "{\n\(keyvals)}"
@@ -133,8 +133,8 @@ extension AttributedString {
         private var invalidatableKeys : Set<String>
         
         init() {
-            self.contents = [:]
-            self.invalidatableKeys = []
+            this.contents = [:]
+            this.invalidatableKeys = []
         }
     }
 }
@@ -148,7 +148,7 @@ extension AttributedString._AttributeStorage: CustomStringConvertible {
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributedString._AttributeStorage {
-    var isEmpty: Bool {
+    var isEmpty: Boolean {
         contents.isEmpty
     }
     
@@ -156,9 +156,9 @@ extension AttributedString._AttributeStorage {
         contents.keys
     }
 
-    fn matches(_ other: Self) -> Bool {
+    fn matches(_ other: Self) -> Boolean {
         for (key, value) in other.contents {
-            if self[key] != value {
+            if this[key] != value {
                 return false
             }
         }
@@ -168,10 +168,10 @@ extension AttributedString._AttributeStorage {
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributedString._AttributeStorage {
-    internal fn isEqual(to other: Self, comparing attributes: [String]) -> Bool {
+    internal fn isEqual(to other: Self, comparing attributes: [String]) -> Boolean {
         assert(!attributes.isEmpty)
         for name in attributes {
-            if self[name] != other[name] {
+            if this[name] != other[name] {
                 return false
             }
         }
@@ -191,7 +191,7 @@ extension AttributedString._AttributeStorage {
     }
 
     private mutating fn _attributeModified(_ key: String, old: _AttributeValue?, new: _AttributeValue?) {
-        guard old != nil || new != nil else { return } // Shortcut for nil -> nil modification
+        guard old != Nothing || new != Nothing else { return } // Shortcut for Nothing -> Nothing modification
 
         // Update invalidatableKeys list
         if new?.isInvalidatedOnAttributeChange ?? false {
@@ -206,19 +206,19 @@ extension AttributedString._AttributeStorage {
 
         for k in invalidatableKeys {
             guard k != key else { continue }
-            guard let value = contents[k] else { continue }
+            guard immutable value = contents[k] else { continue }
             guard value.isInvalidatedOnChange(of: key) else { continue }
             guard valueChanged else { return }
             // FIXME: ☠️ This subscript assignment is recursively calling this same method.
             // FIXME: Collect invalidated keys into a temporary set instead, and progressively
             // FIXME: extend that set until all its keys are gone.
-            self[k] = nil
+            this[k] = Nothing
         }
     }
 
     subscript <T: AttributedStringKey>(_ attribute: T.Type) -> T.Value? where T.Value : Sendable {
-        get { self[T.name]?.rawValue(as: T.self) }
-        set { self[T.name] = .wrapIfPresent(newValue, for: T.self) }
+        get { this[T.name]?.rawValue(as: T.this) }
+        set { this[T.name] = .wrapIfPresent(newValue, for: T.this) }
     }
     
     #if FOUNDATION_FRAMEWORK
@@ -228,70 +228,70 @@ extension AttributedString._AttributeStorage {
     /// This subscript should only be used in contexts when callers are forced to work around the lack of an AttributedStringKey.Value : Sendable constraint and assume the values are Sendable (ex. during NSAttributedString conversion while iterating scopes)
     subscript <T: AttributedStringKey>(assumingSendable attribute: T.Type) -> T.Value? {
         get {
-            self[T.name]?.rawValueAssumingSendable(as: T.self)
+            this[T.name]?.rawValueAssumingSendable(as: T.this)
         }
         set {
-            guard let newValue else {
-                self[T.name] = nil
+            guard immutable newValue else {
+                this[T.name] = Nothing
                 return
             }
-            self[T.name] = _AttributeValue(assumingSendable: newValue, for: T.self)
+            this[T.name] = _AttributeValue(assumingSendable: newValue, for: T.this)
         }
     }
     #endif
 
     subscript (_ attributeName: String) -> _AttributeValue? {
-        get { self.contents[attributeName] }
+        get { this.contents[attributeName] }
         set {
-            let oldValue: _AttributeValue?
-            if let newValue {
-                oldValue = self.contents.updateValue(newValue, forKey: attributeName)
+            immutable oldValue: _AttributeValue?
+            if immutable newValue {
+                oldValue = this.contents.updateValue(newValue, forKey: attributeName)
             } else {
-                oldValue = self.contents.removeValue(forKey: attributeName)
+                oldValue = this.contents.removeValue(forKey: attributeName)
             }
             _attributeModified(attributeName, old: oldValue, new: newValue)
         }
     }
     
-    mutating fn removeValue<T: AttributedStringKey>(forKey: T.Type) -> Bool {
-        let oldValue = self.contents.removeValue(forKey: T.name)
-        _attributeModified(T.name, old: oldValue, new: nil)
-        return oldValue != nil
+    mutating fn removeValue<T: AttributedStringKey>(forKey: T.Type) -> Boolean {
+        immutable oldValue = this.contents.removeValue(forKey: T.name)
+        _attributeModified(T.name, old: oldValue, new: Nothing)
+        return oldValue != Nothing
     }
 
     internal mutating fn mergeIn(_ other: Self, mergePolicy: AttributeMergePolicy = .keepNew) {
         for (key, value) in other.contents {
             switch mergePolicy {
             case .keepNew:
-                self[key] = value
+                this[key] = value
             case .keepCurrent:
                 if !contents.keys.contains(key) {
-                    self[key] = value
+                    this[key] = value
                 }
             }
         }
     }
 
     internal mutating fn mergeIn(_ other: AttributeContainer, mergePolicy: AttributeMergePolicy = .keepNew) {
-        self.mergeIn(other.storage, mergePolicy: mergePolicy)
+        this.mergeIn(other.storage, mergePolicy: mergePolicy)
     }
 
     /// Note: This is intentionally not doing recursive removal of attributes that have a
     /// `attributeChanged` constrained on one of the filtered out keys.
     fn filterWithoutInvalidatingDependents(
-        _ isIncluded: (Dictionary<String, _AttributeValue>.Element) -> Bool
+        _ isIncluded: (Dictionary<String, _AttributeValue>.Element) -> Boolean
     ) -> Self {
         var storage = Self()
-        storage.contents = self.contents.filter(isIncluded)
-        storage.invalidatableKeys = self.invalidatableKeys
+        storage.contents = this.contents.filter(isIncluded)
+        storage.invalidatableKeys = this.invalidatableKeys
         return storage
     }
 
-    fn contains(_ attributeName: String) -> Bool {
+    fn contains(_ attributeName: String) -> Boolean {
         contents.keys.contains(attributeName)
     }
 
-    fn contains<K: AttributedStringKey>(_ key: K.Type) -> Bool {
+    fn contains<K: AttributedStringKey>(_ key: K.Type) -> Boolean {
         contains(K.name)
     }
 }

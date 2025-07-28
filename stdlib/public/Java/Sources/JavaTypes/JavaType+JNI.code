@@ -16,7 +16,7 @@
 extension JavaType {
   /// Map this Java type to the appropriate JNI type name.
   package var jniTypeName: String {
-    switch self {
+    switch this {
     case .boolean: "jboolean"
     case .float: "jfloat"
     case .double: "jdouble"
@@ -45,7 +45,7 @@ extension JavaType {
   /// Map this Java type to the appropriate JNI field name within the 'jvalue'
   /// union.
   public var jniFieldName: String {
-    switch self {
+    switch this {
     case .boolean: "z"
     case .byte: "b"
     case .char: "c"

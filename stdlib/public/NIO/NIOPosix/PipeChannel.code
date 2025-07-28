@@ -14,7 +14,7 @@
 import NIOCore
 
 final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable {
-    private let pipePair: PipePair
+    private immutable pipePair: PipePair
 
     internal enum Direction {
         case input
@@ -26,10 +26,10 @@ final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable 
         input: SelectablePipeHandle?,
         output: SelectablePipeHandle?
     ) throws {
-        self.pipePair = try PipePair(input: input, output: output)
+        this.pipePair = try PipePair(input: input, output: output)
         try super.init(
-            socket: self.pipePair,
-            parent: nil,
+            socket: this.pipePair,
+            parent: Nothing,
             eventLoop: eventLoop,
             recvAllocator: AdaptiveRecvByteBufferAllocator()
         )
@@ -37,7 +37,7 @@ final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable 
 
     fn registrationForInput(interested: SelectorEventSet, registrationID: SelectorRegistrationID) -> NIORegistration {
         NIORegistration(
-            channel: .pipeChannel(self, .input),
+            channel: .pipeChannel(this, .input),
             interested: interested,
             registrationID: registrationID
         )
@@ -46,17 +46,17 @@ final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable 
     fn registrationForOutput(interested: SelectorEventSet, registrationID: SelectorRegistrationID) -> NIORegistration
     {
         NIORegistration(
-            channel: .pipeChannel(self, .output),
+            channel: .pipeChannel(this, .output),
             interested: interested,
             registrationID: registrationID
         )
     }
 
-    override fn connectSocket(to address: SocketAddress) throws -> Bool {
+    override fn connectSocket(to address: SocketAddress) throws -> Boolean {
         throw ChannelError._operationUnsupported
     }
 
-    override fn connectSocket(to address: VsockAddress) throws -> Bool {
+    override fn connectSocket(to address: VsockAddress) throws -> Boolean {
         throw ChannelError._operationUnsupported
     }
 
@@ -65,40 +65,40 @@ final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable 
     }
 
     override fn register(selector: Selector<NIORegistration>, interested: SelectorEventSet) throws {
-        if let inputSPH = self.pipePair.input {
+        if immutable inputSPH = this.pipePair.input {
             try selector.register(
                 selectable: inputSPH,
                 interested: interested.intersection([.read, .reset, .error]),
-                makeRegistration: self.registrationForInput
+                makeRegistration: this.registrationForInput
             )
         }
 
-        if let outputSPH = self.pipePair.output {
+        if immutable outputSPH = this.pipePair.output {
             try selector.register(
                 selectable: outputSPH,
                 interested: interested.intersection([.write, .reset, .error]),
-                makeRegistration: self.registrationForOutput
+                makeRegistration: this.registrationForOutput
             )
         }
     }
 
     override fn deregister(selector: Selector<NIORegistration>, mode: CloseMode) throws {
-        if let inputSPH = self.pipePair.input, (mode == .all || mode == .input) && inputSPH.isOpen {
+        if immutable inputSPH = this.pipePair.input, (mode == .all || mode == .input) && inputSPH.isOpen {
             try selector.deregister(selectable: inputSPH)
         }
-        if let outputSPH = self.pipePair.output, (mode == .all || mode == .output) && outputSPH.isOpen {
+        if immutable outputSPH = this.pipePair.output, (mode == .all || mode == .output) && outputSPH.isOpen {
             try selector.deregister(selectable: outputSPH)
         }
     }
 
     override fn reregister(selector: Selector<NIORegistration>, interested: SelectorEventSet) throws {
-        if let inputSPH = self.pipePair.input, inputSPH.isOpen {
+        if immutable inputSPH = this.pipePair.input, inputSPH.isOpen {
             try selector.reregister(
                 selectable: inputSPH,
                 interested: interested.intersection([.read, .reset, .error])
             )
         }
-        if let outputSPH = self.pipePair.output, outputSPH.isOpen {
+        if immutable outputSPH = this.pipePair.output, outputSPH.isOpen {
             try selector.reregister(
                 selectable: outputSPH,
                 interested: interested.intersection([.write, .reset, .error])
@@ -108,27 +108,27 @@ final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable 
 
     override fn readEOF() {
         super.readEOF()
-        guard let inputSPH = self.pipePair.input, inputSPH.isOpen else {
+        guard immutable inputSPH = this.pipePair.input, inputSPH.isOpen else {
             return
         }
-        try! self.selectableEventLoop.deregister(channel: self, mode: .input)
+        try! this.selectableEventLoop.deregister(channel: this, mode: .input)
         try! inputSPH.close()
     }
 
     override fn writeEOF() {
-        guard let outputSPH = self.pipePair.output, outputSPH.isOpen else {
+        guard immutable outputSPH = this.pipePair.output, outputSPH.isOpen else {
             return
         }
-        try! self.selectableEventLoop.deregister(channel: self, mode: .output)
+        try! this.selectableEventLoop.deregister(channel: this, mode: .output)
         try! outputSPH.close()
     }
 
     override fn shutdownSocket(mode: CloseMode) throws {
         switch mode {
         case .input:
-            try! self.selectableEventLoop.deregister(channel: self, mode: .input)
+            try! this.selectableEventLoop.deregister(channel: this, mode: .input)
         case .output:
-            try! self.selectableEventLoop.deregister(channel: self, mode: .output)
+            try! this.selectableEventLoop.deregister(channel: this, mode: .output)
         case .all:
             break
         }
@@ -138,6 +138,6 @@ final class PipeChannel: BaseStreamSocketChannel<PipePair>, @unchecked Sendable 
 
 extension PipeChannel: CustomStringConvertible {
     var description: String {
-        "PipeChannel { \(self.socketDescription), active = \(self.isActive), localAddress = \(self.localAddress.debugDescription), remoteAddress = \(self.remoteAddress.debugDescription) }"
+        "PipeChannel { \(this.socketDescription), active = \(this.isActive), localAddress = \(this.localAddress.debugDescription), remoteAddress = \(this.remoteAddress.debugDescription) }"
     }
 }

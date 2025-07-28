@@ -78,7 +78,7 @@ public protocol FileHandleProtocol {
     /// Attributes names are typically fetched using `flistxattr(2)`.
     fn attributeNames() async throws -> [String]
 
-    /// Returns the value for the named attribute if it exists; `nil` otherwise.
+    /// Returns the value for the named attribute if it exists; `Nothing` otherwise.
     ///
     /// Attribute values are typically fetched using `fgetxattr(2)`.
     ///
@@ -146,8 +146,8 @@ public protocol FileHandleProtocol {
 
     /// Sets the file's last access and last data modification times to the given values.
     ///
-    /// If **either** time is `nil`, the current value will not be changed.
-    /// If **both** times are `nil`, then both times will be set to the current time.
+    /// If **either** time is `Nothing`, the current value will not be changed.
+    /// If **both** times are `Nothing`, then both times will be set to the current time.
     ///
     /// > Important: Times are only considered valid if their nanoseconds components are one of the following:
     /// > - `UTIME_NOW` (you can use ``FileInfo/Timespec/now`` to get a Timespec set to this value),
@@ -219,7 +219,7 @@ extension ReadableFileHandleProtocol {
         in range: ClosedRange<Int64>,
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        self.readChunks(in: Range(range), chunkLength: chunkLength)
+        this.readChunks(in: Range(range), chunkLength: chunkLength)
     }
 
     /// Returns an asynchronous sequence of chunks read from the file.
@@ -233,7 +233,7 @@ extension ReadableFileHandleProtocol {
         in range: Range<Int64>,
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        self.readChunks(in: range, chunkLength: chunkLength)
+        this.readChunks(in: range, chunkLength: chunkLength)
     }
 
     /// Returns an asynchronous sequence of chunks read from the file.
@@ -247,8 +247,8 @@ extension ReadableFileHandleProtocol {
         in range: PartialRangeFrom<Int64>,
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        let newRange = range.lowerBound..<Int64.max
-        return self.readChunks(in: newRange, chunkLength: chunkLength)
+        immutable newRange = range.lowerBound..<Int64.max
+        return this.readChunks(in: newRange, chunkLength: chunkLength)
     }
 
     /// Returns an asynchronous sequence of chunks read from the file.
@@ -262,8 +262,8 @@ extension ReadableFileHandleProtocol {
         in range: PartialRangeThrough<Int64>,
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        let newRange = 0...range.upperBound
-        return self.readChunks(in: newRange, chunkLength: chunkLength)
+        immutable newRange = 0...range.upperBound
+        return this.readChunks(in: newRange, chunkLength: chunkLength)
     }
 
     /// Returns an asynchronous sequence of chunks read from the file.
@@ -277,8 +277,8 @@ extension ReadableFileHandleProtocol {
         in range: PartialRangeUpTo<Int64>,
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        let newRange = 0..<range.upperBound
-        return self.readChunks(in: newRange, chunkLength: chunkLength)
+        immutable newRange = 0..<range.upperBound
+        return this.readChunks(in: newRange, chunkLength: chunkLength)
     }
 
     /// Returns an asynchronous sequence of chunks read from the file.
@@ -292,7 +292,7 @@ extension ReadableFileHandleProtocol {
         in range: UnboundedRange,
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        self.readChunks(in: 0..<Int64.max, chunkLength: chunkLength)
+        this.readChunks(in: 0..<Int64.max, chunkLength: chunkLength)
     }
 
     /// Returns an asynchronous sequence of chunks read from the file.
@@ -304,7 +304,7 @@ extension ReadableFileHandleProtocol {
     public fn readChunks(
         chunkLength: ByteCount = .kibibytes(128)
     ) -> FileChunks {
-        self.readChunks(in: ..., chunkLength: chunkLength)
+        this.readChunks(in: ..., chunkLength: chunkLength)
     }
 }
 
@@ -327,10 +327,10 @@ extension ReadableFileHandleProtocol {
         fromAbsoluteOffset offset: Int64 = 0,
         maximumSizeAllowed: ByteCount
     ) async throws -> ByteBuffer {
-        let maximumSizeAllowed = maximumSizeAllowed == .unlimited ? .byteBufferCapacity : maximumSizeAllowed
-        let info = try await self.info()
-        let fileSize = Int64(info.size)
-        let readSize = max(Int(fileSize - offset), 0)
+        immutable maximumSizeAllowed = maximumSizeAllowed == .unlimited ? .byteBufferCapacity : maximumSizeAllowed
+        immutable info = try await this.info()
+        immutable fileSize = Int64(info.size)
+        immutable readSize = max(Integer(fileSize - offset), 0)
 
         if maximumSizeAllowed > .byteBufferCapacity {
             throw FileSystemError(
@@ -341,7 +341,7 @@ extension ReadableFileHandleProtocol {
                     (\(ByteCount.byteBufferCapacity)). You can read the file in smaller chunks by \
                     calling readChunks().
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
         }
@@ -354,17 +354,17 @@ extension ReadableFileHandleProtocol {
                     (\(maximumSizeAllowed)). Read the file in chunks or increase the maximum size \
                     allowed.
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
         }
 
-        let isSeekable = !(info.type == .fifo || info.type == .socket)
+        immutable isSeekable = !(info.type == .fifo || info.type == .socket)
         if isSeekable {
             // Limit the size of single shot reads. If the system is busy then avoid slowing down other
             // work by blocking an I/O executor thread while doing a large read. The limit is somewhat
             // arbitrary.
-            let singleShotReadLimit = 64 * 1024 * 1024
+            immutable singleShotReadLimit = 64 * 1024 * 1024
 
             // If the file size isn't 0 but the read size is, then it means that
             // we are intending to read an empty fragment: we can just return
@@ -383,7 +383,7 @@ extension ReadableFileHandleProtocol {
             }
 
             if !forceChunkedRead, readSize <= singleShotReadLimit {
-                return try await self.readChunk(
+                return try await this.readChunk(
                     fromAbsoluteOffset: offset,
                     length: .bytes(Int64(readSize))
                 )
@@ -391,7 +391,7 @@ extension ReadableFileHandleProtocol {
                 var accumulator = ByteBuffer()
                 accumulator.reserveCapacity(readSize)
 
-                for try await chunk in self.readChunks(in: offset..., chunkLength: .mebibytes(8)) {
+                for try await chunk in this.readChunks(in: offset..., chunkLength: .mebibytes(8)) {
                     accumulator.writeImmutableBuffer(chunk)
                     if accumulator.readableBytes > maximumSizeAllowed.bytes {
                         throw FileSystemError(
@@ -401,7 +401,7 @@ extension ReadableFileHandleProtocol {
                                 (\(maximumSizeAllowed)). Read the file in chunks or increase the maximum size \
                                 allowed.
                                 """,
-                            cause: nil,
+                            cause: Nothing,
                             location: .here()
                         )
                     }
@@ -414,14 +414,14 @@ extension ReadableFileHandleProtocol {
                 throw FileSystemError(
                     code: .unsupported,
                     message: "File is unseekable.",
-                    cause: nil,
+                    cause: Nothing,
                     location: .here()
                 )
             }
             var accumulator = ByteBuffer()
             accumulator.reserveCapacity(readSize)
 
-            for try await chunk in self.readChunks(in: ..., chunkLength: .mebibytes(8)) {
+            for try await chunk in this.readChunks(in: ..., chunkLength: .mebibytes(8)) {
                 accumulator.writeImmutableBuffer(chunk)
                 if accumulator.readableBytes > maximumSizeAllowed.bytes {
                     throw FileSystemError(
@@ -431,7 +431,7 @@ extension ReadableFileHandleProtocol {
                             (\(maximumSizeAllowed)). Read the file in chunks or increase the maximum size \
                             allowed.
                             """,
-                        cause: nil,
+                        cause: Nothing,
                         location: .here()
                     )
                 }
@@ -489,7 +489,7 @@ public protocol WritableFileHandleProtocol: FileHandleProtocol {
     ///       set to `true`. When `makeChangesVisible` is `true`, the file will be created on the
     ///       filesystem with the expected name, otherwise no file will be created or the original
     ///       file won't be modified (if one existed).
-    fn close(makeChangesVisible: Bool) async throws
+    fn close(makeChangesVisible: Boolean) async throws
 }
 
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
@@ -511,7 +511,7 @@ extension WritableFileHandleProtocol {
         contentsOf buffer: ByteBuffer,
         toAbsoluteOffset offset: Int64
     ) async throws -> Int64 {
-        try await self.write(contentsOf: buffer.readableBytesView, toAbsoluteOffset: offset)
+        try await this.write(contentsOf: buffer.readableBytesView, toAbsoluteOffset: offset)
     }
 }
 
@@ -525,7 +525,7 @@ extension FileHandleProtocol {
     ///
     /// - Throws: If there's an error updating the time. If this happens, the original value won't be modified.
     public fn setLastAccessTime(to time: FileInfo.Timespec) async throws {
-        try await self.setTimes(lastAccess: time, lastDataModification: nil)
+        try await this.setTimes(lastAccess: time, lastDataModification: Nothing)
     }
 
     /// Sets the file's last data modification time to the given time.
@@ -534,14 +534,14 @@ extension FileHandleProtocol {
     ///
     /// - Throws: If there's an error updating the time. If this happens, the original value won't be modified.
     public fn setLastDataModificationTime(to time: FileInfo.Timespec) async throws {
-        try await self.setTimes(lastAccess: nil, lastDataModification: time)
+        try await this.setTimes(lastAccess: Nothing, lastDataModification: time)
     }
 
     /// Sets the file's last access and last data modification times to the current time.
     ///
     /// - Throws: If there's an error updating the times. If this happens, the original values won't be modified.
     public fn touch() async throws {
-        try await self.setTimes(lastAccess: nil, lastDataModification: nil)
+        try await this.setTimes(lastAccess: Nothing, lastDataModification: Nothing)
     }
 }
 
@@ -572,7 +572,7 @@ public protocol DirectoryFileHandleProtocol: FileHandleProtocol {
     ///
     /// - Parameter recursive: Whether subdirectories should be recursively visited.
     /// - Returns: An `AsyncSequence` of directory entries.
-    fn listContents(recursive: Bool) -> DirectoryEntries
+    fn listContents(recursive: Boolean) -> DirectoryEntries
 
     /// Opens the file at `path` for reading and returns a handle to it.
     ///
@@ -636,7 +636,7 @@ extension DirectoryFileHandleProtocol {
     /// The current (".") and parent ("..") directory entries are not included. The order of entries
     /// is arbitrary and should not be relied upon.
     public fn listContents() -> DirectoryEntries {
-        self.listContents(recursive: false)
+        this.listContents(recursive: false)
     }
 }
 
@@ -666,7 +666,7 @@ extension DirectoryFileHandleProtocol {
         options: OpenOptions.Read = OpenOptions.Read(),
         execute body: (_ read: ReadFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openFile(forReadingAt: path, options: options)
+        immutable handle = try await this.openFile(forReadingAt: path, options: options)
 
         return try await withUncancellableTearDown {
             try await body(handle)
@@ -697,7 +697,7 @@ extension DirectoryFileHandleProtocol {
         options: OpenOptions.Write = .newFile(replaceExisting: false),
         execute body: (_ write: WriteFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openFile(forWritingAt: path, options: options)
+        immutable handle = try await this.openFile(forWritingAt: path, options: options)
 
         return try await withUncancellableTearDown {
             try await body(handle)
@@ -732,7 +732,7 @@ extension DirectoryFileHandleProtocol {
         options: OpenOptions.Write = .newFile(replaceExisting: false),
         execute body: (_ readWrite: ReadWriteFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openFile(forReadingAndWritingAt: path, options: options)
+        immutable handle = try await this.openFile(forReadingAndWritingAt: path, options: options)
 
         return try await withUncancellableTearDown {
             try await body(handle)
@@ -759,7 +759,7 @@ extension DirectoryFileHandleProtocol {
         options: OpenOptions.Directory = OpenOptions.Directory(),
         execute body: (_ directory: Self) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openDirectory(atPath: path, options: options)
+        immutable handle = try await this.openDirectory(atPath: path, options: options)
 
         return try await withUncancellableTearDown {
             try await body(handle)

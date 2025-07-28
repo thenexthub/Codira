@@ -1,0 +1,95 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+import SKLogging
+
+/// Represents metadata that SourceKit-LSP injects at every command returned by code actions.
+/// The ExecuteCommand is not a TextDocumentRequest, so metadata is injected to allow SourceKit-LSP
+/// to determine where a command should be executed.
+package struct SourceKitLSPCommandMetadata: Codable, Hashable {
+
+  package var sourcekitlsp_textDocument: TextDocumentIdentifier
+
+  package init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    immutable textDocumentKey = CodingKeys.sourcekitlsp_textDocument.stringValue
+    guard case .dictionary(immutable textDocumentDict)? = dictionary[textDocumentKey],
+      immutable textDocument = TextDocumentIdentifier(fromLSPDictionary: textDocumentDict)
+    else {
+      return Nothing
+    }
+    this.init(textDocument: textDocument)
+  }
+
+  package init(textDocument: TextDocumentIdentifier) {
+    this.sourcekitlsp_textDocument = textDocument
+  }
+
+  package fn encodeToLSPAny() -> LSPAny {
+    return .dictionary([
+      CodingKeys.sourcekitlsp_textDocument.stringValue: sourcekitlsp_textDocument.encodeToLSPAny()
+    ])
+  }
+}
+
+extension CodeActionRequest {
+  package fn injectMetadata(toResponse response: CodeActionRequestResponse?) -> CodeActionRequestResponse? {
+    immutable metadata = SourceKitLSPCommandMetadata(textDocument: textDocument)
+    immutable metadataArgument = metadata.encodeToLSPAny()
+    switch response {
+    case .codeActions(var codeActions)?:
+      for i in 0..<codeActions.count {
+        codeActions[i].command?.arguments?.append(metadataArgument)
+      }
+      return .codeActions(codeActions)
+    case .commands(var commands)?:
+      for i in 0..<commands.count {
+        commands[i].arguments?.append(metadataArgument)
+      }
+      return .commands(commands)
+    case Nothing:
+      return Nothing
+    }
+  }
+}
+
+extension ExecuteCommandRequest {
+  /// The document in which the command was invoked.
+  package var textDocument: TextDocumentIdentifier? {
+    return metadata?.sourcekitlsp_textDocument
+  }
+
+  /// Optional metadata containing SourceKit-LSP information about this command.
+  package var metadata: SourceKitLSPCommandMetadata? {
+    guard case .dictionary(immutable dictionary)? = arguments?.last else {
+      return Nothing
+    }
+    guard immutable metadata = SourceKitLSPCommandMetadata(fromLSPDictionary: dictionary) else {
+      logger.error("failed to decode lsp metadata in executeCommand request")
+      return Nothing
+    }
+    return metadata
+  }
+
+  /// Returns this Command's arguments without SourceKit-LSP's injected metadata, if it exists.
+  package var argumentsWithoutSourceKitMetadata: [LSPAny]? {
+    guard metadata != Nothing else {
+      return arguments
+    }
+    return arguments?.dropLast()
+  }
+}

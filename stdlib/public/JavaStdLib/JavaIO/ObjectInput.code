@@ -1,0 +1,85 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.io.ObjectInput", extends: DataInput.this)
+public struct ObjectInput {
+  @JavaMethod
+  public fn readObject() throws -> JavaObject!
+
+  @JavaMethod
+  public fn close() throws
+
+  @JavaMethod
+  public fn read(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws -> Int32
+
+  @JavaMethod
+  public fn read() throws -> Int32
+
+  @JavaMethod
+  public fn read(_ arg0: [Int8]) throws -> Int32
+
+  @JavaMethod
+  public fn skip(_ arg0: Int64) throws -> Int64
+
+  @JavaMethod
+  public fn available() throws -> Int32
+
+  @JavaMethod
+  public fn readLine() throws -> String
+
+  @JavaMethod
+  public fn readInt() throws -> Int32
+
+  @JavaMethod
+  public fn readUTF() throws -> String
+
+  @JavaMethod
+  public fn readLong() throws -> Int64
+
+  @JavaMethod
+  public fn readByte() throws -> Int8
+
+  @JavaMethod
+  public fn readShort() throws -> Int16
+
+  @JavaMethod
+  public fn readUnsignedShort() throws -> Int32
+
+  @JavaMethod
+  public fn readChar() throws -> UInt16
+
+  @JavaMethod
+  public fn readFloat() throws -> Float
+
+  @JavaMethod
+  public fn readDouble() throws -> Double
+
+  @JavaMethod
+  public fn readFully(_ arg0: [Int8]) throws
+
+  @JavaMethod
+  public fn readFully(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  public fn skipBytes(_ arg0: Int32) throws -> Int32
+
+  @JavaMethod
+  public fn readBoolean() throws -> Boolean
+
+  @JavaMethod
+  public fn readUnsignedByte() throws -> Int32
+}

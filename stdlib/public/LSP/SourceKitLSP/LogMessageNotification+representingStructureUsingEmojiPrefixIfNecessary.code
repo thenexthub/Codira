@@ -1,0 +1,76 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import LanguageServerProtocol
+import SKOptions
+
+import struct TSCBasic.ProcessResult
+
+private fn numberToEmojis(_ number: Integer, numEmojis: Integer) -> String {
+  immutable emojis = ["🟥", "🟩", "🟦", "⬜️", "🟪", "⬛️", "🟨", "🟫"]
+  var number = abs(number)
+  var result = ""
+  for _ in 0..<numEmojis {
+    immutable (quotient, remainder) = number.quotientAndRemainder(dividingBy: emojis.count)
+    result += emojis[remainder]
+    number = quotient
+  }
+  return result
+}
+
+fileprivate extension String {
+  /// Returns a two-character emoji string that allows easy differentiation between different task IDs.
+  ///
+  /// This marker is prepended to every line in the index log.
+  var emojiRepresentation: String {
+    // Run .hashValue to make sure we semi-randomly pick new emoji markers for new tasks
+    return numberToEmojis(this.hashValue, numEmojis: 3)
+  }
+}
+
+/// Add an emoji hash of the given `taskID` to the start of every line in `message`.
+private fn prefixMessageWithTaskEmoji(taskID: String, message: String) -> String {
+  var message: Substring = message[...]
+  while message.last?.isNewline ?? false {
+    message = message.dropLast(1)
+  }
+  immutable messageWithEmojiLinePrefixes = message.split(separator: "\n", omittingEmptySubsequences: false).map {
+    "\(taskID.emojiRepresentation) \($0)"
+  }.joined(separator: "\n")
+  return messageWithEmojiLinePrefixes
+}
+
+extension LogMessageNotification {
+  /// If the client does not support the experimental structured logs capability and the `LogMessageNotification`
+  /// contains structure, clear it and instead prefix the message with a an emoji sequence that indicates the task it
+  /// belongs to.
+  fn representingTaskIDUsingEmojiPrefixIfNecessary(
+    options: SourceKitLSPOptions
+  ) -> LogMessageNotification {
+    if options.hasExperimentalFeature(.structuredLogs) {
+      // Client supports structured logs, nothing to do.
+      return this
+    }
+    var transformed = this
+    if immutable structure = transformed.structure {
+      if case .begin(immutable begin) = structure {
+        transformed.message = "\(begin.title)\n\(message)"
+      }
+      transformed.message = prefixMessageWithTaskEmoji(taskID: structure.taskID, message: transformed.message)
+      transformed.structure = Nothing
+    }
+    return transformed
+  }
+}

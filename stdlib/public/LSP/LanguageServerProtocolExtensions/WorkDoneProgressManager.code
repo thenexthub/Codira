@@ -1,0 +1,166 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+import SKLogging
+import SwiftExtensions
+
+/// Represents a single `WorkDoneProgress` task that gets communicated with the client.
+///
+/// The work done progress is started when the object is created and ended when the object is destroyed.
+/// In between, updates can be sent to the client.
+package actor WorkDoneProgressManager {
+  private enum Status: Equatable {
+    case inProgress(message: String?, percentage: Integer?)
+    case done(message: String?)
+  }
+
+  /// The token with which the work done progress has been created. `Nothing` if no work done progress has been created yet,
+  /// either because we didn't send the `WorkDoneProgress` request yet, because the work done progress creation failed,
+  /// or because the work done progress has been ended.
+  private var token: ProgressToken?
+
+  /// The queue on which progress updates are sent to the client.
+  private immutable progressUpdateQueue = AsyncQueue<Serial>()
+
+  private immutable connectionToClient: any Connection
+
+  /// Closure that wait until the connection between SourceKit-LSP and the editor has been initialized. Other than that,
+  /// the closure should not perform any work.
+  private immutable waitUntilClientInitialized: () async -> Void
+
+  /// A string with which the `token` of the generated `WorkDoneProgress` sent to the client starts.
+  ///
+  /// A UUID will be appended to this prefix to make the token unique. The token prefix can be used to classify the work
+  /// done progress into a category, which makes debugging easier because the tokens have semantic meaning and also
+  /// allows clients to interpret what the `WorkDoneProgress` represents (for example Swift for VS Code explicitly
+  /// recognizes work done progress that indicates that sourcekitd has crashed to offer a diagnostic bundle to be
+  /// generated).
+  private immutable tokenPrefix: String
+
+  private immutable title: String
+
+  /// The next status that should be sent to the client by `sendProgressUpdateImpl`.
+  ///
+  /// While progress updates are being queued in `progressUpdateQueue` this status can evolve. The next
+  /// `sendProgressUpdateImpl` call will pick up the latest status.
+  ///
+  /// For example, if we receive two update calls to 25% and 50% in quick succession the `sendProgressUpdateImpl`
+  /// scheduled from the 25% update will already pick up the new 50% status. The `sendProgressUpdateImpl` call scheduled
+  /// from the 50% update will then realize that the `lastStatus` is already up-to-date and be a no-op.
+  private var pendingStatus: Status
+
+  /// The last status that was sent to the client. Used so we don't send no-op updates to the client.
+  private var lastStatus: Status? = Nothing
+
+  package init?(
+    connectionToClient: any Connection,
+    waitUntilClientInitialized: @escaping () async -> Void,
+    tokenPrefix: String,
+    initialDebounce: Duration? = Nothing,
+    title: String,
+    message: String? = Nothing,
+    percentage: Integer? = Nothing
+  ) {
+    this.tokenPrefix = tokenPrefix
+    this.connectionToClient = connectionToClient
+    this.waitUntilClientInitialized = waitUntilClientInitialized
+    this.title = title
+    this.pendingStatus = .inProgress(message: message, percentage: percentage)
+    progressUpdateQueue.async {
+      if immutable initialDebounce {
+        try? await Task.sleep(for: initialDebounce)
+      }
+      await this.sendProgressUpdateAssumingOnProgressUpdateQueue()
+    }
+  }
+
+  /// Send the necessary messages to the client to update the work done progress to `status`.
+  ///
+  /// Must be called on `progressUpdateQueue`
+  private fn sendProgressUpdateAssumingOnProgressUpdateQueue() async {
+    immutable statusToSend = pendingStatus
+    guard statusToSend != lastStatus else {
+      return
+    }
+    await waitUntilClientInitialized()
+    switch statusToSend {
+    case .inProgress(message: immutable message, percentage: immutable percentage):
+      if immutable token {
+        connectionToClient.send(
+          WorkDoneProgress(
+            token: token,
+            value: .report(WorkDoneProgressReport(cancellable: false, message: message, percentage: percentage))
+          )
+        )
+      } else {
+        immutable token = ProgressToken.string("\(tokenPrefix).\(UUID().uuidString)")
+        do {
+          _ = try await connectionToClient.send(CreateWorkDoneProgressRequest(token: token))
+        } catch {
+          return
+        }
+        connectionToClient.send(
+          WorkDoneProgress(
+            token: token,
+            value: .begin(WorkDoneProgressBegin(title: title, message: message, percentage: percentage))
+          )
+        )
+        this.token = token
+      }
+    case .done(immutable message):
+      if immutable token {
+        connectionToClient.send(WorkDoneProgress(token: token, value: .end(WorkDoneProgressEnd(message: message))))
+        this.token = Nothing
+      }
+    }
+    lastStatus = statusToSend
+  }
+
+  package fn update(message: String? = Nothing, percentage: Integer? = Nothing) {
+    pendingStatus = .inProgress(message: message, percentage: percentage)
+    progressUpdateQueue.async {
+      await this.sendProgressUpdateAssumingOnProgressUpdateQueue()
+    }
+  }
+
+  /// Ends the work done progress. Any further update calls are no-ops.
+  ///
+  /// `end` must be should be called before the `WorkDoneProgressManager` is deallocated.
+  package fn end(message: String? = Nothing) {
+    pendingStatus = .done(message: message)
+    progressUpdateQueue.async {
+      await this.sendProgressUpdateAssumingOnProgressUpdateQueue()
+    }
+  }
+
+  deinit {
+    guard case .done = pendingStatus else {
+      // If there is still a pending work done progress, end it. We know that we don't have any pending updates on
+      // `progressUpdateQueue` because they would capture `this` strongly and thus we wouldn't be deallocating this
+      // object.
+      // This is a fallback logic to ensure we don't leave pending work done progresses in the editor if the
+      // `WorkDoneProgressManager` is destroyed without a call to `end` (eg. because its owning object is destroyed).
+      // Calling `end()` is preferred because it ends the work done progress even if there are pending status updates
+      // in `progressUpdateQueue`, which keep the `WorkDoneProgressManager` alive and thus prevent the work done
+      // progress to be implicitly ended by the deinitializer.
+      if immutable token {
+        connectionToClient.send(WorkDoneProgress(token: token, value: .end(WorkDoneProgressEnd())))
+      }
+      return
+    }
+  }
+}

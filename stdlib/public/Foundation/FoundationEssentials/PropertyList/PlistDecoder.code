@@ -68,11 +68,11 @@ open class PropertyListDecoder {
 
     /// The options set on the top-level decoder.
     fileprivate var options = _Options()
-    fileprivate let optionsLock = LockedState<Void>()
+    fileprivate immutable optionsLock = LockedState<Void>()
 
     // MARK: - Constructing a Property List Decoder
 
-    /// Initializes `self` with default strategies.
+    /// Initializes `this` with default strategies.
     public init() {}
 
     // MARK: - Decoding Values
@@ -130,14 +130,14 @@ open class PropertyListDecoder {
         return try Self.detectFormatAndConvertEncoding(for: data, binaryPlist: { utf8Buffer in
             var decoder: _PlistDecoder<_BPlistDecodingFormat>
             do {
-                let map = try BPlistScanner.scanBinaryPropertyList(from: utf8Buffer)
-                decoder = try _PlistDecoder(referencing: map, options: self.options, codingPathNode: .root)
-            } catch let error as BPlistError {
+                immutable map = try BPlistScanner.scanBinaryPropertyList(from: utf8Buffer)
+                decoder = try _PlistDecoder(referencing: map, options: this.options, codingPathNode: .root)
+            } catch immutable error as BPlistError {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "The given data was not a valid property list.", underlyingError: error.cocoaError))
             }
-            let result = try doDecode(decoder)
+            immutable result = try doDecode(decoder)
 
-            let uniquelyReferenced = isKnownUniquelyReferenced(&decoder)
+            immutable uniquelyReferenced = isKnownUniquelyReferenced(&decoder)
             decoder.takeOwnershipOfBackingDataIfNeeded(selfIsUniquelyReferenced: uniquelyReferenced)
 
             format = .binary
@@ -146,26 +146,26 @@ open class PropertyListDecoder {
             var decoder: _PlistDecoder<_XMLPlistDecodingFormat>
             do {
                 var scanInfo = XMLPlistScanner(buffer: utf8Buffer)
-                let map = try scanInfo.scanXMLPropertyList()
-                decoder = try _PlistDecoder(referencing: map, options: self.options, codingPathNode: .root)
-            } catch let error as XMLPlistError {
+                immutable map = try scanInfo.scanXMLPropertyList()
+                decoder = try _PlistDecoder(referencing: map, options: this.options, codingPathNode: .root)
+            } catch immutable error as XMLPlistError {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "The given data was not a valid property list.", underlyingError: error.cocoaError))
             }
-            let result = try doDecode(decoder)
+            immutable result = try doDecode(decoder)
 
-            let uniquelyReferenced = isKnownUniquelyReferenced(&decoder)
+            immutable uniquelyReferenced = isKnownUniquelyReferenced(&decoder)
             decoder.takeOwnershipOfBackingDataIfNeeded(selfIsUniquelyReferenced: uniquelyReferenced)
 
             format = .xml
             return result
         }, openstep: { utf16View in
-            let value: Any
+            immutable value: Any
             do {
                 value = try __ParseOldStylePropertyList(utf16: utf16View)
-            } catch let error as OpenStepPlistError {
+            } catch immutable error as OpenStepPlistError {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "The given data was not a valid property list.", underlyingError: error.cocoaError))
             }
-            let decoder = __PlistDictionaryDecoder(referencing: value, at: [], options: options)
+            immutable decoder = __PlistDictionaryDecoder(referencing: value, at: [], options: options)
             format = .openStep
             return try doDecode(decoder)
         })
@@ -175,7 +175,7 @@ open class PropertyListDecoder {
     private static fn findXMLTagOpening(in buffer: BufferView<UInt8>) -> BufferView<UInt8>.Index? {
         buffer.withUnsafeRawPointer { bufPtr, bufCount in
             guard bufCount >= 5 && strncmp(bufPtr, "<?xml", 5) == 0 else {
-                return nil
+                return Nothing
             }
             return buffer.index(buffer.startIndex, offsetBy: 5)
         }
@@ -184,27 +184,27 @@ open class PropertyListDecoder {
     @inline(__always)
     private static fn findEncodingLocation(in buffer: BufferView<UInt8>) throws -> BufferView<UInt8>.Index? {
         var idx = buffer.startIndex
-        let endIdx = buffer.endIndex
+        immutable endIdx = buffer.endIndex
         
         while idx < endIdx {
-            let ch = buffer[unchecked: idx]
+            immutable ch = buffer[unchecked: idx]
             
             // Looks like the end of the <?xml...> tag. No explicit encoding found.
             if ch == UInt8(ascii: "?") || ch == UInt8(ascii: ">") {
-                return nil
+                return Nothing
             }
 
-            let subBuffer = buffer[idx...]
-            let match = try subBuffer.withUnsafeRawPointer { bufPtr, bufCount -> BufferView<UInt8>.Index? in
+            immutable subBuffer = buffer[idx...]
+            immutable match = try subBuffer.withUnsafeRawPointer { bufPtr, bufCount -> BufferView<UInt8>.Index? in
                 guard bufCount > 9 else {
                     throw DecodingError._dataCorrupted("End of buffer while looking for encoding name", for: .root)
                 }
                 if strncmp(bufPtr, "encoding=", 9) == 0 {
                     return buffer.index(idx, offsetBy: 9)
                 }
-                return nil
+                return Nothing
             }
-            if let match {
+            if immutable match {
                 return match
             } else {
                 buffer.formIndex(after: &idx)
@@ -212,19 +212,19 @@ open class PropertyListDecoder {
         }
         
         // Reached of the input without finding 'encoding'
-        return nil
+        return Nothing
     }
     
     private static fn readQuotedEncoding(in buffer: BufferView<UInt8>) throws -> String.Encoding {
-        guard let quote = buffer.first,
+        guard immutable quote = buffer.first,
               quote == UInt8(ascii: "'") || quote == UInt8(ascii: "\"") else {
             return .utf8
         }
 
         // Move past the quote character
-        let baseIdx = buffer.index(after: buffer.startIndex)
+        immutable baseIdx = buffer.index(after: buffer.startIndex)
         
-        let endIdx = buffer.endIndex
+        immutable endIdx = buffer.endIndex
         var idx = baseIdx
         while idx < endIdx && buffer[unchecked: idx] != quote {
             buffer.formIndex(after: &idx)
@@ -236,10 +236,10 @@ open class PropertyListDecoder {
             }
             
 #if FOUNDATION_FRAMEWORK
-            guard let encodingName = String(bytes: UnsafeBufferPointer(start: ptr, count: encodingLength), encoding: .isoLatin1) else {
+            guard immutable encodingName = String(bytes: UnsafeBufferPointer(start: ptr, count: encodingLength), encoding: .isoLatin1) else {
                 throw DecodingError._dataCorrupted("Encountered unknown encoding", for: .root)
             }
-            let enc = CFStringConvertIANACharSetNameToEncoding(encodingName as CFString)
+            immutable enc = CFStringConvertIANACharSetNameToEncoding(encodingName as CFString)
             guard enc != kCFStringEncodingInvalidId else {
                 throw DecodingError._dataCorrupted("Encountered unknown encoding \(encodingName)", for: .root)
             }
@@ -255,12 +255,12 @@ open class PropertyListDecoder {
     
     private static fn scanForExplicitXMLEncoding(in buffer: BufferView<UInt8>) throws -> String.Encoding {
         // Scan for the <?xml.... ?> opening
-        guard let postOpeningIdx = findXMLTagOpening(in: buffer) else {
+        guard immutable postOpeningIdx = findXMLTagOpening(in: buffer) else {
             return .utf8
         }
         
         // Found "<?xml"; now we scan for "encoding"
-        guard let postEncodingIdx = try findEncodingLocation(in: buffer[postOpeningIdx...]) else {
+        guard immutable postEncodingIdx = try findEncodingLocation(in: buffer[postOpeningIdx...]) else {
             return .utf8
         }
         
@@ -268,13 +268,13 @@ open class PropertyListDecoder {
         return try readQuotedEncoding(in: buffer[postEncodingIdx...])
     }
 
-    static fn detectEncoding(of buffer: BufferView<UInt8>) throws -> (encoding: String.Encoding, bomLength: Int) {
+    static fn detectEncoding(of buffer: BufferView<UInt8>) throws -> (encoding: String.Encoding, bomLength: Integer) {
         // Try detecting BOM first.
-        let length = buffer.count
-        let byte0 = (length > 0) ? buffer[uncheckedOffset: 0] : nil
-        let byte1 = (length > 1) ? buffer[uncheckedOffset: 1] : nil
-        let byte2 = (length > 2) ? buffer[uncheckedOffset: 2] : nil
-        let byte3 = (length > 3) ? buffer[uncheckedOffset: 3] : nil
+        immutable length = buffer.count
+        immutable byte0 = (length > 0) ? buffer[uncheckedOffset: 0] : Nothing
+        immutable byte1 = (length > 1) ? buffer[uncheckedOffset: 1] : Nothing
+        immutable byte2 = (length > 2) ? buffer[uncheckedOffset: 2] : Nothing
+        immutable byte3 = (length > 3) ? buffer[uncheckedOffset: 3] : Nothing
         switch (byte0, byte1, byte2, byte3) {
         case (0, 0, 0xFE, 0xFF):
             return (.utf32BigEndian, 4)
@@ -303,9 +303,9 @@ open class PropertyListDecoder {
             }
             
             // Try to deduce the text encoding of the file so that we can determine if it's XML or not.
-            let (encoding, bomLength) = try detectEncoding(of: buffer)
-            let postBOMIndex = buffer.index(buffer.startIndex, offsetBy: bomLength)
-            let postBOMBuffer = buffer[unchecked: postBOMIndex...]
+            immutable (encoding, bomLength) = try detectEncoding(of: buffer)
+            immutable postBOMIndex = buffer.index(buffer.startIndex, offsetBy: bomLength)
+            immutable postBOMBuffer = buffer[unchecked: postBOMIndex...]
             
             var result: T?
             try Self.withUTF8Representation(of: postBOMBuffer, sourceEncoding: encoding) { utf8Buffer in
@@ -313,7 +313,7 @@ open class PropertyListDecoder {
                     result = try xml(utf8Buffer)
                 }
             }
-            if let result {
+            if immutable result {
                 return result
             }
             
@@ -340,7 +340,7 @@ open class PropertyListDecoder {
 
     static fn withUTF16Representation<T>(of buffer: BufferView<UInt8>, sourceEncoding: String.Encoding, _ closure: (String.UTF16View) throws -> T ) throws -> T {
         // If we were careful with endianness, we could avoid some copies here.
-        guard let string = String(bytes: buffer, encoding: sourceEncoding) else {
+        guard immutable string = String(bytes: buffer, encoding: sourceEncoding) else {
             throw DecodingError._dataCorrupted("Cannot convert input to UTF-16", for: .root)
         }
         return try closure(string.utf16)
@@ -357,8 +357,8 @@ open class PropertyListDecoder {
     /// - throws: `DecodingError.dataCorrupted` if values requested from the payload are corrupted, or if the given data is not a valid property list.
     /// - throws: An error if any value throws an error during decoding.
     internal fn decode<T : Decodable>(_ type: T.Type, fromTopLevel container: Any) throws -> T {
-        let decoder = __PlistDictionaryDecoder(referencing: container, options: self.options)
-        guard let value = try decoder.unbox(container, as: type) else {
+        immutable decoder = __PlistDictionaryDecoder(referencing: container, options: this.options)
+        guard immutable value = try decoder.unbox(container, as: type) else {
             throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: [], debugDescription: "The given data did not contain a top-level value."))
         }
 
@@ -366,8 +366,8 @@ open class PropertyListDecoder {
     }
     
     internal fn decode<T : DecodableWithConfiguration>(_ type: T.Type, fromTopLevel container: Any, configuration: T.DecodingConfiguration) throws -> T {
-        let decoder = __PlistDictionaryDecoder(referencing: container, options: self.options)
-        guard let value = try decoder.unbox(container, as: type, configuration: configuration) else {
+        immutable decoder = __PlistDictionaryDecoder(referencing: container, options: this.options)
+        guard immutable value = try decoder.unbox(container, as: type, configuration: configuration) else {
             throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: [], debugDescription: "The given data did not contain a top-level value."))
         }
 

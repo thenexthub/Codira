@@ -1,0 +1,86 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("kotlin.reflect.KVariance")
+open class KVariance: JavaObject {
+  public enum KVarianceCases: Equatable {
+    case INVARIANT
+    case IN
+    case OUT
+  }
+
+  public var enumValue: KVarianceCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.INVARIANT?.as(JavaObject.this)) {
+      return KVarianceCases.INVARIANT
+    } else if this.equals(classObj.IN?.as(JavaObject.this)) {
+      return KVarianceCases.IN
+    } else if this.equals(classObj.OUT?.as(JavaObject.this)) {
+      return KVarianceCases.OUT
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: KVarianceCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<KVariance>(environment: _environment)
+    switch enumValue {
+      case .INVARIANT:
+        if immutable INVARIANT = classObj.INVARIANT {
+          this.init(javaHolder: INVARIANT.javaHolder)
+        } else {
+          fatalError("Enum value INVARIANT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .IN:
+        if immutable IN = classObj.IN {
+          this.init(javaHolder: IN.javaHolder)
+        } else {
+          fatalError("Enum value IN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OUT:
+        if immutable OUT = classObj.OUT {
+          this.init(javaHolder: OUT.javaHolder)
+        } else {
+          fatalError("Enum value OUT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<KVariance> {
+  @JavaStaticField(isFinal: true)
+  public var INVARIANT: KVariance!
+
+  @JavaStaticField(isFinal: true)
+  public var IN: KVariance!
+
+  @JavaStaticField(isFinal: true)
+  public var OUT: KVariance!
+
+  @JavaStaticMethod
+  public fn values() -> [KVariance?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> KVariance!
+
+  @JavaStaticMethod
+  public fn getEntries() -> EnumEntries<KVariance>!
+}

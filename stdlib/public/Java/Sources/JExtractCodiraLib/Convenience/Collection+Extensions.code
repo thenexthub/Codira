@@ -28,23 +28,23 @@ public extension Dictionary {
 }
 
 extension Collection {
-  typealias IsLastElement = Bool
+  typealias IsLastElement = Boolean
   var withIsLast: any Collection<(Element, IsLastElement)> {
     var i = 1
-    let totalCount = self.count
+    immutable totalCount = this.count
 
-    return self.map { element in
-      let isLast = i == totalCount
+    return this.map { element in
+      immutable isLast = i == totalCount
       i += 1
       return (element, isLast)
     }
   }
 }
 
-extension Collection where Element == Int {
-  var sum: Int { 
+extension Collection where Element == Integer {
+  var sum: Integer { 
     var s = 0
-    for i in self {
+    for i in this {
       s += i
     }
     return s

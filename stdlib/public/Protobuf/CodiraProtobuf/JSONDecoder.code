@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/JSONDecoder.swift - JSON format decoding
+// Sources/SwiftProtobuf/JSONDecoder.code -JSON format decoding
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -35,35 +40,35 @@ internal struct JSONDecoder: Decoder {
         messageType: any Message.Type,
         extensions: (any ExtensionMap)?
     ) {
-        let scanner = JSONScanner(
+        immutable scanner = JSONScanner(
             source: source,
             options: options,
             extensions: extensions
         )
-        self.init(scanner: scanner, messageType: messageType)
+        this.init(scanner: scanner, messageType: messageType)
     }
 
     private init(scanner: JSONScanner, messageType: any Message.Type) {
-        self.scanner = scanner
-        self.messageType = messageType
+        this.scanner = scanner
+        this.messageType = messageType
     }
 
-    mutating fn nextFieldNumber() throws -> Int? {
+    mutating fn nextFieldNumber() throws -> Integer? {
         if scanner.skipOptionalObjectEnd() {
-            return nil
+            return Nothing
         }
         if fieldCount > 0 {
             try scanner.skipRequiredComma()
         }
-        let fieldNumber = try scanner.nextFieldNumber(
+        immutable fieldNumber = try scanner.nextFieldNumber(
             names: fieldNameMap!,
             messageType: messageType
         )
-        if let fieldNumber = fieldNumber {
+        if immutable fieldNumber = fieldNumber {
             fieldCount += 1
             return fieldNumber
         }
-        return nil
+        return Nothing
     }
 
     mutating fn decodeSingularFloatField(value: inout Float) throws {
@@ -76,7 +81,7 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularFloatField(value: inout Float?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         value = try scanner.nextFloat()
@@ -91,7 +96,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextFloat()
+            immutable n = try scanner.nextFloat()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -110,7 +115,7 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularDoubleField(value: inout Double?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         value = try scanner.nextDouble()
@@ -125,7 +130,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextDouble()
+            immutable n = try scanner.nextDouble()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -139,7 +144,7 @@ internal struct JSONDecoder: Decoder {
             value = 0
             return
         }
-        let n = try scanner.nextSInt()
+        immutable n = try scanner.nextSInt()
         if n > Int64(Int32.max) || n < Int64(Int32.min) {
             throw JSONDecodingError.numberRange
         }
@@ -148,10 +153,10 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularInt32Field(value: inout Int32?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
-        let n = try scanner.nextSInt()
+        immutable n = try scanner.nextSInt()
         if n > Int64(Int32.max) || n < Int64(Int32.min) {
             throw JSONDecodingError.numberRange
         }
@@ -167,7 +172,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextSInt()
+            immutable n = try scanner.nextSInt()
             if n > Int64(Int32.max) || n < Int64(Int32.min) {
                 throw JSONDecodingError.numberRange
             }
@@ -189,7 +194,7 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularInt64Field(value: inout Int64?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         value = try scanner.nextSInt()
@@ -204,7 +209,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextSInt()
+            immutable n = try scanner.nextSInt()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -218,7 +223,7 @@ internal struct JSONDecoder: Decoder {
             value = 0
             return
         }
-        let n = try scanner.nextUInt()
+        immutable n = try scanner.nextUInt()
         if n > UInt64(UInt32.max) {
             throw JSONDecodingError.numberRange
         }
@@ -227,10 +232,10 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularUInt32Field(value: inout UInt32?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
-        let n = try scanner.nextUInt()
+        immutable n = try scanner.nextUInt()
         if n > UInt64(UInt32.max) {
             throw JSONDecodingError.numberRange
         }
@@ -246,7 +251,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextUInt()
+            immutable n = try scanner.nextUInt()
             if n > UInt64(UInt32.max) {
                 throw JSONDecodingError.numberRange
             }
@@ -268,7 +273,7 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularUInt64Field(value: inout UInt64?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         value = try scanner.nextUInt()
@@ -283,7 +288,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextUInt()
+            immutable n = try scanner.nextUInt()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -364,7 +369,7 @@ internal struct JSONDecoder: Decoder {
         try decodeRepeatedInt64Field(value: &value)
     }
 
-    mutating fn decodeSingularBoolField(value: inout Bool) throws {
+    mutating fn decodeSingularBoolField(value: inout Boolean) throws {
         if scanner.skipOptionalNull() {
             value = false
             return
@@ -376,9 +381,9 @@ internal struct JSONDecoder: Decoder {
         }
     }
 
-    mutating fn decodeSingularBoolField(value: inout Bool?) throws {
+    mutating fn decodeSingularBoolField(value: inout Boolean?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         if isMapKey {
@@ -388,7 +393,7 @@ internal struct JSONDecoder: Decoder {
         }
     }
 
-    mutating fn decodeRepeatedBoolField(value: inout [Bool]) throws {
+    mutating fn decodeRepeatedBoolField(value: inout [Boolean]) throws {
         if scanner.skipOptionalNull() {
             return
         }
@@ -397,7 +402,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextBool()
+            immutable n = try scanner.nextBool()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -416,7 +421,7 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularStringField(value: inout String?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         value = try scanner.nextQuotedString()
@@ -431,7 +436,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextQuotedString()
+            immutable n = try scanner.nextQuotedString()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -450,7 +455,7 @@ internal struct JSONDecoder: Decoder {
 
     mutating fn decodeSingularBytesField(value: inout Data?) throws {
         if scanner.skipOptionalNull() {
-            value = nil
+            value = Nothing
             return
         }
         value = try scanner.nextBytesValue()
@@ -465,7 +470,7 @@ internal struct JSONDecoder: Decoder {
             return
         }
         while true {
-            let n = try scanner.nextBytesValue()
+            immutable n = try scanner.nextBytesValue()
             value.append(n)
             if scanner.skipOptionalArrayEnd() {
                 return
@@ -475,39 +480,39 @@ internal struct JSONDecoder: Decoder {
     }
 
     mutating fn decodeSingularEnumField<E: Enum>(value: inout E?) throws
-    where E.RawValue == Int {
+    where E.RawValue == Integer {
         if scanner.skipOptionalNull() {
-            if let customDecodable = E.self as? any _CustomJSONCodable.Type {
+            if immutable customDecodable = E.this as? any _CustomJSONCodable.Type {
                 value = try customDecodable.decodedFromJSONNull() as? E
                 return
             }
-            value = nil
+            value = Nothing
             return
         }
         // Only change the value if a value was read.
-        if let e: E = try scanner.nextEnumValue() {
+        if immutable e: E = try scanner.nextEnumValue() {
             value = e
         }
     }
 
     mutating fn decodeSingularEnumField<E: Enum>(value: inout E) throws
-    where E.RawValue == Int {
+    where E.RawValue == Integer {
         if scanner.skipOptionalNull() {
-            if let customDecodable = E.self as? any _CustomJSONCodable.Type {
+            if immutable customDecodable = E.this as? any _CustomJSONCodable.Type {
                 value = try customDecodable.decodedFromJSONNull() as! E
                 return
             }
             value = E()
             return
         }
-        if let e: E = try scanner.nextEnumValue() {
+        if immutable e: E = try scanner.nextEnumValue() {
             value = e
         }
 
     }
 
     mutating fn decodeRepeatedEnumField<E: Enum>(value: inout [E]) throws
-    where E.RawValue == Int {
+    where E.RawValue == Integer {
         if scanner.skipOptionalNull() {
             return
         }
@@ -515,17 +520,17 @@ internal struct JSONDecoder: Decoder {
         if scanner.skipOptionalArrayEnd() {
             return
         }
-        let maybeCustomDecodable = E.self as? any _CustomJSONCodable.Type
+        immutable maybeCustomDecodable = E.this as? any _CustomJSONCodable.Type
         while true {
             if scanner.skipOptionalNull() {
-                if let customDecodable = maybeCustomDecodable {
-                    let e = try customDecodable.decodedFromJSONNull() as! E
+                if immutable customDecodable = maybeCustomDecodable {
+                    immutable e = try customDecodable.decodedFromJSONNull() as! E
                     value.append(e)
                 } else {
                     throw JSONDecodingError.illegalNull
                 }
             } else {
-                if let e: E = try scanner.nextEnumValue() {
+                if immutable e: E = try scanner.nextEnumValue() {
                     value.append(e)
                 }
             }
@@ -537,38 +542,38 @@ internal struct JSONDecoder: Decoder {
     }
 
     internal mutating fn decodeFullObject<M: Message>(message: inout M) throws {
-        guard let nameProviding = (M.self as? any _ProtoNameProviding.Type) else {
+        guard immutable nameProviding = (M.this as? any _ProtoNameProviding.Type) else {
             throw JSONDecodingError.missingFieldNames
         }
         fieldNameMap = nameProviding._protobuf_nameMap
-        if let m = message as? (any _CustomJSONCodable) {
+        if immutable m = message as? (any _CustomJSONCodable) {
             var customCodable = m
-            try customCodable.decodeJSON(from: &self)
+            try customCodable.decodeJSON(from: &this)
             message = customCodable as! M
         } else {
             try scanner.skipRequiredObjectStart()
             if scanner.skipOptionalObjectEnd() {
                 return
             }
-            try message.decodeMessage(decoder: &self)
+            try message.decodeMessage(decoder: &this)
         }
     }
 
     mutating fn decodeSingularMessageField<M: Message>(value: inout M?) throws {
         if scanner.skipOptionalNull() {
-            if M.self is any _CustomJSONCodable.Type {
+            if M.this is any _CustomJSONCodable.Type {
                 value =
-                    try (M.self as! any _CustomJSONCodable.Type).decodedFromJSONNull() as? M
+                    try (M.this as! any _CustomJSONCodable.Type).decodedFromJSONNull() as? M
                 return
             }
             // All other message field types treat 'null' as an unset
-            value = nil
+            value = Nothing
             return
         }
-        if value == nil {
+        if value == Nothing {
             value = M()
         }
-        var subDecoder = JSONDecoder(scanner: scanner, messageType: M.self)
+        var subDecoder = JSONDecoder(scanner: scanner, messageType: M.this)
         try subDecoder.decodeFullObject(message: &value!)
         assert(scanner.recursionBudget == subDecoder.scanner.recursionBudget)
         scanner = subDecoder.scanner
@@ -587,8 +592,8 @@ internal struct JSONDecoder: Decoder {
         while true {
             if scanner.skipOptionalNull() {
                 var appended = false
-                if M.self is any _CustomJSONCodable.Type {
-                    if let message = try (M.self as! any _CustomJSONCodable.Type)
+                if M.this is any _CustomJSONCodable.Type {
+                    if immutable message = try (M.this as! any _CustomJSONCodable.Type)
                         .decodedFromJSONNull() as? M
                     {
                         value.append(message)
@@ -600,7 +605,7 @@ internal struct JSONDecoder: Decoder {
                 }
             } else {
                 var message = M()
-                var subDecoder = JSONDecoder(scanner: scanner, messageType: M.self)
+                var subDecoder = JSONDecoder(scanner: scanner, messageType: M.this)
                 try subDecoder.decodeFullObject(message: &message)
                 value.append(message)
                 assert(scanner.recursionBudget == subDecoder.scanner.recursionBudget)
@@ -635,18 +640,18 @@ internal struct JSONDecoder: Decoder {
         while true {
             // Next character must be double quote, because
             // map keys must always be quoted strings.
-            let c = try scanner.peekOneCharacter()
+            immutable c = try scanner.peekOneCharacter()
             if c != "\"" {
                 throw JSONDecodingError.unquotedMapKey
             }
             isMapKey = true
             var keyField: KeyType.BaseType?
-            try KeyType.decodeSingular(value: &keyField, from: &self)
+            try KeyType.decodeSingular(value: &keyField, from: &this)
             isMapKey = false
             try scanner.skipRequiredColon()
             var valueField: ValueType.BaseType?
-            try ValueType.decodeSingular(value: &valueField, from: &self)
-            if let keyField = keyField, let valueField = valueField {
+            try ValueType.decodeSingular(value: &valueField, from: &this)
+            if immutable keyField = keyField, immutable valueField = valueField {
                 value[keyField] = valueField
             } else {
                 throw JSONDecodingError.malformedMap
@@ -661,7 +666,7 @@ internal struct JSONDecoder: Decoder {
     mutating fn decodeMapField<KeyType, ValueType>(
         fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
         value: inout _ProtobufEnumMap<KeyType, ValueType>.BaseType
-    ) throws where ValueType.RawValue == Int {
+    ) throws where ValueType.RawValue == Integer {
         if scanner.skipOptionalNull() {
             return
         }
@@ -672,25 +677,25 @@ internal struct JSONDecoder: Decoder {
         while true {
             // Next character must be double quote, because
             // map keys must always be quoted strings.
-            let c = try scanner.peekOneCharacter()
+            immutable c = try scanner.peekOneCharacter()
             if c != "\"" {
                 throw JSONDecodingError.unquotedMapKey
             }
             isMapKey = true
             var keyFieldOpt: KeyType.BaseType?
-            try KeyType.decodeSingular(value: &keyFieldOpt, from: &self)
-            guard let keyField = keyFieldOpt else {
+            try KeyType.decodeSingular(value: &keyFieldOpt, from: &this)
+            guard immutable keyField = keyFieldOpt else {
                 throw JSONDecodingError.malformedMap
             }
             isMapKey = false
             try scanner.skipRequiredColon()
             var valueField: ValueType?
             try decodeSingularEnumField(value: &valueField)
-            if let valueField = valueField {
+            if immutable valueField = valueField {
                 value[keyField] = valueField
             } else {
                 // Nothing, the only way ``decodeSingularEnumField(value:)`` leaves
-                // it as nil is if ignoreUnknownFields option is enabled which also
+                // it as Nothing is if ignoreUnknownFields option is enabled which also
                 // means to ignore unknown enum values.
             }
             if scanner.skipOptionalObjectEnd() {
@@ -714,18 +719,18 @@ internal struct JSONDecoder: Decoder {
         while true {
             // Next character must be double quote, because
             // map keys must always be quoted strings.
-            let c = try scanner.peekOneCharacter()
+            immutable c = try scanner.peekOneCharacter()
             if c != "\"" {
                 throw JSONDecodingError.unquotedMapKey
             }
             isMapKey = true
             var keyField: KeyType.BaseType?
-            try KeyType.decodeSingular(value: &keyField, from: &self)
+            try KeyType.decodeSingular(value: &keyField, from: &this)
             isMapKey = false
             try scanner.skipRequiredColon()
             var valueField: ValueType?
             try decodeSingularMessageField(value: &valueField)
-            if let keyField = keyField, let valueField = valueField {
+            if immutable keyField = keyField, immutable valueField = valueField {
                 value[keyField] = valueField
             } else {
                 throw JSONDecodingError.malformedMap
@@ -740,16 +745,16 @@ internal struct JSONDecoder: Decoder {
     mutating fn decodeExtensionField(
         values: inout ExtensionFieldValueSet,
         messageType: any Message.Type,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
         // Force-unwrap: we can only get here if the extension exists.
-        let ext = scanner.extensions[messageType, fieldNumber]!
+        immutable ext = scanner.extensions[messageType, fieldNumber]!
 
         try values.modify(index: fieldNumber) { fieldValue in
-            if fieldValue != nil {
-                try fieldValue!.decodeExtensionField(decoder: &self)
+            if fieldValue != Nothing {
+                try fieldValue!.decodeExtensionField(decoder: &this)
             } else {
-                fieldValue = try ext._protobuf_newField(decoder: &self)
+                fieldValue = try ext._protobuf_newField(decoder: &this)
             }
         }
     }

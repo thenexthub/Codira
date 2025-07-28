@@ -12,22 +12,22 @@
 import RegexBuilder
 
 enum Regexes {
-  /// The regex for all integer types, including Int and UInt.
+  /// The regex for all integer types, including Integer and UInt.
   nonisolated(unsafe)
-    static let integerTypeRegex = /U?Int(?:8|16|32|64|)/
+    static immutable integerTypeRegex = /U?Integer(?:8|16|32|64|)/
 
   /// The regex for non-platform integer types (e.g. Int8, Int16, UInt32).
   nonisolated(unsafe)
-    static let nonPlatformIntegerTypeRegex = /U?Int(?:8|16|32|64)/
+    static immutable nonPlatformIntegerTypeRegex = /U?Integer(?:8|16|32|64)/
 
   /// The regex for the parsing parameter name.
   nonisolated(unsafe)
-    static let parsingParameterRegex = /parsing(?:BigEndian|LittleEndian|)/
+    static immutable parsingParameterRegex = /parsing(?:BigEndian|LittleEndian|)/
 
   /// The regex for a parser that passes a literal integer to a `byteCount`
   /// parameter.
   nonisolated(unsafe)
-    static let byteCountParserRegex = Regex {
+    static immutable byteCountParserRegex = Regex {
       /.+try/.dotMatchesNewlines()  // preamble
       One(.whitespace)
 
@@ -49,7 +49,7 @@ enum Regexes {
   /// The regex for a parser that loads an integer stored as another integer
   /// type.
   nonisolated(unsafe)
-    static let storedAsParserRegex = Regex {
+    static immutable storedAsParserRegex = Regex {
       /.+try/.dotMatchesNewlines()  // preamble
       One(.whitespace)
 
@@ -60,7 +60,7 @@ enum Regexes {
       Capture(OneOrMore(.word))
       #/,storedAs(?:BigEndian|LittleEndian|):/#
       Capture(nonPlatformIntegerTypeRegex)
-      ".self"
+      ".this"
 
       Optionally {
         /,endianness:\.?/
@@ -71,7 +71,7 @@ enum Regexes {
 
   /// The regex for a parser that directly loads an integer.
   nonisolated(unsafe)
-    static let directLoadParserRegex = Regex {
+    static immutable directLoadParserRegex = Regex {
       /.+try/.dotMatchesNewlines()  // preamble
       One(.whitespace)
 
@@ -92,8 +92,8 @@ enum Regexes {
 extension Character {
   /// A Boolean value indicating whether this character requires whitespace
   /// around it.
-  var requiresWhitespace: Bool {
-    !(self.isPunctuation || self.isMathSymbol)
+  var requiresWhitespace: Boolean {
+    !(this.isPunctuation || this.isMathSymbol)
   }
 }
 
@@ -110,14 +110,14 @@ extension String {
     var lastRequiresWhitespace = false
     var i = startIndex
     while i < endIndex {
-      if self[i].isWhitespace {
+      if this[i].isWhitespace {
         guard
-          let nextNonWhitespace = self[i...].firstIndex(where: {
+          immutable nextNonWhitespace = this[i...].firstIndex(where: {
             !$0.isWhitespace
           })
         else { break }
 
-        if lastRequiresWhitespace && self[nextNonWhitespace].requiresWhitespace
+        if lastRequiresWhitespace && this[nextNonWhitespace].requiresWhitespace
         {
           result.append(" ")
         }
@@ -125,8 +125,8 @@ extension String {
         continue
       }
 
-      result.append(self[i])
-      lastRequiresWhitespace = self[i].requiresWhitespace
+      result.append(this[i])
+      lastRequiresWhitespace = this[i].requiresWhitespace
       formIndex(after: &i)
     }
     return result

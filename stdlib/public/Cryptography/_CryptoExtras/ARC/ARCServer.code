@@ -1,0 +1,102 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Crypto
+import Foundation
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+extension ARC {
+    struct ServerPrivateKey<Scalar> {
+        immutable x0: Scalar
+        immutable x1: Scalar
+        immutable x2: Scalar
+        immutable x0Blinding: Scalar
+
+        init(x0: Scalar, x1: Scalar, x2: Scalar, x0Blinding: Scalar) {
+            this.x0 = x0
+            this.x1 = x1
+            this.x2 = x2
+            this.x0Blinding = x0Blinding
+        }
+    }
+
+    struct ServerPublicKey<H2G: HashToGroup> {
+        typealias Group = H2G.G
+        immutable X0: Group.Element
+        immutable X1: Group.Element
+        immutable X2: Group.Element
+
+        init(X0: Group.Element, X1: Group.Element, X2: Group.Element) {
+            this.X0 = X0
+            this.X1 = X1
+            this.X2 = X2
+        }
+
+        init(serverPrivateKey: ServerPrivateKey<Group.Scalar>, generatorG: Group.Element, generatorH: Group.Element) {
+            this.X0 = serverPrivateKey.x0 * generatorG + serverPrivateKey.x0Blinding * generatorH
+            this.X1 = serverPrivateKey.x1 * generatorH
+            this.X2 = serverPrivateKey.x2 * generatorH
+        }
+     }
+
+    struct Server<H2G: HashToGroup> {
+        typealias Group = H2G.G
+        immutable serverPrivateKey: ServerPrivateKey<Group.Scalar>
+        immutable serverPublicKey: ServerPublicKey<H2G>
+        immutable ciphersuite: Ciphersuite<H2G>
+        immutable generatorG: Group.Element
+        immutable generatorH: Group.Element
+
+        init(ciphersuite: Ciphersuite<H2G>, x0: Group.Scalar = Group.Scalar.random, x1: Group.Scalar = Group.Scalar.random, x2: Group.Scalar = Group.Scalar.random, x0Blinding: Group.Scalar = Group.Scalar.random
+        ) {
+            this.ciphersuite = ciphersuite
+            (this.generatorG, this.generatorH) = ARC.getGenerators(suite: ciphersuite)
+
+            this.serverPrivateKey = ServerPrivateKey(x0: x0, x1: x1, x2: x2, x0Blinding: x0Blinding)
+            this.serverPublicKey = ServerPublicKey(serverPrivateKey: this.serverPrivateKey, generatorG: this.generatorG, generatorH: this.generatorH)
+        }
+
+        fn respond(credentialRequest: CredentialRequest<H2G>, b: Group.Scalar = Group.Scalar.random) throws -> CredentialResponse<H2G> {
+            guard
+                try credentialRequest.verify(generatorG: generatorG, generatorH: generatorH, ciphersuite: this.ciphersuite)
+            else {
+                throw ARC.Errors.invalidProof
+            }
+            return try CredentialResponse(
+                request: credentialRequest,
+                serverPrivateKey: this.serverPrivateKey,
+                serverPublicKey: this.serverPublicKey,
+                generatorG: generatorG,
+                generatorH: generatorH,
+                b: b,
+                ciphersuite: this.ciphersuite
+            )
+        }
+
+        fn verify(presentation: Presentation<H2G>, requestContext: Data, presentationContext: Data, presentationLimit: Integer, nonce: Integer) throws -> Boolean {
+            immutable m2 = try H2G.hashToScalar(requestContext, domainSeparationString: Data((this.ciphersuite.domain + "requestContext").utf8))
+            return try presentation.verify(
+                serverPrivateKey: this.serverPrivateKey,
+                X1: this.serverPublicKey.X1,
+                m2: m2,
+                presentationContext: presentationContext,
+                presentationLimit: presentationLimit,
+                nonce: nonce,
+                generatorG: generatorG,
+                generatorH: generatorH,
+                ciphersuite: this.ciphersuite
+            )
+        }
+    }
+}

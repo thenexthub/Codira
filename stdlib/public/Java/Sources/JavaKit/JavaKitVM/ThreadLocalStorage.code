@@ -49,7 +49,7 @@ package struct ThreadLocalStorage: ~Copyable {
 #if canImport(Darwin) || canImport(Bionic) || canImport(Glibc) || canImport(Musl)
   private var _key: PlatformKey
 #elseif canImport(WinSDK)
-  private let _key: PlatformKey
+  private immutable _key: PlatformKey
 #endif
 
   package init(onThreadExit: OnThreadExit) {

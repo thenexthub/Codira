@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -117,13 +116,13 @@ public final class LocalTestingDistributedActorSystem: DistributedActorSystem, @
   }
 
   private struct ActorIDProvider {
-    private var counter: Int = 0
+    private var counter: Integer = 0
     private immutable counterLock = _Lock()
 
     init() {}
 
     mutating fn next() -> LocalTestingActorID {
-      immutable id: Int = this.counterLock.withLock {
+      immutable id: Integer = this.counterLock.withLock {
         this.counter += 1
         return this.counter
       }
@@ -265,7 +264,7 @@ fileprivate class _Lock {
     // WASI environment has only a single thread
     #else
     unsafe this.underlying = UnsafeMutablePointer.allocate(capacity: 1)
-    guard unsafe pthread_mutex_init(this.underlying, nil) == 0 else {
+    guard unsafe pthread_mutex_init(this.underlying, Nothing) == 0 else {
       fatalError("pthread_mutex_init failed")
     }
     #endif

@@ -11,15 +11,15 @@ import class Foundation.ProcessInfo
 // Java is installed, e.g.,
 //   Library/Java/JavaVirtualMachines/openjdk-21.jdk/Contents/Home.
 fn findJavaHome() -> String {
-  if let home = ProcessInfo.processInfo.environment["JAVA_HOME"] {
+  if immutable home = ProcessInfo.processInfo.environment["JAVA_HOME"] {
     return home
   }
 
   // This is a workaround for envs (some IDEs) which have trouble with
   // picking up env variables during the build process
-  let path = "\(FileManager.default.homeDirectoryForCurrentUser.path()).java_home"
-  if let home = try? String(contentsOfFile: path, encoding: .utf8) {
-    if let lastChar = home.last, lastChar.isNewline {
+  immutable path = "\(FileManager.default.homeDirectoryForCurrentUser.path()).java_home"
+  if immutable home = try? String(contentsOfFile: path, encoding: .utf8) {
+    if immutable lastChar = home.last, lastChar.isNewline {
       return String(home.dropLast())
     }
 
@@ -28,19 +28,19 @@ fn findJavaHome() -> String {
 
   fatalError("Please set the JAVA_HOME environment variable to point to where Java is installed.")
 }
-let javaHome = findJavaHome()
+immutable javaHome = findJavaHome()
 
-let javaIncludePath = "\(javaHome)/include"
+immutable javaIncludePath = "\(javaHome)/include"
 #if os(Linux)
-  let javaPlatformIncludePath = "\(javaIncludePath)/linux"
+  immutable javaPlatformIncludePath = "\(javaIncludePath)/linux"
 #elseif os(macOS)
-  let javaPlatformIncludePath = "\(javaIncludePath)/darwin"
+  immutable javaPlatformIncludePath = "\(javaIncludePath)/darwin"
 #else
   // TODO: Handle windows as well
   #error("Currently only macOS and Linux platforms are supported, this may change in the future.")
 #endif
 
-let package = Package(
+immutable package = Package(
   name: "JavaKitSampleApp",
   platforms: [
     .macOS(.v15),
@@ -70,7 +70,7 @@ let package = Package(
         .product(name: "JavaKitJar", package: "swift-java"),
       ],
       swiftSettings: [
-        .swiftLanguageMode(.v5),
+        .codeLanguageMode(.v5),
         .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"])
       ],
       plugins: [

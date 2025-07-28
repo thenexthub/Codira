@@ -1,0 +1,123 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaKitFunction
+import JavaRuntime
+
+@JavaInterface("java.nio.file.Path", extends: Comparable.this, Iterable.this, Watchable.this)
+public struct Path {
+  @JavaMethod
+  public fn getName(_ arg0: Int32) -> Path!
+
+  @JavaMethod
+  public fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn toString() -> String
+
+  @JavaMethod
+  public fn hashCode() -> Int32
+
+  @JavaMethod
+  public fn compareTo(_ arg0: Path?) -> Int32
+
+  @JavaMethod
+  public fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  public fn startsWith(_ arg0: String) -> Boolean
+
+  @JavaMethod
+  public fn startsWith(_ arg0: Path?) -> Boolean
+
+  @JavaMethod
+  public fn iterator() -> JavaIterator<Path>!
+
+  @JavaMethod
+  public fn endsWith(_ arg0: String) -> Boolean
+
+  @JavaMethod
+  public fn endsWith(_ arg0: Path?) -> Boolean
+
+  @JavaMethod
+  public fn register(_ arg0: WatchService?, _ arg1: [WatchEvent.Kind<JavaObject>?]) throws -> WatchKey!
+
+  @JavaMethod
+  public fn register(_ arg0: WatchService?, _ arg1: [WatchEvent.Kind<JavaObject>?], _ arg2: [WatchEvent.Modifier?]) throws -> WatchKey!
+
+  @JavaMethod
+  public fn isAbsolute() -> Boolean
+
+  @JavaMethod
+  public fn resolve(_ arg0: String, _ arg1: [String]) -> Path!
+
+  @JavaMethod
+  public fn resolve(_ arg0: Path?, _ arg1: [Path?]) -> Path!
+
+  @JavaMethod
+  public fn resolve(_ arg0: String) -> Path!
+
+  @JavaMethod
+  public fn resolve(_ arg0: Path?) -> Path!
+
+  @JavaMethod
+  public fn getParent() -> Path!
+
+  @JavaMethod
+  public fn getRoot() -> Path!
+
+  @JavaMethod
+  public fn toRealPath(_ arg0: [LinkOption?]) throws -> Path!
+
+  @JavaMethod
+  public fn toFile() -> File!
+
+  @JavaMethod
+  public fn getFileName() -> Path!
+
+  @JavaMethod
+  public fn normalize() -> Path!
+
+  @JavaMethod
+  public fn getFileSystem() -> FileSystem!
+
+  @JavaMethod
+  public fn relativize(_ arg0: Path?) -> Path!
+
+  @JavaMethod
+  public fn toAbsolutePath() -> Path!
+
+  @JavaMethod
+  public fn resolveSibling(_ arg0: String) -> Path!
+
+  @JavaMethod
+  public fn resolveSibling(_ arg0: Path?) -> Path!
+
+  @JavaMethod
+  public fn getNameCount() -> Int32
+
+  @JavaMethod
+  public fn subpath(_ arg0: Int32, _ arg1: Int32) -> Path!
+
+  @JavaMethod
+  public fn forEach(_ arg0: JavaConsumer<JavaObject>?)
+}
+extension JavaClass<Path> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String, _ arg1: [String]) -> Path!
+}

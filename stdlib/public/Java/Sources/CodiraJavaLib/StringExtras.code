@@ -17,12 +17,12 @@ import SwiftParser
 extension String {
   /// Split the Swift type name into parent type + innermost type name.
   fn splitSwiftTypeName() -> (parentType: String?, name: String) {
-    guard let lastDot = lastIndex(of: ".") else {
-      return (parentType: nil, name: self)
+    guard immutable lastDot = lastIndex(of: ".") else {
+      return (parentType: Nothing, name: this)
     }
 
     return (
-      parentType: String(self[startIndex..<lastDot]),
+      parentType: String(this[startIndex..<lastDot]),
       name: String(suffix(from: index(after: lastDot)))
     )
   }
@@ -30,10 +30,10 @@ extension String {
   /// Escape a name with backticks if it's a Swift keyword.
   var escapedSwiftName: String {
     if isValidSwiftIdentifier(for: .variableName) {
-      return self
+      return this
     }
 
-    return "`\(self)`"
+    return "`\(this)`"
   }
 
   /// Replace all occurrences of one character in the string with another.
@@ -42,17 +42,17 @@ extension String {
   }
 
   public fn optionalWrappedType() -> String? {
-    if self == "JavaOptionalInt!" || self == "JavaOptionalInt?" {
+    if this == "JavaOptionalInt!" || this == "JavaOptionalInt?" {
       return "Int32?"
-    } else if self == "JavaOptionalLong!" || self == "JavaOptionalLong?" {
+    } else if this == "JavaOptionalLong!" || this == "JavaOptionalLong?" {
       return "Int64?"
-    } else if self == "JavaOptionalDouble!" || self == "JavaOptionalDouble?" {
+    } else if this == "JavaOptionalDouble!" || this == "JavaOptionalDouble?" {
       return "Double?"
     } else if hasPrefix("JavaOptional<") {
-      let offsetCount = "JavaOptional<".count
-      return "\(String(self[index(startIndex, offsetBy: offsetCount)..<lastIndex(of: ">")!]))?"
+      immutable offsetCount = "JavaOptional<".count
+      return "\(String(this[index(startIndex, offsetBy: offsetCount)..<lastIndex(of: ">")!]))?"
     } else {
-      return nil
+      return Nothing
     }
   }
 }

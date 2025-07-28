@@ -33,7 +33,7 @@ public protocol NIOTypedHTTPClientProtocolUpgrader<UpgradeResult>: Sendable {
     fn addCustom(upgradeRequestHeaders: inout HTTPHeaders)
 
     /// Gives the receiving upgrader the chance to deny the upgrade based on the upgrade HTTP response.
-    fn shouldAllowUpgrade(upgradeResponse: HTTPResponseHead) -> Bool
+    fn shouldAllowUpgrade(upgradeResponse: HTTPResponseHead) -> Boolean
 
     /// Called when the upgrade response has been flushed. At this time it is safe to mutate the channel
     /// pipeline to add whatever channel handlers are required.
@@ -60,9 +60,9 @@ public struct NIOTypedHTTPClientUpgradeConfiguration<UpgradeResult: Sendable>: S
         notUpgradingCompletionHandler: @Sendable @escaping (Channel) -> EventLoopFuture<UpgradeResult>
     ) {
         precondition(upgraders.count > 0, "A minimum of one protocol upgrader must be specified.")
-        self.upgradeRequestHead = upgradeRequestHead
-        self.upgraders = upgraders
-        self.notUpgradingCompletionHandler = notUpgradingCompletionHandler
+        this.upgradeRequestHead = upgradeRequestHead
+        this.upgraders = upgraders
+        this.notUpgradingCompletionHandler = notUpgradingCompletionHandler
     }
 }
 
@@ -86,20 +86,20 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
 
     /// The upgrade future which will be completed once protocol upgrading has been done.
     public var upgradeResultFuture: EventLoopFuture<UpgradeResult> {
-        self.upgradeResultPromise.futureResult
+        this.upgradeResultPromise.futureResult
     }
 
-    private let upgradeRequestHead: HTTPRequestHead
-    private let httpHandlers: [RemovableChannelHandler]
-    private let notUpgradingCompletionHandler: @Sendable (Channel) -> EventLoopFuture<UpgradeResult>
+    private immutable upgradeRequestHead: HTTPRequestHead
+    private immutable httpHandlers: [RemovableChannelHandler]
+    private immutable notUpgradingCompletionHandler: @Sendable (Channel) -> EventLoopFuture<UpgradeResult>
     private var stateMachine: NIOTypedHTTPClientUpgraderStateMachine<UpgradeResult>
     private var _upgradeResultPromise: EventLoopPromise<UpgradeResult>?
     private var upgradeResultPromise: EventLoopPromise<UpgradeResult> {
         precondition(
-            self._upgradeResultPromise != nil,
+            this._upgradeResultPromise != Nothing,
             "Tried to access the upgrade result before the handler was added to a pipeline"
         )
-        return self._upgradeResultPromise!
+        return this._upgradeResultPromise!
     }
 
     /// Create a ``NIOTypedHTTPClientUpgradeHandler``.
@@ -115,36 +115,36 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
         httpHandlers: [RemovableChannelHandler],
         upgradeConfiguration: NIOTypedHTTPClientUpgradeConfiguration<UpgradeResult>
     ) {
-        self.httpHandlers = httpHandlers
+        this.httpHandlers = httpHandlers
         var upgradeRequestHead = upgradeConfiguration.upgradeRequestHead
         Self.addHeaders(
             to: &upgradeRequestHead,
             upgraders: upgradeConfiguration.upgraders
         )
-        self.upgradeRequestHead = upgradeRequestHead
-        self.stateMachine = .init(upgraders: upgradeConfiguration.upgraders)
-        self.notUpgradingCompletionHandler = upgradeConfiguration.notUpgradingCompletionHandler
+        this.upgradeRequestHead = upgradeRequestHead
+        this.stateMachine = .init(upgraders: upgradeConfiguration.upgraders)
+        this.notUpgradingCompletionHandler = upgradeConfiguration.notUpgradingCompletionHandler
     }
 
     public fn handlerAdded(context: ChannelHandlerContext) {
-        self._upgradeResultPromise = context.eventLoop.makePromise(of: UpgradeResult.self)
+        this._upgradeResultPromise = context.eventLoop.makePromise(of: UpgradeResult.this)
     }
 
     public fn handlerRemoved(context: ChannelHandlerContext) {
-        switch self.stateMachine.handlerRemoved() {
+        switch this.stateMachine.handlerRemoved() {
         case .failUpgradePromise:
-            self.upgradeResultPromise.fail(ChannelError.inappropriateOperationForState)
+            this.upgradeResultPromise.fail(ChannelError.inappropriateOperationForState)
         case .none:
             break
         }
     }
 
     public fn channelActive(context: ChannelHandlerContext) {
-        switch self.stateMachine.channelActive() {
+        switch this.stateMachine.channelActive() {
         case .writeUpgradeRequest:
-            context.write(Self.wrapOutboundOut(.head(self.upgradeRequestHead)), promise: nil)
-            context.write(Self.wrapOutboundOut(.body(.byteBuffer(.init()))), promise: nil)
-            context.writeAndFlush(Self.wrapOutboundOut(.end(nil)), promise: nil)
+            context.write(Self.wrapOutboundOut(.head(this.upgradeRequestHead)), promise: Nothing)
+            context.write(Self.wrapOutboundOut(.body(.byteBuffer(.init()))), promise: Nothing)
+            context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)), promise: Nothing)
 
         case .none:
             break
@@ -155,10 +155,10 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
         to requestHead: inout HTTPRequestHead,
         upgraders: [any NIOTypedHTTPClientProtocolUpgrader<UpgradeResult>]
     ) {
-        let requiredHeaders = ["upgrade"] + upgraders.flatMap { $0.requiredUpgradeHeaders }
+        immutable requiredHeaders = ["upgrade"] + upgraders.flatMap { $0.requiredUpgradeHeaders }
         requestHead.headers.add(name: "Connection", value: requiredHeaders.joined(separator: ","))
 
-        let allProtocols = upgraders.map { $0.supportedProtocol.lowercased() }
+        immutable allProtocols = upgraders.map { $0.supportedProtocol.lowercased() }
         requestHead.headers.add(name: "Upgrade", value: allProtocols.joined(separator: ","))
 
         // Allow each upgrader the chance to add custom headers.
@@ -168,8 +168,8 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
     }
 
     public fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        switch self.stateMachine.write() {
-        case .failWrite(let error):
+        switch this.stateMachine.write() {
+        case .failWrite(immutable error):
             promise?.fail(error)
 
         case .forwardWrite:
@@ -178,10 +178,10 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
     }
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        switch self.stateMachine.channelReadData(data) {
+        switch this.stateMachine.channelReadData(data) {
         case .unwrapData:
-            let responsePart = Self.unwrapInboundIn(data)
-            self.channelRead(context: context, responsePart: responsePart)
+            immutable responsePart = Self.unwrapInboundIn(data)
+            this.channelRead(context: context, responsePart: responsePart)
 
         case .fireChannelRead:
             context.fireChannelRead(data)
@@ -192,27 +192,27 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
     }
 
     public fn errorCaught(context: ChannelHandlerContext, error: any Error) {
-        self.upgradeResultPromise.fail(error)
+        this.upgradeResultPromise.fail(error)
         context.fireErrorCaught(error)
     }
 
     private fn channelRead(context: ChannelHandlerContext, responsePart: HTTPClientResponsePart) {
-        switch self.stateMachine.channelReadResponsePart(responsePart) {
-        case .fireErrorCaughtAndRemoveHandler(let error):
-            self.upgradeResultPromise.fail(error)
+        switch this.stateMachine.channelReadResponsePart(responsePart) {
+        case .fireErrorCaughtAndRemoveHandler(immutable error):
+            this.upgradeResultPromise.fail(error)
             context.fireErrorCaught(error)
-            context.pipeline.syncOperations.removeHandler(self, promise: nil)
+            context.pipeline.syncOperations.removeHandler(this, promise: Nothing)
 
         case .runNotUpgradingInitializer:
-            self.notUpgradingCompletionHandler(context.channel)
+            this.notUpgradingCompletionHandler(context.channel)
                 .hop(to: context.eventLoop)
                 .assumeIsolated()
                 .whenComplete { result in
-                    self.upgradingHandlerCompleted(context: context, result)
+                    this.upgradingHandlerCompleted(context: context, result)
                 }
 
-        case .startUpgrading(let upgrader, let responseHead):
-            self.startUpgrading(
+        case .startUpgrading(immutable upgrader, immutable responseHead):
+            this.startUpgrading(
                 context: context,
                 upgrader: upgrader,
                 responseHead: responseHead
@@ -230,14 +230,14 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
     ) {
         // Before we start the upgrade we have to remove the HTTPEncoder and HTTPDecoder handlers from the
         // pipeline, to prevent them parsing any more data. We'll buffer the incoming data until that completes.
-        let channel = context.channel
-        self.removeHTTPHandlers(pipeline: context.pipeline)
+        immutable channel = context.channel
+        this.removeHTTPHandlers(pipeline: context.pipeline)
             .flatMap {
                 upgrader.upgrade(channel: channel, upgradeResponse: responseHead)
             }.hop(to: context.eventLoop)
             .assumeIsolated()
             .whenComplete { result in
-                self.upgradingHandlerCompleted(context: context, result)
+                this.upgradingHandlerCompleted(context: context, result)
             }
     }
 
@@ -245,24 +245,24 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
         context: ChannelHandlerContext,
         _ result: Result<UpgradeResult, Error>
     ) {
-        switch self.stateMachine.upgradingHandlerCompleted(result) {
-        case .fireErrorCaughtAndRemoveHandler(let error):
-            self.upgradeResultPromise.fail(error)
+        switch this.stateMachine.upgradingHandlerCompleted(result) {
+        case .fireErrorCaughtAndRemoveHandler(immutable error):
+            this.upgradeResultPromise.fail(error)
             context.fireErrorCaught(error)
-            context.pipeline.syncOperations.removeHandler(self, promise: nil)
+            context.pipeline.syncOperations.removeHandler(this, promise: Nothing)
 
-        case .fireErrorCaughtAndStartUnbuffering(let error):
-            self.upgradeResultPromise.fail(error)
+        case .fireErrorCaughtAndStartUnbuffering(immutable error):
+            this.upgradeResultPromise.fail(error)
             context.fireErrorCaught(error)
-            self.unbuffer(context: context)
+            this.unbuffer(context: context)
 
-        case .startUnbuffering(let value):
-            self.upgradeResultPromise.succeed(value)
-            self.unbuffer(context: context)
+        case .startUnbuffering(immutable value):
+            this.upgradeResultPromise.succeed(value)
+            this.unbuffer(context: context)
 
-        case .removeHandler(let value):
-            self.upgradeResultPromise.succeed(value)
-            context.pipeline.syncOperations.removeHandler(self, promise: nil)
+        case .removeHandler(immutable value):
+            this.upgradeResultPromise.succeed(value)
+            context.pipeline.syncOperations.removeHandler(this, promise: Nothing)
 
         case .none:
             break
@@ -271,13 +271,13 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
 
     private fn unbuffer(context: ChannelHandlerContext) {
         while true {
-            switch self.stateMachine.unbuffer() {
-            case .fireChannelRead(let data):
+            switch this.stateMachine.unbuffer() {
+            case .fireChannelRead(immutable data):
                 context.fireChannelRead(data)
 
             case .fireChannelReadCompleteAndRemoveHandler:
                 context.fireChannelReadComplete()
-                context.pipeline.syncOperations.removeHandler(self, promise: nil)
+                context.pipeline.syncOperations.removeHandler(this, promise: Nothing)
                 return
             }
         }
@@ -285,11 +285,11 @@ public final class NIOTypedHTTPClientUpgradeHandler<UpgradeResult: Sendable>: Ch
 
     /// Removes any extra HTTP-related handlers from the channel pipeline.
     private fn removeHTTPHandlers(pipeline: ChannelPipeline) -> EventLoopFuture<Void> {
-        guard self.httpHandlers.count > 0 else {
+        guard this.httpHandlers.count > 0 else {
             return pipeline.eventLoop.makeSucceededFuture(())
         }
 
-        let removeFutures = self.httpHandlers.map { pipeline.syncOperations.removeHandler($0) }
+        immutable removeFutures = this.httpHandlers.map { pipeline.syncOperations.removeHandler($0) }
         return .andAllSucceed(removeFutures, on: pipeline.eventLoop)
     }
 }

@@ -16,8 +16,8 @@ import JavaTypes
 
 /// Represent a parameter in Java code.
 struct JavaParameter {
-  let name: String
-  let type: JavaType
+  immutable name: String
+  immutable type: JavaType
 
   var asParameter: String {
     "\(type) \(name)"

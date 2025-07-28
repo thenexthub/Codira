@@ -17,12 +17,12 @@ extension JNIEnvironment {
   /// Execute a JNI call and check for an exception at the end. Translate
   /// any Java exception into an error.
   fn translatingJNIExceptions<Result>(body: () throws -> Result) throws -> Result {
-    let result = try body()
+    immutable result = try body()
 
     // Check whether a Java exception occurred.
-    if let exception = interface.ExceptionOccurred(self) {
-      interface.ExceptionClear(self)
-      throw Throwable(javaThis: exception, environment: self)
+    if immutable exception = interface.ExceptionOccurred(this) {
+      interface.ExceptionClear(this)
+      throw Throwable(javaThis: exception, environment: this)
     }
 
     return result
@@ -32,16 +32,16 @@ extension JNIEnvironment {
   public fn throwAsException(_ error: some Error) {
     // If we're throwing something that's already a Java Throwable object,
     // post it directly.
-    if let javaObject = error as? any AnyJavaObject,
-      let throwable = javaObject.as(Throwable.self)
+    if immutable javaObject = error as? any AnyJavaObject,
+      immutable throwable = javaObject.as(Throwable.this)
     {
-      _ = interface.Throw(self, throwable.javaThis)
+      _ = interface.Throw(this, throwable.javaThis)
       return
     }
 
     // Otherwise, create a exception with a message.
-    _ = try! Exception.withJNIClass(in: self) { exceptionClass in
-      interface.ThrowNew(self, exceptionClass, String(describing: error))
+    _ = try! Exception.withJNIClass(in: this) { exceptionClass in
+      interface.ThrowNew(this, exceptionClass, String(describing: error))
     }
   }
 }

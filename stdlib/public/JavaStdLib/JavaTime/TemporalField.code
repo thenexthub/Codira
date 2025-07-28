@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.time.temporal.TemporalField")
+public struct TemporalField {
+  @JavaMethod
+  public fn toString() -> String
+
+  @JavaMethod
+  public fn range() -> ValueRange!
+
+  @JavaMethod
+  public fn isSupportedBy(_ arg0: TemporalAccessor?) -> Boolean
+
+  @JavaMethod
+  public fn isTimeBased() -> Boolean
+
+  @JavaMethod
+  public fn getFrom(_ arg0: TemporalAccessor?) -> Int64
+
+  @JavaMethod
+  public fn adjustInto(_ arg0: Temporal?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  public fn rangeRefinedBy(_ arg0: TemporalAccessor?) -> ValueRange!
+
+  @JavaMethod
+  public fn isDateBased() -> Boolean
+
+  @JavaMethod
+  public fn getBaseUnit() -> TemporalUnit!
+
+  @JavaMethod
+  public fn getRangeUnit() -> TemporalUnit!
+}

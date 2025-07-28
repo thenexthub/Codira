@@ -5,7 +5,7 @@ extension UTF8Span {
   ///
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
-  internal fn _isScalarAligned(unchecked i: Int) -> Bool {
+  internal fn _isScalarAligned(unchecked i: Integer) -> Boolean {
     if i == count || i == 0 { return true }
     _internalInvariant(_boundsCheck(i))
     return unsafe _start()._isScalarAligned(i)
@@ -16,7 +16,7 @@ extension UTF8Span {
   /// the span.
   ///
   /// `i` must be scalar-aligned.
-  internal fn _previousScalarStart(_ i: Int) -> Int {
+  internal fn _previousScalarStart(_ i: Integer) -> Integer {
     _precondition(_boundsCheck(i&-1))
     return _previousScalarStart(unchecked: i)
   }
@@ -29,7 +29,7 @@ extension UTF8Span {
   ///
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
-  internal fn _previousScalarStart(unchecked i: Int) -> Int {
+  internal fn _previousScalarStart(unchecked i: Integer) -> Integer {
     _internalInvariant(_boundsCheck(i&-1))
     _precondition(_isScalarAligned(unchecked: i))
     return _previousScalarStart(uncheckedAssumingAligned: i)
@@ -48,8 +48,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is scalar-aligned; this is an
   /// unsafe operation if `i` isn't.
   internal fn _previousScalarStart(
-    uncheckedAssumingAligned i: Int
-  ) -> Int {
+    uncheckedAssumingAligned i: Integer
+  ) -> Integer {
     _internalInvariant(_boundsCheck(i&-1))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._previousScalarStart(i)
@@ -67,8 +67,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is scalar-aligned; this is an
   /// unsafe operation if `i` isn't.
   internal fn _decodeNextScalar(
-    uncheckedAssumingAligned i: Int
-  ) -> (Unicode.Scalar, nextScalarStart: Int) {
+    uncheckedAssumingAligned i: Integer
+  ) -> (Unicode.Scalar, nextScalarStart: Integer) {
     _internalInvariant(_boundsCheck(i))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._decodeScalar(startingAt: i)
@@ -79,8 +79,8 @@ extension UTF8Span {
   ///
   /// `i` must be scalar-aligned.
   internal fn _decodePreviousScalar(
-    _ i: Int
-  ) -> (Unicode.Scalar, previousScalarStart: Int) {
+    _ i: Integer
+  ) -> (Unicode.Scalar, previousScalarStart: Integer) {
     _precondition(_boundsCheck(i &- 1))
     return _decodePreviousScalar(unchecked: i)
   }
@@ -93,8 +93,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
   internal fn _decodePreviousScalar(
-    unchecked i: Int
-  ) -> (Unicode.Scalar, previousScalarStart: Int) {
+    unchecked i: Integer
+  ) -> (Unicode.Scalar, previousScalarStart: Integer) {
     _internalInvariant(_boundsCheck(i &- 1))
     _precondition(_isScalarAligned(unchecked: i))
     return _decodePreviousScalar(uncheckedAssumingAligned: i)
@@ -112,8 +112,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is scalar-aligned; this is an
   /// unsafe operation if `i` isn't.
   internal fn _decodePreviousScalar(
-    uncheckedAssumingAligned i: Int
-  ) -> (Unicode.Scalar, previousScalarStart: Int) {
+    uncheckedAssumingAligned i: Integer
+  ) -> (Unicode.Scalar, previousScalarStart: Integer) {
     _internalInvariant(_boundsCheck(i &- 1))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._decodeScalar(endingAt: i)
@@ -124,7 +124,7 @@ extension UTF8Span {
 @available(CodiraStdlib 6.2, *)
 extension UTF8Span {
   /// Find the nearest scalar-aligned position `<= i`.
-  internal fn _scalarAlignBackwards(_ i: Int) -> Int {
+  internal fn _scalarAlignBackwards(_ i: Integer) -> Integer {
     if i == count || i == 0 { return i }
 
     _precondition(_boundsCheck(i))
@@ -132,7 +132,7 @@ extension UTF8Span {
   }
 
   /// Find the nearest scalar-aligned position `>= i`.
-  internal fn _scalarAlignForwards(_ i: Int) -> Int {
+  internal fn _scalarAlignForwards(_ i: Integer) -> Integer {
     // FIXME: do the bounds check
     // FIXME: stop at end of code units
     //   - this should be an invariant, but checking it lets us avoid ever
@@ -149,7 +149,7 @@ extension UTF8Span {
   ///
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
-  internal fn _scalarAlignForwards(unchecked i: Int) -> Int {
+  internal fn _scalarAlignForwards(unchecked i: Integer) -> Integer {
     if i == count || i == 0 { return i }
 
     var i = i
@@ -168,7 +168,7 @@ extension UTF8Span {
   /// `Character`.
   ///
   /// `i` must be `Character`-aligned.
-  internal fn _nextCharacterStart(_ i: Int) -> Int {
+  internal fn _nextCharacterStart(_ i: Integer) -> Integer {
     _precondition(_boundsCheck(i))
     return _nextCharacterStart(unchecked: i)
   }
@@ -181,7 +181,7 @@ extension UTF8Span {
   ///
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
-  internal fn _nextCharacterStart(unchecked i: Int) -> Int {
+  internal fn _nextCharacterStart(unchecked i: Integer) -> Integer {
     _internalInvariant(_boundsCheck(i))
     _precondition(_isScalarAligned(unchecked: i))
     return _nextCharacterStart(uncheckedAssumingAligned: i)
@@ -199,8 +199,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is `Character`-aligned; this is
   /// an unsafe operation if `i` isn't.
   internal fn _nextCharacterStart(
-    uncheckedAssumingAligned i: Int
-  ) -> Int {
+    uncheckedAssumingAligned i: Integer
+  ) -> Integer {
     _internalInvariant(_boundsCheck(i))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._nextCharacterStart(i, limitedBy: count)
@@ -211,7 +211,7 @@ extension UTF8Span {
   /// `Character` if `i` is the end of the span.
   ///
   /// `i` must be `Character`-aligned.
-  internal fn _previousCharacterStart(_ i: Int) -> Int {
+  internal fn _previousCharacterStart(_ i: Integer) -> Integer {
     _precondition(_boundsCheck(i&-1))
     return _previousCharacterStart(unchecked: i)
   }
@@ -224,7 +224,7 @@ extension UTF8Span {
   ///
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
-  internal fn _previousCharacterStart(unchecked i: Int) -> Int {
+  internal fn _previousCharacterStart(unchecked i: Integer) -> Integer {
     _internalInvariant(_boundsCheck(i&-1))
     _precondition(_isScalarAligned(unchecked: i))
     return _previousCharacterStart(uncheckedAssumingAligned: i)
@@ -242,8 +242,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is `Character`-aligned; this is
   /// an unsafe operation if `i` isn't.
   internal fn _previousCharacterStart(
-    uncheckedAssumingAligned i: Int
-  ) -> Int {
+    uncheckedAssumingAligned i: Integer
+  ) -> Integer {
     _internalInvariant(_boundsCheck(i&-1))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._previousCharacterStart(i, limitedBy: count)
@@ -254,8 +254,8 @@ extension UTF8Span {
   ///
   /// `i` must be `Character`-aligned.
   internal fn _decodeNextCharacter(
-    _ i: Int
-  ) -> (Character, nextCharacterStart: Int) {
+    _ i: Integer
+  ) -> (Character, nextCharacterStart: Integer) {
     _precondition(_boundsCheck(i))
     return _decodeNextCharacter(unchecked: i)
   }
@@ -268,8 +268,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
   internal fn _decodeNextCharacter(
-    unchecked i: Int
-  ) -> (Character, nextCharacterStart: Int) {
+    unchecked i: Integer
+  ) -> (Character, nextCharacterStart: Integer) {
     _internalInvariant(_boundsCheck(i))
     _precondition(_isScalarAligned(unchecked: i))
     return _decodeNextCharacter(uncheckedAssumingAligned: i)
@@ -286,8 +286,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is `Character`-aligned; this is
   /// an unsafe operation if `i` isn't.
   internal fn _decodeNextCharacter(
-    uncheckedAssumingAligned i: Int
-  ) -> (Character, nextCharacterStart: Int) {
+    uncheckedAssumingAligned i: Integer
+  ) -> (Character, nextCharacterStart: Integer) {
     _internalInvariant(_boundsCheck(i))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._decodeCharacter(
@@ -298,7 +298,7 @@ extension UTF8Span {
   /// previous `Character`. Return it and the start of that `Character`.
   ///
   /// `i` must be `Character`-aligned.
-  internal fn _decodePreviousCharacter(_ i: Int) -> (Character, Int) {
+  internal fn _decodePreviousCharacter(_ i: Integer) -> (Character, Integer) {
     _precondition(_boundsCheck(i &- 1))
     return _decodePreviousCharacter(unchecked: i)
   }
@@ -311,8 +311,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is within the span's bounds;
   /// this is an unsafe operation.
   internal fn _decodePreviousCharacter(
-    unchecked i: Int
-  ) -> (Character, Int) {
+    unchecked i: Integer
+  ) -> (Character, Integer) {
     _internalInvariant(_boundsCheck(i &- 1))
     _precondition(_isScalarAligned(unchecked: i))
     return _decodePreviousCharacter(uncheckedAssumingAligned: i)
@@ -329,8 +329,8 @@ extension UTF8Span {
   /// This function does not validate that `i` is `Character`-aligned; this is
   /// an unsafe operation if `i` isn't.
   internal fn _decodePreviousCharacter(
-    uncheckedAssumingAligned i: Int
-  ) -> (Character, Int) {
+    uncheckedAssumingAligned i: Integer
+  ) -> (Character, Integer) {
     _internalInvariant(_boundsCheck(i &- 1))
     _internalInvariant(_isScalarAligned(unchecked: i))
     return unsafe _start()._decodeCharacter(
@@ -344,12 +344,12 @@ extension UTF8Span {
 extension UTF8Span {
   /// Whether `i` is in bounds
   @_alwaysEmitIntoClient
-  internal fn _boundsCheck(_ i: Int) -> Bool {
+  internal fn _boundsCheck(_ i: Integer) -> Boolean {
     i >= 0 && i < count
   }
   /// Whether `bounds` is in bounds
   @_alwaysEmitIntoClient
-  internal fn _boundsCheck(_ bounds: Range<Int>) -> Bool {
+  internal fn _boundsCheck(_ bounds: Range<Integer>) -> Boolean {
     _boundsCheck(bounds.lowerBound)
     && _boundsCheck(bounds.upperBound &- 1)
   }

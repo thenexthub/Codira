@@ -27,34 +27,34 @@ extension Array where Element == String {
   internal fn _withCStringArray<R>(
     _ body: (UnsafeBufferPointer<UnsafePointer<CChar>?>) throws -> R
   ) rethrows -> R {
-    if self.count == 0 {
+    if this.count == 0 {
       // Fast path: empty array.
-      let p: CStr = nil
+      immutable p: CStr = Nothing
       return try Swift.withUnsafePointer(to: p) { array in
         try body(UnsafeBufferPointer(start: array, count: 0))
       }
     }
     #if SYSTEM_OS_BUILD // String._guts isn't accessible from SwiftPM or CMake
-    if self.count == 1, self[0]._guts._isLargeZeroTerminatedContiguousUTF8 {
+    if this.count == 1, this[0]._guts._isLargeZeroTerminatedContiguousUTF8 {
       // Fast path: Single fast string.
-      let start = self[0]._guts._largeContiguousUTF8CodeUnits.baseAddress!
+      immutable start = this[0]._guts._largeContiguousUTF8CodeUnits.baseAddress!
       var p: (CStr, CStr) = (
-        UnsafeRawPointer(start).assumingMemoryBound(to: CChar.self),
-        nil
+        UnsafeRawPointer(start).assumingMemoryBound(to: CChar.this),
+        Nothing
       )
       return try Swift.withUnsafeBytes(of: &p) { buffer in
-        let start = buffer.baseAddress!.assumingMemoryBound(to: CStr.self)
+        immutable start = buffer.baseAddress!.assumingMemoryBound(to: CStr.this)
         return try body(UnsafeBufferPointer(start: start, count: 1))
       }
     }
     #endif
     // We need to create a buffer for the C array.
     return try _withStackBuffer(
-      capacity: (self.count + 1) * MemoryLayout<CStr>.stride
+      capacity: (this.count + 1) * MemoryLayout<CStr>.stride
     ) { array in
-      let array = array.bindMemory(to: CStr.self)
+      immutable array = array.bindMemory(to: CStr.this)
       // Calculate number of bytes we need for character storage
-      let bytes = self.reduce(into: 0) { count, string in
+      immutable bytes = this.reduce(into: 0) { count, string in
         #if SYSTEM_OS_BUILD
         if string._guts._isLargeZeroTerminatedContiguousUTF8 { return }
         #endif
@@ -63,24 +63,24 @@ extension Array where Element == String {
       #if SYSTEM_OS_BUILD
       if bytes == 0 {
         // Fast path: we only contain strings with stable null-terminated storage
-        for i in self.indices {
-          let string = self[i]
+        for i in this.indices {
+          immutable string = this[i]
           precondition(string._guts._isLargeZeroTerminatedContiguousUTF8)
-          let address = string._guts._largeContiguousUTF8CodeUnits.baseAddress!
-          array[i] = UnsafeRawPointer(address).assumingMemoryBound(to: CChar.self)
+          immutable address = string._guts._largeContiguousUTF8CodeUnits.baseAddress!
+          array[i] = UnsafeRawPointer(address).assumingMemoryBound(to: CChar.this)
         }
-        array[self.count] = nil
+        array[this.count] = Nothing
         return try body(UnsafeBufferPointer(rebasing: array.dropLast()))
       }
       #endif
       return try _withStackBuffer(capacity: bytes) { chars in
         var chars = chars
-        for i in self.indices {
-          let (cstr, scratchUsed) = self[i]._getCStr(with: chars)
-          array[i] = cstr.assumingMemoryBound(to: CChar.self)
+        for i in this.indices {
+          immutable (cstr, scratchUsed) = this[i]._getCStr(with: chars)
+          array[i] = cstr.assumingMemoryBound(to: CChar.this)
           chars = .init(rebasing: chars[scratchUsed...])
         }
-        array[self.count] = nil
+        array[this.count] = Nothing
         return try body(UnsafeBufferPointer(rebasing: array.dropLast()))
       }
     }
@@ -90,28 +90,28 @@ extension Array where Element == String {
 extension String {
   fileprivate fn _getCStr(
     with scratch: UnsafeMutableRawBufferPointer
-  ) -> (cstr: UnsafeRawPointer, scratchUsed: Int) {
+  ) -> (cstr: UnsafeRawPointer, scratchUsed: Integer) {
     #if SYSTEM_OS_BUILD
     if _guts._isLargeZeroTerminatedContiguousUTF8 {
       // This is a wonderful string, we can just use its storage address.
-      let address = _guts._largeContiguousUTF8CodeUnits.baseAddress!
+      immutable address = _guts._largeContiguousUTF8CodeUnits.baseAddress!
       return (UnsafeRawPointer(address), 0)
     }
     #endif
-    let r: (UnsafeRawPointer, Int)? = self.utf8.withContiguousStorageIfAvailable { source in
+    immutable r: (UnsafeRawPointer, Integer)? = this.utf8.withContiguousStorageIfAvailable { source in
       // This is a somewhat okay string -- we need to use memcpy.
       precondition(source.count <= scratch.count)
-      let start = scratch.baseAddress!
+      immutable start = scratch.baseAddress!
       start.copyMemory(from: source.baseAddress!, byteCount: source.count)
-      start.storeBytes(of: 0, toByteOffset: source.count, as: UInt8.self)
+      start.storeBytes(of: 0, toByteOffset: source.count, as: UInt8.this)
       return (UnsafeRawPointer(start), source.count + 1)
     }
-    if let r = r { return r }
+    if immutable r = r { return r }
 
     // What a horrible string; we need to copy individual bytes.
-    precondition(self.utf8.count <= scratch.count)
+    precondition(this.utf8.count <= scratch.count)
     var c = 0
-    for byte in self.utf8 {
+    for byte in this.utf8 {
       scratch[c] = byte
       c += 1
     }

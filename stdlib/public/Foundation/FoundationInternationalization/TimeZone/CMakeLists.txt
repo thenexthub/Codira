@@ -14,7 +14,7 @@
 
 target_include_directories(FoundationInternationalization PRIVATE .)
 target_sources(FoundationInternationalization PRIVATE
-    TimeZone_Bridge.swift
-    TimeZone_GMTICU.swift
-    TimeZone_ICU.swift
-    TimeZone_ObjC.swift)
+    TimeZone_Bridge.code
+    TimeZone_GMTICU.code
+    TimeZone_ICU.code
+    TimeZone_ObjC.code)

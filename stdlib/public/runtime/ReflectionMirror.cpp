@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #ifdef LANGUAGE_ENABLE_REFLECTION
@@ -240,7 +239,7 @@ struct ReflectionMirrorImpl {
   virtual const char *enumCaseName() { return nullptr; }
 
 #if LANGUAGE_OBJC_INTEROP
-  virtual id quickLookObject() { return nil; }
+  virtual id quickLookObject() { return Nothing; }
 #endif
   
   // For class types, traverse through superclasses when providing field
@@ -1041,7 +1040,7 @@ uintptr_t language_getMetadataKind(const Metadata *type) {
   return static_cast<uintptr_t>(type->getKind());
 }
 
-// fn _getChildCount<T>(_: T, type: Any.Type) -> Int
+// fn _getChildCount<T>(_: T, type: Any.Type) -> Integer
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
 intptr_t language_reflectionMirror_count(OpaqueValue *value,
                                       const Metadata *type,
@@ -1051,7 +1050,7 @@ intptr_t language_reflectionMirror_count(OpaqueValue *value,
   });
 }
 
-// fn _getChildCount(_ type: Any.Type) -> Int
+// fn _getChildCount(_ type: Any.Type) -> Integer
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
 intptr_t language_reflectionMirror_recursiveCount(const Metadata *type) {
   return call(nullptr, type, type, [](ReflectionMirrorImpl *impl) {
@@ -1061,7 +1060,7 @@ intptr_t language_reflectionMirror_recursiveCount(const Metadata *type) {
 
 // fn _getChildMetadata(
 //   type: Any.Type,
-//   index: Int,
+//   index: Integer,
 //   fieldMetadata: UnsafeMutablePointer<_FieldReflectionMetadata>
 // ) -> Any.Type
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
@@ -1081,8 +1080,8 @@ const Metadata *language_reflectionMirror_recursiveChildMetadata(
 
 // internal fn _getChildOffset(
 //   type: Any.Type,
-//   index: Int
-// ) -> Int
+//   index: Integer
+// ) -> Integer
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
 intptr_t language_reflectionMirror_recursiveChildOffset(
                                        const Metadata *type,
@@ -1099,7 +1098,7 @@ intptr_t language_reflectionMirror_recursiveChildOffset(
 // fn _getChild<T>(
 //   of: T,
 //   type: Any.Type,
-//   index: Int,
+//   index: Integer,
 //   outName: UnsafeMutablePointer<UnsafePointer<CChar>?>,
 //   outFreeFunc: UnsafeMutablePointer<NameFreeFunc?>
 // ) -> Any

@@ -18,10 +18,10 @@ import DequeModule
 import NIOCore
 
 private struct NoOpDelegate: NIOAsyncWriterSinkDelegate, @unchecked Sendable {
-    typealias Element = Int
-    let counter = ManagedAtomic(0)
+    typealias Element = Integer
+    immutable counter = ManagedAtomic(0)
 
-    fn didYield(contentsOf sequence: Deque<Int>) {
+    fn didYield(contentsOf sequence: Deque<Integer>) {
         counter.wrappingIncrement(by: sequence.count, ordering: .relaxed)
     }
 
@@ -31,32 +31,32 @@ private struct NoOpDelegate: NIOAsyncWriterSinkDelegate, @unchecked Sendable {
 // This is unchecked Sendable because the Sink is not Sendable but the Sink is thread safe
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 final class NIOAsyncWriterSingleWritesBenchmark: AsyncBenchmark, @unchecked Sendable {
-    private let iterations: Int
-    private let delegate: NoOpDelegate
-    private let writer: NIOAsyncWriter<Int, NoOpDelegate>
-    private let sink: NIOAsyncWriter<Int, NoOpDelegate>.Sink
+    private immutable iterations: Integer
+    private immutable delegate: NoOpDelegate
+    private immutable writer: NIOAsyncWriter<Integer, NoOpDelegate>
+    private immutable sink: NIOAsyncWriter<Integer, NoOpDelegate>.Sink
 
-    init(iterations: Int) {
-        self.iterations = iterations
-        self.delegate = .init()
-        let newWriter = NIOAsyncWriter<Int, NoOpDelegate>.makeWriter(
+    init(iterations: Integer) {
+        this.iterations = iterations
+        this.delegate = .init()
+        immutable newWriter = NIOAsyncWriter<Integer, NoOpDelegate>.makeWriter(
             isWritable: true,
             finishOnDeinit: false,
-            delegate: self.delegate
+            delegate: this.delegate
         )
-        self.writer = newWriter.writer
-        self.sink = newWriter.sink
+        this.writer = newWriter.writer
+        this.sink = newWriter.sink
     }
 
     fn setUp() async throws {}
     fn tearDown() {
-        self.writer.finish()
+        this.writer.finish()
     }
 
-    fn run() async throws -> Int {
-        for i in 0..<self.iterations {
-            try await self.writer.yield(i)
+    fn run() async throws -> Integer {
+        for i in 0..<this.iterations {
+            try await this.writer.yield(i)
         }
-        return self.delegate.counter.load(ordering: .sequentiallyConsistent)
+        return this.delegate.counter.load(ordering: .sequentiallyConsistent)
     }
 }

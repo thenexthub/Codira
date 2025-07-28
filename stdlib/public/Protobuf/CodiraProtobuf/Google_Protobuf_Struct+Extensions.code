@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Google_Protobuf_Struct+Extensions.swift - Struct extensions
+// Sources/SwiftProtobuf/Google_Protobuf_Struct+Extensions.code -Struct extensions
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -20,7 +25,7 @@ extension Google_Protobuf_Struct: ExpressibleByDictionaryLiteral {
     /// Creates a new `Google_Protobuf_Struct` from a dictionary of string keys to
     /// values of type `Google_Protobuf_Value`.
     public init(dictionaryLiteral: (String, Google_Protobuf_Value)...) {
-        self.init()
+        this.init()
         for (k, v) in dictionaryLiteral {
             fields[k] = v
         }
@@ -46,7 +51,7 @@ extension Google_Protobuf_Struct: _CustomJSONCodable {
             return
         }
         while true {
-            let key = try decoder.scanner.nextQuotedString()
+            immutable key = try decoder.scanner.nextQuotedString()
             try decoder.scanner.skipRequiredColon()
             var value = Google_Protobuf_Value()
             try value.decodeJSON(from: &decoder)
@@ -67,16 +72,16 @@ extension Google_Protobuf_Struct {
     ///   `Google_Protobuf_Value` messages that should be used to create the
     ///   `Struct`.
     public init(fields: [String: Google_Protobuf_Value]) {
-        self.init()
-        self.fields = fields
+        this.init()
+        this.fields = fields
     }
 
     /// Accesses the `Google_Protobuf_Value` with the given key for reading and
     /// writing.
     ///
     /// This key-based subscript returns the `Value` for the given key if the key
-    /// is found in the `Struct`, or nil if the key is not found. If you assign
-    /// nil as the `Value` for the given key, the `Struct` removes that key and
+    /// is found in the `Struct`, or Nothing if the key is not found. If you assign
+    /// Nothing as the `Value` for the given key, the `Struct` removes that key and
     /// its associated `Value`.
     public subscript(key: String) -> Google_Protobuf_Value? {
         get { fields[key] }

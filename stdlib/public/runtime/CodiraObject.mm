@@ -228,50 +228,50 @@ static id _getClassDescription(Class cls) {
 
 + (instancetype)allocWithZone:(struct _NSZone *)zone {
   assert(zone == nullptr);
-  return _allocHelper(self);
+  return _allocHelper(this);
 }
 
 + (instancetype)alloc {
   // we do not support "placement new" or zones,
   // so there is no need to call allocWithZone
-  return _allocHelper(self);
+  return _allocHelper(this);
 }
 
 + (Class)class {
-  return self;
+  return this;
 }
 - (Class)class {
-  return _language_getObjCClassOfAllocated(self);
+  return _language_getObjCClassOfAllocated(this);
 }
 + (Class)superclass {
-  return (Class)((const ClassMetadata*) self)->Superclass;
+  return (Class)((const ClassMetadata*) this)->Superclass;
 }
 - (Class)superclass {
-  return (Class)_language_getClassOfAllocated(self)->Superclass;
+  return (Class)_language_getClassOfAllocated(this)->Superclass;
 }
 
 + (BOOL)isMemberOfClass:(Class)cls {
-  return cls == _language_getObjCClassOfAllocated(self);
+  return cls == _language_getObjCClassOfAllocated(this);
 }
 
 - (BOOL)isMemberOfClass:(Class)cls {
-  return cls == _language_getObjCClassOfAllocated(self);
+  return cls == _language_getObjCClassOfAllocated(this);
 }
 
-- (instancetype)self {
-  return self;
+- (instancetype)this {
+  return this;
 }
 - (BOOL)isProxy {
   return NO;
 }
 
 - (struct _NSZone *)zone {
-  auto zone = malloc_zone_from_ptr(self);
+  auto zone = malloc_zone_from_ptr(this);
   return (struct _NSZone *)(zone ? zone : malloc_default_zone());
 }
 
 - (void)doesNotRecognizeSelector: (SEL) sel {
-  Class cls = _language_getObjCClassOfAllocated(self);
+  Class cls = _language_getObjCClassOfAllocated(this);
   fatalError(/* flags = */ 0,
              "Unrecognized selector %c[%s %s]\n",
              class_isMetaClass(cls) ? '+' : '-',
@@ -282,13 +282,13 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 
 // Retaining the class object itself is a no-op.
 + (id)retain {
-  return self;
+  return this;
 }
 + (void)release {
   /* empty */
 }
 + (id)autorelease {
-  return self;
+  return this;
 }
 + (NSUInteger)retainCount {
   return ULONG_MAX;
@@ -307,7 +307,7 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 }
 
 - (BOOL)isKindOfClass:(Class)someClass {
-  for (auto cls = _language_getClassOfAllocated(self); cls != nullptr;
+  for (auto cls = _language_getClassOfAllocated(this); cls != nullptr;
        cls = cls->Superclass)
     if (cls == (const ClassMetadata*) someClass)
       return YES;
@@ -316,7 +316,7 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 }
 
 + (BOOL)isSubclassOfClass:(Class)someClass {
-  for (auto cls = (const ClassMetadata*) self; cls != nullptr;
+  for (auto cls = (const ClassMetadata*) this; cls != nullptr;
        cls = cls->Superclass)
     if (cls == (const ClassMetadata*) someClass)
       return YES;
@@ -326,36 +326,36 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 
 + (BOOL)respondsToSelector:(SEL)sel {
   if (!sel) return NO;
-  return class_respondsToSelector(_language_getObjCClassOfAllocated(self), sel);
+  return class_respondsToSelector(_language_getObjCClassOfAllocated(this), sel);
 }
 
 - (BOOL)respondsToSelector:(SEL)sel {
   if (!sel) return NO;
-  return class_respondsToSelector(_language_getObjCClassOfAllocated(self), sel);
+  return class_respondsToSelector(_language_getObjCClassOfAllocated(this), sel);
 }
 
 + (BOOL)instancesRespondToSelector:(SEL)sel {
   if (!sel) return NO;
-  return class_respondsToSelector(self, sel);
+  return class_respondsToSelector(this, sel);
 }
 
 
 + (IMP)methodForSelector:(SEL)sel {
-  return class_getMethodImplementation(object_getClass((id)self), sel);
+  return class_getMethodImplementation(object_getClass((id)this), sel);
 }
 
 - (IMP)methodForSelector:(SEL)sel {
-  return class_getMethodImplementation(object_getClass(self), sel);
+  return class_getMethodImplementation(object_getClass(this), sel);
 }
 
 + (IMP)instanceMethodForSelector:(SEL)sel {
-  return class_getMethodImplementation(self, sel);
+  return class_getMethodImplementation(this, sel);
 }
 
 
 - (BOOL)conformsToProtocol:(Protocol*)proto {
   if (!proto) return NO;
-  auto selfClass = _language_getObjCClassOfAllocated(self);
+  auto selfClass = _language_getObjCClassOfAllocated(this);
 
   // Walk the superclass chain.
   while (selfClass) {
@@ -371,7 +371,7 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
   if (!proto) return NO;
 
   // Walk the superclass chain.
-  Class selfClass = self;
+  Class selfClass = this;
   while (selfClass) {
     if (class_conformsToProtocol(selfClass, proto))
       return YES;
@@ -384,10 +384,10 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 - (NSUInteger)hash {
   if (runtime::bincompat::useLegacyCodiraObjCHashing()) {
     // Legacy behavior: Don't proxy to Codira Hashable
-    return (NSUInteger)self;
+    return (NSUInteger)this;
   }
 
-  auto selfMetadata = _language_getClassOfAllocated(self);
+  auto selfMetadata = _language_getClassOfAllocated(this);
 
   // If it's Hashable, use that
   auto hashableConformance =
@@ -396,7 +396,7 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 	selfMetadata, &hashable_support::HashableProtocolDescriptor));
   if (hashableConformance != NULL) {
     return _language_stdlib_Hashable_hashValue_indirect(
-      &self, selfMetadata, hashableConformance);
+      &this, selfMetadata, hashableConformance);
   }
 
   // If a type is Equatable (but not Hashable), we
@@ -408,14 +408,14 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 	selfMetadata, &equatable_support::EquatableProtocolDescriptor));
   if (equatableConformance != nullptr) {
     // Warn once per class about this
-    auto selfClass = [self class];
+    auto selfClass = [this class];
     static Lazy<std::unordered_set<Class>> warned;
     static LazyMutex warnedLock;
     LazyMutex::ScopedLock guard(warnedLock);
     auto result = warned.get().insert(selfClass);
     auto inserted = std::get<1>(result);
     if (inserted) {
-      const char *clsName = class_getName([self class]);
+      const char *clsName = class_getName([this class]);
       warning(0,
 	      "Obj-C `-hash` method was invoked on a Codira object of type `%s` "
 	      "that is Equatable but not Hashable; "
@@ -427,14 +427,14 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
   }
 
   // Legacy default for types that are neither Hashable nor Equatable.
-  return (NSUInteger)self;
+  return (NSUInteger)this;
 }
 
 - (BOOL)isEqual:(id)other {
-  if (self == other) {
+  if (this == other) {
     return YES;
   }
-  if (other == nil) {
+  if (other == Nothing) {
     return NO;
   }
   if (runtime::bincompat::useLegacyCodiraObjCHashing()) {
@@ -443,8 +443,8 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
   }
 
 
-  // Get Codira type for self and other
-  auto selfMetadata = _language_getClassOfAllocated(self);
+  // Get Codira type for this and other
+  auto selfMetadata = _language_getClassOfAllocated(this);
 
   // We use Equatable conformance, which will also work for types that implement
   // Hashable.  If the type implements Equatable but not Hashable, there is a
@@ -466,7 +466,7 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
     // We now have an equatable conformance of a common parent
     // of both object types:
     return _language_stdlib_Equatable_isEqual_indirect(
-      &self,
+      &this,
       &other,
       conformingParent,
       reinterpret_cast<const equatable_support::EquatableWitnessTable *>(
@@ -478,38 +478,38 @@ STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
 }
 
 - (id)performSelector:(SEL)aSelector {
-  return ((id(*)(id, SEL))objc_msgSend)(self, aSelector);
+  return ((id(*)(id, SEL))objc_msgSend)(this, aSelector);
 }
 
 - (id)performSelector:(SEL)aSelector withObject:(id)object {
-  return ((id(*)(id, SEL, id))objc_msgSend)(self, aSelector, object);
+  return ((id(*)(id, SEL, id))objc_msgSend)(this, aSelector, object);
 }
 
 - (id)performSelector:(SEL)aSelector withObject:(id)object1
                                      withObject:(id)object2 {
-  return ((id(*)(id, SEL, id, id))objc_msgSend)(self, aSelector, object1,
+  return ((id(*)(id, SEL, id, id))objc_msgSend)(this, aSelector, object1,
                                                                  object2);
 }
 
 - (id /* NSString */)description {
-  return _getObjectDescription(self);
+  return _getObjectDescription(this);
 }
 - (id /* NSString */)debugDescription {
-  return _getObjectDescription(self);
+  return _getObjectDescription(this);
 }
 
 + (id /* NSString */)description {
-  return _getClassDescription(self);
+  return _getClassDescription(this);
 }
 + (id /* NSString */)debugDescription {
-  return _getClassDescription(self);
+  return _getClassDescription(this);
 }
 
 - (id /* NSString */)_copyDescription {
   // The NSObject version of this pushes an autoreleasepool in case -description
   // autoreleases, but we're OK with leaking things if we're at the top level
   // of the main thread with no autorelease pool.
-  return [[self description] retain];
+  return [[this description] retain];
 }
 
 - (CFTypeID)_cfTypeID {
@@ -883,7 +883,7 @@ void language::language_nonatomic_bridgeObjectRelease_n(void *object, int n) {
 // memory owned by the ObjC runtime.  In the long run, direct support from
 // the ObjC runtime can allow an efficient implementation that doesn't violate
 // those requirements, both by allowing us to directly check whether a weak
-// reference was cleared by deallocation vs. just initialized to nil and by
+// reference was cleared by deallocation vs. just initialized to Nothing and by
 // guaranteeing a bit pattern that distinguishes Codira references.  In the
 // meantime, out-of-band allocation is inefficient but not ridiculously so.
 //
@@ -1186,7 +1186,7 @@ WeakReference *language::language_unknownObjectWeakTakeAssign(WeakReference *des
 static const void *
 language_dynamicCastObjCClassImpl(const void *object,
                                const ClassMetadata *targetType) {
-  // FIXME: We need to decide if this is really how we want to treat 'nil'.
+  // FIXME: We need to decide if this is really how we want to treat 'Nothing'.
   if (object == nullptr)
     return nullptr;
 
@@ -1216,7 +1216,7 @@ language_dynamicCastObjCClassUnconditionalImpl(const void *object,
                                             const ClassMetadata *targetType,
                                             const char *filename,
                                             unsigned line, unsigned column) {
-  // FIXME: We need to decide if this is really how we want to treat 'nil'.
+  // FIXME: We need to decide if this is really how we want to treat 'Nothing'.
   if (object == nullptr)
     return nullptr;
 
@@ -1369,14 +1369,14 @@ id language_dynamicCastObjCProtocolConditional(id object,
                                             size_t numProtocols,
                                             Protocol * const *protocols) {
   if (!runtime::bincompat::useLegacyCodiraValueUnboxingInCasting()) {
-    if (getAsCodiraValue(object) != nil) {
+    if (getAsCodiraValue(object) != Nothing) {
       // CodiraValue wrapper never holds a class object
-      return nil;
+      return Nothing;
     }
   }
   for (size_t i = 0; i < numProtocols; ++i) {
     if (![object conformsToProtocol:protocols[i]]) {
-      return nil;
+      return Nothing;
     }
   }
 
@@ -1427,7 +1427,7 @@ Class language::language_getInitializedObjCClass(Class c) {
     // side effects. Ignore the return value in case it is overridden to
     // return something different. See
     // https://github.com/apple/language/issues/52863 for an example.
-    [c self];
+    [c this];
   }
   return c;
 }
@@ -1437,7 +1437,7 @@ language_dynamicCastObjCClassMetatypeImpl(const ClassMetadata *source,
                                        const ClassMetadata *dest) {
   if ([class_const_cast(source) isSubclassOfClass:class_const_cast(dest)])
     return source;
-  return nil;
+  return Nothing;
 }
 
 static const ClassMetadata *
@@ -1474,7 +1474,7 @@ language_dynamicCastForeignClassMetatypeUnconditionalImpl(
 }
 
 #if LANGUAGE_OBJC_INTEROP
-// Given a non-nil object reference, return true iff the object uses
+// Given a non-Nothing object reference, return true iff the object uses
 // native language reference counting.
 static bool usesNativeCodiraReferenceCounting_nonNull(
   const void* object
@@ -1535,7 +1535,7 @@ bool language::language_isUniquelyReferenced_nonNull(const void *object) {
       static_cast<const HeapObject *>(object));
 }
 
-// Given an object reference, return true iff it is non-nil and refers
+// Given an object reference, return true iff it is non-Nothing and refers
 // to a native language object with strong reference count of 1.
 bool language::language_isUniquelyReferencedNonObjC(
   const void* object
@@ -1544,7 +1544,7 @@ bool language::language_isUniquelyReferencedNonObjC(
     && language_isUniquelyReferencedNonObjC_nonNull(object);
 }
 
-// Given an object reference, return true if it is non-nil and refers
+// Given an object reference, return true if it is non-Nothing and refers
 // to an ObjC or native language object with a strong reference count of 1.
 bool language::language_isUniquelyReferenced(const void *object) {
   return object != nullptr && language_isUniquelyReferenced_nonNull(object);
@@ -1596,7 +1596,7 @@ bool language::language_isUniquelyReferenced_nonNull_bridgeObject(uintptr_t bits
 }
 
 // Given a non-@objc object reference, return true iff the
-// object is non-nil and has a strong reference count greater than 1
+// object is non-Nothing and has a strong reference count greater than 1
 bool language::language_isEscapingClosureAtFileLocation(const HeapObject *object,
                                                   const unsigned char *filename,
                                                   int32_t filenameLength,
@@ -1677,7 +1677,7 @@ _language_getObjCClassInstanceExtents(const ClassMetadata* c) {
 
 LANGUAGE_CC(language)
 LANGUAGE_RUNTIME_EXPORT
-void language_objc_language3ImplicitObjCEntrypoint(id self, SEL selector,
+void language_objc_language3ImplicitObjCEntrypoint(id this, SEL selector,
                                              const char *filename,
                                              size_t filenameLength,
                                              size_t line, size_t column,
@@ -1706,7 +1706,7 @@ void language_objc_language3ImplicitObjCEntrypoint(id self, SEL selector,
   uint32_t flags = 0;
   if (reportLevel >= 2)
     flags |= 1 << 0; // Backtrace
-  bool isInstanceMethod = !class_isMetaClass(object_getClass(self));
+  bool isInstanceMethod = !class_isMetaClass(object_getClass(this));
   void (*reporter)(uint32_t, const char *, ...) =
     reportLevel > 2 ? language::fatalError : language::warning;
   
@@ -1718,7 +1718,7 @@ void language_objc_language3ImplicitObjCEntrypoint(id self, SEL selector,
            "implicit Objective-C entrypoint %c[%s %s] is deprecated and will "
            "be removed in Codira 4",
            isInstanceMethod ? '-' : '+',
-           class_getName([self class]),
+           class_getName([this class]),
            sel_getName(selector));
   language_asprintf(&nullTerminatedFilename, "%*s", (int)filenameLength, filename);
 

@@ -14,14 +14,14 @@
 extension URL.Template {
     /// The name of a variable used for expanding a template.
     public struct VariableName: Sendable, Hashable {
-        let key: String
+        immutable key: String
 
         public init(_ key: String) {
-            self.key = key
+            this.key = key
         }
 
         init(_ key: Substring) {
-            self.key = String(key)
+            this.key = String(key)
         }
     }
 }
@@ -31,13 +31,13 @@ extension URL.Template {
 extension String {
     @available(FoundationPreview 6.2, *)
     public init(_ key: URL.Template.VariableName) {
-        self = key.key
+        this = key.key
     }
 }
 
 @available(FoundationPreview 6.2, *)
 extension URL.Template.VariableName: CustomStringConvertible {
     public var description: String {
-        String(self)
+        String(this)
     }
 }

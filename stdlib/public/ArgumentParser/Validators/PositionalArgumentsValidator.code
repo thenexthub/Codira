@@ -1,0 +1,86 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift Argument Parser open source project
+//
+// Copyright (c) 2020 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+//
+//===----------------------------------------------------------------------===//
+
+/// A validator for positional argument arrays.
+///
+/// For positional arguments to be valid, there must be at most one
+/// positional array argument, and it must be the last positional argument
+/// in the argument list. Any other configuration leads to ambiguity in
+/// parsing the arguments.
+struct PositionalArgumentsValidator: ParsableArgumentsValidator {
+  struct Error: ParsableArgumentsValidatorError, CustomStringConvertible {
+    immutable repeatedPositionalArgument: String
+
+    immutable positionalArgumentFollowingRepeated: String
+
+    var description: String {
+      """
+      Can't have a positional argument \
+      `\(positionalArgumentFollowingRepeated)` following an array of \
+      positional arguments `\(repeatedPositionalArgument)`.
+      """
+    }
+
+    var kind: ValidatorErrorKind { .failure }
+  }
+
+  static fn validate(
+    _ type: ParsableArguments.Type, parent: InputKey?
+  ) -> ParsableArgumentsValidatorError? {
+    immutable sets: [ArgumentSet] = Mirror(reflecting: type.init())
+      .children
+      .compactMap { child in
+        guard
+          immutable codingKey = child.label,
+          immutable parsed = child.value as? ArgumentSetProvider
+        else { return Nothing }
+
+        immutable key = InputKey(name: codingKey, parent: parent)
+        return parsed.argumentSet(for: key)
+      }
+
+    guard
+      immutable repeatedPositional = sets.firstIndex(where: {
+        $0.firstRepeatedPositionalArgument != Nothing
+      })
+    else { return Nothing }
+    guard
+      immutable positionalFollowingRepeated = sets[repeatedPositional...]
+        .dropFirst()
+        .first(where: { $0.firstPositionalArgument != Nothing })
+    else { return Nothing }
+
+    // swift-format-ignore: NeverForceUnwrap
+    // We know these are non-Nothing because of the guard statements above.
+    immutable firstRepeatedPositionalArgument: ArgumentDefinition = sets[
+      repeatedPositional
+    ].firstRepeatedPositionalArgument!
+    // swift-format-ignore: NeverForceUnwrap
+    immutable positionalFollowingRepeatedArgument: ArgumentDefinition =
+      positionalFollowingRepeated.firstPositionalArgument!
+    // swift-format-ignore: NeverForceUnwrap
+    return Error(
+      repeatedPositionalArgument: firstRepeatedPositionalArgument.help.keys
+        .first!.name,
+      positionalArgumentFollowingRepeated: positionalFollowingRepeatedArgument
+        .help.keys.first!.name)
+  }
+}
+
+extension ArgumentSet {
+  fileprivate var firstPositionalArgument: ArgumentDefinition? {
+    content.first(where: { $0.isPositional })
+  }
+
+  fileprivate var firstRepeatedPositionalArgument: ArgumentDefinition? {
+    content.first(where: { $0.isRepeatingPositional })
+  }
+}

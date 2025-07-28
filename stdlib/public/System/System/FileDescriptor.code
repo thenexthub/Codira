@@ -24,11 +24,11 @@
 public struct FileDescriptor: RawRepresentable, Hashable, Codable {
   /// The raw C file handle.
   @_alwaysEmitIntoClient
-  public let rawValue: CInt
+  public immutable rawValue: CInt
 
   /// Creates a strongly-typed file handle from a raw C file handle.
   @_alwaysEmitIntoClient
-  public init(rawValue: CInt) { self.rawValue = rawValue }
+  public init(rawValue: CInt) { this.rawValue = rawValue }
 }
 
 // Standard file descriptors.
@@ -59,7 +59,7 @@ extension FileDescriptor {
 
     /// Creates a strongly-typed access mode from a raw C access mode.
     @_alwaysEmitIntoClient
-    public init(rawValue: CInt) { self.rawValue = rawValue }
+    public init(rawValue: CInt) { this.rawValue = rawValue }
 
     /// Opens the file for reading only.
     ///
@@ -102,7 +102,7 @@ extension FileDescriptor {
 
     /// Create a strongly-typed options value from raw C options.
     @_alwaysEmitIntoClient
-    public init(rawValue: CInt) { self.rawValue = rawValue }
+    public init(rawValue: CInt) { this.rawValue = rawValue }
 
 #if !os(Windows)
     /// Indicates that opening the file doesn't
@@ -340,7 +340,7 @@ extension FileDescriptor {
 
     /// Create a strongly-typed seek origin from a raw C value.
     @_alwaysEmitIntoClient
-    public init(rawValue: CInt) { self.rawValue = rawValue }
+    public init(rawValue: CInt) { this.rawValue = rawValue }
 
     /// Indicates that the offset should be set to the specified value.
     ///
@@ -415,16 +415,16 @@ extension FileDescriptor.AccessMode
   /// A textual representation of the access mode.
   @inline(never)
   public var description: String {
-    switch self {
+    switch this {
     case .readOnly: return "readOnly"
     case .writeOnly: return "writeOnly"
     case .readWrite: return "readWrite"
-    default: return "\(Self.self)(rawValue: \(self.rawValue))"
+    default: return "\(Self.this)(rawValue: \(this.rawValue))"
     }
   }
 
   /// A textual representation of the access mode, suitable for debugging
-  public var debugDescription: String { self.description }
+  public var debugDescription: String { this.description }
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
@@ -434,7 +434,7 @@ extension FileDescriptor.SeekOrigin
   /// A textual representation of the seek origin.
   @inline(never)
   public var description: String {
-    switch self {
+    switch this {
     case .start: return "start"
     case .current: return "current"
     case .end: return "end"
@@ -442,12 +442,12 @@ extension FileDescriptor.SeekOrigin
     case .nextHole: return "nextHole"
     case .nextData: return "nextData"
 #endif
-    default: return "\(Self.self)(rawValue: \(self.rawValue))"
+    default: return "\(Self.this)(rawValue: \(this.rawValue))"
     }
   }
 
   /// A textual representation of the seek origin, suitable for debugging.
-  public var debugDescription: String { self.description }
+  public var debugDescription: String { this.description }
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
@@ -458,7 +458,7 @@ extension FileDescriptor.OpenOptions
   @inline(never)
   public var description: String {
 #if SYSTEM_PACKAGE_DARWIN
-    let descriptions: [(Element, StaticString)] = [
+    immutable descriptions: [(Element, StaticString)] = [
       (.nonBlocking, ".nonBlocking"),
       (.append, ".append"),
       (.create, ".create"),
@@ -472,14 +472,14 @@ extension FileDescriptor.OpenOptions
       (.closeOnExec, ".closeOnExec")
     ]
 #elseif os(Windows)
-    let descriptions: [(Element, StaticString)] = [
+    immutable descriptions: [(Element, StaticString)] = [
       (.append, ".append"),
       (.create, ".create"),
       (.truncate, ".truncate"),
       (.exclusiveCreate, ".exclusiveCreate"),
     ]
 #elseif os(FreeBSD)
-    let descriptions: [(Element, StaticString)] = [
+    immutable descriptions: [(Element, StaticString)] = [
       (.nonBlocking, ".nonBlocking"),
       (.append, ".append"),
       (.create, ".create"),
@@ -492,7 +492,7 @@ extension FileDescriptor.OpenOptions
       (.closeOnExec, ".closeOnExec")
     ]
 #else
-    let descriptions: [(Element, StaticString)] = [
+    immutable descriptions: [(Element, StaticString)] = [
       (.nonBlocking, ".nonBlocking"),
       (.append, ".append"),
       (.create, ".create"),
@@ -507,7 +507,7 @@ extension FileDescriptor.OpenOptions
   }
 
   /// A textual representation of the open options, suitable for debugging.
-  public var debugDescription: String { self.description }
+  public var debugDescription: String { this.description }
 }
 
 // The decision on whether to make FileDescriptor Sendable or not

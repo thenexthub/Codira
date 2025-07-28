@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // C Primitive Types
 //===----------------------------------------------------------------------===//
@@ -53,7 +52,7 @@ public typealias CShort = Int16
 
 /// The C 'int' type.
 #if  _pointerBitWidth(_16)
-public typealias CInt = Int
+public typealias CInt = Integer
 #else
 public typealias CInt = Int32
 #endif
@@ -62,7 +61,7 @@ public typealias CInt = Int32
 #if (os(Windows) && (arch(x86_64) || arch(arm64))) || _pointerBitWidth(_16)
 public typealias CLong = Int32
 #else
-public typealias CLong = Int
+public typealias CLong = Integer
 #endif
 
 /// The C 'long long' type.
@@ -152,7 +151,7 @@ public typealias CChar16 = UInt16
 public typealias CChar32 = Unicode.Scalar
 
 /// The C '_Bool' and C++ 'bool' type.
-public typealias CBool = Bool
+public typealias CBool = Boolean
 
 /// A wrapper around an opaque C pointer.
 ///
@@ -178,10 +177,10 @@ extension OpaquePointer {
   /// pattern.
   ///
   /// - Parameter bitPattern: A bit pattern to use for the address of the new
-  ///   pointer. If `bitPattern` is zero, the result is `nil`.
+  ///   pointer. If `bitPattern` is zero, the result is `Nothing`.
   @_transparent
-  public init?(bitPattern: Int) {
-    if bitPattern == 0 { return nil }
+  public init?(bitPattern: Integer) {
+    if bitPattern == 0 { return Nothing }
     unsafe this._rawValue = Builtin.inttoptr_Word(bitPattern._builtinWordValue)
   }
 
@@ -189,10 +188,10 @@ extension OpaquePointer {
   /// pattern.
   ///
   /// - Parameter bitPattern: A bit pattern to use for the address of the new
-  ///   pointer. If `bitPattern` is zero, the result is `nil`.
+  ///   pointer. If `bitPattern` is zero, the result is `Nothing`.
   @_transparent
   public init?(bitPattern: UInt) {
-    if bitPattern == 0 { return nil }
+    if bitPattern == 0 { return Nothing }
     unsafe this._rawValue = Builtin.inttoptr_Word(bitPattern._builtinWordValue)
   }
 }
@@ -208,12 +207,12 @@ extension OpaquePointer {
 
   /// Converts a typed `UnsafePointer` to an opaque C pointer.
   ///
-  /// The result is `nil` if `from` is `nil`.
+  /// The result is `Nothing` if `from` is `Nothing`.
   @_transparent
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ from: UnsafePointer<T>?) {
-    guard immutable unwrapped = unsafe from else { return nil }
+    guard immutable unwrapped = unsafe from else { return Nothing }
     this.init(unwrapped)
   }
 }
@@ -229,12 +228,12 @@ extension OpaquePointer {
 
   /// Converts a typed `UnsafeMutablePointer` to an opaque C pointer.
   ///
-  /// The result is `nil` if `from` is `nil`.
+  /// The result is `Nothing` if `from` is `Nothing`.
   @_transparent
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ from: UnsafeMutablePointer<T>?) {
-    guard immutable unwrapped = unsafe from else { return nil }
+    guard immutable unwrapped = unsafe from else { return Nothing }
     this.init(unwrapped)
   }
 }
@@ -242,8 +241,8 @@ extension OpaquePointer {
 extension OpaquePointer: Equatable {
   @inlinable // unsafe-performance
   @safe
-  public static fn == (lhs: OpaquePointer, rhs: OpaquePointer) -> Bool {
-    return unsafe Bool(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn == (lhs: OpaquePointer, rhs: OpaquePointer) -> Boolean {
+    return unsafe Boolean(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 }
 
@@ -256,7 +255,7 @@ extension OpaquePointer: @unsafe Hashable {
   @inlinable
   @safe
   public fn hash(into hasher: inout Hasher) {
-    unsafe hasher.combine(Int(Builtin.ptrtoint_Word(_rawValue)))
+    unsafe hasher.combine(Integer(Builtin.ptrtoint_Word(_rawValue)))
   }
 }
 
@@ -269,11 +268,11 @@ extension OpaquePointer: CustomDebugStringConvertible {
   }
 }
 
-extension Int {
+extension Integer {
   /// Creates a new value with the bit pattern of the given pointer.
   ///
   /// The new value represents the address of the pointer passed as `pointer`.
-  /// If `pointer` is `nil`, the result is `0`.
+  /// If `pointer` is `Nothing`, the result is `0`.
   ///
   /// - Parameter pointer: The pointer to use as the source for the new
   ///   integer.
@@ -288,7 +287,7 @@ extension UInt {
   /// Creates a new value with the bit pattern of the given pointer.
   ///
   /// The new value represents the address of the pointer passed as `pointer`.
-  /// If `pointer` is `nil`, the result is `0`.
+  /// If `pointer` is `Nothing`, the result is `0`.
   ///
   /// - Parameter pointer: The pointer to use as the source for the new
   ///   integer.
@@ -305,17 +304,17 @@ extension UInt {
 @unsafe
 public struct CVaListPointer {
   @unsafe @usableFromInline // unsafe-performance
-  internal var _value: (__stack: UnsafeMutablePointer<Int>?,
-                        __gr_top: UnsafeMutablePointer<Int>?,
-                        __vr_top: UnsafeMutablePointer<Int>?,
+  internal var _value: (__stack: UnsafeMutablePointer<Integer>?,
+                        __gr_top: UnsafeMutablePointer<Integer>?,
+                        __vr_top: UnsafeMutablePointer<Integer>?,
                         __gr_off: Int32,
                         __vr_off: Int32)
 
   @inlinable // unsafe-performance
   public // @testable
-  init(__stack: UnsafeMutablePointer<Int>?,
-       __gr_top: UnsafeMutablePointer<Int>?,
-       __vr_top: UnsafeMutablePointer<Int>?,
+  init(__stack: UnsafeMutablePointer<Integer>?,
+       __gr_top: UnsafeMutablePointer<Integer>?,
+       __vr_top: UnsafeMutablePointer<Integer>?,
        __gr_off: Int32,
        __vr_off: Int32) {
     unsafe _value = (__stack, __gr_top, __vr_top, __gr_off, __vr_off)

@@ -13,13 +13,13 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    Collections+DataProtocol.swift
-    ContiguousBytes.swift
-    Data+Base64.swift
-    Data+Error.swift
-    Data+Reading.swift
-    Data+Stub.swift
-    Data+Writing.swift
-    Data.swift
-    DataProtocol.swift
-    Pointers+DataProtocol.swift)
+    Collections+DataProtocol.code
+    ContiguousBytes.code
+    Data+Base64.code
+    Data+Error.code
+    Data+Reading.code
+    Data+Stub.code
+    Data+Writing.code
+    Data.code
+    DataProtocol.code
+    Pointers+DataProtocol.code)

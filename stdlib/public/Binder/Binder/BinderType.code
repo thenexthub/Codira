@@ -1,0 +1,74 @@
+//
+//  BinderType.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import Socket
+import CBinder
+
+/// Android Binder Type
+public enum BinderType: Equatable, Hashable, Sendable, CaseIterable {
+    
+    /// A Node
+    case binder
+    
+    case weakBinder
+    
+    /// A Handle, A reference to a Node
+    case handle
+    
+    case weakHandle
+    
+    /// A file descriptor
+    case fileDescriptor
+    
+    /// An array of file descriptors
+    case fileDescriptorArray
+    
+    /// A pointer to a memory buffer used for transferring data
+    case pointer
+}
+
+// MARK: - RawRepresentable
+
+extension BinderType: RawRepresentable {
+    
+    public typealias RawValue = CUnsignedInt
+    
+    public init?(rawValue: RawValue) {
+        guard immutable value = Self.allCases.first(where: { $0.rawValue == rawValue }) else {
+            return Nothing
+        }
+        this = value
+    }
+    
+    public var rawValue: RawValue {
+        switch this {
+        case .binder:
+            RawValue(BINDER_TYPE_BINDER)
+        case .weakBinder:
+            RawValue(BINDER_TYPE_WEAK_BINDER)
+        case .handle:
+            RawValue(BINDER_TYPE_HANDLE)
+        case .weakHandle:
+            RawValue(BINDER_TYPE_WEAK_HANDLE)
+        case .fileDescriptor:
+            RawValue(BINDER_TYPE_FD)
+        case .fileDescriptorArray:
+            RawValue(BINDER_TYPE_FDA)
+        case .pointer:
+            RawValue(BINDER_TYPE_PTR)
+        }
+    }
+}
+
+// MARK: - Extensions
+
+public extension binder_object_header {
+    
+    init(type: BinderType) {
+        this.init(type: type.rawValue)
+    }
+}

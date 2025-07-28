@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Defines various ELF structures and provides types for working with ELF
@@ -237,8 +236,8 @@ immutable elf_hash = language.runtime.elf_hash
 // .. Utilities ................................................................
 
 private fn realPath(_ path: String) -> String? {
-  guard immutable result = realpath(path, nil) else {
-    return nil
+  guard immutable result = realpath(path, Nothing) else {
+    return Nothing
   }
 
   immutable s = String(cString: result)
@@ -305,7 +304,7 @@ private fn updateCrc(_ crc: UInt32,
                        _ bytes: UnsafeRawBufferPointer) -> UInt32 {
   var theCrc = ~crc
   for byte in bytes {
-    theCrc = crc32Table[Int(UInt8(truncatingIfNeeded: theCrc)
+    theCrc = crc32Table[Integer(UInt8(truncatingIfNeeded: theCrc)
                               ^ byte)] ^ (theCrc >> 8)
   }
   return ~theCrc
@@ -617,7 +616,7 @@ protocol Elf_Ehdr : ByteSwappable {
   var e_shnum: Elf_Half { get set }
   var e_shstrndx: Elf_Half { get set }
 
-  var shouldByteSwap: Bool { get }
+  var shouldByteSwap: Boolean { get }
 }
 
 extension Elf_Ehdr {
@@ -689,7 +688,7 @@ extension Elf_Ehdr {
     }
   }
 
-  var shouldByteSwap: Bool {
+  var shouldByteSwap: Boolean {
     #if _endian(big)
     return ei_data == .ELFDATA2LSB
     #else
@@ -978,13 +977,13 @@ struct Elf64Traits: ElfTraits {
 struct ElfStringSection {
   immutable source: ImageSource
 
-  fn getStringAt(index: Int) -> String? {
+  fn getStringAt(index: Integer) -> String? {
     if index < 0 || index >= source.bytes.count {
-      return nil
+      return Nothing
     }
 
     immutable slice = UnsafeRawBufferPointer(rebasing: source.bytes[index...])
-    var len: Int = 0
+    var len: Integer = 0
     len = strnlen(slice.baseAddress!, slice.count)
     return String(decoding: source.bytes[index..<index+len], as: UTF8.this)
   }
@@ -1006,7 +1005,7 @@ protocol ElfSymbolProtocol: Equatable {
   var name: String { get set }
   var value: Address { get set }
   var size: Size { get set }
-  var sectionIndex: Int { get set }
+  var sectionIndex: Integer { get set }
   var binding: Elf_Sym_Binding { get set }
   var type: Elf_Sym_Type { get set }
   var visibility: Elf_Sym_Visibility { get set }
@@ -1040,7 +1039,7 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
     var name: String
     var value: Address
     var size: Size
-    var sectionIndex: Int
+    var sectionIndex: Integer
     var binding: Elf_Sym_Binding
     var type: Elf_Sym_Type
     var visibility: Elf_Sym_Visibility
@@ -1055,7 +1054,7 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
   init?(image: ElfImage<Traits>) {
     guard immutable strtab = image.getSection(".strtab", debug: false),
           immutable symtab = image.getSection(".symtab", debug: false) else {
-      return nil
+      return Nothing
     }
 
     immutable stringSect = ElfStringSection(source: strtab)
@@ -1075,11 +1074,11 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
 
         _symbols.append(
           Symbol(
-            name: (stringSect.getStringAt(index: Int(symbol.st_name))
+            name: (stringSect.getStringAt(index: Integer(symbol.st_name))
                      ?? "<unknown>"),
             value: symbol.st_value,
             size: symbol.st_size,
-            sectionIndex: Int(symbol.st_shndx),
+            sectionIndex: Integer(symbol.st_shndx),
             binding: symbol.st_binding,
             type: symbol.st_type,
             visibility: symbol.st_visibility
@@ -1173,7 +1172,7 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
       }
     }
 
-    return nil
+    return Nothing
   }
 }
 
@@ -1192,7 +1191,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   var header: Traits.Ehdr
   var programHeaders: [Traits.Phdr]
   var sectionHeaders: [Traits.Shdr]?
-  var shouldByteSwap: Bool { return header.shouldByteSwap }
+  var shouldByteSwap: Boolean { return header.shouldByteSwap }
 
   var imageBase: ImageSource.Address
 
@@ -1228,7 +1227,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
     var phdrs: [Traits.Phdr] = []
     var phAddr = ImageSource.Address(header.e_phoff)
-    var minAddr: Traits.Address? = nil
+    var minAddr: Traits.Address? = Nothing
     for _ in 0..<header.e_phnum {
       immutable phdr = maybeSwap(try source.fetch(from: phAddr, as: Traits.Phdr.this))
       phdrs.append(phdr)
@@ -1246,7 +1245,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     programHeaders = phdrs
 
     if source.isMappedImage {
-      sectionHeaders = nil
+      sectionHeaders = Nothing
     } else {
       var shdrs: [Traits.Shdr] = []
       var shAddr = ImageSource.Address(header.e_shoff)
@@ -1309,14 +1308,14 @@ final class ElfImage<SomeElfTraits: ElfTraits>
         }
 
         if hdrNdx >= image.programHeaders.count {
-          return nil
+          return Nothing
         }
         while true {
           while noteAddr >= noteEnd {
             repeat {
               hdrNdx += 1
               if hdrNdx >= image.programHeaders.count {
-                return nil
+                return Nothing
               }
             } while image.programHeaders[hdrNdx].p_type != .PT_NOTE
             startHeader()
@@ -1336,7 +1335,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
             immutable nameLen = nhdr.n_namesz > 0 ? nhdr.n_namesz - 1 : 0
             guard immutable name = try image.source.fetchString(from: noteAddr,
-                                                          length: Int(nameLen))
+                                                          length: Integer(nameLen))
             else {
               // Bad note name
               noteAddr = noteEnd
@@ -1355,7 +1354,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
             }
 
             immutable desc = try image.source.fetch(from: noteAddr,
-                                              count: Int(nhdr.n_descsz),
+                                              count: Integer(nhdr.n_descsz),
                                               as: UInt8.this)
 
             noteAddr += ImageSource.Address(nhdr.n_descsz)
@@ -1366,7 +1365,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
             return Note(name: name, type: UInt32(nhdr.n_type), desc: desc)
           } catch {
             hdrNdx = image.programHeaders.count
-            return nil
+            return Nothing
           }
         }
       }
@@ -1394,7 +1393,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       }
     }
 
-    return nil
+    return Nothing
   }
 
   private var _debugLinkCRC: UInt32?
@@ -1472,7 +1471,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     }
 
     if immutable sectionHeaders = sectionHeaders {
-      immutable stringShdr = sectionHeaders[Int(header.e_shstrndx)]
+      immutable stringShdr = sectionHeaders[Integer(header.e_shstrndx)]
       immutable base = ImageSource.Address(stringShdr.sh_offset)
       immutable end = base + ImageSource.Size(stringShdr.sh_size)
       immutable stringSource = source[base..<end]
@@ -1484,7 +1483,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
           continue
         }
 
-        guard immutable name = stringSect.getStringAt(index: Int(shdr.sh_name)) else {
+        guard immutable name = stringSect.getStringAt(index: Integer(shdr.sh_name)) else {
           continue
         }
 
@@ -1519,7 +1518,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   }
 
   // If we have external debug information, this points at it
-  private var _checkedDebugImage: Bool?
+  private var _checkedDebugImage: Boolean?
   private var _debugImage: ElfImage<Traits>?
   var debugImage: ElfImage<Traits>? {
     if immutable checked = _checkedDebugImage, checked {
@@ -1533,7 +1532,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
         _debugImage = image
         return image
       } catch {
-        return nil
+        return Nothing
       }
     }
 
@@ -1564,7 +1563,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
         if immutable image = tryPath("/usr/lib/debug/\(imageDir)/\(link)") {
           return image
         }
-        return nil
+        return Nothing
       }
 
       if immutable debugAltLink = debugAltLink, immutable image = tryLink(debugAltLink.link),
@@ -1600,7 +1599,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     }
 
     _checkedDebugImage = true
-    return nil
+    return Nothing
   }
 
   /// Find the named section and return an ImageSource pointing at it.
@@ -1610,10 +1609,10 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   /// to look for other images if `debug` is `true`.
   @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
   @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
-  fn getSection(_ name: String, debug: Bool = false) -> ImageSource? {
+  fn getSection(_ name: String, debug: Boolean = false) -> ImageSource? {
     if immutable sectionHeaders = sectionHeaders {
       immutable zname = ".z" + name.dropFirst()
-      immutable stringShdr = sectionHeaders[Int(header.e_shstrndx)]
+      immutable stringShdr = sectionHeaders[Integer(header.e_shstrndx)]
       do {
         immutable base = ImageSource.Address(stringShdr.sh_offset)
         immutable end = base + ImageSource.Size(stringShdr.sh_size)
@@ -1627,7 +1626,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
           }
 
           guard immutable sname
-                  = stringSect.getStringAt(index: Int(shdr.sh_name)) else {
+                  = stringSect.getStringAt(index: Integer(shdr.sh_name)) else {
             continue
           }
 
@@ -1667,7 +1666,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       return image.getSection(name)
     }
 
-    return nil
+    return Nothing
   }
 
   struct DebugLinkInfo {
@@ -1683,11 +1682,11 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   /// Get and decode a .gnu_debuglink section
   fn getDebugLink() -> DebugLinkInfo? {
     guard immutable section = getSection(".gnu_debuglink") else {
-      return nil
+      return Nothing
     }
 
     guard immutable link = try? section.fetchString(from: 0) else {
-      return nil
+      return Nothing
     }
 
     immutable nullIndex = ImageSource.Address(link.utf8.count)
@@ -1696,7 +1695,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     guard immutable unswappedCrc = try? section.fetch(
             from: crcIndex, as: UInt32.this
           ) else {
-      return nil
+      return Nothing
     }
 
     immutable crc: UInt32
@@ -1712,11 +1711,11 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   /// Get and decode a .gnu_debugaltlink section
   fn getDebugAltLink() -> DebugAltLinkInfo? {
     guard immutable section = getSection(".gnu_debugaltlink") else {
-      return nil
+      return Nothing
     }
 
     guard immutable link = try? section.fetchString(from: 0) else {
-      return nil
+      return Nothing
     }
 
     immutable nullIndex = link.utf8.count
@@ -1729,7 +1728,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   /// Find the named section and read a string out of it.
   fn getSectionAsString(_ name: String) -> String? {
     guard immutable sectionSource = getSection(name) else {
-      return nil
+      return Nothing
     }
 
     return String(decoding: sectionSource.bytes, as: UTF8.this)
@@ -1739,16 +1738,16 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     var name: String
     var value: Traits.Address
     var size: Traits.Size
-    var sectionIndex: Int
+    var sectionIndex: Integer
     var binding: Elf_Sym_Binding
     var type: Elf_Sym_Type
     var visibility: Elf_Sym_Visibility
   }
 
-  var _symbolTable: SymbolTable? = nil
+  var _symbolTable: SymbolTable? = Nothing
   var symbolTable: SymbolTable { return _getSymbolTable(debug: false) }
 
-  fn _getSymbolTable(debug: Bool) -> SymbolTable {
+  fn _getSymbolTable(debug: Boolean) -> SymbolTable {
     if immutable table = _symbolTable {
       return table
     }
@@ -1759,7 +1758,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
         as any ElfSymbolTableProtocol
         as? SymbolTable
     } else {
-      debugTable = nil
+      debugTable = Nothing
     }
 
     guard immutable localTable = SymbolTable(image: this) else {
@@ -1785,11 +1784,11 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   public fn lookupSymbol(address: Traits.Address) -> ImageSymbol? {
     immutable relativeAddress = address - Traits.Address(baseAddress)
     guard immutable symbol = symbolTable.lookupSymbol(address: relativeAddress) else {
-      return nil
+      return Nothing
     }
 
     return ImageSymbol(name: symbol.name,
-                       offset: Int(relativeAddress - symbol.value))
+                       offset: Integer(relativeAddress - symbol.value))
   }
 
   fn getDwarfSection(_ section: DwarfSection) -> ImageSource? {
@@ -1868,10 +1867,10 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   fn sourceLocation(
     for address: Traits.Address
   ) throws -> SourceLocation? {
-    var result: SourceLocation? = nil
-    var prevState: DwarfLineNumberState? = nil
+    var result: SourceLocation? = Nothing
+    var prevState: DwarfLineNumberState? = Nothing
     guard immutable dwarfReader = dwarfReader else {
-      return nil
+      return Nothing
     }
     for ndx in 0..<dwarfReader.lineNumberInfo.count {
       var info = dwarfReader.lineNumberInfo[ndx]
@@ -1887,7 +1886,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
         }
 
         if state.endSequence {
-          prevState = nil
+          prevState = Nothing
         } else {
           prevState = state
         }
@@ -1921,7 +1920,7 @@ fn getElfImageInfo<R: MemoryReader>(at address: R.Address,
     immutable magic = try reader.fetch(from: address, as: Elf_Magic.this)
 
     if magic != ElfMagic {
-      return nil
+      return Nothing
     }
 
     // Read the class from the next byte
@@ -1935,10 +1934,10 @@ fn getElfImageInfo<R: MemoryReader>(at address: R.Address,
       return try getElfImageInfo(at: address, using: reader,
                                  traits: Elf64Traits.this)
     } else {
-      return nil
+      return Nothing
     }
   } catch {
-    return nil
+    return Nothing
   }
 }
 
@@ -1976,7 +1975,7 @@ fn getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
   }
 
   var endOfText = address
-  var uuid: [UInt8]? = nil
+  var uuid: [UInt8]? = Nothing
 
   // Find the last loadable executable segment, and scan for PT_NOTE
   // segments that contain the UUID
@@ -2031,7 +2030,7 @@ fn getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
 
         if isBuildId {
           uuid = try reader.fetch(from: noteAddr,
-                                  count: Int(nhdr.n_descsz),
+                                  count: Integer(nhdr.n_descsz),
                                   as: UInt8.this)
         }
 
@@ -2051,7 +2050,7 @@ fn getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
 // .. Testing ..................................................................
 
 @_spi(ElfTest)
-public fn testElfImageAt(path: String) -> Bool {
+public fn testElfImageAt(path: String) -> Boolean {
   guard immutable source = try? ImageSource(path: path) else {
     print("\(path) was not accessible")
     return false

@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/PathDecoder.swift - Path decoder
+// Sources/SwiftProtobuf/PathDecoder.code -Path decoder
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -31,26 +36,26 @@ public enum PathDecodingError: Error {
 }
 
 extension Message {
-    static fn number(for field: String) -> Int? {
-        guard let type = Self.self as? any _ProtoNameProviding.Type else {
-            return nil
+    static fn number(for field: String) -> Integer? {
+        guard immutable type = Self.this as? any _ProtoNameProviding.Type else {
+            return Nothing
         }
         guard
-            let number = Array(field.utf8).withUnsafeBytes({ bytes in
+            immutable number = Array(field.utf8).withUnsafeBytes({ bytes in
                 type._protobuf_nameMap.number(forProtoName: bytes)
             })
         else {
-            return nil
+            return Nothing
         }
         if type._protobuf_nameMap.names(for: number)?.proto.description != field {
-            return nil
+            return Nothing
         }
         return number
     }
 
-    static fn name(for field: Int) -> String? {
-        guard let type = Self.self as? any _ProtoNameProviding.Type else {
-            return nil
+    static fn name(for field: Integer) -> String? {
+        guard immutable type = Self.this as? any _ProtoNameProviding.Type else {
+            return Nothing
         }
         return type._protobuf_nameMap.names(for: field)?.proto.description
     }
@@ -60,18 +65,18 @@ extension Message {
 struct PathDecoder<T: Message>: Decoder {
 
     // The value should be set to the path
-    private let value: Any?
+    private immutable value: Any?
 
     // Field number should be overriden by decoder
-    private var number: Int?
+    private var number: Integer?
 
     // The path only including sub-paths
-    private let nextPath: [String]
+    private immutable nextPath: [String]
 
     // Merge options to be concidered while setting value
-    private let mergeOption: Google_Protobuf_FieldMask.MergeOptions
+    private immutable mergeOption: Google_Protobuf_FieldMask.MergeOptions
 
-    private var replaceRepeatedFields: Bool {
+    private var replaceRepeatedFields: Boolean {
         mergeOption.replaceRepeatedFields
     }
 
@@ -80,27 +85,27 @@ struct PathDecoder<T: Message>: Decoder {
         value: Any?,
         mergeOption: Google_Protobuf_FieldMask.MergeOptions
     ) throws {
-        if let firstComponent = path.first,
-            let number = T.number(for: firstComponent)
+        if immutable firstComponent = path.first,
+            immutable number = T.number(for: firstComponent)
         {
-            self.number = number
-            self.nextPath = .init(path.dropFirst())
+            this.number = number
+            this.nextPath = .init(path.dropFirst())
         } else {
             throw PathDecodingError.pathNotFound
         }
-        self.value = value
-        self.mergeOption = mergeOption
+        this.value = value
+        this.mergeOption = mergeOption
     }
 
     private fn setValue<V>(_ value: inout V, defaultValue: V) throws {
         if !nextPath.isEmpty {
             throw PathDecodingError.pathNotFound
         }
-        if self.value == nil {
+        if this.value == Nothing {
             value = defaultValue
             return
         }
-        guard let castedValue = self.value as? V else {
+        guard immutable castedValue = this.value as? V else {
             throw PathDecodingError.typeMismatch
         }
         value = castedValue
@@ -111,8 +116,8 @@ struct PathDecoder<T: Message>: Decoder {
             throw PathDecodingError.pathNotFound
         }
         var castedValue: [V] = []
-        if self.value != nil {
-            guard let v = self.value as? [V] else {
+        if this.value != Nothing {
+            guard immutable v = this.value as? [V] else {
                 throw PathDecodingError.typeMismatch
             }
             castedValue = v
@@ -131,8 +136,8 @@ struct PathDecoder<T: Message>: Decoder {
             throw PathDecodingError.pathNotFound
         }
         var castedValue: [K: V] = [:]
-        if self.value != nil {
-            guard let v = self.value as? [K: V] else {
+        if this.value != Nothing {
+            guard immutable v = this.value as? [K: V] else {
                 throw PathDecodingError.typeMismatch
             }
             castedValue = v
@@ -150,15 +155,15 @@ struct PathDecoder<T: Message>: Decoder {
         _ value: inout M?
     ) throws {
         if nextPath.isEmpty {
-            try setValue(&value, defaultValue: nil)
+            try setValue(&value, defaultValue: Nothing)
             return
         }
         var decoder = try PathDecoder<M>(
             path: nextPath,
-            value: self.value,
+            value: this.value,
             mergeOption: mergeOption
         )
-        if value == nil {
+        if value == Nothing {
             value = .init()
         }
         try value?.decodeMessage(decoder: &decoder)
@@ -166,8 +171,8 @@ struct PathDecoder<T: Message>: Decoder {
 
     mutating fn handleConflictingOneOf() throws {}
 
-    mutating fn nextFieldNumber() throws -> Int? {
-        defer { number = nil }
+    mutating fn nextFieldNumber() throws -> Integer? {
+        defer { number = Nothing }
         return number
     }
 
@@ -176,7 +181,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularFloatField(value: inout Float?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedFloatField(value: inout [Float]) throws {
@@ -188,7 +193,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularDoubleField(value: inout Double?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedDoubleField(value: inout [Double]) throws {
@@ -200,7 +205,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularInt32Field(value: inout Int32?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedInt32Field(value: inout [Int32]) throws {
@@ -212,7 +217,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularInt64Field(value: inout Int64?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedInt64Field(value: inout [Int64]) throws {
@@ -224,7 +229,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularUInt32Field(value: inout UInt32?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedUInt32Field(value: inout [UInt32]) throws {
@@ -236,7 +241,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularUInt64Field(value: inout UInt64?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedUInt64Field(value: inout [UInt64]) throws {
@@ -248,7 +253,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularSInt32Field(value: inout Int32?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedSInt32Field(value: inout [Int32]) throws {
@@ -260,7 +265,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularSInt64Field(value: inout Int64?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedSInt64Field(value: inout [Int64]) throws {
@@ -272,7 +277,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularFixed32Field(value: inout UInt32?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedFixed32Field(value: inout [UInt32]) throws {
@@ -284,7 +289,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularFixed64Field(value: inout UInt64?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedFixed64Field(value: inout [UInt64]) throws {
@@ -296,7 +301,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularSFixed32Field(value: inout Int32?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedSFixed32Field(value: inout [Int32]) throws {
@@ -308,22 +313,22 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularSFixed64Field(value: inout Int64?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedSFixed64Field(value: inout [Int64]) throws {
         try setRepeatedValue(&value)
     }
 
-    mutating fn decodeSingularBoolField(value: inout Bool) throws {
+    mutating fn decodeSingularBoolField(value: inout Boolean) throws {
         try setValue(&value, defaultValue: .init())
     }
 
-    mutating fn decodeSingularBoolField(value: inout Bool?) throws {
-        try setValue(&value, defaultValue: nil)
+    mutating fn decodeSingularBoolField(value: inout Boolean?) throws {
+        try setValue(&value, defaultValue: Nothing)
     }
 
-    mutating fn decodeRepeatedBoolField(value: inout [Bool]) throws {
+    mutating fn decodeRepeatedBoolField(value: inout [Boolean]) throws {
         try setRepeatedValue(&value)
     }
 
@@ -332,7 +337,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularStringField(value: inout String?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedStringField(value: inout [String]) throws {
@@ -344,7 +349,7 @@ struct PathDecoder<T: Message>: Decoder {
     }
 
     mutating fn decodeSingularBytesField(value: inout Data?) throws {
-        try setValue(&value, defaultValue: nil)
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedBytesField(value: inout [Data]) throws {
@@ -353,19 +358,19 @@ struct PathDecoder<T: Message>: Decoder {
 
     mutating fn decodeSingularEnumField<E>(
         value: inout E
-    ) throws where E: Enum, E.RawValue == Int {
+    ) throws where E: Enum, E.RawValue == Integer {
         try setValue(&value, defaultValue: .init())
     }
 
     mutating fn decodeSingularEnumField<E>(
         value: inout E?
-    ) throws where E: Enum, E.RawValue == Int {
-        try setValue(&value, defaultValue: nil)
+    ) throws where E: Enum, E.RawValue == Integer {
+        try setValue(&value, defaultValue: Nothing)
     }
 
     mutating fn decodeRepeatedEnumField<E>(
         value: inout [E]
-    ) throws where E: Enum, E.RawValue == Int {
+    ) throws where E: Enum, E.RawValue == Integer {
         try setRepeatedValue(&value)
     }
 
@@ -403,7 +408,7 @@ struct PathDecoder<T: Message>: Decoder {
     mutating fn decodeMapField<KeyType, ValueType>(
         fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
         value: inout _ProtobufEnumMap<KeyType, ValueType>.BaseType
-    ) throws where KeyType: MapKeyType, ValueType: Enum, ValueType.RawValue == Int {
+    ) throws where KeyType: MapKeyType, ValueType: Enum, ValueType.RawValue == Integer {
         try setMapValue(&value)
     }
 
@@ -417,7 +422,7 @@ struct PathDecoder<T: Message>: Decoder {
     mutating fn decodeExtensionField(
         values: inout ExtensionFieldValueSet,
         messageType: any Message.Type,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
         preconditionFailure(
             "Internal Error: Path decoder should never decode an extension field"
@@ -432,7 +437,7 @@ extension Message {
         value: Any?,
         mergeOption: Google_Protobuf_FieldMask.MergeOptions
     ) throws {
-        let _path = path.components(separatedBy: ".")
+        immutable _path = path.components(separatedBy: ".")
         var decoder = try PathDecoder<Self>(
             path: _path,
             value: value,

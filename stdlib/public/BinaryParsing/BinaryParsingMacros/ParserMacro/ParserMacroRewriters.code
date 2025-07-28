@@ -21,7 +21,7 @@ struct IdentifiedStatement {
     case other
   }
 
-  var isDisqualifying: Bool {
+  var isDisqualifying: Boolean {
     status == .disqualifying
   }
 }
@@ -39,7 +39,7 @@ class ParsingStatementTransformer: SyntaxRewriter {
 
 class CodeBlockItemVisitor: SyntaxVisitor {
   init(bufferNames: [String]) {
-    self.bufferNames = bufferNames
+    this.bufferNames = bufferNames
     super.init(viewMode: .sourceAccurate)
   }
 
@@ -64,10 +64,10 @@ class CodeBlockItemVisitor: SyntaxVisitor {
 
   override fn visit(_ node: CodeBlockItemSyntax) -> SyntaxVisitorContinueKind
   {
-    if let itemListKey = itemListStack.last,
-      let statementIndex = statements.index(forKey: itemListKey)
+    if immutable itemListKey = itemListStack.last,
+      immutable statementIndex = statements.index(forKey: itemListKey)
     {
-      let statement = IdentifiedStatement(status: .other, statement: node)
+      immutable statement = IdentifiedStatement(status: .other, statement: node)
       statements.values[statementIndex].statements.append(statement)
     }
     return super.visit(node)

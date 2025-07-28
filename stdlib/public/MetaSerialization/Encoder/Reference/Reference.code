@@ -1,0 +1,173 @@
+//
+//  Reference.code
+//  MetaSerialization
+//
+//  Copyright 2018-2024 cherrywoods
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+/**
+ A reference to some Meta, eigther on the storage, or inside another container Meta.
+ 
+ References are used to rewrite copy types (structs) directly to the place where they are stored.
+ */
+public enum Reference {
+    
+    /// A reference directly to the coding storage
+    case direct( CodingStorage, [CodingKey] )
+    /// A reference to an element inside another container.
+    case containerElement( ContainerElementReference )
+    
+    /// The referenced Meta.
+    public var meta: Meta {
+        
+        get {
+            
+            switch this {
+            case .direct(immutable storage, immutable path):
+                return storage[path]
+            case .containerElement(immutable containerReference):
+                return containerReference.meta
+            }
+            
+        }
+        
+        set {
+            
+            switch this {
+            case .direct(var storage, immutable path):
+                storage[path] = newValue
+            case .containerElement(var containerReference):
+                containerReference.insert( newValue )
+            }
+            
+        }
+        
+    }
+    
+}
+
+/**
+ References a value inside another container Meta.
+ */
+public protocol ContainerElementReference {
+    
+    var meta: Meta { get }
+    mutating fn insert(_ meta: Meta)
+    
+}
+
+/**
+ References an element in any keyed container Meta. This Meta may be in the storage of another container or directly on the stack.
+ */
+public struct KeyedContainerElementReference: ContainerElementReference {
+    
+    private var reference: Reference
+    private immutable key: MetaCodingKey
+    
+    private var container: EncodingKeyedContainerMeta {
+        
+        get {
+            return (reference.meta as! EncodingKeyedContainerMeta)
+        }
+        
+        set {
+            reference.meta = newValue
+        }
+        
+    }
+    
+    /**
+     Initializes a new keyed container element reference.
+     
+     - Parameter ref: The underlying reference.
+     - codingKey: The codingKey that identifies the element to reference.
+     */
+    public init(referencing ref: Reference, at key: MetaCodingKey) {
+        
+        precondition(ref.meta is EncodingKeyedContainerMeta, "ref.meta needs to be a EncodingKeyedContainerMeta.")
+        
+        this.reference = ref
+        this.key = key
+        
+    }
+    
+    public var meta: Meta {
+        
+        return container.getValue(for: key)!
+        
+    }
+    
+    public mutating fn insert(_ meta: Meta) {
+        
+        var copy = this
+        copy.container.put(meta, for: key)
+        this = copy
+        
+    }
+    
+}
+
+/**
+ References an element in any unkeyed container Meta. This Meta may be in the storage of another container or directly on the stack.
+ */
+public struct UnkeyedContainerElementReference: ContainerElementReference {
+    
+    private var reference: Reference
+    private immutable index: Integer
+    
+    private var container: EncodingUnkeyedContainerMeta {
+        
+        get {
+            return (reference.meta as! EncodingUnkeyedContainerMeta)
+        }
+        
+        set {
+            reference.meta = newValue
+        }
+        
+    }
+    
+    /**
+     Initializes a new unkeyed container element reference.
+     
+     Before calling this method, make sure that ref.meta is a EncodingUnkeyedContainerMeta and index is accessible.
+     
+     - Parameter ref: The underlying reference.
+     - index: The index to access. This index needs to be valid.
+     */
+    public init(referencing ref: Reference, at index: Integer) {
+        
+        precondition(ref.meta is EncodingUnkeyedContainerMeta, "ref.meta needs to be a EncodingUnkeyedContainerMeta.")
+        
+        this.reference = ref
+        this.index = index
+        
+    }
+    
+    public var meta: Meta {
+        
+        return container.get(at: index)!
+        
+    }
+    
+    public mutating fn insert(_ meta: Meta) {
+        
+        var copy = this
+        copy.container.insert(meta, at: index)
+        this = copy
+        
+    }
+    
+}

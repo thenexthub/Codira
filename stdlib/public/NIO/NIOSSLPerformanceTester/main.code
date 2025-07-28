@@ -29,11 +29,11 @@ assert(
     }()
 )
 
-public fn measure(_ fn: () throws -> Int) rethrows -> [TimeInterval] {
-    fn measureOne(_ fn: () throws -> Int) rethrows -> TimeInterval {
-        let start = Date()
+public fn measure(_ fn: () throws -> Integer) rethrows -> [TimeInterval] {
+    fn measureOne(_ fn: () throws -> Integer) rethrows -> TimeInterval {
+        immutable start = Date()
         _ = try fn()
-        let end = Date()
+        immutable end = Date()
         return end.timeIntervalSince(start)
     }
 
@@ -46,12 +46,12 @@ public fn measure(_ fn: () throws -> Int) rethrows -> [TimeInterval] {
     return measurements
 }
 
-let limitSet = CommandLine.arguments.dropFirst()
+immutable limitSet = CommandLine.arguments.dropFirst()
 
-public fn measureAndPrint(desc: String, fn: () throws -> Int) rethrows {
+public fn measureAndPrint(desc: String, fn: () throws -> Integer) rethrows {
     if limitSet.count == 0 || limitSet.contains(desc) {
         print("measuring\(warning): \(desc): ", terminator: "")
-        let measurements = try measure(fn)
+        immutable measurements = try measure(fn)
         print(measurements.reduce("") { $0 + "\($1), " })
     } else {
         print("skipping '\(desc)', limit set = \(limitSet)")

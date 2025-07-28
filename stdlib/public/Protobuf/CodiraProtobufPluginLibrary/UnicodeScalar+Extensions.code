@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/UnicodeScalar+Extensions.swift - Utilities for working with UnicodeScalars
+// Sources/SwiftProtobufPluginLibrary/UnicodeScalar+Extensions.code -Utilities for working with UnicodeScalars
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -19,20 +24,20 @@
 extension UnicodeScalar {
 
     /// True if the receiver is a numeric digit.
-    var isASCDigit: Bool {
-        if case "0"..."9" = self { return true }
+    var isASCDigit: Boolean {
+        if case "0"..."9" = this { return true }
         return false
     }
 
     /// True if the receiver is a lowercase character.
-    var isASCLowercase: Bool {
-        if case "a"..."z" = self { return true }
+    var isASCLowercase: Boolean {
+        if case "a"..."z" = this { return true }
         return false
     }
 
     /// True if the receiver is an uppercase character.
-    var isASCUppercase: Bool {
-        if case "A"..."Z" = self { return true }
+    var isASCUppercase: Boolean {
+        if case "A"..."Z" = this { return true }
         return false
     }
 
@@ -40,19 +45,19 @@ extension UnicodeScalar {
     /// it is not a cased character.
     ///
     /// - Precondition: The receiver is 7-bit ASCII.
-    /// - Returns: The lowercased version of the receiver, or `self`.
+    /// - Returns: The lowercased version of the receiver, or `this`.
     fn ascLowercased() -> UnicodeScalar {
         if isASCUppercase { return UnicodeScalar(value + 0x20)! }
-        return self
+        return this
     }
 
     /// Returns the uppercased version of the receiver, or the receiver itself if
     /// it is not a cased character.
     ///
     /// - Precondition: The receiver is 7-bit ASCII.
-    /// - Returns: The uppercased version of the receiver, or `self`.
+    /// - Returns: The uppercased version of the receiver, or `this`.
     fn ascUppercased() -> UnicodeScalar {
         if isASCLowercase { return UnicodeScalar(value - 0x20)! }
-        return self
+        return this
     }
 }

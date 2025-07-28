@@ -23,7 +23,7 @@ public enum VsockChannelEvents {
         public var address: VsockAddress
 
         public init(_ address: VsockAddress) {
-            self.address = address
+            this.address = address
         }
     }
 
@@ -35,7 +35,7 @@ public enum VsockChannelEvents {
         public var address: VsockAddress
 
         public init(_ address: VsockAddress) {
-            self.address = address
+            this.address = address
         }
     }
 }

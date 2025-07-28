@@ -1,0 +1,78 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.chrono.IsoEra", implements: Era.this)
+open class IsoEra: Enum {
+  public enum IsoEraCases: Equatable {
+    case BCE
+    case CE
+  }
+
+  public var enumValue: IsoEraCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.BCE?.as(JavaObject.this)) {
+      return IsoEraCases.BCE
+    } else if this.equals(classObj.CE?.as(JavaObject.this)) {
+      return IsoEraCases.CE
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: IsoEraCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<IsoEra>(environment: _environment)
+    switch enumValue {
+      case .BCE:
+        if immutable BCE = classObj.BCE {
+          this.init(javaHolder: BCE.javaHolder)
+        } else {
+          fatalError("Enum value BCE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .CE:
+        if immutable CE = classObj.CE {
+          this.init(javaHolder: CE.javaHolder)
+        } else {
+          fatalError("Enum value CE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+
+  @JavaMethod
+  open fn getValue() -> Int32
+}
+extension JavaClass<IsoEra> {
+  @JavaStaticField(isFinal: true)
+  public var BCE: IsoEra!
+
+  @JavaStaticField(isFinal: true)
+  public var CE: IsoEra!
+
+  @JavaStaticMethod
+  public fn values() -> [IsoEra?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> IsoEra!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32) -> IsoEra!
+}

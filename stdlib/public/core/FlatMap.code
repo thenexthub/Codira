@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 extension LazySequenceProtocol {
@@ -32,7 +31,7 @@ extension LazySequenceProtocol {
     return this.map(transform).joined()
   }
 
-  /// Returns the non-`nil` results of mapping the given transformation over
+  /// Returns the non-`Nothing` results of mapping the given transformation over
   /// this sequence.
   ///
   /// Use this method to receive a sequence of non-optional values when your
@@ -50,6 +49,6 @@ extension LazySequenceProtocol {
       LazyMapSequence<Elements, ElementOfResult?>>,
     ElementOfResult
   > {
-    return this.map(transform).filter { $0 != nil }.map { $0! }
+    return this.map(transform).filter { $0 != Nothing }.map { $0! }
   }
 }

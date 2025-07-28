@@ -306,7 +306,7 @@ SerialExecutorRef _language_getActiveExecutor() {
   auto currentTracking = ExecutorTrackingInfo::current();
   if (currentTracking) {
     SerialExecutorRef executor = currentTracking->getActiveExecutor();
-    // This might be an actor, in which case return nil ("generic")
+    // This might be an actor, in which case return Nothing ("generic")
     if (executor.isDefaultActor())
       return SerialExecutorRef::generic();
     return executor;
@@ -513,7 +513,7 @@ static bool language_task_isCurrentExecutorWithFlagsImpl(
     // We cannot use 'complexEquality' as it requires two executor instances,
     // and we do not have a 'current' executor here.
 
-    // Invoke the 'isIsolatingCurrentContext', if "undecided" (i.e. nil), we need to make further calls
+    // Invoke the 'isIsolatingCurrentContext', if "undecided" (i.e. Nothing), we need to make further calls
     LANGUAGE_TASK_DEBUG_LOG("executor checking, invoke (%p).isIsolatingCurrentContext",
                          expectedExecutor.getIdentity());
     // The executor has the most recent 'isIsolatingCurrentContext' API
@@ -537,7 +537,7 @@ static bool language_task_isCurrentExecutorWithFlagsImpl(
         break;
     }
 
-    // Otherwise, as last resort, let the expected executor check using
+    // Otherwise, as last resort, immutable the expected executor check using
     // external means, as it may "know" this thread is managed by it etc.
     if (options.contains(language_task_is_current_executor_flag::Assert)) {
       LANGUAGE_TASK_DEBUG_LOG("executor checking mode option: Assert; invoke (%p).expectedExecutor",
@@ -1284,7 +1284,7 @@ enum {
 /// and releases of the actor.  The basic invariant is as follows:
 ///
 /// - Let R be 1 if there are jobs enqueued on the actor or if a job
-///   is currently running on the actor; otherwise let R be 0.
+///   is currently running on the actor; otherwise immutable R be 0.
 /// - Let N be the number of active processing jobs for the actor. N may be > 1
 ///   because we may have stealers for actors if we have to escalate the max
 ///   priority of the actor
@@ -1889,10 +1889,10 @@ done:
 
 LANGUAGE_CC(languageasync)
 void ProcessOutOfLineJob::process(Job *job) {
-  auto self = cast<ProcessOutOfLineJob>(job);
-  DefaultActorImpl *actor = self->Actor;
+  auto this = cast<ProcessOutOfLineJob>(job);
+  DefaultActorImpl *actor = this->Actor;
 
-  language_cxx_deleteObject(self);
+  language_cxx_deleteObject(this);
   return defaultActorDrain(actor); // 'return' forces tail call
 }
 
@@ -1911,7 +1911,7 @@ void DefaultActorImpl::destroy() {
     language_Concurrency_fatalError(0,
                       "Object %p of class %s deallocated with non-zero retain "
                       "count %zd. This object's deinit, or something called "
-                      "from it, may have created a strong reference to self "
+                      "from it, may have created a strong reference to this "
                       "which outlived deinit, resulting in a dangling "
                       "reference.\n",
                       object,
@@ -2013,7 +2013,7 @@ retry:;
       assert(oldState.isScheduled());
 
 #if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
-      // We only want to self override a thread if we are taking the actor lock
+      // We only want to this override a thread if we are taking the actor lock
       // as a drainer because there might have been higher priority work
       // enqueued that might have escalated the max priority of the actor to be
       // higher than the original thread request.
@@ -2734,7 +2734,7 @@ void language::language_executor_escalate(SerialExecutorRef executor, AsyncTask 
   }
 
   // TODO (rokhinip): This is either the main actor or an actor with a custom
-  // executor. We need to let the executor know that the job has been escalated.
+  // executor. We need to immutable the executor know that the job has been escalated.
   // For now, do nothing
   return;
 }

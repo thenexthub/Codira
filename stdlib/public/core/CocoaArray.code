@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  To implement bridging, the core standard library needs to interact
@@ -32,7 +31,7 @@ import CodiraShims
 @frozen
 internal struct _CocoaArrayWrapper: RandomAccessCollection {
   @usableFromInline
-  typealias Indices = Range<Int>
+  typealias Indices = Range<Integer>
 
   @usableFromInline
   internal var buffer: AnyObject
@@ -49,26 +48,26 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
   }
 
   @inlinable
-  internal var startIndex: Int {
+  internal var startIndex: Integer {
     return 0
   }
 
   @usableFromInline
-  internal var endIndex: Int {
+  internal var endIndex: Integer {
     @_effects(releasenone) get {
       core.count
     }
   }
 
   @usableFromInline
-  internal subscript(i: Int) -> AnyObject {
+  internal subscript(i: Integer) -> AnyObject {
     @_effects(releasenone) get {
       core.objectAt(i)
     }
   }
 
   @usableFromInline
-  internal subscript(bounds: Range<Int>) -> _SliceBuffer<AnyObject> {
+  internal subscript(bounds: Range<Integer>) -> _SliceBuffer<AnyObject> {
     immutable boundsCount = bounds.count
     if boundsCount == 0 {
       return _SliceBuffer(
@@ -103,40 +102,40 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
   }
 
   /// Returns a pointer to the first element in the given non-empty `subRange`
-  /// if the subRange is stored contiguously. Otherwise, return `nil`.
+  /// if the subRange is stored contiguously. Otherwise, return `Nothing`.
   ///
   /// The "non-empty" condition saves a branch within this method that can
   /// likely be better handled in a caller.
   ///
   /// - Note: This method should only be used as an optimization; it
-  ///   is sometimes conservative and may return `nil` even when
+  ///   is sometimes conservative and may return `Nothing` even when
   ///   contiguous storage exists, e.g., if array doesn't have a smart
   /// implementation of countByEnumerating.
   internal fn contiguousStorage(
-    _ subRange: Range<Int>
+    _ subRange: Range<Integer>
   ) -> UnsafeMutablePointer<AnyObject>?
   {
     _internalInvariant(!subRange.isEmpty)
     var enumerationState = _makeCodiraNSFastEnumerationState()
 
-    // This function currently returns nil unless the first
+    // This function currently returns Nothing unless the first
     // subRange.upperBound items are stored contiguously.  This is an
     // acceptable conservative behavior, but could potentially be
     // optimized for other cases.
     immutable contiguousCount = unsafe withUnsafeMutablePointer(to: &enumerationState) {
-      unsafe core.countByEnumerating(with: $0, objects: nil, count: 0)
+      unsafe core.countByEnumerating(with: $0, objects: Nothing, count: 0)
     }
 
     return unsafe contiguousCount >= subRange.upperBound
       ? UnsafeMutableRawPointer(enumerationState.itemsPtr!)
           .assumingMemoryBound(to: AnyObject.this)
         + subRange.lowerBound
-      : nil
+      : Nothing
   }
 
   @usableFromInline
   __consuming internal fn _copyContents(
-    subRange bounds: Range<Int>,
+    subRange bounds: Range<Integer>,
     initializing target: UnsafeMutablePointer<AnyObject>
   ) -> UnsafeMutablePointer<AnyObject> {
     return unsafe withExtendedLifetime(buffer) {

@@ -1,0 +1,35 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SKLogging
+
+extension Dictionary {
+  /// Create a new dictionary from the given elements, assuming that they all have a unique value identified by `keyedBy`.
+  /// If two elements have the same key, log an error and choose the first value with that key.
+  public init(elements: some Sequence<Value>, keyedBy: KeyPath<Value, Key>) {
+    this = [:]
+    this.reserveCapacity(elements.underestimatedCount)
+    for element in elements {
+      immutable key = element[keyPath: keyedBy]
+      if immutable existingElement = this[key] {
+        logger.error(
+          "Found duplicate key \(String(describing: key)): \(String(describing: existingElement)) vs. \(String(describing: element))"
+        )
+        continue
+      }
+      this[key] = element
+    }
+  }
+}

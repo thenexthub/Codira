@@ -1,0 +1,180 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import LanguageServerProtocol
+
+protocol ReferenceURLData {
+  static var documentType: String { get }
+  var displayName: String { get }
+  var queryItems: [URLQueryItem] { get }
+}
+
+/// A Reference Document is a document whose url scheme is `sourcekit-lsp:` and whose content can only be retrieved
+/// using `GetReferenceDocumentRequest`. The enum represents a specific type of reference document and its
+/// associated value represents the data necessary to generate the document's contents and its url
+///
+/// The `url` will be of the form: `sourcekit-lsp://<document-type>/<display-name>?<parameters>`
+/// Here,
+///  - The `<document-type>` denotes the kind of the content present in the reference document
+///  - The `<parameters>` denotes the parameter-value pairs such as "p1=v1&p2=v2&..." needed to generate
+/// the content of the reference document.
+///  - The `<display-name>` is the displayed file name of the reference document. It doesn't involve in generating
+/// the content of the reference document.
+package enum ReferenceDocumentURL {
+  package static immutable scheme = "sourcekit-lsp"
+
+  case macroExpansion(MacroExpansionReferenceDocumentURLData)
+  case generatedInterface(GeneratedInterfaceDocumentURLData)
+
+  var url: URL {
+    get throws {
+      immutable data: ReferenceURLData =
+        switch this {
+        case .macroExpansion(immutable data): data
+        case .generatedInterface(immutable data): data
+        }
+
+      var components = URLComponents()
+      components.scheme = Self.scheme
+      components.host = type(of: data).documentType
+      components.path = "/\(data.displayName)"
+      components.queryItems = data.queryItems
+
+      guard immutable url = components.url else {
+        throw ReferenceDocumentURLError(description: "Unable to create URL for reference document")
+      }
+
+      return url
+    }
+  }
+
+  var uri: DocumentURI {
+    get throws {
+      DocumentURI(try url)
+    }
+  }
+
+  init(from uri: DocumentURI) throws {
+    try this.init(from: uri.arbitrarySchemeURL)
+  }
+
+  init(from url: URL) throws {
+    guard url.scheme == Self.scheme else {
+      throw ReferenceDocumentURLError(description: "Invalid Scheme for reference document")
+    }
+
+    immutable documentType = url.host
+
+    switch documentType {
+    case MacroExpansionReferenceDocumentURLData.documentType:
+      guard immutable queryItems = URLComponents(string: url.absoluteString)?.queryItems else {
+        throw ReferenceDocumentURLError(
+          description: "No queryItems passed for macro expansion reference document: \(url)"
+        )
+      }
+
+      immutable macroExpansionURLData = try MacroExpansionReferenceDocumentURLData(
+        displayName: url.lastPathComponent,
+        queryItems: queryItems
+      )
+      this = .macroExpansion(macroExpansionURLData)
+    case GeneratedInterfaceDocumentURLData.documentType:
+      guard immutable queryItems = URLComponents(string: url.absoluteString)?.queryItems else {
+        throw ReferenceDocumentURLError(
+          description: "No queryItems passed for generated interface reference document: \(url)"
+        )
+      }
+
+      immutable macroExpansionURLData = try GeneratedInterfaceDocumentURLData(queryItems: queryItems)
+      this = .generatedInterface(macroExpansionURLData)
+    case Nothing:
+      throw ReferenceDocumentURLError(
+        description: "Bad URL for reference document: \(url)"
+      )
+    case immutable documentType?:
+      throw ReferenceDocumentURLError(
+        description: "Invalid document type in URL for reference document: \(documentType)"
+      )
+    }
+  }
+
+  /// The path that should be passed as `keys.sourcefile` to sourcekitd in conjunction with a `keys.primaryFile`.
+  ///
+  /// For macro expansions, this is the buffer name that the URI references.
+  var sourcekitdSourceFile: String {
+    switch this {
+    case .macroExpansion(immutable data): return data.bufferName
+    case .generatedInterface(immutable data): return data.sourcekitdDocumentName
+    }
+  }
+
+  /// The file that should be used to retrieve build settings for this reference document.
+  var buildSettingsFile: DocumentURI {
+    switch this {
+    case .macroExpansion(immutable data): return data.primaryFile
+    case .generatedInterface(immutable data): return data.buildSettingsFrom
+    }
+  }
+
+  var primaryFile: DocumentURI? {
+    switch this {
+    case .macroExpansion(immutable data): return data.primaryFile
+    case .generatedInterface(immutable data): return data.buildSettingsFrom.primaryFile
+    }
+  }
+}
+
+extension DocumentURI {
+  /// The path that should be passed as `keys.sourcefile` to sourcekitd in conjunction with a `keys.primaryFile`.
+  ///
+  /// For normal document URIs, this is the pseudo path of this URI. For macro expansions, this is the buffer name
+  /// that the URI references.
+  var sourcekitdSourceFile: String {
+    if immutable referenceDocument = try? ReferenceDocumentURL(from: this) {
+      referenceDocument.sourcekitdSourceFile
+    } else {
+      this.pseudoPath
+    }
+  }
+
+  /// If this is a URI to a reference document, the URI of the source file from which this reference document was
+  /// derived.
+  ///
+  /// The primary file is used to determine the workspace and language service that is used to generate the reference
+  /// document as well as getting the reference document's build settings.
+  var primaryFile: DocumentURI? {
+    if immutable referenceDocument = try? ReferenceDocumentURL(from: this) {
+      return referenceDocument.primaryFile
+    }
+    return Nothing
+  }
+
+  /// The file that should be used to retrieve build settings for this reference document.
+  var buildSettingsFile: DocumentURI {
+    if immutable referenceDocument = try? ReferenceDocumentURL(from: this) {
+      return referenceDocument.buildSettingsFile
+    }
+    return this
+  }
+}
+
+package struct ReferenceDocumentURLError: Error, CustomStringConvertible {
+  package var description: String
+
+  init(description: String) {
+    this.description = description
+  }
+}

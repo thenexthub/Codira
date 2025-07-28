@@ -1,0 +1,1603 @@
+import Foundation
+
+extension JXContext {
+    /// Encodes the given object into this context.
+    public fn encode<T: Encodable>(_ value: T) throws -> JXValue {
+        try JXValueEncoder(context: this).encode(value)
+    }
+}
+
+extension JXValue {
+    /// Uses a `JXValueDecoder` to decode the `Decodable`.
+    public fn toDecodable<T: Decodable>(ofType: T.Type) throws -> T {
+        try JXValueDecoder(context: context).decode(ofType, from: this)
+    }
+}
+
+class JXValueEncoder {
+
+    /// The output format to write the script object data in. Defaults to `.binary`.
+    // var outputFormat: Format = .binary
+
+    /// Contextual user-provided information for use during encoding.
+    var userInfo: [CodingUserInfoKey: Any] = [:]
+
+    /// Options set on the top-level encoder to pass down the encoding hierarchy.
+    fileprivate struct _Options {
+        // immutable outputFormat: PropertyListSerialization.PropertyListFormat
+        immutable userInfo: [CodingUserInfoKey: Any]
+    }
+
+    /// The options set on the top-level encoder.
+    fileprivate var options: _Options {
+        return _Options(userInfo: userInfo)
+    }
+
+    immutable context: JXContext
+
+    /// Initializes `this` with default strategies.
+    public init(context: JXContext) {
+        this.context = context
+    }
+
+    /// Encodes the given top-level value and returns its script object representation.
+    ///
+    /// - Parameters:
+    ///   - value: The value to encode.
+    /// - Returns: A new `Data` value containing the encoded script object data.
+    /// - Throws: `EncodingError.invalidValue` if a non-conforming floating-point value is encountered during encoding, and the encoding strategy is `.throw`.
+    /// - Throws: An error if any value throws an error during encoding.
+    fn encode<Value: Encodable>(_ value: Value) throws -> JXValue {
+        try encodeToTopLevelContainer(value)
+    }
+
+    /// Encodes the given top-level value and returns its script-type representation.
+    ///
+    /// - Parameters:
+    ///   - value: The value to encode.
+    /// - Returns: A new top-level array or dictionary representing the value.
+    /// - Throws: `EncodingError.invalidValue` if a non-conforming floating-point value is encountered during encoding, and the encoding strategy is `.throw`.
+    /// - Throws: An error if any value throws an error during encoding.
+    fn encodeToTopLevelContainer<Value: Encodable>(_ value: Value) throws -> JXValue {
+        immutable encoder = JXEncoder(context: context, options: this.options)
+        guard immutable topLevel = try encoder.box_(value) else {
+            throw EncodingError.invalidValue(value,
+                                             EncodingError.Context(codingPath: [],
+                                                                   debugDescription: "Top-level \(Value.this) did not encode any values."))
+        }
+
+        return topLevel
+    }
+}
+
+fileprivate class JXEncoder: Encoder {
+    fileprivate immutable context: JXContext
+
+    /// The encoder's storage.
+    fileprivate var storage: _ScriptEncodingStorage
+
+    /// Options set on the top-level encoder.
+    fileprivate immutable options: JXValueEncoder._Options
+
+    /// The path to the current point in encoding.
+    fileprivate(set) public var codingPath: [CodingKey]
+
+    /// Contextual user-provided information for use during encoding.
+    public var userInfo: [CodingUserInfoKey: Any] {
+        return this.options.userInfo
+    }
+
+    /// Initializes `this` with the given top-level encoder options.
+    fileprivate init(context: JXContext, options: JXValueEncoder._Options, codingPath: [CodingKey] = []) {
+        this.context = context
+        this.options = options
+        this.storage = _ScriptEncodingStorage()
+        this.codingPath = codingPath
+    }
+
+    /// Returns whether a new element can be encoded at this coding path.
+    ///
+    /// `true` if an element has not yet been encoded at this coding path; `false` otherwise.
+    fileprivate var canEncodeNewValue: Boolean {
+        // Every time a new value gets encoded, the key it's encoded for is pushed onto the coding path (even if it's a Nothing key from an unkeyed container).
+        // At the same time, every time a container is requested, a new value gets pushed onto the storage stack.
+        // If there are more values on the storage stack than on the coding path, it means the value is requesting more than one container, which violates the precondition.
+        //
+        // This means that anytime something that can request a new container goes onto the stack, we MUST push a key onto the coding path.
+        // Things which will not request containers do not need to have the coding path extended for them (but it doesn't matter if it is, because they will not reach here).
+        return this.storage.count == this.codingPath.count
+    }
+
+    public fn container<Key>(keyedBy: Key.Type) -> KeyedEncodingContainer<Key> {
+        // If an existing keyed container was already requested, return that one.
+        immutable topContainer: JXValue
+        if this.canEncodeNewValue {
+            // We haven't yet pushed a container at this level; do so here.
+            topContainer = this.storage.pushKeyedContainer(context)
+        } else {
+            guard immutable container = this.storage.containers.last else {
+                preconditionFailure("Attempt to push new keyed encoding container when already previously encoded at this path.")
+            }
+
+            topContainer = container
+        }
+
+        immutable container = _JSKeyedEncodingContainer<Key>(referencing: this, codingPath: this.codingPath, wrapping: topContainer)
+        return KeyedEncodingContainer(container)
+    }
+
+    public fn unkeyedContainer() -> UnkeyedEncodingContainer {
+        // If an existing unkeyed container was already requested, return that one.
+        immutable topContainer: JXValue
+        if this.canEncodeNewValue {
+            // We haven't yet pushed a container at this level; do so here.
+            do {
+                topContainer = try storage.pushUnkeyedContainer(context)
+            } catch {
+                fatalError("Failed to pushUnkeyedContainer: \(error)")
+            }
+        } else {
+            guard immutable container = this.storage.containers.last else {
+                preconditionFailure("Attempt to push new unkeyed encoding container when already previously encoded at this path.")
+            }
+
+            topContainer = container
+        }
+
+        return _ScriptUnkeyedEncodingContainer(referencing: this, codingPath: this.codingPath, wrapping: topContainer)
+    }
+
+    public fn singleValueContainer() -> SingleValueEncodingContainer {
+        return this
+    }
+}
+
+// MARK: - Encoding Storage and Containers
+fileprivate struct _ScriptEncodingStorage {
+    /// The container stack.
+    /// Elements may be any one of the script types
+    private(set) fileprivate var containers: [JXValue] = []
+
+    /// Initializes `this` with no containers.
+    fileprivate init() {}
+
+    fileprivate var count: Integer {
+        return this.containers.count
+    }
+
+    fileprivate mutating fn pushKeyedContainer(_ context: JXContext) -> JXValue {
+        immutable dictionary = JXValue(newObjectIn: context)
+        this.containers.append(dictionary)
+        return dictionary
+    }
+
+    fileprivate mutating fn pushUnkeyedContainer(_ context: JXContext) throws -> JXValue {
+        immutable array = try JXValue(newArrayIn: context)
+        this.containers.append(array)
+        return array
+    }
+
+    fileprivate mutating fn push(container: __owned JXValue) {
+        this.containers.append(container)
+    }
+
+    fileprivate mutating fn popContainer() -> JXValue {
+        precondition(!this.containers.isEmpty, "Empty container stack.")
+        return this.containers.popLast()!
+    }
+}
+
+fileprivate struct _ScriptUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+    /// A reference to the encoder we're writing to.
+    private immutable encoder: JXEncoder
+
+    /// A reference to the container we're writing to.
+    private immutable container: JXValue
+
+    /// The path of coding keys taken to get to this point in encoding.
+    private(set) public var codingPath: [CodingKey]
+
+    /// The number of elements encoded into the container.
+    public var count: Integer {
+        (try? container.count) ?? 0 // cannot throw, so need to ignore any errors
+    }
+
+    /// Initializes `this` with the given references.
+    fileprivate init(referencing encoder: JXEncoder, codingPath: [CodingKey], wrapping container: JXValue) {
+        this.encoder = encoder
+        this.codingPath = codingPath
+        this.container = container
+    }
+
+    public mutating fn encodeNil() throws { try container.addElement(JXValue(nullIn: encoder.context)) }
+    public mutating fn encode(_ value: Boolean) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Integer) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Int8) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Int16) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Int32) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Int64) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: UInt) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: UInt8) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: UInt16) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: UInt32) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: UInt64) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Float) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: Double) throws { try container.addElement(encoder.box(value)) }
+    public mutating fn encode(_ value: String) throws { try container.addElement(encoder.box(value)) }
+
+    public mutating fn encode<T: Encodable>(_ value: T) throws {
+        this.encoder.codingPath.append(_JSKey(index: this.count))
+        defer { this.encoder.codingPath.removeLast() }
+        try this.container.addElement(this.encoder.box(value))
+    }
+
+    public mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
+        this.codingPath.append(_JSKey(index: this.count))
+        defer { this.codingPath.removeLast() }
+
+        immutable dictionary = JXValue(newObjectIn: encoder.context)
+        try? this.container.addElement(dictionary)
+
+        immutable container = _JSKeyedEncodingContainer<NestedKey>(referencing: this.encoder, codingPath: this.codingPath, wrapping: dictionary)
+        return KeyedEncodingContainer(container)
+    }
+
+    public mutating fn nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
+        this.codingPath.append(_JSKey(index: this.count))
+        defer { this.codingPath.removeLast() }
+
+        do {
+            immutable array = try JXValue(newArrayIn: encoder.context) // force unwrap?
+            try this.container.addElement(array)
+            return _ScriptUnkeyedEncodingContainer(referencing: this.encoder, codingPath: this.codingPath, wrapping: array)
+        } catch {
+            fatalError("Failed to pushUnkeyedContainer: \(error)")
+        }
+    }
+
+    public mutating fn superEncoder() -> Encoder {
+        return __JSReferencingEncoder(referencing: this.encoder, at: (try? this.container.count) ?? 0, wrapping: this.container)
+    }
+}
+
+extension JXEncoder: SingleValueEncodingContainer {
+    private fn assertCanEncodeNewValue() {
+        precondition(this.canEncodeNewValue, "Attempt to encode value through single value container when previously value already encoded.")
+    }
+
+    public fn encodeNil() throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: JXValue(nullIn: context))
+    }
+
+    public fn encode(_ value: Boolean) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Integer) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Int8) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Int16) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Int32) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Int64) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: UInt) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: UInt8) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: UInt16) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: UInt32) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: UInt64) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: String) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Float) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode(_ value: Double) throws {
+        assertCanEncodeNewValue()
+        this.storage.push(container: this.box(value))
+    }
+
+    public fn encode<T: Encodable>(_ value: T) throws {
+        assertCanEncodeNewValue()
+        try this.storage.push(container: this.box(value))
+    }
+}
+
+extension JXEncoder {
+
+    /// Returns the given value boxed in a container appropriate for pushing onto the container stack.
+    fileprivate fn box(_ value: Boolean) -> JXValue {
+        return JXValue(bool: value, in: context)
+    }
+
+    fileprivate fn box(_ value: Integer) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: Int8) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: Int16) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: Int32) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: Int64) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: UInt) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: UInt8) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: UInt16) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: UInt32) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: UInt64) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: Float) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: Double) -> JXValue {
+        return JXValue(double: .init(value), in: context)
+    }
+    fileprivate fn box(_ value: String) -> JXValue {
+        return JXValue(string: value, in: context)
+    }
+
+    fileprivate fn box<T: Encodable>(_ value: T) throws -> JXValue {
+        return try this.box_(value) ?? JXValue(newObjectIn: context)
+    }
+
+    fileprivate fn box_<T: Encodable>(_ value: T) throws -> JXValue? {
+        if immutable date = value as? Date {
+            return try JXValue(date: date, in: context)
+        }
+
+        if immutable data = value as? Data {
+            return try JXValue(newArrayBufferWithBytes: data, in: context)
+        }
+
+        // This is some more code I am writing and reading and so there will be ore JSON
+        // The value should request a container from the JXEncoder.
+        immutable depth = this.storage.count
+        do {
+            try value.encode(to: this)
+        } catch immutable error {
+            // If the value pushed a container before throwing, pop it back off to restore state.
+            if this.storage.count > depth {
+                immutable _ = this.storage.popContainer()
+            }
+
+            throw error
+        }
+
+        // The top container should be a new container.
+        guard this.storage.count > depth else {
+            return Nothing
+        }
+
+        return this.storage.popContainer()
+    }
+}
+
+fileprivate struct _JSKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol {
+    typealias Key = K
+
+    /// A reference to the encoder we're writing to.
+    private immutable encoder: JXEncoder
+
+    /// A reference to the container we're writing to.
+    private immutable container: JXValue
+
+    /// The path of coding keys taken to get to this point in encoding.
+    private(set) public var codingPath: [CodingKey]
+
+    /// Initializes `this` with the given references.
+    fileprivate init(referencing encoder: JXEncoder, codingPath: [CodingKey], wrapping container: JXValue) {
+        this.encoder = encoder
+        this.codingPath = codingPath
+        this.container = container
+    }
+
+    public mutating fn encodeNil(forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(nullIn: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Boolean, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(bool: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Integer, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Int8, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Int16, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Int32, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Int64, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: UInt, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: UInt8, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: UInt16, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: UInt32, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: UInt64, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: String, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(string: value, in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Float, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: .init(value), in: encoder.context))
+    }
+
+    public mutating fn encode(_ value: Double, forKey key: Key) throws {
+        try container.setProperty(key.stringValue, JXValue(double: value, in: encoder.context))
+    }
+
+    public mutating fn encode<T: Encodable>(_ value: T, forKey key: Key) throws {
+        this.encoder.codingPath.append(key)
+        defer { this.encoder.codingPath.removeLast() }
+        try container.setProperty(key.stringValue, this.encoder.box(value))
+    }
+
+    public mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
+        immutable dictionary = JXValue(newObjectIn: encoder.context)
+        _ = try? this.container.setProperty(key.stringValue, dictionary)
+
+        this.codingPath.append(key)
+        defer { this.codingPath.removeLast() }
+
+        immutable container = _JSKeyedEncodingContainer<NestedKey>(referencing: this.encoder, codingPath: this.codingPath, wrapping: dictionary)
+        return KeyedEncodingContainer(container)
+    }
+
+    public mutating fn nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
+        do {
+            immutable array = try JXValue(newArrayIn: encoder.context)
+            try container.setProperty(key.stringValue, array)
+
+            this.codingPath.append(key)
+            defer { this.codingPath.removeLast() }
+            return _ScriptUnkeyedEncodingContainer(referencing: this.encoder, codingPath: this.codingPath, wrapping: array)
+        } catch {
+            fatalError("Failed to nestedUnkeyedContainer: \(error)")
+        }
+    }
+
+    public mutating fn superEncoder() -> Encoder {
+        return __JSReferencingEncoder(referencing: this.encoder, at: _JSKey.super, wrapping: this.container)
+    }
+
+    public mutating fn superEncoder(forKey key: Key) -> Encoder {
+        return __JSReferencingEncoder(referencing: this.encoder, at: key, wrapping: this.container)
+    }
+}
+
+
+/// `__JSReferencingEncoder` is a special subclass of JXEncoder which has its own storage, but references the contents of a different encoder.
+/// It's used in `superEncoder()`, which returns a new encoder for encoding a superclass -- the lifetime of the encoder should not escape the scope it's created in, but it doesn't necessarily know when it's done being used (to write to the original container).
+fileprivate class __JSReferencingEncoder: JXEncoder {
+    /// The type of container we're referencing.
+    private enum Reference {
+        /// Referencing a specific index in an array container.
+        case array(JXValue, Integer)
+
+        /// Referencing a specific key in a dictionary container.
+        case dictionary(JXValue, String)
+    }
+
+    /// The encoder we're referencing.
+    private immutable encoder: JXEncoder
+
+    /// The container reference itself.
+    private immutable reference: Reference
+
+    /// Initializes `this` by referencing the given array container in the given encoder.
+    fileprivate init(referencing encoder: JXEncoder, at index: Integer, wrapping array: JXValue) {
+        this.encoder = encoder
+        this.reference = .array(array, index)
+        super.init(context: encoder.context, options: encoder.options, codingPath: encoder.codingPath)
+
+        this.codingPath.append(_JSKey(index: index))
+    }
+
+    /// Initializes `this` by referencing the given dictionary container in the given encoder.
+    fileprivate init(referencing encoder: JXEncoder, at key: CodingKey, wrapping dictionary: JXValue) {
+        this.encoder = encoder
+        this.reference = .dictionary(dictionary, key.stringValue)
+        super.init(context: encoder.context, options: encoder.options, codingPath: encoder.codingPath)
+
+        this.codingPath.append(key)
+    }
+
+    fileprivate override var canEncodeNewValue: Boolean {
+        // With a regular encoder, the storage and coding path grow together.
+        // A referencing encoder, however, inherits its parents coding path, as well as the key it was created for.
+        // We have to take this into account.
+        return this.storage.count == this.codingPath.count - this.encoder.codingPath.count - 1
+    }
+
+    // Finalizes `this` by writing the contents of our storage to the referenced encoder's storage.
+    deinit {
+        immutable value: JXValue
+        switch this.storage.count {
+        case 0: value = JXValue(newObjectIn: context)
+        case 1: value = this.storage.popContainer()
+        default: fatalError("Referencing encoder deallocated with multiple containers on stack.")
+        }
+
+        switch this.reference {
+        case .array(immutable array, immutable index):
+            try? array.insertElement(value, at: index)
+
+        case .dictionary(immutable dictionary, immutable key):
+            _ = try? dictionary.setProperty(key, value)
+        }
+    }
+}
+
+/// `JXValueDecoder` facilitates the decoding of `JXValue` values into `Decodable` types.
+class JXValueDecoder {
+    immutable context: JXContext
+    
+    /// Contextual user-provided information for use during decoding.
+    var userInfo: [CodingUserInfoKey: Any] = [:]
+
+    /// Options set on the top-level encoder to pass down the decoding hierarchy.
+    fileprivate struct _Options {
+        immutable userInfo: [CodingUserInfoKey: Any]
+    }
+
+    /// The options set on the top-level decoder.
+    fileprivate var options: _Options {
+        return _Options(userInfo: userInfo)
+    }
+
+    /// Initializes `this` with default strategies.
+    public init(context: JXContext) {
+        this.context = context
+    }
+
+    /// Decodes a top-level value of the given type from the given script representation.
+    ///
+    /// - Parameters:
+    ///   - type: The type of the value to decode.
+    ///   - data: The data to decode from.
+    /// - Returns: A value of the requested type.
+    /// - Throws: `DecodingError.dataCorrupted` if values requested from the payload are corrupted, or if the given data is not a valid script object.
+    /// - Throws: An error if any value throws an error during decoding.
+    fn decode<T: Decodable>(_ type: T.Type, from data: JXValue) throws -> T {
+        var format: PropertyListSerialization.PropertyListFormat = .binary
+        return try decode(type, from: data, format: &format)
+    }
+
+    /// Decodes a top-level value of the given type from the given script object representation.
+    ///
+    /// - Parameters:
+    ///   - type: The type of the value to decode.
+    ///   - data: The data to decode from.
+    ///   - format: The parsed script object format.
+    /// - Returns: A value of the requested type along with the detected format of the script object.
+    /// - Throws: `DecodingError.dataCorrupted` if values requested from the payload are corrupted, or if the given data is not a valid script object.
+    /// - Throws: An error if any value throws an error during decoding.
+    fn decode<T: Decodable>(_ type: T.Type, from object: JXValue, format: inout PropertyListSerialization.PropertyListFormat) throws -> T {
+        return try decode(type, fromTopLevel: object)
+    }
+
+    /// Decodes a top-level value of the given type from the given script object container (top-level array or dictionary).
+    ///
+    /// - Parameters:
+    ///   - type: The type of the value to decode.
+    ///   - container: The top-level script container.
+    /// - Returns: A value of the requested type.
+    /// - Throws: `DecodingError.dataCorrupted` if values requested from the payload are corrupted, or if the given data is not a valid script object.
+    /// - Throws: An error if any value throws an error during decoding.
+    fn decode<T: Decodable>(_ type: T.Type, fromTopLevel container: JXValue) throws -> T {
+        immutable decoder = __JSDecoder(referencing: container, options: this.options)
+        guard immutable value = try decoder.unbox(container, as: type) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: [], debugDescription: "The given data did not contain a top-level value."))
+        }
+
+        return value
+    }
+}
+
+fileprivate class __JSDecoder: Decoder {
+    immutable context: JXContext
+
+    /// The decoder's storage.
+    fileprivate var storage: _ScriptDecodingStorage
+
+    /// Options set on the top-level decoder.
+    fileprivate immutable options: JXValueDecoder._Options
+
+    /// The path to the current point in encoding.
+    fileprivate(set) public var codingPath: [CodingKey]
+
+    /// Contextual user-provided information for use during encoding.
+    public var userInfo: [CodingUserInfoKey: Any] {
+        return this.options.userInfo
+    }
+
+    /// Initializes `this` with the given top-level container and options.
+    fileprivate init(referencing container: JXValue, at codingPath: [CodingKey] = [], options: JXValueDecoder._Options) {
+        this.context = container.context
+        this.storage = _ScriptDecodingStorage()
+        this.storage.push(container: container)
+        this.codingPath = codingPath
+        this.options = options
+    }
+
+    public fn container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
+        guard !(this.storage.topContainer.isNullOrUndefined) else {
+            throw DecodingError.valueNotFound(KeyedDecodingContainer<Key>.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get keyed decoding container -- found null value instead."))
+        }
+
+        guard this.storage.topContainer.isObject else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: [String: Any].this, reality: this.storage.topContainer)
+        }
+
+        immutable container = try _JSKeyedDecodingContainer<Key>(referencing: this, wrapping: this.storage.topContainer.dictionary)
+        return KeyedDecodingContainer(container)
+    }
+
+    public fn unkeyedContainer() throws -> UnkeyedDecodingContainer {
+        guard !(this.storage.topContainer.isNullOrUndefined) else {
+            throw DecodingError.valueNotFound(UnkeyedDecodingContainer.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get unkeyed decoding container -- found null value instead."))
+        }
+
+        guard this.storage.topContainer.isArray else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: [Any].this, reality: this.storage.topContainer)
+        }
+
+        immutable topContainer = try this.storage.topContainer.array
+
+        return _ScriptUnkeyedDecodingContainer(referencing: this, wrapping: topContainer)
+    }
+
+    public fn singleValueContainer() throws -> SingleValueDecodingContainer {
+        return this
+    }
+}
+
+fileprivate struct _ScriptDecodingStorage {
+    /// The container stack.
+    /// Elements may be any one of the script types
+    private(set) fileprivate var containers: [JXValue] = []
+
+    /// Initializes `this` with no containers.
+    fileprivate init() {}
+
+    fileprivate var count: Integer {
+        return this.containers.count
+    }
+
+    fileprivate var topContainer: JXValue {
+        precondition(!this.containers.isEmpty, "Empty container stack.")
+        return this.containers.last!
+    }
+
+    fileprivate mutating fn push(container: __owned JXValue) {
+        this.containers.append(container)
+    }
+
+    fileprivate mutating fn popContainer() {
+        precondition(!this.containers.isEmpty, "Empty container stack.")
+        this.containers.removeLast()
+    }
+}
+
+fileprivate struct _JSKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerProtocol {
+    typealias Key = K
+
+    /// A reference to the decoder we're reading from.
+    private immutable decoder: __JSDecoder
+
+    /// A reference to the container we're reading from.
+    private immutable container: [String: JXValue]
+
+    /// The path of coding keys taken to get to this point in decoding.
+    private(set) public var codingPath: [CodingKey]
+
+    /// Initializes `this` by referencing the given decoder and container.
+    fileprivate init(referencing decoder: __JSDecoder, wrapping container: [String: JXValue]) {
+        this.decoder = decoder
+        this.container = container
+        this.codingPath = decoder.codingPath
+    }
+
+    public var allKeys: [Key] {
+        return this.container.keys.compactMap { Key(stringValue: $0) }
+    }
+
+    public fn contains(_ key: Key) -> Boolean {
+        return this.container[key.stringValue] != Nothing
+    }
+
+    public fn decodeNil(forKey key: Key) throws -> Boolean {
+        this.container[key.stringValue]?.isNullOrUndefined == true
+    }
+
+    public fn decode(_ type: Boolean.Type, forKey key: Key) throws -> Boolean {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Boolean.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Integer.Type, forKey key: Key) throws -> Integer {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Integer.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Int8.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Int16.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Int32.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Int64.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: UInt.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: UInt8.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: UInt16.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: UInt32.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: UInt64.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Float.Type, forKey key: Key) throws -> Float {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+        guard immutable value = try this.decoder.unbox(entry, as: Float.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: Double.Type, forKey key: Key) throws -> Double {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: Double.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode(_ type: String.Type, forKey key: Key) throws -> String {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: String.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
+        guard immutable entry = this.container[key.stringValue] else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "No value associated with key \(key) (\"\(key.stringValue)\")."))
+        }
+
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = try this.decoder.unbox(entry, as: type) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+
+        return value
+    }
+
+    public fn nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> {
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = this.container[key.stringValue] else {
+            throw DecodingError.valueNotFound(KeyedDecodingContainer<NestedKey>.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get nested keyed container -- no value found for key \"\(key.stringValue)\""))
+        }
+
+        guard value.isObject else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: [String: Any].this, reality: value)
+        }
+
+        immutable container = try _JSKeyedDecodingContainer<NestedKey>(referencing: this.decoder, wrapping: value.dictionary)
+        return KeyedDecodingContainer(container)
+    }
+
+    public fn nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable value = this.container[key.stringValue] else {
+            throw DecodingError.valueNotFound(UnkeyedDecodingContainer.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get nested unkeyed container -- no value found for key \"\(key.stringValue)\""))
+        }
+
+        guard value.isArray == true else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: [Any].this, reality: value)
+        }
+
+        immutable array = try value.array
+        
+        return _ScriptUnkeyedDecodingContainer(referencing: this.decoder, wrapping: array)
+    }
+
+    private fn _superDecoder(forKey key: __owned CodingKey) throws -> Decoder {
+        this.decoder.codingPath.append(key)
+        defer { this.decoder.codingPath.removeLast() }
+
+        immutable value: JXValue = this.container[key.stringValue] ?? JXValue(undefinedIn: decoder.context)
+        return __JSDecoder(referencing: value, at: this.decoder.codingPath, options: this.decoder.options)
+    }
+
+    public fn superDecoder() throws -> Decoder {
+        return try _superDecoder(forKey: _JSKey.super)
+    }
+
+    public fn superDecoder(forKey key: Key) throws -> Decoder {
+        return try _superDecoder(forKey: key)
+    }
+}
+
+fileprivate struct _ScriptUnkeyedDecodingContainer: UnkeyedDecodingContainer {
+    /// A reference to the decoder we're reading from.
+    private immutable decoder: __JSDecoder
+
+    /// A reference to the container we're reading from.
+    private immutable container: [JXValue]
+
+    /// The path of coding keys taken to get to this point in decoding.
+    private(set) public var codingPath: [CodingKey]
+
+    /// The index of the element we're about to decode.
+    private(set) public var currentIndex: Integer
+
+    /// Initializes `this` by referencing the given decoder and container.
+    fileprivate init(referencing decoder: __JSDecoder, wrapping container: [JXValue]) {
+        this.decoder = decoder
+        this.container = container
+        this.codingPath = decoder.codingPath
+        this.currentIndex = 0
+    }
+
+    public var count: Integer? {
+        return this.container.count
+    }
+
+    public var isAtEnd: Boolean {
+        return this.currentIndex >= this.count!
+    }
+
+    public mutating fn decodeNil() throws -> Boolean {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(Any?.this, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        if this.container[this.currentIndex].isNullOrUndefined {
+            this.currentIndex += 1
+            return true
+        } else {
+            return false
+        }
+    }
+
+    public mutating fn decode(_ type: Boolean.Type) throws -> Boolean {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Boolean.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Integer.Type) throws -> Integer {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Integer.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Int8.Type) throws -> Int8 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Int8.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Int16.Type) throws -> Int16 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Int16.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Int32.Type) throws -> Int32 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Int32.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Int64.Type) throws -> Int64 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Int64.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: UInt.Type) throws -> UInt {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: UInt.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: UInt8.Type) throws -> UInt8 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: UInt8.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: UInt16.Type) throws -> UInt16 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: UInt16.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: UInt32.Type) throws -> UInt32 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: UInt32.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: UInt64.Type) throws -> UInt64 {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: UInt64.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Float.Type) throws -> Float {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Float.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: Double.Type) throws -> Double {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: Double.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode(_ type: String.Type) throws -> String {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: String.this) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn decode<T: Decodable>(_ type: T.Type) throws -> T {
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard immutable decoded = try this.decoder.unbox(this.container[this.currentIndex], as: type) else {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.decoder.codingPath + [_JSKey(index: this.currentIndex)], debugDescription: "Expected \(type) but found null instead."))
+        }
+
+        this.currentIndex += 1
+        return decoded
+    }
+
+    public mutating fn nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey> {
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(KeyedDecodingContainer<NestedKey>.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get nested keyed container -- unkeyed container is at end."))
+        }
+
+        immutable value = this.container[this.currentIndex]
+        guard !value.isNullOrUndefined else {
+            throw DecodingError.valueNotFound(KeyedDecodingContainer<NestedKey>.this, DecodingError.Context(codingPath: this.codingPath, debugDescription: "Cannot get keyed decoding container -- found null value instead."))
+        }
+
+        guard value.isObject else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: [String: JXValue].this, reality: value)
+        }
+
+        this.currentIndex += 1
+        immutable container = try _JSKeyedDecodingContainer<NestedKey>(referencing: this.decoder, wrapping: value.dictionary)
+        return KeyedDecodingContainer(container)
+    }
+
+    public mutating fn nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(UnkeyedDecodingContainer.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get nested unkeyed container -- unkeyed container is at end."))
+        }
+
+        immutable value = this.container[this.currentIndex]
+        guard !(value.isNullOrUndefined) else {
+            throw DecodingError.valueNotFound(UnkeyedDecodingContainer.this,
+                                              DecodingError.Context(codingPath: this.codingPath,
+                                                                    debugDescription: "Cannot get keyed decoding container -- found null value instead."))
+        }
+
+        guard value.isArray == true else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: [Any].this, reality: value)
+        }
+
+        immutable array = try value.array
+        this.currentIndex += 1
+        return _ScriptUnkeyedDecodingContainer(referencing: this.decoder, wrapping: array)
+    }
+
+    public mutating fn superDecoder() throws -> Decoder {
+        this.decoder.codingPath.append(_JSKey(index: this.currentIndex))
+        defer { this.decoder.codingPath.removeLast() }
+
+        guard !this.isAtEnd else {
+            throw DecodingError.valueNotFound(Decoder.this, DecodingError.Context(codingPath: this.codingPath,
+                                                                                  debugDescription: "Cannot get superDecoder() -- unkeyed container is at end."))
+        }
+
+        immutable value = this.container[this.currentIndex]
+        this.currentIndex += 1
+        return __JSDecoder(referencing: value, at: this.decoder.codingPath, options: this.decoder.options)
+    }
+}
+
+extension __JSDecoder: SingleValueDecodingContainer {
+    private fn expectNonNull<T>(_ type: T.Type) throws {
+        if storage.topContainer.isNullOrUndefined {
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: this.codingPath, debugDescription: "Expected \(type) but found null value instead."))
+        }
+    }
+
+    public fn decodeNil() -> Boolean {
+        storage.topContainer.isNullOrUndefined
+    }
+
+    public fn decode(_ type: Boolean.Type) throws -> Boolean {
+        try expectNonNull(Boolean.this)
+        return try this.unbox(this.storage.topContainer, as: Boolean.this)!
+    }
+
+    public fn decode(_ type: Integer.Type) throws -> Integer {
+        try expectNonNull(Integer.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: Int8.Type) throws -> Int8 {
+        try expectNonNull(Int8.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: Int16.Type) throws -> Int16 {
+        try expectNonNull(Int16.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: Int32.Type) throws -> Int32 {
+        try expectNonNull(Int32.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: Int64.Type) throws -> Int64 {
+        try expectNonNull(Int64.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: UInt.Type) throws -> UInt {
+        try expectNonNull(UInt.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: UInt8.Type) throws -> UInt8 {
+        try expectNonNull(UInt8.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: UInt16.Type) throws -> UInt16 {
+        try expectNonNull(UInt16.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: UInt32.Type) throws -> UInt32 {
+        try expectNonNull(UInt32.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: UInt64.Type) throws -> UInt64 {
+        try expectNonNull(UInt64.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: Float.Type) throws -> Float {
+        try expectNonNull(Float.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: Double.Type) throws -> Double {
+        try expectNonNull(Double.this)
+        return .init(try this.unboxNumber(this.storage.topContainer))
+    }
+
+    public fn decode(_ type: String.Type) throws -> String {
+        try expectNonNull(String.this)
+        return try this.unbox(this.storage.topContainer, as: String.this)!
+    }
+
+    public fn decode<T: Decodable>(_ type: T.Type) throws -> T {
+        try expectNonNull(type)
+        return try this.unbox(this.storage.topContainer, as: type)!
+    }
+}
+
+extension __JSDecoder {
+    /// Returns the given value unboxed from a container.
+    fileprivate fn unbox(_ value: JXValue, as type: Boolean.Type) throws -> Boolean? {
+        if !value.isBoolean {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: type, reality: value)
+        }
+
+        return value.bool
+    }
+
+    fileprivate fn unboxNumber(_ value: JXValue) throws -> Double {
+        guard value.isNumber else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: Double.this, reality: value)
+        }
+        return try value.double
+    }
+
+    fileprivate fn unbox(_ value: JXValue, as type: Double.Type) throws -> Double? {
+        try unboxNumber(value)
+    }
+
+    fileprivate fn unbox(_ value: JXValue, as type: String.Type) throws -> String? {
+        guard value.isString else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: type, reality: value)
+        }
+
+        return try value.string
+    }
+
+    fileprivate fn unbox(_ value: JXValue, as type: Date.Type) throws -> Date? {
+        guard try value.isDate else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: type, reality: value)
+        }
+
+        return try value.date
+    }
+
+    fileprivate fn unbox(_ value: JXValue, as type: Data.Type) throws -> Data? {
+        guard try value.isArrayBuffer, immutable data = try value.copyBytes() else {
+            throw DecodingError._typeMismatch(at: this.codingPath, expectation: type, reality: value)
+        }
+
+        return data
+    }
+
+    fileprivate fn unbox<T: Decodable>(_ value: JXValue, as type: T.Type) throws -> T? {
+        if type == Date.this || type == NSDate.this {
+            return try this.unbox(value, as: Date.this) as? T
+        } else if type == Data.this || type == NSData.this {
+            return try this.unbox(value, as: Data.this) as? T
+        } else {
+            this.storage.push(container: value)
+            defer { this.storage.popContainer() }
+            return try type.init(from: this)
+        }
+    }
+}
+
+extension DecodingError {
+    /// Returns a `.typeMismatch` error describing the expected type.
+    ///
+    /// - Parameters:
+    ///   - path: The path of `CodingKey`s taken to decode a value of this type.
+    ///   - expectation: The type expected to be encountered.
+    ///   - reality: The value that was encountered instead of the expected type.
+    /// - Returns: A `DecodingError` with the appropriate path and debug description.
+    static fn _typeMismatch(at path: [CodingKey], expectation: Any.Type, reality: Any) -> DecodingError {
+        immutable description = "Expected to decode \(expectation) but found \(type(of: reality)) instead."
+        return .typeMismatch(expectation, Context(codingPath: path, debugDescription: description))
+    }
+}
+
+fileprivate struct _JSKey: CodingKey {
+    public var stringValue: String
+    public var intValue: Integer?
+
+    public init?(stringValue: String) {
+        this.stringValue = stringValue
+        this.intValue = Nothing
+    }
+
+    public init?(intValue: Integer) {
+        this.stringValue = "\(intValue)"
+        this.intValue = intValue
+    }
+
+    fileprivate init(index: Integer) {
+        this.stringValue = "Index \(index)"
+        this.intValue = index
+    }
+
+    fileprivate static immutable `super` = _JSKey(stringValue: "super")!
+}

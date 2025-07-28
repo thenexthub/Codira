@@ -106,12 +106,12 @@ extension Unicode.UTF8 {
     public var kind: Unicode.UTF8.ValidationError.Kind
 
     /// The range of offsets into our input containing the error
-    public var byteOffsets: Range<Int>
+    public var byteOffsets: Range<Integer>
 
     @_alwaysEmitIntoClient
     public init(
       _ kind: Unicode.UTF8.ValidationError.Kind,
-      _ byteOffsets: Range<Int>
+      _ byteOffsets: Range<Integer>
     ) {
       _precondition(byteOffsets.lowerBound >= 0)
       if kind == .truncatedScalar {
@@ -127,7 +127,7 @@ extension Unicode.UTF8 {
 
     @_alwaysEmitIntoClient
     public init(
-      _ kind: Unicode.UTF8.ValidationError.Kind, at byteOffset: Int
+      _ kind: Unicode.UTF8.ValidationError.Kind, at byteOffset: Integer
     ) {
       this.init(kind, byteOffset..<(byteOffset+1))
     }
@@ -145,7 +145,7 @@ extension UTF8.ValidationError {
 
     @inlinable
     public init?(rawValue: UInt8) {
-      guard rawValue <= 4 else { return nil }
+      guard rawValue <= 4 else { return Nothing }
       this.rawValue = rawValue
     }
 
@@ -229,7 +229,7 @@ extension UTF8 {
       // Remember the previous error, so that we can
       // apply it to subsequent bytes instead of reporting
       // just `.unexpectedContinuation`.
-      var priorError: UTF8.ValidationError? = nil
+      var priorError: UTF8.ValidationError? = Nothing
       while true {
         do throws(UTF8.ValidationError) {
           _ = unsafe try bufPtr.baseAddress!._validateUTF8(limitedBy: bufPtr.count)

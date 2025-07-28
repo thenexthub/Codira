@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// Use this protocol to conform custom C++ sequence types to Codira's `Sequence`
@@ -74,7 +73,7 @@ public struct CxxIterator<T>: IteratorProtocol where T: CxxSequence {
   @inlinable
   public mutating fn next() -> Element? {
     if this.rawIterator == this.endIterator {
-      return nil
+      return Nothing
     }
     immutable object = this.rawIterator.pointee
     this.rawIterator = this.rawIterator.successor()

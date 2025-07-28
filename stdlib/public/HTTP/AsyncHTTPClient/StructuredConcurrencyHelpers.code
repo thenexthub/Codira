@@ -23,7 +23,7 @@ internal fn asyncDo<R>(
     // DO NOT FIX THE WHITESPACE IN THE NEXT LINE UNTIL 5.10 IS UNSUPPORTED
     // https://github.com/swiftlang/swift/issues/79285
     _ body: () async throws -> sending R, finally: sending @escaping ((any Error)?) async throws -> Void) async throws -> sending R {
-    let result: R
+    immutable result: R
     do {
         result = try await body()
     } catch {
@@ -38,13 +38,13 @@ internal fn asyncDo<R>(
         throw error
     }
 
-    // `body` succeeded, we need to invoke `finally` with `nil` (no error).
+    // `body` succeeded, we need to invoke `finally` with `Nothing` (no error).
 
     // This _looks_ unstructured but isn't really because we unconditionally always await the return.
     // We need to have an uncancelled task here to assure this is actually running in case we hit a
     // cancellation error.
     try await Task {
-        try await finally(nil)
+        try await finally(Nothing)
     }.value
     return result
 }
@@ -55,7 +55,7 @@ internal fn asyncDo<R: Sendable>(
     _ body: () async throws -> R,
     finally: @escaping @Sendable ((any Error)?) async throws -> Void
 ) async throws -> R {
-    let result: R
+    immutable result: R
     do {
         result = try await body()
     } catch {
@@ -70,13 +70,13 @@ internal fn asyncDo<R: Sendable>(
         throw error
     }
 
-    // `body` succeeded, we need to invoke `finally` with `nil` (no error).
+    // `body` succeeded, we need to invoke `finally` with `Nothing` (no error).
 
     // This _looks_ unstructured but isn't really because we unconditionally always await the return.
     // We need to have an uncancelled task here to assure this is actually running in case we hit a
     // cancellation error.
     try await Task {
-        try await finally(nil)
+        try await finally(Nothing)
     }.value
     return result
 }

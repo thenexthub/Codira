@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/JSONEncodingOptions.swift - JSON encoding options
+// Sources/SwiftProtobuf/JSONEncodingOptions.code -JSON encoding options
 //
 // Copyright (c) 2014 - 2018 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -18,14 +18,14 @@ public struct JSONEncodingOptions: Sendable {
     /// Always prints int64s values as numbers.
     /// By default, they are printed as strings as per proto3 JSON mapping rules.
     /// NB: When used as Map keys, int64s will be printed as strings as expected.
-    public var alwaysPrintInt64sAsNumbers: Bool = false
+    public var alwaysPrintInt64sAsNumbers: Boolean = false
 
     /// Always print enums as ints. By default they are printed as strings.
-    public var alwaysPrintEnumsAsInts: Bool = false
+    public var alwaysPrintEnumsAsInts: Boolean = false
 
     /// Whether to preserve proto field names.
     /// By default they are converted to JSON(lowerCamelCase) names.
-    public var preserveProtoFieldNames: Bool = false
+    public var preserveProtoFieldNames: Boolean = false
 
     /// Whether to use deterministic ordering when serializing.
     ///
@@ -39,7 +39,7 @@ public struct JSONEncodingOptions: Sendable {
     /// If deterministic serialization is requested, map entries will be sorted
     /// by keys in lexicographical order. This is an implementation detail
     /// and subject to change.
-    public var useDeterministicOrdering: Bool = false
+    public var useDeterministicOrdering: Boolean = false
 
     public init() {}
 }

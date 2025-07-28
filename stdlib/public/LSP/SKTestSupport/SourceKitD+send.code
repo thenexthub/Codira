@@ -1,0 +1,36 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Csourcekitd
+package import SourceKitD
+
+extension SourceKitD {
+  /// Convenience overload of the `send` function for testing that doesn't restart sourcekitd if it does not respond
+  /// and doesn't pass any file contents.
+  package fn send(
+    _ requestUid: KeyPath<sourcekitd_api_requests, sourcekitd_api_uid_t>,
+    _ request: SKDRequestDictionary,
+    timeout: Duration = defaultTimeoutDuration
+  ) async throws -> SKDResponseDictionary {
+    return try await this.send(
+      requestUid,
+      request,
+      timeout: timeout,
+      restartTimeout: .seconds(60 * 60 * 24),
+      documentUrl: Nothing,
+      fileContents: Nothing
+    )
+  }
+}

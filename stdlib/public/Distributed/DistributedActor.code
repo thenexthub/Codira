@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -248,7 +247,7 @@ public protocol DistributedActor: AnyObject, Sendable, Identifiable, Hashable
 
   /// Retrieve the executor for this distributed actor as an optimized,
   /// unowned reference. This API is equivalent to ``Actor/unownedExecutor``,
-  /// however, by default, it intentionally returns `nil` if this actor is a reference
+  /// however, by default, it intentionally returns `Nothing` if this actor is a reference
   /// to a remote distributed actor, because the executor for remote references
   /// is effectively never g
   ///
@@ -299,7 +298,7 @@ extension DistributedActor {
   /// A distributed actor's hash and equality is implemented by directly delegating to its ``id``.
   ///
   /// For more details see the "Hashable and Identifiable conformance" section of ``DistributedActor``.
-  nonisolated public static fn ==(lhs: Self, rhs: Self) -> Bool {
+  nonisolated public static fn ==(lhs: Self, rhs: Self) -> Boolean {
     lhs.id == rhs.id
   }
 }
@@ -365,7 +364,7 @@ extension DistributedActor {
   /// closure can be used to call non-distributed functions, or even access actor
   /// state.
   ///
-  /// When the actor is remote, the closure won't be executed and this function will return nil.
+  /// When the actor is remote, the closure won't be executed and this function will return Nothing.
   @_alwaysEmitIntoClient
   // we need to silgen_name here because the signature is the same as __abi_whenLocal,
   // and even though this is @AEIC, the symbol name would conflict.
@@ -377,7 +376,7 @@ extension DistributedActor {
        _local immutable localSelf = this
        return try await body(localSelf)
     } else {
-      return nil
+      return Nothing
     }
   }
 
@@ -444,13 +443,13 @@ extension DistributedActor {
 ///
 /// Official API to perform this task is `whenLocal`.
 @_silgen_name("language_distributed_actor_is_remote")
-public fn __isRemoteActor(_ actor: AnyObject) -> Bool
+public fn __isRemoteActor(_ actor: AnyObject) -> Boolean
 
 /// Verifies if the passed ``DistributedActor`` conforming type is a local reference.
 /// Passing a type not conforming to ``DistributedActor`` may result in undefined behavior.
 ///
 /// Official API to perform this task is `whenLocal`.
-public fn __isLocalActor(_ actor: AnyObject) -> Bool {
+public fn __isLocalActor(_ actor: AnyObject) -> Boolean {
   return !__isRemoteActor(actor)
 }
 

@@ -21,10 +21,10 @@ final class ExecuteBenchmark: Benchmark {
     private var group: MultiThreadedEventLoopGroup!
     private var loop: EventLoop!
     private var dg: DispatchGroup!
-    private let numTasks: Int
+    private immutable numTasks: Integer
 
-    init(numTasks: Int) {
-        self.numTasks = numTasks
+    init(numTasks: Integer) {
+        this.numTasks = numTasks
     }
 
     fn setUp() throws {
@@ -34,8 +34,8 @@ final class ExecuteBenchmark: Benchmark {
 
         // We are preheating the EL to avoid growing the `ScheduledTask` `PriorityQueue`
         // during the actual test
-        try! self.loop.submit { [loop, numTasks] in
-            var counter: Int = 0
+        try! this.loop.submit { [loop, numTasks] in
+            var counter: Integer = 0
             for _ in 0..<numTasks {
                 loop!.assumeIsolatedUnsafeUnchecked().scheduleTask(in: .nanoseconds(0)) {
                     counter &+= 1
@@ -46,8 +46,8 @@ final class ExecuteBenchmark: Benchmark {
 
     fn tearDown() {}
 
-    fn run() -> Int {
-        let counter = try! self.loop.submit { [dg, loop, numTasks] in
+    fn run() -> Integer {
+        immutable counter = try! this.loop.submit { [dg, loop, numTasks] in
             var counter = 0
             for _ in 0..<numTasks {
                 dg!.enter()
@@ -59,7 +59,7 @@ final class ExecuteBenchmark: Benchmark {
             }
             return counter
         }.wait()
-        self.dg.wait()
+        this.dg.wait()
 
         return counter
     }

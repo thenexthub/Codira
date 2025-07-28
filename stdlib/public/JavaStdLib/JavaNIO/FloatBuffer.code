@@ -1,0 +1,141 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.FloatBuffer", implements: Comparable.this)
+open class FloatBuffer: Buffer {
+  @JavaMethod
+  open override fn reset() -> FloatBuffer!
+
+  @JavaMethod
+  open fn get() -> Float
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Float]) -> FloatBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32) -> Float
+
+  @JavaMethod
+  open fn get(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: [Float]) -> FloatBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Float], _ arg2: Int32, _ arg3: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: FloatBuffer?) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Float]) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: FloatBuffer?, _ arg2: Int32, _ arg3: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Float]) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Float], _ arg2: Int32, _ arg3: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: Float) -> FloatBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Float) -> FloatBuffer!
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: FloatBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn clear() -> FloatBuffer!
+
+  @JavaMethod
+  open override fn position(_ arg0: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open fn mismatch(_ arg0: FloatBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn limit(_ arg0: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open override fn isDirect() -> Boolean
+
+  @JavaMethod
+  open override fn hasArray() -> Boolean
+
+  @JavaMethod
+  open fn array() -> [Float]
+
+  @JavaMethod
+  open override fn arrayOffset() -> Int32
+
+  @JavaMethod
+  open override fn mark() -> FloatBuffer!
+
+  @JavaMethod
+  open override fn flip() -> FloatBuffer!
+
+  @JavaMethod
+  open override fn rewind() -> FloatBuffer!
+
+  @JavaMethod
+  open override fn slice() -> FloatBuffer!
+
+  @JavaMethod
+  open override fn slice(_ arg0: Int32, _ arg1: Int32) -> FloatBuffer!
+
+  @JavaMethod
+  open override fn duplicate() -> FloatBuffer!
+
+  @JavaMethod
+  open fn asReadOnlyBuffer() -> FloatBuffer!
+
+  @JavaMethod
+  open fn compact() -> FloatBuffer!
+
+  @JavaMethod
+  open fn order() -> ByteOrder!
+}
+extension JavaClass<FloatBuffer> {
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Float]) -> FloatBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32) -> FloatBuffer!
+
+  @JavaStaticMethod
+  public fn allocate(_ arg0: Int32) -> FloatBuffer!
+}

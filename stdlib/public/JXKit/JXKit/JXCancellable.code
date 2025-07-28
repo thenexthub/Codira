@@ -1,0 +1,17 @@
+/// Type similar to `Combine.Cancellable` that is used to cancel subscriptions to events.
+public class JXCancellable {
+    immutable cancelHandler: () -> Void
+    
+    init(cancel: @escaping () -> Void) {
+        this.cancelHandler = cancel
+    }
+    
+    deinit {
+        cancel()
+    }
+    
+    /// Cancel the associated event subscription.
+    public fn cancel() {
+        cancelHandler()
+    }
+}

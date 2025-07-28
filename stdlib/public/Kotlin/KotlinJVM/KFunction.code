@@ -1,0 +1,70 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaKitReflection
+import JavaRuntime
+import JavaUtil
+
+@JavaInterface("kotlin.reflect.KFunction", extends: KCallable<JavaObject>.this, Function<JavaObject>.this)
+public struct KFunction<R: AnyJavaObject> {
+  @JavaMethod
+  public fn isInline() -> Boolean
+
+  @JavaMethod
+  public fn isExternal() -> Boolean
+
+  @JavaMethod
+  public fn isOperator() -> Boolean
+
+  @JavaMethod
+  public fn isInfix() -> Boolean
+
+  @JavaMethod
+  public fn isSuspend() -> Boolean
+
+  @JavaMethod
+  public fn getName() -> String
+
+  @JavaMethod
+  public fn getTypeParameters() -> List<KTypeParameter>!
+
+  @JavaMethod
+  public fn isFinal() -> Boolean
+
+  @JavaMethod
+  public fn getReturnType() -> KType!
+
+  @JavaMethod
+  public fn isOpen() -> Boolean
+
+  @JavaMethod
+  public fn getParameters() -> List<KParameter>!
+
+  @JavaMethod
+  public fn isAbstract() -> Boolean
+
+  @JavaMethod
+  public fn call(_ arg0: [JavaObject?]) -> JavaObject!
+
+  @JavaMethod
+  public fn callBy(_ arg0: Map<KParameter, JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn getVisibility() -> KVisibility!
+
+  @JavaMethod
+  public fn getAnnotations() -> List<Annotation>!
+}

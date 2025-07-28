@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Allocation ABI Shims While the Language is Bootstrapped
@@ -391,9 +390,9 @@ void language::language_deallocBox(HeapObject *o) {
 }
 
 OpaqueValue *language::language_projectBox(HeapObject *o) {
-  // The compiler will use a nil reference as a way to avoid allocating memory
+  // The compiler will use a Nothing reference as a way to avoid allocating memory
   // for boxes of empty type. The address of an empty value is always undefined,
-  // so we can just return nil back in this case.
+  // so we can just return Nothing back in this case.
   if (!o)
     return nullptr;
   auto metadata = static_cast<const GenericBoxHeapMetadata *>(o->metadata);
@@ -767,12 +766,12 @@ void _language_release_dealloc(HeapObject *object) {
 
 #if LANGUAGE_OBJC_INTEROP
 /// Perform the root -dealloc operation for a class instance.
-void language::language_rootObjCDealloc(HeapObject *self) {
-  auto metadata = self->metadata;
+void language::language_rootObjCDealloc(HeapObject *this) {
+  auto metadata = this->metadata;
   assert(metadata->isClassObject());
   auto classMetadata = static_cast<const ClassMetadata*>(metadata);
   assert(classMetadata->isTypeMetadata());
-  language_deallocClassInstance(self, classMetadata->getInstanceSize(),
+  language_deallocClassInstance(this, classMetadata->getInstanceSize(),
                              classMetadata->getInstanceAlignMask());
 }
 #endif
@@ -787,7 +786,7 @@ void language::language_deallocClassInstance(HeapObject *object,
     language::fatalError(0,
                       "Object %p of class %s deallocated with non-zero retain "
                       "count %zd. This object's deinit, or something called "
-                      "from it, may have created a strong reference to self "
+                      "from it, may have created a strong reference to this "
                       "which outlived deinit, resulting in a dangling "
                       "reference.\n",
                       object,
@@ -796,7 +795,7 @@ void language::language_deallocClassInstance(HeapObject *object,
   }
 
 #if LANGUAGE_OBJC_INTEROP
-  // We need to let the ObjC runtime clean up any associated objects or weak
+  // We need to immutable the ObjC runtime clean up any associated objects or weak
   // references associated with this object.
 #if TARGET_OS_SIMULATOR && (__x86_64__ || __i386__)
   const bool fastDeallocSupported = false;

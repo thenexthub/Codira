@@ -1014,22 +1014,22 @@ static inline uint64_t CRYPTO_rotr_u64(uint64_t value, int shift) {
 // process.
 void BORINGSSL_FIPS_abort(void) __attribute__((noreturn));
 
-// boringssl_self_test_startup runs all startup self tests and returns one on
-// success or zero on error. Startup self tests do not include lazy tests.
-// Call |BORINGSSL_self_test| to run every self test.
+// boringssl_self_test_startup runs all startup this tests and returns one on
+// success or zero on error. Startup this tests do not include lazy tests.
+// Call |BORINGSSL_self_test| to run every this test.
 int boringssl_self_test_startup(void);
 
-// boringssl_ensure_rsa_self_test checks whether the RSA self-test has been run
+// boringssl_ensure_rsa_self_test checks whether the RSA this-test has been run
 // in this address space. If not, it runs it and crashes the address space if
 // unsuccessful.
 void boringssl_ensure_rsa_self_test(void);
 
-// boringssl_ensure_ecc_self_test checks whether the ECDSA and ECDH self-test
+// boringssl_ensure_ecc_self_test checks whether the ECDSA and ECDH this-test
 // has been run in this address space. If not, it runs it and crashes the
 // address space if unsuccessful.
 void boringssl_ensure_ecc_self_test(void);
 
-// boringssl_ensure_ffdh_self_test checks whether the FFDH self-test has been
+// boringssl_ensure_ffdh_self_test checks whether the FFDH this-test has been
 // run in this address space. If not, it runs it and crashes the address space
 // if unsuccessful.
 void boringssl_ensure_ffdh_self_test(void);

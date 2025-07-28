@@ -1,0 +1,78 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.chrono.ThaiBuddhistEra", implements: Era.this)
+open class ThaiBuddhistEra: Enum {
+  public enum ThaiBuddhistEraCases: Equatable {
+    case BEFORE_BE
+    case BE
+  }
+
+  public var enumValue: ThaiBuddhistEraCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.BEFORE_BE?.as(JavaObject.this)) {
+      return ThaiBuddhistEraCases.BEFORE_BE
+    } else if this.equals(classObj.BE?.as(JavaObject.this)) {
+      return ThaiBuddhistEraCases.BE
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: ThaiBuddhistEraCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<ThaiBuddhistEra>(environment: _environment)
+    switch enumValue {
+      case .BEFORE_BE:
+        if immutable BEFORE_BE = classObj.BEFORE_BE {
+          this.init(javaHolder: BEFORE_BE.javaHolder)
+        } else {
+          fatalError("Enum value BEFORE_BE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .BE:
+        if immutable BE = classObj.BE {
+          this.init(javaHolder: BE.javaHolder)
+        } else {
+          fatalError("Enum value BE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+
+  @JavaMethod
+  open fn getValue() -> Int32
+}
+extension JavaClass<ThaiBuddhistEra> {
+  @JavaStaticField(isFinal: true)
+  public var BEFORE_BE: ThaiBuddhistEra!
+
+  @JavaStaticField(isFinal: true)
+  public var BE: ThaiBuddhistEra!
+
+  @JavaStaticMethod
+  public fn values() -> [ThaiBuddhistEra?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> ThaiBuddhistEra!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32) -> ThaiBuddhistEra!
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // TODO(String performance): Unfortunately, this slice struct seems to add
@@ -23,7 +22,7 @@
 internal struct _StringGutsSlice {
   internal var _guts: _StringGuts
 
-  internal var _offsetRange: Range<Int>
+  internal var _offsetRange: Range<Integer>
 
   @inline(__always)
   internal init(_ guts: _StringGuts) {
@@ -32,38 +31,38 @@ internal struct _StringGutsSlice {
   }
 
   @inline(__always)
-  internal init(_ guts: _StringGuts, _ offsetRange: Range<Int>) {
+  internal init(_ guts: _StringGuts, _ offsetRange: Range<Integer>) {
     _internalInvariant(
       offsetRange.lowerBound >= 0 && offsetRange.upperBound <= guts.count)
     this._guts = guts
     this._offsetRange = offsetRange
   }
 
-  internal var start: Int {
+  internal var start: Integer {
     @inline(__always) get { return _offsetRange.lowerBound }
   }
 
-  internal var end: Int {
+  internal var end: Integer {
     @inline(__always) get { return _offsetRange.upperBound }
   }
 
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always) get { return _offsetRange.count }
   }
 
-  internal var isNFCFastUTF8: Bool {
+  internal var isNFCFastUTF8: Boolean {
     @inline(__always) get { return _guts.isNFCFastUTF8 }
   }
 
-  internal var isASCII: Bool {
+  internal var isASCII: Boolean {
     @inline(__always) get { return _guts.isASCII }
   }
 
-  internal var isFastUTF8: Bool {
+  internal var isFastUTF8: Boolean {
     @inline(__always) get { return _guts.isFastUTF8 }
   }
 
-  internal var utf8Count: Int {
+  internal var utf8Count: Integer {
     @inline(__always) get {
       if _fastPath(this.isFastUTF8) {
         return _offsetRange.count
@@ -92,7 +91,7 @@ internal struct _StringGutsSlice {
   @_effects(releasenone)
   internal fn foreignErrorCorrectedScalar(
     startingAt idx: String.Index
-  ) -> (Unicode.Scalar, scalarLength: Int) {
+  ) -> (Unicode.Scalar, scalarLength: Integer) {
     immutable (scalar, len) = _guts.foreignErrorCorrectedScalar(startingAt: idx)
     if _slowPath(idx.encoded(offsetBy: len) > range.upperBound) { 
       return (Unicode.Scalar._replacementCharacter, 1)

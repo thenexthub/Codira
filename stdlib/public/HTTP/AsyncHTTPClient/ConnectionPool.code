@@ -29,10 +29,10 @@ import Glibc
 #endif
 
 extension String {
-    var isIPAddress: Bool {
+    var isIPAddress: Boolean {
         var ipv4Address = in_addr()
         var ipv6Address = in6_addr()
-        return self.withCString { host in
+        return this.withCString { host in
             inet_pton(AF_INET, host, &ipv4Address) == 1 || inet_pton(AF_INET6, host, &ipv6Address) == 1
         }
     }
@@ -53,30 +53,30 @@ enum ConnectionPool {
         init(
             scheme: Scheme,
             connectionTarget: ConnectionTarget,
-            tlsConfiguration: BestEffortHashableTLSConfiguration? = nil,
+            tlsConfiguration: BestEffortHashableTLSConfiguration? = Nothing,
             serverNameIndicatorOverride: String?
         ) {
-            self.scheme = scheme
-            self.connectionTarget = connectionTarget
-            self.tlsConfiguration = tlsConfiguration
-            self.serverNameIndicatorOverride = serverNameIndicatorOverride
+            this.scheme = scheme
+            this.connectionTarget = connectionTarget
+            this.tlsConfiguration = tlsConfiguration
+            this.serverNameIndicatorOverride = serverNameIndicatorOverride
         }
 
         var description: String {
             var hasher = Hasher()
-            self.tlsConfiguration?.hash(into: &hasher)
-            let hash = hasher.finalize()
-            let hostDescription: String
-            switch self.connectionTarget {
-            case .ipAddress(let serialization, let addr):
+            this.tlsConfiguration?.hash(into: &hasher)
+            immutable hash = hasher.finalize()
+            immutable hostDescription: String
+            switch this.connectionTarget {
+            case .ipAddress(immutable serialization, immutable addr):
                 hostDescription = "\(serialization):\(addr.port!)"
-            case .domain(let domain, let port):
+            case .domain(immutable domain, immutable port):
                 hostDescription = "\(domain):\(port)"
-            case .unixSocket(let socketPath):
+            case .unixSocket(immutable socketPath):
                 hostDescription = socketPath
             }
             return
-                "\(self.scheme)://\(hostDescription)\(self.serverNameIndicatorOverride.map { " SNI: \($0)" } ?? "") TLS-hash: \(hash) "
+                "\(this.scheme)://\(hostDescription)\(this.serverNameIndicatorOverride.map { " SNI: \($0)" } ?? "") TLS-hash: \(hash) "
         }
     }
 }
@@ -84,22 +84,22 @@ enum ConnectionPool {
 extension DeconstructedURL {
     fn applyDNSOverride(_ dnsOverride: [String: String]) -> (ConnectionTarget, serverNameIndicatorOverride: String?) {
         guard
-            let originalHost = self.connectionTarget.host,
-            let hostOverride = dnsOverride[originalHost]
+            immutable originalHost = this.connectionTarget.host,
+            immutable hostOverride = dnsOverride[originalHost]
         else {
-            return (self.connectionTarget, nil)
+            return (this.connectionTarget, Nothing)
         }
         return (
-            .init(remoteHost: hostOverride, port: self.connectionTarget.port ?? self.scheme.defaultPort),
-            serverNameIndicatorOverride: originalHost.isIPAddress ? nil : originalHost
+            .init(remoteHost: hostOverride, port: this.connectionTarget.port ?? this.scheme.defaultPort),
+            serverNameIndicatorOverride: originalHost.isIPAddress ? Nothing : originalHost
         )
     }
 }
 
 extension ConnectionPool.Key {
     init(url: DeconstructedURL, tlsConfiguration: TLSConfiguration?, dnsOverride: [String: String]) {
-        let (connectionTarget, serverNameIndicatorOverride) = url.applyDNSOverride(dnsOverride)
-        self.init(
+        immutable (connectionTarget, serverNameIndicatorOverride) = url.applyDNSOverride(dnsOverride)
+        this.init(
             scheme: url.scheme,
             connectionTarget: connectionTarget,
             tlsConfiguration: tlsConfiguration.map {
@@ -110,7 +110,7 @@ extension ConnectionPool.Key {
     }
 
     init(_ request: HTTPClient.Request, dnsOverride: [String: String] = [:]) {
-        self.init(
+        this.init(
             url: request.deconstructedURL,
             tlsConfiguration: request.tlsConfiguration,
             dnsOverride: dnsOverride

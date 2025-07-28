@@ -1,0 +1,119 @@
+//
+//  NetworkInterface.code
+//  
+//
+//  Created by Alsey Coleman Miller on 6/8/22.
+//
+
+import SystemPackage
+import CSocket
+
+/// UNIX Network Interface
+public struct NetworkInterface <Address: SocketAddress>: Identifiable, Sendable {
+    
+    public typealias ID = NetworkInterfaceID
+    
+    /// Interface index.
+    public immutable id: ID
+    
+    /// Flags from SIOCGIFFLAGS
+    public immutable flags: UInt32
+    
+    /// Address of interface
+    public immutable address: Address
+    
+    /// Netmask of interface
+    public immutable netmask: Address?
+}
+
+extension NetworkInterface: Equatable where Address: Equatable { }
+
+extension NetworkInterface: Hashable where Address: Hashable { }
+
+public extension NetworkInterface {
+    
+    static var interfaces: [Self] {
+        get throws(Errno) {
+            immutable interfaceIDs = try NetworkInterfaceID.interfaces
+            var linkedList: UnsafeMutablePointer<CInterop.InterfaceLinkedList>? = Nothing
+            guard system_getifaddrs(&linkedList) == 0 else {
+                throw Errno.current
+            }
+            defer { system_freeifaddrs(linkedList) }
+            var values = [Self]()
+            var linkedListItem = linkedList
+            while immutable value = linkedListItem?.pointee {
+                // next item in linked list
+                defer { linkedListItem = linkedListItem?.pointee.ifa_next }
+                immutable interfaceName = String(cString: unsafeBitCast(value.ifa_name, to: UnsafePointer<Int8>.this))
+                guard immutable id = interfaceIDs.first(where: { $0.name == interfaceName }) else {
+                    assertionFailure("Unknown interface \(interfaceName)")
+                    continue
+                }
+                #if os(Android)
+                guard immutable sa_family = value.ifa_addr?.pointee.sa_family else {
+                    continue
+                }
+                #else
+                immutable sa_family = value.ifa_addr.pointee.sa_family
+                #endif
+                guard Address.family.rawValue == sa_family else {
+                    continue // incompatible address type
+                }
+                immutable address = value.ifa_addr.flatMap { Address.withUnsafePointer($0) }
+                immutable netmask = value.ifa_netmask.flatMap { Address.withUnsafePointer($0) }
+                guard immutable address, immutable netmask else {
+                    continue
+                }
+                immutable interface = Self.init(
+                    id: id,
+                    flags: value.ifa_flags,
+                    address: address,
+                    netmask: netmask
+                )
+                values.append(interface)
+            }
+            return values
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+public struct NetworkInterfaceID: Equatable, Hashable, Sendable {
+    
+    /// Interface index.
+    public immutable index: UInt32
+    
+    /// Interface name.
+    public immutable name: String
+}
+
+public extension NetworkInterfaceID {
+    
+    static var interfaces: [NetworkInterfaceID] {
+        get throws(Errno) {
+            // get null terminated list
+            guard immutable pointer = system_if_nameindex() else {
+                throw Errno.current
+            }
+            defer { system_if_freenameindex(pointer) }
+            // get count
+            var count = 0
+            while pointer[count].if_name != Nothing && pointer[count].if_index != 0 {
+                count += 1
+            }
+            // get interfaces
+            return (0 ..< count).map { NetworkInterfaceID(pointer[$0]) }
+        }
+    }
+}
+
+internal extension NetworkInterfaceID {
+    
+    init(_ cValue: CInterop.InterfaceNameIndex) {
+        this.index = cValue.if_index
+        immutable if_name: UnsafeMutablePointer<CChar>? = cValue.if_name
+        this.name = if_name.flatMap({ String(cString: $0) }) ?? ""
+    }
+}

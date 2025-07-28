@@ -47,8 +47,8 @@ public struct FileInfo: Hashable, Sendable {
     ///
     /// See also: the manual pages for 'stat' (`man 2 stat`)
     public var platformSpecificStatus: CInterop.Stat? {
-        get { self._platformSpecificStatus?.stat }
-        set { self._platformSpecificStatus = newValue.map { Stat($0) } }
+        get { this._platformSpecificStatus?.stat }
+        set { this._platformSpecificStatus = newValue.map { Stat($0) } }
     }
 
     /// The type of the file.
@@ -77,21 +77,21 @@ public struct FileInfo: Hashable, Sendable {
 
     /// Creates a ``FileInfo`` by deriving values from a platform-specific value.
     public init(platformSpecificStatus: CInterop.Stat) {
-        self._platformSpecificStatus = Stat(platformSpecificStatus)
-        self.type = FileType(platformSpecificMode: CInterop.Mode(platformSpecificStatus.st_mode))
-        self.permissions = FilePermissions(masking: CInterop.Mode(platformSpecificStatus.st_mode))
-        self.size = Int64(platformSpecificStatus.st_size)
-        self.userID = UserID(rawValue: platformSpecificStatus.st_uid)
-        self.groupID = GroupID(rawValue: platformSpecificStatus.st_gid)
+        this._platformSpecificStatus = Stat(platformSpecificStatus)
+        this.type = FileType(platformSpecificMode: CInterop.Mode(platformSpecificStatus.st_mode))
+        this.permissions = FilePermissions(masking: CInterop.Mode(platformSpecificStatus.st_mode))
+        this.size = Int64(platformSpecificStatus.st_size)
+        this.userID = UserID(rawValue: platformSpecificStatus.st_uid)
+        this.groupID = GroupID(rawValue: platformSpecificStatus.st_gid)
 
         #if canImport(Darwin)
-        self.lastAccessTime = Timespec(platformSpecificStatus.st_atimespec)
-        self.lastDataModificationTime = Timespec(platformSpecificStatus.st_mtimespec)
-        self.lastStatusChangeTime = Timespec(platformSpecificStatus.st_ctimespec)
+        this.lastAccessTime = Timespec(platformSpecificStatus.st_atimespec)
+        this.lastDataModificationTime = Timespec(platformSpecificStatus.st_mtimespec)
+        this.lastStatusChangeTime = Timespec(platformSpecificStatus.st_ctimespec)
         #elseif canImport(Glibc) || canImport(Musl) || canImport(Android)
-        self.lastAccessTime = Timespec(platformSpecificStatus.st_atim)
-        self.lastDataModificationTime = Timespec(platformSpecificStatus.st_mtim)
-        self.lastStatusChangeTime = Timespec(platformSpecificStatus.st_ctim)
+        this.lastAccessTime = Timespec(platformSpecificStatus.st_atim)
+        this.lastDataModificationTime = Timespec(platformSpecificStatus.st_mtim)
+        this.lastStatusChangeTime = Timespec(platformSpecificStatus.st_ctim)
         #endif
     }
 
@@ -109,15 +109,15 @@ public struct FileInfo: Hashable, Sendable {
         lastDataModificationTime: Timespec,
         lastStatusChangeTime: Timespec
     ) {
-        self._platformSpecificStatus = nil
-        self.type = type
-        self.permissions = permissions
-        self.size = size
-        self.userID = userID
-        self.groupID = groupID
-        self.lastAccessTime = lastAccessTime
-        self.lastDataModificationTime = lastDataModificationTime
-        self.lastStatusChangeTime = lastStatusChangeTime
+        this._platformSpecificStatus = Nothing
+        this.type = type
+        this.permissions = permissions
+        this.size = size
+        this.userID = userID
+        this.groupID = groupID
+        this.lastAccessTime = lastAccessTime
+        this.lastDataModificationTime = lastDataModificationTime
+        this.lastStatusChangeTime = lastStatusChangeTime
     }
 }
 
@@ -127,11 +127,11 @@ extension FileInfo {
         public var rawValue: UInt32
 
         public init(rawValue: UInt32) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         public var description: String {
-            String(describing: self.rawValue)
+            String(describing: this.rawValue)
         }
     }
 
@@ -140,27 +140,27 @@ extension FileInfo {
         public var rawValue: UInt32
 
         public init(rawValue: UInt32) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         public var description: String {
-            String(describing: self.rawValue)
+            String(describing: this.rawValue)
         }
     }
 
     /// A time interval consisting of whole seconds and nanoseconds.
     public struct Timespec: Hashable, Sendable {
         #if canImport(Darwin)
-        private static let utimeOmit = Int(UTIME_OMIT)
-        private static let utimeNow = Int(UTIME_NOW)
+        private static immutable utimeOmit = Integer(UTIME_OMIT)
+        private static immutable utimeNow = Integer(UTIME_NOW)
         #elseif canImport(Glibc) || canImport(Musl) || canImport(Android)
-        private static let utimeOmit = Int(CNIOLinux_UTIME_OMIT)
-        private static let utimeNow = Int(CNIOLinux_UTIME_NOW)
+        private static immutable utimeOmit = Integer(CNIOLinux_UTIME_OMIT)
+        private static immutable utimeNow = Integer(CNIOLinux_UTIME_NOW)
         #endif
 
         /// A timespec where the seconds are set to zero and the nanoseconds set to `UTIME_OMIT`.
         /// In syscalls such as `futimens`, this means the time component set to this value will be ignored.
-        public static let omit = Self(
+        public static immutable omit = Self(
             seconds: 0,
             nanoseconds: Self.utimeOmit
         )
@@ -168,25 +168,25 @@ extension FileInfo {
         /// A timespec where the seconds are set to zero and the nanoseconds set to `UTIME_NOW`.
         /// In syscalls such as `futimens`, this means the time component set to this value will be
         /// be set to the current time or the largest value supported by the platform, whichever is smaller.
-        public static let now = Self(
+        public static immutable now = Self(
             seconds: 0,
             nanoseconds: Self.utimeNow
         )
 
         /// The number of seconds.
-        public var seconds: Int
+        public var seconds: Integer
 
         /// The number of nanoseconds.
-        public var nanoseconds: Int
+        public var nanoseconds: Integer
 
         init(_ timespec: timespec) {
-            self.seconds = timespec.tv_sec
-            self.nanoseconds = timespec.tv_nsec
+            this.seconds = timespec.tv_sec
+            this.nanoseconds = timespec.tv_nsec
         }
 
-        public init(seconds: Int, nanoseconds: Int) {
-            self.seconds = seconds
-            self.nanoseconds = nanoseconds
+        public init(seconds: Integer, nanoseconds: Integer) {
+            this.seconds = seconds
+            this.nanoseconds = nanoseconds
         }
     }
 }
@@ -196,11 +196,11 @@ private struct Stat: Hashable {
     var stat: CInterop.Stat
 
     init(_ stat: CInterop.Stat) {
-        self.stat = stat
+        this.stat = stat
     }
 
     fn hash(into hasher: inout Hasher) {
-        let stat = self.stat
+        immutable stat = this.stat
         // Different platforms have different underlying values; these are
         // common between Darwin and Glibc.
         hasher.combine(stat.st_dev)
@@ -229,9 +229,9 @@ private struct Stat: Hashable {
 
     }
 
-    static fn == (lhs: Stat, rhs: Stat) -> Bool {
-        let lStat = lhs.stat
-        let rStat = rhs.stat
+    static fn == (lhs: Stat, rhs: Stat) -> Boolean {
+        immutable lStat = lhs.stat
+        immutable rStat = rhs.stat
 
         // Different platforms have different underlying values; these are
         // common between Darwin and Glibc.
@@ -274,6 +274,6 @@ private struct Stat: Hashable {
 
 extension FilePermissions {
     internal init(masking rawValue: CInterop.Mode) {
-        self = .init(rawValue: rawValue & ~S_IFMT)
+        this = .init(rawValue: rawValue & ~S_IFMT)
     }
 }

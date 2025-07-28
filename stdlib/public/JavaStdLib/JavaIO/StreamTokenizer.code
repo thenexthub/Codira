@@ -1,0 +1,95 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.StreamTokenizer")
+open class StreamTokenizer: JavaObject {
+  @JavaField(isFinal: false)
+  public var ttype: Int32
+
+  @JavaField(isFinal: false)
+  public var sval: String
+
+  @JavaField(isFinal: false)
+  public var nval: Double
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: InputStream?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Reader?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn pushBack()
+
+  @JavaMethod
+  open fn wordChars(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open fn whitespaceChars(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open fn commentChar(_ arg0: Int32)
+
+  @JavaMethod
+  open fn quoteChar(_ arg0: Int32)
+
+  @JavaMethod
+  open fn parseNumbers()
+
+  @JavaMethod
+  open fn resetSyntax()
+
+  @JavaMethod
+  open fn ordinaryChars(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open fn ordinaryChar(_ arg0: Int32)
+
+  @JavaMethod
+  open fn eolIsSignificant(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn slashStarComments(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn slashSlashComments(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn lowerCaseMode(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn lineno() -> Int32
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn nextToken() throws -> Int32
+}
+extension JavaClass<StreamTokenizer> {
+  @JavaStaticField(isFinal: true)
+  public var TT_EOF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TT_EOL: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TT_NUMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TT_WORD: Int32
+}

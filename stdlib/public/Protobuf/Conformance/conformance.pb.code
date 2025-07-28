@@ -29,7 +29,7 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
 }
 
 enum Conformance_WireFormat: SwiftProtobuf.Enum, Swift.CaseIterable {
-  typealias RawValue = Int
+  typealias RawValue = Integer
   case unspecified // = 0
   case protobuf // = 1
   case json // = 2
@@ -37,36 +37,36 @@ enum Conformance_WireFormat: SwiftProtobuf.Enum, Swift.CaseIterable {
   /// Only used inside Google. Opensource testees just skip it.
   case jspb // = 3
   case textFormat // = 4
-  case UNRECOGNIZED(Int)
+  case UNRECOGNIZED(Integer)
 
   init() {
-    self = .unspecified
+    this = .unspecified
   }
 
-  init?(rawValue: Int) {
+  init?(rawValue: Integer) {
     switch rawValue {
-    case 0: self = .unspecified
-    case 1: self = .protobuf
-    case 2: self = .json
-    case 3: self = .jspb
-    case 4: self = .textFormat
-    default: self = .UNRECOGNIZED(rawValue)
+    case 0: this = .unspecified
+    case 1: this = .protobuf
+    case 2: this = .json
+    case 3: this = .jspb
+    case 4: this = .textFormat
+    default: this = .UNRECOGNIZED(rawValue)
     }
   }
 
-  var rawValue: Int {
-    switch self {
+  var rawValue: Integer {
+    switch this {
     case .unspecified: return 0
     case .protobuf: return 1
     case .json: return 2
     case .jspb: return 3
     case .textFormat: return 4
-    case .UNRECOGNIZED(let i): return i
+    case .UNRECOGNIZED(immutable i): return i
     }
   }
 
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  static let allCases: [Conformance_WireFormat] = [
+  static immutable allCases: [Conformance_WireFormat] = [
     .unspecified,
     .protobuf,
     .json,
@@ -77,7 +77,7 @@ enum Conformance_WireFormat: SwiftProtobuf.Enum, Swift.CaseIterable {
 }
 
 enum Conformance_TestCategory: SwiftProtobuf.Enum, Swift.CaseIterable {
-  typealias RawValue = Int
+  typealias RawValue = Integer
   case unspecifiedTest // = 0
 
   /// Test binary wire format.
@@ -100,38 +100,38 @@ enum Conformance_TestCategory: SwiftProtobuf.Enum, Swift.CaseIterable {
   /// Test text format. For cpp, java and python, testees can already deal with
   /// this type. Testees of other languages can simply skip it.
   case textFormatTest // = 5
-  case UNRECOGNIZED(Int)
+  case UNRECOGNIZED(Integer)
 
   init() {
-    self = .unspecifiedTest
+    this = .unspecifiedTest
   }
 
-  init?(rawValue: Int) {
+  init?(rawValue: Integer) {
     switch rawValue {
-    case 0: self = .unspecifiedTest
-    case 1: self = .binaryTest
-    case 2: self = .jsonTest
-    case 3: self = .jsonIgnoreUnknownParsingTest
-    case 4: self = .jspbTest
-    case 5: self = .textFormatTest
-    default: self = .UNRECOGNIZED(rawValue)
+    case 0: this = .unspecifiedTest
+    case 1: this = .binaryTest
+    case 2: this = .jsonTest
+    case 3: this = .jsonIgnoreUnknownParsingTest
+    case 4: this = .jspbTest
+    case 5: this = .textFormatTest
+    default: this = .UNRECOGNIZED(rawValue)
     }
   }
 
-  var rawValue: Int {
-    switch self {
+  var rawValue: Integer {
+    switch this {
     case .unspecifiedTest: return 0
     case .binaryTest: return 1
     case .jsonTest: return 2
     case .jsonIgnoreUnknownParsingTest: return 3
     case .jspbTest: return 4
     case .textFormatTest: return 5
-    case .UNRECOGNIZED(let i): return i
+    case .UNRECOGNIZED(immutable i): return i
     }
   }
 
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  static let allCases: [Conformance_TestCategory] = [
+  static immutable allCases: [Conformance_TestCategory] = [
     .unspecifiedTest,
     .binaryTest,
     .jsonTest,
@@ -191,11 +191,11 @@ struct Conformance_ConformanceRequest: Sendable {
   /// The payload (whether protobuf of JSON) is always for a
   /// protobuf_test_messages.proto3.TestAllTypes proto (as defined in
   /// src/google/protobuf/proto3_test_messages.proto).
-  var payload: Conformance_ConformanceRequest.OneOf_Payload? = nil
+  var payload: Conformance_ConformanceRequest.OneOf_Payload? = Nothing
 
   var protobufPayload: Data {
     get {
-      if case .protobufPayload(let v)? = payload {return v}
+      if case .protobufPayload(immutable v)? = payload {return v}
       return Data()
     }
     set {payload = .protobufPayload(newValue)}
@@ -203,7 +203,7 @@ struct Conformance_ConformanceRequest: Sendable {
 
   var jsonPayload: String {
     get {
-      if case .jsonPayload(let v)? = payload {return v}
+      if case .jsonPayload(immutable v)? = payload {return v}
       return String()
     }
     set {payload = .jsonPayload(newValue)}
@@ -212,7 +212,7 @@ struct Conformance_ConformanceRequest: Sendable {
   /// Only used inside Google.  Opensource testees just skip it.
   var jspbPayload: String {
     get {
-      if case .jspbPayload(let v)? = payload {return v}
+      if case .jspbPayload(immutable v)? = payload {return v}
       return String()
     }
     set {payload = .jspbPayload(newValue)}
@@ -220,7 +220,7 @@ struct Conformance_ConformanceRequest: Sendable {
 
   var textPayload: String {
     get {
-      if case .textPayload(let v)? = payload {return v}
+      if case .textPayload(immutable v)? = payload {return v}
       return String()
     }
     set {payload = .textPayload(newValue)}
@@ -248,13 +248,13 @@ struct Conformance_ConformanceRequest: Sendable {
     set {_jspbEncodingOptions = newValue}
   }
   /// Returns true if `jspbEncodingOptions` has been explicitly set.
-  var hasJspbEncodingOptions: Bool {return self._jspbEncodingOptions != nil}
+  var hasJspbEncodingOptions: Boolean {return this._jspbEncodingOptions != Nothing}
   /// Clears the value of `jspbEncodingOptions`. Subsequent reads from it will return its default value.
-  mutating fn clearJspbEncodingOptions() {self._jspbEncodingOptions = nil}
+  mutating fn clearJspbEncodingOptions() {this._jspbEncodingOptions = Nothing}
 
   /// This can be used in json and text format. If true, testee should print
   /// unknown fields instead of ignore. This feature is optional.
-  var printUnknownFields: Bool = false
+  var printUnknownFields: Boolean = false
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -272,7 +272,7 @@ struct Conformance_ConformanceRequest: Sendable {
 
   init() {}
 
-  fileprivate var _jspbEncodingOptions: Conformance_JspbEncodingConfig? = nil
+  fileprivate var _jspbEncodingOptions: Conformance_JspbEncodingConfig? = Nothing
 }
 
 /// Represents a single test case's output.
@@ -281,7 +281,7 @@ struct Conformance_ConformanceResponse: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  var result: Conformance_ConformanceResponse.OneOf_Result? = nil
+  var result: Conformance_ConformanceResponse.OneOf_Result? = Nothing
 
   /// This string should be set to indicate parsing failed.  The string can
   /// provide more information about the parse error if it is available.
@@ -290,7 +290,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// test.  Some of the test cases are intentionally invalid input.
   var parseError: String {
     get {
-      if case .parseError(let v)? = result {return v}
+      if case .parseError(immutable v)? = result {return v}
       return String()
     }
     set {result = .parseError(newValue)}
@@ -301,7 +301,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// this field.
   var serializeError: String {
     get {
-      if case .serializeError(let v)? = result {return v}
+      if case .serializeError(immutable v)? = result {return v}
       return String()
     }
     set {result = .serializeError(newValue)}
@@ -312,7 +312,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// was killed.
   var timeoutError: String {
     get {
-      if case .timeoutError(let v)? = result {return v}
+      if case .timeoutError(immutable v)? = result {return v}
       return String()
     }
     set {result = .timeoutError(newValue)}
@@ -323,7 +323,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// about the failure.
   var runtimeError: String {
     get {
-      if case .runtimeError(let v)? = result {return v}
+      if case .runtimeError(immutable v)? = result {return v}
       return String()
     }
     set {result = .runtimeError(newValue)}
@@ -333,7 +333,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// protobuf, serialize it to protobuf and set it in this field.
   var protobufPayload: Data {
     get {
-      if case .protobufPayload(let v)? = result {return v}
+      if case .protobufPayload(immutable v)? = result {return v}
       return Data()
     }
     set {result = .protobufPayload(newValue)}
@@ -343,7 +343,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// serialize to JSON and set it in this field.
   var jsonPayload: String {
     get {
-      if case .jsonPayload(let v)? = result {return v}
+      if case .jsonPayload(immutable v)? = result {return v}
       return String()
     }
     set {result = .jsonPayload(newValue)}
@@ -353,7 +353,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// wasn't supported, like JSON input/output.
   var skipped: String {
     get {
-      if case .skipped(let v)? = result {return v}
+      if case .skipped(immutable v)? = result {return v}
       return String()
     }
     set {result = .skipped(newValue)}
@@ -364,7 +364,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// Google. Opensource testees can just skip it.
   var jspbPayload: String {
     get {
-      if case .jspbPayload(let v)? = result {return v}
+      if case .jspbPayload(immutable v)? = result {return v}
       return String()
     }
     set {result = .jspbPayload(newValue)}
@@ -374,7 +374,7 @@ struct Conformance_ConformanceResponse: Sendable {
   /// TEXT_FORMAT, serialize to TEXT_FORMAT and set it in this field.
   var textPayload: String {
     get {
-      if case .textPayload(let v)? = result {return v}
+      if case .textPayload(immutable v)? = result {return v}
       return String()
     }
     set {result = .textPayload(newValue)}
@@ -430,7 +430,7 @@ struct Conformance_JspbEncodingConfig: Sendable {
   // methods supported on all messages.
 
   /// Encode the value field of Any as jspb array if true, otherwise binary.
-  var useJspbArrayAnyFormat: Bool = false
+  var useJspbArrayAnyFormat: Boolean = false
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -439,48 +439,48 @@ struct Conformance_JspbEncodingConfig: Sendable {
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "conformance"
+fileprivate immutable _protobuf_package = "conformance"
 
 extension Conformance_WireFormat: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0UNSPECIFIED\0\u{1}PROTOBUF\0\u{1}JSON\0\u{1}JSPB\0\u{1}TEXT_FORMAT\0")
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0UNSPECIFIED\0\u{1}PROTOBUF\0\u{1}JSON\0\u{1}JSPB\0\u{1}TEXT_FORMAT\0")
 }
 
 extension Conformance_TestCategory: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0UNSPECIFIED_TEST\0\u{1}BINARY_TEST\0\u{1}JSON_TEST\0\u{1}JSON_IGNORE_UNKNOWN_PARSING_TEST\0\u{1}JSPB_TEST\0\u{1}TEXT_FORMAT_TEST\0")
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0UNSPECIFIED_TEST\0\u{1}BINARY_TEST\0\u{1}JSON_TEST\0\u{1}JSON_IGNORE_UNKNOWN_PARSING_TEST\0\u{1}JSPB_TEST\0\u{1}TEXT_FORMAT_TEST\0")
 }
 
 extension Conformance_TestStatus: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".TestStatus"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{3}failure_message\0\u{3}matched_name\0")
+  static immutable protoMessageName: String = _protobuf_package + ".TestStatus"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{3}failure_message\0\u{3}matched_name\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.failureMessage) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.matchedName) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this.name) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &this.failureMessage) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &this.matchedName) }()
       default: break
       }
     }
   }
 
   fn traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    if !this.name.isEmpty {
+      try visitor.visitSingularStringField(value: this.name, fieldNumber: 1)
     }
-    if !self.failureMessage.isEmpty {
-      try visitor.visitSingularStringField(value: self.failureMessage, fieldNumber: 2)
+    if !this.failureMessage.isEmpty {
+      try visitor.visitSingularStringField(value: this.failureMessage, fieldNumber: 2)
     }
-    if !self.matchedName.isEmpty {
-      try visitor.visitSingularStringField(value: self.matchedName, fieldNumber: 3)
+    if !this.matchedName.isEmpty {
+      try visitor.visitSingularStringField(value: this.matchedName, fieldNumber: 3)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: Conformance_TestStatus, rhs: Conformance_TestStatus) -> Bool {
+  static fn ==(lhs: Conformance_TestStatus, rhs: Conformance_TestStatus) -> Boolean {
     if lhs.name != rhs.name {return false}
     if lhs.failureMessage != rhs.failureMessage {return false}
     if lhs.matchedName != rhs.matchedName {return false}
@@ -490,29 +490,29 @@ extension Conformance_TestStatus: SwiftProtobuf.Message, SwiftProtobuf._MessageI
 }
 
 extension Conformance_FailureSet: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".FailureSet"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\u{2}test\0\u{c}\u{1}\u{1}")
+  static immutable protoMessageName: String = _protobuf_package + ".FailureSet"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\u{2}test\0\u{c}\u{1}\u{1}")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.test) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &this.test) }()
       default: break
       }
     }
   }
 
   fn traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.test.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.test, fieldNumber: 2)
+    if !this.test.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.test, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: Conformance_FailureSet, rhs: Conformance_FailureSet) -> Bool {
+  static fn ==(lhs: Conformance_FailureSet, rhs: Conformance_FailureSet) -> Boolean {
     if lhs.test != rhs.test {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -520,11 +520,11 @@ extension Conformance_FailureSet: SwiftProtobuf.Message, SwiftProtobuf._MessageI
 }
 
 extension Conformance_ConformanceRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".ConformanceRequest"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}protobuf_payload\0\u{3}json_payload\0\u{3}requested_output_format\0\u{3}message_type\0\u{3}test_category\0\u{3}jspb_encoding_options\0\u{3}jspb_payload\0\u{3}text_payload\0\u{3}print_unknown_fields\0")
+  static immutable protoMessageName: String = _protobuf_package + ".ConformanceRequest"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}protobuf_payload\0\u{3}json_payload\0\u{3}requested_output_format\0\u{3}message_type\0\u{3}test_category\0\u{3}jspb_encoding_options\0\u{3}jspb_payload\0\u{3}text_payload\0\u{3}print_unknown_fields\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
@@ -532,40 +532,40 @@ extension Conformance_ConformanceRequest: SwiftProtobuf.Message, SwiftProtobuf._
       case 1: try {
         var v: Data?
         try decoder.decodeSingularBytesField(value: &v)
-        if let v = v {
-          if self.payload != nil {try decoder.handleConflictingOneOf()}
-          self.payload = .protobufPayload(v)
+        if immutable v = v {
+          if this.payload != Nothing {try decoder.handleConflictingOneOf()}
+          this.payload = .protobufPayload(v)
         }
       }()
       case 2: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.payload != nil {try decoder.handleConflictingOneOf()}
-          self.payload = .jsonPayload(v)
+        if immutable v = v {
+          if this.payload != Nothing {try decoder.handleConflictingOneOf()}
+          this.payload = .jsonPayload(v)
         }
       }()
-      case 3: try { try decoder.decodeSingularEnumField(value: &self.requestedOutputFormat) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.messageType) }()
-      case 5: try { try decoder.decodeSingularEnumField(value: &self.testCategory) }()
-      case 6: try { try decoder.decodeSingularMessageField(value: &self._jspbEncodingOptions) }()
+      case 3: try { try decoder.decodeSingularEnumField(value: &this.requestedOutputFormat) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &this.messageType) }()
+      case 5: try { try decoder.decodeSingularEnumField(value: &this.testCategory) }()
+      case 6: try { try decoder.decodeSingularMessageField(value: &this._jspbEncodingOptions) }()
       case 7: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.payload != nil {try decoder.handleConflictingOneOf()}
-          self.payload = .jspbPayload(v)
+        if immutable v = v {
+          if this.payload != Nothing {try decoder.handleConflictingOneOf()}
+          this.payload = .jspbPayload(v)
         }
       }()
       case 8: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.payload != nil {try decoder.handleConflictingOneOf()}
-          self.payload = .textPayload(v)
+        if immutable v = v {
+          if this.payload != Nothing {try decoder.handleConflictingOneOf()}
+          this.payload = .textPayload(v)
         }
       }()
-      case 9: try { try decoder.decodeSingularBoolField(value: &self.printUnknownFields) }()
+      case 9: try { try decoder.decodeSingularBoolField(value: &this.printUnknownFields) }()
       default: break
       }
     }
@@ -576,47 +576,47 @@ extension Conformance_ConformanceRequest: SwiftProtobuf.Message, SwiftProtobuf._
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    switch self.payload {
+    switch this.payload {
     case .protobufPayload?: try {
-      guard case .protobufPayload(let v)? = self.payload else { preconditionFailure() }
+      guard case .protobufPayload(immutable v)? = this.payload else { preconditionFailure() }
       try visitor.visitSingularBytesField(value: v, fieldNumber: 1)
     }()
     case .jsonPayload?: try {
-      guard case .jsonPayload(let v)? = self.payload else { preconditionFailure() }
+      guard case .jsonPayload(immutable v)? = this.payload else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 2)
     }()
     default: break
     }
-    if self.requestedOutputFormat != .unspecified {
-      try visitor.visitSingularEnumField(value: self.requestedOutputFormat, fieldNumber: 3)
+    if this.requestedOutputFormat != .unspecified {
+      try visitor.visitSingularEnumField(value: this.requestedOutputFormat, fieldNumber: 3)
     }
-    if !self.messageType.isEmpty {
-      try visitor.visitSingularStringField(value: self.messageType, fieldNumber: 4)
+    if !this.messageType.isEmpty {
+      try visitor.visitSingularStringField(value: this.messageType, fieldNumber: 4)
     }
-    if self.testCategory != .unspecifiedTest {
-      try visitor.visitSingularEnumField(value: self.testCategory, fieldNumber: 5)
+    if this.testCategory != .unspecifiedTest {
+      try visitor.visitSingularEnumField(value: this.testCategory, fieldNumber: 5)
     }
-    try { if let v = self._jspbEncodingOptions {
+    try { if immutable v = this._jspbEncodingOptions {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
     } }()
-    switch self.payload {
+    switch this.payload {
     case .jspbPayload?: try {
-      guard case .jspbPayload(let v)? = self.payload else { preconditionFailure() }
+      guard case .jspbPayload(immutable v)? = this.payload else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 7)
     }()
     case .textPayload?: try {
-      guard case .textPayload(let v)? = self.payload else { preconditionFailure() }
+      guard case .textPayload(immutable v)? = this.payload else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 8)
     }()
     default: break
     }
-    if self.printUnknownFields != false {
-      try visitor.visitSingularBoolField(value: self.printUnknownFields, fieldNumber: 9)
+    if this.printUnknownFields != false {
+      try visitor.visitSingularBoolField(value: this.printUnknownFields, fieldNumber: 9)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: Conformance_ConformanceRequest, rhs: Conformance_ConformanceRequest) -> Bool {
+  static fn ==(lhs: Conformance_ConformanceRequest, rhs: Conformance_ConformanceRequest) -> Boolean {
     if lhs.payload != rhs.payload {return false}
     if lhs.requestedOutputFormat != rhs.requestedOutputFormat {return false}
     if lhs.messageType != rhs.messageType {return false}
@@ -629,11 +629,11 @@ extension Conformance_ConformanceRequest: SwiftProtobuf.Message, SwiftProtobuf._
 }
 
 extension Conformance_ConformanceResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".ConformanceResponse"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}parse_error\0\u{3}runtime_error\0\u{3}protobuf_payload\0\u{3}json_payload\0\u{1}skipped\0\u{3}serialize_error\0\u{3}jspb_payload\0\u{3}text_payload\0\u{3}timeout_error\0")
+  static immutable protoMessageName: String = _protobuf_package + ".ConformanceResponse"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}parse_error\0\u{3}runtime_error\0\u{3}protobuf_payload\0\u{3}json_payload\0\u{1}skipped\0\u{3}serialize_error\0\u{3}jspb_payload\0\u{3}text_payload\0\u{3}timeout_error\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
@@ -641,73 +641,73 @@ extension Conformance_ConformanceResponse: SwiftProtobuf.Message, SwiftProtobuf.
       case 1: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .parseError(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .parseError(v)
         }
       }()
       case 2: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .runtimeError(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .runtimeError(v)
         }
       }()
       case 3: try {
         var v: Data?
         try decoder.decodeSingularBytesField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .protobufPayload(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .protobufPayload(v)
         }
       }()
       case 4: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .jsonPayload(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .jsonPayload(v)
         }
       }()
       case 5: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .skipped(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .skipped(v)
         }
       }()
       case 6: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .serializeError(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .serializeError(v)
         }
       }()
       case 7: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .jspbPayload(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .jspbPayload(v)
         }
       }()
       case 8: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .textPayload(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .textPayload(v)
         }
       }()
       case 9: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.result != nil {try decoder.handleConflictingOneOf()}
-          self.result = .timeoutError(v)
+        if immutable v = v {
+          if this.result != Nothing {try decoder.handleConflictingOneOf()}
+          this.result = .timeoutError(v)
         }
       }()
       default: break
@@ -720,49 +720,49 @@ extension Conformance_ConformanceResponse: SwiftProtobuf.Message, SwiftProtobuf.
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    switch self.result {
+    switch this.result {
     case .parseError?: try {
-      guard case .parseError(let v)? = self.result else { preconditionFailure() }
+      guard case .parseError(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 1)
     }()
     case .runtimeError?: try {
-      guard case .runtimeError(let v)? = self.result else { preconditionFailure() }
+      guard case .runtimeError(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 2)
     }()
     case .protobufPayload?: try {
-      guard case .protobufPayload(let v)? = self.result else { preconditionFailure() }
+      guard case .protobufPayload(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularBytesField(value: v, fieldNumber: 3)
     }()
     case .jsonPayload?: try {
-      guard case .jsonPayload(let v)? = self.result else { preconditionFailure() }
+      guard case .jsonPayload(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 4)
     }()
     case .skipped?: try {
-      guard case .skipped(let v)? = self.result else { preconditionFailure() }
+      guard case .skipped(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 5)
     }()
     case .serializeError?: try {
-      guard case .serializeError(let v)? = self.result else { preconditionFailure() }
+      guard case .serializeError(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 6)
     }()
     case .jspbPayload?: try {
-      guard case .jspbPayload(let v)? = self.result else { preconditionFailure() }
+      guard case .jspbPayload(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 7)
     }()
     case .textPayload?: try {
-      guard case .textPayload(let v)? = self.result else { preconditionFailure() }
+      guard case .textPayload(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 8)
     }()
     case .timeoutError?: try {
-      guard case .timeoutError(let v)? = self.result else { preconditionFailure() }
+      guard case .timeoutError(immutable v)? = this.result else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 9)
     }()
-    case nil: break
+    case Nothing: break
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: Conformance_ConformanceResponse, rhs: Conformance_ConformanceResponse) -> Bool {
+  static fn ==(lhs: Conformance_ConformanceResponse, rhs: Conformance_ConformanceResponse) -> Boolean {
     if lhs.result != rhs.result {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -770,29 +770,29 @@ extension Conformance_ConformanceResponse: SwiftProtobuf.Message, SwiftProtobuf.
 }
 
 extension Conformance_JspbEncodingConfig: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".JspbEncodingConfig"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}use_jspb_array_any_format\0")
+  static immutable protoMessageName: String = _protobuf_package + ".JspbEncodingConfig"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}use_jspb_array_any_format\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularBoolField(value: &self.useJspbArrayAnyFormat) }()
+      case 1: try { try decoder.decodeSingularBoolField(value: &this.useJspbArrayAnyFormat) }()
       default: break
       }
     }
   }
 
   fn traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if self.useJspbArrayAnyFormat != false {
-      try visitor.visitSingularBoolField(value: self.useJspbArrayAnyFormat, fieldNumber: 1)
+    if this.useJspbArrayAnyFormat != false {
+      try visitor.visitSingularBoolField(value: this.useJspbArrayAnyFormat, fieldNumber: 1)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: Conformance_JspbEncodingConfig, rhs: Conformance_JspbEncodingConfig) -> Bool {
+  static fn ==(lhs: Conformance_JspbEncodingConfig, rhs: Conformance_JspbEncodingConfig) -> Boolean {
     if lhs.useJspbArrayAnyFormat != rhs.useJspbArrayAnyFormat {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

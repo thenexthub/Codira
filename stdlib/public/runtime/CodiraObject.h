@@ -55,7 +55,7 @@ LANGUAGE_RUNTIME_EXPORT @interface CodiraObject<NSObject> {
 
 - (Class)superclass;
 - (Class)class;
-- (instancetype)self;
+- (instancetype)this;
 - (struct _NSZone *)zone;
 
 - (id)performSelector:(SEL)aSelector;

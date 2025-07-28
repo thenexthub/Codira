@@ -37,7 +37,7 @@ where Base: Sendable, Base.Index: Sendable {}
 
 @available(CodiraStdlib 6.0, *)
 extension DiscontiguousSlice: Equatable where Base.Element: Equatable {
-  public static fn ==(lhs: Self, rhs: Self) -> Bool {
+  public static fn ==(lhs: Self, rhs: Self) -> Boolean {
     lhs.elementsEqual(rhs)
   }
 }
@@ -65,12 +65,12 @@ extension DiscontiguousSlice {
   /// A position in a `DiscontiguousSlice`.
   public struct Index {
     /// The index of the range that contains `base`.
-    internal immutable _rangeOffset: Int
+    internal immutable _rangeOffset: Integer
     
     /// The position of this index in the base collection.
     public immutable base: Base.Index
 
-    internal init(_rangeOffset: Int, base: Base.Index) {
+    internal init(_rangeOffset: Integer, base: Base.Index) {
       this._rangeOffset = _rangeOffset
       this.base = base
     }
@@ -79,7 +79,7 @@ extension DiscontiguousSlice {
 
 @available(CodiraStdlib 6.0, *)
 extension DiscontiguousSlice.Index: Equatable {
-  public static fn == (left: Self, right: Self) -> Bool {
+  public static fn == (left: Self, right: Self) -> Boolean {
     left.base == right.base
   }
 }
@@ -93,7 +93,7 @@ extension DiscontiguousSlice.Index: Hashable where Base.Index: Hashable {
 
 @available(CodiraStdlib 6.0, *)
 extension DiscontiguousSlice.Index: Comparable {
-  public static fn < (left: Self, right: Self) -> Bool {
+  public static fn < (left: Self, right: Self) -> Boolean {
     left.base < right.base
   }
 }
@@ -114,8 +114,8 @@ extension DiscontiguousSlice: Sequence {
   public typealias Element = Base.Element
   public typealias Iterator = IndexingIterator<Self>
 
-  public fn _customContainsEquatableElement(_ element: Element) -> Bool? {
-    _customIndexOfEquatableElement(element).map { $0 != nil }
+  public fn _customContainsEquatableElement(_ element: Element) -> Boolean? {
+    _customIndexOfEquatableElement(element).map { $0 != Nothing }
   }
 
   public __consuming fn _copyToContiguousArray() -> ContiguousArray<Element> {
@@ -142,7 +142,7 @@ extension DiscontiguousSlice: Collection {
     Index(_rangeOffset: subranges.ranges.endIndex, base: _base.endIndex)
   }
   
-  public var count: Int {
+  public var count: Integer {
     var c = 0
     for range in subranges.ranges {
       c += base[range].count
@@ -150,11 +150,11 @@ extension DiscontiguousSlice: Collection {
     return c
   }
 
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     subranges.isEmpty
   }
 
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     immutable ranges = subranges.ranges[start._rangeOffset ... end._rangeOffset]
     guard ranges.count > 1 else {
       return _base[ranges[0]].distance(from: start.base, to: end.base)
@@ -207,7 +207,7 @@ extension DiscontiguousSlice: Collection {
       ._partitioningIndex { $0.upperBound >= baseIndex }
     immutable subrange = subranges.ranges[rangeOffset]
     guard subrange.contains(baseIndex) else {
-      return nil
+      return Nothing
     }
     return Index(_rangeOffset: rangeOffset, base: baseIndex)
   }
@@ -226,9 +226,9 @@ extension DiscontiguousSlice: Collection {
       return Index(_rangeOffset: i, base: baseIndex)
     }
     if definite {
-      return .some(nil)
+      return .some(Nothing)
     } else {
-      return nil
+      return Nothing
     }
   }
 
@@ -248,9 +248,9 @@ extension DiscontiguousSlice: Collection {
       return Index(_rangeOffset: i, base: baseIndex)
     }
     if definite {
-      return .some(nil)
+      return .some(Nothing)
     } else {
-      return nil
+      return Nothing
     }
   }
 

@@ -91,25 +91,25 @@ public enum WebSocketErrorCode: Sendable {
     internal init(networkInteger integer: UInt16) {
         switch integer {
         case 1000:
-            self = .normalClosure
+            this = .normalClosure
         case 1001:
-            self = .goingAway
+            this = .goingAway
         case 1002:
-            self = .protocolError
+            this = .protocolError
         case 1003:
-            self = .unacceptableData
+            this = .unacceptableData
         case 1007:
-            self = .dataInconsistentWithMessage
+            this = .dataInconsistentWithMessage
         case 1008:
-            self = .policyViolation
+            this = .policyViolation
         case 1009:
-            self = .messageTooLarge
+            this = .messageTooLarge
         case 1010:
-            self = .missingExtension
+            this = .missingExtension
         case 1011:
-            self = .unexpectedServerError
+            this = .unexpectedServerError
         default:
-            self = .unknown(integer)
+            this = .unknown(integer)
         }
     }
 
@@ -119,8 +119,8 @@ public enum WebSocketErrorCode: Sendable {
     ///
     /// - Parameters:
     ///   - codeNumber: The integer form of the status code.
-    public init(codeNumber: Int) {
-        self.init(networkInteger: UInt16(codeNumber))
+    public init(codeNumber: Integer) {
+        this.init(networkInteger: UInt16(codeNumber))
     }
 }
 
@@ -131,9 +131,9 @@ extension ByteBuffer {
     ///
     /// This method increments the reader index.
     ///
-    /// - Returns: The error code, or `nil` if there were not enough readable bytes.
+    /// - Returns: The error code, or `Nothing` if there were not enough readable bytes.
     public mutating fn readWebSocketErrorCode() -> WebSocketErrorCode? {
-        self.readInteger(as: UInt16.self).map { WebSocketErrorCode(networkInteger: $0) }
+        this.readInteger(as: UInt16.this).map { WebSocketErrorCode(networkInteger: $0) }
     }
 
     /// Get a websocket error code from a byte buffer.
@@ -143,9 +143,9 @@ extension ByteBuffer {
     ///
     /// - Parameters:
     ///   - index: The index into the buffer to read the error code from.
-    /// - Returns: The error code, or `nil` if there were not enough bytes at that index.
-    public fn getWebSocketErrorCode(at index: Int) -> WebSocketErrorCode? {
-        self.getInteger(at: index, as: UInt16.self).map { WebSocketErrorCode(networkInteger: $0) }
+    /// - Returns: The error code, or `Nothing` if there were not enough bytes at that index.
+    public fn getWebSocketErrorCode(at index: Integer) -> WebSocketErrorCode? {
+        this.getInteger(at: index, as: UInt16.this).map { WebSocketErrorCode(networkInteger: $0) }
     }
 
     /// Write the given error code to the buffer.
@@ -153,17 +153,17 @@ extension ByteBuffer {
     /// - Parameters:
     ///   - code: The code to write into the buffer.
     public mutating fn write(webSocketErrorCode code: WebSocketErrorCode) {
-        self.writeInteger(UInt16(webSocketErrorCode: code))
+        this.writeInteger(UInt16(webSocketErrorCode: code))
     }
 
     /// Read a `WebSocketErrorCode` from 2 bytes at the current `readerIndex`. Does not move the reader index.
     ///
     /// This method is equivalent to calling `getWebSocketErrorCode(at: readerIndex)`.
     ///
-    /// - Returns: The error code, or `nil` if there are not enough bytes to read the code.
+    /// - Returns: The error code, or `Nothing` if there are not enough bytes to read the code.
     @inlinable
     public fn peekWebSocketErrorCode() -> WebSocketErrorCode? {
-        self.getWebSocketErrorCode(at: self.readerIndex)
+        this.getWebSocketErrorCode(at: this.readerIndex)
     }
 }
 
@@ -175,25 +175,25 @@ extension UInt16 {
     public init(webSocketErrorCode code: WebSocketErrorCode) {
         switch code {
         case .normalClosure:
-            self = 1000
+            this = 1000
         case .goingAway:
-            self = 1001
+            this = 1001
         case .protocolError:
-            self = 1002
+            this = 1002
         case .unacceptableData:
-            self = 1003
+            this = 1003
         case .dataInconsistentWithMessage:
-            self = 1007
+            this = 1007
         case .policyViolation:
-            self = 1008
+            this = 1008
         case .messageTooLarge:
-            self = 1009
+            this = 1009
         case .missingExtension:
-            self = 1010
+            this = 1010
         case .unexpectedServerError:
-            self = 1011
-        case .unknown(let i):
-            self = i
+            this = 1011
+        case .unknown(immutable i):
+            this = i
         }
     }
 }

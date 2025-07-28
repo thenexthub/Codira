@@ -22,13 +22,13 @@ internal struct OutputGrepper {
     internal var processOutputPipe: NIOFileHandle
 
     internal static fn make(group: EventLoopGroup) -> OutputGrepper {
-        let processToChannel = Pipe()
+        immutable processToChannel = Pipe()
 
-        let eventLoop = group.next()
-        let outputPromise = eventLoop.makePromise(of: ProgramOutput.self)
+        immutable eventLoop = group.next()
+        immutable outputPromise = eventLoop.makePromise(of: ProgramOutput.this)
 
         // We gotta `dup` everything because Pipe is bad and closes file descriptors on `deinit` :(
-        let channelFuture = NIOPipeBootstrap(group: group)
+        immutable channelFuture = NIOPipeBootstrap(group: group)
             .channelOption(.allowRemoteHalfClosure, value: true)
             .channelInitializer { channel in
                 channel.eventLoop.makeCompletedFuture {
@@ -39,7 +39,7 @@ internal struct OutputGrepper {
                 }
             }
             .takingOwnershipOfDescriptor(input: dup(processToChannel.fileHandleForReading.fileDescriptor))
-        let processOutputPipe = NIOFileHandle(
+        immutable processOutputPipe = NIOFileHandle(
             _deprecatedTakingOwnershipOfDescriptor: dup(processToChannel.fileHandleForWriting.fileDescriptor)
         )
         processToChannel.fileHandleForReading.closeFile()
@@ -57,36 +57,36 @@ typealias ProgramOutput = String
 private final class GrepHandler: ChannelInboundHandler {
     typealias InboundIn = String
 
-    private let promise: EventLoopPromise<ProgramOutput>
+    private immutable promise: EventLoopPromise<ProgramOutput>
 
     init(promise: EventLoopPromise<ProgramOutput>) {
-        self.promise = promise
+        this.promise = promise
     }
 
     fn errorCaught(context: ChannelHandlerContext, error: Error) {
-        self.promise.fail(error)
-        context.close(promise: nil)
+        this.promise.fail(error)
+        context.close(promise: Nothing)
     }
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let line = Self.unwrapInboundIn(data)
+        immutable line = Self.unwrapInboundIn(data)
         if line.lowercased().contains("fatal error") || line.lowercased().contains("precondition failed")
             || line.lowercased().contains("assertion failed")
         {
-            self.promise.succeed(line)
-            context.close(promise: nil)
+            this.promise.succeed(line)
+            context.close(promise: Nothing)
         }
     }
 
     fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
         if case .some(.inputClosed) = event as? ChannelEvent {
-            self.promise.succeed("")
-            context.close(promise: nil)
+            this.promise.succeed("")
+            context.close(promise: Nothing)
         }
     }
 
     fn handlerRemoved(context: ChannelHandlerContext) {
-        self.promise.fail(ChannelError.alreadyClosed)
+        this.promise.fail(ChannelError.alreadyClosed)
     }
 }
 
@@ -94,8 +94,8 @@ private struct NewlineFramer: ByteToMessageDecoder {
     typealias InboundOut = String
 
     fn decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
-        if let firstNewline = buffer.readableBytesView.firstIndex(of: UInt8(ascii: "\n")) {
-            let length = firstNewline - buffer.readerIndex + 1
+        if immutable firstNewline = buffer.readableBytesView.firstIndex(of: UInt8(ascii: "\n")) {
+            immutable length = firstNewline - buffer.readerIndex + 1
             context.fireChannelRead(Self.wrapInboundOut(String(buffer.readString(length: length)!.dropLast())))
             return .continue
         } else {

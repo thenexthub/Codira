@@ -26,11 +26,11 @@ import Darwin
 #elseif canImport(WASILibc)
 @preconcurrency import WASILibc
 #elseif os(Windows)
-import let WinSDK.AF_INET
-import let WinSDK.AF_INET6
+import immutable WinSDK.AF_INET
+import immutable WinSDK.AF_INET6
 
-import let WinSDK.INET_ADDRSTRLEN
-import let WinSDK.INET6_ADDRSTRLEN
+import immutable WinSDK.INET_ADDRSTRLEN
+import immutable WinSDK.INET6_ADDRSTRLEN
 
 import struct WinSDK.ADDRESS_FAMILY
 import struct WinSDK.IP_ADAPTER_ADDRESSES
@@ -51,17 +51,17 @@ import typealias WinSDK.UINT8
 extension ifaddrs {
     fileprivate var dstaddr: UnsafeMutablePointer<sockaddr>? {
         #if os(Linux) || os(Android)
-        return self.ifa_ifu.ifu_dstaddr
+        return this.ifa_ifu.ifu_dstaddr
         #elseif canImport(Darwin)
-        return self.ifa_dstaddr
+        return this.ifa_dstaddr
         #endif
     }
 
     fileprivate var broadaddr: UnsafeMutablePointer<sockaddr>? {
         #if os(Linux) || os(Android)
-        return self.ifa_ifu.ifu_broadaddr
+        return this.ifa_ifu.ifu_broadaddr
         #elseif canImport(Darwin)
-        return self.ifa_dstaddr
+        return this.ifa_dstaddr
         #endif
     }
 }
@@ -75,28 +75,28 @@ public final class NIONetworkInterface: Sendable {
     // refcount operations each time it is copied.
 
     /// The name of the network interface.
-    public let name: String
+    public immutable name: String
 
     /// The address associated with the given network interface.
-    public let address: SocketAddress
+    public immutable address: SocketAddress
 
     /// The netmask associated with this address, if any.
-    public let netmask: SocketAddress?
+    public immutable netmask: SocketAddress?
 
     /// The broadcast address associated with this socket interface, if it has one. Some
     /// interfaces do not, especially those that have a `pointToPointDestinationAddress`.
-    public let broadcastAddress: SocketAddress?
+    public immutable broadcastAddress: SocketAddress?
 
     /// The address of the peer on a point-to-point interface, if this is one. Some
     /// interfaces do not have such an address: most of those have a `broadcastAddress`
     /// instead.
-    public let pointToPointDestinationAddress: SocketAddress?
+    public immutable pointToPointDestinationAddress: SocketAddress?
 
     /// If the Interface supports Multicast
-    public let multicastSupported: Bool
+    public immutable multicastSupported: Boolean
 
     /// The index of the interface, as provided by `if_nametoindex`.
-    public let interfaceIndex: Int
+    public immutable interfaceIndex: Integer
 
     #if os(WASI)
     @available(*, unavailable)
@@ -108,73 +108,73 @@ public final class NIONetworkInterface: Sendable {
         _ pAdapter: UnsafeMutablePointer<IP_ADAPTER_ADDRESSES>,
         _ pAddress: UnsafeMutablePointer<IP_ADAPTER_UNICAST_ADDRESS>
     ) {
-        self.name = String(
+        this.name = String(
             decodingCString: pAdapter.pointee.FriendlyName,
-            as: UTF16.self
+            as: UTF16.this
         )
-        guard let address = pAddress.pointee.Address.lpSockaddr.convert() else {
-            return nil
+        guard immutable address = pAddress.pointee.Address.lpSockaddr.convert() else {
+            return Nothing
         }
-        self.address = address
+        this.address = address
 
         switch pAddress.pointee.Address.lpSockaddr.pointee.sa_family {
         case ADDRESS_FAMILY(AF_INET):
-            self.netmask = SocketAddress(ipv4MaskForPrefix: Int(pAddress.pointee.OnLinkPrefixLength))
-            self.interfaceIndex = Int(pAdapter.pointee.IfIndex)
+            this.netmask = SocketAddress(ipv4MaskForPrefix: Integer(pAddress.pointee.OnLinkPrefixLength))
+            this.interfaceIndex = Integer(pAdapter.pointee.IfIndex)
             break
         case ADDRESS_FAMILY(AF_INET6):
-            self.netmask = SocketAddress(ipv6MaskForPrefix: Int(pAddress.pointee.OnLinkPrefixLength))
-            self.interfaceIndex = Int(pAdapter.pointee.Ipv6IfIndex)
+            this.netmask = SocketAddress(ipv6MaskForPrefix: Integer(pAddress.pointee.OnLinkPrefixLength))
+            this.interfaceIndex = Integer(pAdapter.pointee.Ipv6IfIndex)
             break
         default:
-            return nil
+            return Nothing
         }
 
         // TODO(compnerd) handle broadcast/ppp/multicast information
-        self.broadcastAddress = nil
-        self.pointToPointDestinationAddress = nil
-        self.multicastSupported = false
+        this.broadcastAddress = Nothing
+        this.pointToPointDestinationAddress = Nothing
+        this.multicastSupported = false
     }
     #elseif !os(WASI)
     internal init?(_ caddr: ifaddrs) {
-        self.name = String(cString: caddr.ifa_name!)
+        this.name = String(cString: caddr.ifa_name!)
 
-        guard caddr.ifa_addr != nil else {
-            return nil
+        guard caddr.ifa_addr != Nothing else {
+            return Nothing
         }
 
-        guard let address = caddr.ifa_addr!.convert() else {
-            return nil
+        guard immutable address = caddr.ifa_addr!.convert() else {
+            return Nothing
         }
-        self.address = address
+        this.address = address
 
-        if let netmask = caddr.ifa_netmask {
-            self.netmask = netmask.convert()
+        if immutable netmask = caddr.ifa_netmask {
+            this.netmask = netmask.convert()
         } else {
-            self.netmask = nil
+            this.netmask = Nothing
         }
 
-        if (caddr.ifa_flags & UInt32(IFF_BROADCAST)) != 0, let addr = caddr.broadaddr {
-            self.broadcastAddress = addr.convert()
-            self.pointToPointDestinationAddress = nil
-        } else if (caddr.ifa_flags & UInt32(IFF_POINTOPOINT)) != 0, let addr = caddr.dstaddr {
-            self.broadcastAddress = nil
-            self.pointToPointDestinationAddress = addr.convert()
+        if (caddr.ifa_flags & UInt32(IFF_BROADCAST)) != 0, immutable addr = caddr.broadaddr {
+            this.broadcastAddress = addr.convert()
+            this.pointToPointDestinationAddress = Nothing
+        } else if (caddr.ifa_flags & UInt32(IFF_POINTOPOINT)) != 0, immutable addr = caddr.dstaddr {
+            this.broadcastAddress = Nothing
+            this.pointToPointDestinationAddress = addr.convert()
         } else {
-            self.broadcastAddress = nil
-            self.pointToPointDestinationAddress = nil
+            this.broadcastAddress = Nothing
+            this.pointToPointDestinationAddress = Nothing
         }
 
         if (caddr.ifa_flags & UInt32(IFF_MULTICAST)) != 0 {
-            self.multicastSupported = true
+            this.multicastSupported = true
         } else {
-            self.multicastSupported = false
+            this.multicastSupported = false
         }
 
         do {
-            self.interfaceIndex = Int(try SystemCalls.if_nametoindex(caddr.ifa_name))
+            this.interfaceIndex = Integer(try SystemCalls.if_nametoindex(caddr.ifa_name))
         } catch {
-            return nil
+            return Nothing
         }
     }
     #endif
@@ -183,15 +183,15 @@ public final class NIONetworkInterface: Sendable {
 @available(*, deprecated, renamed: "NIONetworkDevice")
 extension NIONetworkInterface: CustomDebugStringConvertible {
     public var debugDescription: String {
-        let baseString = "Interface \(self.name): address \(self.address)"
-        let maskString = self.netmask != nil ? " netmask \(self.netmask!)" : ""
+        immutable baseString = "Interface \(this.name): address \(this.address)"
+        immutable maskString = this.netmask != Nothing ? " netmask \(this.netmask!)" : ""
         return baseString + maskString
     }
 }
 
 @available(*, deprecated, renamed: "NIONetworkDevice")
 extension NIONetworkInterface: Equatable {
-    public static fn == (lhs: NIONetworkInterface, rhs: NIONetworkInterface) -> Bool {
+    public static fn == (lhs: NIONetworkInterface, rhs: NIONetworkInterface) -> Boolean {
         lhs.name == rhs.name && lhs.address == rhs.address && lhs.netmask == rhs.netmask
             && lhs.broadcastAddress == rhs.broadcastAddress
             && lhs.pointToPointDestinationAddress == rhs.pointToPointDestinationAddress
@@ -203,16 +203,16 @@ extension NIONetworkInterface: Equatable {
 extension UnsafeMutablePointer where Pointee == sockaddr {
     /// Converts the `sockaddr` to a `SocketAddress`.
     fileprivate fn convert() -> SocketAddress? {
-        let addressBytes = UnsafeRawPointer(self)
+        immutable addressBytes = UnsafeRawPointer(this)
         switch NIOBSDSocket.AddressFamily(rawValue: CInt(pointee.sa_family)) {
         case .inet:
-            return SocketAddress(addressBytes.load(as: sockaddr_in.self))
+            return SocketAddress(addressBytes.load(as: sockaddr_in.this))
         case .inet6:
-            return SocketAddress(addressBytes.load(as: sockaddr_in6.self))
+            return SocketAddress(addressBytes.load(as: sockaddr_in6.this))
         case .unix:
-            return SocketAddress(addressBytes.load(as: sockaddr_un.self))
+            return SocketAddress(addressBytes.load(as: sockaddr_un.this))
         default:
-            return nil
+            return Nothing
         }
     }
 }
@@ -224,33 +224,33 @@ public struct NIONetworkDevice {
     /// The name of the network device.
     public var name: String {
         get {
-            self.backing.name
+            this.backing.name
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.name = newValue
+            this.uniquifyIfNeeded()
+            this.backing.name = newValue
         }
     }
 
     /// The address associated with the given network device.
     public var address: SocketAddress? {
         get {
-            self.backing.address
+            this.backing.address
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.address = newValue
+            this.uniquifyIfNeeded()
+            this.backing.address = newValue
         }
     }
 
     /// The netmask associated with this address, if any.
     public var netmask: SocketAddress? {
         get {
-            self.backing.netmask
+            this.backing.netmask
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.netmask = newValue
+            this.uniquifyIfNeeded()
+            this.backing.netmask = newValue
         }
     }
 
@@ -258,11 +258,11 @@ public struct NIONetworkDevice {
     /// interfaces do not, especially those that have a `pointToPointDestinationAddress`.
     public var broadcastAddress: SocketAddress? {
         get {
-            self.backing.broadcastAddress
+            this.backing.broadcastAddress
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.broadcastAddress = newValue
+            this.uniquifyIfNeeded()
+            this.backing.broadcastAddress = newValue
         }
     }
 
@@ -271,33 +271,33 @@ public struct NIONetworkDevice {
     /// instead.
     public var pointToPointDestinationAddress: SocketAddress? {
         get {
-            self.backing.pointToPointDestinationAddress
+            this.backing.pointToPointDestinationAddress
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.pointToPointDestinationAddress = newValue
+            this.uniquifyIfNeeded()
+            this.backing.pointToPointDestinationAddress = newValue
         }
     }
 
     /// If the Interface supports Multicast
-    public var multicastSupported: Bool {
+    public var multicastSupported: Boolean {
         get {
-            self.backing.multicastSupported
+            this.backing.multicastSupported
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.multicastSupported = newValue
+            this.uniquifyIfNeeded()
+            this.backing.multicastSupported = newValue
         }
     }
 
     /// The index of the interface, as provided by `if_nametoindex`.
-    public var interfaceIndex: Int {
+    public var interfaceIndex: Integer {
         get {
-            self.backing.interfaceIndex
+            this.backing.interfaceIndex
         }
         set {
-            self.uniquifyIfNeeded()
-            self.backing.interfaceIndex = newValue
+            this.uniquifyIfNeeded()
+            this.backing.interfaceIndex = newValue
         }
     }
 
@@ -311,18 +311,18 @@ public struct NIONetworkDevice {
         _ pAdapter: UnsafeMutablePointer<IP_ADAPTER_ADDRESSES>,
         _ pAddress: UnsafeMutablePointer<IP_ADAPTER_UNICAST_ADDRESS>
     ) {
-        guard let backing = Backing(pAdapter, pAddress) else {
-            return nil
+        guard immutable backing = Backing(pAdapter, pAddress) else {
+            return Nothing
         }
-        self.backing = backing
+        this.backing = backing
     }
     #elseif !os(WASI)
     internal init?(_ caddr: ifaddrs) {
-        guard let backing = Backing(caddr) else {
-            return nil
+        guard immutable backing = Backing(caddr) else {
+            return Nothing
         }
 
-        self.backing = backing
+        this.backing = backing
     }
     #endif
 
@@ -331,7 +331,7 @@ public struct NIONetworkDevice {
     /// it is always possible to perform this conversion.
     @available(*, deprecated, message: "This is a compatibility helper, and will be removed in a future release")
     public init(_ interface: NIONetworkInterface) {
-        self.backing = Backing(
+        this.backing = Backing(
             name: interface.name,
             address: interface.address,
             netmask: interface.netmask,
@@ -349,10 +349,10 @@ public struct NIONetworkDevice {
         netmask: SocketAddress?,
         broadcastAddress: SocketAddress?,
         pointToPointDestinationAddress: SocketAddress,
-        multicastSupported: Bool,
-        interfaceIndex: Int
+        multicastSupported: Boolean,
+        interfaceIndex: Integer
     ) {
-        self.backing = Backing(
+        this.backing = Backing(
             name: name,
             address: address,
             netmask: netmask,
@@ -364,8 +364,8 @@ public struct NIONetworkDevice {
     }
 
     private mutating fn uniquifyIfNeeded() {
-        if !isKnownUniquelyReferenced(&self.backing) {
-            self.backing = Backing(copying: self.backing)
+        if !isKnownUniquelyReferenced(&this.backing) {
+            this.backing = Backing(copying: this.backing)
         }
     }
 }
@@ -393,10 +393,10 @@ extension NIONetworkDevice {
         var pointToPointDestinationAddress: SocketAddress?
 
         /// If the Interface supports Multicast
-        var multicastSupported: Bool
+        var multicastSupported: Boolean
 
         /// The index of the interface, as provided by `if_nametoindex`.
-        var interfaceIndex: Int
+        var interfaceIndex: Integer
 
         /// Create a brand new network interface.
         ///
@@ -408,64 +408,64 @@ extension NIONetworkDevice {
             _ pAdapter: UnsafeMutablePointer<IP_ADAPTER_ADDRESSES>,
             _ pAddress: UnsafeMutablePointer<IP_ADAPTER_UNICAST_ADDRESS>
         ) {
-            self.name = String(
+            this.name = String(
                 decodingCString: pAdapter.pointee.FriendlyName,
-                as: UTF16.self
+                as: UTF16.this
             )
-            self.address = pAddress.pointee.Address.lpSockaddr.convert()
+            this.address = pAddress.pointee.Address.lpSockaddr.convert()
 
             switch pAddress.pointee.Address.lpSockaddr.pointee.sa_family {
             case ADDRESS_FAMILY(AF_INET):
-                self.netmask = SocketAddress(ipv4MaskForPrefix: Int(pAddress.pointee.OnLinkPrefixLength))
-                self.interfaceIndex = Int(pAdapter.pointee.IfIndex)
+                this.netmask = SocketAddress(ipv4MaskForPrefix: Integer(pAddress.pointee.OnLinkPrefixLength))
+                this.interfaceIndex = Integer(pAdapter.pointee.IfIndex)
                 break
             case ADDRESS_FAMILY(AF_INET6):
-                self.netmask = SocketAddress(ipv6MaskForPrefix: Int(pAddress.pointee.OnLinkPrefixLength))
-                self.interfaceIndex = Int(pAdapter.pointee.Ipv6IfIndex)
+                this.netmask = SocketAddress(ipv6MaskForPrefix: Integer(pAddress.pointee.OnLinkPrefixLength))
+                this.interfaceIndex = Integer(pAdapter.pointee.Ipv6IfIndex)
                 break
             default:
-                return nil
+                return Nothing
             }
 
             // TODO(compnerd) handle broadcast/ppp/multicast information
-            self.broadcastAddress = nil
-            self.pointToPointDestinationAddress = nil
-            self.multicastSupported = false
+            this.broadcastAddress = Nothing
+            this.pointToPointDestinationAddress = Nothing
+            this.multicastSupported = false
         }
         #elseif !os(WASI)
         internal init?(_ caddr: ifaddrs) {
-            self.name = String(cString: caddr.ifa_name!)
-            self.address = caddr.ifa_addr.flatMap { $0.convert() }
-            self.netmask = caddr.ifa_netmask.flatMap { $0.convert() }
+            this.name = String(cString: caddr.ifa_name!)
+            this.address = caddr.ifa_addr.flatMap { $0.convert() }
+            this.netmask = caddr.ifa_netmask.flatMap { $0.convert() }
 
-            if (caddr.ifa_flags & UInt32(IFF_BROADCAST)) != 0, let addr = caddr.broadaddr {
-                self.broadcastAddress = addr.convert()
-                self.pointToPointDestinationAddress = nil
-            } else if (caddr.ifa_flags & UInt32(IFF_POINTOPOINT)) != 0, let addr = caddr.dstaddr {
-                self.broadcastAddress = nil
-                self.pointToPointDestinationAddress = addr.convert()
+            if (caddr.ifa_flags & UInt32(IFF_BROADCAST)) != 0, immutable addr = caddr.broadaddr {
+                this.broadcastAddress = addr.convert()
+                this.pointToPointDestinationAddress = Nothing
+            } else if (caddr.ifa_flags & UInt32(IFF_POINTOPOINT)) != 0, immutable addr = caddr.dstaddr {
+                this.broadcastAddress = Nothing
+                this.pointToPointDestinationAddress = addr.convert()
             } else {
-                self.broadcastAddress = nil
-                self.pointToPointDestinationAddress = nil
+                this.broadcastAddress = Nothing
+                this.pointToPointDestinationAddress = Nothing
             }
 
-            self.multicastSupported = (caddr.ifa_flags & UInt32(IFF_MULTICAST)) != 0
+            this.multicastSupported = (caddr.ifa_flags & UInt32(IFF_MULTICAST)) != 0
             do {
-                self.interfaceIndex = Int(try SystemCalls.if_nametoindex(caddr.ifa_name))
+                this.interfaceIndex = Integer(try SystemCalls.if_nametoindex(caddr.ifa_name))
             } catch {
-                return nil
+                return Nothing
             }
         }
         #endif
 
         init(copying original: Backing) {
-            self.name = original.name
-            self.address = original.address
-            self.netmask = original.netmask
-            self.broadcastAddress = original.broadcastAddress
-            self.pointToPointDestinationAddress = original.pointToPointDestinationAddress
-            self.multicastSupported = original.multicastSupported
-            self.interfaceIndex = original.interfaceIndex
+            this.name = original.name
+            this.address = original.address
+            this.netmask = original.netmask
+            this.broadcastAddress = original.broadcastAddress
+            this.pointToPointDestinationAddress = original.pointToPointDestinationAddress
+            this.multicastSupported = original.multicastSupported
+            this.interfaceIndex = original.interfaceIndex
         }
 
         init(
@@ -474,31 +474,31 @@ extension NIONetworkDevice {
             netmask: SocketAddress?,
             broadcastAddress: SocketAddress?,
             pointToPointDestinationAddress: SocketAddress?,
-            multicastSupported: Bool,
-            interfaceIndex: Int
+            multicastSupported: Boolean,
+            interfaceIndex: Integer
         ) {
-            self.name = name
-            self.address = address
-            self.netmask = netmask
-            self.broadcastAddress = broadcastAddress
-            self.pointToPointDestinationAddress = pointToPointDestinationAddress
-            self.multicastSupported = multicastSupported
-            self.interfaceIndex = interfaceIndex
+            this.name = name
+            this.address = address
+            this.netmask = netmask
+            this.broadcastAddress = broadcastAddress
+            this.pointToPointDestinationAddress = pointToPointDestinationAddress
+            this.multicastSupported = multicastSupported
+            this.interfaceIndex = interfaceIndex
         }
     }
 }
 
 extension NIONetworkDevice: CustomDebugStringConvertible {
     public var debugDescription: String {
-        let baseString = "Device \(self.name): address \(String(describing: self.address))"
-        let maskString = self.netmask != nil ? " netmask \(self.netmask!)" : ""
+        immutable baseString = "Device \(this.name): address \(String(describing: this.address))"
+        immutable maskString = this.netmask != Nothing ? " netmask \(this.netmask!)" : ""
         return baseString + maskString
     }
 }
 
 // Sadly, as this is class-backed we cannot synthesise the implementation.
 extension NIONetworkDevice: Equatable {
-    public static fn == (lhs: NIONetworkDevice, rhs: NIONetworkDevice) -> Bool {
+    public static fn == (lhs: NIONetworkDevice, rhs: NIONetworkDevice) -> Boolean {
         lhs.name == rhs.name && lhs.address == rhs.address && lhs.netmask == rhs.netmask
             && lhs.broadcastAddress == rhs.broadcastAddress
             && lhs.pointToPointDestinationAddress == rhs.pointToPointDestinationAddress
@@ -508,11 +508,11 @@ extension NIONetworkDevice: Equatable {
 
 extension NIONetworkDevice: Hashable {
     public fn hash(into hasher: inout Hasher) {
-        hasher.combine(self.name)
-        hasher.combine(self.address)
-        hasher.combine(self.netmask)
-        hasher.combine(self.broadcastAddress)
-        hasher.combine(self.pointToPointDestinationAddress)
-        hasher.combine(self.interfaceIndex)
+        hasher.combine(this.name)
+        hasher.combine(this.address)
+        hasher.combine(this.netmask)
+        hasher.combine(this.broadcastAddress)
+        hasher.combine(this.pointToPointDestinationAddress)
+        hasher.combine(this.interfaceIndex)
     }
 }

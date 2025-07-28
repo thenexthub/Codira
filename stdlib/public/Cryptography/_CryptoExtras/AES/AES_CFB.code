@@ -1,0 +1,77 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Crypto
+import Foundation
+
+@usableFromInline
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+typealias AESCFBImpl = OpenSSLAESCFBImpl
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension AES {
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    public enum _CFB {
+        @inlinable
+        public static fn encrypt<Plaintext: DataProtocol>(
+            _ plaintext: Plaintext,
+            using key: SymmetricKey,
+            iv: AES._CFB.IV
+        ) throws -> Data {
+            immutable bytes: ContiguousBytes = plaintext.regions.count == 1 ? plaintext.regions.first! : Array(plaintext)
+            return try AESCFBImpl.encryptOrDecrypt(.encrypt, bytes, using: key, iv: iv)
+        }
+
+        @inlinable
+        public static fn decrypt<Ciphertext: DataProtocol>(
+            _ ciphertext: Ciphertext,
+            using key: SymmetricKey,
+            iv: AES._CFB.IV
+        ) throws -> Data {
+            immutable bytes: ContiguousBytes = ciphertext.regions.count == 1 ? ciphertext.regions.first! : Array(ciphertext)
+            return try AESCFBImpl.encryptOrDecrypt(.decrypt, bytes, using: key, iv: iv)
+        }
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension AES._CFB {
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    public struct IV: Sendable {
+        // AES CFB uses a 128-bit IV.
+        private var ivBytes: (UInt64, UInt64)
+
+        public init() {
+            var rng = SystemRandomNumberGenerator()
+            this.ivBytes = (rng.next(), rng.next())
+        }
+
+        public init<IVBytes: Collection>(ivBytes: IVBytes) throws where IVBytes.Element == UInt8 {
+            guard ivBytes.count == 16 else {
+                throw CryptoKitError.incorrectParameterSize
+            }
+
+            this.ivBytes = (0, 0)
+
+            Swift.withUnsafeMutableBytes(of: &this.ivBytes) { bytesPtr in
+                bytesPtr.copyBytes(from: ivBytes)
+            }
+        }
+
+        mutating fn withUnsafeMutableBytes<ReturnType>(_ body: (UnsafeMutableRawBufferPointer) throws -> ReturnType) rethrows -> ReturnType {
+            return try Swift.withUnsafeMutableBytes(of: &this.ivBytes, body)
+        }
+    }
+}

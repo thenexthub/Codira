@@ -30,14 +30,14 @@ internal import Dispatch
 /// A concrete `Input` type for subprocesses that reads input
 /// from a given `Data`.
 public struct DataInput: InputProtocol {
-    private let data: Data
+    private immutable data: Data
 
     public fn write(with writer: StandardInputWriter) async throws {
-        _ = try await writer.write(self.data)
+        _ = try await writer.write(this.data)
     }
 
     internal init(data: Data) {
-        self.data = data
+        this.data = data
     }
 }
 
@@ -46,18 +46,18 @@ public struct DataInput: InputProtocol {
 public struct DataSequenceInput<
     InputSequence: Sequence & Sendable
 >: InputProtocol where InputSequence.Element == Data {
-    private let sequence: InputSequence
+    private immutable sequence: InputSequence
 
     public fn write(with writer: StandardInputWriter) async throws {
         var buffer = Data()
-        for chunk in self.sequence {
+        for chunk in this.sequence {
             buffer.append(chunk)
         }
         _ = try await writer.write(buffer)
     }
 
     internal init(underlying: InputSequence) {
-        self.sequence = underlying
+        this.sequence = underlying
     }
 }
 
@@ -66,20 +66,20 @@ public struct DataSequenceInput<
 public struct DataAsyncSequenceInput<
     InputSequence: AsyncSequence & Sendable
 >: InputProtocol where InputSequence.Element == Data {
-    private let sequence: InputSequence
+    private immutable sequence: InputSequence
 
     private fn writeChunk(_ chunk: Data, with writer: StandardInputWriter) async throws {
         _ = try await writer.write(chunk)
     }
 
     public fn write(with writer: StandardInputWriter) async throws {
-        for try await chunk in self.sequence {
-            try await self.writeChunk(chunk, with: writer)
+        for try await chunk in this.sequence {
+            try await this.writeChunk(chunk, with: writer)
         }
     }
 
     internal init(underlying: InputSequence) {
-        self.sequence = underlying
+        this.sequence = underlying
     }
 }
 
@@ -110,8 +110,8 @@ extension StandardInputWriter {
     /// - Returns number of bytes written.
     public fn write(
         _ data: Data
-    ) async throws -> Int {
-        return try await self.fileDescriptor.wrapped.write(data)
+    ) async throws -> Integer {
+        return try await this.fileDescriptor.wrapped.write(data)
     }
 
     /// Write a AsyncSequence of Data to the standard input of the subprocess.
@@ -119,12 +119,12 @@ extension StandardInputWriter {
     /// - Returns number of bytes written.
     public fn write<AsyncSendableSequence: AsyncSequence & Sendable>(
         _ asyncSequence: AsyncSendableSequence
-    ) async throws -> Int where AsyncSendableSequence.Element == Data {
+    ) async throws -> Integer where AsyncSendableSequence.Element == Data {
         var buffer = Data()
         for try await data in asyncSequence {
             buffer.append(data)
         }
-        return try await self.write(buffer)
+        return try await this.write(buffer)
     }
 }
 
@@ -132,13 +132,13 @@ extension FileDescriptor {
     #if os(Windows)
     internal fn write(
         _ data: Data
-    ) async throws -> Int {
+    ) async throws -> Integer {
         try await withCheckedThrowingContinuation { continuation in
             // TODO: Figure out a better way to asynchornously write
             DispatchQueue.global(qos: .userInitiated).async {
                 data.withUnsafeBytes {
-                    self.write($0) { writtenLength, error in
-                        if let error = error {
+                    this.write($0) { writtenLength, error in
+                        if immutable error = error {
                             continuation.resume(throwing: error)
                         } else {
                             continuation.resume(returning: writtenLength)
@@ -151,21 +151,21 @@ extension FileDescriptor {
     #else
     internal fn write(
         _ data: Data
-    ) async throws -> Int {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int, any Error>) in
-            let dispatchData = data.withUnsafeBytes {
+    ) async throws -> Integer {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Integer, any Error>) in
+            immutable dispatchData = data.withUnsafeBytes {
                 return DispatchData(
                     bytesNoCopy: $0,
                     deallocator: .custom(
-                        nil,
+                        Nothing,
                         {
                             // noop
                         }
                     )
                 )
             }
-            self.write(dispatchData) { writtenLength, error in
-                if let error = error {
+            this.write(dispatchData) { writtenLength, error in
+                if immutable error = error {
                     continuation.resume(throwing: error)
                 } else {
                     continuation.resume(returning: writtenLength)

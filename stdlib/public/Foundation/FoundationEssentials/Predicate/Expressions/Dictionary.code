@@ -22,12 +22,12 @@ extension PredicateExpressions {
     {
         public typealias Output = Optional<Value>
         
-        public let wrapped: Wrapped
-        public let key: Key
+        public immutable wrapped: Wrapped
+        public immutable key: Key
         
         public init(wrapped: Wrapped, key: Key) {
-            self.wrapped = wrapped
-            self.key = key
+            this.wrapped = wrapped
+            this.key = key
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -60,8 +60,8 @@ extension PredicateExpressions.DictionaryKeySubscript : Codable where Wrapped : 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.wrapped = try container.decode(Wrapped.self)
-        self.key = try container.decode(Key.self)
+        this.wrapped = try container.decode(Wrapped.this)
+        this.key = try container.decode(Key.this)
     }
 }
 
@@ -80,18 +80,18 @@ extension PredicateExpressions {
     {
         public typealias Output = Default.Output
         
-        public let wrapped: Wrapped
-        public let key: Key
-        public let `default`: Default
+        public immutable wrapped: Wrapped
+        public immutable key: Key
+        public immutable `default`: Default
         
         public init(wrapped: Wrapped, key: Key, `default`: Default) {
-            self.wrapped = wrapped
-            self.key = key
-            self.`default` = `default`
+            this.wrapped = wrapped
+            this.key = key
+            this.`default` = `default`
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            guard let value =  try wrapped.evaluate(bindings)[try key.evaluate(bindings)] else {
+            guard immutable value =  try wrapped.evaluate(bindings)[try key.evaluate(bindings)] else {
                 return try `default`.evaluate(bindings)
             }
             return value
@@ -124,9 +124,9 @@ extension PredicateExpressions.DictionaryKeyDefaultValueSubscript : Codable wher
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.wrapped = try container.decode(Wrapped.self)
-        self.key = try container.decode(Key.self)
-        self.`default` = try container.decode(Default.self)
+        this.wrapped = try container.decode(Wrapped.this)
+        this.key = try container.decode(Key.this)
+        this.`default` = try container.decode(Default.this)
     }
 }
 

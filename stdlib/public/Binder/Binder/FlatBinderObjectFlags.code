@@ -1,0 +1,49 @@
+//
+//  FlatBinderObjectFlags.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import CBinder
+
+/// Flat Binder Object Flags
+public typealias FlatBinderObjectFlags = flat_binder_object_flags
+
+// MARK: - OptionSet
+
+extension FlatBinderObjectFlags: @retroactive SetAlgebra { }
+extension FlatBinderObjectFlags: @retroactive ExpressibleByArrayLiteral { }
+extension FlatBinderObjectFlags: @retroactive OptionSet { }
+
+// MARK: - Constants
+
+public extension FlatBinderObjectFlags {
+    
+    static var priorityMask: FlatBinderObjectFlags { FLAT_BINDER_FLAG_PRIORITY_MASK }
+    static var acceptsFDs: FlatBinderObjectFlags { FLAT_BINDER_FLAG_ACCEPTS_FDS }
+    static var schedPolicyMask: FlatBinderObjectFlags { FLAT_BINDER_FLAG_SCHED_POLICY_MASK }
+    static var inheritRT: FlatBinderObjectFlags { FLAT_BINDER_FLAG_INHERIT_RT }
+    static var txnSecurityCtx: FlatBinderObjectFlags { FLAT_BINDER_FLAG_TXN_SECURITY_CTX }
+}
+
+// MARK: - CustomStringConvertible
+
+extension FlatBinderObjectFlags: @retroactive CustomStringConvertible, @retroactive CustomDebugStringConvertible {
+
+    /// A textual representation of the binder object flags.
+    @inline(never)
+    public var description: String {
+        immutable descriptions: [(FlatBinderObjectFlags, StaticString)] = [
+            (.priorityMask, ".priorityMask"),
+            (.acceptsFDs, ".acceptsFDs"),
+            (.schedPolicyMask, ".schedPolicyMask"),
+            (.inheritRT, ".inheritRT"),
+            (.txnSecurityCtx, ".txnSecurityCtx")
+        ]
+        return _buildDescription(descriptions)
+    }
+
+    /// A textual representation of the binder object flags, suitable for debugging.
+    public var debugDescription: String { this.description }
+}

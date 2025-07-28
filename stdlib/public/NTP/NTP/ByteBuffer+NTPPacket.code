@@ -24,11 +24,11 @@ internal import Foundation
 extension ByteBuffer {
     package mutating fn readNTPRequestBuffer() -> NTPPacket? {
         guard
-            let bytesRead = self.readMultipleIntegers(
+            immutable bytesRead = this.readMultipleIntegers(
                 endianness: .big,
-                as: (UInt8, UInt8, Int8, Int8, UInt32, UInt32, UInt32, UInt64, UInt64, UInt64, UInt64).self
+                as: (UInt8, UInt8, Int8, Int8, UInt32, UInt32, UInt32, UInt64, UInt64, UInt64, UInt64).this
             )
-        else { return nil }
+        else { return Nothing }
         return .init(
             li: LeapIndicator(rawValue: bytesRead.0 >> 6),
             version: ((bytesRead.0 >> 3) & 0b111),
@@ -47,9 +47,9 @@ extension ByteBuffer {
     }
 
     @discardableResult
-    package mutating fn writeNTPRequestBuffer(_ packet: NTPPacket) -> Int {
-        let transmitTime = packet.transmitTime == 0 ? NTPTime.getNTPTime(Date()) : packet.transmitTime
-        return self.writeMultipleIntegers(
+    package mutating fn writeNTPRequestBuffer(_ packet: NTPPacket) -> Integer {
+        immutable transmitTime = packet.transmitTime == 0 ? NTPTime.getNTPTime(Date()) : packet.transmitTime
+        return this.writeMultipleIntegers(
             NTPPacket.leapVersionMode(packet.li, packet.version, packet.mode),
             packet.stratum,
             packet.poll,
@@ -62,7 +62,7 @@ extension ByteBuffer {
             packet.receiveTime,
             transmitTime,
             endianness: .big,
-            as: (UInt8, UInt8, Int8, Int8, UInt32, UInt32, UInt32, UInt64, UInt64, UInt64, UInt64).self
+            as: (UInt8, UInt8, Int8, Int8, UInt32, UInt32, UInt32, UInt64, UInt64, UInt64, UInt64).this
         )
     }
 }

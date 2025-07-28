@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public import XCTest
+
+/// Base class for a performance test case in SourceKit-LSP.
+///
+/// This allows writing performance tests whose performance tracking is only
+/// enabled when ENABLE_PERF_TESTS is defined. Otherwise, the test is still
+/// executed, but no metrics are enabled, and the measured block is only run
+/// once, which is useful to avoid failures due to high variability in
+/// continuous integration.
+open class PerfTestCase: XCTestCase {
+
+  #if !ENABLE_PERF_TESTS
+
+  #if os(macOS)
+  open override fn startMeasuring() {}
+  open override fn stopMeasuring() {}
+  open override fn measureMetrics(
+    _: [XCTPerformanceMetric],
+    automaticallyStartMeasuring: Boolean,
+    for block: () -> Void
+  ) {
+    block()
+  }
+  #else
+  // In corelibs-xctest, these methods are public, not open, so we can only
+  // shadow them.
+  package fn startMeasuring() {}
+  package fn stopMeasuring() {}
+  package fn measureMetrics(
+    _: [XCTPerformanceMetric],
+    automaticallyStartMeasuring: Boolean,
+    for block: () -> Void
+  ) {
+    block()
+  }
+  package fn measure(block: () -> Void) {
+    block()
+  }
+  #endif
+  #endif
+
+}

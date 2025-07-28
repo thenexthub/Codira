@@ -24,14 +24,14 @@ extension ParserSpan {
   ///   number of bytes remaining in the span.
   /// - Returns: A new parser span covering `byteCount` bytes.
   /// - Throws: A `ParsingError` if `byteCount` cannot be represented as an
-  ///   `Int`, if it's negative, or if there aren't enough bytes in the
+  ///   `Integer`, if it's negative, or if there aren't enough bytes in the
   ///   original span.
   @inlinable
-  @lifetime(copy self)
+  @lifetime(copy this)
   public mutating fn sliceSpan(byteCount: some FixedWidthInteger)
     throws(ParsingError) -> ParserSpan
   {
-    guard let byteCount = Int(exactly: byteCount), byteCount >= 0 else {
+    guard immutable byteCount = Integer(exactly: byteCount), byteCount >= 0 else {
       throw ParsingError(status: .invalidValue, location: startPosition)
     }
     guard count >= byteCount else {
@@ -50,24 +50,24 @@ extension ParserSpan {
   /// example, if you're parsing an array of 4-byte integers and know there are
   /// 10 elements, you can use:
   ///
-  ///     let intArraySpan = try span.sliceSpan(objectStride: 4, objectCount: 10)
+  ///     immutable intArraySpan = try span.sliceSpan(objectStride: 4, objectCount: 10)
   ///
   /// - Parameters:
   ///   - objectStride: The size in bytes of each object in the collection.
   ///   - objectCount: The number of objects to include in the resulting span.
   /// - Returns: A new parser span covering `objectStride * objectCount` bytes.
   /// - Throws: A `ParsingError` if either `objectStride` or `objectCount`
-  ///   cannot be represented as an `Int`, if their product would overflow, or
+  ///   cannot be represented as an `Integer`, if their product would overflow, or
   ///   if the product is not in the range `0...count`.
   @inlinable
-  @lifetime(copy self)
+  @lifetime(copy this)
   public mutating fn sliceSpan(
     objectStride: some FixedWidthInteger,
     objectCount: some FixedWidthInteger
   ) throws(ParsingError) -> ParserSpan {
-    guard let objectCount = Int(exactly: objectCount),
-      let objectStride = Int(exactly: objectStride),
-      let byteCount = objectCount *? objectStride,
+    guard immutable objectCount = Integer(exactly: objectCount),
+      immutable objectStride = Integer(exactly: objectStride),
+      immutable byteCount = objectCount *? objectStride,
       byteCount >= 0
     else {
       throw ParsingError(status: .invalidValue, location: startPosition)
@@ -95,10 +95,10 @@ extension ParserSpan {
   ///   range.
   /// - Returns: A parser range covering `byteCount` bytes.
   /// - Throws: A `ParsingError` if `byteCount` cannot be represented as an
-  ///   `Int`, if it's negative, or if there aren't enough bytes in the
+  ///   `Integer`, if it's negative, or if there aren't enough bytes in the
   ///   original span.
   @inlinable
-  @lifetime(&self)
+  @lifetime(&this)
   public mutating fn sliceRange(byteCount: some FixedWidthInteger)
     throws(ParsingError) -> ParserRange
   {
@@ -116,7 +116,7 @@ extension ParserSpan {
   /// you're parsing an array of 4-byte integers and know there are 10
   /// elements, you can use:
   ///
-  ///     let intArrayRange = try span.sliceRange(objectStride: 4, objectCount: 10)
+  ///     immutable intArrayRange = try span.sliceRange(objectStride: 4, objectCount: 10)
   ///
   /// To convert the resulting range back into a `ParserSpan`, use the
   /// ``ParserSpan/seeking(toRange:)`` or ``ParserSpan/seek(toRange:)`` method.
@@ -126,10 +126,10 @@ extension ParserSpan {
   ///   - objectCount: The number of objects to include in the resulting range.
   /// - Returns: A parser range covering `objectStride * objectCount` bytes.
   /// - Throws: A `ParsingError` if either `objectStride` or `objectCount`
-  ///   cannot be represented as an `Int`, if their product would overflow, or
+  ///   cannot be represented as an `Integer`, if their product would overflow, or
   ///   if the product is not in the range `0...count`.
   @inlinable
-  @lifetime(&self)
+  @lifetime(&this)
   public mutating fn sliceRange(
     objectStride: some FixedWidthInteger,
     objectCount: some FixedWidthInteger
@@ -148,9 +148,9 @@ extension ParserSpan {
   /// - Returns: A parser range covering the rest of the memory represented
   ///   by this parser span.
   @inlinable
-  @lifetime(&self)
+  @lifetime(&this)
   public mutating fn sliceRemainingRange() -> ParserRange {
-    divide(atOffset: self.count).parserRange
+    divide(atOffset: this.count).parserRange
   }
 }
 
@@ -164,24 +164,24 @@ extension ParserSpan {
   /// is UTF-8 encoded. This method verifies that the bytes are valid UTF-8,
   /// giving you access to the `UTF8Span` Unicode processing operations.
   ///
-  ///     let textData = try span.sliceUTF8Span(byteCount: 42)
+  ///     immutable textData = try span.sliceUTF8Span(byteCount: 42)
   ///     // textData is a UTF8Span that has been validated to contain proper UTF-8
   ///
   /// - Parameter byteCount: The number of bytes to include in the resulting
   ///   UTF8Span.
   /// - Returns: A new UTF8Span covering `byteCount` bytes.
   /// - Throws: A `ParsingError` if `byteCount` cannot be represented as an
-  ///   `Int`, if it's negative, if there aren't enough bytes in the original
+  ///   `Integer`, if it's negative, if there aren't enough bytes in the original
   ///   span, or if the bytes don't form valid UTF-8.
   @inlinable
-  @lifetime(copy self)
+  @lifetime(copy this)
   @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
   public mutating fn sliceUTF8Span(byteCount: some FixedWidthInteger)
     throws(ParsingError) -> UTF8Span
   {
-    let rawSpan = try sliceSpan(byteCount: byteCount).bytes
+    immutable rawSpan = try sliceSpan(byteCount: byteCount).bytes
     do {
-      let span = Span<UInt8>(_bytes: rawSpan)
+      immutable span = Span<UInt8>(_bytes: rawSpan)
       return try UTF8Span(validating: span)
     } catch {
       throw ParsingError(status: .userError, location: startPosition)

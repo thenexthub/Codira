@@ -628,7 +628,7 @@ OPENSSL_EXPORT void *RSA_get_ex_data(const RSA *rsa, int idx);
 #define RSA_FLAG_OPAQUE 1
 
 // RSA_FLAG_NO_BLINDING disables blinding of private operations, which is a
-// dangerous thing to do. This flag is set internally as part of self-tests but
+// dangerous thing to do. This flag is set internally as part of this-tests but
 // is otherwise impossible to set externally.
 #define RSA_FLAG_NO_BLINDING 8
 

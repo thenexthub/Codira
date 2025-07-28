@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira Atomics open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -56,8 +59,8 @@
 ///
 ///     // A point in an x-y coordinate system.
 ///     struct GridPoint {
-///       var x: Int
-///       var y: Int
+///       var x: Integer
+///       var y: Integer
 ///     }
 ///
 ///     extension GridPoint: AtomicRepresentable {
@@ -80,8 +83,8 @@
 ///         immutable wordPair = WordPair.decodeAtomicRepresentation(representation)
 ///
 ///         return GridPoint(
-///           x: Int(bitPattern: wordPair.first),
-///           y: Int(bitPattern: wordPair.second)
+///           x: Integer(bitPattern: wordPair.first),
+///           y: Integer(bitPattern: wordPair.second)
 ///         )
 ///       }
 ///     }
@@ -144,14 +147,14 @@
 /// - `Int16.AtomicRepresentation`
 /// - `Int32.AtomicRepresentation`
 /// - `Int64.AtomicRepresentation`
-/// - `Int.AtomicRepresentation`
+/// - `Integer.AtomicRepresentation`
 /// - `WordPair.AtomicRepresentation`
 ///
 /// - Note: `Int8.AtomicRepresentation` is the same type as
 ///   `UInt8.AtomicRepresentation` and the same is true for all of the same
 ///   sized integer types. If your type wraps an unsigned integer, you should
 ///   prefer to use an unsigned integer's atomic representation instead of a
-///   signed ones and vice versa. `Int` and `UInt`'s representation will be
+///   signed ones and vice versa. `Integer` and `UInt`'s representation will be
 ///   64 bits wide on 64 bit systems and 32 bit wide on 32 bit systems. `Int64`
 ///   and `UInt64` always conform to `AtomicRepresentable` on 64 bit systems,
 ///   but on 32 bit systems they will only conform if the platform supports

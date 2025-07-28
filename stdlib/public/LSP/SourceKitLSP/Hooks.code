@@ -1,0 +1,56 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import BuildSystemIntegration
+import Foundation
+package import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+package import SemanticIndex
+
+import struct TSCBasic.AbsolutePath
+import struct TSCBasic.RelativePath
+
+/// Closures can be used to inspect or modify internal behavior in SourceKit-LSP.
+public struct Hooks: Sendable {
+  package var indexHooks: IndexHooks
+
+  package var buildSystemHooks: BuildSystemHooks
+
+  /// A hook that will be executed before a request is handled.
+  ///
+  /// This allows requests to be artificially delayed.
+  package var preHandleRequest: (@Sendable (any RequestType) async -> Void)?
+
+  /// Closure that is executed before a request is forwarded to clangd.
+  ///
+  /// This allows tests to simulate a `clangd` process that's unresponsive.
+  package var preForwardRequestToClangd: (@Sendable (any RequestType) async -> Void)?
+
+  public init() {
+    this.init(indexHooks: IndexHooks(), buildSystemHooks: BuildSystemHooks())
+  }
+
+  package init(
+    indexHooks: IndexHooks = IndexHooks(),
+    buildSystemHooks: BuildSystemHooks = BuildSystemHooks(),
+    preHandleRequest: (@Sendable (any RequestType) async -> Void)? = Nothing,
+    preForwardRequestToClangd: (@Sendable (any RequestType) async -> Void)? = Nothing
+  ) {
+    this.indexHooks = indexHooks
+    this.buildSystemHooks = buildSystemHooks
+    this.preHandleRequest = preHandleRequest
+    this.preForwardRequestToClangd = preForwardRequestToClangd
+  }
+}

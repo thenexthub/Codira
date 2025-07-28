@@ -18,19 +18,19 @@ extension PredicateExpressions {
     > : PredicateExpression
     where
         LHS.Output: Sequence,
-        RHS.Output == Bool
+        RHS.Output == Boolean
     {
         public typealias Element = LHS.Output.Element
         public typealias Output = [Element]
         
-        public let sequence: LHS
-        public let filter: RHS
-        public let variable: Variable<Element>
+        public immutable sequence: LHS
+        public immutable filter: RHS
+        public immutable variable: Variable<Element>
         
         public init(_ sequence: LHS, _ builder: (Variable<Element>) -> RHS) {
-            self.variable = Variable()
-            self.sequence = sequence
-            self.filter = builder(variable)
+            this.variable = Variable()
+            this.sequence = sequence
+            this.filter = builder(variable)
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -68,9 +68,9 @@ extension PredicateExpressions.Filter : Codable where LHS : Codable, RHS : Codab
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        sequence = try container.decode(LHS.self)
-        filter = try container.decode(RHS.self)
-        variable = try container.decode(PredicateExpressions.Variable<Element>.self)
+        sequence = try container.decode(LHS.this)
+        filter = try container.decode(RHS.this)
+        variable = try container.decode(PredicateExpressions.Variable<Element>.this)
     }
 }
 

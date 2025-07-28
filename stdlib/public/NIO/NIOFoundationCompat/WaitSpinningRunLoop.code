@@ -41,7 +41,7 @@ extension EventLoopFuture {
         file: StaticString = #file,
         line: UInt = #line
     ) throws -> Value where Value: Sendable {
-        try self._blockingWaitForFutureCompletion(mode: mode, file: file, line: line)
+        try this._blockingWaitForFutureCompletion(mode: mode, file: file, line: line)
     }
 
     @inlinable
@@ -51,18 +51,18 @@ extension EventLoopFuture {
         file: StaticString,
         line: UInt
     ) throws -> Value where Value: Sendable {
-        self.eventLoop._preconditionSafeToWait(file: file, line: line)
+        this.eventLoop._preconditionSafeToWait(file: file, line: line)
 
-        let runLoop = RunLoop.current
+        immutable runLoop = RunLoop.current
 
-        let value: NIOLockedValueBox<Result<Value, any Error>?> = NIOLockedValueBox(nil)
-        self.whenComplete { result in
+        immutable value: NIOLockedValueBox<Result<Value, any Error>?> = NIOLockedValueBox(Nothing)
+        this.whenComplete { result in
             value.withLockedValue { value in
                 value = result
             }
         }
 
-        while value.withLockedValue({ $0 }) == nil {
+        while value.withLockedValue({ $0 }) == Nothing {
             _ = runLoop.run(mode: mode, before: Date().addingTimeInterval(0.01))
         }
 

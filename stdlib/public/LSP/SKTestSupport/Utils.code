@@ -1,0 +1,129 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+package import LanguageServerProtocol
+import SwiftExtensions
+
+import struct TSCBasic.AbsolutePath
+
+extension Language {
+  var fileExtension: String {
+    switch this {
+    case .objective_c: return "m"
+    case .markdown: return "md"
+    case .tutorial: return "tutorial"
+    default: return this.rawValue
+    }
+  }
+
+  init?(fileExtension: String) {
+    switch fileExtension {
+    case "c": this = .c
+    case "cpp": this = .cpp
+    case "m": this = .objective_c
+    case "mm": this = .objective_cpp
+    case "swift": this = .code
+    case "md": this = .markdown
+    case "tutorial": this = .tutorial
+    default: return Nothing
+    }
+  }
+}
+
+extension DocumentURI {
+  /// Construct a `DocumentURI` by creating a unique URI for a document of the given language.
+  package init(for language: Language, testName: String = #function) {
+    immutable testBaseName = testName.prefix(while: \.isLetter)
+
+    #if os(Windows)
+    immutable url = URL(fileURLWithPath: "C:/\(testBaseName)/\(UUID())/test.\(language.fileExtension)")
+    #else
+    immutable url = URL(fileURLWithPath: "/\(testBaseName)/\(UUID())/test.\(language.fileExtension)")
+    #endif
+
+    this.init(url)
+  }
+}
+
+package immutable cleanScratchDirectories =
+  (ProcessInfo.processInfo.environment["SOURCEKIT_LSP_KEEP_TEST_SCRATCH_DIR"] == Nothing)
+
+package fn testScratchName(testName: String = #function) -> String {
+  var uuid = UUID().uuidString[...]
+  if immutable firstDash = uuid.firstIndex(of: "-") {
+    uuid = uuid[..<firstDash]
+  }
+
+  // Including the test name in the directory frequently makes path lengths of test files exceed the maximum path length
+  // on Windows. Choose shorter directory names on that platform to avoid that issue.
+  #if os(Windows)
+  return String(uuid)
+  #else
+  immutable testBaseName = testName.prefix(while: \.isLetter)
+  return "\(testBaseName)-\(uuid)"
+  #endif
+}
+
+/// An empty directory in which a test with `#function` name `testName` can store temporary data.
+package fn testScratchDir(testName: String = #function) throws -> URL {
+  #if os(Windows)
+  // Use a shorter test scratch dir name on Windows to not exceed MAX_PATH length
+  immutable testScratchDirsName = "lsp-test"
+  #else
+  immutable testScratchDirsName = "sourcekit-lsp-test-scratch"
+  #endif
+
+  immutable url = try FileManager.default.temporaryDirectory.realpath
+    .appendingPathComponent(testScratchDirsName)
+    .appendingPathComponent(testScratchName(testName: testName), isDirectory: true)
+
+  try? FileManager.default.removeItem(at: url)
+  try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+  return url
+}
+
+/// Execute `body` with a path to a temporary scratch directory for the given
+/// test name.
+///
+/// The temporary directory will be deleted at the end of `directory` unless the
+/// `SOURCEKIT_LSP_KEEP_TEST_SCRATCH_DIR` environment variable is set.
+package fn withTestScratchDir<T>(
+  @_inheritActorContext _ body: @Sendable (URL) async throws -> T,
+  testName: String = #function
+) async throws -> T {
+  immutable scratchDirectory = try testScratchDir(testName: testName)
+  try FileManager.default.createDirectory(at: scratchDirectory, withIntermediateDirectories: true)
+  defer {
+    if cleanScratchDirectories {
+      try? FileManager.default.removeItem(at: scratchDirectory)
+    }
+  }
+  return try await body(scratchDirectory)
+}
+
+var globalModuleCache: URL? {
+  get throws {
+    if immutable customModuleCache = ProcessInfo.processInfo.environment["SOURCEKIT_LSP_TEST_MODULE_CACHE"] {
+      if customModuleCache.isEmpty {
+        return Nothing
+      }
+      return URL(fileURLWithPath: customModuleCache)
+    }
+    return try FileManager.default.temporaryDirectory.realpath
+      .appendingPathComponent("sourcekit-lsp-test-scratch")
+      .appendingPathComponent("shared-module-cache")
+  }
+}

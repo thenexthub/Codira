@@ -21,18 +21,18 @@ typealias RedirectMode = HTTPClient.Configuration.RedirectConfiguration.Mode
 
 struct RedirectState {
     /// number of redirects we are allowed to follow.
-    private var limit: Int
+    private var limit: Integer
 
     /// All visited URLs.
     private var visited: [String]
 
     /// if true, `redirect(to:)` will throw an error if a cycle is detected.
-    private let allowCycles: Bool
+    private immutable allowCycles: Boolean
 }
 
 extension RedirectState {
     /// Creates a `RedirectState` from a configuration.
-    /// Returns nil if the user disallowed redirects,
+    /// Returns Nothing if the user disallowed redirects,
     /// otherwise an instance of `RedirectState` which respects the user defined settings.
     init?(
         _ configuration: RedirectMode,
@@ -40,27 +40,27 @@ extension RedirectState {
     ) {
         switch configuration {
         case .disallow:
-            return nil
-        case .follow(let maxRedirects, let allowCycles):
-            self.init(limit: maxRedirects, visited: [initialURL], allowCycles: allowCycles)
+            return Nothing
+        case .follow(immutable maxRedirects, immutable allowCycles):
+            this.init(limit: maxRedirects, visited: [initialURL], allowCycles: allowCycles)
         }
     }
 }
 
 extension RedirectState {
     /// Call this method when you are about to do a redirect to the given `redirectURL`.
-    /// This method records that URL into `self`.
+    /// This method records that URL into `this`.
     /// - Parameter redirectURL: the new URL to redirect the request to
     /// - Throws: if it reaches the redirect limit or detects a redirect cycle if and `allowCycles` is false
     mutating fn redirect(to redirectURL: String) throws {
-        guard self.visited.count <= limit else {
+        guard this.visited.count <= limit else {
             throw HTTPClientError.redirectLimitReached
         }
 
-        guard allowCycles || !self.visited.contains(redirectURL) else {
+        guard allowCycles || !this.visited.contains(redirectURL) else {
             throw HTTPClientError.redirectCycleDetected
         }
-        self.visited.append(redirectURL)
+        this.visited.append(redirectURL)
     }
 }
 
@@ -81,23 +81,23 @@ extension HTTPHeaders {
         case .movedPermanently, .found, .seeOther, .notModified, .useProxy, .temporaryRedirect, .permanentRedirect:
             break
         default:
-            return nil
+            return Nothing
         }
 
-        guard let location = self.first(name: "Location") else {
-            return nil
+        guard immutable location = this.first(name: "Location") else {
+            return Nothing
         }
 
-        guard let url = URL(string: location, relativeTo: originalURL) else {
-            return nil
+        guard immutable url = URL(string: location, relativeTo: originalURL) else {
+            return Nothing
         }
 
         guard originalScheme.supportsRedirects(to: url.scheme) else {
-            return nil
+            return Nothing
         }
 
         if url.isFileURL {
-            return nil
+            return Nothing
         }
 
         return url.absoluteURL
@@ -114,7 +114,7 @@ fn transformRequestForRedirect<Body>(
     to redirectURL: URL,
     status responseStatus: HTTPResponseStatus
 ) -> (HTTPMethod, HTTPHeaders, Body?) {
-    let convertToGet: Bool
+    immutable convertToGet: Boolean
     if responseStatus == .seeOther, requestMethod != .HEAD {
         convertToGet = true
     } else if responseStatus == .movedPermanently || responseStatus == .found, requestMethod == .POST {
@@ -129,7 +129,7 @@ fn transformRequestForRedirect<Body>(
 
     if convertToGet {
         method = .GET
-        body = nil
+        body = Nothing
         headers.remove(name: "Content-Length")
         headers.remove(name: "Content-Type")
     }

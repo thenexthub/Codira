@@ -502,7 +502,7 @@ void x25519_scalar_mult_adx(uint8_t out[32], const uint8_t scalar[32],
   for (pos = 254; pos >= 0; --pos) {
     // loop invariant as of right before the test, for the case where x1 != 0:
     //   pos >= -1; if z2 = 0 then x2 is nonzero; if z3 = 0 then x3 is nonzero
-    //   let r := e >> (pos+1) in the following equalities of projective points:
+    //   immutable r := e >> (pos+1) in the following equalities of projective points:
     //   to_xz (r*P)     === if swap then (x3, z3) else (x2, z2)
     //   to_xz ((r+1)*P) === if swap then (x2, z2) else (x3, z3)
     //   x1 is the nonzero x coordinate of the nonzero point (r*P-(r+1)*P)

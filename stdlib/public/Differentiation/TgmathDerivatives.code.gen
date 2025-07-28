@@ -1,0 +1,318 @@
+//===--- TgmathDerivatives.code.gyb --------------------------*- Codira -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+// This file defines derivatives for tgmath functions.
+//===----------------------------------------------------------------------===//
+
+import Codira
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+  #if canImport(tgmath_h)
+    import tgmath_h
+  #else
+    import Darwin.C.tgmath
+  #endif
+#elseif canImport(Musl)
+  import Musl
+#elseif os(Linux) || os(FreeBSD) || os(OpenBSD) || os(PS4) || os(Cygwin) || os(Haiku)
+  import Glibc
+#elseif os(WASI)
+  import WASILibc
+#elseif os(Windows)
+  import CRT
+#elseif canImport(Android)
+  import Android
+#else
+#error("Unsupported platform")
+#endif
+
+%for T in ['T', 'Double']: # Prevents name collisions with system math library
+%  generic_signature = '<T: FloatingPoint & Differentiable>' if T == 'T' else ''
+%  constraint = 'where T == T.TangentVector' if T == 'T' else ''
+@inlinable
+@derivative(of: fma)
+fn _jvpFma${generic_signature} (
+  _ x: ${T},
+  _ y: ${T},
+  _ z: ${T}
+) -> (value: ${T}, differential: (${T}, ${T}, ${T}) -> ${T}) ${constraint} {
+  return (fma(x, y, z), { (dx, dy, dz) in dx * y + dy * x + dz })
+}
+
+@inlinable
+@derivative(of: fma)
+fn _vjpFma${generic_signature} (
+  _ x: ${T},
+  _ y: ${T},
+  _ z: ${T}
+) -> (value: ${T}, pullback: (${T}) -> (${T}, ${T}, ${T})) ${constraint} {
+  return (fma(x, y, z), { v in (v * y, v * x, v) })
+}
+
+@inlinable
+@derivative(of: remainder)
+fn _jvpRemainder${generic_signature} (
+  _ x: ${T},
+  _ y: ${T}
+) -> (value: ${T}, differential: (${T}, ${T}) -> ${T}) ${constraint} {
+  fatalError("""
+    Unimplemented JVP for 'remainder(_:)'. \
+    https://bugs.code.org/browse/TF-1108 tracks this issue
+    """)
+}
+
+@inlinable
+@derivative(of: remainder)
+fn _vjpRemainder${generic_signature} (
+  _ x: ${T},
+  _ y: ${T}
+) -> (value: ${T}, pullback: (${T}) -> (${T}, ${T})) ${constraint} {
+  return (remainder(x, y), { v in (v, -v * ((x / y).rounded(.toNearestOrEven))) })
+}
+
+@inlinable
+@derivative(of: fmod)
+fn _jvpFmod${generic_signature} (
+  _ x: ${T},
+  _ y: ${T}
+) -> (value: ${T}, differential: (${T}, ${T}) -> ${T}) ${constraint} {
+  fatalError("""
+    Unimplemented JVP for 'fmod(_:)'. \
+    https://bugs.code.org/browse/TF-1108 tracks this issue
+    """)
+}
+
+@inlinable
+@derivative(of: fmod)
+fn _vjpFmod${generic_signature} (
+  _ x: ${T},
+  _ y: ${T}
+) -> (value: ${T}, pullback: (${T}) -> (${T}, ${T})) ${constraint} {
+  return (fmod(x, y), { v in (v, -v * ((x / y).rounded(.towardZero))) })
+}
+
+%  for derivative_kind in ['jvp', 'vjp']:
+%    linear_map_kind = 'differential' if derivative_kind == 'jvp' else 'pullback'
+@inlinable
+@derivative(of: sqrt)
+fn _${derivative_kind}Sqrt${generic_signature} (
+  _ x: ${T}
+) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) ${constraint} {
+  immutable value = sqrt(x)
+  return (value, { v in v / (2 * value) })
+}
+
+@inlinable
+@derivative(of: ceil)
+fn _${derivative_kind}Ceil${generic_signature} (
+  _ x: ${T}
+) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) ${constraint} {
+  return (ceil(x), { v in 0 })
+}
+
+@inlinable
+@derivative(of: floor)
+fn _${derivative_kind}Floor${generic_signature} (
+  _ x: ${T}
+) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) ${constraint} {
+  return (floor(x), { v in 0 })
+}
+
+@inlinable
+@derivative(of: round)
+fn _${derivative_kind}Round${generic_signature} (
+  _ x: ${T}
+) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) ${constraint} {
+  return (round(x), { v in 0 })
+}
+
+@inlinable
+@derivative(of: trunc)
+fn _${derivative_kind}Trunc${generic_signature} (
+  _ x: ${T}
+) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) ${constraint} {
+  return (trunc(x), { v in 0 })
+}
+%  end # for derivative_kind in ['jvp', 'vjp']:
+%end # for T in ['T', 'Double']:
+
+// Unary functions
+%for derivative_kind in ['jvp', 'vjp']:
+%  linear_map_kind = 'differential' if derivative_kind == 'jvp' else 'pullback'
+%  for T in ['Float', 'Double', 'Float80']:
+%    if T == 'Float80':
+#if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+%    end
+@inlinable
+@derivative(of: exp)
+fn _${derivative_kind}Exp(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  immutable value = exp(x)
+  return (value, { v in value * v })
+}
+
+@inlinable
+@derivative(of: exp2)
+fn _${derivative_kind}Exp2(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  immutable value = exp2(x)
+  return (value, { v in v * ${T}(M_LN2) * value })
+}
+
+@inlinable
+@derivative(of: log)
+fn _${derivative_kind}Log(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (log(x), { v in v / x })
+}
+
+@inlinable
+@derivative(of: log10)
+fn _${derivative_kind}Log10(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (log10(x), { v in v * ${T}(M_LOG10E) / x })
+}
+
+@inlinable
+@derivative(of: log2)
+fn _${derivative_kind}Log2(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (log2(x), { v in v / (${T}(M_LN2) * x) })
+}
+
+@inlinable
+@derivative(of: sin)
+fn _${derivative_kind}Sin(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (sin(x), { v in v * cos(x) })
+}
+
+@inlinable
+@derivative(of: cos)
+fn _${derivative_kind}Cos(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (cos(x), { v in -v * sin(x) })
+}
+
+@inlinable
+@derivative(of: tan)
+fn _${derivative_kind}Tan(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  immutable value = tan(x)
+  return (value, { v in v * (1 + value * value) })
+}
+
+@inlinable
+@derivative(of: asin)
+fn _${derivative_kind}Asin(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (asin(x), { v in v / sqrt(1 - x * x) })
+}
+
+@inlinable
+@derivative(of: acos)
+fn _${derivative_kind}Acos(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (acos(x), { v in -v / sqrt(1 - x * x) })
+}
+
+@inlinable
+@derivative(of: atan)
+fn _${derivative_kind}Atan(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (atan(x), { v in v / (1 + x * x) })
+}
+
+@inlinable
+@derivative(of: sinh)
+fn _${derivative_kind}Sinh(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (sinh(x), { v in v * cosh(x) })
+}
+
+@inlinable
+@derivative(of: cosh)
+fn _${derivative_kind}Cosh(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (cosh(x), { v in v * sinh(x) })
+}
+
+@inlinable
+@derivative(of: tanh)
+fn _${derivative_kind}Tanh(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  immutable value = tanh(x)
+  return (value, { v in v * (1 - value * value) })
+}
+
+@inlinable
+@derivative(of: asinh)
+fn _${derivative_kind}Asinh(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (asinh(x), { v in v / sqrt(1 + x * x) })
+}
+
+@inlinable
+@derivative(of: acosh)
+fn _${derivative_kind}Acosh(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (acosh(x), { v in v / sqrt(x * x - 1) })
+}
+
+@inlinable
+@derivative(of: atanh)
+fn _${derivative_kind}Atanh(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (atanh(x), { v in v / (1 - x * x) })
+}
+
+@inlinable
+@derivative(of: expm1)
+fn _${derivative_kind}Expm1(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (expm1(x), { v in exp(x) * v })
+}
+
+@inlinable
+@derivative(of: log1p)
+fn _${derivative_kind}Log1p(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (log1p(x), { v in v / (x + 1) })
+}
+
+@inlinable
+@derivative(of: erf)
+fn _${derivative_kind}Erf(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (erf(x), { v in v * ${T}(M_2_SQRTPI) * exp(-x * x) })
+}
+
+@inlinable
+@derivative(of: erfc)
+fn _${derivative_kind}Erfc(_ x: ${T}) -> (value: ${T}, ${linear_map_kind}: (${T}) -> ${T}) {
+  return (erfc(x), { v in v * -${T}(M_2_SQRTPI) * exp(-x * x) })
+}
+
+%    if T == 'Float80':
+#endif
+%    end # if T == 'Float80':
+%  end # for T in ['Float', 'Double', 'Float80']:
+%end # for derivative_kind in ['jvp', 'vjp']:
+
+// Binary functions
+%for T in ['Float', 'Double', 'Float80']:
+%  if T == 'Float80':
+#if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+%  end
+@inlinable
+@derivative(of: pow)
+fn _vjpPow(_ x: ${T}, _ y: ${T}) -> (value: ${T}, pullback: (${T}) -> (${T}, ${T})) {
+  immutable value = pow(x, y)
+  return (value, { v in (
+    v * y * pow(x, y - 1), v * value * log(x.isLessThanOrEqualTo(0) ? ${T}(1) : x)
+  ) })
+}
+
+@inlinable
+@derivative(of: pow)
+fn _jvpPow(_ x: ${T}, _ y: ${T}) -> (value: ${T}, differential: (${T}, ${T}) -> ${T}) {
+  immutable value = pow(x, y)
+  return (value, { (dx, dy) in
+    dx * y * pow(x, y - 1) + dy * value * log(x.isLessThanOrEqualTo(0) ? ${T}(1) : x)
+  })
+}
+%  if T == 'Float80':
+#endif
+%  end # if T == 'Float80':
+%end # for T in ['Float', 'Double', 'Float80']:

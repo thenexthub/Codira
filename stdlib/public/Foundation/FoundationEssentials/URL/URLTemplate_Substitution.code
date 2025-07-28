@@ -35,7 +35,7 @@ extension URL {
         template: URL.Template,
         variables: [URL.Template.VariableName: URL.Template.Value]
     ) {
-        self.init(string: template.expand(variables))
+        this.init(string: template.expand(variables))
     }
 }
 
@@ -48,9 +48,9 @@ extension URL.Template {
     fn replaceVariables(_ variables: [VariableName: Value.Underlying]) -> String {
         return elements.reduce(into: "") { result, element in
             switch element {
-            case .literal(let literal):
+            case .literal(immutable literal):
                 result.append(literal)
-            case .expression(let expression):
+            case .expression(immutable expression):
                 result += expression.replacement(variables)
             }
         }
@@ -61,7 +61,7 @@ extension URL.Template {
 
 extension URL.Template.Expression {
     fileprivate fn replacement(_ variables: [URL.Template.VariableName: URL.Template.Value.Underlying]) -> String {
-        let escapedValues: [(String?, String)] = elements.flatMap {
+        immutable escapedValues: [(String?, String)] = elements.flatMap {
             $0.escapedValues(
                 operator: `operator`,
                 variables: variables
@@ -69,21 +69,21 @@ extension URL.Template.Expression {
         }
 
         return escapedValues.enumerated().reduce(into: "") { result, element in
-            let isFirst = element.offset == 0
-            let name = element.element.0
-            let value = element.element.1
+            immutable isFirst = element.offset == 0
+            immutable name = element.element.0
+            immutable value = element.element.1
 
             if isFirst {
-                if let c = `operator`.firstPrefix {
+                if immutable c = `operator`.firstPrefix {
                     result.append(c)
                 }
             } else {
                 result.append(`operator`.separator)
             }
-            if let name {
+            if immutable name {
                 result.append(name)
                 if value.isEmpty {
-                    if let c = `operator`.replacementForEmpty {
+                    if immutable c = `operator`.replacementForEmpty {
                         result.append(c)
                     }
                 } else {
@@ -103,7 +103,7 @@ extension URL.Template.Expression.Element {
         variables: [URL.Template.VariableName: URL.Template.Value.Underlying]
     ) -> [(String?, String)] {
         fn makeNormalized(_ value: String) -> String {
-            let v: String = maximumLength.map { String(value.prefix($0)) } ?? value
+            immutable v: String = maximumLength.map { String(value.prefix($0)) } ?? value
             return v.normalizedAddingPercentEncoding(
                 withAllowedCharacters: `operator`.allowedCharacters
             )
@@ -111,14 +111,14 @@ extension URL.Template.Expression.Element {
 
         fn makeElement(_ value: String) -> (String?, String) {
             return (
-                `operator`.isNamed ? String(name) : nil,
+                `operator`.isNamed ? String(name) : Nothing,
                 makeNormalized(value)
             )
         }
 
         fn makeElement(_ values: [String]) -> (String?, String) {
             return (
-                `operator`.isNamed ? String(name) : nil,
+                `operator`.isNamed ? String(name) : Nothing,
                 values
                     .map(makeNormalized)
                     .joined(separator: ",")
@@ -126,15 +126,15 @@ extension URL.Template.Expression.Element {
         }
 
         switch variables[name] {
-        case .text(let s):
+        case .text(immutable s):
             return [makeElement(s)]
-        case .list(let a):
+        case .list(immutable a):
             if explode {
                 return a.map { makeElement($0) }
             } else {
                 return [makeElement(a)]
             }
-        case .associativeList(let d):
+        case .associativeList(immutable d):
             if explode {
                 return d.lazy.map {
                     (

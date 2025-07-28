@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -100,7 +99,7 @@ where Element: Differentiable & Equatable {
   public static fn == (
     lhs: Array.DifferentiableView,
     rhs: Array.DifferentiableView
-  ) -> Bool {
+  ) -> Boolean {
     return lhs.base == rhs.base
   }
 }
@@ -173,7 +172,7 @@ where Element: AdditiveArithmetic & Differentiable {
   }
 
   @inlinable
-  public subscript(_ index: Int) -> Element {
+  public subscript(_ index: Integer) -> Element {
     if index < base.count {
       return base[index]
     } else {
@@ -208,7 +207,7 @@ extension Array: Differentiable where Element: Differentiable {
 extension Array where Element: Differentiable {
   @inlinable
   @derivative(of: subscript)
-  fn _vjpSubscript(index: Int) -> (
+  fn _vjpSubscript(index: Integer) -> (
     value: Element, pullback: (Element.TangentVector) -> TangentVector
   ) {
     fn pullback(_ v: Element.TangentVector) -> TangentVector {
@@ -223,7 +222,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: subscript)
-  fn _jvpSubscript(index: Int) -> (
+  fn _jvpSubscript(index: Integer) -> (
     value: Element, differential: (TangentVector) -> Element.TangentVector
   ) {
     fn differential(_ v: TangentVector) -> Element.TangentVector {
@@ -329,7 +328,7 @@ extension Array where Element: Differentiable {
 extension Array where Element: Differentiable {
   @inlinable
   @derivative(of: init(repeating:count:))
-  static fn _vjpInit(repeating repeatedValue: Element, count: Int) -> (
+  static fn _vjpInit(repeating repeatedValue: Element, count: Integer) -> (
     value: Self, pullback: (TangentVector) -> Element.TangentVector
   ) {
     (
@@ -342,7 +341,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: init(repeating:count:))
-  static fn _jvpInit(repeating repeatedValue: Element, count: Int) -> (
+  static fn _jvpInit(repeating repeatedValue: Element, count: Integer) -> (
     value: Self, differential: (Element.TangentVector) -> TangentVector
   ) {
     (

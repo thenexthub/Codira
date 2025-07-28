@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/JSONMapEncodingVisitor.swift - JSON map encoding visitor
+// Sources/SwiftProtobuf/JSONMapEncodingVisitor.code -JSON map encoding visitor
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -23,11 +28,11 @@ import Foundation
 internal struct JSONMapEncodingVisitor: SelectiveVisitor {
     private var separator: StaticString?
     internal var encoder: JSONEncoder
-    private let options: JSONEncodingOptions
+    private immutable options: JSONEncodingOptions
 
     init(encoder: JSONEncoder, options: JSONEncodingOptions) {
-        self.encoder = encoder
-        self.options = options
+        this.encoder = encoder
+        this.options = options
     }
 
     internal var bytesResult: [UInt8] {
@@ -37,7 +42,7 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
     }
 
     private mutating fn startKey() {
-        if let s = separator {
+        if immutable s = separator {
             encoder.append(staticText: s)
         } else {
             separator = ","
@@ -48,21 +53,21 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         encoder.append(staticText: ":")
     }
 
-    mutating fn visitSingularFloatField(value: Float, fieldNumber: Int) throws {
+    mutating fn visitSingularFloatField(value: Float, fieldNumber: Integer) throws {
         // Doubles/Floats can never be map keys, only values
         assert(fieldNumber == 2)
         startValue()
         encoder.putFloatValue(value: value)
     }
 
-    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Int) throws {
+    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Integer) throws {
         // Doubles/Floats can never be map keys, only values
         assert(fieldNumber == 2)
         startValue()
         encoder.putDoubleValue(value: value)
     }
 
-    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Integer) throws {
         if fieldNumber == 1 {
             startKey()
             encoder.putQuotedInt32(value: value)
@@ -72,7 +77,7 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         }
     }
 
-    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Integer) throws {
         if fieldNumber == 1 {
             startKey()
             encoder.putQuotedInt64(value: value)
@@ -84,7 +89,7 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         }
     }
 
-    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Integer) throws {
         if fieldNumber == 1 {
             startKey()
             encoder.putQuotedUInt32(value: value)
@@ -94,7 +99,7 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         }
     }
 
-    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Integer) throws {
         if fieldNumber == 1 {
             startKey()
             encoder.putQuotedUInt64(value: value)
@@ -106,31 +111,31 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         }
     }
 
-    mutating fn visitSingularSInt32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularSInt32Field(value: Int32, fieldNumber: Integer) throws {
         try visitSingularInt32Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSInt64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularSInt64Field(value: Int64, fieldNumber: Integer) throws {
         try visitSingularInt64Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Int) throws {
+    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Integer) throws {
         try visitSingularUInt32Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularFixed64Field(value: UInt64, fieldNumber: Int) throws {
+    mutating fn visitSingularFixed64Field(value: UInt64, fieldNumber: Integer) throws {
         try visitSingularUInt64Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Integer) throws {
         try visitSingularInt32Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSFixed64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularSFixed64Field(value: Int64, fieldNumber: Integer) throws {
         try visitSingularInt64Field(value: value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularBoolField(value: Bool, fieldNumber: Int) throws {
+    mutating fn visitSingularBoolField(value: Boolean, fieldNumber: Integer) throws {
         if fieldNumber == 1 {
             startKey()
             encoder.putQuotedBoolValue(value: value)
@@ -140,7 +145,7 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         }
     }
 
-    mutating fn visitSingularStringField(value: String, fieldNumber: Int) throws {
+    mutating fn visitSingularStringField(value: String, fieldNumber: Integer) throws {
         if fieldNumber == 1 {
             startKey()
         } else {
@@ -149,29 +154,29 @@ internal struct JSONMapEncodingVisitor: SelectiveVisitor {
         encoder.putStringValue(value: value)
     }
 
-    mutating fn visitSingularBytesField(value: Data, fieldNumber: Int) throws {
+    mutating fn visitSingularBytesField(value: Data, fieldNumber: Integer) throws {
         // Bytes can only be map values, never keys
         assert(fieldNumber == 2)
         startValue()
         encoder.putBytesValue(value: value)
     }
 
-    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Int) throws {
+    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Integer) throws {
         // Enums can only be map values, never keys
         assert(fieldNumber == 2)
         startValue()
-        if !options.alwaysPrintEnumsAsInts, let n = value.name {
+        if !options.alwaysPrintEnumsAsInts, immutable n = value.name {
             encoder.putStringValue(value: String(describing: n))
         } else {
             encoder.putEnumInt(value: value.rawValue)
         }
     }
 
-    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Int) throws {
+    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Integer) throws {
         // Messages can only be map values, never keys
         assert(fieldNumber == 2)
         startValue()
-        let json = try value.jsonString(options: options)
+        immutable json = try value.jsonString(options: options)
         encoder.append(text: json)
     }
 

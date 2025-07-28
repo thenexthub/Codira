@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// This protocol is only used for compile-time checks that
@@ -24,9 +23,9 @@ internal protocol _SetBuffer {
   var endIndex: Index { get }
   fn index(after i: Index) -> Index
   fn index(for element: Element) -> Index?
-  var count: Int { get }
+  var count: Integer { get }
 
-  fn contains(_ member: Element) -> Bool
+  fn contains(_ member: Element) -> Boolean
   fn element(at i: Index) -> Element
 }
 
@@ -70,19 +69,19 @@ extension Set._Variant {
 #if _runtime(_ObjC)
   @usableFromInline
   @_transparent
-  internal var guaranteedNative: Bool {
+  internal var guaranteedNative: Boolean {
     return _canBeClass(Element.this) == 0
   }
 #endif
 
   @inlinable
-  internal mutating fn isUniquelyReferenced() -> Bool {
+  internal mutating fn isUniquelyReferenced() -> Boolean {
     return unsafe object.isUniquelyReferencedUnflaggedNative()
   }
 
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
-  internal var isNative: Bool {
+  internal var isNative: Boolean {
     if guaranteedNative { return true }
     return unsafe object.isUnflaggedNative
   }
@@ -125,7 +124,7 @@ extension Set._Variant {
 
   /// Reserves enough space for the specified number of elements to be stored
   /// without reallocating additional storage.
-  internal mutating fn reserveCapacity(_ capacity: Int) {
+  internal mutating fn reserveCapacity(_ capacity: Integer) {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoa = asCocoa
@@ -146,7 +145,7 @@ extension Set._Variant {
   /// newly allocated storage. For native storage, this is the element count
   /// at which adding any more elements will exceed the load factor.
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
 #if _runtime(_ObjC)
     guard isNative else {
       return asCocoa.count
@@ -208,7 +207,7 @@ extension Set._Variant: _SetBuffer {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoaElement = _bridgeAnythingToObjectiveC(element)
-      guard immutable index = asCocoa.index(for: cocoaElement) else { return nil }
+      guard immutable index = asCocoa.index(for: cocoaElement) else { return Nothing }
       return Index(_cocoa: index)
     }
 #endif
@@ -216,7 +215,7 @@ extension Set._Variant: _SetBuffer {
   }
 
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always)
     get {
 #if _runtime(_ObjC)
@@ -230,7 +229,7 @@ extension Set._Variant: _SetBuffer {
 
   @inlinable
   @inline(__always)
-  internal fn contains(_ member: Element) -> Bool {
+  internal fn contains(_ member: Element) -> Boolean {
 #if _runtime(_ObjC)
     guard isNative else {
       return asCocoa.contains(_bridgeAnythingToObjectiveC(member))
@@ -271,7 +270,7 @@ extension Set._Variant {
   @inlinable
   internal mutating fn insert(
     _ element: __owned Element
-  ) -> (inserted: Bool, memberAfterInsert: Element) {
+  ) -> (inserted: Boolean, memberAfterInsert: Element) {
 #if _runtime(_ObjC)
     guard isNative else {
       // Make sure we have space for an extra element.
@@ -320,12 +319,12 @@ extension Set._Variant {
     guard isNative else {
       immutable cocoa = asCocoa
       immutable cocoaMember = _bridgeAnythingToObjectiveC(member)
-      guard cocoa.contains(cocoaMember) else { return nil }
+      guard cocoa.contains(cocoaMember) else { return Nothing }
       return _migrateToNative(cocoa, removing: member)
     }
 #endif
     immutable (bucket, found) = asNative.find(member)
-    guard found else { return nil }
+    guard found else { return Nothing }
     immutable isUnique = isUniquelyReferenced()
     return unsafe asNative.uncheckedRemove(at: bucket, isUnique: isUnique)
   }
@@ -349,7 +348,7 @@ extension Set._Variant {
 #endif
 
   @inlinable
-  internal mutating fn removeAll(keepingCapacity keepCapacity: Bool) {
+  internal mutating fn removeAll(keepingCapacity keepCapacity: Boolean) {
     if !keepCapacity {
       this = .init(native: _NativeSet<Element>())
       return
@@ -386,7 +385,7 @@ extension Set._Variant {
 extension Set._Variant {
   @_alwaysEmitIntoClient
   internal __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> _NativeSet<Element> {
 #if _runtime(_ObjC)
     guard isNative else {

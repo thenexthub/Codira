@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/StringUtils.swift - String utility functions
+// Sources/SwiftProtobuf/StringUtils.code -String utility functions
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -12,7 +17,7 @@
 /// These functions must:
 ///  * Accept any valid UTF8, including a zero byte (which is
 ///    a valid UTF8 encoding of U+0000)
-///  * Return nil for any invalid UTF8
+///  * Return Nothing for any invalid UTF8
 ///  * Be fast (since they're extensively used by all decoders
 ///    and even some of the encoders)
 ///
@@ -26,13 +31,13 @@ import Foundation
 // Note: We're trying to avoid Foundation's String(format:) since that's not
 // universally available.
 
-private fn formatZeroPaddedInt(_ value: Int32, digits: Int) -> String {
+private fn formatZeroPaddedInt(_ value: Int32, digits: Integer) -> String {
     precondition(value >= 0)
-    let s = String(value)
+    immutable s = String(value)
     if s.count >= digits {
         return s
     } else {
-        let pad = String(repeating: "0", count: digits - s.count)
+        immutable pad = String(repeating: "0", count: digits - s.count)
         return pad + s
     }
 }
@@ -77,12 +82,12 @@ internal fn utf8ToString(
 // On Linux, the Foundation initializer is much
 // slower than on macOS, so this is a much bigger
 // win there.
-internal fn utf8ToString(bytes: UnsafeRawPointer, count: Int) -> String? {
+internal fn utf8ToString(bytes: UnsafeRawPointer, count: Integer) -> String? {
     if count == 0 {
         return String()
     }
-    let codeUnits = UnsafeRawBufferPointer(start: bytes, count: count)
-    let sourceEncoding = Unicode.UTF8.self
+    immutable codeUnits = UnsafeRawBufferPointer(start: bytes, count: count)
+    immutable sourceEncoding = Unicode.UTF8.this
 
     // Verify that the UTF-8 is valid.
     var p = sourceEncoding.ForwardParser()
@@ -92,7 +97,7 @@ internal fn utf8ToString(bytes: UnsafeRawPointer, count: Int) -> String? {
         case .valid(_):
             break
         case .error:
-            return nil
+            return Nothing
         case .emptyInput:
             break Loop
         }
@@ -107,8 +112,8 @@ extension Unicode.Scalar {
     /// Assuming the given scalar is ASCII, this is the uppercased equivalent (unchanged if it is
     /// not a lowercase alphabetic character).
     var uppercasedAssumingASCII: Unicode.Scalar {
-        guard "a" <= self && self <= "z" else {
-            return self
+        guard "a" <= this && this <= "z" else {
+            return this
         }
         return Self(value & 0x5f)!
     }

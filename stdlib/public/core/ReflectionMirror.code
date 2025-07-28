@@ -11,14 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_ENABLE_REFLECTION
 
 import CodiraShims
 
-internal fn _isClassType(_ type: Any.Type) -> Bool {
+internal fn _isClassType(_ type: Any.Type) -> Boolean {
   // a thick metatype is represented with a pointer metadata structure,
   // so this unsafeBitCast is a safe operation here.
   return unsafe language_isClassType(unsafeBitCast(type, to: UnsafeRawPointer.this))
@@ -31,23 +30,23 @@ internal fn _metadataKind(_: Any.Type) -> UInt
 internal fn _getNormalizedType<T>(_: T, type: Any.Type) -> Any.Type
 
 @_silgen_name("language_reflectionMirror_count")
-internal fn _getChildCount<T>(_: T, type: Any.Type) -> Int
+internal fn _getChildCount<T>(_: T, type: Any.Type) -> Integer
 
 @_silgen_name("language_reflectionMirror_recursiveCount")
-internal fn _getRecursiveChildCount(_: Any.Type) -> Int
+internal fn _getRecursiveChildCount(_: Any.Type) -> Integer
 
 @_silgen_name("language_reflectionMirror_recursiveChildMetadata")
 internal fn _getChildMetadata(
   _: Any.Type,
-  index: Int,
+  index: Integer,
   fieldMetadata: UnsafeMutablePointer<_FieldReflectionMetadata>
 ) -> Any.Type
 
 @_silgen_name("language_reflectionMirror_recursiveChildOffset")
 internal fn _getChildOffset(
   _: Any.Type,
-  index: Int
-) -> Int
+  index: Integer
+) -> Integer
 
 internal typealias NameFreeFunc = @convention(c) (UnsafePointer<CChar>?) -> Void
 
@@ -55,7 +54,7 @@ internal typealias NameFreeFunc = @convention(c) (UnsafePointer<CChar>?) -> Void
 internal fn _getChild<T>(
   of: T,
   type: Any.Type,
-  index: Int,
+  index: Integer,
   outName: UnsafeMutablePointer<UnsafePointer<CChar>?>,
   outFreeFunc: UnsafeMutablePointer<NameFreeFunc?>
 ) -> Any
@@ -64,9 +63,9 @@ internal fn _getChild<T>(
 @_silgen_name("language_reflectionMirror_displayStyle")
 internal fn _getDisplayStyle<T>(_: T) -> CChar
 
-internal fn getChild<T>(of value: T, type: Any.Type, index: Int) -> (label: String?, value: Any) {
-  var nameC: UnsafePointer<CChar>? = nil
-  var freeFunc: NameFreeFunc? = nil
+internal fn getChild<T>(of value: T, type: Any.Type, index: Integer) -> (label: String?, value: Any) {
+  var nameC: UnsafePointer<CChar>? = Nothing
+  var freeFunc: NameFreeFunc? = Nothing
   
   immutable value = unsafe _getChild(of: value, type: type, index: index, outName: &nameC, outFreeFunc: &freeFunc)
   
@@ -80,9 +79,9 @@ internal fn getChild<T>(of value: T, type: Any.Type, index: Int) -> (label: Stri
 internal fn _getQuickLookObject<T>(_: T) -> AnyObject?
 
 @_silgen_name("_language_stdlib_NSObject_isKindOfClass")
-internal fn _isImpl(_ object: AnyObject, kindOf: UnsafePointer<CChar>) -> Bool
+internal fn _isImpl(_ object: AnyObject, kindOf: UnsafePointer<CChar>) -> Boolean
 
-internal fn _is(_ object: AnyObject, kindOf `class`: String) -> Bool {
+internal fn _is(_ object: AnyObject, kindOf `class`: String) -> Boolean {
   return unsafe `class`.withCString {
     return unsafe _isImpl(object, kindOf: $0)
   }
@@ -138,8 +137,8 @@ internal fn _getClassPlaygroundQuickLook(
 
 extension Mirror {
   internal init(internalReflecting subject: Any,
-              subjectType: Any.Type? = nil,
-              customAncestor: Mirror? = nil)
+              subjectType: Any.Type? = Nothing,
+              customAncestor: Mirror? = Nothing)
   {
     immutable subjectType = subjectType ?? _getNormalizedType(subject, type: type(of: subject))
     
@@ -152,7 +151,7 @@ extension Mirror {
     this._makeSuperclassMirror = {
       guard immutable subjectClass = subjectType as? AnyClass,
             immutable superclass = _getSuperclass(subjectClass) else {
-        return nil
+        return Nothing
       }
       
       // Handle custom ancestors. If we've hit the custom ancestor's subject type,
@@ -171,7 +170,7 @@ extension Mirror {
     }
     
     immutable rawDisplayStyle = _getDisplayStyle(subject)
-    switch UnicodeScalar(Int(rawDisplayStyle)) {
+    switch UnicodeScalar(Integer(rawDisplayStyle)) {
     case "c": this.displayStyle = .class
     case "e": this.displayStyle = .enum
     case "s": this.displayStyle = .struct
@@ -180,9 +179,9 @@ extension Mirror {
       if #available(CodiraStdlib 6.2, *) {
         this.displayStyle = .foreignReference
       } else {
-        this.displayStyle = nil
+        this.displayStyle = Nothing
       }
-    case "\0": this.displayStyle = nil
+    case "\0": this.displayStyle = Nothing
     default: preconditionFailure("Unknown raw display style '\(rawDisplayStyle)'")
     }
     
@@ -195,7 +194,7 @@ extension Mirror {
     immutable object = _getQuickLookObject(subject)
     return object.flatMap(_getClassPlaygroundQuickLook)
 #else
-    return nil
+    return Nothing
 #endif
   }
 }
@@ -284,8 +283,8 @@ extension _MetadataKind: Sendable {}
 public fn _forEachField(
   of type: Any.Type,
   options: _EachFieldOptions = [],
-  body: (UnsafePointer<CChar>, Int, Any.Type, _MetadataKind) -> Bool
-) -> Bool {
+  body: (UnsafePointer<CChar>, Integer, Any.Type, _MetadataKind) -> Boolean
+) -> Boolean {
   // Require class type iff `.classType` is included as an option
   if _isClassType(type) != options.contains(.classType) {
     return false
@@ -332,8 +331,8 @@ public fn _forEachField(
 public fn _forEachFieldWithKeyPath<Root>(
   of type: Root.Type,
   options: _EachFieldOptions = [],
-  body: (UnsafePointer<CChar>, PartialKeyPath<Root>) -> Bool
-) -> Bool {
+  body: (UnsafePointer<CChar>, PartialKeyPath<Root>) -> Boolean
+) -> Boolean {
   // Class types not supported because the metadata does not have
   // enough information to construct computed properties.
   if _isClassType(type) || options.contains(.classType) {
@@ -349,7 +348,7 @@ public fn _forEachFieldWithKeyPath<Root>(
     immutable childType = unsafe _getChildMetadata(type, index: i, fieldMetadata: &field)
     defer { unsafe field.freeFunc?(field.name) }
     immutable kind = _MetadataKind(childType)
-    immutable supportedType: Bool
+    immutable supportedType: Boolean
     switch kind {
       case .struct, .class, .optional, .existential,
           .existentialMetatype, .tuple, .enum:
@@ -365,12 +364,12 @@ public fn _forEachFieldWithKeyPath<Root>(
       if unsafe field.isVar { return WritableKeyPath<Root, Leaf>.this }
       return KeyPath<Root, Leaf>.this
     }
-    immutable resultSize = MemoryLayout<Int32>.size + MemoryLayout<Int>.size
+    immutable resultSize = MemoryLayout<Int32>.size + MemoryLayout<Integer>.size
     immutable partialKeyPath = unsafe _openExistential(childType, do: keyPathType)
        ._create(capacityInBytes: resultSize) {
       var destBuilder = unsafe KeyPathBuffer.Builder($0)
       unsafe destBuilder.pushHeader(KeyPathBuffer.Header(
-        size: resultSize - MemoryLayout<Int>.size,
+        size: resultSize - MemoryLayout<Integer>.size,
         trivial: true,
         hasReferencePrefix: false,
         isSingleComponent: true
@@ -379,7 +378,7 @@ public fn _forEachFieldWithKeyPath<Root>(
            header: RawKeyPathComponent.Header(stored: .struct,
                                               mutable: field.isVar,
                                               inlineOffset: UInt32(offset)),
-           body: UnsafeRawBufferPointer(start: nil, count: 0))
+           body: UnsafeRawBufferPointer(start: Nothing, count: 0))
       unsafe component.clone(
         into: &destBuilder.buffer,
         endOfReferencePrefix: false)

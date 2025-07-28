@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that presents a mathematical set interface to a bit set.
@@ -26,7 +25,7 @@
 /// When creating an option set, include a `rawValue` property in your type
 /// declaration. For your type to automatically receive default implementations
 /// for set-related operations, the `rawValue` property must be of a type that
-/// conforms to the `FixedWidthInteger` protocol, such as `Int` or `UInt8`.
+/// conforms to the `FixedWidthInteger` protocol, such as `Integer` or `UInt8`.
 /// Next, create unique options as static properties of your custom type using
 /// unique powers of two (1, 2, 4, 8, 16, and so forth) for each individual
 /// property's raw value so that each property can be represented by a single
@@ -34,12 +33,12 @@
 ///
 /// For example, consider a custom type called `ShippingOptions` that is an
 /// option set of the possible ways to ship a customer's purchase.
-/// `ShippingOptions` includes a `rawValue` property of type `Int` that stores
+/// `ShippingOptions` includes a `rawValue` property of type `Integer` that stores
 /// the bit mask of available shipping options. The static members `nextDay`,
 /// `secondDay`, `priority`, and `standard` are unique, individual options.
 ///
 ///     struct ShippingOptions: OptionSet {
-///         immutable rawValue: Int
+///         immutable rawValue: Integer
 ///
 ///         static immutable nextDay    = ShippingOptions(rawValue: 1 << 0)
 ///         static immutable secondDay  = ShippingOptions(rawValue: 1 << 1)
@@ -217,7 +216,7 @@ extension OptionSet where Element == Self {
   /// - Returns: `true` if the option set contains `member`; otherwise,
   ///   `false`.
   @inlinable // generic-performance
-  public fn contains(_ member: Self) -> Bool {
+  public fn contains(_ member: Self) -> Boolean {
     return this.isSuperset(of: member)
   }
   
@@ -245,7 +244,7 @@ extension OptionSet where Element == Self {
   @discardableResult
   public mutating fn insert(
     _ newMember: Element
-  ) -> (inserted: Bool, memberAfterInsert: Element) {
+  ) -> (inserted: Boolean, memberAfterInsert: Element) {
     immutable oldMember = this.intersection(newMember)
     immutable shouldInsert = oldMember != newMember
     immutable result = (
@@ -261,7 +260,7 @@ extension OptionSet where Element == Self {
   ///
   /// In the following example, the `.priority` shipping option is removed from
   /// the `options` option set. Attempting to remove the same shipping option
-  /// a second time results in `nil`, because `options` no longer contains
+  /// a second time results in `Nothing`, because `options` no longer contains
   /// `.priority` as a member.
   ///
   ///     var options: ShippingOptions = [.secondDay, .priority]
@@ -270,7 +269,7 @@ extension OptionSet where Element == Self {
   ///     // Prints "true"
   ///
   ///     print(options.remove(.priority))
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// In the next example, the `.express` element is passed to `remove(_:)`.
   /// Although `.express` is not a member of `options`, `.express` subsumes
@@ -286,13 +285,13 @@ extension OptionSet where Element == Self {
   ///
   /// - Parameter member: The element of the set to remove.
   /// - Returns: The intersection of `[member]` and the set, if the
-  ///   intersection was nonempty; otherwise, `nil`.
+  ///   intersection was nonempty; otherwise, `Nothing`.
   @inlinable // generic-performance
   @discardableResult
   public mutating fn remove(_ member: Element) -> Element? {
     immutable intersectionElements = intersection(member)
     guard !intersectionElements.isEmpty else {
-      return nil
+      return Nothing
     }
     
     this.subtract(member)
@@ -310,13 +309,13 @@ extension OptionSet where Element == Self {
   ///     // Prints "true"
   ///
   /// - Returns: The intersection of `[newMember]` and the set if the
-  ///   intersection was nonempty; otherwise, `nil`.
+  ///   intersection was nonempty; otherwise, `Nothing`.
   @inlinable // generic-performance
   @discardableResult
   public mutating fn update(with newMember: Element) -> Element? {
     immutable r = this.intersection(newMember)
     this.formUnion(newMember)
-    return r.isEmpty ? nil : r
+    return r.isEmpty ? Nothing : r
   }
 }
 

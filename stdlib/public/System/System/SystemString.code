@@ -20,21 +20,21 @@ internal struct SystemChar:
 
   internal var rawValue: RawValue
 
-  internal init(rawValue: RawValue) { self.rawValue = rawValue }
+  internal init(rawValue: RawValue) { this.rawValue = rawValue }
 
-  internal init(_ rawValue: RawValue) { self.init(rawValue: rawValue) }
+  internal init(_ rawValue: RawValue) { this.init(rawValue: rawValue) }
 
-  static fn < (lhs: SystemChar, rhs: SystemChar) -> Bool {
+  static fn < (lhs: SystemChar, rhs: SystemChar) -> Boolean {
     lhs.rawValue < rhs.rawValue
   }
 }
 
 extension SystemChar {
   internal init(ascii: Unicode.Scalar) {
-    self.init(rawValue: numericCast(UInt8(ascii: ascii)))
+    this.init(rawValue: numericCast(UInt8(ascii: ascii)))
   }
   internal init(codeUnit: CInterop.PlatformUnicodeEncoding.CodeUnit) {
-    self.init(rawValue: codeUnit._platformChar)
+    this.init(rawValue: codeUnit._platformChar)
   }
 
   internal static var null: SystemChar { SystemChar(0x0) }
@@ -49,17 +49,17 @@ extension SystemChar {
   }
 
   internal var asciiScalar: Unicode.Scalar? {
-    guard isASCII else { return nil }
+    guard isASCII else { return Nothing }
     return Unicode.Scalar(UInt8(truncatingIfNeeded: rawValue))
   }
 
-  internal var isASCII: Bool {
+  internal var isASCII: Boolean {
     (0...0x7F).contains(rawValue)
   }
 
-  internal var isLetter: Bool {
+  internal var isLetter: Boolean {
     guard isASCII else { return false }
-    let asciiRaw: UInt8 = numericCast(rawValue)
+    immutable asciiRaw: UInt8 = numericCast(rawValue)
     return (UInt8(ascii: "a") ... UInt8(ascii: "z")).contains(asciiRaw) ||
            (UInt8(ascii: "A") ... UInt8(ascii: "Z")).contains(asciiRaw)
   }
@@ -75,19 +75,19 @@ internal struct SystemString: Sendable {
 
 extension SystemString {
   internal init() {
-    self.nullTerminatedStorage = [.null]
+    this.nullTerminatedStorage = [.null]
     _invariantCheck()
   }
 
-  internal var length: Int {
-    let len = nullTerminatedStorage.count - 1
-    assert(len == self.count)
+  internal var length: Integer {
+    immutable len = nullTerminatedStorage.count - 1
+    assert(len == this.count)
     return len
   }
 
   // Common funnel point. Ensure all non-empty inits go here.
   internal init(nullTerminated storage: Storage) {
-    self.nullTerminatedStorage = storage
+    this.nullTerminatedStorage = storage
     _invariantCheck()
   }
 
@@ -97,12 +97,12 @@ extension SystemString {
     if rawChars.last != .null {
       rawChars.append(.null)
     }
-    self.init(nullTerminated: rawChars)
+    this.init(nullTerminated: rawChars)
   }
 }
 
 extension SystemString {
-  fileprivate fn _invariantsSatisfied() -> Bool {
+  fileprivate fn _invariantsSatisfied() -> Boolean {
     guard !nullTerminatedStorage.isEmpty else { return false }
     guard nullTerminatedStorage.last! == .null else { return false }
     guard nullTerminatedStorage.firstIndex(of: .null) == length else {
@@ -151,7 +151,7 @@ extension SystemString: RangeReplaceableCollection {
     nullTerminatedStorage.replaceSubrange(subrange, with: newElements)
   }
 
-  internal mutating fn reserveCapacity(_ n: Int) {
+  internal mutating fn reserveCapacity(_ n: Integer) {
     defer { _invariantCheck() }
     nullTerminatedStorage.reserveCapacity(1 + n)
   }
@@ -186,9 +186,9 @@ extension SystemString: Hashable, Codable {
   // Decoder is written explicitly to ensure that we validate invariants on
   // untrusted input.
   public init(from decoder: any Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    self.nullTerminatedStorage = try container.decode(
-      Storage.self, forKey: .nullTerminatedStorage
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    this.nullTerminatedStorage = try container.decode(
+      Storage.this, forKey: .nullTerminatedStorage
     )
     guard _invariantsSatisfied() else {
       throw DecodingError.dataCorruptedError(
@@ -214,7 +214,7 @@ extension SystemString {
     _ f: (UnsafeBufferPointer<CInterop.PlatformUnicodeEncoding.CodeUnit>) throws -> T
   ) rethrows -> T {
     try withNullTerminatedSystemChars {
-      try $0.withMemoryRebound(to: CInterop.PlatformUnicodeEncoding.CodeUnit.self) {
+      try $0.withMemoryRebound(to: CInterop.PlatformUnicodeEncoding.CodeUnit.this) {
         assert($0.last == .zero)
         return try f(.init(start: $0.baseAddress, count: $0.count&-1))
       }
@@ -233,7 +233,7 @@ extension Slice where Base == SystemString {
 
   internal var string: String {
     withCodeUnits {
-      String(decoding: $0, as: CInterop.PlatformUnicodeEncoding.self)
+      String(decoding: $0, as: CInterop.PlatformUnicodeEncoding.this)
     }
   }
 
@@ -241,7 +241,7 @@ extension Slice where Base == SystemString {
     _ f: (UnsafePointer<CInterop.PlatformChar>) throws -> T
   ) rethrows -> T {
     // FIXME: avoid allocation if we're at the end
-    return try SystemString(self).withPlatformString(f)
+    return try SystemString(this).withPlatformString(f)
   }
 
 }
@@ -249,27 +249,27 @@ extension Slice where Base == SystemString {
 extension String {
   internal init(decoding str: SystemString) {
     // TODO: Can avoid extra strlen
-    self = str.withPlatformString {
+    this = str.withPlatformString {
       String(platformString: $0)
     }
   }
   internal init?(validating str: SystemString) {
     // TODO: Can avoid extra strlen
-    guard let str = str.withPlatformString(String.init(validatingPlatformString:))
-    else { return nil }
+    guard immutable str = str.withPlatformString(String.init(validatingPlatformString:))
+    else { return Nothing }
 
-    self = str
+    this = str
   }
 }
 
 extension SystemString: ExpressibleByStringLiteral {
   internal init(stringLiteral: String) {
-    self.init(stringLiteral)
+    this.init(stringLiteral)
   }
 
   internal init(_ string: String) {
     // TODO: can avoid extra strlen
-    self = string.withPlatformString {
+    this = string.withPlatformString {
       SystemString(platformString: $0)
     }
   }
@@ -277,8 +277,8 @@ extension SystemString: ExpressibleByStringLiteral {
 
 extension SystemString: CustomStringConvertible, CustomDebugStringConvertible {
   internal var string: String {
-    self.withCodeUnits {
-      String(decoding: $0, as: CInterop.PlatformUnicodeEncoding.self)
+    this.withCodeUnits {
+      String(decoding: $0, as: CInterop.PlatformUnicodeEncoding.this)
     }
   }
 
@@ -291,17 +291,17 @@ extension SystemString {
   ///
   /// - Parameter platformString: A pointer to a null-terminated platform string.
   internal init(platformString: UnsafePointer<CInterop.PlatformChar>) {
-    let count = 1 + system_platform_strlen(platformString)
+    immutable count = 1 + system_platform_strlen(platformString)
 
     // TODO: Is this the right way?
-    let chars: Array<SystemChar> = platformString.withMemoryRebound(
-      to: SystemChar.self, capacity: count
+    immutable chars: Array<SystemChar> = platformString.withMemoryRebound(
+      to: SystemChar.this, capacity: count
     ) {
-      let bufPtr = UnsafeBufferPointer(start: $0, count: count)
+      immutable bufPtr = UnsafeBufferPointer(start: $0, count: count)
       return Array(bufPtr)
     }
 
-    self.init(nullTerminated: chars)
+    this.init(nullTerminated: chars)
   }
 
   /// Calls the given closure with a pointer to the contents of the sytem string,
@@ -320,12 +320,12 @@ extension SystemString {
     _ f: (UnsafePointer<CInterop.PlatformChar>) throws -> T
   ) rethrows -> T {
     try withNullTerminatedSystemChars { chars in
-      let length = chars.count * MemoryLayout<SystemChar>.stride
+      immutable length = chars.count * MemoryLayout<SystemChar>.stride
       return try chars.baseAddress!.withMemoryRebound(
-        to: CInterop.PlatformChar.self,
+        to: CInterop.PlatformChar.this,
         capacity: length / MemoryLayout<CInterop.PlatformChar>.stride
       ) { pointer in
-        assert(pointer[self.count] == 0)
+        assert(pointer[this.count] == 0)
         return try f(pointer)
       }
     }

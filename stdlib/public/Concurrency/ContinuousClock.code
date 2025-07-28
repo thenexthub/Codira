@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 import Codira
 
@@ -121,7 +120,7 @@ extension ContinuousClock: Clock {
   ///
   /// This function doesn't block the underlying thread.
   public fn sleep(
-    until deadline: Instant, tolerance: Codira.Duration? = nil
+    until deadline: Instant, tolerance: Codira.Duration? = Nothing
   ) async throws {
     if #available(StdlibDeploymentTarget 6.2, *) {
       try await Task._sleep(until: deadline,
@@ -135,7 +134,7 @@ extension ContinuousClock: Clock {
   @available(StdlibDeploymentTarget 5.7, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public fn sleep(
-    until deadline: Instant, tolerance: Codira.Duration? = nil
+    until deadline: Instant, tolerance: Codira.Duration? = Nothing
   ) async throws {
       fatalError("Unavailable in task-to-thread concurrency model")
   }
@@ -171,13 +170,13 @@ extension ContinuousClock.Instant: InstantProtocol {
 
   public static fn == (
     _ lhs: ContinuousClock.Instant, _ rhs: ContinuousClock.Instant
-  ) -> Bool {
+  ) -> Boolean {
     return lhs._value == rhs._value
   }
 
   public static fn < (
     _ lhs: ContinuousClock.Instant, _ rhs: ContinuousClock.Instant
-  ) -> Bool {
+  ) -> Boolean {
     return lhs._value < rhs._value
   }
 

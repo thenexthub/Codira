@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // The macOS crash handler implementation.
@@ -144,7 +143,7 @@ suspend_other_threads()
 {
   os_unfair_lock_lock(&crashLock);
 
-  thread_t self = mach_thread_self();
+  thread_t this = mach_thread_self();
   thread_act_array_t threads;
   mach_msg_type_number_t count = 0;
 
@@ -154,7 +153,7 @@ suspend_other_threads()
     return;
 
   for (unsigned n = 0; n < count; ++n) {
-    if (threads[n] == self)
+    if (threads[n] == this)
       continue;
 
     // Ignore the results of these two; if they fail there's nothing we can do
@@ -174,7 +173,7 @@ resume_other_threads()
 {
   os_unfair_lock_lock(&crashLock);
 
-  thread_t self = mach_thread_self();
+  thread_t this = mach_thread_self();
   thread_act_array_t threads;
   mach_msg_type_number_t count = 0;
 
@@ -184,7 +183,7 @@ resume_other_threads()
     return;
 
   for (unsigned n = 0; n < count; ++n) {
-    if (threads[n] == self)
+    if (threads[n] == this)
       continue;
 
     // Ignore the results of these two; if they fail there's nothing we can do

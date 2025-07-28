@@ -1,0 +1,291 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.math.BigDecimal", implements: Comparable.this)
+open class BigDecimal: JavaNumber {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Double, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [UInt16], environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [UInt16], _ arg1: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: BigInteger?, _ arg1: Int32, _ arg2: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int64, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int64, _ arg1: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Double, _ arg1: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: BigInteger?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: BigInteger?, _ arg1: MathContext?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: BigInteger?, _ arg1: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn stripTrailingZeros() -> BigDecimal!
+
+  @JavaMethod
+  open fn movePointLeft(_ arg0: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn toEngineeringString() -> String
+
+  @JavaMethod
+  open fn toPlainString() -> String
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn abs() -> BigDecimal!
+
+  @JavaMethod
+  open fn abs(_ arg0: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn sqrt(_ arg0: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn pow(_ arg0: Int32, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn pow(_ arg0: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn min(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn max(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn round(_ arg0: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn signum() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: BigDecimal?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open override fn intValue() -> Int32
+
+  @JavaMethod
+  open override fn longValue() -> Int64
+
+  @JavaMethod
+  open override fn floatValue() -> Float
+
+  @JavaMethod
+  open override fn doubleValue() -> Double
+
+  @JavaMethod
+  open fn scale() -> Int32
+
+  @JavaMethod
+  open fn add(_ arg0: BigDecimal?, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn add(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn multiply(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn multiply(_ arg0: BigDecimal?, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn ulp() -> BigDecimal!
+
+  @JavaMethod
+  open fn negate() -> BigDecimal!
+
+  @JavaMethod
+  open fn negate(_ arg0: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn remainder(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn remainder(_ arg0: BigDecimal?, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn subtract(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn subtract(_ arg0: BigDecimal?, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn toBigInteger() -> BigInteger!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigDecimal?, _ arg1: Int32, _ arg2: RoundingMode?) -> BigDecimal!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigDecimal?, _ arg1: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigDecimal?, _ arg1: RoundingMode?) -> BigDecimal!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigDecimal?, _ arg1: Int32, _ arg2: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigDecimal?, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn divideAndRemainder(_ arg0: BigDecimal?, _ arg1: MathContext?) -> [BigDecimal?]
+
+  @JavaMethod
+  open fn divideAndRemainder(_ arg0: BigDecimal?) -> [BigDecimal?]
+
+  @JavaMethod
+  open fn longValueExact() -> Int64
+
+  @JavaMethod
+  open fn intValueExact() -> Int32
+
+  @JavaMethod
+  open fn shortValueExact() -> Int16
+
+  @JavaMethod
+  open fn byteValueExact() -> Int8
+
+  @JavaMethod
+  open fn scaleByPowerOfTen(_ arg0: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn plus(_ arg0: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn plus() -> BigDecimal!
+
+  @JavaMethod
+  open fn divideToIntegralValue(_ arg0: BigDecimal?) -> BigDecimal!
+
+  @JavaMethod
+  open fn divideToIntegralValue(_ arg0: BigDecimal?, _ arg1: MathContext?) -> BigDecimal!
+
+  @JavaMethod
+  open fn movePointRight(_ arg0: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn toBigIntegerExact() -> BigInteger!
+
+  @JavaMethod
+  open fn precision() -> Int32
+
+  @JavaMethod
+  open fn unscaledValue() -> BigInteger!
+
+  @JavaMethod
+  open fn setScale(_ arg0: Int32, _ arg1: RoundingMode?) -> BigDecimal!
+
+  @JavaMethod
+  open fn setScale(_ arg0: Int32) -> BigDecimal!
+
+  @JavaMethod
+  open fn setScale(_ arg0: Int32, _ arg1: Int32) -> BigDecimal!
+}
+extension JavaClass<BigDecimal> {
+  @JavaStaticField(isFinal: true)
+  public var ZERO: BigDecimal!
+
+  @JavaStaticField(isFinal: true)
+  public var ONE: BigDecimal!
+
+  @JavaStaticField(isFinal: true)
+  public var TWO: BigDecimal!
+
+  @JavaStaticField(isFinal: true)
+  public var TEN: BigDecimal!
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_UP: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_DOWN: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_CEILING: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_FLOOR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_HALF_UP: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_HALF_DOWN: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_HALF_EVEN: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ROUND_UNNECESSARY: Int32
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: Int64, _ arg1: Int32) -> BigDecimal!
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: Int64) -> BigDecimal!
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: Double) -> BigDecimal!
+}

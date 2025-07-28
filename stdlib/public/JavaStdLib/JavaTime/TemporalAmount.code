@@ -1,0 +1,32 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaInterface("java.time.temporal.TemporalAmount")
+public struct TemporalAmount {
+  @JavaMethod
+  public fn get(_ arg0: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  public fn getUnits() -> List<TemporalUnit>!
+
+  @JavaMethod
+  public fn addTo(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  public fn subtractFrom(_ arg0: Temporal?) -> Temporal!
+}

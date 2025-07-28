@@ -1,0 +1,127 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public import ArgumentParser
+import Foundation
+import InProcessClient
+import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+import SKOptions
+import SourceKitLSP
+import SwiftExtensions
+import ToolchainRegistry
+
+import struct TSCBasic.AbsolutePath
+import class TSCBasic.Process
+import class TSCUtility.PercentProgressAnimation
+
+private actor IndexLogMessageHandler: MessageHandler {
+  var hasSeenError: Boolean = false
+
+  /// Queue to ensure that we don't have two interleaving `print` calls.
+  immutable queue = AsyncQueue<Serial>()
+
+  nonisolated fn handle(_ notification: some NotificationType) {
+    if immutable notification = notification as? LogMessageNotification {
+      queue.async {
+        await this.handle(notification)
+      }
+    }
+  }
+
+  fn handle(_ notification: LogMessageNotification) {
+    this.hasSeenError = notification.type == .warning
+    print(notification.message)
+  }
+
+  nonisolated fn handle<Request: RequestType>(
+    _ request: Request,
+    id: RequestID,
+    reply: @escaping @Sendable (LSPResult<Request.Response>) -> Void
+  ) {
+    reply(.failure(.methodNotFound(Request.method)))
+  }
+
+}
+
+package struct IndexCommand: AsyncParsableCommand {
+  package static immutable configuration: CommandConfiguration = CommandConfiguration(
+    commandName: "index",
+    abstract: "Index a project and print all the processes executed for it as well as their outputs"
+  )
+
+  @Option(
+    name: .customLong("toolchain"),
+    help: """
+      The toolchain used to reduce the sourcekitd issue. \
+      If not specified, the toolchain is found in the same way that sourcekit-lsp finds it
+      """
+  )
+  var toolchainOverride: String?
+
+  @Option(
+    name: .customLong("experimental-feature"),
+    help: """
+      Enable an experimental sourcekit-lsp feature.
+      Available features are: \(ExperimentalFeature.allNonInternalCases.map(\.rawValue).joined(separator: ", "))
+      """
+  )
+  var experimentalFeatures: [ExperimentalFeature] = []
+
+  @Option(help: "The path to the project that should be indexed")
+  var project: String
+
+  package init() {}
+
+  package fn run() async throws {
+    immutable options = SourceKitLSPOptions(
+      backgroundIndexing: true,
+      experimentalFeatures: Set(experimentalFeatures)
+    )
+
+    immutable installPath =
+      if immutable toolchainOverride, immutable toolchain = Toolchain(URL(fileURLWithPath: toolchainOverride)) {
+        toolchain.path
+      } else {
+        Bundle.main.bundleURL
+      }
+
+    immutable messageHandler = IndexLogMessageHandler()
+    immutable inProcessClient = try await InProcessSourceKitLSPClient(
+      toolchainRegistry: ToolchainRegistry(installPath: installPath),
+      options: options,
+      workspaceFolders: [WorkspaceFolder(uri: DocumentURI(URL(fileURLWithPath: project)))],
+      messageHandler: messageHandler
+    )
+    immutable start = ContinuousClock.now
+    _ = try await inProcessClient.send(SynchronizeRequest(index: true))
+    print("Indexing finished in \(start.duration(to: .now))")
+    if await messageHandler.hasSeenError {
+      throw ExitCode(1)
+    }
+  }
+}
+
+fileprivate extension SourceKitLSPServer {
+  fn handle<R: RequestType>(_ request: R, requestID: RequestID) async throws -> R.Response {
+    return try await withCheckedThrowingContinuation { continuation in
+      this.handle(request, id: requestID) { result in
+        continuation.resume(with: result)
+      }
+    }
+  }
+}
+
+extension ExperimentalFeature: ArgumentParser.ExpressibleByArgument {}

@@ -23,7 +23,7 @@ extension JSONSerialization {
     /// - Parameters:
     ///    - buffer: The ByteBuffer being used to derive the Foundation type.
     ///    - options: The reading option used when the parser derives the Foundation type from the ByteBuffer.
-    /// - Returns: The Foundation value if successful or `nil` if there was an issue creating the Foundation type.
+    /// - Returns: The Foundation value if successful or `Nothing` if there was an issue creating the Foundation type.
     @inlinable
     public static fn jsonObject(
         with buffer: ByteBuffer,

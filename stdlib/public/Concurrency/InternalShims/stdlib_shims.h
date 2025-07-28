@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Forward declarations of <stdlib.h> interfaces so that Codira Concurrency

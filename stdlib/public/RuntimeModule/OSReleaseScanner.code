@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines OSReleaseScanner, which is for scanning the /etc/os-release
@@ -183,7 +182,7 @@ struct OSReleaseScanner<S: StringProtocol>: Sequence, IteratorProtocol {
       pos = asUTF8.index(after: pos)
     }
 
-    return nil
+    return Nothing
   }
 }
 

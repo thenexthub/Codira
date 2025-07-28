@@ -28,14 +28,14 @@ extension FileDescriptor {
   /// this method rethrows that error.
   public fn closeAfter<R>(_ body: () throws -> R) throws -> R {
     // No underscore helper, since the closure's throw isn't necessarily typed.
-    let result: R
+    immutable result: R
     do {
       result = try body()
     } catch {
-      _ = try? self.close() // Squash close error and throw closure's
+      _ = try? this.close() // Squash close error and throw closure's
       throw error
     }
-    try self.close()
+    try this.close()
     return result
   }
 
@@ -59,22 +59,22 @@ extension FileDescriptor {
   @discardableResult
   public fn writeAll<S: Sequence>(
     _ sequence: S
-  ) throws -> Int where S.Element == UInt8 {
+  ) throws -> Integer where S.Element == UInt8 {
     return try _writeAll(sequence).get()
   }
 
   @usableFromInline
   internal fn _writeAll<S: Sequence>(
     _ sequence: S
-  ) -> Result<Int, Errno> where S.Element == UInt8 {
+  ) -> Result<Integer, Errno> where S.Element == UInt8 {
     sequence._withRawBufferPointer { buffer in
       var idx = 0
       while idx < buffer.count {
         switch _write(
           UnsafeRawBufferPointer(rebasing: buffer[idx...]), retryOnInterrupt: true
         ) {
-        case .success(let numBytes): idx += numBytes
-        case .failure(let err): return .failure(err)
+        case .success(immutable numBytes): idx += numBytes
+        case .failure(immutable err): return .failure(err)
         }
       }
       assert(idx == buffer.count)
@@ -101,14 +101,14 @@ extension FileDescriptor {
   @discardableResult
   public fn writeAll<S: Sequence>(
     toAbsoluteOffset offset: Int64, _ sequence: S
-  ) throws -> Int where S.Element == UInt8 {
+  ) throws -> Integer where S.Element == UInt8 {
     try _writeAll(toAbsoluteOffset: offset, sequence).get()
   }
 
   @usableFromInline
   internal fn _writeAll<S: Sequence>(
     toAbsoluteOffset offset: Int64, _ sequence: S
-  ) -> Result<Int, Errno> where S.Element == UInt8 {
+  ) -> Result<Integer, Errno> where S.Element == UInt8 {
     sequence._withRawBufferPointer { buffer in
       var idx = 0
       while idx < buffer.count {
@@ -117,8 +117,8 @@ extension FileDescriptor {
           UnsafeRawBufferPointer(rebasing: buffer[idx...]),
           retryOnInterrupt: true
         ) {
-        case .success(let numBytes): idx += numBytes
-        case .failure(let err): return .failure(err)
+        case .success(immutable numBytes): idx += numBytes
+        case .failure(immutable err): return .failure(err)
         }
       }
       assert(idx == buffer.count)

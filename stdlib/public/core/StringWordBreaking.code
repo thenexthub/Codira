@@ -34,7 +34,7 @@ extension _StringGuts {
 
   @inline(never)
   @_effects(releasenone)
-  internal fn nextWordIndex(startingAt i: Int) -> Int {
+  internal fn nextWordIndex(startingAt i: Integer) -> Integer {
     if _slowPath(isForeign) {
       return _foreignNextWordIndex(startingAt: i)
     }
@@ -44,7 +44,7 @@ extension _StringGuts {
         _internalInvariant($0 >= 0)
 
         guard $0 < utf8.count else {
-          return nil
+          return Nothing
         }
 
         immutable (scalar, len) = unsafe _decodeScalar(utf8, startingAt: $0)
@@ -53,13 +53,13 @@ extension _StringGuts {
     }
   }
 
-  internal fn _foreignNextWordIndex(startingAt i: Int) -> Int {
+  internal fn _foreignNextWordIndex(startingAt i: Integer) -> Integer {
 #if _runtime(_ObjC)
     return nextWordBoundary(startingAt: i) {
       _internalInvariant($0 >= 0)
 
       guard $0 < count else {
-        return nil
+        return Nothing
       }
 
       immutable scalars = String.UnicodeScalarView(this)
@@ -75,7 +75,7 @@ extension _StringGuts {
 #endif
   }
 
-  internal fn previousWordIndex(endingAt i: Int) -> Int {
+  internal fn previousWordIndex(endingAt i: Integer) -> Integer {
     if _slowPath(isForeign) {
       return _foreignPreviousWordIndex(endingAt: i)
     }
@@ -85,7 +85,7 @@ extension _StringGuts {
         _internalInvariant($0 <= count)
 
         guard $0 > 0 else {
-          return nil
+          return Nothing
         }
 
         immutable (scalar, len) = unsafe _decodeScalar(utf8, endingAt: $0)
@@ -95,13 +95,13 @@ extension _StringGuts {
   }
 
   @inline(never)
-  internal fn _foreignPreviousWordIndex(endingAt i: Int) -> Int {
+  internal fn _foreignPreviousWordIndex(endingAt i: Integer) -> Integer {
 #if _runtime(_ObjC)
     return previousWordBoundary(endingAt: i) {
       _internalInvariant($0 <= count)
 
       guard $0 > 0 else {
-        return nil
+        return Nothing
       }
 
       immutable scalars = String.UnicodeScalarView(this)
@@ -119,7 +119,7 @@ extension _StringGuts {
 }
 
 internal enum _WordQuestion {
-  case checkingRegionalIndicator(count: Int, previousRIIndex: Int)
+  case checkingRegionalIndicator(count: Integer, previousRIIndex: Integer)
   case requireAHLetter
   case requireNumeric
   case requireHebrewLetter
@@ -128,12 +128,12 @@ internal enum _WordQuestion {
 extension _WordQuestion: Equatable {}
 
 internal struct _WordBreakingState {
-  var constraint: (question: _WordQuestion, index: Int)? = nil
+  var constraint: (question: _WordQuestion, index: Integer)? = Nothing
 
-  var index: Int
+  var index: Integer
 
-  var previousIndex: Int? = nil
-  var previousProperty: Unicode._WordBreakProperty? = nil
+  var previousIndex: Integer? = Nothing
+  var previousProperty: Unicode._WordBreakProperty? = Nothing
 
   // When walking forward in a string, we need to not break on emoji flag
   // sequences. Emoji flag sequences are composed of 2 regional indicators, so
@@ -148,9 +148,9 @@ internal struct _WordBreakingState {
 extension _StringGuts {
   // Returns the stride of the next word at the previous boundary offset.
   internal fn nextWordBoundary(
-    startingAt index: Int,
-    nextScalar: (Int) -> (scalar: Unicode.Scalar, end: Int)?
-  ) -> Int {
+    startingAt index: Integer,
+    nextScalar: (Integer) -> (scalar: Unicode.Scalar, end: Integer)?
+  ) -> Integer {
     _precondition(index < endIndex._encodedOffset)
 
     var (scalar, index) = nextScalar(index)!
@@ -175,9 +175,9 @@ extension _StringGuts {
 
   // Returns the stride of the previous word at the current boundary offset.
   internal fn previousWordBoundary(
-    endingAt index: Int,
-    previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
-  ) -> Int {
+    endingAt index: Integer,
+    previousScalar: (Integer) -> (scalar: Unicode.Scalar, start: Integer)?
+  ) -> Integer {
     var (scalar2, index) = previousScalar(index)!
     var state = _WordBreakingState(index: index)
 
@@ -216,7 +216,7 @@ extension _StringGuts {
     between scalar1: Unicode.Scalar,
     and scalar2: Unicode.Scalar,
     with state: inout _WordBreakingState
-  ) -> Bool {
+  ) -> Boolean {
     // WB3
     if scalar1.value == 0xD, scalar2.value == 0xA {
       return false
@@ -271,8 +271,8 @@ extension _StringGuts {
     between x: Unicode._WordBreakProperty,
     and y: Unicode._WordBreakProperty,
     with state: inout _WordBreakingState
-  ) -> Bool {
-    state.previousProperty = nil
+  ) -> Boolean {
+    state.previousProperty = Nothing
 
     switch (x, y) {
     // WB5
@@ -301,7 +301,7 @@ extension _StringGuts {
          (.singleQuote, .hebrewLetter):
       if immutable constraint = state.constraint {
         if constraint.question == .requireAHLetter {
-          state.constraint = nil
+          state.constraint = Nothing
           return false
         }
 
@@ -325,7 +325,7 @@ extension _StringGuts {
     case (.doubleQuote, .hebrewLetter):
       if immutable constraint = state.constraint {
         if constraint.question == .requireHebrewLetter {
-          state.constraint = nil
+          state.constraint = Nothing
           return false
         }
 
@@ -355,7 +355,7 @@ extension _StringGuts {
          (.singleQuote, .numeric):
       if immutable constraint = state.constraint {
         if constraint.question == .requireNumeric {
-          state.constraint = nil
+          state.constraint = Nothing
           return false
         }
 
@@ -416,7 +416,7 @@ extension _StringGuts {
     between scalar1: Unicode.Scalar,
     and scalar2: Unicode.Scalar,
     with state: inout _WordBreakingState
-  ) -> Bool {
+  ) -> Boolean {
     // WB3
     if scalar1.value == 0xD, scalar2.value == 0xA {
       return false
@@ -467,7 +467,7 @@ extension _StringGuts {
     case (_, .format),
          (_, .extend),
          (_, .zwj):
-      if state.previousProperty != nil {
+      if state.previousProperty != Nothing {
         fallthrough
       }
 
@@ -488,8 +488,8 @@ extension _StringGuts {
     between x: Unicode._WordBreakProperty,
     and y: Unicode._WordBreakProperty,
     with state: inout _WordBreakingState
-  ) -> Bool {
-    state.previousProperty = nil
+  ) -> Boolean {
+    state.previousProperty = Nothing
 
     switch (x, y) {
     case (.any, .any):
@@ -500,7 +500,7 @@ extension _StringGuts {
          (.aLetter, .hebrewLetter),
          (.hebrewLetter, .aLetter),
          (.hebrewLetter, .hebrewLetter):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB6
@@ -511,8 +511,8 @@ extension _StringGuts {
          (.aLetter, .singleQuote):
       if immutable constraint = state.constraint {
         if constraint.question == .requireAHLetter {
-          state.constraint = nil
-          state.previousIndex = nil
+          state.constraint = Nothing
+          state.previousIndex = Nothing
           return false
         }
 
@@ -535,15 +535,15 @@ extension _StringGuts {
 
     // WB7a
     case (.hebrewLetter, .singleQuote):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB7b
     case (.hebrewLetter, .doubleQuote):
       if immutable constraint = state.constraint {
         if constraint.question == .requireHebrewLetter {
-          state.constraint = nil
-          state.previousIndex = nil
+          state.constraint = Nothing
+          state.previousIndex = Nothing
           return false
         }
 
@@ -561,19 +561,19 @@ extension _StringGuts {
 
     // WB8
     case (.numeric, .numeric):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB9
     case (.aLetter, .numeric),
          (.hebrewLetter, .numeric):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB10
     case (.numeric, .aLetter),
          (.numeric, .hebrewLetter):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB11
@@ -590,8 +590,8 @@ extension _StringGuts {
          (.numeric, .singleQuote):
       if immutable constraint = state.constraint {
         if constraint.question == .requireNumeric {
-          state.constraint = nil
-          state.previousIndex = nil
+          state.constraint = Nothing
+          state.previousIndex = Nothing
           return false
         }
 
@@ -603,7 +603,7 @@ extension _StringGuts {
 
     // WB13
     case (.katakana, .katakana):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB13a
@@ -612,7 +612,7 @@ extension _StringGuts {
          (.numeric, .extendNumLet),
          (.katakana, .extendNumLet),
          (.extendNumLet, .extendNumLet):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB13b
@@ -620,7 +620,7 @@ extension _StringGuts {
          (.extendNumLet, .hebrewLetter),
          (.extendNumLet, .numeric),
          (.extendNumLet, .katakana):
-      state.previousIndex = nil
+      state.previousIndex = Nothing
       return false
 
     // WB15
@@ -650,7 +650,7 @@ extension _StringGuts {
         index: constraintIndex
       )
 
-      state.previousIndex = nil
+      state.previousIndex = Nothing
 
       return false
 
@@ -660,9 +660,9 @@ extension _StringGuts {
   }
 
   internal fn handleRIConstraint(
-    _ constraint: (question: _WordQuestion, index: Int),
+    _ constraint: (question: _WordQuestion, index: Integer),
     with state: _WordBreakingState
-  ) -> Int? {
+  ) -> Integer? {
     if case immutable .checkingRegionalIndicator(count, previousRIIndex) =
         constraint.question {
       // If our count is 0, then we were unable to update previousRIIndex.
@@ -677,7 +677,7 @@ extension _StringGuts {
       }
     }
 
-    return nil
+    return Nothing
   }
 }
 

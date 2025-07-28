@@ -1,0 +1,225 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.file.attribute.AclEntryPermission")
+open class AclEntryPermission: Enum {
+  public enum AclEntryPermissionCases: Equatable {
+    case READ_DATA
+    case WRITE_DATA
+    case APPEND_DATA
+    case READ_NAMED_ATTRS
+    case WRITE_NAMED_ATTRS
+    case EXECUTE
+    case DELETE_CHILD
+    case READ_ATTRIBUTES
+    case WRITE_ATTRIBUTES
+    case DELETE
+    case READ_ACL
+    case WRITE_ACL
+    case WRITE_OWNER
+    case SYNCHRONIZE
+  }
+
+  public var enumValue: AclEntryPermissionCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.READ_DATA?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.READ_DATA
+    } else if this.equals(classObj.WRITE_DATA?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.WRITE_DATA
+    } else if this.equals(classObj.APPEND_DATA?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.APPEND_DATA
+    } else if this.equals(classObj.READ_NAMED_ATTRS?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.READ_NAMED_ATTRS
+    } else if this.equals(classObj.WRITE_NAMED_ATTRS?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.WRITE_NAMED_ATTRS
+    } else if this.equals(classObj.EXECUTE?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.EXECUTE
+    } else if this.equals(classObj.DELETE_CHILD?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.DELETE_CHILD
+    } else if this.equals(classObj.READ_ATTRIBUTES?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.READ_ATTRIBUTES
+    } else if this.equals(classObj.WRITE_ATTRIBUTES?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.WRITE_ATTRIBUTES
+    } else if this.equals(classObj.DELETE?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.DELETE
+    } else if this.equals(classObj.READ_ACL?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.READ_ACL
+    } else if this.equals(classObj.WRITE_ACL?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.WRITE_ACL
+    } else if this.equals(classObj.WRITE_OWNER?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.WRITE_OWNER
+    } else if this.equals(classObj.SYNCHRONIZE?.as(JavaObject.this)) {
+      return AclEntryPermissionCases.SYNCHRONIZE
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: AclEntryPermissionCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<AclEntryPermission>(environment: _environment)
+    switch enumValue {
+      case .READ_DATA:
+        if immutable READ_DATA = classObj.READ_DATA {
+          this.init(javaHolder: READ_DATA.javaHolder)
+        } else {
+          fatalError("Enum value READ_DATA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WRITE_DATA:
+        if immutable WRITE_DATA = classObj.WRITE_DATA {
+          this.init(javaHolder: WRITE_DATA.javaHolder)
+        } else {
+          fatalError("Enum value WRITE_DATA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .APPEND_DATA:
+        if immutable APPEND_DATA = classObj.APPEND_DATA {
+          this.init(javaHolder: APPEND_DATA.javaHolder)
+        } else {
+          fatalError("Enum value APPEND_DATA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .READ_NAMED_ATTRS:
+        if immutable READ_NAMED_ATTRS = classObj.READ_NAMED_ATTRS {
+          this.init(javaHolder: READ_NAMED_ATTRS.javaHolder)
+        } else {
+          fatalError("Enum value READ_NAMED_ATTRS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WRITE_NAMED_ATTRS:
+        if immutable WRITE_NAMED_ATTRS = classObj.WRITE_NAMED_ATTRS {
+          this.init(javaHolder: WRITE_NAMED_ATTRS.javaHolder)
+        } else {
+          fatalError("Enum value WRITE_NAMED_ATTRS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .EXECUTE:
+        if immutable EXECUTE = classObj.EXECUTE {
+          this.init(javaHolder: EXECUTE.javaHolder)
+        } else {
+          fatalError("Enum value EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DELETE_CHILD:
+        if immutable DELETE_CHILD = classObj.DELETE_CHILD {
+          this.init(javaHolder: DELETE_CHILD.javaHolder)
+        } else {
+          fatalError("Enum value DELETE_CHILD was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .READ_ATTRIBUTES:
+        if immutable READ_ATTRIBUTES = classObj.READ_ATTRIBUTES {
+          this.init(javaHolder: READ_ATTRIBUTES.javaHolder)
+        } else {
+          fatalError("Enum value READ_ATTRIBUTES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WRITE_ATTRIBUTES:
+        if immutable WRITE_ATTRIBUTES = classObj.WRITE_ATTRIBUTES {
+          this.init(javaHolder: WRITE_ATTRIBUTES.javaHolder)
+        } else {
+          fatalError("Enum value WRITE_ATTRIBUTES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DELETE:
+        if immutable DELETE = classObj.DELETE {
+          this.init(javaHolder: DELETE.javaHolder)
+        } else {
+          fatalError("Enum value DELETE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .READ_ACL:
+        if immutable READ_ACL = classObj.READ_ACL {
+          this.init(javaHolder: READ_ACL.javaHolder)
+        } else {
+          fatalError("Enum value READ_ACL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WRITE_ACL:
+        if immutable WRITE_ACL = classObj.WRITE_ACL {
+          this.init(javaHolder: WRITE_ACL.javaHolder)
+        } else {
+          fatalError("Enum value WRITE_ACL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WRITE_OWNER:
+        if immutable WRITE_OWNER = classObj.WRITE_OWNER {
+          this.init(javaHolder: WRITE_OWNER.javaHolder)
+        } else {
+          fatalError("Enum value WRITE_OWNER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SYNCHRONIZE:
+        if immutable SYNCHRONIZE = classObj.SYNCHRONIZE {
+          this.init(javaHolder: SYNCHRONIZE.javaHolder)
+        } else {
+          fatalError("Enum value SYNCHRONIZE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<AclEntryPermission> {
+  @JavaStaticField(isFinal: true)
+  public var READ_DATA: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var WRITE_DATA: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var APPEND_DATA: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var READ_NAMED_ATTRS: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var WRITE_NAMED_ATTRS: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var EXECUTE: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var DELETE_CHILD: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var READ_ATTRIBUTES: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var WRITE_ATTRIBUTES: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var DELETE: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var READ_ACL: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var WRITE_ACL: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var WRITE_OWNER: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var SYNCHRONIZE: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var LIST_DIRECTORY: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var ADD_FILE: AclEntryPermission!
+
+  @JavaStaticField(isFinal: true)
+  public var ADD_SUBDIRECTORY: AclEntryPermission!
+
+  @JavaStaticMethod
+  public fn values() -> [AclEntryPermission?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> AclEntryPermission!
+}

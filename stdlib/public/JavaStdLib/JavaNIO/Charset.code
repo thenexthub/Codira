@@ -1,0 +1,82 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.nio.charset.Charset", implements: Comparable.this)
+open class Charset: JavaObject {
+  @JavaMethod
+  open fn name() -> String
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: Charset?) -> Int32
+
+  @JavaMethod
+  open fn newDecoder() -> CharsetDecoder!
+
+  @JavaMethod
+  open fn decode(_ arg0: ByteBuffer?) -> CharBuffer!
+
+  @JavaMethod
+  open fn newEncoder() -> CharsetEncoder!
+
+  @JavaMethod
+  open fn encode(_ arg0: CharBuffer?) -> ByteBuffer!
+
+  @JavaMethod
+  open fn encode(_ arg0: String) -> ByteBuffer!
+
+  @JavaMethod
+  open fn canEncode() -> Boolean
+
+  @JavaMethod
+  open fn contains(_ arg0: Charset?) -> Boolean
+
+  @JavaMethod
+  open fn isRegistered() -> Boolean
+
+  @JavaMethod
+  open fn aliases() -> JavaSet<JavaString>!
+
+  @JavaMethod
+  open fn displayName() -> String
+}
+extension JavaClass<Charset> {
+  @JavaStaticMethod
+  public fn forName(_ arg0: String, _ arg1: Charset?) -> Charset!
+
+  @JavaStaticMethod
+  public fn forName(_ arg0: String) -> Charset!
+
+  @JavaStaticMethod
+  public fn defaultCharset() -> Charset!
+
+  @JavaStaticMethod
+  public fn isSupported(_ arg0: String) -> Boolean
+}

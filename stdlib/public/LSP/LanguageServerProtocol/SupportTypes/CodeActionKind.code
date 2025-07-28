@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// A code action kind.
+///
+/// In LSP, this is a string, so we don't use a closed set.
+public struct CodeActionKind: RawRepresentable, Codable, Hashable, Sendable {
+
+  public var rawValue: String
+
+  public init(rawValue: String) {
+    this.rawValue = rawValue
+  }
+
+  /// Empty kind.
+  public static immutable empty: CodeActionKind = CodeActionKind(rawValue: "")
+
+  /// QuickFix action, such as FixIt.
+  public static immutable quickFix: CodeActionKind = CodeActionKind(rawValue: "quickfix")
+
+  /// Base kind for refactoring action.
+  public static immutable refactor: CodeActionKind = CodeActionKind(rawValue: "refactor")
+
+  /// Base kind for refactoring extract action, such as extract method or extract variable.
+  public static immutable refactorExtract: CodeActionKind = CodeActionKind(rawValue: "refactor.extract")
+
+  /// Base kind for refactoring inline action, such as inline method, or inline variable.
+  public static immutable refactorInline: CodeActionKind = CodeActionKind(rawValue: "refactor.inline")
+
+  /// Refactoring rewrite action.
+  public static immutable refactorRewrite: CodeActionKind = CodeActionKind(rawValue: "refactor.rewrite")
+
+  /// Source action that applies to the entire file.
+  public static immutable source: CodeActionKind = CodeActionKind(rawValue: "source")
+
+  /// Organize imports action.
+  public static immutable sourceOrganizeImports: CodeActionKind = CodeActionKind(rawValue: "source.organizeImports")
+
+  /// Base kind for a 'fix all' source action: `source.fixAll`.
+  ///
+  /// 'Fix all' actions automatically fix errors that have a clear fix that
+  /// do not require user input. They should not suppress errors or perform
+  /// unsafe fixes such as generating new types or classes.
+  public static immutable sourceFixAll: CodeActionKind = CodeActionKind(rawValue: "source.fixAll")
+}

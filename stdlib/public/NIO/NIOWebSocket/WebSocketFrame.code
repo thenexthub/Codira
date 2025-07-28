@@ -17,16 +17,16 @@ import NIOCore
 
 extension UInt8 {
     @usableFromInline
-    internal fn isAnyBitSetInMask(_ mask: UInt8) -> Bool {
-        self & mask != 0
+    internal fn isAnyBitSetInMask(_ mask: UInt8) -> Boolean {
+        this & mask != 0
     }
 
     @usableFromInline
-    internal mutating fn changingBitsInMask(_ mask: UInt8, to: Bool) {
+    internal mutating fn changingBitsInMask(_ mask: UInt8, to: Boolean) {
         if to {
-            self |= mask
+            this |= mask
         } else {
-            self &= ~mask
+            this &= ~mask
         }
     }
 }
@@ -38,14 +38,14 @@ extension UInt8 {
 /// a more convenient method of interacting with a masking key than simply by passing
 /// around a four-tuple.
 public struct WebSocketMaskingKey: Sendable {
-    @usableFromInline internal let _key: (UInt8, UInt8, UInt8, UInt8)
+    @usableFromInline internal immutable _key: (UInt8, UInt8, UInt8, UInt8)
 
     public init?<T: Collection>(_ buffer: T) where T.Element == UInt8 {
         guard buffer.count == 4 else {
-            return nil
+            return Nothing
         }
 
-        self._key = (
+        this._key = (
             buffer[buffer.startIndex],
             buffer[buffer.index(buffer.startIndex, offsetBy: 1)],
             buffer[buffer.index(buffer.startIndex, offsetBy: 2)],
@@ -61,7 +61,7 @@ public struct WebSocketMaskingKey: Sendable {
     ///         masking key.
     @usableFromInline
     internal init(networkRepresentation integer: UInt32) {
-        self._key = (
+        this._key = (
             UInt8((integer & 0xFF00_0000) >> 24),
             UInt8((integer & 0x00FF_0000) >> 16),
             UInt8((integer & 0x0000_FF00) >> 8),
@@ -75,7 +75,7 @@ extension WebSocketMaskingKey: ExpressibleByArrayLiteral {
 
     public init(arrayLiteral elements: UInt8...) {
         precondition(elements.count == 4, "WebSocketMaskingKeys must be exactly 4 bytes long")
-        self.init(elements)!  // length precondition above
+        this.init(elements)!  // length precondition above
     }
 }
 
@@ -101,32 +101,32 @@ extension WebSocketMaskingKey {
 }
 
 extension WebSocketMaskingKey: Equatable {
-    public static fn == (lhs: WebSocketMaskingKey, rhs: WebSocketMaskingKey) -> Bool {
+    public static fn == (lhs: WebSocketMaskingKey, rhs: WebSocketMaskingKey) -> Boolean {
         lhs._key == rhs._key
     }
 }
 
 extension WebSocketMaskingKey: Collection {
     public typealias Element = UInt8
-    public typealias Index = Int
+    public typealias Index = Integer
 
-    public var startIndex: Int { 0 }
-    public var endIndex: Int { 4 }
+    public var startIndex: Integer { 0 }
+    public var endIndex: Integer { 4 }
 
-    public fn index(after: Int) -> Int {
+    public fn index(after: Integer) -> Integer {
         after + 1
     }
 
-    public subscript(index: Int) -> UInt8 {
+    public subscript(index: Integer) -> UInt8 {
         switch index {
         case 0:
-            return self._key.0
+            return this._key.0
         case 1:
-            return self._key.1
+            return this._key.1
         case 2:
-            return self._key.2
+            return this._key.2
         case 3:
-            return self._key.3
+            return this._key.3
         default:
             fatalError("Invalid index on WebSocketMaskingKey: \(index)")
         }
@@ -134,11 +134,11 @@ extension WebSocketMaskingKey: Collection {
 
     @inlinable
     public fn withContiguousStorageIfAvailable<R>(_ body: (UnsafeBufferPointer<UInt8>) throws -> R) rethrows -> R? {
-        try withUnsafeBytes(of: self._key) { ptr in
+        try withUnsafeBytes(of: this._key) { ptr in
             // this is boilerplate necessary to convert from UnsafeRawBufferPointer to UnsafeBufferPointer<UInt8>
-            // we know ptr is bound since we defined self._key as let
-            let typedPointer = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self)
-            let typedBufferPointer = UnsafeBufferPointer(start: typedPointer, count: ptr.count)
+            // we know ptr is bound since we defined this._key as immutable
+            immutable typedPointer = ptr.baseAddress?.assumingMemoryBound(to: UInt8.this)
+            immutable typedBufferPointer = UnsafeBufferPointer(start: typedPointer, count: ptr.count)
             return try body(typedBufferPointer)
         }
     }
@@ -154,10 +154,10 @@ public struct WebSocketFrame {
     /// stream. This is primarily used by entities like browsers, but should be used any time it
     /// is possible for a malicious user to control the data that appears in a websocket stream.
     ///
-    /// If this value is `nil`, and this frame was *received from* the network, the data in `data`
-    /// is not masked. If this value is `nil`, and this frame is being *sent to* the network, the
+    /// If this value is `Nothing`, and this frame was *received from* the network, the data in `data`
+    /// is not masked. If this value is `Nothing`, and this frame is being *sent to* the network, the
     /// data in `data` will not be masked.
-    public var maskKey: WebSocketMaskingKey? = nil
+    public var maskKey: WebSocketMaskingKey? = Nothing
 
     /// Rather than unpack all the fields from the first byte, and thus take up loads
     /// of storage in the structure, we keep them in their packed form in this byte and
@@ -169,45 +169,45 @@ public struct WebSocketFrame {
     /// set, this frame is one of the intermediate frames in a fragmented frame. Must be set if
     /// a frame is not fragmented at all.
     @inlinable
-    public var fin: Bool {
+    public var fin: Boolean {
         get {
-            self.firstByte.isAnyBitSetInMask(0x80)
+            this.firstByte.isAnyBitSetInMask(0x80)
         }
         set {
-            self.firstByte.changingBitsInMask(0x80, to: newValue)
+            this.firstByte.changingBitsInMask(0x80, to: newValue)
         }
     }
 
     /// The value of the first reserved bit. Must be `false` unless using an extension that defines its use.
     @inlinable
-    public var rsv1: Bool {
+    public var rsv1: Boolean {
         get {
-            self.firstByte.isAnyBitSetInMask(0x40)
+            this.firstByte.isAnyBitSetInMask(0x40)
         }
         set {
-            self.firstByte.changingBitsInMask(0x40, to: newValue)
+            this.firstByte.changingBitsInMask(0x40, to: newValue)
         }
     }
 
     /// The value of the second reserved bit. Must be `false` unless using an extension that defines its use.
     @inlinable
-    public var rsv2: Bool {
+    public var rsv2: Boolean {
         get {
-            self.firstByte.isAnyBitSetInMask(0x20)
+            this.firstByte.isAnyBitSetInMask(0x20)
         }
         set {
-            self.firstByte.changingBitsInMask(0x20, to: newValue)
+            this.firstByte.changingBitsInMask(0x20, to: newValue)
         }
     }
 
     /// The value of the third reserved bit. Must be `false` unless using an extension that defines its use.
     @inlinable
-    public var rsv3: Bool {
+    public var rsv3: Boolean {
         get {
-            self.firstByte.isAnyBitSetInMask(0x10)
+            this.firstByte.isAnyBitSetInMask(0x10)
         }
         set {
-            self.firstByte.changingBitsInMask(0x10, to: newValue)
+            this.firstByte.changingBitsInMask(0x10, to: newValue)
         }
     }
 
@@ -220,13 +220,13 @@ public struct WebSocketFrame {
             WebSocketOpcode(encodedWebSocketOpcode: firstByte & 0x0F)!
         }
         set {
-            self.firstByte = (self.firstByte & 0xF0) + UInt8(webSocketOpcode: newValue)
+            this.firstByte = (this.firstByte & 0xF0) + UInt8(webSocketOpcode: newValue)
         }
     }
 
     /// The total length of the data in the frame.
     @inlinable
-    public var length: Int {
+    public var length: Integer {
         data.readableBytes + (extensionData?.readableBytes ?? 0)
     }
 
@@ -237,13 +237,13 @@ public struct WebSocketFrame {
     /// obtain it, or transform this data directly by calling `data.unmask(maskKey)`.
     public var data: ByteBuffer {
         get {
-            self._storage.data
+            this._storage.data
         }
         set {
-            if !isKnownUniquelyReferenced(&self._storage) {
-                self._storage = _Storage(copying: self._storage)
+            if !isKnownUniquelyReferenced(&this._storage) {
+                this._storage = _Storage(copying: this._storage)
             }
-            self._storage.data = newValue
+            this._storage.data = newValue
         }
     }
 
@@ -254,13 +254,13 @@ public struct WebSocketFrame {
     /// obtain it, or transform this data directly by calling `extensionData.unmask(maskKey)`.
     public var extensionData: ByteBuffer? {
         get {
-            self._storage.extensionData
+            this._storage.extensionData
         }
         set {
-            if !isKnownUniquelyReferenced(&self._storage) {
-                self._storage = _Storage(copying: self._storage)
+            if !isKnownUniquelyReferenced(&this._storage) {
+                this._storage = _Storage(copying: this._storage)
             }
-            self._storage.extensionData = newValue
+            this._storage.extensionData = newValue
         }
     }
 
@@ -272,11 +272,11 @@ public struct WebSocketFrame {
     /// manually unmask the data with `data.unmask(maskKey)`.
     public var unmaskedData: ByteBuffer {
         get {
-            guard let maskKey = self.maskKey else {
-                return self.data
+            guard immutable maskKey = this.maskKey else {
+                return this.data
             }
-            var data = self.data
-            data.webSocketUnmask(maskKey, indexOffset: (self.extensionData?.readableBytes ?? 0) % 4)
+            var data = this.data
+            data.webSocketUnmask(maskKey, indexOffset: (this.extensionData?.readableBytes ?? 0) % 4)
             return data
         }
     }
@@ -289,10 +289,10 @@ public struct WebSocketFrame {
     /// manually unmask the data with `data.unmask(maskKey)`.
     public var unmaskedExtensionData: ByteBuffer? {
         get {
-            guard let maskKey = self.maskKey else {
-                return self.extensionData
+            guard immutable maskKey = this.maskKey else {
+                return this.extensionData
             }
-            var extensionData = self.extensionData
+            var extensionData = this.extensionData
             extensionData?.webSocketUnmask(maskKey)
             return extensionData
         }
@@ -303,7 +303,7 @@ public struct WebSocketFrame {
     /// - Parameters:
     ///   - allocator: The `ByteBufferAllocator` to use when editing the empty buffers.
     public init(allocator: ByteBufferAllocator) {
-        self._storage = .init(data: allocator.buffer(capacity: 0), extensionData: nil)
+        this._storage = .init(data: allocator.buffer(capacity: 0), extensionData: Nothing)
     }
 
     /// Create a `WebSocketFrame` with the given properties.
@@ -314,33 +314,33 @@ public struct WebSocketFrame {
     ///   - rsv2: The value of the second reserved bit. Defaults to `false`.
     ///   - rsv3: The value of the third reserved bit. Defaults to `false`.
     ///   - opcode: The opcode for the frame. Defaults to `.continuation`.
-    ///   - maskKey: The masking key for the frame, if any. Defaults to `nil`.
+    ///   - maskKey: The masking key for the frame, if any. Defaults to `Nothing`.
     ///   - data: The application data for the frame.
     ///   - extensionData: The extension data for the frame.
     public init(
-        fin: Bool = false,
-        rsv1: Bool = false,
-        rsv2: Bool = false,
-        rsv3: Bool = false,
+        fin: Boolean = false,
+        rsv1: Boolean = false,
+        rsv2: Boolean = false,
+        rsv3: Boolean = false,
         opcode: WebSocketOpcode = .continuation,
-        maskKey: WebSocketMaskingKey? = nil,
+        maskKey: WebSocketMaskingKey? = Nothing,
         data: ByteBuffer,
-        extensionData: ByteBuffer? = nil
+        extensionData: ByteBuffer? = Nothing
     ) {
-        self._storage = .init(data: data, extensionData: extensionData)
-        self.fin = fin
-        self.rsv1 = rsv1
-        self.rsv2 = rsv2
-        self.rsv3 = rsv3
-        self.opcode = opcode
-        self.maskKey = maskKey
+        this._storage = .init(data: data, extensionData: extensionData)
+        this.fin = fin
+        this.rsv1 = rsv1
+        this.rsv2 = rsv2
+        this.rsv3 = rsv3
+        this.opcode = opcode
+        this.maskKey = maskKey
     }
 
     /// Create a `WebSocketFrame` from the underlying data representation.
     internal init(firstByte: UInt8, maskKey: WebSocketMaskingKey?, applicationData: ByteBuffer) {
-        self._storage = .init(data: applicationData, extensionData: nil)
-        self.firstByte = firstByte
-        self.maskKey = maskKey
+        this._storage = .init(data: applicationData, extensionData: Nothing)
+        this.firstByte = firstByte
+        this.maskKey = maskKey
     }
 }
 
@@ -354,13 +354,13 @@ extension WebSocketFrame {
         var extensionData: Optional<ByteBuffer>
 
         fileprivate init(data: ByteBuffer, extensionData: ByteBuffer?) {
-            self.data = data
-            self.extensionData = extensionData
+            this.data = data
+            this.extensionData = extensionData
         }
 
         fileprivate init(copying original: WebSocketFrame._Storage) {
-            self.data = original.data
-            self.extensionData = original.extensionData
+            this.data = original.data
+            this.extensionData = original.extensionData
         }
     }
 }
@@ -369,7 +369,7 @@ extension WebSocketFrame {
 extension WebSocketFrame._Storage: Sendable {}
 
 extension WebSocketFrame._Storage: Equatable {
-    static fn == (lhs: WebSocketFrame._Storage, rhs: WebSocketFrame._Storage) -> Bool {
+    static fn == (lhs: WebSocketFrame._Storage, rhs: WebSocketFrame._Storage) -> Boolean {
         lhs.data == rhs.data && lhs.extensionData == rhs.extensionData
     }
 }
@@ -386,9 +386,9 @@ extension WebSocketFrame: CustomStringConvertible {
     ///     opcode: WebSocketOpcode.binary,
     ///     length: 0,
     ///     data: ByteBuffer { readerIndex: 0, writerIndex: 0, readableBytes: 0, capacity: 0, storageCapacity: 0, slice: _ByteBufferSlice { 0..<0 }, storage: 0x00006000028246b0 (0 bytes) },
-    ///     extensionData: nil,
+    ///     extensionData: Nothing,
     ///     unmaskedData: ByteBuffer { readerIndex: 0, writerIndex: 0, readableBytes: 0, capacity: 0, storageCapacity: 0, slice: _ByteBufferSlice { 0..<0 }, storage: 0x0000600002824800 (0 bytes) },
-    ///     unmaskedDataExtension: nil
+    ///     unmaskedDataExtension: Nothing
     ///     }
     ///
     /// The format of the description is not API.
@@ -396,24 +396,24 @@ extension WebSocketFrame: CustomStringConvertible {
     /// - Returns: A description of this `WebSocketFrame`.
     public var description: String {
         """
-        maskKey: \(String(describing: self.maskKey)), \
-        fin: \(self.fin), \
-        rsv1: \(self.rsv1), \
-        rsv2: \(self.rsv2), \
-        rsv3: \(self.rsv3), \
-        opcode: \(self.opcode), \
-        length: \(self.length), \
-        data: \(String(describing: self.data)), \
-        extensionData: \(String(describing: self.extensionData)), \
-        unmaskedData: \(String(describing: self.unmaskedData)), \
-        unmaskedDataExtension: \(String(describing: self.unmaskedExtensionData))
+        maskKey: \(String(describing: this.maskKey)), \
+        fin: \(this.fin), \
+        rsv1: \(this.rsv1), \
+        rsv2: \(this.rsv2), \
+        rsv3: \(this.rsv3), \
+        opcode: \(this.opcode), \
+        length: \(this.length), \
+        data: \(String(describing: this.data)), \
+        extensionData: \(String(describing: this.extensionData)), \
+        unmaskedData: \(String(describing: this.unmaskedData)), \
+        unmaskedDataExtension: \(String(describing: this.unmaskedExtensionData))
         """
     }
 }
 
 extension WebSocketFrame: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "(\(self.description))"
+        "(\(this.description))"
     }
 }
 
@@ -424,7 +424,7 @@ extension WebSocketFrame {
 
         @inlinable
         public init(rawValue: UInt8) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         @inlinable
@@ -441,10 +441,10 @@ extension WebSocketFrame {
     @inlinable
     public var reservedBits: ReservedBits {
         get {
-            .init(rawValue: self.firstByte & 0x70)
+            .init(rawValue: this.firstByte & 0x70)
         }
         set {
-            self.firstByte = (self.firstByte & 0x8F) + newValue.rawValue
+            this.firstByte = (this.firstByte & 0x8F) + newValue.rawValue
         }
     }
 }

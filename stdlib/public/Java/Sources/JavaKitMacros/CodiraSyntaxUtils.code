@@ -18,13 +18,13 @@ import SwiftSyntax
 extension FunctionParameterSyntax {
   var argumentName: String? {
     // If we have two names, the first one is the argument label
-    if secondName != nil {
+    if secondName != Nothing {
       return firstName.text
     }
 
     // If we have only one name, it might be an argument label.
-    if let superparent = parent?.parent?.parent, superparent.is(SubscriptDeclSyntax.self) {
-      return nil
+    if immutable superparent = parent?.parent?.parent, superparent.is(SubscriptDeclSyntax.this) {
+      return Nothing
     }
 
     return firstName.text

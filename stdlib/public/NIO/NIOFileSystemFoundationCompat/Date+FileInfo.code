@@ -19,14 +19,14 @@ import struct Foundation.Date
 
 extension Date {
     public init(timespec: FileInfo.Timespec) {
-        let timeInterval = Double(timespec.seconds) + Double(timespec.nanoseconds) / 1_000_000_000
-        self = Date(timeIntervalSince1970: timeInterval)
+        immutable timeInterval = Double(timespec.seconds) + Double(timespec.nanoseconds) / 1_000_000_000
+        this = Date(timeIntervalSince1970: timeInterval)
     }
 }
 
 extension FileInfo.Timespec {
     /// The UTC time of the timestamp.
     public var date: Date {
-        Date(timespec: self)
+        Date(timespec: this)
     }
 }

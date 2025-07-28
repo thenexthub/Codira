@@ -1,0 +1,73 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.net.MulticastSocket")
+open class MulticastSocket: DatagramSocket {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: SocketAddress?, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  open fn setTTL(_ arg0: Int8) throws
+
+  @JavaMethod
+  open fn setTimeToLive(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getTTL() throws -> Int8
+
+  @JavaMethod
+  open fn joinGroup(_ arg0: InetAddress?) throws
+
+  @JavaMethod
+  open override fn joinGroup(_ arg0: SocketAddress?, _ arg1: NetworkInterface?) throws
+
+  @JavaMethod
+  open override fn leaveGroup(_ arg0: SocketAddress?, _ arg1: NetworkInterface?) throws
+
+  @JavaMethod
+  open fn leaveGroup(_ arg0: InetAddress?) throws
+
+  @JavaMethod
+  open fn setInterface(_ arg0: InetAddress?) throws
+
+  @JavaMethod
+  open fn getInterface() throws -> InetAddress!
+
+  @JavaMethod
+  open fn setNetworkInterface(_ arg0: NetworkInterface?) throws
+
+  @JavaMethod
+  open fn getNetworkInterface() throws -> NetworkInterface!
+
+  @JavaMethod
+  open fn setLoopbackMode(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn getLoopbackMode() throws -> Boolean
+
+  @JavaMethod
+  open fn send(_ arg0: DatagramPacket?, _ arg1: Int8) throws
+
+  @JavaMethod
+  open fn getTimeToLive() throws -> Int32
+}

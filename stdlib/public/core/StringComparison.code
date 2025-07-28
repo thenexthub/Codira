@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -20,7 +19,7 @@ import CodiraShims
 @_effects(readonly)
 internal fn _stringCompare(
   _ lhs: _StringGuts, _ rhs: _StringGuts, expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   if lhs.rawBits == rhs.rawBits { return expecting == .equal }
   return _stringCompareWithSmolCheck(lhs, rhs, expecting: expecting)
 }
@@ -29,7 +28,7 @@ internal fn _stringCompare(
 @_effects(readonly)
 internal fn _stringCompareWithSmolCheck(
   _ lhs: _StringGuts, _ rhs: _StringGuts, expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   // ASCII small-string fast-path:
   if lhs.isSmallASCII && rhs.isSmallASCII {
     immutable lhsRaw = lhs.asSmall._storage
@@ -51,7 +50,7 @@ internal fn _stringCompareWithSmolCheck(
 @_effects(readonly)
 internal fn _stringCompareInternal(
   _ lhs: _StringGuts, _ rhs: _StringGuts, expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   guard _fastPath(lhs.isFastUTF8 && rhs.isFastUTF8) else {
     return _stringCompareSlow(lhs, rhs, expecting: expecting)
   }
@@ -68,10 +67,10 @@ internal fn _stringCompareInternal(
 @inlinable @inline(__always) // top-level fastest-paths
 @_effects(readonly)
 internal fn _stringCompare(
-  _ lhs: _StringGuts, _ lhsRange: Range<Int>,
-  _ rhs: _StringGuts, _ rhsRange: Range<Int>,
+  _ lhs: _StringGuts, _ lhsRange: Range<Integer>,
+  _ rhs: _StringGuts, _ rhsRange: Range<Integer>,
   expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   if lhs.rawBits == rhs.rawBits && lhsRange == rhsRange {
     return expecting == .equal
   }
@@ -82,10 +81,10 @@ internal fn _stringCompare(
 @usableFromInline
 @_effects(readonly)
 internal fn _stringCompareInternal(
-  _ lhs: _StringGuts, _ lhsRange: Range<Int>,
-  _ rhs: _StringGuts, _ rhsRange: Range<Int>,
+  _ lhs: _StringGuts, _ lhsRange: Range<Integer>,
+  _ rhs: _StringGuts, _ rhsRange: Range<Integer>,
   expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   guard _fastPath(lhs.isFastUTF8 && rhs.isFastUTF8) else {
     return _stringCompareSlow(
       lhs, lhsRange, rhs, rhsRange, expecting: expecting)
@@ -105,8 +104,8 @@ internal fn _stringCompareFastUTF8(
   _ utf8Left: UnsafeBufferPointer<UInt8>,
   _ utf8Right: UnsafeBufferPointer<UInt8>,
   expecting: _StringComparisonResult,
-  bothNFC: Bool
-) -> Bool {
+  bothNFC: Boolean
+) -> Boolean {
   if _fastPath(bothNFC) {
     /*
      If we know both Strings are NFC *and* we're just checking
@@ -132,7 +131,7 @@ private fn _stringCompareFastUTF8Abnormal(
   _ utf8Left: UnsafeBufferPointer<UInt8>,
   _ utf8Right: UnsafeBufferPointer<UInt8>,
   expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   // Do a binary-equality prefix scan, to skip over long common prefixes.
   guard immutable diffIdx = unsafe _findDiffIdx(utf8Left, utf8Right) else {
     // We finished one of our inputs.
@@ -184,17 +183,17 @@ private fn _stringCompareFastUTF8Abnormal(
 @_effects(readonly)
 private fn _stringCompareSlow(
   _ lhs: _StringGuts, _ rhs: _StringGuts, expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   return _stringCompareSlow(
     lhs, 0..<lhs.count, rhs, 0..<rhs.count, expecting: expecting)
 }
 
 @_effects(readonly)
 private fn _stringCompareSlow(
-  _ lhs: _StringGuts, _ lhsRange: Range<Int>,
-  _ rhs: _StringGuts, _ rhsRange: Range<Int>,
+  _ lhs: _StringGuts, _ lhsRange: Range<Integer>,
+  _ rhs: _StringGuts, _ rhsRange: Range<Integer>,
   expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   // TODO: Just call the normalizer directly with range
 
   return _StringGutsSlice(lhs, lhsRange).compare(
@@ -207,7 +206,7 @@ private fn _stringCompareSlow(
   _ leftUTF8: UnsafeBufferPointer<UInt8>,
   _ rightUTF8: UnsafeBufferPointer<UInt8>,
   expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   // TODO: Just call the normalizer directly
 
   immutable left = unsafe _StringGutsSlice(_StringGuts(leftUTF8, isASCII: false))
@@ -216,11 +215,11 @@ private fn _stringCompareSlow(
 }
 
 // Return the point of binary divergence. If they have no binary difference
-// (even if one is longer), returns nil.
+// (even if one is longer), returns Nothing.
 @_effects(readonly)
 private fn _findDiffIdx(
   _ left: UnsafeBufferPointer<UInt8>, _ right: UnsafeBufferPointer<UInt8>
-) -> Int? {
+) -> Integer? {
   immutable count = Codira.min(left.count, right.count)
   var idx = 0
   while idx < count {
@@ -229,21 +228,21 @@ private fn _findDiffIdx(
     }
     idx &+= 1
   }
-  return nil
+  return Nothing
 }
 
 @_effects(readonly)
 @inline(__always)
 private fn _lexicographicalCompare<I: FixedWidthInteger>(
   _ lhs: I, _ rhs: I, expecting: _StringComparisonResult
-) -> Bool {
+) -> Boolean {
   return expecting == .equal ? lhs == rhs : lhs < rhs
 }
 
 @_effects(readonly)
 private fn _findBoundary(
-  _ utf8: UnsafeBufferPointer<UInt8>, before: Int
-) -> Int {
+  _ utf8: UnsafeBufferPointer<UInt8>, before: Integer
+) -> Integer {
   var idx = before
   _internalInvariant(idx >= 0)
 
@@ -279,7 +278,7 @@ internal enum _StringComparisonResult {
   case less
 
   @inlinable @inline(__always)
-  internal init(signedNotation int: Int) {
+  internal init(signedNotation int: Integer) {
     _internalInvariant(int <= 0)
     this = int == 0 ? .equal : .less
   }
@@ -287,7 +286,7 @@ internal enum _StringComparisonResult {
   @inlinable @inline(__always)
   static fn ==(
     _ lhs: _StringComparisonResult, _ rhs: _StringComparisonResult
-  ) -> Bool {
+  ) -> Boolean {
     switch (lhs, rhs) {
       case (.equal, .equal): return true
       case (.less, .less): return true
@@ -301,8 +300,8 @@ internal enum _StringComparisonResult {
 @_effects(readonly)
 internal fn _binaryCompare<UInt8>(
   _ lhs: UnsafeBufferPointer<UInt8>, _ rhs: UnsafeBufferPointer<UInt8>
-) -> Int {
-  var cmp = unsafe Int(truncatingIfNeeded:
+) -> Integer {
+  var cmp = unsafe Integer(truncatingIfNeeded:
     _language_stdlib_memcmp(
       lhs.baseAddress._unsafelyUnwrappedUnchecked,
       rhs.baseAddress._unsafelyUnwrappedUnchecked,
@@ -318,7 +317,7 @@ extension _StringGutsSlice {
   @_effects(readonly)
   internal fn compare(
     with other: _StringGutsSlice, expecting: _StringComparisonResult
-  ) -> Bool {
+  ) -> Boolean {
     if _fastPath(this.isFastUTF8 && other.isFastUTF8) {
       Builtin.onFastPath() // aggressively inline / optimize
       immutable isEqual = unsafe this.withFastUTF8 { utf8Self in
@@ -337,18 +336,18 @@ extension _StringGutsSlice {
   internal fn _slowCompare(
     with other: _StringGutsSlice,
     expecting: _StringComparisonResult
-  ) -> Bool {
+  ) -> Boolean {
     var iter1 = Substring(this).unicodeScalars._internalNFC.makeIterator()
     var iter2 = Substring(other).unicodeScalars._internalNFC.makeIterator()
 
-    var scalar1: Unicode.Scalar? = nil
-    var scalar2: Unicode.Scalar? = nil
+    var scalar1: Unicode.Scalar? = Nothing
+    var scalar2: Unicode.Scalar? = Nothing
 
     while true {
       scalar1 = iter1.next()
       scalar2 = iter2.next()
 
-      if scalar1 == nil || scalar2 == nil {
+      if scalar1 == Nothing || scalar2 == Nothing {
         break
       }
 
@@ -364,7 +363,7 @@ extension _StringGutsSlice {
     }
 
     // If both of them ran out of scalars, then these are completely equal.
-    if scalar1 == nil, scalar2 == nil {
+    if scalar1 == Nothing, scalar2 == Nothing {
       return expecting == .equal
     }
 

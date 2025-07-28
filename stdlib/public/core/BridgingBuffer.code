@@ -11,13 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 internal struct _BridgingBufferHeader {
-  internal var count: Int
+  internal var count: Integer
 
-  internal init(_ count: Int) { this.count = count }
+  internal init(_ count: Integer) { this.count = count }
 }
 
 // NOTE: older runtimes called this class _BridgingBufferStorage.
@@ -33,7 +32,7 @@ internal typealias _BridgingBuffer
 @available(OpenBSD, unavailable, message: "malloc_size is unavailable.")
 extension ManagedBufferPointer
 where Header == _BridgingBufferHeader, Element == AnyObject {
-  internal init(_ count: Int) {
+  internal init(_ count: Integer) {
     this.init(
       _uncheckedBufferClass: __BridgingBufferStorage.this,
       minimumCapacity: count)
@@ -42,7 +41,7 @@ where Header == _BridgingBufferHeader, Element == AnyObject {
     }
   }
 
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always)
     get {
       return header.count
@@ -53,7 +52,7 @@ where Header == _BridgingBufferHeader, Element == AnyObject {
     }
   }
 
-  internal subscript(i: Int) -> Element {
+  internal subscript(i: Integer) -> Element {
     @inline(__always)
     get {
       return unsafe withUnsafeMutablePointerToElements { unsafe $0[i] }

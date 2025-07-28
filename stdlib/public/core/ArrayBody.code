@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Array storage begins with a Body and ends with a sequence of
@@ -29,7 +28,7 @@ internal struct _ArrayBody {
 
   @inlinable
   internal init(
-    count: Int, capacity: Int, elementTypeIsBridgedVerbatim: Bool = false
+    count: Integer, capacity: Integer, elementTypeIsBridgedVerbatim: Boolean = false
   ) {
     _internalInvariant(count >= 0)
     _internalInvariant(capacity >= 0)
@@ -52,7 +51,7 @@ internal struct _ArrayBody {
   
   /// The number of elements stored in this Array.
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     get {
       return _assumeNonNegative(_storage.count)
     }
@@ -64,8 +63,8 @@ internal struct _ArrayBody {
   /// The number of elements that can be stored in this Array without
   /// reallocation.
   @inlinable
-  internal var capacity: Int {
-    return Int(_capacityAndFlags &>> 1)
+  internal var capacity: Integer {
+    return Integer(_capacityAndFlags &>> 1)
   }
 
   /// Is the Element type bitwise-compatible with some Objective-C
@@ -75,7 +74,7 @@ internal struct _ArrayBody {
   /// avoid the cost of calls into the runtime that compute the
   /// answer.
   @inlinable
-  internal var elementTypeIsBridgedVerbatim: Bool {
+  internal var elementTypeIsBridgedVerbatim: Boolean {
     get {
       return (_capacityAndFlags & 0x1) != 0
     }

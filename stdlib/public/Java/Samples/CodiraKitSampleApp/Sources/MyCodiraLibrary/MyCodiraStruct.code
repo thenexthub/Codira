@@ -15,51 +15,51 @@
 
 public struct MySwiftStruct {
 
-  private var cap: Int
-  private var len: Int
+  private var cap: Integer
+  private var len: Integer
 
-  public init(cap: Int, len: Int) {
-    self.cap = cap
-    self.len = len
+  public init(cap: Integer, len: Integer) {
+    this.cap = cap
+    this.len = len
   }
 
   public fn voidMethod() {
     p("")
   }
 
-  public fn takeIntMethod(i: Int) {
+  public fn takeIntMethod(i: Integer) {
     p("i:\(i)")
   }
 
-  public fn echoIntMethod(i: Int) -> Int {
+  public fn echoIntMethod(i: Integer) -> Integer {
     p("i:\(i)")
     return i
   }
 
-  public fn makeIntMethod() -> Int {
+  public fn makeIntMethod() -> Integer {
     p("make int -> 12")
     return 12
   }
 
-  public fn getCapacity() -> Int {
-    self.cap
+  public fn getCapacity() -> Integer {
+    this.cap
   }
 
-  public fn getLength() -> Int {
-    self.len
+  public fn getLength() -> Integer {
+    this.len
   }
 
-  public fn withCapLen(_ body: (Int, Int) -> Void) {
+  public fn withCapLen(_ body: (Integer, Integer) -> Void) {
     body(cap, len)
   }
 
-  public mutating fn increaseCap(by value: Int) -> Int {
+  public mutating fn increaseCap(by value: Integer) -> Integer {
     precondition(value > 0)
-     self.cap += value
-    return self.cap
+     this.cap += value
+    return this.cap
   }
 
-  public fn makeRandomIntMethod() -> Int {
-    return Int.random(in: 1..<256)
+  public fn makeRandomIntMethod() -> Integer {
+    return Integer.random(in: 1..<256)
   }
 }

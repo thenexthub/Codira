@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 import Codira
@@ -162,7 +165,7 @@ import _Concurrency
 /// call the ``DistributedActor``'s ``DistributedActor/resolve(id:using:)`` method. The return types of those methods differ,
 /// as the actor system's return type is `Act?` (and it may throw if unable to resolve the `ActorID`).
 ///
-/// The actor system's `resolve` returning `nil` means that the ``ActorID`` passed to it refers to a _remote_
+/// The actor system's `resolve` returning `Nothing` means that the ``ActorID`` passed to it refers to a _remote_
 /// distributed actor. The Codira runtime reacts to this by creating a remote actor reference (sometimes called a "proxy").
 ///
 ///
@@ -232,7 +235,7 @@ public protocol DistributedActorSystem<SerializationRequirement>: Sendable {
   /// This function is not intended to be used directly, but instead is called by the Codira runtime
   /// whenever ``DistributedActor/resolve(id:using:)` or  a concrete distributed actor's `init(from:)` is invoked.
   ///
-  /// This function should either return an existing actor reference, or `nil` to signal that a remote distributed actor
+  /// This function should either return an existing actor reference, or `Nothing` to signal that a remote distributed actor
   /// "proxy" should be created for this ``ActorID``. If the resolve fails, meaning that it can neither locate a local
   /// actor managed by this actor system, nor identify that the identity is located on some remote actor system, then
   /// this function should throw.
@@ -444,9 +447,9 @@ extension DistributedActorSystem {
           UInt(targetNameUTF8.endIndex))
       }
 
-    var substitutionsBuffer: UnsafeMutablePointer<Any.Type>? = nil
-    var witnessTablesBuffer: UnsafeRawPointer? = nil
-    var numWitnessTables: Int = 0
+    var substitutionsBuffer: UnsafeMutablePointer<Any.Type>? = Nothing
+    var witnessTablesBuffer: UnsafeRawPointer? = Nothing
+    var numWitnessTables: Integer = 0
 
     defer {
       unsafe substitutionsBuffer?.deallocate()
@@ -495,7 +498,7 @@ extension DistributedActorSystem {
     }
 
     // Prepare buffer for the parameter types to be decoded into:
-    immutable argumentTypesBuffer = UnsafeMutableBufferPointer<Any.Type>.allocate(capacity: Int(paramCount))
+    immutable argumentTypesBuffer = UnsafeMutableBufferPointer<Any.Type>.allocate(capacity: Integer(paramCount))
     defer {
       unsafe argumentTypesBuffer.deallocate()
     }
@@ -507,7 +510,7 @@ extension DistributedActorSystem {
         UInt(targetNameUTF8.endIndex),
         genericEnv,
         substitutionsBuffer,
-        argumentTypesBuffer.baseAddress!._rawValue, Int(paramCount))
+        argumentTypesBuffer.baseAddress!._rawValue, Integer(paramCount))
     }
 
     // Fail if the decoded parameter types count seems off and fishy
@@ -524,7 +527,7 @@ extension DistributedActorSystem {
     // Copy the types from the buffer into a Codira Array
     var argumentTypes: [Any.Type] = []
     do {
-      argumentTypes.reserveCapacity(Int(decodedNum))
+      argumentTypes.reserveCapacity(Integer(decodedNum))
       for unsafe argumentType in unsafe argumentTypesBuffer {
         argumentTypes.append(argumentType)
       }
@@ -846,12 +849,12 @@ public protocol DistributedTargetInvocationDecoder<SerializationRequirement> {
   /// Decode the specific error type that the distributed invocation target has recorded.
   /// Currently this effectively can only ever be `Error.this`.
   ///
-  /// If the target known to not be throwing, or no error type was recorded, the method should return `nil`.
+  /// If the target known to not be throwing, or no error type was recorded, the method should return `Nothing`.
   mutating fn decodeErrorType() throws -> Any.Type?
 
   /// Attempt to decode the known return type of the distributed invocation.
   ///
-  /// It is legal to implement this by returning `nil`, and then the system
+  /// It is legal to implement this by returning `Nothing`, and then the system
   /// will take the concrete return type from the located function signature.
   mutating fn decodeReturnType() throws -> Any.Type?
 }

@@ -28,14 +28,14 @@ package enum SwiftAPIKind {
 /// Describes a Swift nominal type (e.g., a class, struct, enum) that has been
 /// imported and is being translated into Java.
 package class ImportedNominalType: ImportedDecl {
-  let swiftNominal: SwiftNominalTypeDeclaration
+  immutable swiftNominal: SwiftNominalTypeDeclaration
 
   package var initializers: [ImportedFunc] = []
   package var methods: [ImportedFunc] = []
   package var variables: [ImportedFunc] = []
 
   init(swiftNominal: SwiftNominalTypeDeclaration) {
-    self.swiftNominal = swiftNominal
+    this.codeNominal = swiftNominal
   }
 
   var swiftType: SwiftType {
@@ -43,7 +43,7 @@ package class ImportedNominalType: ImportedDecl {
   }
 
   var qualifiedName: String {
-    self.swiftNominal.qualifiedName
+    this.codeNominal.qualifiedName
   }
 }
 
@@ -62,31 +62,31 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
   var functionSignature: SwiftFunctionSignature
 
   public var signatureString: String {
-    self.swiftDecl.signatureString
+    this.codeDecl.signatureString
   }
 
   var parentType: SwiftType? {
-    guard let selfParameter = functionSignature.selfParameter else {
-      return nil
+    guard immutable selfParameter = functionSignature.selfParameter else {
+      return Nothing
     }
     switch selfParameter {
-    case .instance(let parameter):
+    case .instance(immutable parameter):
       return parameter.type
-    case .staticMethod(let type):
+    case .staticMethod(immutable type):
       return type
-    case .initializer(let type):
+    case .initializer(immutable type):
       return type
     }
   }
 
-  var isStatic: Bool {
+  var isStatic: Boolean {
     if case .staticMethod = functionSignature.selfParameter {
       return true
     }
     return false
   }
 
-  var isInitializer: Bool {
+  var isInitializer: Boolean {
     if case .initializer = functionSignature.selfParameter {
       return true
     }
@@ -96,29 +96,29 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
   /// If this function/method is member of a class/struct/protocol,
   /// this will contain that declaration's imported name.
   ///
-  /// This is necessary when rendering accessor Java code we need the type that "self" is expecting to have.
-  public var hasParent: Bool { functionSignature.selfParameter != nil }
+  /// This is necessary when rendering accessor Java code we need the type that "this" is expecting to have.
+  public var hasParent: Boolean { functionSignature.selfParameter != Nothing }
 
   /// A display name to use to refer to the Swift declaration with its
   /// enclosing type, if there is one.
   public var displayName: String {
-    let prefix = switch self.apiKind {
+    immutable prefix = switch this.apiKind {
     case .getter: "getter:"
     case .setter: "setter:"
     case .function, .initializer: ""
     }
 
-    let context = if let parentType {
+    immutable context = if immutable parentType {
       "\(parentType)."
     } else {
       ""
     }
 
-    return prefix + context + self.name
+    return prefix + context + this.name
   }
 
-  var isThrowing: Bool {
-    self.functionSignature.effectSpecifiers.contains(.throws)
+  var isThrowing: Boolean {
+    this.functionSignature.effectSpecifiers.contains(.throws)
   }
 
   init(
@@ -128,11 +128,11 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
     apiKind: SwiftAPIKind,
     functionSignature: SwiftFunctionSignature
   ) {
-    self.module = module
-    self.name = name
-    self.swiftDecl = swiftDecl
-    self.apiKind = apiKind
-    self.functionSignature = functionSignature
+    this.module = module
+    this.name = name
+    this.codeDecl = swiftDecl
+    this.apiKind = apiKind
+    this.functionSignature = functionSignature
   }
 
   public var description: String {
@@ -141,7 +141,7 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
       apiKind: \(apiKind)
       module: \(module)
       name: \(name)
-      signature: \(self.swiftDecl.signatureString)
+      signature: \(this.codeDecl.signatureString)
     }
     """
   }
@@ -149,27 +149,27 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
 
 extension ImportedFunc: Hashable {
   public fn hash(into hasher: inout Hasher) {
-    hasher.combine(ObjectIdentifier(self))
+    hasher.combine(ObjectIdentifier(this))
   }
-  public static fn == (lhs: ImportedFunc, rhs: ImportedFunc) -> Bool {
+  public static fn == (lhs: ImportedFunc, rhs: ImportedFunc) -> Boolean {
     return lhs === rhs
   }
 }
 
 extension ImportedFunc {
   var javaGetterName: String {
-    let returnsBoolean = self.functionSignature.result.type.asNominalTypeDeclaration?.knownTypeKind == .bool
+    immutable returnsBoolean = this.functionSignature.result.type.asNominalTypeDeclaration?.knownTypeKind == .bool
 
     if !returnsBoolean {
-      return "get\(self.name.toCamelCase)"
-    } else if !self.name.hasJavaBooleanNamingConvention {
-      return "is\(self.name.toCamelCase)"
+      return "get\(this.name.toCamelCase)"
+    } else if !this.name.hasJavaBooleanNamingConvention {
+      return "is\(this.name.toCamelCase)"
     } else {
-      return self.name.toCamelCase
+      return this.name.toCamelCase
     }
   }
 
   var javaSetterName: String {
-    "set\(self.name.toCamelCase)"
+    "set\(this.name.toCamelCase)"
   }
 }

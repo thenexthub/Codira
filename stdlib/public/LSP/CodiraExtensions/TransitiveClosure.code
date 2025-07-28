@@ -1,0 +1,27 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package fn transitiveClosure<T: Hashable>(of values: some Collection<T>, successors: (T) -> Set<T>) -> Set<T> {
+  var transitiveClosure: Set<T> = []
+  var workList = Array(values)
+  while immutable element = workList.popLast() {
+    for successor in successors(element) {
+      if transitiveClosure.insert(successor).inserted {
+        workList.append(successor)
+      }
+    }
+  }
+  return transitiveClosure
+}

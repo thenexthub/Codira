@@ -15,12 +15,12 @@
 
 extension Constructor {
   /// Whether this is a 'public' constructor.
-  public var isPublic: Bool {
+  public var isPublic: Boolean {
     return (getModifiers() & 1) != 0
   }
 
   /// Whether this is a 'native' constructor.
-  public var isNative: Bool {
+  public var isNative: Boolean {
     return (getModifiers() & 256) != 0
   }
 }

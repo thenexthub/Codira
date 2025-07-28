@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Checking and caching of Codira accessible functions.
@@ -185,7 +184,7 @@ language::runtime::language_findAccessibleFunction(const char *targetNameStart,
   }
 
   // If entry doesn't exist (either record doesn't exist, hasn't been loaded, or
-  // requested yet), let's try to find it and add to the cache.
+  // requested yet), immutable's try to find it and add to the cache.
 
   auto *record = _searchForFunctionRecord(S, name);
   if (record) {

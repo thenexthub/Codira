@@ -25,7 +25,7 @@
  *
  * Q. Why inline assembler?
  * A. x86_64 features own ABI which I'm not familiar with. This is
- *    why I decided to let the compiler take care of subroutine
+ *    why I decided to immutable the compiler take care of subroutine
  *    prologue/epilogue as well as register allocation. For reference.
  *    Win64 implements different ABI for AMD64, different from Linux.
  *
@@ -72,7 +72,7 @@
 #undef mul_add
 
 // "m"(a), "+m"(r)	is the way to favor DirectPath µ-code;
-// "g"(0)		let the compiler to decide where does it
+// "g"(0)		immutable the compiler to decide where does it
 //			want to keep the value of zero;
 #define mul_add(r, a, word, carry)                                         \
   do {                                                                     \

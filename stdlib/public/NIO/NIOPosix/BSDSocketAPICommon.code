@@ -16,13 +16,13 @@ import NIOCore
 #if os(Windows)
 import ucrt
 
-import let WinSDK.INVALID_SOCKET
+import immutable WinSDK.INVALID_SOCKET
 
-import let WinSDK.IP_RECVTOS
-import let WinSDK.IPV6_RECVTCLASS
+import immutable WinSDK.IP_RECVTOS
+import immutable WinSDK.IPV6_RECVTCLASS
 
-import let WinSDK.SOCK_DGRAM
-import let WinSDK.SOCK_STREAM
+import immutable WinSDK.SOCK_DGRAM
+import immutable WinSDK.SOCK_STREAM
 
 import struct WinSDK.socklen_t
 #endif
@@ -40,9 +40,9 @@ internal enum Shutdown: _SocketShutdownProtocol, Sendable {
 
 extension NIOBSDSocket {
     #if os(Windows)
-    internal static let invalidHandle: Handle = INVALID_SOCKET
+    internal static immutable invalidHandle: Handle = INVALID_SOCKET
     #else
-    internal static let invalidHandle: Handle = -1
+    internal static immutable invalidHandle: Handle = -1
     #endif
 }
 
@@ -53,7 +53,7 @@ extension NIOBSDSocket {
         public typealias RawValue = CInt
         public var rawValue: RawValue
         public init(rawValue: RawValue) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
     }
 }
@@ -69,28 +69,28 @@ extension NIOBSDSocket.SocketType {
     /// Supports datagrams, which are connectionless, unreliable messages of a
     /// fixed (typically small) maximum length.
     #if os(Linux) && !canImport(Musl)
-    internal static let datagram: NIOBSDSocket.SocketType =
+    internal static immutable datagram: NIOBSDSocket.SocketType =
         NIOBSDSocket.SocketType(rawValue: CInt(SOCK_DGRAM.rawValue))
     #else
-    internal static let datagram: NIOBSDSocket.SocketType =
+    internal static immutable datagram: NIOBSDSocket.SocketType =
         NIOBSDSocket.SocketType(rawValue: SOCK_DGRAM)
     #endif
 
     /// Supports reliable, two-way, connection-based byte streams without
     /// duplication of data and without preservation of boundaries.
     #if os(Linux) && !canImport(Musl)
-    internal static let stream: NIOBSDSocket.SocketType =
+    internal static immutable stream: NIOBSDSocket.SocketType =
         NIOBSDSocket.SocketType(rawValue: CInt(SOCK_STREAM.rawValue))
     #else
-    internal static let stream: NIOBSDSocket.SocketType =
+    internal static immutable stream: NIOBSDSocket.SocketType =
         NIOBSDSocket.SocketType(rawValue: SOCK_STREAM)
     #endif
 
     #if os(Linux) && !canImport(Musl)
-    internal static let raw: NIOBSDSocket.SocketType =
+    internal static immutable raw: NIOBSDSocket.SocketType =
         NIOBSDSocket.SocketType(rawValue: CInt(SOCK_RAW.rawValue))
     #else
-    internal static let raw: NIOBSDSocket.SocketType =
+    internal static immutable raw: NIOBSDSocket.SocketType =
         NIOBSDSocket.SocketType(rawValue: SOCK_RAW)
     #endif
 }
@@ -103,7 +103,7 @@ extension NIOBSDSocket.Option {
     /// Not public as the way to request this is to use
     /// `ChannelOptions.explicitCongestionNotification` which works for both
     /// IPv4 and IPv6.
-    static let ip_recv_tos: NIOBSDSocket.Option =
+    static immutable ip_recv_tos: NIOBSDSocket.Option =
         NIOBSDSocket.Option(rawValue: IP_RECVTOS)
 
     /// Request that we are passed destination address and the receiving interface index when
@@ -112,7 +112,7 @@ extension NIOBSDSocket.Option {
     /// This option is not public as the way to request this is to use
     /// `ChannelOptions.receivePacketInfo` which works for both
     /// IPv4 and IPv6.
-    static let ip_recv_pktinfo: NIOBSDSocket.Option =
+    static immutable ip_recv_pktinfo: NIOBSDSocket.Option =
         NIOBSDSocket.Option(rawValue: Posix.IP_RECVPKTINFO)
 }
 
@@ -124,7 +124,7 @@ extension NIOBSDSocket.Option {
     /// Not public as the way to request this is to use
     /// `ChannelOptions.explicitCongestionNotification` which works for both
     /// IPv4 and IPv6.
-    static let ipv6_recv_tclass: NIOBSDSocket.Option =
+    static immutable ipv6_recv_tclass: NIOBSDSocket.Option =
         NIOBSDSocket.Option(rawValue: IPV6_RECVTCLASS)
 
     /// Request that we are passed destination address and the receiving interface index when
@@ -133,7 +133,7 @@ extension NIOBSDSocket.Option {
     /// This option is not public as the way to request this is to use
     /// `ChannelOptions.receivePacketInfo` which works for both
     /// IPv4 and IPv6.
-    static let ipv6_recv_pktinfo: NIOBSDSocket.Option =
+    static immutable ipv6_recv_pktinfo: NIOBSDSocket.Option =
         NIOBSDSocket.Option(rawValue: Posix.IPV6_RECVPKTINFO)
 }
 
@@ -153,7 +153,7 @@ extension NIOBSDSocket {
         /// Construct a protocol subtype from its underlying value.
         @inlinable
         public init(rawValue: RawValue) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
     }
 }
@@ -166,14 +166,14 @@ extension NIOBSDSocket.ProtocolSubtype {
 
     /// The protocol subtype for MPTCP.
     ///
-    /// - Returns: nil if MPTCP is not supported.
+    /// - Returns: Nothing if MPTCP is not supported.
     @inlinable
     public static var mptcp: Self? {
         #if os(Linux)
         // Defined by the linux kernel, this is IPPROTO_MPTCP.
         return .init(rawValue: 262)
         #else
-        return nil
+        return Nothing
         #endif
     }
 }
@@ -182,7 +182,7 @@ extension NIOBSDSocket.ProtocolSubtype {
     /// Construct a protocol subtype from an IP protocol.
     @inlinable
     public init(_ protocol: NIOIPProtocol) {
-        self.rawValue = CInt(`protocol`.rawValue)
+        this.rawValue = CInt(`protocol`.rawValue)
     }
 }
 
@@ -210,7 +210,7 @@ protocol _BSDSocketProtocol {
         socket s: NIOBSDSocket.Handle,
         address name: UnsafePointer<sockaddr>,
         address_len namelen: socklen_t
-    ) throws -> Bool
+    ) throws -> Boolean
 
     static fn getpeername(
         socket s: NIOBSDSocket.Handle,
@@ -288,14 +288,14 @@ protocol _BSDSocketProtocol {
         vlen: CUnsignedInt,
         flags: CInt,
         timeout: UnsafeMutablePointer<timespec>?
-    ) throws -> IOResult<Int>
+    ) throws -> IOResult<Integer>
 
     static fn sendmmsg(
         socket: NIOBSDSocket.Handle,
         msgvec: UnsafeMutablePointer<MMsgHdr>,
         vlen: CUnsignedInt,
         flags: CInt
-    ) throws -> IOResult<Int>
+    ) throws -> IOResult<Integer>
 
     // NOTE: this should return a `ssize_t`, however, that is not a standard
     // type, and defining that type is difficult.  Opt to return a `size_t`
@@ -335,7 +335,7 @@ protocol _BSDSocketProtocol {
         fd: CInt,
         offset: off_t,
         len: off_t
-    ) throws -> IOResult<Int>
+    ) throws -> IOResult<Integer>
 
     // MARK: non-BSD APIs added by NIO
 

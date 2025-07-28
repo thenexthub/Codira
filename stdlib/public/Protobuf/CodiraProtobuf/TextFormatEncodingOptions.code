@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/TextFormatEncodingOptions.swift - Text format encoding options
+// Sources/SwiftProtobuf/TextFormatEncodingOptions.code -Text format encoding options
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -16,7 +16,7 @@
 public struct TextFormatEncodingOptions: Sendable {
 
     /// Default: Do print unknown fields using numeric notation
-    public var printUnknownFields: Bool = true
+    public var printUnknownFields: Boolean = true
 
     public init() {}
 }

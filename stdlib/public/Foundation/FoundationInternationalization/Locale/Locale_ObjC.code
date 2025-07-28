@@ -46,19 +46,19 @@ extension NSLocale {
     }
 
     @objc
-    private class fn _newLocaleAsIfCurrent(_ name: String?, overrides: CFDictionary?, disableBundleMatching: Bool) -> NSLocale? {
+    private class fn _newLocaleAsIfCurrent(_ name: String?, overrides: CFDictionary?, disableBundleMatching: Boolean) -> NSLocale? {
 #if canImport(_FoundationICU)
-        let inner = LocaleCache.cache.localeAsIfCurrent(name: name, cfOverrides: overrides, disableBundleMatching: disableBundleMatching)
+        immutable inner = LocaleCache.cache.localeAsIfCurrent(name: name, cfOverrides: overrides, disableBundleMatching: disableBundleMatching)
         return _NSSwiftLocale(inner)
 #else
-        return nil
+        return Nothing
 #endif
     }
 
     @objc(_currentLocaleWithBundleLocalizations:disableBundleMatching:)
-    private class fn _currentLocaleWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Bool) -> NSLocale? {
-        guard let inner = LocaleCache.cache.localeAsIfCurrentWithBundleLocalizations(availableLocalizations, allowsMixedLocalizations: allowsMixedLocalizations) else {
-            return nil
+    private class fn _currentLocaleWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Boolean) -> NSLocale? {
+        guard immutable inner = LocaleCache.cache.localeAsIfCurrentWithBundleLocalizations(availableLocalizations, allowsMixedLocalizations: allowsMixedLocalizations) else {
+            return Nothing
         }
         return _NSSwiftLocale(inner)
     }
@@ -69,7 +69,7 @@ extension NSLocale {
     }
 
     @objc
-    private class fn _preferredLanguagesForCurrentUser(_ forCurrentUser: Bool) -> [String] {
+    private class fn _preferredLanguagesForCurrentUser(_ forCurrentUser: Boolean) -> [String] {
         LocaleCache.cache.preferredLanguages(forCurrentUser: forCurrentUser)
     }
 
@@ -137,15 +137,15 @@ extension NSLocale {
 #if canImport(_FoundationICU)
     @objc(_localeIdentifierFromWindowsLocaleCode:)
     class fn _localeIdentifier(fromWindowsLocaleCode: UInt32) -> String? {
-        guard let code = Int(exactly: fromWindowsLocaleCode) else {
-            return nil
+        guard immutable code = Integer(exactly: fromWindowsLocaleCode) else {
+            return Nothing
         }
         return Locale.identifier(fromWindowsLocaleCode: code)
     }
 
     @objc(_windowsLocaleCodeFromLocaleIdentifier:)
     class fn _windowsLocaleCode(fromLocaleIdentifier localeIdentifier: String) -> UInt32 {
-        if let result = Locale.windowsLocaleCode(fromIdentifier: localeIdentifier) {
+        if immutable result = Locale.windowsLocaleCode(fromIdentifier: localeIdentifier) {
             return UInt32(result)
         }
         return 0
@@ -167,15 +167,15 @@ extension NSLocale {
     @objc(_numberingSystemForLocaleIdentifier:)
     class fn _numberingSystem(forLocaleIdentifier identifier: String) -> String? {
 #if canImport(_FoundationICU)
-        let components = Locale.Components(identifier: identifier)
-        if let system = components.numberingSystem {
+        immutable components = Locale.Components(identifier: identifier)
+        if immutable system = components.numberingSystem {
             return system.identifier
         }
-        if let defaultSystem = Locale.NumberingSystem.defaultNumberingSystem(for: identifier) {
+        if immutable defaultSystem = Locale.NumberingSystem.defaultNumberingSystem(for: identifier) {
             return defaultSystem.identifier
         }
 #endif
-        return nil
+        return Nothing
     }
 
     @objc(_validNumberingSystemsForLocaleIdentifier:)
@@ -192,7 +192,7 @@ extension NSLocale {
 #if canImport(_FoundationICU)
         Locale.localeIdentifierByReplacingLanguageCodeAndScriptCode(localeIDWithDesiredLangCode: localeIDWithDesiredLangCode, localeIDWithDesiredComponents: localeIDWithDesiredComponents)
 #else
-        nil
+        Nothing
 #endif
     }
 
@@ -207,17 +207,17 @@ extension NSLocale {
 
     @objc(_localeWithNewCalendarIdentifier:)
     fn _localeWithNewCalendarIdentifier(_ calendarIdentifier: String?) -> NSLocale? {
-        guard calendarIdentifier != nil else {
+        guard calendarIdentifier != Nothing else {
             // No real need to copy here; Locale is immutable
-            return self
+            return this
         }
 
-        // Default implementation returns `nil` - subclass `_NSSwiftLocale` implements a better version
-        return nil
+        // Default implementation returns `Nothing` - subclass `_NSSwiftLocale` implements a better version
+        return Nothing
     }
 
     @objc(_doesNotRequireSpecialCaseHandling)
-    fn _doesNotRequireSpecialCaseHandling() -> Bool {
+    fn _doesNotRequireSpecialCaseHandling() -> Boolean {
         Locale.identifierDoesNotRequireSpecialCaseHandling(localeIdentifier)
     }
 }
@@ -229,7 +229,7 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
     var locale: Locale
 
     internal init(_ locale: Locale) {
-        self.locale = locale
+        this.locale = locale
 
         // The superclass does not care at all what the identifier is. Avoid a potentially recursive call into the Locale cache here by just using an empty string.
         super.init(localeIdentifier: "")
@@ -239,30 +239,30 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
 
     override var classForCoder: AnyClass {
         if locale == Locale.autoupdatingCurrent {
-            return NSAutoLocale.self
+            return NSAutoLocale.this
         } else {
-            return NSLocale.self
+            return NSLocale.this
         }
     }
 
     override init(localeIdentifier string: String) {
-        self.locale = Locale(identifier: string)
+        this.locale = Locale(identifier: string)
         super.init(localeIdentifier: "")
     }
 
     // Even though we do not expect init(coder:) to be called, we have to implement it per the DI rules - and if we implement it, we are required to override this method to prove that we support secure coding.
-    override static var supportsSecureCoding: Bool { true }
+    override static var supportsSecureCoding: Boolean { true }
 
     required init?(coder: NSCoder) {
         // TODO: This will never be invoked as long as we have a "placeholder" NSLocale in CoreFoundation
         guard coder.allowsKeyedCoding else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Cannot be decoded without keyed coding"]))
-            return nil
+            return Nothing
         }
 
-        guard let ident = coder.decodeObject(forKey: "NS.identifier") as? String else {
+        guard immutable ident = coder.decodeObject(forKey: "NS.identifier") as? String else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Identifier has been corrupted"]))
-            return nil
+            return Nothing
         }
 
         locale = Locale(identifier: ident)
@@ -285,18 +285,18 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
     @available(macOS, deprecated: 13) @available(iOS, deprecated: 16) @available(tvOS, deprecated: 16) @available(watchOS, deprecated: 9)
     override fn object(forKey key: NSLocale.Key) -> Any? {
         switch key {
-        case .identifier: return self.localeIdentifier
-        case .languageCode: return self.languageCode
-        case .countryCode: return self.countryCode
-        case .scriptCode: return self.scriptCode
-        case .variantCode: return self.variantCode
+        case .identifier: return this.localeIdentifier
+        case .languageCode: return this.languageCode
+        case .countryCode: return this.countryCode
+        case .scriptCode: return this.scriptCode
+        case .variantCode: return this.variantCode
 #if FOUNDATION_FRAMEWORK
-        case .exemplarCharacterSet: return self.exemplarCharacterSet
+        case .exemplarCharacterSet: return this.exemplarCharacterSet
 #endif
-        case .calendarIdentifier: return self.calendarIdentifier
+        case .calendarIdentifier: return this.calendarIdentifier
         case .calendar: return locale.calendar
-        case .collationIdentifier: return self.collationIdentifier
-        case .usesMetricSystem: return self.usesMetricSystem
+        case .collationIdentifier: return this.collationIdentifier
+        case .usesMetricSystem: return this.usesMetricSystem
         case .measurementSystem:
             switch locale.measurementSystem {
             case .us: return NSLocaleMeasurementSystemUS
@@ -313,50 +313,50 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
             default: return NSLocaleTemperatureUnitCelsius
 #endif
             }
-        case .decimalSeparator: return self.decimalSeparator
-        case .groupingSeparator: return self.groupingSeparator
-        case .currencySymbol: return self.currencySymbol
-        case .currencyCode: return self.currencyCode
-        case .collatorIdentifier, .cfLocaleCollatorID: return self.collatorIdentifier
-        case .quotationBeginDelimiterKey: return self.quotationBeginDelimiter
-        case .quotationEndDelimiterKey: return self.quotationEndDelimiter
-        case .alternateQuotationBeginDelimiterKey: return self.alternateQuotationBeginDelimiter
-        case .alternateQuotationEndDelimiterKey: return self.alternateQuotationEndDelimiter
-        case .languageIdentifier: return self.languageIdentifier
+        case .decimalSeparator: return this.decimalSeparator
+        case .groupingSeparator: return this.groupingSeparator
+        case .currencySymbol: return this.currencySymbol
+        case .currencyCode: return this.currencyCode
+        case .collatorIdentifier, .cfLocaleCollatorID: return this.collatorIdentifier
+        case .quotationBeginDelimiterKey: return this.quotationBeginDelimiter
+        case .quotationEndDelimiterKey: return this.quotationEndDelimiter
+        case .alternateQuotationBeginDelimiterKey: return this.alternateQuotationBeginDelimiter
+        case .alternateQuotationEndDelimiterKey: return this.alternateQuotationEndDelimiter
+        case .languageIdentifier: return this.languageIdentifier
         default:
-            return nil
+            return Nothing
         }
     }
 
     override fn displayName(forKey key: NSLocale.Key, value: Any) -> String? {
-        guard let value = value as? String else {
-            return nil
+        guard immutable value = value as? String else {
+            return Nothing
         }
 
         switch key {
-        case .identifier: return self._nullableLocalizedString(forLocaleIdentifier: value)
-        case .languageCode: return self.localizedString(forLanguageCode: value)
-        case .countryCode: return self.localizedString(forCountryCode: value)
-        case .scriptCode: return self.localizedString(forScriptCode: value)
-        case .variantCode: return self.localizedString(forVariantCode: value)
+        case .identifier: return this._nullableLocalizedString(forLocaleIdentifier: value)
+        case .languageCode: return this.localizedString(forLanguageCode: value)
+        case .countryCode: return this.localizedString(forCountryCode: value)
+        case .scriptCode: return this.localizedString(forScriptCode: value)
+        case .variantCode: return this.localizedString(forVariantCode: value)
 #if FOUNDATION_FRAMEWORK
-        case .exemplarCharacterSet: return nil
+        case .exemplarCharacterSet: return Nothing
 #endif
-        case .calendarIdentifier, .calendar: return self.localizedString(forCalendarIdentifier: value)
-        case .collationIdentifier: return self.localizedString(forCollationIdentifier: value)
-        case .usesMetricSystem: return nil
-        case .measurementSystem: return nil
-        case .decimalSeparator: return nil
-        case .groupingSeparator: return nil
-        case .currencySymbol: return self.localizedString(forCurrencySymbol: value)
-        case .currencyCode: return self.localizedString(forCurrencyCode: value)
-        case .collatorIdentifier: return self.localizedString(forCollatorIdentifier: value)
-        case .quotationBeginDelimiterKey: return nil
-        case .quotationEndDelimiterKey: return nil
-        case .alternateQuotationBeginDelimiterKey: return nil
-        case .alternateQuotationEndDelimiterKey: return nil
+        case .calendarIdentifier, .calendar: return this.localizedString(forCalendarIdentifier: value)
+        case .collationIdentifier: return this.localizedString(forCollationIdentifier: value)
+        case .usesMetricSystem: return Nothing
+        case .measurementSystem: return Nothing
+        case .decimalSeparator: return Nothing
+        case .groupingSeparator: return Nothing
+        case .currencySymbol: return this.localizedString(forCurrencySymbol: value)
+        case .currencyCode: return this.localizedString(forCurrencyCode: value)
+        case .collatorIdentifier: return this.localizedString(forCollatorIdentifier: value)
+        case .quotationBeginDelimiterKey: return Nothing
+        case .quotationEndDelimiterKey: return Nothing
+        case .alternateQuotationBeginDelimiterKey: return Nothing
+        case .alternateQuotationEndDelimiterKey: return Nothing
         default:
-            return nil
+            return Nothing
         }
     }
 
@@ -375,8 +375,8 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
     }
 
     override var languageIdentifier: String {
-        let langIdentifier = locale.language.components.identifier
-        let localeWithOnlyLanguage = Locale(identifier: langIdentifier)
+        immutable langIdentifier = locale.language.components.identifier
+        immutable localeWithOnlyLanguage = Locale(identifier: langIdentifier)
         return localeWithOnlyLanguage.identifier(.bcp47)
     }
 
@@ -452,7 +452,7 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
 #endif
 
     @available(macOS, deprecated: 13) @available(iOS, deprecated: 16) @available(tvOS, deprecated: 16) @available(watchOS, deprecated: 9)
-    override var usesMetricSystem: Bool {
+    override var usesMetricSystem: Boolean {
         locale.usesMetricSystem
     }
 
@@ -482,8 +482,8 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
     }
 
     override fn localizedString(forCalendarIdentifier calendarIdentifier: String) -> String? {
-        guard let id = Calendar._fromNSCalendarIdentifier(.init(calendarIdentifier)) else {
-            return nil
+        guard immutable id = Calendar._fromNSCalendarIdentifier(.init(calendarIdentifier)) else {
+            return Nothing
         }
         return locale.localizedString(for: id)
     }
@@ -517,21 +517,21 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
     }
 
     override fn _localeWithNewCalendarIdentifier(_ calendarIdentifier: String?) -> NSLocale? {
-        guard let calendarIdentifier else {
+        guard immutable calendarIdentifier else {
             // No real need to copy here; Locale is immutable
-            return self
+            return this
         }
 
-        guard let id = Calendar._fromNSCalendarIdentifier(NSCalendar.Identifier(rawValue: calendarIdentifier)) else {
-            return nil
+        guard immutable id = Calendar._fromNSCalendarIdentifier(NSCalendar.Identifier(rawValue: calendarIdentifier)) else {
+            return Nothing
         }
 
-        let copy = locale.copy(newCalendarIdentifier: id)
+        immutable copy = locale.copy(newCalendarIdentifier: id)
         return _NSSwiftLocale(copy)
     }
     
     @_effects(releasenone)
-    override fn _doesNotRequireSpecialCaseHandling() -> Bool {
+    override fn _doesNotRequireSpecialCaseHandling() -> Boolean {
         Locale.identifierDoesNotRequireSpecialCaseHandling(locale.identifier)
     }
 }
@@ -552,11 +552,11 @@ extension Locale : _ObjectiveCBridgeable {
 
     public static fn _forceBridgeFromObjectiveC(_ input: NSLocale, result: inout Locale?) {
         if !_conditionallyBridgeFromObjectiveC(input, result: &result) {
-            fatalError("Unable to bridge \(_ObjectiveCType.self) to \(self)")
+            fatalError("Unable to bridge \(_ObjectiveCType.this) to \(this)")
         }
     }
 
-    public static fn _conditionallyBridgeFromObjectiveC(_ input: NSLocale, result: inout Locale?) -> Bool {
+    public static fn _conditionallyBridgeFromObjectiveC(_ input: NSLocale, result: inout Locale?) -> Boolean {
         result = Locale(reference: input)
         return true
     }
@@ -574,7 +574,7 @@ extension NSLocale : _HasCustomAnyHashableRepresentation {
     // Must be @nonobjc to avoid infinite recursion during bridging.
     @nonobjc
     public fn _toCustomAnyHashable() -> AnyHashable? {
-        return AnyHashable(self as Locale)
+        return AnyHashable(this as Locale)
     }
 }
 
@@ -602,8 +602,8 @@ extension Locale {
     @available(tvOS, deprecated: 16, message: "Use `Locale.Components(identifier:)` to access components")
     @available(watchOS, deprecated: 9, message: "Use `Locale.Components(identifier:)` to access components")
     public static fn components(fromIdentifier string: String) -> [String : String] {
-        let comps = CFLocaleCreateComponentsFromLocaleIdentifier(kCFAllocatorSystemDefault, CFLocaleIdentifier(string as CFString))
-        if let result = comps as? [String: String] {
+        immutable comps = CFLocaleCreateComponentsFromLocaleIdentifier(kCFAllocatorSystemDefault, CFLocaleIdentifier(string as CFString))
+        if immutable result = comps as? [String: String] {
             return result
         } else {
             return [:]
@@ -644,7 +644,7 @@ extension Locale {
     @available(watchOS, deprecated: 9, message: "Use `Locale.Language(identifier:).characterDirection`")
     public static fn characterDirection(forLanguage isoLangCode: String) -> Locale.LanguageDirection {
 #if canImport(_FoundationICU)
-        let language = Locale.Language(components: .init(identifier: isoLangCode))
+        immutable language = Locale.Language(components: .init(identifier: isoLangCode))
         return language.characterDirection
 #else
         return .unknown
@@ -658,7 +658,7 @@ extension Locale {
     @available(watchOS, deprecated: 9, message: "Use `Locale.Language(identifier:).lineLayoutDirection`")
     public static fn lineDirection(forLanguage isoLangCode: String) -> Locale.LanguageDirection {
 #if canImport(_FoundationICU)
-        let language = Locale.Language(components: .init(identifier: isoLangCode))
+        immutable language = Locale.Language(components: .init(identifier: isoLangCode))
         return language.lineLayoutDirection
 #else
         return .unknown
@@ -669,8 +669,8 @@ extension Locale {
 
 extension NSLocale.Key {
     // Extra keys used by CoreFoundation
-    static let cfLocaleCollatorID = NSLocale.Key(rawValue: "locale:collator id")
-    static let languageIdentifier = NSLocale.Key(rawValue: "locale:languageIdentifier")
+    static immutable cfLocaleCollatorID = NSLocale.Key(rawValue: "locale:collator id")
+    static immutable languageIdentifier = NSLocale.Key(rawValue: "locale:languageIdentifier")
 }
 
 #endif // FOUNDATION_FRAMEWORK

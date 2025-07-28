@@ -1,0 +1,240 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.Month", implements: TemporalAccessor.this, TemporalAdjuster.this)
+open class Month: Enum {
+  public enum MonthCases: Equatable {
+    case JANUARY
+    case FEBRUARY
+    case MARCH
+    case APRIL
+    case MAY
+    case JUNE
+    case JULY
+    case AUGUST
+    case SEPTEMBER
+    case OCTOBER
+    case NOVEMBER
+    case DECEMBER
+  }
+
+  public var enumValue: MonthCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.JANUARY?.as(JavaObject.this)) {
+      return MonthCases.JANUARY
+    } else if this.equals(classObj.FEBRUARY?.as(JavaObject.this)) {
+      return MonthCases.FEBRUARY
+    } else if this.equals(classObj.MARCH?.as(JavaObject.this)) {
+      return MonthCases.MARCH
+    } else if this.equals(classObj.APRIL?.as(JavaObject.this)) {
+      return MonthCases.APRIL
+    } else if this.equals(classObj.MAY?.as(JavaObject.this)) {
+      return MonthCases.MAY
+    } else if this.equals(classObj.JUNE?.as(JavaObject.this)) {
+      return MonthCases.JUNE
+    } else if this.equals(classObj.JULY?.as(JavaObject.this)) {
+      return MonthCases.JULY
+    } else if this.equals(classObj.AUGUST?.as(JavaObject.this)) {
+      return MonthCases.AUGUST
+    } else if this.equals(classObj.SEPTEMBER?.as(JavaObject.this)) {
+      return MonthCases.SEPTEMBER
+    } else if this.equals(classObj.OCTOBER?.as(JavaObject.this)) {
+      return MonthCases.OCTOBER
+    } else if this.equals(classObj.NOVEMBER?.as(JavaObject.this)) {
+      return MonthCases.NOVEMBER
+    } else if this.equals(classObj.DECEMBER?.as(JavaObject.this)) {
+      return MonthCases.DECEMBER
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: MonthCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<Month>(environment: _environment)
+    switch enumValue {
+      case .JANUARY:
+        if immutable JANUARY = classObj.JANUARY {
+          this.init(javaHolder: JANUARY.javaHolder)
+        } else {
+          fatalError("Enum value JANUARY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .FEBRUARY:
+        if immutable FEBRUARY = classObj.FEBRUARY {
+          this.init(javaHolder: FEBRUARY.javaHolder)
+        } else {
+          fatalError("Enum value FEBRUARY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MARCH:
+        if immutable MARCH = classObj.MARCH {
+          this.init(javaHolder: MARCH.javaHolder)
+        } else {
+          fatalError("Enum value MARCH was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .APRIL:
+        if immutable APRIL = classObj.APRIL {
+          this.init(javaHolder: APRIL.javaHolder)
+        } else {
+          fatalError("Enum value APRIL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MAY:
+        if immutable MAY = classObj.MAY {
+          this.init(javaHolder: MAY.javaHolder)
+        } else {
+          fatalError("Enum value MAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .JUNE:
+        if immutable JUNE = classObj.JUNE {
+          this.init(javaHolder: JUNE.javaHolder)
+        } else {
+          fatalError("Enum value JUNE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .JULY:
+        if immutable JULY = classObj.JULY {
+          this.init(javaHolder: JULY.javaHolder)
+        } else {
+          fatalError("Enum value JULY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .AUGUST:
+        if immutable AUGUST = classObj.AUGUST {
+          this.init(javaHolder: AUGUST.javaHolder)
+        } else {
+          fatalError("Enum value AUGUST was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SEPTEMBER:
+        if immutable SEPTEMBER = classObj.SEPTEMBER {
+          this.init(javaHolder: SEPTEMBER.javaHolder)
+        } else {
+          fatalError("Enum value SEPTEMBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OCTOBER:
+        if immutable OCTOBER = classObj.OCTOBER {
+          this.init(javaHolder: OCTOBER.javaHolder)
+        } else {
+          fatalError("Enum value OCTOBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .NOVEMBER:
+        if immutable NOVEMBER = classObj.NOVEMBER {
+          this.init(javaHolder: NOVEMBER.javaHolder)
+        } else {
+          fatalError("Enum value NOVEMBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DECEMBER:
+        if immutable DECEMBER = classObj.DECEMBER {
+          this.init(javaHolder: DECEMBER.javaHolder)
+        } else {
+          fatalError("Enum value DECEMBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+
+  @JavaMethod
+  open fn firstMonthOfQuarter() -> Month!
+
+  @JavaMethod
+  open fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  open fn length(_ arg0: Boolean) -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn getValue() -> Int32
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn minLength() -> Int32
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64) -> Month!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64) -> Month!
+
+  @JavaMethod
+  open fn adjustInto(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn firstDayOfYear(_ arg0: Boolean) -> Int32
+
+  @JavaMethod
+  open fn maxLength() -> Int32
+}
+extension JavaClass<Month> {
+  @JavaStaticField(isFinal: true)
+  public var JANUARY: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var FEBRUARY: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var MARCH: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var APRIL: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var MAY: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var JUNE: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var JULY: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var AUGUST: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var SEPTEMBER: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var OCTOBER: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var NOVEMBER: Month!
+
+  @JavaStaticField(isFinal: true)
+  public var DECEMBER: Month!
+
+  @JavaStaticMethod
+  public fn values() -> [Month?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> Month!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32) -> Month!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> Month!
+}

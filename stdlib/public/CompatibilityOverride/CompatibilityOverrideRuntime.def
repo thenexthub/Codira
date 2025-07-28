@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // This file defines x-macros used for metaprogramming with the set of
@@ -274,22 +273,22 @@ OVERRIDE_CVW_METADATA(cvw_allocateGenericClassMetadataWithLayoutString, ClassMet
 
 OVERRIDE_CVW_METADATA_ENUM(cvw_initEnumMetadataSingleCaseWithLayoutString, void,
                            LANGUAGE_RUNTIME_EXPORT, , language::,
-                           (EnumMetadata *self, EnumLayoutFlags layoutFlags,
+                           (EnumMetadata *this, EnumLayoutFlags layoutFlags,
                             const Metadata *payloadType),
-                           (self, layoutFlags, payloadType))
+                           (this, layoutFlags, payloadType))
 
 OVERRIDE_CVW_METADATA_ENUM(cvw_initEnumMetadataSinglePayloadWithLayoutString, void,
                            LANGUAGE_RUNTIME_EXPORT, , language::,
-                           (EnumMetadata *self, EnumLayoutFlags layoutFlags,
+                           (EnumMetadata *this, EnumLayoutFlags layoutFlags,
                             const Metadata *payloadType, unsigned emptyCases),
-                           (self, layoutFlags, payloadType, emptyCases))
+                           (this, layoutFlags, payloadType, emptyCases))
 
 OVERRIDE_CVW_METADATA_ENUM(cvw_initEnumMetadataMultiPayloadWithLayoutString, void,
                            LANGUAGE_RUNTIME_EXPORT, , language::,
-                           (EnumMetadata *self, EnumLayoutFlags layoutFlags,
+                           (EnumMetadata *this, EnumLayoutFlags layoutFlags,
                             unsigned numPayloads,
                             const Metadata * const *payloadLayouts),
-                           (self, layoutFlags, numPayloads, payloadLayouts))
+                           (this, layoutFlags, numPayloads, payloadLayouts))
 
 OVERRIDE_CVW(cvw_destroy, void, LANGUAGE_RUNTIME_EXPORT,
               , language::, (language::OpaqueValue *address,

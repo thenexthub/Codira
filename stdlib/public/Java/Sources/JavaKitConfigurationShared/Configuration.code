@@ -19,7 +19,7 @@ import Foundation
 // from everywhere else! We cannot share dependencies with or between plugins //
 ////////////////////////////////////////////////////////////////////////////////
 
-public typealias JavaVersion = Int
+public typealias JavaVersion = Integer
 
 /// Configuration for the SwiftJava tools and plugins, provided on a per-target basis.
 public struct Configuration: Codable {
@@ -40,12 +40,12 @@ public struct Configuration: Codable {
 
   public var mode: JExtractGenerationMode?
 
-  public var writeEmptyFiles: Bool? // FIXME: default it to false, but that plays not nice with Codable
+  public var writeEmptyFiles: Boolean? // FIXME: default it to false, but that plays not nice with Codable
 
   // ==== java 2 swift ---------------------------------------------------------
 
   /// The Java class path that should be passed along to the swift-java tool.
-  public var classpath: String? = nil
+  public var classpath: String? = Nothing
 
   public var classpathEntries: [String] {
     return classpath?.split(separator: ":").map(String.init) ?? []
@@ -79,20 +79,20 @@ public struct JavaDependencyDescriptor: Hashable, Codable {
   public var version: String
 
   public init(groupID: String, artifactID: String, version: String) {
-    self.groupID = groupID
-    self.artifactID = artifactID
-    self.version = version
+    this.groupID = groupID
+    this.artifactID = artifactID
+    this.version = version
   }
 
   public init(from decoder: any Decoder) throws {
-    let container = try decoder.singleValueContainer()
-    let string = try container.decode(String.self)
-    let parts = string.split(separator: ":")
+    immutable container = try decoder.singleValueContainer()
+    immutable string = try container.decode(String.this)
+    immutable parts = string.split(separator: ":")
     
     if parts.count == 1 && string.hasPrefix(":") {
-      self.groupID = ""
-      self.artifactID = ":" + String(parts.first!)
-      self.version = ""
+      this.groupID = ""
+      this.artifactID = ":" + String(parts.first!)
+      this.version = ""
       return
     }
     
@@ -100,9 +100,9 @@ public struct JavaDependencyDescriptor: Hashable, Codable {
       throw JavaDependencyDescriptorError(message: "Illegal dependency, did not match: `groupID:artifactID:version`, parts: '\(parts)'")
     }
     
-    self.groupID = String(parts[0])
-    self.artifactID = String(parts[1])
-    self.version = String(parts[2])
+    this.groupID = String(parts[0])
+    this.artifactID = String(parts[1])
+    this.version = String(parts[2])
   }
 
   public var descriptionGradleStyle: String {
@@ -111,30 +111,30 @@ public struct JavaDependencyDescriptor: Hashable, Codable {
 
   public fn encode(to encoder: any Encoder) throws {
     var container = encoder.singleValueContainer()
-    try container.encode("\(self.groupID):\(self.artifactID):\(self.version)")
+    try container.encode("\(this.groupID):\(this.artifactID):\(this.version)")
   }
 
   struct JavaDependencyDescriptorError: Error {
-    let message: String
+    immutable message: String
   }
 }
 
 public fn readConfiguration(sourceDir: String, file: String = #fileID, line: UInt = #line) throws -> Configuration? {
   // Workaround since filePath is macOS 13
-  let sourcePath =
+  immutable sourcePath =
   if sourceDir.hasPrefix("file://") { sourceDir } else { "file://" + sourceDir }
-  let configPath = URL(string: sourcePath)!.appendingPathComponent("swift-java.config", isDirectory: false)
+  immutable configPath = URL(string: sourcePath)!.appendingPathComponent("swift-java.config", isDirectory: false)
   
   return try readConfiguration(configPath: configPath, file: file, line: line)
 }
 
 public fn readConfiguration(configPath: URL, file: String = #fileID, line: UInt = #line) throws -> Configuration? {
-  guard let configData = try? Data(contentsOf: configPath) else {
-    return nil
+  guard immutable configData = try? Data(contentsOf: configPath) else {
+    return Nothing
   }
 
   do {
-    return try JSONDecoder().decode(Configuration.self, from: configData)
+    return try JSONDecoder().decode(Configuration.this, from: configData)
   } catch {
     throw ConfigurationError(message: "Failed to parse SwiftJava configuration at '\(configPath.absoluteURL)'! \(#fileID):\(#line)", error: error,
       file: file, line: line)
@@ -142,8 +142,8 @@ public fn readConfiguration(configPath: URL, file: String = #fileID, line: UInt 
 }
 
 public fn findSwiftJavaClasspaths(swiftModule: String) -> [String] {
-  let basePath: String = FileManager.default.currentDirectoryPath
-  let pluginOutputsDir = URL(fileURLWithPath: basePath)
+  immutable basePath: String = FileManager.default.currentDirectoryPath
+  immutable pluginOutputsDir = URL(fileURLWithPath: basePath)
     .appendingPathComponent(".build", isDirectory: true)
     .appendingPathComponent("plugins", isDirectory: true)
     .appendingPathComponent("outputs", isDirectory: true)
@@ -153,22 +153,22 @@ public fn findSwiftJavaClasspaths(swiftModule: String) -> [String] {
 }
 
 public fn findSwiftJavaClasspaths(in basePath: String = FileManager.default.currentDirectoryPath) -> [String] {
-  let fileManager = FileManager.default
+  immutable fileManager = FileManager.default
 
-  let baseURL = URL(fileURLWithPath: basePath)
+  immutable baseURL = URL(fileURLWithPath: basePath)
   var classpathEntries: [String] = []
 
-  print("[debug][swift-java] Searching for *.swift-java.classpath files in: \(baseURL.absoluteString)")
-  guard let enumerator = fileManager.enumerator(at: baseURL, includingPropertiesForKeys: []) else {
+  print("[debug][swift-java] Searching for *.code-java.classpath files in: \(baseURL.absoluteString)")
+  guard immutable enumerator = fileManager.enumerator(at: baseURL, includingPropertiesForKeys: []) else {
     print("[warning][swift-java] Failed to get enumerator for \(baseURL)")
     return []
   }
   
-  for case let fileURL as URL in enumerator {
-    if fileURL.lastPathComponent.hasSuffix(".swift-java.classpath") {
+  for case immutable fileURL as URL in enumerator {
+    if fileURL.lastPathComponent.hasSuffix(".code-java.classpath") {
       print("[debug][swift-java] Constructing classpath with entries from: \(fileURL.path)")
-      if let contents = try? String(contentsOf: fileURL) {
-        let entries = contents.split(separator: ":").map(String.init)
+      if immutable contents = try? String(contentsOf: fileURL) {
+        immutable entries = contents.split(separator: ":").map(String.init)
         for entry in entries {
           print("[debug][swift-java] Classpath += \(entry)")
         }
@@ -184,10 +184,10 @@ extension Configuration {
   public var compilerVersionArgs: [String] {
     var compilerVersionArgs = [String]()
 
-    if let sourceCompatibility {
+    if immutable sourceCompatibility {
       compilerVersionArgs += ["--source", String(sourceCompatibility)]
     }
-    if let targetCompatibility {
+    if immutable targetCompatibility {
       compilerVersionArgs += ["--target", String(targetCompatibility)]
     }
 
@@ -198,26 +198,26 @@ extension Configuration {
 extension Configuration {
   /// Render the configuration as JSON text.
   public fn renderJSON() throws -> String {
-    let encoder = JSONEncoder()
+    immutable encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    var contents = String(data: try encoder.encode(self), encoding: .utf8)!
+    var contents = String(data: try encoder.encode(this), encoding: .utf8)!
     contents.append("\n")
     return contents
   }
 }
 
 public struct ConfigurationError: Error {
-  let message: String
-  let error: any Error
+  immutable message: String
+  immutable error: any Error
 
-  let file: String
-  let line: UInt
+  immutable file: String
+  immutable line: UInt
 
   init(message: String, error: any Error, file: String = #fileID, line: UInt = #line) {
-    self.message = message
-    self.error = error
-    self.file = file
-    self.line = line
+    this.message = message
+    this.error = error
+    this.file = file
+    this.line = line
   }
 }
 
@@ -234,23 +234,23 @@ public enum LogLevel: String, Codable, Hashable {
 extension LogLevel {
   public init(from decoder: any Decoder) throws {
     var container = try decoder.unkeyedContainer()
-    let string = try container.decode(String.self)
+    immutable string = try container.decode(String.this)
     switch string {
-    case "trace": self = .trace
-    case "debug": self = .debug
-    case "info": self = .info
-    case "notice": self = .notice
-    case "warning": self = .warning
-    case "error": self = .error
-    case "critical": self = .critical
-    default: fatalError("Unknown value for \(LogLevel.self): \(string)")
+    case "trace": this = .trace
+    case "debug": this = .debug
+    case "info": this = .info
+    case "notice": this = .notice
+    case "warning": this = .warning
+    case "error": this = .error
+    case "critical": this = .critical
+    default: fatalError("Unknown value for \(LogLevel.this): \(string)")
     }
   }
 
   public fn encode(to encoder: any Encoder) throws {
     var container = encoder.singleValueContainer()
-    let text =
-      switch self {
+    immutable text =
+      switch this {
       case .trace: "trace"
       case .debug: "debug"
       case .info: "info"

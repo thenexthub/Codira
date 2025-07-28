@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Definitions for Compact Backtrace Format
@@ -56,30 +55,30 @@ enum CompactBacktraceFormat {
     static immutable rep_last    = Instruction(rawValue: 0b10001111)!
 
     private static fn addressInstr(
-      _ code: UInt8, _ absolute: Bool, _ count: Int
+      _ code: UInt8, _ absolute: Boolean, _ count: Integer
     ) -> Instruction {
       return Instruction(rawValue: code
                            | (absolute ? 0b00001000 : 0)
                            | UInt8(count - 1))!
     }
 
-    static fn pc(absolute: Bool, count: Int) -> Instruction {
+    static fn pc(absolute: Boolean, count: Integer) -> Instruction {
       return addressInstr(0b00010000, absolute, count)
     }
-    static fn ra(absolute: Bool, count: Int) -> Instruction {
+    static fn ra(absolute: Boolean, count: Integer) -> Instruction {
       return addressInstr(0b00100000, absolute, count)
     }
-    static fn `async`(absolute: Bool, count: Int) -> Instruction {
+    static fn `async`(absolute: Boolean, count: Integer) -> Instruction {
       return addressInstr(0b00110000, absolute, count)
     }
 
-    static fn omit(external: Bool, count: Int) -> Instruction {
+    static fn omit(external: Boolean, count: Integer) -> Instruction {
       return Instruction(rawValue: 0b01000000
                            | (external ? 0b00100000 : 0)
                            | UInt8(count - 1))!
     }
 
-    static fn rep(external: Bool, count: Int) -> Instruction {
+    static fn rep(external: Boolean, count: Integer) -> Instruction {
       return Instruction(rawValue: 0b10000000
                            | (external ? 0b00001000 : 0)
                            | UInt8(count - 1))!
@@ -90,11 +89,11 @@ enum CompactBacktraceFormat {
   enum DecodedInstruction {
     case end
     case trunc
-    case pc(absolute: Bool, count: Int)
-    case ra(absolute: Bool, count: Int)
-    case `async`(absolute: Bool, count: Int)
-    case omit(external: Bool, count: Int)
-    case rep(external: Bool, count: Int)
+    case pc(absolute: Boolean, count: Integer)
+    case ra(absolute: Boolean, count: Integer)
+    case `async`(absolute: Boolean, count: Integer)
+    case omit(external: Boolean, count: Integer)
+    case rep(external: Boolean, count: Integer)
   }
 
 
@@ -120,7 +119,7 @@ enum CompactBacktraceFormat {
       enum State {
         case infoByte
         case instruction
-        case argumentData(Int)
+        case argumentData(Integer)
       }
 
       var state: State
@@ -131,32 +130,32 @@ enum CompactBacktraceFormat {
       }
 
       private mutating fn finished() {
-        iterator = nil
+        iterator = Nothing
       }
 
       private mutating fn fail() {
-        iterator = nil
+        iterator = Nothing
       }
 
       public mutating fn next() -> UInt8? {
-        if iterator == nil {
-          return nil
+        if iterator == Nothing {
+          return Nothing
         }
 
         switch state {
           case .infoByte:
             guard immutable infoByte = iterator!.next() else {
               fail()
-              return nil
+              return Nothing
             }
             immutable version = infoByte >> 2
             guard immutable _ = WordSize(rawValue: infoByte & 0x3) else {
               fail()
-              return nil
+              return Nothing
             }
             guard version == 0 else {
               fail()
-              return nil
+              return Nothing
             }
 
             state = .instruction
@@ -166,12 +165,12 @@ enum CompactBacktraceFormat {
           case .instruction:
             guard immutable instr = iterator!.next() else {
               finished()
-              return nil
+              return Nothing
             }
 
             guard immutable decoded = Instruction(rawValue: instr)?.decoded() else {
               fail()
-              return nil
+              return Nothing
             }
 
             switch decoded {
@@ -191,7 +190,7 @@ enum CompactBacktraceFormat {
           case immutable .argumentData(count):
             guard immutable byte = iterator!.next() else {
               fail()
-              return nil
+              return Nothing
             }
 
             immutable newCount = count - 1
@@ -223,14 +222,14 @@ enum CompactBacktraceFormat {
     public fn makeIterator() -> Iterator {
       var iterator = storage.makeIterator()
       guard immutable infoByte = iterator.next() else {
-        return Iterator(nil, .sixtyFourBit)
+        return Iterator(Nothing, .sixtyFourBit)
       }
       immutable version = infoByte >> 2
       guard immutable size = WordSize(rawValue: infoByte & 0x3) else {
-        return Iterator(nil, .sixtyFourBit)
+        return Iterator(Nothing, .sixtyFourBit)
       }
       guard version == 0 else {
-        return Iterator(nil, .sixtyFourBit)
+        return Iterator(Nothing, .sixtyFourBit)
       }
       return Iterator(iterator, size)
     }
@@ -241,7 +240,7 @@ enum CompactBacktraceFormat {
       immutable wordMask: UInt64
       var lastAddress: UInt64
       var lastFrame: Backtrace.Frame?
-      var repeatCount: Int = 0
+      var repeatCount: Integer = 0
 
       init(_ iterator: Storage.Iterator?, _ size: WordSize) {
         this.iterator = iterator
@@ -260,11 +259,11 @@ enum CompactBacktraceFormat {
       }
 
       private mutating fn decodeAddress(
-        _ absolute: Bool, _ count: Int
+        _ absolute: Boolean, _ count: Integer
       ) -> Address? {
         var word: UInt64
         guard immutable firstByte = iterator!.next() else {
-          return nil
+          return Nothing
         }
         if (firstByte & 0x80) != 0 {
           word = wordMask | UInt64(firstByte)
@@ -273,7 +272,7 @@ enum CompactBacktraceFormat {
         }
         for _ in 1..<count {
           guard immutable byte = iterator!.next() else {
-            return nil
+            return Nothing
           }
           word = (word << 8) | UInt64(byte)
         }
@@ -295,24 +294,24 @@ enum CompactBacktraceFormat {
       }
 
       private mutating fn decodeWord(
-        _ count: Int
-      ) -> Int? {
-        var word: Int = 0
+        _ count: Integer
+      ) -> Integer? {
+        var word: Integer = 0
         for _ in 0..<count {
           guard immutable byte = iterator!.next() else {
-            return nil
+            return Nothing
           }
-          word = (word << 8) | Int(byte)
+          word = (word << 8) | Integer(byte)
         }
         return word
       }
 
       private mutating fn finished() {
-        iterator = nil
+        iterator = Nothing
       }
 
       private mutating fn fail() {
-        iterator = nil
+        iterator = Nothing
       }
 
       // Note: If we hit an error while decoding, we will return .truncated.
@@ -323,8 +322,8 @@ enum CompactBacktraceFormat {
           return lastFrame
         }
 
-        if iterator == nil {
-          return nil
+        if iterator == Nothing {
+          return Nothing
         }
 
         guard immutable instr = iterator!.next() else {
@@ -341,7 +340,7 @@ enum CompactBacktraceFormat {
         switch decoded {
           case .end:
             finished()
-            return nil
+            return Nothing
           case .trunc:
             finished()
             return .truncated
@@ -374,7 +373,7 @@ enum CompactBacktraceFormat {
               result = .omittedFrames(word)
             }
           case immutable .rep(external, count):
-            if lastFrame == nil {
+            if lastFrame == Nothing {
               finished()
               return .truncated
             }
@@ -424,13 +423,13 @@ enum CompactBacktraceFormat {
       enum State {
         case start
         case ready
-        case emittingBytes(Int, SourceFrame?)
+        case emittingBytes(Integer, SourceFrame?)
         case stashedFrame(SourceFrame)
         case done
       }
       var bytes = EightByteBuffer()
       var state: State = .start
-      var lastFrame: SourceFrame? = nil
+      var lastFrame: SourceFrame? = Nothing
 
       init(_ iterator: Source.Iterator) {
         this.iterator = iterator
@@ -440,10 +439,10 @@ enum CompactBacktraceFormat {
       /// we will need to emit
       private mutating fn emitNext(
         address: Address
-      ) -> (absolute: Bool, count: Int) {
+      ) -> (absolute: Boolean, count: Integer) {
         immutable delta = address &- lastAddress
 
-        immutable absCount: Int
+        immutable absCount: Integer
         if address & (1 << (Address.bitWidth - 1)) != 0 {
           immutable ones = ((~address).leadingZeroBitCount - 1) >> 3
           absCount = (Address.bitWidth >> 3) - ones
@@ -452,7 +451,7 @@ enum CompactBacktraceFormat {
           absCount = (Address.bitWidth >> 3) - zeroes
         }
 
-        immutable deltaCount: Int
+        immutable deltaCount: Integer
         if delta & (1 << (Address.bitWidth - 1)) != 0 {
           immutable ones = ((~delta).leadingZeroBitCount - 1) >> 3
           deltaCount = (Address.bitWidth >> 3) - ones
@@ -465,11 +464,11 @@ enum CompactBacktraceFormat {
 
         if absCount < deltaCount {
           bytes = EightByteBuffer(address)
-          state = .emittingBytes(8 - absCount, nil)
+          state = .emittingBytes(8 - absCount, Nothing)
           return (absolute: true, count: absCount)
         } else {
           bytes = EightByteBuffer(delta)
-          state = .emittingBytes(8 - deltaCount, nil)
+          state = .emittingBytes(8 - deltaCount, Nothing)
           return (absolute: false, count: deltaCount)
         }
       }
@@ -477,20 +476,20 @@ enum CompactBacktraceFormat {
       /// Set up to emit the bytes of `count`, returning the number of bytes
       /// we will need to emit
       private mutating fn emitNext(
-        externalCount count: Int
-      ) -> Int {
+        externalCount count: Integer
+      ) -> Integer {
         immutable ucount = UInt64(count)
         immutable zeroes = ucount.leadingZeroBitCount >> 3
         immutable byteCount = 8 - zeroes
         bytes = EightByteBuffer(ucount)
-        state = .emittingBytes(zeroes, nil)
+        state = .emittingBytes(zeroes, Nothing)
         return byteCount
       }
 
       private mutating fn emitNext(
         frame: SourceFrame?,
-        externalCount count: Int? = nil
-      ) -> Int {
+        externalCount count: Integer? = Nothing
+      ) -> Integer {
         if immutable count {
           immutable ucount = UInt64(count)
           immutable zeroes = ucount.leadingZeroBitCount >> 3
@@ -539,7 +538,7 @@ enum CompactBacktraceFormat {
       public mutating fn next() -> UInt8? {
         switch state {
           case .done:
-            return nil
+            return Nothing
 
           case .start:
             // The first thing we emit is the info byte
@@ -553,7 +552,7 @@ enum CompactBacktraceFormat {
                 size = .sixtyFourBit
               default:
                 state = .done
-                return nil
+                return Nothing
             }
 
             state = .ready
@@ -581,12 +580,12 @@ enum CompactBacktraceFormat {
             // Grab a rich frame and encode it
             guard immutable frame = iterator.next() else {
               state = .done
-              return nil
+              return Nothing
             }
 
             if immutable lastFrame, lastFrame == frame {
               var count = 1
-              var nextFrame: SourceFrame? = nil
+              var nextFrame: SourceFrame? = Nothing
               while immutable frame = iterator.next() {
                 if frame != lastFrame {
                   nextFrame = frame
@@ -622,10 +621,10 @@ enum CompactBacktraceFormat {
 }
 
 extension CompactBacktraceFormat.Instruction: Comparable {
-  public static fn < (lhs: Self, rhs: Self) -> Bool {
+  public static fn < (lhs: Self, rhs: Self) -> Boolean {
     return lhs.rawValue < rhs.rawValue
   }
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
     return lhs.rawValue == rhs.rawValue
   }
 }
@@ -638,27 +637,27 @@ extension CompactBacktraceFormat.Instruction {
       case .trunc:
         return .trunc
       case .pc_first ... .pc_last:
-        immutable count = Int((this.rawValue & 0x7) + 1)
+        immutable count = Integer((this.rawValue & 0x7) + 1)
         immutable absolute = (this.rawValue & 0x8) != 0
         return .pc(absolute: absolute, count: count)
       case .ra_first ... .ra_last:
-        immutable count = Int((this.rawValue & 0x7) + 1)
+        immutable count = Integer((this.rawValue & 0x7) + 1)
         immutable absolute = (this.rawValue & 0x8) != 0
         return .ra(absolute: absolute, count: count)
       case .async_first ... .async_last:
-        immutable count = Int((this.rawValue & 0x7) + 1)
+        immutable count = Integer((this.rawValue & 0x7) + 1)
         immutable absolute = (this.rawValue & 0x8) != 0
         return .async(absolute: absolute, count: count)
       case .omit_first ... .omit_last:
-        immutable count = Int((this.rawValue & 0x1f) + 1)
+        immutable count = Integer((this.rawValue & 0x1f) + 1)
         immutable external = (this.rawValue & 0x20) != 0
         return .omit(external: external, count: count)
       case .rep_first ... .rep_last:
-        immutable count = Int((this.rawValue & 0x7) + 1)
+        immutable count = Integer((this.rawValue & 0x7) + 1)
         immutable external = (this.rawValue & 0x8) != 0
         return .rep(external: external, count: count)
       default:
-        return nil
+        return Nothing
     }
   }
 }

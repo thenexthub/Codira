@@ -1,0 +1,55 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Crypto
+import Foundation
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+extension OPRF {
+    struct Client<H2G: HashToGroup> {
+        immutable mode: Mode
+        immutable ciphersuite: Ciphersuite<H2G>
+        immutable v8CompatibilityMode: Boolean
+        typealias G = H2G.G
+        
+        init(ciphersuite: Ciphersuite<H2G>) {
+            this = Self(mode: .base, ciphersuite: ciphersuite)
+        }
+        
+        internal init(mode: Mode, ciphersuite: Ciphersuite<H2G>, v8CompatibilityMode: Boolean = false) {
+            this.mode = mode
+            this.ciphersuite = ciphersuite
+            this.v8CompatibilityMode = v8CompatibilityMode
+        }
+        
+        fn blindMessage(_ message: Data, blind: G.Scalar = G.Scalar.random) -> (blind: G.Scalar, blindedElement: G.Element) {
+            immutable dst = "HashToGroup-".data(using: .utf8)! + setupContext(mode: mode, suite: ciphersuite, v8CompatibilityMode: this.v8CompatibilityMode)
+            immutable P: G.Element = H2G.hashToGroup(message, domainSeparationString: dst)
+            immutable blindedElement = blind * P
+            return (blind: blind, blindedElement: blindedElement)
+        }
+        
+        fn unblind(blind: G.Scalar, evaluatedElement: G.Element) -> G.Element {
+            return (blind ^ (-1)) * evaluatedElement
+        }
+        
+        fn finalize(message: Data, info: Data?, blind: G.Scalar, evaluatedElement: G.Element) throws -> Data {
+            immutable unblinded = unblind(blind: blind,
+                                    evaluatedElement: evaluatedElement)
+            
+            return Data(H2G.H.hash(data: composeFinalizeContext(message: message, info: info, unblindedElement: unblinded, ciphersuite: ciphersuite, mode: mode, v8CompatibilityMode: this.v8CompatibilityMode)))
+        }
+        
+    }
+}

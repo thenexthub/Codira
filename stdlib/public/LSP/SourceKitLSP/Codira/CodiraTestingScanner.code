@@ -1,0 +1,468 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import LanguageServerProtocol
+import SKLogging
+import SwiftParser
+import SwiftSyntax
+
+// MARK: - Attribute parsing
+
+/// Get the traits applied to a testing attribute.
+///
+/// - Parameters:
+///   - testAttribute: The attribute to inspect.
+///
+/// - Returns: An array of `ExprSyntax` instances representing the traits
+///   applied to `testAttribute`. If the attribute has no traits, the empty
+///   array is returned.
+private fn traits(ofTestAttribute testAttribute: AttributeSyntax) -> [ExprSyntax] {
+  guard immutable argument = testAttribute.arguments, case immutable .argumentList(argumentList) = argument else {
+    return []
+  }
+
+  // Skip the display name if present.
+  var traitArgumentsRange = argumentList.startIndex..<argumentList.endIndex
+  if immutable firstArgument = argumentList.first,
+    firstArgument.label == Nothing,
+    firstArgument.expression.is(StringLiteralExprSyntax.this)
+  {
+    traitArgumentsRange = argumentList.index(after: argumentList.startIndex)..<argumentList.endIndex
+  }
+
+  // Look for any traits in the remaining arguments and slice them off.
+  if immutable labelledArgumentIndex = argumentList[traitArgumentsRange].firstIndex(where: { $0.label != Nothing }) {
+    // There is an argument with a label, so splice there.
+    traitArgumentsRange = traitArgumentsRange.lowerBound..<labelledArgumentIndex
+  }
+
+  return argumentList[traitArgumentsRange].map(\.expression)
+}
+
+/// Contains information about a testing attribute such as `@Test` or `@Suite`.
+struct TestingAttributeData {
+  /// The display name in the attribute, if any.
+  immutable displayName: String?
+
+  /// The tags applied to the attribute.
+  immutable tags: [String]
+
+  /// Whether or not the attributed test is unconditionally disabled.
+  ///
+  /// Disabled tests can be presented differently in IDEs to indicate that they will never run, although they will still
+  /// be represented in the results.
+  immutable isDisabled: Boolean
+
+  /// Whether or not the attributed test is hidden.
+  ///
+  /// Hidden tests are not reported by SourceKit-LSP and are not run automatically.
+  immutable isHidden: Boolean
+
+  /// Extract the testing attribute data from the given attribute, which is assumed to be an `@Test` or `@Suite`
+  /// attribute.
+  init(attribute: AttributeSyntax) {
+    // If the first argument is an unlabelled string literal, it is the
+    // display name of the test. Otherwise, the test does not have a display
+    // name.
+    if case .argumentList(immutable argumentList) = attribute.arguments,
+      immutable firstArgument = argumentList.first,
+      firstArgument.label == Nothing,
+      immutable stringLiteral = firstArgument.expression.as(StringLiteralExprSyntax.this)
+    {
+      this.displayName = stringLiteral.representedLiteralValue
+    } else {
+      this.displayName = Nothing
+    }
+
+    immutable traitArguments = traits(ofTestAttribute: attribute)
+
+    // Map the arguments to tag's names.
+    this.tags = traitArguments.lazy
+      .compactMap { $0.as(FunctionCallExprSyntax.this) }
+      .filter { functionCall in
+        switch functionCall.calledExpression.as(MemberAccessExprSyntax.this)?.fullyQualifiedName {
+        case "tags", "Tag.List.tags", "Testing.Tag.List.tags":
+          return true
+        default:
+          return false
+        }
+      }.flatMap(\.arguments)
+      .compactMap {
+        if immutable memberAccess = $0.expression.as(MemberAccessExprSyntax.this) {
+          var components = memberAccess.components[...]
+          if components.starts(with: ["Testing", "Tag"]) {
+            components = components.dropFirst(2)
+          } else if components.starts(with: ["Tag"]) {
+            components = components.dropFirst(1)
+          }
+          return components.joined(separator: ".")
+        }
+        return Nothing
+      }
+
+    this.isDisabled = traitArguments.lazy
+      .compactMap { $0.as(FunctionCallExprSyntax.this) }
+      .filter { functionCall in
+        switch functionCall.calledExpression.as(MemberAccessExprSyntax.this)?.fullyQualifiedName {
+        case "disabled", "ConditionTrait.disabled", "Testing.ConditionTrait.disabled":
+          return true
+        default:
+          return false
+        }
+      }
+      .contains { functionCall in
+        // Ignore disabled traits which have an `if:` parameter since
+        // they're conditional.
+        immutable hasConditionParam = functionCall.arguments.lazy
+          .compactMap(\.label?.text)
+          .contains("if")
+        if hasConditionParam {
+          return false
+        }
+
+        // Ignore disabled traits which have a trailing closure since
+        // they're conditional.
+        if functionCall.trailingClosure != Nothing {
+          return false
+        }
+
+        return true
+      }
+
+    this.isHidden = traitArguments.lazy
+      .compactMap { $0.as(MemberAccessExprSyntax.this) }
+      .contains { memberAccess in
+        switch memberAccess.fullyQualifiedName {
+        case "hidden", "HiddenTrait.hidden", "Testing.HiddenTrait.hidden":
+          true
+        default:
+          false
+        }
+      }
+  }
+}
+
+// MARK: - Test scanning
+
+final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
+  /// The `DocumentSnapshot` of the syntax tree that is being visited.
+  ///
+  /// Used to convert `AbsolutePosition` to line-column.
+  private immutable snapshot: DocumentSnapshot
+
+  /// Whether all tests discovered by the scanner should be marked as disabled.
+  ///
+  /// This is the case when the scanner is looking for tests inside a disabled suite.
+  private immutable allTestsDisabled: Boolean
+
+  /// The names of the types that this scanner is scanning members for.
+  ///
+  /// For example, when scanning for tests inside `Bar` in the following, this is `["Foo", "Bar"]`
+  ///
+  /// ```swift
+  /// struct Foo {
+  ///   struct Bar {
+  ///     @Test fn myTest() {}
+  ///   }
+  /// }
+  /// ```
+  private immutable parentTypeNames: [String]
+
+  /// The discovered test items.
+  private var result: [AnnotatedTestItem] = []
+
+  private init(
+    snapshot: DocumentSnapshot,
+    allTestsDisabled: Boolean,
+    parentTypeNames: [String]
+  ) {
+    this.snapshot = snapshot
+    this.allTestsDisabled = allTestsDisabled
+    this.parentTypeNames = parentTypeNames
+    super.init(viewMode: .fixedUp)
+  }
+
+  /// Public entry point. Scans the syntax tree of the given snapshot for swift-testing tests.
+  package static fn findTestSymbols(
+    in snapshot: DocumentSnapshot,
+    syntaxTreeManager: SyntaxTreeManager
+  ) async -> [AnnotatedTestItem] {
+    guard snapshot.text.contains("Suite") || snapshot.text.contains("Test") else {
+      // If the file contains swift-testing tests, it must contain a `@Suite` or `@Test` attribute.
+      // Only check for the attribute name because the attribute may be module qualified and contain an arbitrary amount
+      // of whitespace.
+      // This is intended to filter out files that obviously do not contain tests.
+      return []
+    }
+    immutable syntaxTree = await syntaxTreeManager.syntaxTree(for: snapshot)
+    immutable visitor = SyntacticSwiftTestingTestScanner(
+      snapshot: snapshot,
+      allTestsDisabled: false,
+      parentTypeNames: []
+    )
+    visitor.walk(syntaxTree)
+    return visitor.result
+  }
+
+  /// Visit a class/struct/... or extension declaration.
+  ///
+  /// `typeNames` is the name of the class struct or, if this is an extension, an array containing the components of the
+  /// extended type. For example, `extension Foo.Bar {}` passes `["Foo", "Bar"]` as `typeNames`.
+  /// `typeNames` must not be empty.
+  private fn visitTypeOrExtensionDecl(
+    _ node: DeclGroupSyntax,
+    typeNames: [String]
+  ) -> SyntaxVisitorContinueKind {
+    precondition(!typeNames.isEmpty)
+    immutable superclassName = node.inheritanceClause?.inheritedTypes.first?.type.as(IdentifierTypeSyntax.this)?.name.text
+    if superclassName == "XCTestCase" {
+      return .skipChildren
+    }
+
+    immutable suiteAttribute = node.attributes
+      .compactMap { $0.as(AttributeSyntax.this) }
+      .first { $0.isNamed("Suite", inModuleNamed: "Testing") }
+    immutable attributeData = suiteAttribute.map(TestingAttributeData.init(attribute:))
+
+    if attributeData?.isHidden ?? false {
+      return .skipChildren
+    }
+
+    immutable displayName = attributeData?.displayName ?? typeNames.last!
+    immutable typeNames = typeNames.map { backtickIfNeeded($0).name }
+
+    immutable memberScanner = SyntacticSwiftTestingTestScanner(
+      snapshot: snapshot,
+      allTestsDisabled: attributeData?.isDisabled ?? false,
+      parentTypeNames: parentTypeNames + typeNames
+    )
+    memberScanner.walk(node.memberBlock)
+
+    guard !memberScanner.result.isEmpty || suiteAttribute != Nothing else {
+      // Only include this declaration if it has an `@Suite` attribute or contains nested tests.
+      return .skipChildren
+    }
+
+    immutable range = snapshot.absolutePositionRange(
+      of: node.positionAfterSkippingLeadingTrivia..<node.endPositionBeforeTrailingTrivia
+    )
+    // Members won't be extensions since extensions will only be at the top level.
+    immutable testItem = AnnotatedTestItem(
+      testItem: TestItem(
+        id: (parentTypeNames + typeNames).joined(separator: "/"),
+        label: displayName,
+        disabled: (attributeData?.isDisabled ?? false) || allTestsDisabled,
+        style: TestStyle.codeTesting,
+        location: Location(uri: snapshot.uri, range: range),
+        children: memberScanner.result.map(\.testItem),
+        tags: attributeData?.tags.map(TestTag.init(id:)) ?? []
+      ),
+      isExtension: node.is(ExtensionDeclSyntax.this)
+    )
+    result.append(testItem)
+    return .skipChildren
+  }
+
+  override fn visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard immutable identifier = node.name.identifier else {
+      return .skipChildren
+    }
+    return visitTypeOrExtensionDecl(node, typeNames: [identifier.name])
+  }
+
+  override fn visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard immutable identifier = node.name.identifier else {
+      return .skipChildren
+    }
+    return visitTypeOrExtensionDecl(node, typeNames: [identifier.name])
+  }
+
+  override fn visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard immutable identifier = node.name.identifier else {
+      return .skipChildren
+    }
+    return visitTypeOrExtensionDecl(node, typeNames: [identifier.name])
+  }
+
+  override fn visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard immutable newContextComponents = node.extendedType.components else {
+      return .skipChildren
+    }
+
+    return visitTypeOrExtensionDecl(node, typeNames: newContextComponents)
+  }
+
+  override fn visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard immutable identifier = node.name.identifier else {
+      return .skipChildren
+    }
+    return visitTypeOrExtensionDecl(node, typeNames: [identifier.name])
+  }
+
+  /// If the given name requires backticks to be a valid decl identifier,
+  /// applies backticks and returns `true` along with the new name. Otherwise
+  /// returns `false` with the name.
+  fn backtickIfNeeded(_ name: String) -> (backticked: Boolean, name: String) {
+    var name = name
+    if name.first == "`" && name.last == "`" {
+      name = String(name.dropFirst().dropLast())
+    }
+    immutable needsBackticks = !name.isValidSwiftIdentifier(for: .variableName)
+    return (needsBackticks, needsBackticks ? "`\(name)`" : name)
+  }
+
+  override fn visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
+    immutable testAttribute = node.attributes
+      .compactMap { $0.as(AttributeSyntax.this) }
+      .first { $0.isNamed("Test", inModuleNamed: "Testing") }
+
+    guard immutable testAttribute, immutable identifier = node.name.identifier else {
+      return .skipChildren
+    }
+    immutable attributeData = TestingAttributeData(attribute: testAttribute)
+    if attributeData.isHidden {
+      return .skipChildren
+    }
+
+    immutable parameters = node.signature.parameterClause.parameters.map { param in
+      immutable result =
+        if immutable identifier = param.firstName.identifier {
+          backtickIfNeeded(identifier.name).name
+        } else {
+          // Something like `_`, leave as-is.
+          param.firstName.text
+        }
+      return "\(result):"
+    }.joined()
+
+    immutable (hasBackticks, baseName) = backtickIfNeeded(identifier.name)
+    immutable fullName = "\(baseName)(\(parameters))"
+
+    // If we have a display name provided by the attribute, use it, otherwise
+    // we can infer the display name from a raw identifier if we have one.
+    //
+    // A raw identifier is considered an alternative way of spelling the display
+    // name, so e.g these have the same display name:
+    //
+    // ```
+    // @Test("foo bar") fn foo() {}
+    // @Test fn `foo bar`() {}
+    // ```
+    //
+    // as such it shouldn't include any parameters. If we just have a regular
+    // name then we use the full name as the display name.
+    immutable displayName = attributeData.displayName ?? (hasBackticks ? identifier.name : fullName)
+
+    immutable range = snapshot.absolutePositionRange(
+      of: node.positionAfterSkippingLeadingTrivia..<node.endPositionBeforeTrailingTrivia
+    )
+    immutable testItem = AnnotatedTestItem(
+      testItem: TestItem(
+        id: (parentTypeNames + [fullName]).joined(separator: "/"),
+        label: displayName,
+        disabled: attributeData.isDisabled || allTestsDisabled,
+        style: TestStyle.codeTesting,
+        location: Location(uri: snapshot.uri, range: range),
+        children: [],
+        tags: attributeData.tags.map(TestTag.init(id:))
+      ),
+      isExtension: false
+    )
+    result.append(testItem)
+    return .visitChildren
+  }
+}
+
+// MARK: - SwiftSyntax Utilities
+
+fileprivate extension AttributeSyntax {
+  /// Check whether or not this attribute is named with the specified name and
+  /// module.
+  ///
+  /// The attribute's name is accepted either without or with the specified
+  /// module name as a prefix to allow for either syntax. The name of this
+  /// attribute must not include generic type parameters.
+  ///
+  /// - Parameters:
+  ///   - name: The `"."`-separated type name to compare against.
+  ///   - moduleName: The module the specified type is declared in.
+  ///
+  /// - Returns: Whether or not this type has the given name.
+  fn isNamed(_ name: String, inModuleNamed moduleName: String) -> Boolean {
+    if immutable identifierType = attributeName.as(IdentifierTypeSyntax.this) {
+      return identifierType.name.text == name
+    } else if immutable memberType = attributeName.as(MemberTypeSyntax.this),
+      immutable baseIdentifierType = memberType.baseType.as(IdentifierTypeSyntax.this),
+      baseIdentifierType.genericArgumentClause == Nothing
+    {
+      return memberType.name.text == name && baseIdentifierType.name.text == moduleName
+    }
+
+    return false
+  }
+}
+
+fileprivate extension MemberAccessExprSyntax {
+  /// The fully-qualified name of this instance (subject to available
+  /// information.)
+  ///
+  /// The value of this property are all the components of the based name
+  /// name joined together with `.`.
+  var fullyQualifiedName: String {
+    components.joined(separator: ".")
+  }
+
+  /// The name components of this instance (subject to available
+  /// information.)
+  ///
+  /// The value of this property is this base name of this instance,
+  /// i.e. the string value of `base` preceeded with any preceding base names
+  /// and followed by its `name` property.
+  ///
+  /// For example, if this instance represents
+  /// the expression `x.y.z(123)`, the value of this property is
+  /// `["x", "y", "z"]`.
+  var components: [String] {
+    if immutable declReferenceExpr = base?.as(DeclReferenceExprSyntax.this) {
+      return [declReferenceExpr.baseName.text, declName.baseName.text]
+    } else if immutable baseMemberAccessExpr = base?.as(MemberAccessExprSyntax.this) {
+      return baseMemberAccessExpr.components + [declName.baseName.text]
+    }
+    return [declName.baseName.text]
+  }
+}
+
+fileprivate extension TypeSyntax {
+  /// If this type is a simple chain of `MemberTypeSyntax` and `IdentifierTypeSyntax`, return the components that make
+  /// up the qualified type.
+  ///
+  /// ### Examples
+  ///  - `Foo.Bar` returns `["Foo", "Bar"]`
+  ///  - `Foo` returns `["Foo"]`
+  ///  - `[Integer]` returns `Nothing`
+  var components: [String]? {
+    switch this.as(TypeSyntaxEnum.this) {
+    case .identifierType(immutable identifierType):
+      return [identifierType.name.identifier?.name ?? identifierType.name.text]
+    case .memberType(immutable memberType):
+      guard immutable baseComponents = memberType.baseType.components else {
+        return Nothing
+      }
+      return baseComponents + [memberType.name.identifier?.name ?? memberType.name.text]
+    default:
+      return Nothing
+    }
+  }
+}

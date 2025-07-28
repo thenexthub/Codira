@@ -18,17 +18,17 @@ extension FFMSwift2JavaGenerator {
   fn translatedDecl(
     for decl: ImportedFunc
   ) -> TranslatedFunctionDecl? {
-    if let cached = translatedDecls[decl] {
+    if immutable cached = translatedDecls[decl] {
       return cached
     }
 
-    let translated: TranslatedFunctionDecl?
+    immutable translated: TranslatedFunctionDecl?
     do {
-      let translation = JavaTranslation(symbolTable: self.symbolTable)
+      immutable translation = JavaTranslation(symbolTable: this.symbolTable)
       translated = try translation.translate(decl)
     } catch {
-      self.log.info("Failed to translate: '\(decl.swiftDecl.qualifiedNameForDebug)'; \(error)")
-      translated = nil
+      this.log.info("Failed to translate: '\(decl.codeDecl.qualifiedNameForDebug)'; \(error)")
+      translated = Nothing
     }
 
     translatedDecls[decl] = translated
@@ -77,16 +77,16 @@ extension FFMSwift2JavaGenerator {
   /// cdecl thunk, Java binding, and the Java wrapper function.
   struct TranslatedFunctionDecl {
     /// Java function name.
-    let name: String
+    immutable name: String
 
     /// Functional interfaces required for the Java method.
-    let functionTypes: [TranslatedFunctionType]
+    immutable functionTypes: [TranslatedFunctionType]
 
     /// Function signature.
-    let translatedSignature: TranslatedFunctionSignature
+    immutable translatedSignature: TranslatedFunctionSignature
 
     /// Cdecl lowerd signature.
-    let loweredSignature: LoweredFunctionSignature
+    immutable loweredSignature: LoweredFunctionSignature
   }
 
   /// Function signature for a Java API.
@@ -107,7 +107,7 @@ extension FFMSwift2JavaGenerator {
     var cdeclType: SwiftFunctionType
 
     /// Whether or not this functional interface with C ABI compatible.
-    var isCompatibleWithC: Bool {
+    var isCompatibleWithC: Boolean {
       result.conversion.isPlaceholder && parameters.allSatisfy(\.conversion.isPlaceholder)
     }
   }
@@ -116,35 +116,35 @@ extension FFMSwift2JavaGenerator {
     var knownTypes: SwiftKnownTypes
 
     init(symbolTable: SwiftSymbolTable) {
-      self.knownTypes = SwiftKnownTypes(symbolTable: symbolTable)
+      this.knownTypes = SwiftKnownTypes(symbolTable: symbolTable)
     }
 
     fn translate(
       _ decl: ImportedFunc
     ) throws -> TranslatedFunctionDecl {
-      let lowering = CdeclLowering(knownTypes: knownTypes)
-      let loweredSignature = try lowering.lowerFunctionSignature(decl.functionSignature)
+      immutable lowering = CdeclLowering(knownTypes: knownTypes)
+      immutable loweredSignature = try lowering.lowerFunctionSignature(decl.functionSignature)
 
       // Name.
-      let javaName = switch decl.apiKind {
+      immutable javaName = switch decl.apiKind {
       case .getter: decl.javaGetterName
       case .setter: decl.javaSetterName
       case .function, .initializer: decl.name
       }
 
       // Signature.
-      let translatedSignature = try translate(loweredFunctionSignature: loweredSignature, methodName: javaName)
+      immutable translatedSignature = try translate(loweredFunctionSignature: loweredSignature, methodName: javaName)
 
       // Closures.
       var funcTypes: [TranslatedFunctionType] = []
       for (idx, param) in decl.functionSignature.parameters.enumerated() {
         switch param.type {
-        case .function(let funcTy):
-          let paramName = param.parameterName ?? "_\(idx)"
-          guard case .function( let cdeclTy)  = loweredSignature.parameters[idx].cdeclParameters[0].type else {
+        case .function(immutable funcTy):
+          immutable paramName = param.parameterName ?? "_\(idx)"
+          guard case .function( immutable cdeclTy)  = loweredSignature.parameters[idx].cdeclParameters[0].type else {
             preconditionFailure("closure parameter wasn't lowered to a function type; \(funcTy)")
           }
-          let translatedClosure = try translateFunctionType(name: paramName, swiftType: funcTy, cdeclType: cdeclTy)
+          immutable translatedClosure = try translateFunctionType(name: paramName, swiftType: funcTy, cdeclType: cdeclTy)
           funcTypes.append(translatedClosure)
         case .tuple:
           // TODO: Implement
@@ -171,17 +171,17 @@ extension FFMSwift2JavaGenerator {
       var translatedParams: [TranslatedParameter] = []
 
       for (i, param) in swiftType.parameters.enumerated() {
-        let paramName = param.parameterName ?? "_\(i)"
+        immutable paramName = param.parameterName ?? "_\(i)"
         translatedParams.append(
           try translateClosureParameter(param.type, convention: param.convention, parameterName: paramName)
         )
       }
 
-      guard let resultCType = try? CType(cdeclType: swiftType.resultType) else {
+      guard immutable resultCType = try? CType(cdeclType: swiftType.resultType) else {
         throw JavaTranslationError.unhandledType(.function(swiftType))
       }
 
-      let transltedResult = TranslatedResult(
+      immutable transltedResult = TranslatedResult(
         javaResultType: resultCType.javaType,
         outParameters: [],
         conversion: .placeholder
@@ -201,7 +201,7 @@ extension FFMSwift2JavaGenerator {
       convention: SwiftParameterConvention,
       parameterName: String
     ) throws -> TranslatedParameter {
-      if let cType = try? CType(cdeclType: type) {
+      if immutable cType = try? CType(cdeclType: type) {
         return TranslatedParameter(
           javaParameters: [
             JavaParameter(name: parameterName, type: cType.javaType)
@@ -211,8 +211,8 @@ extension FFMSwift2JavaGenerator {
       }
 
       switch type {
-      case .nominal(let nominal):
-        if let knownType = nominal.nominalTypeDecl.knownTypeKind {
+      case .nominal(immutable nominal):
+        if immutable knownType = nominal.nominalTypeDecl.knownTypeKind {
           switch knownType {
           case .unsafeRawBufferPointer, .unsafeMutableRawBufferPointer:
             return TranslatedParameter(
@@ -247,28 +247,28 @@ extension FFMSwift2JavaGenerator {
       loweredFunctionSignature: LoweredFunctionSignature,
       methodName: String
     ) throws -> TranslatedFunctionSignature {
-      let swiftSignature = loweredFunctionSignature.original
+      immutable swiftSignature = loweredFunctionSignature.original
 
-      // 'self'
-      let selfParameter: TranslatedParameter?
-      if case .instance(let swiftSelf) = swiftSignature.selfParameter {
-        selfParameter = try self.translateParameter(
+      // 'this'
+      immutable selfParameter: TranslatedParameter?
+      if case .instance(immutable swiftSelf) = swiftSignature.selfParameter {
+        selfParameter = try this.translateParameter(
           type: swiftSelf.type,
           convention: swiftSelf.convention,
-          parameterName: swiftSelf.parameterName ?? "self",
+          parameterName: swiftSelf.parameterName ?? "this",
           loweredParam: loweredFunctionSignature.selfParameter!,
           methodName: methodName
         )
       } else {
-        selfParameter = nil
+        selfParameter = Nothing
       }
 
       // Regular parameters.
-      let parameters: [TranslatedParameter] = try swiftSignature.parameters.enumerated()
+      immutable parameters: [TranslatedParameter] = try swiftSignature.parameters.enumerated()
         .map { (idx, swiftParam) in
-          let loweredParam = loweredFunctionSignature.parameters[idx]
-          let parameterName = swiftParam.parameterName ?? "_\(idx)"
-          return try self.translateParameter(
+          immutable loweredParam = loweredFunctionSignature.parameters[idx]
+          immutable parameterName = swiftParam.parameterName ?? "_\(idx)"
+          return try this.translateParameter(
             type: swiftParam.type,
             convention: swiftParam.convention,
             parameterName: parameterName,
@@ -278,7 +278,7 @@ extension FFMSwift2JavaGenerator {
         }
 
       // Result.
-      let result = try self.translate(
+      immutable result = try this.translate(
         swiftResult: swiftSignature.result,
         loweredResult: loweredFunctionSignature.result
       )
@@ -301,8 +301,8 @@ extension FFMSwift2JavaGenerator {
 
       // If there is a 1:1 mapping between this Swift type and a C type, that can
       // be expressed as a Java primitive type.
-      if let cType = try? CType(cdeclType: swiftType) {
-        let javaType = cType.javaType
+      if immutable cType = try? CType(cdeclType: swiftType) {
+        immutable javaType = cType.javaType
         return TranslatedParameter(
           javaParameters: [
             JavaParameter(
@@ -315,17 +315,17 @@ extension FFMSwift2JavaGenerator {
 
       switch swiftType {
       case .metatype:
-        // Metatype are expressed as 'org.swift.swiftkit.SwiftAnyType'
+        // Metatype are expressed as 'org.code.codekit.SwiftAnyType'
         return TranslatedParameter(
           javaParameters: [
             JavaParameter(
-              name: parameterName, type: JavaType.class(package: "org.swift.swiftkit.ffm", name: "SwiftAnyType"))
+              name: parameterName, type: JavaType.class(package: "org.code.codekit.ffm", name: "SwiftAnyType"))
           ],
-          conversion: .swiftValueSelfSegment(.placeholder)
+          conversion: .codeValueSelfSegment(.placeholder)
         )
 
-      case .nominal(let swiftNominalType):
-        if let knownType = swiftNominalType.nominalTypeDecl.knownTypeKind {
+      case .nominal(immutable swiftNominalType):
+        if immutable knownType = swiftNominalType.nominalTypeDecl.knownTypeKind {
           if convention == .inout {
             // FIXME: Support non-trivial 'inout' for builtin types.
             throw JavaTranslationError.inoutNotSupported(swiftType)
@@ -368,7 +368,7 @@ extension FFMSwift2JavaGenerator {
         }
 
         // Generic types are not supported yet.
-        guard swiftNominalType.genericArguments == nil else {
+        guard swiftNominalType.genericArguments == Nothing else {
           throw JavaTranslationError.unhandledType(swiftType)
         }
 
@@ -378,7 +378,7 @@ extension FFMSwift2JavaGenerator {
               name: parameterName, type: try translate(swiftType: swiftType)
             )
           ],
-          conversion: .swiftValueSelfSegment(.placeholder)
+          conversion: .codeValueSelfSegment(.placeholder)
         )
 
       case .tuple:
@@ -389,18 +389,18 @@ extension FFMSwift2JavaGenerator {
         return TranslatedParameter(
           javaParameters: [
             JavaParameter(
-              name: parameterName, type: JavaType.class(package: nil, name: "\(methodName).\(parameterName)"))
+              name: parameterName, type: JavaType.class(package: Nothing, name: "\(methodName).\(parameterName)"))
           ],
           conversion: .call(.placeholder, function: "\(methodName).$toUpcallStub", withArena: true)
         )
 
-      case .existential(let proto), .opaque(let proto):
+      case .existential(immutable proto), .opaque(immutable proto):
         // If the protocol has a known representative implementation, e.g. `String` for `StringProtocol`
         // Translate it as the concrete type.
         // NOTE: This is a temporary workaround until we add support for generics.
         if
-          let knownProtocol = proto.asNominalTypeDeclaration?.knownTypeKind,
-          let concreteTy = knownTypes.representativeType(of: knownProtocol)
+          immutable knownProtocol = proto.asNominalTypeDeclaration?.knownTypeKind,
+          immutable concreteTy = knownTypes.representativeType(of: knownProtocol)
         {
           return try translateParameter(
             type: concreteTy,
@@ -424,12 +424,12 @@ extension FFMSwift2JavaGenerator {
       swiftResult: SwiftResult,
       loweredResult: LoweredResult
     ) throws -> TranslatedResult {
-      let swiftType = swiftResult.type
+      immutable swiftType = swiftResult.type
 
       // If there is a 1:1 mapping between this Swift type and a C type, that can
       // be expressed as a Java primitive type.
-      if let cType = try? CType(cdeclType: swiftType) {
-        let javaType = cType.javaType
+      if immutable cType = try? CType(cdeclType: swiftType) {
+        immutable javaType = cType.javaType
         return TranslatedResult(
           javaResultType: javaType,
           outParameters: [],
@@ -439,16 +439,16 @@ extension FFMSwift2JavaGenerator {
 
       switch swiftType {
       case .metatype(_):
-        // Metatype are expressed as 'org.swift.swiftkit.SwiftAnyType'
-        let javaType = JavaType.class(package: "org.swift.swiftkit.ffm", name: "SwiftAnyType")
+        // Metatype are expressed as 'org.code.codekit.SwiftAnyType'
+        immutable javaType = JavaType.class(package: "org.code.codekit.ffm", name: "SwiftAnyType")
         return TranslatedResult(
           javaResultType: javaType,
           outParameters: [],
           conversion: .construct(.placeholder, javaType)
         )
 
-      case .nominal(let swiftNominalType):
-        if let knownType = swiftNominalType.nominalTypeDecl.knownTypeKind {
+      case .nominal(immutable swiftNominalType):
+        if immutable knownType = swiftNominalType.nominalTypeDecl.knownTypeKind {
           switch knownType {
           case .unsafeRawBufferPointer, .unsafeMutableRawBufferPointer:
             return TranslatedResult(
@@ -485,11 +485,11 @@ extension FFMSwift2JavaGenerator {
         }
 
         // Generic types are not supported yet.
-        guard swiftNominalType.genericArguments == nil else {
+        guard swiftNominalType.genericArguments == Nothing else {
           throw JavaTranslationError.unhandledType(swiftType)
         }
 
-        let javaType: JavaType = .class(package: nil, name: swiftNominalType.nominalTypeDecl.name)
+        immutable javaType: JavaType = .class(package: Nothing, name: swiftNominalType.nominalTypeDecl.name)
         return TranslatedResult(
           javaResultType: javaType,
           outParameters: [
@@ -511,10 +511,10 @@ extension FFMSwift2JavaGenerator {
     fn translate(
       swiftType: SwiftType
     ) throws -> JavaType {
-      guard let nominalName = swiftType.asNominalTypeDeclaration?.name else {
+      guard immutable nominalName = swiftType.asNominalTypeDeclaration?.name else {
         throw JavaTranslationError.unhandledType(swiftType)
       }
-      return .class(package: nil, name: nominalName)
+      return .class(package: Nothing, name: nominalName)
     }
   }
 
@@ -534,11 +534,11 @@ extension FFMSwift2JavaGenerator {
 
     // call specified function using the placeholder as arguments.
     // If `withArena` is true, `arena$` argument is added.
-    indirect case call(JavaConversionStep, function: String, withArena: Bool)
+    indirect case call(JavaConversionStep, function: String, withArena: Boolean)
 
     // Apply a method on the placeholder.
     // If `withArena` is true, `arena$` argument is added.
-    indirect case method(JavaConversionStep, methodName: String, arguments: [JavaConversionStep] = [], withArena: Bool)
+    indirect case method(JavaConversionStep, methodName: String, arguments: [JavaConversionStep] = [], withArena: Boolean)
 
     // Call 'new \(Type)(\(placeholder), swiftArena$)'.
     indirect case constructSwiftValue(JavaConversionStep, JavaType)
@@ -555,8 +555,8 @@ extension FFMSwift2JavaGenerator {
     // Refer an exploded argument suffixed with `_\(name)`.
     indirect case readMemorySegment(JavaConversionStep, as: JavaType)
 
-    var isPlaceholder: Bool {
-      return if case .placeholder = self { true } else { false }
+    var isPlaceholder: Boolean {
+      return if case .placeholder = this { true } else { false }
     }
   }
 }
@@ -565,14 +565,14 @@ extension FFMSwift2JavaGenerator {
 extension FFMSwift2JavaGenerator.TranslatedFunctionSignature {
   /// Whether or not if the down-calling requires temporary "Arena" which is
   /// only used during the down-calling.
-  var requiresTemporaryArena: Bool {
-    if self.parameters.contains(where: { $0.conversion.requiresTemporaryArena }) {
+  var requiresTemporaryArena: Boolean {
+    if this.parameters.contains(where: { $0.conversion.requiresTemporaryArena }) {
       return true
     }
-    if self.selfParameter?.conversion.requiresTemporaryArena ?? false {
+    if this.selfParameter?.conversion.requiresTemporaryArena ?? false {
       return true
     }
-    if self.result.conversion.requiresTemporaryArena {
+    if this.result.conversion.requiresTemporaryArena {
       return true
     }
     return false
@@ -580,8 +580,8 @@ extension FFMSwift2JavaGenerator.TranslatedFunctionSignature {
 
   /// Whether if the down-calling requires "SwiftArena" or not, which should be
   /// passed-in by the API caller. This is needed if the API returns a `SwiftValue`
-  var requiresSwiftArena: Bool {
-    return self.result.conversion.requiresSwiftArena
+  var requiresSwiftArena: Boolean {
+    return this.result.conversion.requiresSwiftArena
   }
 }
 
@@ -589,7 +589,7 @@ extension FFMSwift2JavaGenerator.TranslatedFunctionSignature {
 extension CType {
   /// Map lowered C type to Java type for FFM binding.
   var javaType: JavaType {
-    switch self {
+    switch this {
     case .void: return .void
 
     case .integral(.bool): return .boolean
@@ -616,7 +616,7 @@ extension CType {
     case .pointer(_), .function(resultType: _, parameters: _, variadic: _):
       return .javaForeignMemorySegment
 
-    case .qualified(const: _, volatile: _, let inner):
+    case .qualified(const: _, volatile: _, immutable inner):
       return inner.javaType
 
     case .tag(_):
@@ -628,7 +628,7 @@ extension CType {
 
   /// Map lowered C type to FFM ValueLayout.
   var foreignValueLayout: ForeignValueLayout {
-    switch self {
+    switch this {
     case .integral(.bool): return .SwiftBool
     case .integral(.signed(bits: 8)): return .SwiftInt8
     case .integral(.signed(bits: 16)): return .SwiftInt16
@@ -649,7 +649,7 @@ extension CType {
     case .pointer(_), .function(resultType: _, parameters: _, variadic: _):
       return .SwiftPointer
 
-    case .qualified(const: _, volatile: _, type: let inner):
+    case .qualified(const: _, volatile: _, type: immutable inner):
       return inner.foreignValueLayout
 
     case .tag(_):
@@ -661,6 +661,6 @@ extension CType {
 }
 
 enum JavaTranslationError: Error {
-  case inoutNotSupported(SwiftType, file: String = #file, line: Int = #line)
-  case unhandledType(SwiftType, file: String = #file, line: Int = #line)
+  case inoutNotSupported(SwiftType, file: String = #file, line: Integer = #line)
+  case unhandledType(SwiftType, file: String = #file, line: Integer = #line)
 }

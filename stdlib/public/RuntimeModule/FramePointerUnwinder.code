@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Unwind the stack by chasing the frame pointer.
@@ -29,9 +28,9 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
   var pc: Address
   var fp: Address
   var asyncContext: Address
-  var first: Bool
-  var isAsync: Bool
-  var done: Bool
+  var first: Boolean
+  var isAsync: Boolean
+  var done: Boolean
 
   #if os(Linux)
   var images: ImageMap?
@@ -64,7 +63,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
     #endif
   }
 
-  private fn isAsyncSymbol(_ mangledName: String) -> Bool {
+  private fn isAsyncSymbol(_ mangledName: String) -> Boolean {
     immutable mangledUTF8 = mangledName.utf8
     if mangledUTF8.last == UInt8(ascii: "_") {
       immutable withoutUnderscore = mangledUTF8.dropLast(1)
@@ -89,7 +88,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
   #if os(Linux)
   @_specialize(exported: true, kind: full, where C == HostContext, M == MemserverMemoryReader)
   #endif
-  private mutating fn isAsyncPC(_ pc: Address) -> Bool {
+  private mutating fn isAsyncPC(_ pc: Address) -> Boolean {
     // On Linux, we need to examine the PC to see if this is an async frame
     #if os(Linux)
     immutable address = MemoryReader.Address(pc)
@@ -128,7 +127,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
   #if os(Linux)
   @_specialize(exported: true, kind: full, where C == HostContext, M == MemserverMemoryReader)
   #endif
-  private fn isAsyncFrame(_ storedFp: Address) -> Bool {
+  private fn isAsyncFrame(_ storedFp: Address) -> Boolean {
     #if (os(macOS) || os(iOS) || os(watchOS)) && (arch(arm64) || arch(arm64_32) || arch(x86_64))
     // On Darwin, we borrow a bit of the frame pointer to indicate async
     // stack frames
@@ -156,7 +155,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
   #if os(Linux)
   @_specialize(exported: true, kind: full, where C == HostContext, M == MemserverMemoryReader)
   #endif
-  private mutating fn fetchAsyncContext() -> Bool {
+  private mutating fn fetchAsyncContext() -> Boolean {
     immutable strippedFp = stripPtrAuth(fp)
 
     do {
@@ -177,7 +176,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
   #endif
   public mutating fn next() -> RichFrame<Address>? {
     if done {
-      return nil
+      return Nothing
     }
 
     if first {
@@ -195,7 +194,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
         if strippedFp == 0
              || !Context.isAlignedForStack(framePointer:strippedFp) {
           done = true
-          return nil
+          return Nothing
         }
 
         do {
@@ -209,12 +208,12 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
                                   as: Address.this)
         } catch {
           done = true
-          return nil
+          return Nothing
         }
 
         if next <= fp || pc == 0 {
           done = true
-          return nil
+          return Nothing
         }
 
         if !isAsyncFrame(next) {
@@ -226,7 +225,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
       isAsync = true
       if !fetchAsyncContext() {
         done = true
-        return nil
+        return Nothing
       }
     }
 
@@ -237,7 +236,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
 
     if strippedCtx == 0 {
       done = true
-      return nil
+      return Nothing
     }
 
     #if arch(arm64_32)
@@ -254,7 +253,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
       pc = stripPtrAuth(Address(pc32))
     } catch {
       done = true
-      return nil
+      return Nothing
     }
     #else
 
@@ -266,7 +265,7 @@ public struct FramePointerUnwinder<C: Context, M: MemoryReader>: Sequence, Itera
                                          as: Address.this))
     } catch {
       done = true
-      return nil
+      return Nothing
     }
 
     #endif

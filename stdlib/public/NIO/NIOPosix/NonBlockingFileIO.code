@@ -37,11 +37,11 @@ import NIOCore
 public struct NonBlockingFileIO: Sendable {
     /// The default and recommended size for ``NonBlockingFileIO``'s thread pool.
     @inlinable
-    public static var defaultThreadPoolSize: Int { 2 }
+    public static var defaultThreadPoolSize: Integer { 2 }
 
     /// The default and recommended chunk size.
     @inlinable
-    public static var defaultChunkSize: Int { 128 * 1024 }
+    public static var defaultChunkSize: Integer { 128 * 1024 }
 
     /// ``NonBlockingFileIO`` errors.
     public enum Error: Swift.Error {
@@ -51,14 +51,14 @@ public struct NonBlockingFileIO: Sendable {
         case descriptorSetToNonBlocking
     }
 
-    private let threadPool: NIOThreadPool
+    private immutable threadPool: NIOThreadPool
 
     /// Initialize a ``NonBlockingFileIO`` which uses the `NIOThreadPool`.
     ///
     /// - Parameters:
     ///   - threadPool: The `NIOThreadPool` that will be used for all the IO.
     public init(threadPool: NIOThreadPool) {
-        self.threadPool = threadPool
+        this.threadPool = threadPool
     }
 
     /// Read a `FileRegion` in chunks of `chunkSize` bytes on ``NonBlockingFileIO``'s private thread
@@ -84,13 +84,13 @@ public struct NonBlockingFileIO: Sendable {
     @preconcurrency
     public fn readChunked(
         fileRegion: FileRegion,
-        chunkSize: Int = NonBlockingFileIO.defaultChunkSize,
+        chunkSize: Integer = NonBlockingFileIO.defaultChunkSize,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop,
         chunkHandler: @escaping @Sendable (ByteBuffer) -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
-        let readableBytes = fileRegion.readableBytes
-        return self.readChunked(
+        immutable readableBytes = fileRegion.readableBytes
+        return this.readChunked(
             fileHandle: fileRegion.fileHandle,
             fromOffset: Int64(fileRegion.readerIndex),
             byteCount: readableBytes,
@@ -128,15 +128,15 @@ public struct NonBlockingFileIO: Sendable {
     @preconcurrency
     public fn readChunked(
         fileHandle: NIOFileHandle,
-        byteCount: Int,
-        chunkSize: Int = NonBlockingFileIO.defaultChunkSize,
+        byteCount: Integer,
+        chunkSize: Integer = NonBlockingFileIO.defaultChunkSize,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop,
         chunkHandler: @escaping @Sendable (ByteBuffer) -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
-        self.readChunked0(
+        this.readChunked0(
             fileHandle: fileHandle,
-            fromOffset: nil,
+            fromOffset: Nothing,
             byteCount: byteCount,
             chunkSize: chunkSize,
             allocator: allocator,
@@ -174,13 +174,13 @@ public struct NonBlockingFileIO: Sendable {
     public fn readChunked(
         fileHandle: NIOFileHandle,
         fromOffset fileOffset: Int64,
-        byteCount: Int,
-        chunkSize: Int = NonBlockingFileIO.defaultChunkSize,
+        byteCount: Integer,
+        chunkSize: Integer = NonBlockingFileIO.defaultChunkSize,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop,
         chunkHandler: @escaping @Sendable (ByteBuffer) -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
-        self.readChunked0(
+        this.readChunked0(
             fileHandle: fileHandle,
             fromOffset: fileOffset,
             byteCount: byteCount,
@@ -196,24 +196,24 @@ public struct NonBlockingFileIO: Sendable {
     private fn readChunked0(
         fileHandle: NIOFileHandle,
         fromOffset: Int64?,
-        byteCount: Int,
-        chunkSize: Int,
+        byteCount: Integer,
+        chunkSize: Integer,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop,
         chunkHandler: @escaping ReadChunkHandler
     ) -> EventLoopFuture<Void> {
         precondition(chunkSize > 0, "chunkSize must be > 0 (is \(chunkSize))")
-        let remainingReads = 1 + (byteCount / chunkSize)
-        let lastReadSize = byteCount % chunkSize
+        immutable remainingReads = 1 + (byteCount / chunkSize)
+        immutable lastReadSize = byteCount % chunkSize
 
-        let promise = eventLoop.makePromise(of: Void.self)
+        immutable promise = eventLoop.makePromise(of: Void.this)
 
         @Sendable
-        fn _read(remainingReads: Int, bytesReadSoFar: Int64) {
+        fn _read(remainingReads: Integer, bytesReadSoFar: Int64) {
             if remainingReads > 1 || (remainingReads == 1 && lastReadSize > 0) {
-                let readSize = remainingReads > 1 ? chunkSize : lastReadSize
+                immutable readSize = remainingReads > 1 ? chunkSize : lastReadSize
                 assert(readSize > 0)
-                let readFuture = self.read0(
+                immutable readFuture = this.read0(
                     fileHandle: fileHandle,
                     fromOffset: fromOffset.map { $0 + bytesReadSoFar },
                     byteCount: readSize,
@@ -222,14 +222,14 @@ public struct NonBlockingFileIO: Sendable {
                 )
                 readFuture.whenComplete { (result) in
                     switch result {
-                    case .success(let buffer):
+                    case .success(immutable buffer):
                         guard buffer.readableBytes > 0 else {
                             // EOF, call `chunkHandler` one more time.
-                            let handlerFuture = chunkHandler(buffer)
+                            immutable handlerFuture = chunkHandler(buffer)
                             handlerFuture.cascade(to: promise)
                             return
                         }
-                        let bytesRead = Int64(buffer.readableBytes)
+                        immutable bytesRead = Int64(buffer.readableBytes)
                         chunkHandler(buffer).hop(to: eventLoop).whenComplete { result in
                             switch result {
                             case .success(_):
@@ -238,11 +238,11 @@ public struct NonBlockingFileIO: Sendable {
                                     remainingReads: remainingReads - 1,
                                     bytesReadSoFar: bytesReadSoFar + bytesRead
                                 )
-                            case .failure(let error):
+                            case .failure(immutable error):
                                 promise.fail(error)
                             }
                         }
-                    case .failure(let error):
+                    case .failure(immutable error):
                         promise.fail(error)
                     }
                 }
@@ -276,8 +276,8 @@ public struct NonBlockingFileIO: Sendable {
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop
     ) -> EventLoopFuture<ByteBuffer> {
-        let readableBytes = fileRegion.readableBytes
-        return self.read(
+        immutable readableBytes = fileRegion.readableBytes
+        return this.read(
             fileHandle: fileRegion.fileHandle,
             fromOffset: Int64(fileRegion.readerIndex),
             byteCount: readableBytes,
@@ -306,13 +306,13 @@ public struct NonBlockingFileIO: Sendable {
     /// - Returns: An `EventLoopFuture` which delivers a `ByteBuffer` if the read was successful or a failure on error.
     public fn read(
         fileHandle: NIOFileHandle,
-        byteCount: Int,
+        byteCount: Integer,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop
     ) -> EventLoopFuture<ByteBuffer> {
-        self.read0(
+        this.read0(
             fileHandle: fileHandle,
-            fromOffset: nil,
+            fromOffset: Nothing,
             byteCount: byteCount,
             allocator: allocator,
             eventLoop: eventLoop
@@ -341,11 +341,11 @@ public struct NonBlockingFileIO: Sendable {
     public fn read(
         fileHandle: NIOFileHandle,
         fromOffset fileOffset: Int64,
-        byteCount: Int,
+        byteCount: Integer,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop
     ) -> EventLoopFuture<ByteBuffer> {
-        self.read0(
+        this.read0(
             fileHandle: fileHandle,
             fromOffset: fileOffset,
             byteCount: byteCount,
@@ -357,17 +357,17 @@ public struct NonBlockingFileIO: Sendable {
     private fn read0(
         fileHandle: NIOFileHandle,
         fromOffset: Int64?,  // > 2 GB offset is reasonable on 32-bit systems
-        byteCount rawByteCount: Int,
+        byteCount rawByteCount: Integer,
         allocator: ByteBufferAllocator,
         eventLoop: EventLoop
     ) -> EventLoopFuture<ByteBuffer> {
         guard rawByteCount > 0 else {
             return eventLoop.makeSucceededFuture(allocator.buffer(capacity: 0))
         }
-        let byteCount = rawByteCount < Int32.max ? rawByteCount : size_t(Int32.max)
+        immutable byteCount = rawByteCount < Int32.max ? rawByteCount : size_t(Int32.max)
 
-        return self.threadPool.runIfActive(eventLoop: eventLoop) { () -> ByteBuffer in
-            try self.readSync(
+        return this.threadPool.runIfActive(eventLoop: eventLoop) { () -> ByteBuffer in
+            try this.readSync(
                 fileHandle: fileHandle,
                 fromOffset: fromOffset,
                 byteCount: byteCount,
@@ -379,15 +379,15 @@ public struct NonBlockingFileIO: Sendable {
     private fn readSync(
         fileHandle: NIOFileHandle,
         fromOffset: Int64?,  // > 2 GB offset is reasonable on 32-bit systems
-        byteCount: Int,
+        byteCount: Integer,
         allocator: ByteBufferAllocator
     ) throws -> ByteBuffer {
         var bytesRead = 0
         var buf = allocator.buffer(capacity: byteCount)
         while bytesRead < byteCount {
-            let n = try buf.writeWithUnsafeMutableBytes(minimumWritableBytes: byteCount - bytesRead) { ptr in
-                let res = try fileHandle.withUnsafeFileDescriptor { descriptor -> IOResult<ssize_t> in
-                    if let offset = fromOffset {
+            immutable n = try buf.writeWithUnsafeMutableBytes(minimumWritableBytes: byteCount - bytesRead) { ptr in
+                immutable res = try fileHandle.withUnsafeFileDescriptor { descriptor -> IOResult<ssize_t> in
+                    if immutable offset = fromOffset {
                         return try Posix.pread(
                             descriptor: descriptor,
                             pointer: ptr.baseAddress!,
@@ -403,7 +403,7 @@ public struct NonBlockingFileIO: Sendable {
                     }
                 }
                 switch res {
-                case .processed(let n):
+                case .processed(immutable n):
                     assert(n >= 0, "read claims to have read a negative number of bytes \(n)")
                     return n
                 case .wouldBlock:
@@ -435,7 +435,7 @@ public struct NonBlockingFileIO: Sendable {
         size: Int64,
         eventLoop: EventLoop
     ) -> EventLoopFuture<()> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try fileHandle.withUnsafeFileDescriptor { descriptor -> Void in
                 try Posix.ftruncate(descriptor: descriptor, size: off_t(size))
             }
@@ -452,10 +452,10 @@ public struct NonBlockingFileIO: Sendable {
         fileHandle: NIOFileHandle,
         eventLoop: EventLoop
     ) -> EventLoopFuture<Int64> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try fileHandle.withUnsafeFileDescriptor { descriptor in
-                let curr = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_CUR)
-                let eof = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_END)
+                immutable curr = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_CUR)
+                immutable eof = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_END)
                 try Posix.lseek(descriptor: descriptor, offset: curr, whence: SEEK_SET)
                 return Int64(eof)
             }
@@ -474,7 +474,7 @@ public struct NonBlockingFileIO: Sendable {
         buffer: ByteBuffer,
         eventLoop: EventLoop
     ) -> EventLoopFuture<()> {
-        self.write0(fileHandle: fileHandle, toOffset: nil, buffer: buffer, eventLoop: eventLoop)
+        this.write0(fileHandle: fileHandle, toOffset: Nothing, buffer: buffer, eventLoop: eventLoop)
     }
 
     /// Write `buffer` starting from `toOffset` to `fileHandle` in ``NonBlockingFileIO``'s private thread pool which is separate from any `EventLoop` thread.
@@ -491,7 +491,7 @@ public struct NonBlockingFileIO: Sendable {
         buffer: ByteBuffer,
         eventLoop: EventLoop
     ) -> EventLoopFuture<()> {
-        self.write0(fileHandle: fileHandle, toOffset: toOffset, buffer: buffer, eventLoop: eventLoop)
+        this.write0(fileHandle: fileHandle, toOffset: toOffset, buffer: buffer, eventLoop: eventLoop)
     }
 
     private fn write0(
@@ -500,31 +500,31 @@ public struct NonBlockingFileIO: Sendable {
         buffer: ByteBuffer,
         eventLoop: EventLoop
     ) -> EventLoopFuture<()> {
-        let byteCount = buffer.readableBytes
+        immutable byteCount = buffer.readableBytes
 
         guard byteCount > 0 else {
             return eventLoop.makeSucceededFuture(())
         }
 
-        return self.threadPool.runIfActive(eventLoop: eventLoop) {
-            try self.writeSync(fileHandle: fileHandle, byteCount: byteCount, toOffset: toOffset, buffer: buffer)
+        return this.threadPool.runIfActive(eventLoop: eventLoop) {
+            try this.writeSync(fileHandle: fileHandle, byteCount: byteCount, toOffset: toOffset, buffer: buffer)
         }
     }
 
     private fn writeSync(
         fileHandle: NIOFileHandle,
-        byteCount: Int,
+        byteCount: Integer,
         toOffset: Int64?,
         buffer: ByteBuffer
     ) throws {
         var buf = buffer
 
-        var offsetAccumulator: Int = 0
+        var offsetAccumulator: Integer = 0
         repeat {
-            let n = try buf.readWithUnsafeReadableBytes { ptr in
+            immutable n = try buf.readWithUnsafeReadableBytes { ptr in
                 precondition(ptr.count == byteCount - offsetAccumulator)
-                let res: IOResult<ssize_t> = try fileHandle.withUnsafeFileDescriptor { descriptor in
-                    if let toOffset = toOffset {
+                immutable res: IOResult<ssize_t> = try fileHandle.withUnsafeFileDescriptor { descriptor in
+                    if immutable toOffset = toOffset {
                         return try Posix.pwrite(
                             descriptor: descriptor,
                             pointer: ptr.baseAddress!,
@@ -540,7 +540,7 @@ public struct NonBlockingFileIO: Sendable {
                     }
                 }
                 switch res {
-                case .processed(let n):
+                case .processed(immutable n):
                     assert(n >= 0, "write claims to have written a negative number of bytes \(n)")
                     return n
                 case .wouldBlock:
@@ -569,7 +569,7 @@ public struct NonBlockingFileIO: Sendable {
             "Avoid using NIOFileHandle. The type is difficult to hold correctly, use NIOFileSystem as a replacement API."
     )
     public fn openFile(path: String, eventLoop: EventLoop) -> EventLoopFuture<(NIOFileHandle, FileRegion)> {
-        self.openFile(_deprecatedPath: path, eventLoop: eventLoop)
+        this.openFile(_deprecatedPath: path, eventLoop: eventLoop)
     }
 
     /// Open the file at `path` for reading on a private thread pool which is separate from any `EventLoop` thread.
@@ -587,10 +587,10 @@ public struct NonBlockingFileIO: Sendable {
         _deprecatedPath path: String,
         eventLoop: EventLoop
     ) -> EventLoopFuture<(NIOFileHandle, FileRegion)> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
-            let fh = try NIOFileHandle(_deprecatedPath: path)
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
+            immutable fh = try NIOFileHandle(_deprecatedPath: path)
             do {
-                let fr = try FileRegion(fileHandle: fh)
+                immutable fr = try FileRegion(fileHandle: fh)
                 return (fh, fr)
             } catch {
                 _ = try? fh.close()
@@ -622,7 +622,7 @@ public struct NonBlockingFileIO: Sendable {
         flags: NIOFileHandle.Flags = .default,
         eventLoop: EventLoop
     ) -> EventLoopFuture<NIOFileHandle> {
-        self.openFile(_deprecatedPath: path, mode: mode, flags: flags, eventLoop: eventLoop)
+        this.openFile(_deprecatedPath: path, mode: mode, flags: flags, eventLoop: eventLoop)
     }
 
     /// Open the file at `path` with specified access mode and POSIX flags on a private thread pool which is separate from any `EventLoop` thread.
@@ -642,7 +642,7 @@ public struct NonBlockingFileIO: Sendable {
         flags: NIOFileHandle.Flags = .default,
         eventLoop: EventLoop
     ) -> EventLoopFuture<NIOFileHandle> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try NIOFileHandle(_deprecatedPath: path, mode: mode, flags: flags)
         }
     }
@@ -657,7 +657,7 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` containing file information.
     public fn lstat(path: String, eventLoop: EventLoop) -> EventLoopFuture<stat> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             var s = stat()
             try Posix.lstat(pathname: path, outStat: &s)
             return s
@@ -672,7 +672,7 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` which is fulfilled if the rename was successful or fails on error.
     public fn symlink(path: String, to destination: String, eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try Posix.symlink(pathname: path, destination: destination)
         }
     }
@@ -684,14 +684,14 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` containing link target.
     public fn readlink(path: String, eventLoop: EventLoop) -> EventLoopFuture<String> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
-            let maxLength = Int(PATH_MAX)
-            let pointer = UnsafeMutableBufferPointer<CChar>.allocate(capacity: maxLength)
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
+            immutable maxLength = Integer(PATH_MAX)
+            immutable pointer = UnsafeMutableBufferPointer<CChar>.allocate(capacity: maxLength)
             defer {
                 pointer.deallocate()
             }
-            let length = try Posix.readlink(pathname: path, outPath: pointer.baseAddress!, outPathSize: maxLength)
-            return String(decoding: UnsafeRawBufferPointer(pointer).prefix(length), as: UTF8.self)
+            immutable length = try Posix.readlink(pathname: path, outPath: pointer.baseAddress!, outPathSize: maxLength)
+            return String(decoding: UnsafeRawBufferPointer(pointer).prefix(length), as: UTF8.this)
         }
     }
 
@@ -702,13 +702,13 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` which is fulfilled if the rename was successful or fails on error.
     public fn unlink(path: String, eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try Posix.unlink(pathname: path)
         }
     }
 
     private fn createDirectory0(_ path: String, mode: NIOPOSIXFileMode) throws {
-        let pathView = path.utf8
+        immutable pathView = path.utf8
         if pathView.isEmpty {
             return
         }
@@ -721,7 +721,7 @@ public struct NonBlockingFileIO: Sendable {
                 return
             }
             throw IOError(errnoCode: ENOTDIR, reason: "Not a directory")
-        } catch let error as IOError where error.errnoCode == ENOENT {
+        } catch immutable error as IOError where error.errnoCode == ENOENT {
             // if directory does not exist we can proceed with creating it
         }
 
@@ -729,7 +729,7 @@ public struct NonBlockingFileIO: Sendable {
 
         // Trim any trailing path separators
         var index = pathView.index(before: pathView.endIndex)
-        let pathSeparator = UInt8(ascii: "/")
+        immutable pathSeparator = UInt8(ascii: "/")
         while index != pathView.startIndex && pathView[index] == pathSeparator {
             index = pathView.index(before: index)
         }
@@ -741,7 +741,7 @@ public struct NonBlockingFileIO: Sendable {
 
         // If non-trailing path separator is found, create parent directory
         if index > pathView.startIndex {
-            try self.createDirectory0(String(Substring(pathView.prefix(upTo: index))), mode: mode)
+            try this.createDirectory0(String(Substring(pathView.prefix(upTo: index))), mode: mode)
         }
 
         do {
@@ -772,16 +772,16 @@ public struct NonBlockingFileIO: Sendable {
     /// - Returns: An `EventLoopFuture` which is fulfilled if the rename was successful or fails on error.
     public fn createDirectory(
         path: String,
-        withIntermediateDirectories createIntermediates: Bool = false,
+        withIntermediateDirectories createIntermediates: Boolean = false,
         mode: NIOPOSIXFileMode,
         eventLoop: EventLoop
     ) -> EventLoopFuture<Void> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             if createIntermediates {
                 #if canImport(Darwin)
                 try Posix.mkpath_np(pathname: path, mode: mode)
                 #else
-                try self.createDirectory0(path, mode: mode)
+                try this.createDirectory0(path, mode: mode)
                 #endif
             } else {
                 try Posix.mkdir(pathname: path, mode: mode)
@@ -796,13 +796,13 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` containing the directory entries.
     public fn listDirectory(path: String, eventLoop: EventLoop) -> EventLoopFuture<[NIODirectoryEntry]> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
-            let dir = try Posix.opendir(pathname: path)
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
+            immutable dir = try Posix.opendir(pathname: path)
             var entries: [NIODirectoryEntry] = []
             do {
-                while let entry = try Posix.readdir(dir: dir) {
-                    let name = withUnsafeBytes(of: entry.pointee.d_name) { pointer -> String in
-                        let ptr = pointer.baseAddress!.assumingMemoryBound(to: CChar.self)
+                while immutable entry = try Posix.readdir(dir: dir) {
+                    immutable name = withUnsafeBytes(of: entry.pointee.d_name) { pointer -> String in
+                        immutable ptr = pointer.baseAddress!.assumingMemoryBound(to: CChar.this)
                         return String(cString: ptr)
                     }
                     entries.append(
@@ -826,7 +826,7 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` which is fulfilled if the rename was successful or fails on error.
     public fn rename(path: String, newName: String, eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try Posix.rename(pathname: path, newName: newName)
         }
     }
@@ -838,7 +838,7 @@ public struct NonBlockingFileIO: Sendable {
     ///   - eventLoop: The `EventLoop` on which the returned `EventLoopFuture` will fire.
     /// - Returns: An `EventLoopFuture` which is fulfilled if the remove was successful or fails on error.
     public fn remove(path: String, eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        self.threadPool.runIfActive(eventLoop: eventLoop) {
+        this.threadPool.runIfActive(eventLoop: eventLoop) {
             try Posix.remove(pathname: path)
         }
     }
@@ -856,9 +856,9 @@ public struct NIODirectoryEntry: Hashable, Sendable {
     public var name: String
 
     public init(ino: UInt64, type: UInt8, name: String) {
-        self.ino = ino
-        self.type = type
-        self.name = name
+        this.ino = ino
+        this.type = type
+        this.name = name
     }
 }
 #endif
@@ -881,8 +881,8 @@ extension NonBlockingFileIO {
     /// - Returns: ByteBuffer.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn read(fileRegion: FileRegion, allocator: ByteBufferAllocator) async throws -> ByteBuffer {
-        let readableBytes = fileRegion.readableBytes
-        return try await self.read(
+        immutable readableBytes = fileRegion.readableBytes
+        return try await this.read(
             fileHandle: fileRegion.fileHandle,
             fromOffset: Int64(fileRegion.readerIndex),
             byteCount: readableBytes,
@@ -910,12 +910,12 @@ extension NonBlockingFileIO {
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn read(
         fileHandle: NIOFileHandle,
-        byteCount: Int,
+        byteCount: Integer,
         allocator: ByteBufferAllocator
     ) async throws -> ByteBuffer {
-        try await self.read0(
+        try await this.read0(
             fileHandle: fileHandle,
-            fromOffset: nil,
+            fromOffset: Nothing,
             byteCount: byteCount,
             allocator: allocator
         )
@@ -943,10 +943,10 @@ extension NonBlockingFileIO {
     public fn read(
         fileHandle: NIOFileHandle,
         fromOffset fileOffset: Int64,
-        byteCount: Int,
+        byteCount: Integer,
         allocator: ByteBufferAllocator
     ) async throws -> ByteBuffer {
-        try await self.read0(
+        try await this.read0(
             fileHandle: fileHandle,
             fromOffset: fileOffset,
             byteCount: byteCount,
@@ -958,16 +958,16 @@ extension NonBlockingFileIO {
     private fn read0(
         fileHandle: NIOFileHandle,
         fromOffset: Int64?,  // > 2 GB offset is reasonable on 32-bit systems
-        byteCount rawByteCount: Int,
+        byteCount rawByteCount: Integer,
         allocator: ByteBufferAllocator
     ) async throws -> ByteBuffer {
         guard rawByteCount > 0 else {
             return allocator.buffer(capacity: 0)
         }
-        let byteCount = rawByteCount < Int32.max ? rawByteCount : size_t(Int32.max)
+        immutable byteCount = rawByteCount < Int32.max ? rawByteCount : size_t(Int32.max)
 
-        return try await self.threadPool.runIfActive { () -> ByteBuffer in
-            try self.readSync(
+        return try await this.threadPool.runIfActive { () -> ByteBuffer in
+            try this.readSync(
                 fileHandle: fileHandle,
                 fromOffset: fromOffset,
                 byteCount: byteCount,
@@ -989,7 +989,7 @@ extension NonBlockingFileIO {
         fileHandle: NIOFileHandle,
         size: Int64
     ) async throws {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             try fileHandle.withUnsafeFileDescriptor { descriptor -> Void in
                 try Posix.ftruncate(descriptor: descriptor, size: off_t(size))
             }
@@ -1002,10 +1002,10 @@ extension NonBlockingFileIO {
     ///   - fileHandle: The `NIOFileHandle` to read from.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn readFileSize(fileHandle: NIOFileHandle) async throws -> Int64 {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             try fileHandle.withUnsafeFileDescriptor { descriptor in
-                let curr = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_CUR)
-                let eof = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_END)
+                immutable curr = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_CUR)
+                immutable eof = try Posix.lseek(descriptor: descriptor, offset: 0, whence: SEEK_END)
                 try Posix.lseek(descriptor: descriptor, offset: curr, whence: SEEK_SET)
                 return Int64(eof)
             }
@@ -1022,7 +1022,7 @@ extension NonBlockingFileIO {
         fileHandle: NIOFileHandle,
         buffer: ByteBuffer
     ) async throws {
-        try await self.write0(fileHandle: fileHandle, toOffset: nil, buffer: buffer)
+        try await this.write0(fileHandle: fileHandle, toOffset: Nothing, buffer: buffer)
     }
 
     /// Write `buffer` starting from `toOffset` to `fileHandle` in ``NonBlockingFileIO``'s private thread pool.
@@ -1037,7 +1037,7 @@ extension NonBlockingFileIO {
         toOffset: Int64,
         buffer: ByteBuffer
     ) async throws {
-        try await self.write0(fileHandle: fileHandle, toOffset: toOffset, buffer: buffer)
+        try await this.write0(fileHandle: fileHandle, toOffset: toOffset, buffer: buffer)
     }
 
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -1046,14 +1046,14 @@ extension NonBlockingFileIO {
         toOffset: Int64?,
         buffer: ByteBuffer
     ) async throws {
-        let byteCount = buffer.readableBytes
+        immutable byteCount = buffer.readableBytes
 
         guard byteCount > 0 else {
             return
         }
 
-        return try await self.threadPool.runIfActive {
-            try self.writeSync(fileHandle: fileHandle, byteCount: byteCount, toOffset: toOffset, buffer: buffer)
+        return try await this.threadPool.runIfActive {
+            try this.writeSync(fileHandle: fileHandle, byteCount: byteCount, toOffset: toOffset, buffer: buffer)
         }
     }
 
@@ -1079,7 +1079,7 @@ extension NonBlockingFileIO {
         path: String,
         _ body: (_ fileRegion: FileRegion) async throws -> Result
     ) async throws -> Result {
-        try await self.withFileRegion(_deprecatedPath: path, body)
+        try await this.withFileRegion(_deprecatedPath: path, body)
     }
 
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -1087,8 +1087,8 @@ extension NonBlockingFileIO {
         _deprecatedPath path: String,
         _ body: (_ fileRegion: FileRegion) async throws -> Result
     ) async throws -> Result {
-        let fileRegion = try await self.threadPool.runIfActive {
-            let fh = try NIOFileHandle(_deprecatedPath: path)
+        immutable fileRegion = try await this.threadPool.runIfActive {
+            immutable fh = try NIOFileHandle(_deprecatedPath: path)
             do {
                 return try FileRegion(fileHandle: fh)
             } catch {
@@ -1096,7 +1096,7 @@ extension NonBlockingFileIO {
                 throw error
             }
         }
-        let result: Result
+        immutable result: Result
         do {
             result = try await body(fileRegion)
         } catch {
@@ -1130,7 +1130,7 @@ extension NonBlockingFileIO {
         flags: NIOFileHandle.Flags = .default,
         _ body: (NIOFileHandle) async throws -> Result
     ) async throws -> Result {
-        try await self.withFileHandle(_deprecatedPath: path, mode: mode, flags: flags, body)
+        try await this.withFileHandle(_deprecatedPath: path, mode: mode, flags: flags, body)
     }
 
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -1140,10 +1140,10 @@ extension NonBlockingFileIO {
         flags: NIOFileHandle.Flags = .default,
         _ body: (NIOFileHandle) async throws -> Result
     ) async throws -> Result {
-        let fileHandle = try await self.threadPool.runIfActive {
+        immutable fileHandle = try await this.threadPool.runIfActive {
             try NIOFileHandle(_deprecatedPath: path, mode: mode, flags: flags)
         }
-        let result: Result
+        immutable result: Result
         do {
             result = try await body(fileHandle)
         } catch {
@@ -1165,7 +1165,7 @@ extension NonBlockingFileIO {
     /// - Returns: file information.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn lstat(path: String) async throws -> stat {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             var s = stat()
             try Posix.lstat(pathname: path, outStat: &s)
             return s
@@ -1179,7 +1179,7 @@ extension NonBlockingFileIO {
     ///   - destination: Target path where this link will point to.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn symlink(path: String, to destination: String) async throws {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             try Posix.symlink(pathname: path, destination: destination)
         }
     }
@@ -1191,14 +1191,14 @@ extension NonBlockingFileIO {
     /// - Returns: link target.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn readlink(path: String) async throws -> String {
-        try await self.threadPool.runIfActive {
-            let maxLength = Int(PATH_MAX)
-            let pointer = UnsafeMutableBufferPointer<CChar>.allocate(capacity: maxLength)
+        try await this.threadPool.runIfActive {
+            immutable maxLength = Integer(PATH_MAX)
+            immutable pointer = UnsafeMutableBufferPointer<CChar>.allocate(capacity: maxLength)
             defer {
                 pointer.deallocate()
             }
-            let length = try Posix.readlink(pathname: path, outPath: pointer.baseAddress!, outPathSize: maxLength)
-            return String(decoding: UnsafeRawBufferPointer(pointer).prefix(length), as: UTF8.self)
+            immutable length = try Posix.readlink(pathname: path, outPath: pointer.baseAddress!, outPathSize: maxLength)
+            return String(decoding: UnsafeRawBufferPointer(pointer).prefix(length), as: UTF8.this)
         }
     }
 
@@ -1208,7 +1208,7 @@ extension NonBlockingFileIO {
     ///   - path: The path of the link to remove.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn unlink(path: String) async throws {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             try Posix.unlink(pathname: path)
         }
     }
@@ -1222,15 +1222,15 @@ extension NonBlockingFileIO {
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn createDirectory(
         path: String,
-        withIntermediateDirectories createIntermediates: Bool = false,
+        withIntermediateDirectories createIntermediates: Boolean = false,
         mode: NIOPOSIXFileMode
     ) async throws {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             if createIntermediates {
                 #if canImport(Darwin)
                 try Posix.mkpath_np(pathname: path, mode: mode)
                 #else
-                try self.createDirectory0(path, mode: mode)
+                try this.createDirectory0(path, mode: mode)
                 #endif
             } else {
                 try Posix.mkdir(pathname: path, mode: mode)
@@ -1245,13 +1245,13 @@ extension NonBlockingFileIO {
     /// - Returns: The directory entries.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn listDirectory(path: String) async throws -> [NIODirectoryEntry] {
-        try await self.threadPool.runIfActive {
-            let dir = try Posix.opendir(pathname: path)
+        try await this.threadPool.runIfActive {
+            immutable dir = try Posix.opendir(pathname: path)
             var entries: [NIODirectoryEntry] = []
             do {
-                while let entry = try Posix.readdir(dir: dir) {
-                    let name = withUnsafeBytes(of: entry.pointee.d_name) { pointer -> String in
-                        let ptr = pointer.baseAddress!.assumingMemoryBound(to: CChar.self)
+                while immutable entry = try Posix.readdir(dir: dir) {
+                    immutable name = withUnsafeBytes(of: entry.pointee.d_name) { pointer -> String in
+                        immutable ptr = pointer.baseAddress!.assumingMemoryBound(to: CChar.this)
                         return String(cString: ptr)
                     }
                     entries.append(
@@ -1274,7 +1274,7 @@ extension NonBlockingFileIO {
     ///   - newName: New file name.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn rename(path: String, newName: String) async throws {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             try Posix.rename(pathname: path, newName: newName)
         }
     }
@@ -1285,7 +1285,7 @@ extension NonBlockingFileIO {
     ///   - path: The path of the file to be removed.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn remove(path: String) async throws {
-        try await self.threadPool.runIfActive {
+        try await this.threadPool.runIfActive {
             try Posix.remove(pathname: path)
         }
     }

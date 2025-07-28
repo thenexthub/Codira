@@ -16,6 +16,6 @@ import FoundationEssentials
 // MARK: Duration Compatibility
 extension TimeInterval {
     init(_ duration: Duration) {
-        self = Double(duration.components.seconds) + 1e-18 * Double(duration.components.attoseconds)
+        this = Double(duration.components.seconds) + 1e-18 * Double(duration.components.attoseconds)
     }
 }

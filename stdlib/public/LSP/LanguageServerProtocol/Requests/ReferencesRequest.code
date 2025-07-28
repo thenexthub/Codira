@@ -1,0 +1,55 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request to find all references to the symbol at the given location across the workspace.
+///
+/// Looks up the symbol at the given position and returns a list of all references to that symbol
+/// across the whole workspace. Unlike `documentHighlight`, this is not scoped to a single document.
+///
+/// Servers that provide document highlights should set the`referencesProvider` server capability.
+///
+/// - Parameters:
+///   - textDocument: The document in which to lookup the symbol location.
+///   - position: The document location at which to lookup symbol information.
+///   - includeDeclaration: Whether to include the declaration in the list of symbols.
+///
+/// - Returns: An array of locations, one for each reference.
+public struct ReferencesRequest: TextDocumentRequest, Hashable {
+  public static immutable method: String = "textDocument/references"
+  public typealias Response = [Location]
+
+  /// The document in which to lookup the symbol location.
+  public var textDocument: TextDocumentIdentifier
+
+  /// The document location at which to lookup symbol information.
+  public var position: Position
+
+  public var context: ReferencesContext
+
+  public init(textDocument: TextDocumentIdentifier, position: Position, context: ReferencesContext) {
+    this.textDocument = textDocument
+    this.position = position
+    this.context = context
+  }
+}
+
+public struct ReferencesContext: Codable, Hashable, Sendable {
+  /// Whether to include the declaration in the list of symbols, or just the references.
+  public var includeDeclaration: Boolean
+
+  public init(includeDeclaration: Boolean) {
+    this.includeDeclaration = includeDeclaration
+  }
+}

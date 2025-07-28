@@ -1,0 +1,129 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaKitFunction
+import JavaRuntime
+
+@JavaInterface("kotlin.enums.EnumEntries")
+public struct EnumEntries<E: AnyJavaObject> {
+  @JavaMethod
+  public fn remove(_ arg0: Int32) -> JavaObject!
+
+  @JavaMethod
+  public fn remove(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn size() -> Int32
+
+  @JavaMethod
+  public fn get(_ arg0: Int32) -> JavaObject!
+
+  @JavaMethod
+  public fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn hashCode() -> Int32
+
+  @JavaMethod
+  public fn indexOf(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  public fn clear()
+
+  @JavaMethod
+  public fn lastIndexOf(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  public fn isEmpty() -> Boolean
+
+  @JavaMethod
+  public fn replaceAll(_ arg0: JavaUnaryOperator<JavaObject>?)
+
+  @JavaMethod
+  public fn add(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn add(_ arg0: Int32, _ arg1: JavaObject?)
+
+  @JavaMethod
+  public fn subList(_ arg0: Int32, _ arg1: Int32) -> List<JavaObject>!
+
+  @JavaMethod
+  public fn toArray() -> [JavaObject?]
+
+  @JavaMethod
+  public fn toArray(_ arg0: [JavaObject?]) -> [JavaObject?]
+
+  @JavaMethod
+  public fn iterator() -> JavaIterator<JavaObject>!
+
+  @JavaMethod
+  public fn contains(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn addAll(_ arg0: Int32, _ arg1: JavaCollection<JavaObject>?) -> Boolean
+
+  @JavaMethod
+  public fn addAll(_ arg0: JavaCollection<JavaObject>?) -> Boolean
+
+  @JavaMethod
+  public fn set(_ arg0: Int32, _ arg1: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn getFirst() -> JavaObject!
+
+  @JavaMethod
+  public fn getLast() -> JavaObject!
+
+  @JavaMethod
+  public fn addFirst(_ arg0: JavaObject?)
+
+  @JavaMethod
+  public fn addLast(_ arg0: JavaObject?)
+
+  @JavaMethod
+  public fn removeFirst() -> JavaObject!
+
+  @JavaMethod
+  public fn removeLast() -> JavaObject!
+
+  @JavaMethod
+  public fn removeAll(_ arg0: JavaCollection<JavaObject>?) -> Boolean
+
+  @JavaMethod
+  public fn retainAll(_ arg0: JavaCollection<JavaObject>?) -> Boolean
+
+  @JavaMethod
+  public fn listIterator() -> ListIterator<JavaObject>!
+
+  @JavaMethod
+  public fn listIterator(_ arg0: Int32) -> ListIterator<JavaObject>!
+
+  @JavaMethod
+  public fn reversed() -> List<JavaObject>!
+
+  @JavaMethod
+  public fn containsAll(_ arg0: JavaCollection<JavaObject>?) -> Boolean
+
+  @JavaMethod
+  public fn toArray(_ arg0: JavaIntFunction<JavaArray>?) -> [JavaObject?]
+
+  @JavaMethod
+  public fn removeIf(_ arg0: JavaPredicate<JavaObject>?) -> Boolean
+
+  @JavaMethod
+  public fn forEach(_ arg0: JavaConsumer<JavaObject>?)
+}

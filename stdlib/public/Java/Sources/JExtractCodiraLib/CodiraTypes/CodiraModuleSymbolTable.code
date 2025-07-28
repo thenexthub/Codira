@@ -17,7 +17,7 @@ import SwiftSyntaxBuilder
 
 struct SwiftModuleSymbolTable: SwiftSymbolTableProtocol {
   /// The name of this module.
-  let moduleName: String
+  immutable moduleName: String
 
   /// The top-level nominal types, found by name.
   var topLevelTypes: [String: SwiftNominalTypeDeclaration] = [:]

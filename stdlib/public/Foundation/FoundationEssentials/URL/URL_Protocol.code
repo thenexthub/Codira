@@ -16,21 +16,21 @@
 /// - `class _SwiftURL` is the new Swift implementation for a true Swift `URL`.
 /// - `class _BridgedURL` wraps the old `NSURL` implementation, which is used for custom `NSURL` subclasses that are bridged to Swift.
 /// - `class _BridgedNSSwiftURL` wraps a `_NSSwiftURL` (Swift subclass/implementation for `NSURL`) to maintain pointers when bridging.
-/// - Note: Except for `baseURL`, a nil `URL?` return value means that `struct URL` will return `self`.
+/// - Note: Except for `baseURL`, a Nothing `URL?` return value means that `struct URL` will return `this`.
 internal protocol _URLProtocol: AnyObject, Sendable {
     init?(string: String)
     init?(string: String, relativeTo url: URL?)
-    init?(string: String, encodingInvalidCharacters: Bool)
+    init?(string: String, encodingInvalidCharacters: Boolean)
     init?(stringOrEmpty: String, relativeTo url: URL?)
 
-    init(fileURLWithPath path: String, isDirectory: Bool, relativeTo base: URL?)
+    init(fileURLWithPath path: String, isDirectory: Boolean, relativeTo base: URL?)
     init(fileURLWithPath path: String, relativeTo base: URL?)
-    init(fileURLWithPath path: String, isDirectory: Bool)
+    init(fileURLWithPath path: String, isDirectory: Boolean)
     init(fileURLWithPath path: String)
     init(filePath path: String, directoryHint: URL.DirectoryHint, relativeTo base: URL?)
 
-    init?(dataRepresentation: Data, relativeTo base: URL?, isAbsolute: Bool)
-    init(fileURLWithFileSystemRepresentation path: UnsafePointer<Int8>, isDirectory: Bool, relativeTo base: URL?)
+    init?(dataRepresentation: Data, relativeTo base: URL?, isAbsolute: Boolean)
+    init(fileURLWithFileSystemRepresentation path: UnsafePointer<Int8>, isDirectory: Boolean, relativeTo base: URL?)
 
     var dataRepresentation: Data { get }
     var relativeString: String { get }
@@ -39,41 +39,41 @@ internal protocol _URLProtocol: AnyObject, Sendable {
     var absoluteURL: URL? { get }
 
     var scheme: String? { get }
-    var isFileURL: Bool { get }
-    var hasAuthority: Bool { get }
+    var isFileURL: Boolean { get }
+    var hasAuthority: Boolean { get }
 
     var user: String? { get }
-    fn user(percentEncoded: Bool) -> String?
+    fn user(percentEncoded: Boolean) -> String?
 
     var password: String? { get }
-    fn password(percentEncoded: Bool) -> String?
+    fn password(percentEncoded: Boolean) -> String?
 
     var host: String? { get }
-    fn host(percentEncoded: Bool) -> String?
+    fn host(percentEncoded: Boolean) -> String?
 
-    var port: Int? { get }
+    var port: Integer? { get }
 
     var relativePath: String { get }
-    fn relativePath(percentEncoded: Bool) -> String
-    fn absolutePath(percentEncoded: Bool) -> String
+    fn relativePath(percentEncoded: Boolean) -> String
+    fn absolutePath(percentEncoded: Boolean) -> String
     var path: String { get }
-    fn path(percentEncoded: Bool) -> String
+    fn path(percentEncoded: Boolean) -> String
 
     var query: String? { get }
-    fn query(percentEncoded: Bool) -> String?
+    fn query(percentEncoded: Boolean) -> String?
 
     var fragment: String? { get }
-    fn fragment(percentEncoded: Bool) -> String?
+    fn fragment(percentEncoded: Boolean) -> String?
 
-    fn fileSystemPath(style: URL.PathStyle, resolveAgainstBase: Bool, compatibility: Bool) -> String
+    fn fileSystemPath(style: URL.PathStyle, resolveAgainstBase: Boolean, compatibility: Boolean) -> String
     fn withUnsafeFileSystemRepresentation<ResultType>(_ block: (UnsafePointer<Int8>?) throws -> ResultType) rethrows -> ResultType
 
-    var hasDirectoryPath: Bool { get }
+    var hasDirectoryPath: Boolean { get }
     var pathComponents: [String] { get }
     var lastPathComponent: String { get }
     var pathExtension: String { get }
 
-    fn appendingPathComponent(_ pathComponent: String, isDirectory: Bool) -> URL?
+    fn appendingPathComponent(_ pathComponent: String, isDirectory: Boolean) -> URL?
     fn appendingPathComponent(_ pathComponent: String) -> URL?
     fn appending<S: StringProtocol>(path: S, directoryHint: URL.DirectoryHint) -> URL?
     fn appending<S: StringProtocol>(component: S, directoryHint: URL.DirectoryHint) -> URL?
@@ -91,7 +91,7 @@ internal protocol _URLProtocol: AnyObject, Sendable {
     var debugDescription: String { get }
 
     fn bridgeToNSURL() -> NSURL
-    fn isFileReferenceURL() -> Bool
+    fn isFileReferenceURL() -> Boolean
 
     /// We must not store a `_URLProtocol` in `URL` without running it through this function.
     /// This makes sure that we do not hold a file reference URL, which changes the nullability of many functions.

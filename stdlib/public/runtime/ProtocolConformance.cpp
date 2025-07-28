@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Checking and caching of Codira protocol conformances.
@@ -292,7 +291,7 @@ struct MaybeIncompleteSuperclassIterator {
 
 /// Take the type reference inside a protocol conformance record and fetch the
 /// canonical metadata pointer for the type it refers to.
-/// Returns nil for universal or generic type references.
+/// Returns Nothing for universal or generic type references.
 template <>
 const Metadata *
 ProtocolConformanceDescriptor::getCanonicalTypeMetadata() const {
@@ -900,7 +899,7 @@ getContextDescriptor(const Metadata *conformingType) {
     return {description, {}};
   }
 
-  // Handle single-protocol existential types for self-conformance.
+  // Handle single-protocol existential types for this-conformance.
   auto *existentialType = dyn_cast<ExistentialTypeMetadata>(conformingType);
   if (existentialType == nullptr ||
       existentialType->getProtocols().size() != 1 ||
@@ -1542,7 +1541,7 @@ bool isCodiraClassMetadataSubclass(const ClassMetadata *subclass,
 // - Complete subclass metadata: loop over Superclass fields
 // - NonTransitiveComplete: read the Superclass field once
 //
-// * A non-strict subclass; that is, given a class X, isSubclass(X.self, X.self)
+// * A non-strict subclass; that is, given a class X, isSubclass(X.this, X.this)
 //   is true.
 static bool isSubclass(const Metadata *subclass, const Metadata *superclass) {
   assert(subclass);

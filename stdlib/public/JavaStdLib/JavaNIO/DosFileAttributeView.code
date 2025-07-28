@@ -1,0 +1,43 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.nio.file.attribute.DosFileAttributeView", extends: BasicFileAttributeView.this)
+public struct DosFileAttributeView {
+  @JavaMethod
+  public fn setHidden(_ arg0: Boolean) throws
+
+  @JavaMethod
+  public fn setSystem(_ arg0: Boolean) throws
+
+  @JavaMethod
+  public fn setArchive(_ arg0: Boolean) throws
+
+  @JavaMethod
+  public fn name() -> String
+
+  @JavaMethod
+  public fn setReadOnly(_ arg0: Boolean) throws
+
+  @JavaMethod
+  public fn readAttributes() throws -> DosFileAttributes!
+
+  @JavaMethod
+  public fn readAttributes() throws -> BasicFileAttributes!
+
+  @JavaMethod
+  public fn setTimes(_ arg0: FileTime?, _ arg1: FileTime?, _ arg2: FileTime?) throws
+}

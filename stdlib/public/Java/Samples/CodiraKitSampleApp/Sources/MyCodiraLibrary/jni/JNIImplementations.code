@@ -16,7 +16,7 @@
 import JavaKit
 import JavaRuntime
 
-@JavaClass("com.example.swift.HelloJava2Swift")
+@JavaClass("com.example.code.HelloJava2Swift")
 open class HelloJava2Swift: JavaObject {
 }
 
@@ -33,7 +33,7 @@ protocol HelloJava2SwiftNativeMethods {
   fn jniGetInt() -> Int32
 }
 
-@JavaImplementation("com.example.swift.HelloJava2Swift")
+@JavaImplementation("com.example.code.HelloJava2Swift")
 extension HelloJava2Swift: HelloJava2SwiftNativeMethods {
   @JavaMethod
   fn jniWriteString(_ message: String) -> Int32 {

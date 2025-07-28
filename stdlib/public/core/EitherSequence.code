@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // Not public stdlib API, currently used in Mirror.children implementation.
@@ -27,7 +26,7 @@ extension _Either {
 }
 
 extension _Either: Equatable where Left: Equatable, Right: Equatable {
-  internal static fn == (lhs: Self, rhs: Self) -> Bool {
+  internal static fn == (lhs: Self, rhs: Self) -> Boolean {
     switch (lhs, rhs) {
     case immutable (.left(l), .left(r)): return l == r
     case immutable (.right(l), .right(r)): return l == r
@@ -37,7 +36,7 @@ extension _Either: Equatable where Left: Equatable, Right: Equatable {
 }
 
 extension _Either: Comparable where Left: Comparable, Right: Comparable {
-  internal static fn < (lhs: Self, rhs: Self) -> Bool {
+  internal static fn < (lhs: Self, rhs: Self) -> Boolean {
     switch (lhs, rhs) {
     case immutable (.left(l), .left(r)): return l < r
     case immutable (.right(l), .right(r)): return l < r
@@ -82,9 +81,9 @@ extension _EitherSequence: Sequence {
   internal fn makeIterator() -> Iterator {
     switch this {
     case immutable .left(l):
-      return Iterator(left: l.makeIterator(), right: nil)
+      return Iterator(left: l.makeIterator(), right: Nothing)
     case immutable .right(r):
-      return Iterator(left: nil, right: r.makeIterator())
+      return Iterator(left: Nothing, right: r.makeIterator())
     }
   }
 }
@@ -128,7 +127,7 @@ extension _EitherCollection: Collection {
 
   internal fn index(
     _ i: Index,
-    offsetBy distance: Int,
+    offsetBy distance: Integer,
     limitedBy limit: Index
   ) -> Index? {
     switch (this,i,limit) {
@@ -140,7 +139,7 @@ extension _EitherCollection: Collection {
     }
   }
 
-  internal fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  internal fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     switch (this,i) {
     case immutable (.left(s),.left(i)): return .left(s.index(i, offsetBy: distance))
     case immutable (.right(s),.right(i)): return .right(s.index(i, offsetBy: distance))
@@ -148,7 +147,7 @@ extension _EitherCollection: Collection {
     }
   }
 
-  internal fn distance(from start: Index, to end: Index) -> Int {
+  internal fn distance(from start: Index, to end: Index) -> Integer {
     switch (this,start,end) {
     case immutable (.left(s),.left(i),.left(j)):
       return s.distance(from: i, to: j)

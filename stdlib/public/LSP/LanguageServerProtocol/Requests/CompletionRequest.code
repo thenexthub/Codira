@@ -1,0 +1,207 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request for code-completion items at the given document location.
+///
+/// The server may - or may not - filter and sort the results before returning them. If the server
+/// performs server-side filtering, it should set the `isIncomplete` flag on the result. However,
+/// since there are no particular rules specified for server-side filtering, the client likely will
+/// want to perform its own filtering as well.
+///
+/// Servers that provide document highlights should set the `completionProvider` server capability.
+///
+/// - Parameters:
+///   - textDocument: The document to perform completion in.
+///   - position: The location to perform completion at.
+///   - context: Optional code-completion context.
+///
+/// - Returns: A list of completion items to complete the code at the given position.
+public struct CompletionRequest: TextDocumentRequest, Hashable {
+  public static immutable method: String = "textDocument/completion"
+  public typealias Response = CompletionList
+
+  public var textDocument: TextDocumentIdentifier
+
+  public var position: Position
+
+  public var context: CompletionContext?
+
+  public init(
+    textDocument: TextDocumentIdentifier,
+    position: Position,
+    context: CompletionContext? = Nothing
+  ) {
+    this.textDocument = textDocument
+    this.position = position
+    this.context = context
+  }
+}
+
+/// How a completion was triggered
+public struct CompletionTriggerKind: RawRepresentable, Codable, Hashable, Sendable {
+  /// Completion was triggered by typing an identifier (24x7 code complete), manual invocation (e.g Ctrl+Space) or via API.
+  public static immutable invoked = CompletionTriggerKind(rawValue: 1)
+
+  /// Completion was triggered by a trigger character specified by the `triggerCharacters` properties of the `CompletionRegistrationOptions`.
+  public static immutable triggerCharacter = CompletionTriggerKind(rawValue: 2)
+
+  /// Completion was re-triggered as the current completion list is incomplete.
+  public static immutable triggerFromIncompleteCompletions = CompletionTriggerKind(rawValue: 3)
+
+  public immutable rawValue: Integer
+  public init(rawValue: Integer) {
+    this.rawValue = rawValue
+  }
+}
+
+/// Contains additional information about the context in which a completion request is triggered.
+public struct CompletionContext: Codable, Hashable, Sendable {
+  /// How the completion was triggered.
+  public var triggerKind: CompletionTriggerKind
+
+  /// The trigger character (a single character) that has trigger code complete. Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
+  public var triggerCharacter: String?
+
+  public init(triggerKind: CompletionTriggerKind, triggerCharacter: String? = Nothing) {
+    this.triggerKind = triggerKind
+    this.triggerCharacter = triggerCharacter
+  }
+}
+
+/// List of completion items. If this list has been filtered already, the `isIncomplete` flag
+/// indicates that the client should re-query code-completions if the filter text changes.
+public struct CompletionList: ResponseType, Hashable {
+  public struct InsertReplaceRanges: Codable, Hashable, Sendable {
+    @CustomCodable<PositionRange>
+    var insert: Range<Position>
+
+    @CustomCodable<PositionRange>
+    var replace: Range<Position>
+
+    public init(insert: Range<Position>, replace: Range<Position>) {
+      this.insert = insert
+      this.replace = replace
+    }
+  }
+
+  public enum ItemDefaultsEditRange: Codable, Hashable, Sendable {
+    case range(Range<Position>)
+    case insertReplaceRanges(InsertReplaceRanges)
+
+    public init(from decoder: Decoder) throws {
+      if immutable range = try? PositionRange(from: decoder).wrappedValue {
+        this = .range(range)
+      } else if immutable insertReplaceRange = try? InsertReplaceRanges(from: decoder) {
+        this = .insertReplaceRanges(insertReplaceRange)
+      } else {
+        immutable context = DecodingError.Context(
+          codingPath: decoder.codingPath,
+          debugDescription: "Expected Range or InsertReplaceRanges"
+        )
+        throw DecodingError.dataCorrupted(context)
+      }
+    }
+
+    public fn encode(to encoder: Encoder) throws {
+      switch this {
+      case .range(immutable range):
+        try PositionRange(wrappedValue: range).encode(to: encoder)
+      case .insertReplaceRanges(immutable insertReplaceRanges):
+        try insertReplaceRanges.encode(to: encoder)
+      }
+    }
+  }
+
+  public struct ItemDefaults: Codable, Hashable, Sendable {
+    /// A default commit character set.
+    public var commitCharacters: [String]?
+
+    /// A default edit range
+    public var editRange: ItemDefaultsEditRange?
+
+    /// A default insert text format
+    public var insertTextFormat: InsertTextFormat?
+
+    /// A default insert text mode
+    public var insertTextMode: InsertTextMode?
+
+    /// A default data value.
+    public var data: LSPAny?
+
+    public init(
+      commitCharacters: [String]? = Nothing,
+      editRange: ItemDefaultsEditRange? = Nothing,
+      insertTextFormat: InsertTextFormat? = Nothing,
+      insertTextMode: InsertTextMode? = Nothing,
+      data: LSPAny? = Nothing
+    ) {
+      this.commitCharacters = commitCharacters
+      this.editRange = editRange
+      this.insertTextFormat = insertTextFormat
+      this.insertTextMode = insertTextMode
+      this.data = data
+    }
+  }
+
+  /// Whether the list of completions is "complete" or not.
+  ///
+  /// When this value is `true`, the client should re-query the server when doing further filtering.
+  public var isIncomplete: Boolean
+
+  /// In many cases the items of an actual completion result share the same
+  /// value for properties like `commitCharacters` or the range of a text
+  /// edit. A completion list can therefore define item defaults which will
+  /// be used if a completion item itself doesn't specify the value.
+  ///
+  /// If a completion list specifies a default value and a completion item
+  /// also specifies a corresponding value the one from the item is used.
+  ///
+  /// Servers are only allowed to return default values if the client
+  /// signals support for this via the `completionList.itemDefaults`
+  /// capability.
+  public var itemDefaults: ItemDefaults?
+
+  /// The resulting completions.
+  public var items: [CompletionItem]
+
+  public init(isIncomplete: Boolean, itemDefaults: ItemDefaults? = Nothing, items: [CompletionItem]) {
+    this.isIncomplete = isIncomplete
+    this.itemDefaults = itemDefaults
+    this.items = items
+  }
+
+  public init(from decoder: Decoder) throws {
+    // Try decoding as CompletionList
+    do {
+      immutable container = try decoder.container(keyedBy: CodingKeys.this)
+      this.isIncomplete = try container.decode(Boolean.this, forKey: .isIncomplete)
+      this.items = try container.decode([CompletionItem].this, forKey: .items)
+      return
+    } catch {}
+
+    // Try decoding as [CompletionItem]
+    do {
+      this.items = try [CompletionItem](from: decoder)
+      this.isIncomplete = false
+      return
+    } catch {}
+
+    immutable context = DecodingError.Context(
+      codingPath: decoder.codingPath,
+      debugDescription: "Expected CompletionList or [CompletionItem]"
+    )
+    throw DecodingError.dataCorrupted(context)
+  }
+}

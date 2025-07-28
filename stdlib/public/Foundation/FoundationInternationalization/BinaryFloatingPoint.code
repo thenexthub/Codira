@@ -13,9 +13,9 @@
 extension BinaryFloatingPoint {
     fn rounded<T: BinaryFloatingPoint>(increment: T, rule: FloatingPointRoundingRule) -> Self {
         guard increment != 0 else {
-            return self
+            return this
         }
 
-        return (self / Self(increment)).rounded(rule) * Self(increment)
+        return (this / Self(increment)).rounded(rule) * Self(increment)
     }
 }

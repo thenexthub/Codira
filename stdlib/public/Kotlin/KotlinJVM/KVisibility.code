@@ -1,0 +1,99 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaLang
+import JavaRuntime
+
+@JavaClass("kotlin.reflect.KVisibility")
+open class KVisibility: Enum {
+  public enum KVisibilityCases: Equatable {
+    case PUBLIC
+    case PROTECTED
+    case INTERNAL
+    case PRIVATE
+  }
+
+  public var enumValue: KVisibilityCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.PUBLIC?.as(JavaObject.this)) {
+      return KVisibilityCases.PUBLIC
+    } else if this.equals(classObj.PROTECTED?.as(JavaObject.this)) {
+      return KVisibilityCases.PROTECTED
+    } else if this.equals(classObj.INTERNAL?.as(JavaObject.this)) {
+      return KVisibilityCases.INTERNAL
+    } else if this.equals(classObj.PRIVATE?.as(JavaObject.this)) {
+      return KVisibilityCases.PRIVATE
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: KVisibilityCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<KVisibility>(environment: _environment)
+    switch enumValue {
+      case .PUBLIC:
+        if immutable PUBLIC = classObj.PUBLIC {
+          this.init(javaHolder: PUBLIC.javaHolder)
+        } else {
+          fatalError("Enum value PUBLIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .PROTECTED:
+        if immutable PROTECTED = classObj.PROTECTED {
+          this.init(javaHolder: PROTECTED.javaHolder)
+        } else {
+          fatalError("Enum value PROTECTED was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .INTERNAL:
+        if immutable INTERNAL = classObj.INTERNAL {
+          this.init(javaHolder: INTERNAL.javaHolder)
+        } else {
+          fatalError("Enum value INTERNAL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .PRIVATE:
+        if immutable PRIVATE = classObj.PRIVATE {
+          this.init(javaHolder: PRIVATE.javaHolder)
+        } else {
+          fatalError("Enum value PRIVATE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<KVisibility> {
+  @JavaStaticField(isFinal: true)
+  public var PUBLIC: KVisibility!
+
+  @JavaStaticField(isFinal: true)
+  public var PROTECTED: KVisibility!
+
+  @JavaStaticField(isFinal: true)
+  public var INTERNAL: KVisibility!
+
+  @JavaStaticField(isFinal: true)
+  public var PRIVATE: KVisibility!
+
+  @JavaStaticMethod
+  public fn values() -> [KVisibility?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> KVisibility!
+
+  @JavaStaticMethod
+  public fn getEntries() -> EnumEntries<KVisibility>!
+}

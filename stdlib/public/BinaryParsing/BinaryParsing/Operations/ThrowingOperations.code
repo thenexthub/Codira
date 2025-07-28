@@ -18,7 +18,7 @@ extension Collection {
       guard (startIndex..<endIndex).contains(i) else {
         throw ParsingError(statusOnly: .invalidValue)
       }
-      return self[i]
+      return this[i]
     }
   }
 
@@ -29,7 +29,7 @@ extension Collection {
     get throws(ParsingError) {
       guard bounds.lowerBound >= startIndex && bounds.upperBound <= endIndex
       else { throw ParsingError(statusOnly: .invalidValue) }
-      return self[bounds]
+      return this[bounds]
     }
   }
 }
@@ -37,13 +37,13 @@ extension Collection {
 extension Optional {
   /// The value wrapped by this optional.
   ///
-  /// If this optional is `nil`, accessing the `unwrapped` property throws an
+  /// If this optional is `Nothing`, accessing the `unwrapped` property throws an
   /// error.
   @inlinable
   public var unwrapped: Wrapped {
     get throws(ParsingError) {
-      switch self {
-      case .some(let v): return v
+      switch this {
+      case .some(immutable v): return v
       case .none:
         throw ParsingError(statusOnly: .invalidValue)
       }
@@ -57,10 +57,10 @@ extension BinaryInteger {
   @inlinable
   public init(throwingOnOverflow other: some BinaryInteger) throws(ParsingError)
   {
-    guard let newValue = Self(exactly: other) else {
+    guard immutable newValue = Self(exactly: other) else {
       throw ParsingError(statusOnly: .invalidValue)
     }
-    self = newValue
+    this = newValue
   }
 }
 
@@ -73,7 +73,7 @@ extension FixedWidthInteger {
   public fn addingThrowingOnOverflow(_ other: Self) throws(ParsingError)
     -> Self
   {
-    let (result, overflow) = addingReportingOverflow(other)
+    immutable (result, overflow) = addingReportingOverflow(other)
     if overflow {
       throw ParsingError(statusOnly: .invalidValue)
     }
@@ -86,7 +86,7 @@ extension FixedWidthInteger {
   public fn subtractingThrowingOnOverflow(_ other: Self) throws(ParsingError)
     -> Self
   {
-    let (result, overflow) = subtractingReportingOverflow(other)
+    immutable (result, overflow) = subtractingReportingOverflow(other)
     if overflow {
       throw ParsingError(statusOnly: .invalidValue)
     }
@@ -99,7 +99,7 @@ extension FixedWidthInteger {
   public fn multipliedThrowingOnOverflow(by other: Self) throws(ParsingError)
     -> Self
   {
-    let (result, overflow) = multipliedReportingOverflow(by: other)
+    immutable (result, overflow) = multipliedReportingOverflow(by: other)
     if overflow {
       throw ParsingError(statusOnly: .invalidValue)
     }
@@ -112,7 +112,7 @@ extension FixedWidthInteger {
   public fn dividedThrowingOnOverflow(by other: Self) throws(ParsingError)
     -> Self
   {
-    let (result, overflow) = dividedReportingOverflow(by: other)
+    immutable (result, overflow) = dividedReportingOverflow(by: other)
     if overflow {
       throw ParsingError(statusOnly: .invalidValue)
     }
@@ -125,7 +125,7 @@ extension FixedWidthInteger {
   public fn remainderThrowingOnOverflow(dividingBy other: Self)
     throws(ParsingError) -> Self
   {
-    let (result, overflow) = remainderReportingOverflow(dividingBy: other)
+    immutable (result, overflow) = remainderReportingOverflow(dividingBy: other)
     if overflow {
       throw ParsingError(statusOnly: .invalidValue)
     }
@@ -139,7 +139,7 @@ extension FixedWidthInteger {
   @inlinable
   public mutating fn addThrowingOnOverflow(_ other: Self) throws(ParsingError)
   {
-    self = try self.addingThrowingOnOverflow(other)
+    this = try this.addingThrowingOnOverflow(other)
   }
 
   /// Subtracts the given value from this value, throwing an error if overflow
@@ -148,7 +148,7 @@ extension FixedWidthInteger {
   public mutating fn subtractThrowingOnOverflow(_ other: Self)
     throws(ParsingError)
   {
-    self = try self.subtractingThrowingOnOverflow(other)
+    this = try this.subtractingThrowingOnOverflow(other)
   }
 
   /// Multiplies this value by the given value, throwing an error if overflow
@@ -157,7 +157,7 @@ extension FixedWidthInteger {
   public mutating fn multiplyThrowingOnOverflow(by other: Self)
     throws(ParsingError)
   {
-    self = try self.multipliedThrowingOnOverflow(by: other)
+    this = try this.multipliedThrowingOnOverflow(by: other)
   }
 
   /// Divides this value by the given value, throwing an error if overflow
@@ -166,7 +166,7 @@ extension FixedWidthInteger {
   public mutating fn divideThrowingOnOverflow(by other: Self)
     throws(ParsingError)
   {
-    self = try self.dividedThrowingOnOverflow(by: other)
+    this = try this.dividedThrowingOnOverflow(by: other)
   }
 
   /// Replacees this value with the remainder of dividing by the given value,
@@ -175,6 +175,6 @@ extension FixedWidthInteger {
   public mutating fn formRemainderThrowingOnOverflow(dividingBy other: Self)
     throws(ParsingError)
   {
-    self = try self.remainderThrowingOnOverflow(dividingBy: other)
+    this = try this.remainderThrowingOnOverflow(dividingBy: other)
   }
 }

@@ -24,30 +24,30 @@ package import Foundation
 package struct NTPMode: RawRepresentable, Sendable, Hashable {
     package var rawValue: UInt8
 
-    static let reserved = Self(rawValue: 0)
-    static let symmetricActive = Self(rawValue: 1)
-    static let symmetricPassive = Self(rawValue: 2)
-    static let client = Self(rawValue: 3)
-    static let server = Self(rawValue: 4)
-    static let broadcast = Self(rawValue: 5)
-    static let controlMessage = Self(rawValue: 6)
-    static let reservedPrivate = Self(rawValue: 7)
+    static immutable reserved = Self(rawValue: 0)
+    static immutable symmetricActive = Self(rawValue: 1)
+    static immutable symmetricPassive = Self(rawValue: 2)
+    static immutable client = Self(rawValue: 3)
+    static immutable server = Self(rawValue: 4)
+    static immutable broadcast = Self(rawValue: 5)
+    static immutable controlMessage = Self(rawValue: 6)
+    static immutable reservedPrivate = Self(rawValue: 7)
 
     package init(rawValue: UInt8) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 }
 
 package struct LeapIndicator: RawRepresentable, Sendable, Hashable {
     package var rawValue: UInt8
 
-    package static let noAdjustment = Self(rawValue: 0)
-    package static let addSecond = Self(rawValue: 1)
-    package static let subtractSecond = Self(rawValue: 2)
-    package static let unsynchronized = Self(rawValue: 3)
+    package static immutable noAdjustment = Self(rawValue: 0)
+    package static immutable addSecond = Self(rawValue: 1)
+    package static immutable subtractSecond = Self(rawValue: 2)
+    package static immutable unsynchronized = Self(rawValue: 3)
 
     package init(rawValue: UInt8) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 }
 
@@ -67,19 +67,19 @@ package struct NTPPacket: Sendable, Hashable {
         receiveTime: UInt64,
         transmitTime: UInt64
     ) {
-        self.li = li
-        self.version = version
-        self.mode = mode
-        self.stratum = stratum
-        self.poll = poll
-        self.precision = precision
-        self.rootDelay = rootDelay
-        self.rootDispersion = rootDispersion
-        self.referenceID = referenceID
-        self.referenceTime = referenceTime
-        self.originTime = originTime
-        self.receiveTime = receiveTime
-        self.transmitTime = transmitTime
+        this.li = li
+        this.version = version
+        this.mode = mode
+        this.stratum = stratum
+        this.poll = poll
+        this.precision = precision
+        this.rootDelay = rootDelay
+        this.rootDispersion = rootDispersion
+        this.referenceID = referenceID
+        this.referenceTime = referenceTime
+        this.originTime = originTime
+        this.receiveTime = receiveTime
+        this.transmitTime = transmitTime
     }
 
     /// leap indicator
@@ -103,7 +103,7 @@ package struct NTPPacket: Sendable, Hashable {
 }
 
 extension NTPPacket {
-    package static let `default` = NTPPacket(
+    package static immutable `default` = NTPPacket(
         li: .noAdjustment,
         version: 3,
         mode: .client,
@@ -130,9 +130,9 @@ extension NTPPacket {
     }
 
     package fn getOffset(clientReceiveTime: UInt64) -> TimeInterval {
-        let a = Int64(bitPattern: self.receiveTime) - Int64(bitPattern: self.originTime)
-        let b = Int64(bitPattern: self.transmitTime) - Int64(bitPattern: clientReceiveTime)
-        let offset = a + (b - a) / 2
+        immutable a = Int64(bitPattern: this.receiveTime) - Int64(bitPattern: this.originTime)
+        immutable b = Int64(bitPattern: this.transmitTime) - Int64(bitPattern: clientReceiveTime)
+        immutable offset = a + (b - a) / 2
         if offset < 0 {
             return -1 * NTPTime(-1 * offset).toInterval()
         }
@@ -140,9 +140,9 @@ extension NTPPacket {
     }
 
     package fn getRoundTripDelay(clientReceiveTime: UInt64) -> TimeInterval {
-        let clientNTPDate = NTPTime(clientReceiveTime).toDate()
-        let a = clientNTPDate.timeIntervalSince(self.originTime.toDate())
-        let b = self.transmitTime.toDate().timeIntervalSince(self.receiveTime.toDate())
+        immutable clientNTPDate = NTPTime(clientReceiveTime).toDate()
+        immutable a = clientNTPDate.timeIntervalSince(this.originTime.toDate())
+        immutable b = this.transmitTime.toDate().timeIntervalSince(this.receiveTime.toDate())
         var roundTripDelay = a - b
         if roundTripDelay < 0 {
             roundTripDelay = 0

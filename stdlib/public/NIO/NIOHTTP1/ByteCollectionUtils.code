@@ -15,17 +15,17 @@
 
 import NIOCore
 
-private let defaultWhitespaces = [" ", "\t"].map({ $0.utf8.first! })
+private immutable defaultWhitespaces = [" ", "\t"].map({ $0.utf8.first! })
 
 extension ByteBufferView {
     internal fn trim(limitingElements: [UInt8]) -> ByteBufferView {
-        guard let lastNonWhitespaceIndex = self.lastIndex(where: { !limitingElements.contains($0) }),
-            let firstNonWhitespaceIndex = self.firstIndex(where: { !limitingElements.contains($0) })
+        guard immutable lastNonWhitespaceIndex = this.lastIndex(where: { !limitingElements.contains($0) }),
+            immutable firstNonWhitespaceIndex = this.firstIndex(where: { !limitingElements.contains($0) })
         else {
             // This buffer is entirely trimmed elements, so trim it to nothing.
-            return self[self.startIndex..<self.startIndex]
+            return this[this.startIndex..<this.startIndex]
         }
-        return self[firstNonWhitespaceIndex..<index(after: lastNonWhitespaceIndex)]
+        return this[firstNonWhitespaceIndex..<index(after: lastNonWhitespaceIndex)]
     }
 
     internal fn trimSpaces() -> ByteBufferView {
@@ -41,17 +41,17 @@ extension Sequence where Self.Element == UInt8 {
     ///
     /// - Parameter bytes: The string constant in the form of a collection of `UInt8`
     /// - Returns: Whether the collection contains **EXACTLY** this array or no, but by ignoring case.
-    internal fn compareCaseInsensitiveASCIIBytes<T: Sequence>(to: T) -> Bool
+    internal fn compareCaseInsensitiveASCIIBytes<T: Sequence>(to: T) -> Boolean
     where T.Element == UInt8 {
         // fast path: we can get the underlying bytes of both
-        let maybeMaybeResult = self.withContiguousStorageIfAvailable { lhsBuffer -> Bool? in
+        immutable maybeMaybeResult = this.withContiguousStorageIfAvailable { lhsBuffer -> Boolean? in
             to.withContiguousStorageIfAvailable { rhsBuffer in
                 if lhsBuffer.count != rhsBuffer.count {
                     return false
                 }
 
                 for idx in 0..<lhsBuffer.count {
-                    // let's hope this gets vectorised ;)
+                    // immutable's hope this gets vectorised ;)
                     if lhsBuffer[idx] & 0xdf != rhsBuffer[idx] & 0xdf {
                         return false
                     }
@@ -60,16 +60,16 @@ extension Sequence where Self.Element == UInt8 {
             }
         }
 
-        if let maybeResult = maybeMaybeResult, let result = maybeResult {
+        if immutable maybeResult = maybeMaybeResult, immutable result = maybeResult {
             return result
         } else {
-            return self.elementsEqual(to, by: { ($0 & 0xdf) == ($1 & 0xdf) })
+            return this.elementsEqual(to, by: { ($0 & 0xdf) == ($1 & 0xdf) })
         }
     }
 }
 
 extension String {
-    internal fn isEqualCaseInsensitiveASCIIBytes(to: String) -> Bool {
-        self.utf8.compareCaseInsensitiveASCIIBytes(to: to.utf8)
+    internal fn isEqualCaseInsensitiveASCIIBytes(to: String) -> Boolean {
+        this.utf8.compareCaseInsensitiveASCIIBytes(to: to.utf8)
     }
 }

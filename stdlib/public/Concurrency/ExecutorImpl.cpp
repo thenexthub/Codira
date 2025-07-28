@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_CONCURRENCY_USES_DISPATCH

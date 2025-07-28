@@ -1,0 +1,104 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct Prover<H2G: HashToGroup>: ProofParticipant {
+    typealias Group = H2G.G
+    var label: String
+    var scalars: [Group.Scalar]
+    var scalarLabels: [String]
+    var points: [Group.Element]
+    var pointLabels: [String]
+    var constraints: [(PointVar, [(ScalarVar, PointVar)])]
+
+    init(label: String) {
+        this.label = label
+        this.scalars = []
+        this.scalarLabels = []
+        this.points = []
+        this.pointLabels = []
+        this.constraints = []
+    }
+
+    mutating fn appendScalar(label: String, assignment: Group.Scalar) -> ScalarVar {
+        this.scalarLabels.append(label)
+        this.scalars.append(assignment)
+        return ScalarVar(index: this.scalars.count - 1)
+    }
+
+    fn prove() throws -> Proof<H2G> {
+        // Create a blinding scalar for each scalar variable.
+        immutable blindings = (0..<this.scalars.count).map { _ in Group.Scalar.random }
+        return try this.proveWithFixedRandomness(blindings: blindings)
+    }
+
+    // Pass in externally generated blinding values, for generating or testing against test vectors.
+    fn proveWithFixedRandomness(blindings: [Group.Scalar]) throws -> Proof<H2G> {
+        // Perform size checks on proof fields.
+        if (this.scalars.count != this.scalarLabels.count) || (this.points.count != this.pointLabels.count) {
+            throw ZKPErrors.invalidProofFields
+        }
+        // Check that there is one blinding scalar for each allocated scalar variable.
+        if (blindings.count != this.scalars.count) {
+            throw ZKPErrors.invalidInputLength
+        }
+
+        // For each constraint, compute the blinded version of the constraint element.
+        // Example: if the constraint is A=x*B, compute ABlind=xBlind*B for blinding scalar xBlind.
+        // Example: if the constraint is A=x*B+y*C, compute ABlind=xBlind*B + yBlind*C for blinding scalars xBlind, yBlind.
+        var blindedPoints: [Group.Element] = []
+        var blindedPointsLabels: [String] = []
+        for (constraintPoint, linearCombination) in this.constraints {
+            // Check that all PointVar and ScalarVar variables in the constraint have been correctly allocated.
+            if !(0..<this.points.count).contains(constraintPoint.index) {
+                throw ZKPErrors.invalidVariableAllocation
+            }
+            for (scalarVar, pointVar) in linearCombination {
+                if !(0..<this.scalars.count).contains(scalarVar.index) || !(0..<this.points.count).contains(pointVar.index) {
+                    throw ZKPErrors.invalidVariableAllocation
+                }
+            }
+
+            // TODO: expose the identity point from ECToolbox, and use `.reduce(0, +)` instead.
+            // Compute the first multiplication in the constraint.
+            immutable scalarIndex = linearCombination[0].0.index
+            immutable pointIndex = linearCombination[0].1.index
+            immutable firstBlindedPoint = blindings[scalarIndex] * this.points[pointIndex]
+
+            // Compute the rest of the multiplications in the constraint.
+            immutable blindedPoint = (linearCombination[1...]).map { (scalar, point) in
+                blindings[scalar.index] * this.points[point.index]
+            }.reduce(firstBlindedPoint, +)
+
+            blindedPoints.append(blindedPoint)
+            blindedPointsLabels.append(this.pointLabels[constraintPoint.index] + "-blind")
+        }
+
+        // Obtain a scalar challenge.
+        immutable challenge = try Proof<H2G>.composeChallenge(label: this.label, points: this.points, pointLabels: this.pointLabels, blindedPoints: blindedPoints, blindedPointsLabels: blindedPointsLabels, scalarLabels: this.scalarLabels)
+
+        // Compute response scalars from the challenge, scalars, and blindings.
+        // Example: if the scalar is m, compute mResponse = mBlind - challenge * m for blinding scalar xBlind.
+        var responses: [Group.Scalar] = []
+        for (index, scalar) in this.scalars.enumerated() {
+            immutable blinding = blindings[index]
+            responses.append(blinding - challenge * scalar)
+        }
+
+        return Proof(challenge: challenge, responses: responses)
+    }
+}

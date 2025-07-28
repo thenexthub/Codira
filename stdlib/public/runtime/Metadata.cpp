@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implementations of the metadata ABI functions.
@@ -1096,7 +1095,7 @@ language::language_getObjCClassFromMetadataConditional(const Metadata *theMetada
   }
 
   // Not an ObjC class after all.
-  return nil;
+  return Nothing;
 }
 
 #endif
@@ -2234,14 +2233,14 @@ static unsigned tuple_getExtraInhabitantTag(const OpaqueValue *tuple,
 template <bool IsPOD, bool IsInline>
 static unsigned tuple_getEnumTagSinglePayload(const OpaqueValue *enumAddr,
                                               unsigned numEmptyCases,
-                                              const Metadata *self) {
+                                              const Metadata *this) {
   
-  auto *witnesses = generic_getValueWitnesses(self);
+  auto *witnesses = generic_getValueWitnesses(this);
   auto size = witnesses->getSize();
   auto numExtraInhabitants = witnesses->getNumExtraInhabitants();
   auto getExtraInhabitantTag = tuple_getExtraInhabitantTag;
 
-  return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, self, size,
+  return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, this, size,
                                      numExtraInhabitants,
                                      getExtraInhabitantTag);
 }
@@ -2249,13 +2248,13 @@ static unsigned tuple_getEnumTagSinglePayload(const OpaqueValue *enumAddr,
 template <bool IsPOD, bool IsInline>
 static void
 tuple_storeEnumTagSinglePayload(OpaqueValue *enumAddr, unsigned whichCase,
-                                unsigned numEmptyCases, const Metadata *self) {
-  auto *witnesses = generic_getValueWitnesses(self);
+                                unsigned numEmptyCases, const Metadata *this) {
+  auto *witnesses = generic_getValueWitnesses(this);
   auto size = witnesses->getSize();
   auto numExtraInhabitants = witnesses->getNumExtraInhabitants();
   auto storeExtraInhabitantTag = tuple_storeExtraInhabitantTag;
 
-  storeEnumTagSinglePayloadImpl(enumAddr, whichCase, numEmptyCases, self, size,
+  storeEnumTagSinglePayloadImpl(enumAddr, whichCase, numEmptyCases, this, size,
                                 numExtraInhabitants, storeExtraInhabitantTag);
 }
 
@@ -2790,8 +2789,8 @@ static constexpr Out pointer_function_cast(In *function) {
 
 LANGUAGE_RUNTIME_STDLIB_SPI
 OpaqueValue *_language_pod_indirect_initializeBufferWithCopyOfBuffer(
-    ValueBuffer *dest, ValueBuffer *src, const Metadata *self) {
-  auto wtable = self->getValueWitnesses();
+    ValueBuffer *dest, ValueBuffer *src, const Metadata *this) {
+  auto wtable = this->getValueWitnesses();
   auto *srcReference = *reinterpret_cast<HeapObject**>(src);
   *reinterpret_cast<HeapObject**>(dest) = srcReference;
   language_retain(srcReference);
@@ -2805,20 +2804,20 @@ OpaqueValue *_language_pod_indirect_initializeBufferWithCopyOfBuffer(
 }
 
 LANGUAGE_RUNTIME_STDLIB_SPI
-void _language_pod_destroy(OpaqueValue *object, const Metadata *self) {}
+void _language_pod_destroy(OpaqueValue *object, const Metadata *this) {}
 
 LANGUAGE_RUNTIME_STDLIB_SPI
 OpaqueValue *_language_pod_copy(OpaqueValue *dest, OpaqueValue *src,
-                             const Metadata *self) {
-  memcpy(dest, src, self->getValueWitnesses()->size);
+                             const Metadata *this) {
+  memcpy(dest, src, this->getValueWitnesses()->size);
   return dest;
 }
 
 LANGUAGE_RUNTIME_STDLIB_SPI
 OpaqueValue *_language_pod_direct_initializeBufferWithCopyOfBuffer(
-    ValueBuffer *dest, ValueBuffer *src, const Metadata *self) {
+    ValueBuffer *dest, ValueBuffer *src, const Metadata *this) {
   return _language_pod_copy(reinterpret_cast<OpaqueValue *>(dest),
-                         reinterpret_cast<OpaqueValue *>(src), self);
+                         reinterpret_cast<OpaqueValue *>(src), this);
 }
 
 static constexpr uint64_t sizeWithAlignmentMask(uint64_t size,
@@ -2901,9 +2900,9 @@ void language::installCommonValueWitnesses(const TypeLayout &layout,
 /*** Structs ***************************************************************/
 /***************************************************************************/
 
-static ValueWitnessTable *getMutableVWTableForInit(StructMetadata *self,
+static ValueWitnessTable *getMutableVWTableForInit(StructMetadata *this,
                                                    StructLayoutFlags flags) {
-  auto oldTable = self->getValueWitnesses();
+  auto oldTable = this->getValueWitnesses();
 
   // If we can alter the existing table in-place, do so.
   if (isValueWitnessTableMutable(flags))
@@ -2918,7 +2917,7 @@ static ValueWitnessTable *getMutableVWTableForInit(StructMetadata *self,
   // initialization, we'll need this to be a store-release (and rely on
   // consume ordering on the asynchronous check path); and we'll need to
   // ensure that the current state says that the type is incomplete.
-  self->setValueWitnesses(newTable);
+  this->setValueWitnesses(newTable);
 
   return newTable;
 }
@@ -3690,11 +3689,11 @@ static void installOverrideInVTable(ContextDescriptor const *baseContext,
 /// Using the information in the class context descriptor, fill in in the
 /// immediate vtable entries for the class install overrides of any
 /// superclass vtable entries, and install any default overrides if appropriate.
-static void initClassVTable(ClassMetadata *self,
+static void initClassVTable(ClassMetadata *this,
                             toolchain::SmallVectorImpl<const ClassDescriptor *>
                                 &superclassesWithDefaultOverrides) {
-  const auto *description = self->getDescription();
-  auto *classWords = reinterpret_cast<void **>(self);
+  const auto *description = this->getDescription();
+  auto *classWords = reinterpret_cast<void **>(this);
 
   if (description->hasVTable()) {
     auto *vtable = description->getVTableDescriptor();
@@ -3756,7 +3755,7 @@ static void initClassVTable(ClassMetadata *self,
   }
 }
 
-static void initClassFieldOffsetVector(ClassMetadata *self,
+static void initClassFieldOffsetVector(ClassMetadata *this,
                                        size_t numFields,
                                        const TypeLayout * const *fieldTypes,
                                        size_t *fieldOffsets) {
@@ -3764,12 +3763,12 @@ static void initClassFieldOffsetVector(ClassMetadata *self,
   size_t size, alignMask;
 
 #if LANGUAGE_OBJC_INTEROP
-  ClassROData *rodata = getROData(self);
+  ClassROData *rodata = getROData(this);
 #endif
 
   // If we have a superclass, start from its size and alignment instead.
-  if (classHasSuperclass(self)) {
-    auto *super = self->Superclass;
+  if (classHasSuperclass(this)) {
+    auto *super = this->Superclass;
 
     // This is straightforward if the superclass is Codira.
 #if LANGUAGE_OBJC_INTEROP
@@ -3834,9 +3833,9 @@ static void initClassFieldOffsetVector(ClassMetadata *self,
   }
 
   // Save the final size and alignment into the metadata record.
-  assert(self->isTypeMetadata());
-  self->setInstanceSize(size);
-  self->setInstanceAlignMask(alignMask);
+  assert(this->isTypeMetadata());
+  this->setInstanceSize(size);
+  this->setInstanceAlignMask(alignMask);
 
 #if LANGUAGE_OBJC_INTEROP
   // Save the size into the Objective-C metadata as well.
@@ -3856,11 +3855,11 @@ static void initClassFieldOffsetVector(ClassMetadata *self,
 /// offsets stored in those globals.
 ///
 /// Note that \p fieldOffsets remains unchanged in this case.
-static void initObjCClass(ClassMetadata *self,
+static void initObjCClass(ClassMetadata *this,
                           size_t numFields,
                           const TypeLayout * const *fieldTypes,
                           size_t *fieldOffsets) {
-  ClassROData *rodata = getROData(self);
+  ClassROData *rodata = getROData(this);
 
   ClassIvarList *ivars = rodata->IvarList;
   if (!ivars) {
@@ -3916,13 +3915,13 @@ static void initObjCClass(ClassMetadata *self,
 /// runtime to realize the class. The Objective-C runtime will then slide the
 /// offsets in \p fieldOffsets.
 static MetadataDependency
-initGenericObjCClass(ClassMetadata *self, size_t numFields,
+initGenericObjCClass(ClassMetadata *this, size_t numFields,
                      const TypeLayout * const *fieldTypes,
                      size_t *fieldOffsets) {
   // If the class is generic, we need to give it a name for Objective-C.
-  setUpGenericClassObjCName(self);
+  setUpGenericClassObjCName(this);
 
-  ClassROData *rodata = getROData(self);
+  ClassROData *rodata = getROData(this);
 
   // In ObjC interop mode, we have up to two places we need each correct
   // ivar offset to end up:
@@ -3940,7 +3939,7 @@ initGenericObjCClass(ClassMetadata *self, size_t numFields,
   // superclass (i.e. if rodata->InstanceStart is wrong), a previous
   // instantiation might have already slid the global offset to the
   // correct place; we need the ObjC runtime to see a pre-slid value,
-  // and it's not safe to briefly unslide it and let the runtime slide
+  // and it's not safe to briefly unslide it and immutable the runtime slide
   // it back because there might already be concurrent code relying on
   // the global ivar offset.
   //
@@ -4003,7 +4002,7 @@ initGenericObjCClass(ClassMetadata *self, size_t numFields,
 
   // Register this class with the runtime. This will also cause the
   // runtime to slide the entries in the field offset vector.
-  language_instantiateObjCClass(self);
+  language_instantiateObjCClass(this);
 
   // If we saved any global ivar offsets, make sure we write back to them.
   if (_globalIvarOffsets) {
@@ -4028,13 +4027,13 @@ initGenericObjCClass(ClassMetadata *self, size_t numFields,
 
 LANGUAGE_CC(language)
 LANGUAGE_RUNTIME_STDLIB_INTERNAL MetadataResponse
-getSuperclassMetadata(MetadataRequest request, const ClassMetadata *self) {
+getSuperclassMetadata(MetadataRequest request, const ClassMetadata *this) {
   // If there is a mangled superclass name, demangle it to the superclass
   // type.
-  if (auto superclassNameBase = self->getDescription()->SuperclassType.get()) {
+  if (auto superclassNameBase = this->getDescription()->SuperclassType.get()) {
     StringRef superclassName =
       Demangle::makeSymbolicMangledNameStringRef(superclassNameBase);
-    SubstGenericParametersFromMetadata substitutions(self);
+    SubstGenericParametersFromMetadata substitutions(this);
     auto result = language_getTypeByMangledName(
         request, superclassName, substitutions.getGenericArgs(),
         [&substitutions](unsigned depth, unsigned index) {
@@ -4046,7 +4045,7 @@ getSuperclassMetadata(MetadataRequest request, const ClassMetadata *self) {
     if (auto *error = result.getError()) {
       fatalError(
           0, "failed to demangle superclass of %s from mangled name '%s': %s\n",
-          self->getDescription()->Name.get(), superclassName.str().c_str(),
+          this->getDescription()->Name.get(), superclassName.str().c_str(),
           error->copyErrorString());
     }
 
@@ -4058,11 +4057,11 @@ getSuperclassMetadata(MetadataRequest request, const ClassMetadata *self) {
 
 LANGUAGE_CC(language)
 static std::pair<MetadataDependency, const ClassMetadata *>
-getSuperclassMetadata(const ClassMetadata *self, bool allowDependency) {
+getSuperclassMetadata(const ClassMetadata *this, bool allowDependency) {
   MetadataRequest request(allowDependency ? MetadataState::NonTransitiveComplete
                                           : /*FIXME*/ MetadataState::Abstract,
                           /*non-blocking*/ allowDependency);
-  auto response = getSuperclassMetadata(request, self);
+  auto response = getSuperclassMetadata(request, this);
 
   auto *superclass = response.Value;
   if (!superclass)
@@ -4089,25 +4088,25 @@ getSuperclassMetadata(const ClassMetadata *self, bool allowDependency) {
 }
 
 static LANGUAGE_CC(language) MetadataDependency
-_language_initClassMetadataImpl(ClassMetadata *self,
+_language_initClassMetadataImpl(ClassMetadata *this,
                              ClassLayoutFlags layoutFlags,
                              size_t numFields,
                              const TypeLayout * const *fieldTypes,
                              size_t *fieldOffsets,
                              bool allowDependency) {
   // Try to install the superclass.
-  auto superDependencyAndSuper = getSuperclassMetadata(self, allowDependency);
+  auto superDependencyAndSuper = getSuperclassMetadata(this, allowDependency);
   if (superDependencyAndSuper.first)
     return superDependencyAndSuper.first;
 
   auto super = superDependencyAndSuper.second;
 
-  self->Superclass = super;
+  this->Superclass = super;
 
 #if LANGUAGE_OBJC_INTEROP
   // Set the superclass to CodiraObject if this is a root class.
   if (!super)
-    self->Superclass = getRootSuperclass();
+    this->Superclass = getRootSuperclass();
 
   // Register our custom implementation of class_getImageName.
   static language::once_t onceToken;
@@ -4125,7 +4124,7 @@ _language_initClassMetadataImpl(ClassMetadata *self,
   // setup.
   toolchain::SmallVector<const ClassDescriptor *, 16>
       superclassesWithDefaultOverrides;
-  if (self->getDescription()->hasOverrideTable()) {
+  if (this->getDescription()->hasOverrideTable()) {
     const ClassMetadata *super = superDependencyAndSuper.second;
     while (super && !super->isPureObjC()) {
       const auto *description = super->getDescription();
@@ -4144,22 +4143,22 @@ _language_initClassMetadataImpl(ClassMetadata *self,
 
   // Copy field offsets, generic arguments and (if necessary) vtable entries
   // from our superclass.
-  copySuperclassMetadataToSubclass(self, layoutFlags);
+  copySuperclassMetadataToSubclass(this, layoutFlags);
 
   // Copy the class's immediate methods from the nominal type descriptor
   // to the class metadata.
   if (!hasStaticVTable(layoutFlags))
-    initClassVTable(self, superclassesWithDefaultOverrides);
+    initClassVTable(this, superclassesWithDefaultOverrides);
 
-  initClassFieldOffsetVector(self, numFields, fieldTypes, fieldOffsets);
+  initClassFieldOffsetVector(this, numFields, fieldTypes, fieldOffsets);
 
 #if LANGUAGE_OBJC_INTEROP
-  auto *description = self->getDescription();
+  auto *description = this->getDescription();
   if (description->isGeneric()) {
     assert(!description->hasObjCResilientClassStub());
-    initGenericObjCClass(self, numFields, fieldTypes, fieldOffsets);
+    initGenericObjCClass(this, numFields, fieldTypes, fieldOffsets);
   } else {
-    initObjCClass(self, numFields, fieldTypes, fieldOffsets);
+    initObjCClass(this, numFields, fieldTypes, fieldOffsets);
 
     // Register this class with the runtime. This will also cause the
     // runtime to slide the field offsets stored in the field offset
@@ -4177,35 +4176,35 @@ _language_initClassMetadataImpl(ClassMetadata *self,
     // with resilient ancestry have the correct availability, so it should
     // be safe to ignore the stub in this case.
     if (stub != nullptr && LANGUAGE_RUNTIME_WEAK_CHECK(_objc_realizeClassFromCodira)) {
-      LANGUAGE_RUNTIME_WEAK_USE(_objc_realizeClassFromCodira((Class) self, const_cast<void *>(stub)));
+      LANGUAGE_RUNTIME_WEAK_USE(_objc_realizeClassFromCodira((Class) this, const_cast<void *>(stub)));
     } else {
-      language_instantiateObjCClass(self);
+      language_instantiateObjCClass(this);
     }
   }
 #else
-  assert(!self->getDescription()->hasObjCResilientClassStub());
+  assert(!this->getDescription()->hasObjCResilientClassStub());
 #endif
 
   return MetadataDependency();
 }
 
-void language::language_initClassMetadata(ClassMetadata *self,
+void language::language_initClassMetadata(ClassMetadata *this,
                                     ClassLayoutFlags layoutFlags,
                                     size_t numFields,
                                     const TypeLayout * const *fieldTypes,
                                     size_t *fieldOffsets) {
-  (void) _language_initClassMetadataImpl(self, layoutFlags, numFields,
+  (void) _language_initClassMetadataImpl(this, layoutFlags, numFields,
                                       fieldTypes, fieldOffsets,
                                       /*allowDependency*/ false);
 }
 
 MetadataDependency
-language::language_initClassMetadata2(ClassMetadata *self,
+language::language_initClassMetadata2(ClassMetadata *this,
                                 ClassLayoutFlags layoutFlags,
                                 size_t numFields,
                                 const TypeLayout * const *fieldTypes,
                                 size_t *fieldOffsets) {
-  return _language_initClassMetadataImpl(self, layoutFlags, numFields,
+  return _language_initClassMetadataImpl(this, layoutFlags, numFields,
                                       fieldTypes, fieldOffsets,
                                       /*allowDependency*/ true);
 }
@@ -4213,7 +4212,7 @@ language::language_initClassMetadata2(ClassMetadata *self,
 #if LANGUAGE_OBJC_INTEROP
 
 static LANGUAGE_CC(language) MetadataDependency
-_language_updateClassMetadataImpl(ClassMetadata *self,
+_language_updateClassMetadataImpl(ClassMetadata *this,
                                ClassLayoutFlags layoutFlags,
                                size_t numFields,
                                const TypeLayout * const *fieldTypes,
@@ -4224,16 +4223,16 @@ _language_updateClassMetadataImpl(ClassMetadata *self,
   // If we're on a newer runtime, we're going to be initializing the
   // field offset vector. Realize the superclass metadata first, even
   // though our superclass field references it statically.
-  auto superDependencyAndSuper = getSuperclassMetadata(self, allowDependency);
+  auto superDependencyAndSuper = getSuperclassMetadata(this, allowDependency);
   if (superDependencyAndSuper.first)
     return superDependencyAndSuper.first;
   const ClassMetadata *super = superDependencyAndSuper.second;
 
   // Check that it matches what's already in there.
   if (!super)
-    assert(self->Superclass == getRootSuperclass());
+    assert(this->Superclass == getRootSuperclass());
   else
-    assert(self->Superclass == super);
+    assert(this->Superclass == super);
 
   (void) super;
 
@@ -4241,11 +4240,11 @@ _language_updateClassMetadataImpl(ClassMetadata *self,
   // the class.
   if (!requiresUpdate) {
     // If we don't have a backward deployment layout, we cannot proceed here.
-    if (self->getInstanceSize() == 0 ||
-        self->getInstanceAlignMask() == 0) {
+    if (this->getInstanceSize() == 0 ||
+        this->getInstanceAlignMask() == 0) {
       fatalError(0, "class %s does not have a fragile layout; "
                  "the deployment target was newer than this OS\n",
-                 self->getDescription()->Name.get());
+                 this->getDescription()->Name.get());
     }
 
     // Realize the class. This causes the runtime to slide the field offsets
@@ -4257,39 +4256,39 @@ _language_updateClassMetadataImpl(ClassMetadata *self,
     //
     // In particular, class mirrors always use the Objective-C ivar descriptors,
     // which point at field offset globals and not the field offset vector.
-    language_getInitializedObjCClass((Class)self);
+    language_getInitializedObjCClass((Class)this);
   } else {
     // Update the field offset vector using runtime type information; the layout
     // of resilient types might be different than the statically-emitted layout.
-    initClassFieldOffsetVector(self, numFields, fieldTypes, fieldOffsets);
+    initClassFieldOffsetVector(this, numFields, fieldTypes, fieldOffsets);
 
     // Copy field offset vector entries to the field offset globals.
-    initObjCClass(self, numFields, fieldTypes, fieldOffsets);
+    initObjCClass(this, numFields, fieldTypes, fieldOffsets);
 
     // See remark above about how this slides field offset globals.
-    LANGUAGE_RUNTIME_WEAK_USE(_objc_realizeClassFromCodira((Class)self, (Class)self));
+    LANGUAGE_RUNTIME_WEAK_USE(_objc_realizeClassFromCodira((Class)this, (Class)this));
   }
 
   return MetadataDependency();
 }
 
-void language::language_updateClassMetadata(ClassMetadata *self,
+void language::language_updateClassMetadata(ClassMetadata *this,
                                       ClassLayoutFlags layoutFlags,
                                       size_t numFields,
                                       const TypeLayout * const *fieldTypes,
                                       size_t *fieldOffsets) {
-  (void) _language_updateClassMetadataImpl(self, layoutFlags, numFields,
+  (void) _language_updateClassMetadataImpl(this, layoutFlags, numFields,
                                         fieldTypes, fieldOffsets,
                                         /*allowDependency*/ false);
 }
 
 MetadataDependency
-language::language_updateClassMetadata2(ClassMetadata *self,
+language::language_updateClassMetadata2(ClassMetadata *this,
                                   ClassLayoutFlags layoutFlags,
                                   size_t numFields,
                                   const TypeLayout * const *fieldTypes,
                                   size_t *fieldOffsets) {
-  return _language_updateClassMetadataImpl(self, layoutFlags, numFields,
+  return _language_updateClassMetadataImpl(this, layoutFlags, numFields,
                                         fieldTypes, fieldOffsets,
                                         /*allowDependency*/ true);
 }
@@ -4312,8 +4311,8 @@ language::language_updatePureObjCClassMetadata(Class cls,
 
   // Update the field offset globals using runtime type information; the layout
   // of resilient types might be different than the statically-emitted layout.
-  ObjCClass *self = (ObjCClass *)cls;
-  ClassROData *rodata = getROData(self);
+  ObjCClass *this = (ObjCClass *)cls;
+  ClassROData *rodata = getROData(this);
   ClassIvarList *ivars = rodata->IvarList;
 
   if (!ivars) {
@@ -4329,7 +4328,7 @@ language::language_updatePureObjCClassMetadata(Class cls,
   // Start layout from our static notion of where the superclass starts.
   // Objective-C expects us to have generated a correct ivar layout, which it
   // will simply slide if it needs to.
-  assert(self->Superclass && "Codira cannot implement a root class");
+  assert(this->Superclass && "Codira cannot implement a root class");
   size_t size = rodata->InstanceStart;
   size_t alignMask = 0xF; // malloc alignment guarantee
 
@@ -5311,10 +5310,10 @@ public:
   }
 
   bool matchesKey(Key key) const {
-    auto self = Data;
+    auto this = Data;
     auto other = key.Candidate;
-    if (self == other) return true;
-    return self->getExistentialTypeStringForUniquing() == key.TypeString;
+    if (this == other) return true;
+    return this->getExistentialTypeStringForUniquing() == key.TypeString;
   }
 
   friend toolchain::hash_code hash_value(

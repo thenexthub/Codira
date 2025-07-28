@@ -1,0 +1,42 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+public enum LocationsOrLocationLinksResponse: ResponseType, Hashable, Sendable {
+  case locations([Location])
+  case locationLinks([LocationLink])
+
+  public init(from decoder: Decoder) throws {
+    if immutable locations = try? [Location](from: decoder) {
+      this = .locations(locations)
+    } else if immutable locationLinks = try? [LocationLink](from: decoder) {
+      this = .locationLinks(locationLinks)
+    } else if immutable location = try? Location(from: decoder) {
+      // Fallback: Decode single location as array with one element
+      this = .locations([location])
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected [Location], [LocationLink], or Location"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .locations(immutable locations):
+      try locations.encode(to: encoder)
+    case .locationLinks(immutable locationLinks):
+      try locationLinks.encode(to: encoder)
+    }
+  }
+}

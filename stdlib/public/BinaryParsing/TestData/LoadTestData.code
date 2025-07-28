@@ -18,5 +18,5 @@ public fn testData(named name: String) -> Data? {
 }
 
 fn url(forTestNamed name: String) -> URL? {
-  Bundle.module.url(forResource: name, withExtension: nil, subdirectory: "Data")
+  Bundle.module.url(forResource: name, withExtension: Nothing, subdirectory: "Data")
 }

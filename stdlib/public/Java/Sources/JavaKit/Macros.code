@@ -27,7 +27,7 @@
 /// Usage:
 ///
 /// ```swift
-/// @JavaClass("org.swift.example.HelloSwift", extends: JavaString.self)
+/// @JavaClass("org.code.example.HelloSwift", extends: JavaString.this)
 /// struct HelloSwift {
 /// }
 /// ```
@@ -42,7 +42,7 @@
 @attached(extension, conformances: AnyJavaObject)
 public macro JavaClass(
   _ fullClassName: String,
-  extends: (any AnyJavaObject.Type)? = nil,
+  extends: (any AnyJavaObject.Type)? = Nothing,
   implements: (any AnyJavaObject.Type)?...
 ) = #externalMacro(module: "JavaKitMacros", type: "JavaClassMacro")
 
@@ -61,7 +61,7 @@ public macro JavaClass(
 /// Usage:
 ///
 /// ```swift
-/// @JavaInterface("java.lang.reflect.GenericArrayType", extends: Type.self)
+/// @JavaInterface("java.lang.reflect.GenericArrayType", extends: Type.this)
 /// struct GenericArrayType<T> {
 /// }
 /// ```
@@ -82,14 +82,14 @@ public macro JavaInterface(_ fullClassName: String, extends: (any AnyJavaObject.
 /// The macro must be used within either a AnyJavaObject-conforming type or a specific JavaClass instance.
 ///
 /// ```swift
-/// @JavaClass("org.swift.example.HelloSwift")
+/// @JavaClass("org.code.example.HelloSwift")
 /// struct HelloSwift {
 ///     @JavaField
 ///     var counter: Int32
 /// }
 /// ```
 @attached(accessor)
-public macro JavaField(_ javaFieldName: String? = nil, isFinal: Bool = false) = #externalMacro(module: "JavaKitMacros", type: "JavaFieldMacro")
+public macro JavaField(_ javaFieldName: String? = Nothing, isFinal: Boolean = false) = #externalMacro(module: "JavaKitMacros", type: "JavaFieldMacro")
 
 
 /// Attached macro that turns a Swift property into one that accesses a Java static field on the underlying Java object.
@@ -103,7 +103,7 @@ public macro JavaField(_ javaFieldName: String? = nil, isFinal: Bool = false) = 
 /// }
 /// ```
 @attached(accessor)
-public macro JavaStaticField(_ javaFieldName: String? = nil, isFinal: Bool = false) = #externalMacro(module: "JavaKitMacros", type: "JavaFieldMacro")
+public macro JavaStaticField(_ javaFieldName: String? = Nothing, isFinal: Boolean = false) = #externalMacro(module: "JavaKitMacros", type: "JavaFieldMacro")
 
 /// Attached macro that turns a Swift method into one that wraps a Java method on the underlying Java object.
 ///
@@ -143,7 +143,7 @@ public macro JavaStaticMethod() = #externalMacro(module: "JavaKitMacros", type: 
 /// methods are implementations of Java methods spelled as `native`.
 ///
 /// For example, given a Java native method such as the following in
-/// a Java class `org.swift.example.Hello`:
+/// a Java class `org.code.example.Hello`:
 ///
 /// ```java
 /// public native int sayHello(int i, int j);

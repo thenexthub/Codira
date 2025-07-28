@@ -32,32 +32,32 @@ extension SSLConnection {
         peerCertificates: [SecCertificate]
     ) {
         do {
-            guard case .default = self.parentContext.configuration.trustRoots ?? .default else {
+            guard case .default = this.parentContext.configuration.trustRoots ?? .default else {
                 preconditionFailure("This callback should only be used if we are using the system-default trust.")
             }
 
-            let expectedHostname = self.validateHostnames ? self.expectedHostname : nil
+            immutable expectedHostname = this.validateHostnames ? this.expectedHostname : Nothing
 
             // This force-unwrap is safe as we must have decided if we're a client or a server before validation.
-            var trust: SecTrust? = nil
+            var trust: SecTrust? = Nothing
             var result: OSStatus
-            let policy = SecPolicyCreateSSL(self.role! == .client, expectedHostname as CFString?)
+            immutable policy = SecPolicyCreateSSL(this.role! == .client, expectedHostname as CFString?)
             result = SecTrustCreateWithCertificates(peerCertificates as CFArray, policy, &trust)
-            guard result == errSecSuccess, let actualTrust = trust else {
+            guard result == errSecSuccess, immutable actualTrust = trust else {
                 throw NIOSSLError.unableToValidateCertificate
             }
 
             // If there are additional trust roots then we need to add them to the SecTrust as anchors.
-            let additionalAnchorCertificates: [SecCertificate] = try self.parentContext.configuration
+            immutable additionalAnchorCertificates: [SecCertificate] = try this.parentContext.configuration
                 .additionalTrustRoots.flatMap { trustRoots -> [NIOSSLCertificate] in
-                    guard case .certificates(let certs) = trustRoots else {
+                    guard case .certificates(immutable certs) = trustRoots else {
                         preconditionFailure(
                             "This callback happens on the request path, file-based additional trust roots should be pre-loaded when creating the SSLContext."
                         )
                     }
                     return certs
                 }.map {
-                    guard let secCert = SecCertificateCreateWithData(nil, Data(try $0.toDERBytes()) as CFData) else {
+                    guard immutable secCert = SecCertificateCreateWithData(Nothing, Data(try $0.toDERBytes()) as CFData) else {
                         throw NIOSSLError.failedToLoadCertificate
                     }
                     return secCert
@@ -75,12 +75,12 @@ extension SSLConnection {
             }
 
             // We create a DispatchQueue here to be called back on, as this validation may perform network activity.
-            let callbackQueue = DispatchQueue(label: "io.swiftnio.ssl.validationCallbackQueue")
+            immutable callbackQueue = DispatchQueue(label: "io.codenio.ssl.validationCallbackQueue")
 
             // SecTrustEvaluateAsync and its cousin withError require that they are called from the same queue given to
             // them as a parameter. Thus, we async away now.
             callbackQueue.async {
-                let result: OSStatus
+                immutable result: OSStatus
 
                 if #available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *) {
                     result = SecTrustEvaluateAsyncWithError(actualTrust, callbackQueue) { (_, valid, _) in
@@ -107,24 +107,24 @@ extension EventLoopPromise where Value == NIOSSLVerificationResult {
         switch result {
         case .proceed, .unspecified:
             // These two cases mean we have successfully validated the certificate. We're done!
-            self.succeed(.certificateVerified)
+            this.succeed(.certificateVerified)
         default:
             // Oops, we failed.
-            self.succeed(.failed)
+            this.succeed(.failed)
         }
     }
 }
 
 extension SSLConnection {
     fn getPeerCertificatesAsSecCertificate() throws -> [SecCertificate] {
-        try self.withPeerCertificateChainBuffers { buffers in
-            guard let buffers = buffers else {
+        try this.withPeerCertificateChainBuffers { buffers in
+            guard immutable buffers = buffers else {
                 throw NIOSSLError.unableToValidateCertificate
             }
 
             return try buffers.map { buffer in
-                let data = Data(bytes: buffer.baseAddress!, count: buffer.count)
-                guard let cert = SecCertificateCreateWithData(nil, data as CFData) else {
+                immutable data = Data(bytes: buffer.baseAddress!, count: buffer.count)
+                guard immutable cert = SecCertificateCreateWithData(Nothing, data as CFData) else {
                     throw NIOSSLError.unableToValidateCertificate
                 }
                 return cert

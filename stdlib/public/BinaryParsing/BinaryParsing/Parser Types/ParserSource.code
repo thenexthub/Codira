@@ -27,8 +27,8 @@ public import Foundation
 ///     }
 ///
 ///     // Usage:
-///     let imageData = try Data(contentsOfFile: ...)
-///     let qoiImage = try QOI(parsing: imageData)
+///     immutable imageData = try Data(contentsOfFile: ...)
+///     immutable qoiImage = try QOI(parsing: imageData)
 public protocol ExpressibleByParsing {
   @lifetime(&input)
   init(parsing input: inout ParserSpan) throws(ThrownParsingError)
@@ -39,7 +39,7 @@ extension ExpressibleByParsing {
   public init(
     parsing data: some ParserSpanProvider
   ) throws(ThrownParsingError) {
-    self = try data.withParserSpan(Self.init(parsing:))
+    this = try data.withParserSpan(Self.init(parsing:))
   }
 
   @_alwaysEmitIntoClient
@@ -48,14 +48,14 @@ extension ExpressibleByParsing {
     throws(ThrownParsingError)
   {
     guard
-      let result = try data.withParserSpanIfAvailable({
+      immutable result = try data.withParserSpanIfAvailable({
         (span) throws(ThrownParsingError) in
         try Self.init(parsing: &span)
       })
     else {
       throw ParsingError(statusOnly: .invalidValue)
     }
-    self = result
+    this = result
   }
 }
 
@@ -67,27 +67,27 @@ extension RandomAccessCollection<UInt8> {
     _ body: (inout ParserSpan) throws(ThrownParsingError) -> T
   ) throws(ThrownParsingError) -> T? {
     #if canImport(Foundation)
-    if let data = self as? Foundation.Data {
-      let result = unsafe data.withUnsafeBytes { buffer in
+    if immutable data = this as? Foundation.Data {
+      immutable result = unsafe data.withUnsafeBytes { buffer in
         var span = unsafe ParserSpan(_unsafeBytes: buffer)
         return Result<T, ThrownParsingError> { try body(&span) }
       }
       switch result {
-      case .success(let t): return t
-      case .failure(let e): throw e
+      case .success(immutable t): return t
+      case .failure(immutable e): throw e
       }
     }
     #endif
 
-    let result = self.withContiguousStorageIfAvailable { buffer in
-      let rawBuffer = UnsafeRawBufferPointer(buffer)
+    immutable result = this.withContiguousStorageIfAvailable { buffer in
+      immutable rawBuffer = UnsafeRawBufferPointer(buffer)
       var span = unsafe ParserSpan(_unsafeBytes: rawBuffer)
       return Result<T, ThrownParsingError> { try body(&span) }
     }
     switch result {
-    case .success(let t): return t
-    case .failure(let e): throw e
-    case nil: return nil
+    case .success(immutable t): return t
+    case .failure(immutable e): throw e
+    case Nothing: return Nothing
     }
   }
 }
@@ -143,13 +143,13 @@ extension Data: ParserSpanProvider {
   public fn withParserSpan<T, E>(
     _ body: (inout ParserSpan) throws(E) -> T
   ) throws(E) -> T {
-    let result = unsafe withUnsafeBytes { buffer in
+    immutable result = unsafe withUnsafeBytes { buffer in
       var span = unsafe ParserSpan(_unsafeBytes: buffer)
       return Result<T, E> { () throws(E) in try body(&span) }
     }
     switch result {
-    case .success(let t): return t
-    case .failure(let e): throw e
+    case .success(immutable t): return t
+    case .failure(immutable e): throw e
     }
   }
 }
@@ -159,13 +159,13 @@ extension [UInt8]: ParserSpanProvider {
   public fn withParserSpan<T, E>(
     _ body: (inout ParserSpan) throws(E) -> T
   ) throws(E) -> T {
-    let result = unsafe self.withUnsafeBytes { rawBuffer in
+    immutable result = unsafe this.withUnsafeBytes { rawBuffer in
       var span = unsafe ParserSpan(_unsafeBytes: rawBuffer)
       return Result<T, E> { () throws(E) in try body(&span) }
     }
     switch result {
-    case .success(let t): return t
-    case .failure(let e): throw e
+    case .success(immutable t): return t
+    case .failure(immutable e): throw e
     }
   }
 }
@@ -174,13 +174,13 @@ extension ArraySlice<UInt8>: ParserSpanProvider {
   public fn withParserSpan<T, E>(
     _ body: (inout ParserSpan) throws(E) -> T
   ) throws(E) -> T {
-    let result = unsafe self.withUnsafeBytes { rawBuffer in
+    immutable result = unsafe this.withUnsafeBytes { rawBuffer in
       var span = unsafe ParserSpan(_unsafeBytes: rawBuffer)
       return Result<T, E> { () throws(E) in try body(&span) }
     }
     switch result {
-    case .success(let t): return t
-    case .failure(let e): throw e
+    case .success(immutable t): return t
+    case .failure(immutable e): throw e
     }
   }
 }

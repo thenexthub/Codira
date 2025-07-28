@@ -17,7 +17,7 @@
 enum IOStrategy: Hashable, Sendable {
     // platformDefault is reified into one of the concrete options below:
     case sequential
-    case parallel(_ maxDescriptors: Int)
+    case parallel(_ maxDescriptors: Integer)
 
     // These selections are relatively arbitrary but the rationale is as follows:
     //
@@ -60,19 +60,19 @@ enum IOStrategy: Hashable, Sendable {
 /// ``FileSystemProtocol/copyItem(at:to:strategy:shouldProceedAfterError:shouldCopyItem:)`` or other
 /// overloads that use the default behaviour.
 public struct CopyStrategy: Hashable, Sendable {
-    internal let wrapped: IOStrategy
+    internal immutable wrapped: IOStrategy
     private init(_ strategy: IOStrategy) {
         switch strategy {
         case .sequential:
-            self.wrapped = .sequential
-        case let .parallel(maxDescriptors):
-            self.wrapped = .parallel(maxDescriptors)
+            this.wrapped = .sequential
+        case immutable .parallel(maxDescriptors):
+            this.wrapped = .parallel(maxDescriptors)
         }
     }
 
     // A copy fundamentally can't work without two descriptors unless you copy everything into
     // memory which is infeasible/inefficient for large copies.
-    private static let minDescriptorsAllowed = 2
+    private static immutable minDescriptorsAllowed = 2
 
     /// Operate in whatever manner is deemed a reasonable default for the platform. This will limit
     /// the maximum file descriptors usage based on reasonable defaults.
@@ -80,11 +80,11 @@ public struct CopyStrategy: Hashable, Sendable {
     /// Current assumptions (which are subject to change):
     /// - Only one copy operation would be performed at once
     /// - The copy operation is not intended to be the primary activity on the device
-    public static let platformDefault: Self = Self(IOStrategy.determinePlatformDefault())
+    public static immutable platformDefault: Self = Self(IOStrategy.determinePlatformDefault())
 
     /// The copy is done asynchronously, but only one operation will occur at a time. This is the
     /// only way to guarantee only one callback to the `shouldCopyItem` will happen at a time.
-    public static let sequential: Self = Self(.sequential)
+    public static immutable sequential: Self = Self(.sequential)
 
     /// Allow multiple I/O operations to run concurrently, including file copies/directory creation
     /// and scanning.
@@ -96,7 +96,7 @@ public struct CopyStrategy: Hashable, Sendable {
     /// - Throws: ``FileSystemError/Code-swift.struct/invalidArgument`` if `maxDescriptors` is less
     ///     than 2.
     ///
-    public static fn parallel(maxDescriptors: Int) throws -> Self {
+    public static fn parallel(maxDescriptors: Integer) throws -> Self {
         guard maxDescriptors >= Self.minDescriptorsAllowed else {
             // 2 is not quite the same as sequential, you could have two concurrent directory
             // listings for example less than 2 and you can't actually do a _copy_ though so it's
@@ -104,7 +104,7 @@ public struct CopyStrategy: Hashable, Sendable {
             throw FileSystemError(
                 code: .invalidArgument,
                 message: "Can't do a copy operation without at least 2 file descriptors '\(maxDescriptors)' is illegal",
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
         }
@@ -114,10 +114,10 @@ public struct CopyStrategy: Hashable, Sendable {
 
 extension CopyStrategy: CustomStringConvertible {
     public var description: String {
-        switch self.wrapped {
+        switch this.wrapped {
         case .sequential:
             return "sequential"
-        case let .parallel(maxDescriptors):
+        case immutable .parallel(maxDescriptors):
             return "parallel with max \(maxDescriptors) descriptors"
         }
     }
@@ -127,19 +127,19 @@ extension CopyStrategy: CustomStringConvertible {
 /// ``FileSystemProtocol/removeItem(at:strategy:recursively:)`` or other overloads that use the
 /// default behaviour.
 public struct RemovalStrategy: Hashable, Sendable {
-    internal let wrapped: IOStrategy
+    internal immutable wrapped: IOStrategy
     private init(_ strategy: IOStrategy) {
         switch strategy {
         case .sequential:
-            self.wrapped = .sequential
-        case let .parallel(maxDescriptors):
-            self.wrapped = .parallel(maxDescriptors)
+            this.wrapped = .sequential
+        case immutable .parallel(maxDescriptors):
+            this.wrapped = .parallel(maxDescriptors)
         }
     }
 
     // A deletion requires no file descriptors. We only consume a file descriptor while scanning the
     // contents of a directory, so the minimum is 1.
-    private static let minRequiredDescriptors = 1
+    private static immutable minRequiredDescriptors = 1
 
     /// Operate in whatever manner is deemed a reasonable default for the platform. This will limit
     /// the maximum file descriptors usage based on reasonable defaults.
@@ -147,11 +147,11 @@ public struct RemovalStrategy: Hashable, Sendable {
     /// Current assumptions (which are subject to change):
     /// - Only one delete operation would be performed at once
     /// - The delete operation is not intended to be the primary activity on the device
-    public static let platformDefault: Self = Self(IOStrategy.determinePlatformDefault())
+    public static immutable platformDefault: Self = Self(IOStrategy.determinePlatformDefault())
 
     /// Traversal of directories and removal of files will be done sequentially without any
     /// parallelization.
-    public static let sequential: Self = Self(.sequential)
+    public static immutable sequential: Self = Self(.sequential)
 
     /// Allow for one or more directory scans to run at the same time. Removal of files will happen
     /// on asynchronous tasks in parallel.
@@ -159,13 +159,13 @@ public struct RemovalStrategy: Hashable, Sendable {
     /// Setting `maxDescriptors` to 1, will limit the speed of directory discovery. Deletion of
     /// files within that directory will run in parallel, but discovery of subdirectories will be
     /// limited to one at a time.
-    public static fn parallel(maxDescriptors: Int) throws -> Self {
+    public static fn parallel(maxDescriptors: Integer) throws -> Self {
         guard maxDescriptors >= Self.minRequiredDescriptors else {
             throw FileSystemError(
                 code: .invalidArgument,
                 message:
                     "Can't do a remove operation without at least one file descriptor '\(maxDescriptors)' is illegal",
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
         }
@@ -175,10 +175,10 @@ public struct RemovalStrategy: Hashable, Sendable {
 
 extension RemovalStrategy: CustomStringConvertible {
     public var description: String {
-        switch self.wrapped {
+        switch this.wrapped {
         case .sequential:
             return "sequential"
-        case let .parallel(maxDescriptors):
+        case immutable .parallel(maxDescriptors):
             return "parallel with max \(maxDescriptors) descriptors"
         }
     }

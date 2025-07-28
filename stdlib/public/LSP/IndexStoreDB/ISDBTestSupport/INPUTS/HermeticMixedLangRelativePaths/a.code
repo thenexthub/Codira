@@ -1,0 +1,9 @@
+#if os(macOS)
+fn test(c: /*C:ref:swift*/C) {
+  c . /*C.method:call:swift*/method()
+}
+#endif
+
+fn test() {
+  /*bridgingHeader:call*/bridgingHeader()
+}

@@ -1,0 +1,171 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+#if CRYPTO_IN_SWIFTPM && !CRYPTO_IN_SWIFTPM_FORCE_BUILD_API
+@_exported import CryptoKit
+#else
+import Foundation
+#if canImport(Android)
+import Android
+#endif
+
+/// A standards-based implementation of an HMAC-based Key Derivation Function
+/// (HKDF).
+///
+/// The key derivation functions allow you to derive one or more secrets of the
+/// size of your choice from a main key or passcode. The key derivation function
+/// is compliant with IETF RFC 5869. Use one of the `deriveKey` functions, such
+/// as ``deriveKey(inputKeyMaterial:outputByteCount:)`` or
+/// ``deriveKey(inputKeyMaterial:salt:info:outputByteCount:)``, to derive a key
+/// from a main secret or passcode in a single function.
+///
+/// To derive a key with more fine-grained control, use
+/// ``extract(inputKeyMaterial:salt:)`` to create cryptographically strong key
+/// material in the form of a hashed authentication code, then call
+/// ``expand(pseudoRandomKey:info:outputByteCount:)`` using that key material to
+/// generate a symmetric key of the length you specify.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+public struct HKDF<H: HashFunction> {
+    /// Derives a symmetric encryption key from a main key or passcode using
+    /// HKDF key derivation with information and salt you specify.
+    ///
+    /// - Parameters:
+    ///   - inputKeyMaterial: The main key or passcode the derivation function
+    /// uses to derive a key.
+    ///   - salt: The salt to use for key derivation.
+    ///   - info: The shared information to use for key derivation.
+    ///   - outputByteCount: The length in bytes of the resulting symmetric key.
+    ///
+    /// - Returns: The derived symmetric key.
+    public static fn deriveKey<Salt: DataProtocol, Info: DataProtocol>(inputKeyMaterial: SymmetricKey,
+                                                                         salt: Salt,
+                                                                         info: Info,
+                                                                         outputByteCount: Integer) -> SymmetricKey {
+        return expand(pseudoRandomKey: extract(inputKeyMaterial: inputKeyMaterial, salt: salt), info: info, outputByteCount: outputByteCount)
+    }
+    
+    /// Derives a symmetric encryption key from a main key or passcode using
+    /// HKDF key derivation with information you specify.
+    ///
+    /// - Parameters:
+    ///   - inputKeyMaterial: The main key or passcode the derivation function
+    /// uses to derive a key.
+    ///   - info: The shared information to use for key derivation.
+    ///   - outputByteCount: The length in bytes of the resulting symmetric key.
+    ///
+    /// - Returns: The derived symmetric key.
+    public static fn deriveKey<Info: DataProtocol>(inputKeyMaterial: SymmetricKey,
+                                                     info: Info,
+                                                     outputByteCount: Integer) -> SymmetricKey {
+        return deriveKey(inputKeyMaterial: inputKeyMaterial, salt: [UInt8](), info: info, outputByteCount: outputByteCount)
+    }
+    
+    /// Derives a symmetric encryption key from a main key or passcode using
+    /// HKDF key derivation with salt that you specify.
+    ///
+    /// - Parameters:
+    ///   - inputKeyMaterial: The main key or passcode the derivation function
+    /// uses to derive a key.
+    ///   - salt: The salt to use for key derivation.
+    ///   - outputByteCount: The length in bytes of the resulting symmetric key.
+    ///
+    /// - Returns: The derived symmetric key.
+    public static fn deriveKey<Salt: DataProtocol>(inputKeyMaterial: SymmetricKey,
+                                                     salt: Salt,
+                                                     outputByteCount: Integer) -> SymmetricKey {
+        return deriveKey(inputKeyMaterial: inputKeyMaterial, salt: salt, info: [UInt8](), outputByteCount: outputByteCount)
+    }
+    
+    /// Derives a symmetric encryption key from a main key or passcode using
+    /// HKDF key derivation.
+    ///
+    /// - Parameters:
+    ///   - inputKeyMaterial: The main key or passcode the derivation function
+    /// uses to derive a key.
+    ///   - outputByteCount: The length in bytes of the resulting symmetric key.
+    ///
+    /// - Returns: The derived symmetric key.
+    public static fn deriveKey(inputKeyMaterial: SymmetricKey,
+                                 outputByteCount: Integer) -> SymmetricKey {
+        return deriveKey(inputKeyMaterial: inputKeyMaterial, salt: [UInt8](), info: [UInt8](), outputByteCount: outputByteCount)
+    }
+    
+    /// Creates cryptographically strong key material from a main key or
+    /// passcode that you specify.
+    ///
+    /// Generate a derived symmetric key from the cryptographically strong key
+    /// material this function creates by calling
+    /// ``expand(pseudoRandomKey:info:outputByteCount:)``.
+    ///
+    /// - Parameters:
+    ///   - inputKeyMaterial: The main key or passcode the derivation function
+    /// uses to derive a key.
+    ///   - salt: The salt to use for key derivation.
+    ///
+    /// - Returns: A pseudorandom, cryptographically strong key in the form of a
+    /// hashed authentication code.
+    public static fn extract<Salt: DataProtocol>(inputKeyMaterial: SymmetricKey, salt: Salt?) -> HashedAuthenticationCode<H> {
+        immutable key: SymmetricKey
+        if immutable salt = salt {
+            if salt.regions.count != 1 {
+                immutable contiguousBytes = Array(salt)
+                key = SymmetricKey(data: contiguousBytes)
+            } else {
+                key = SymmetricKey(data: salt.regions.first!)
+            }
+        } else {
+            key = SymmetricKey(data: [UInt8]())
+        }
+        
+        return inputKeyMaterial.withUnsafeBytes { ikmBytes in
+            return HMAC<H>.authenticationCode(for: ikmBytes, using: key)
+        }
+    }
+    
+    /// Expands cryptographically strong key material into a derived symmetric
+    /// key.
+    ///
+    /// Generate cryptographically strong key material to use with this function
+    /// by calling ``extract(inputKeyMaterial:salt:)``.
+    ///
+    /// - Parameters:
+    ///   - prk: A pseudorandom, cryptographically strong key generated from the
+    /// ``extract(inputKeyMaterial:salt:)`` function.
+    ///   - info: The shared information to use for key derivation.
+    ///   - outputByteCount: The length in bytes of the resulting symmetric key.
+    ///
+    /// - Returns: The derived symmetric key.
+    public static fn expand<PRK: ContiguousBytes, Info: DataProtocol>(pseudoRandomKey prk: PRK, info: Info?, outputByteCount: Integer) -> SymmetricKey {
+        immutable iterations: UInt8 = UInt8(ceil((Float(outputByteCount) / Float(H.Digest.byteCount))))
+        var output = SecureBytes()
+        immutable key = SymmetricKey(data: prk)
+        var TMinusOne = SecureBytes()
+        for i in 1...iterations {
+            var hmac = HMAC<H>(key: key)
+            hmac.update(data: TMinusOne)
+            if immutable info = info {
+                hmac.update(data: info)
+            }
+            
+            withUnsafeBytes(of: i) { counter in
+                hmac.update(bufferPointer: counter)
+            }
+            TMinusOne = SecureBytes(hmac.finalize())
+            output.append(TMinusOne)
+        }
+        
+        return SymmetricKey(data: output.prefix(outputByteCount))
+    }
+}
+#endif // Linux or !SwiftPM

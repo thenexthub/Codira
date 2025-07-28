@@ -1,0 +1,85 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.lang.ProcessBuilder")
+open class ProcessBuilder: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: List<JavaString>?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [String], environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn redirectInput() -> ProcessBuilder.Redirect!
+
+  @JavaMethod
+  open fn redirectInput(_ arg0: ProcessBuilder.Redirect?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectInput(_ arg0: File?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectOutput() -> ProcessBuilder.Redirect!
+
+  @JavaMethod
+  open fn redirectOutput(_ arg0: ProcessBuilder.Redirect?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectOutput(_ arg0: File?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectError(_ arg0: File?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectError(_ arg0: ProcessBuilder.Redirect?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectError() -> ProcessBuilder.Redirect!
+
+  @JavaMethod
+  open fn redirectErrorStream(_ arg0: Boolean) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn redirectErrorStream() -> Boolean
+
+  @JavaMethod
+  open fn inheritIO() -> ProcessBuilder!
+
+  @JavaMethod
+  open fn directory() -> File!
+
+  @JavaMethod
+  open fn directory(_ arg0: File?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn start() throws -> Process!
+
+  @JavaMethod
+  open fn command(_ arg0: List<JavaString>?) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn command(_ arg0: [String]) -> ProcessBuilder!
+
+  @JavaMethod
+  open fn command() -> List<JavaString>!
+}
+extension JavaClass<ProcessBuilder> {
+  @JavaStaticMethod
+  public fn startPipeline(_ arg0: List<ProcessBuilder>?) throws -> List<Process>!
+}

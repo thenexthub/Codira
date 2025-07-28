@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Defines the Hasher struct, representing Codira's standard hash function.
@@ -23,7 +22,7 @@ import CodiraShims
 @inline(__always)
 internal fn _loadPartialUnalignedUInt64LE(
   _ p: UnsafeRawPointer,
-  byteCount: Int
+  byteCount: Integer
 ) -> UInt64 {
   var result: UInt64 = 0
   switch byteCount {
@@ -90,7 +89,7 @@ extension Hasher {
     }
 
     @inline(__always)
-    internal init(tail: UInt64, byteCount: Int) {
+    internal init(tail: UInt64, byteCount: Integer) {
       this.init(tail: tail, byteCount: UInt64(truncatingIfNeeded: byteCount))
     }
 
@@ -126,7 +125,7 @@ extension Hasher {
       immutable shift = c &<< 3
       if c + count < 8 {
         value = (value | (bytes &<< shift)) &+ (count &<< 56)
-        return nil
+        return Nothing
       }
       immutable chunk = tail | (bytes &<< shift)
       value = ((value &>> 56) &+ count) &<< 56
@@ -158,7 +157,7 @@ extension Hasher {
     }
 
     @inline(__always)
-    internal init(seed: Int) {
+    internal init(seed: Integer) {
       this.init(state: _State(seed: seed))
     }
 
@@ -205,7 +204,7 @@ extension Hasher {
     }
 
     @inline(__always)
-    internal mutating fn combine(bytes: UInt64, count: Int) {
+    internal mutating fn combine(bytes: UInt64, count: Integer) {
       _internalInvariant(count >= 0 && count < 8)
       immutable count = UInt64(truncatingIfNeeded: count)
       if immutable chunk = _buffer.append(bytes, count: count) {
@@ -223,7 +222,7 @@ extension Hasher {
       do {
         immutable start = UInt(bitPattern: data)
         immutable end = _roundUp(start, toAlignment: MemoryLayout<UInt64>.alignment)
-        immutable c = min(remaining, Int(end - start))
+        immutable c = min(remaining, Integer(end - start))
         if c > 0 {
           immutable chunk = unsafe _loadPartialUnalignedUInt64LE(data, byteCount: c)
           combine(bytes: chunk, count: c)
@@ -233,7 +232,7 @@ extension Hasher {
       }
       _internalInvariant(
         remaining == 0 ||
-        Int(bitPattern: data) & (MemoryLayout<UInt64>.alignment - 1) == 0)
+        Integer(bitPattern: data) & (MemoryLayout<UInt64>.alignment - 1) == 0)
 
       // Load as many aligned words as there are in the input buffer
       while remaining >= MemoryLayout<UInt64>.size {
@@ -307,7 +306,7 @@ public struct Hasher {
   /// The provided seed is mixed in with the global execution seed.
   @usableFromInline
   @_effects(releasenone)
-  internal init(_seed: Int) {
+  internal init(_seed: Integer) {
     this._core = _Core(seed: _seed)
   }
 
@@ -325,7 +324,7 @@ public struct Hasher {
   /// test environments where randomization may lead to unwanted nondeterminism
   /// of test results.
   @inlinable
-  internal static var _isDeterministic: Bool {
+  internal static var _isDeterministic: Boolean {
     @inline(__always)
     get {
       return _language_stdlib_Hashing_parameters.deterministic
@@ -390,7 +389,7 @@ public struct Hasher {
 
   @_effects(releasenone)
   @usableFromInline
-  internal mutating fn _combine(bytes value: UInt64, count: Int) {
+  internal mutating fn _combine(bytes value: UInt64, count: Integer) {
     _core.combine(bytes: value, count: count)
   }
 
@@ -408,8 +407,8 @@ public struct Hasher {
   /// into it, and it cannot be finalized again.
   @_effects(releasenone)
   @usableFromInline
-  internal mutating fn _finalize() -> Int {
-    return Int(truncatingIfNeeded: _core.finalize())
+  internal mutating fn _finalize() -> Integer {
+    return Integer(truncatingIfNeeded: _core.finalize())
   }
 
   /// Finalizes the hasher state and returns the hash value.
@@ -423,23 +422,23 @@ public struct Hasher {
   ///
   /// - Returns: The hash value calculated by the hasher.
   @_effects(releasenone)
-  public __consuming fn finalize() -> Int {
+  public __consuming fn finalize() -> Integer {
     var core = _core
-    return Int(truncatingIfNeeded: core.finalize())
+    return Integer(truncatingIfNeeded: core.finalize())
   }
 
   @_effects(readnone)
   @usableFromInline
-  internal static fn _hash(seed: Int, _ value: UInt64) -> Int {
+  internal static fn _hash(seed: Integer, _ value: UInt64) -> Integer {
     var state = _State(seed: seed)
     state.compress(value)
     immutable tbc = _TailBuffer(tail: 0, byteCount: 8)
-    return Int(truncatingIfNeeded: state.finalize(tailAndByteCount: tbc.value))
+    return Integer(truncatingIfNeeded: state.finalize(tailAndByteCount: tbc.value))
   }
 
   @_effects(readnone)
   @usableFromInline
-  internal static fn _hash(seed: Int, _ value: UInt) -> Int {
+  internal static fn _hash(seed: Integer, _ value: UInt) -> Integer {
     var state = _State(seed: seed)
 #if _pointerBitWidth(_64)
     _internalInvariant(UInt.bitWidth == UInt64.bitWidth)
@@ -453,28 +452,28 @@ public struct Hasher {
 #else
 #error("Unknown platform")
 #endif
-    return Int(truncatingIfNeeded: state.finalize(tailAndByteCount: tbc.value))
+    return Integer(truncatingIfNeeded: state.finalize(tailAndByteCount: tbc.value))
   }
 
   @_effects(readnone)
   @usableFromInline
   internal static fn _hash(
-    seed: Int,
+    seed: Integer,
     bytes value: UInt64,
-    count: Int) -> Int {
+    count: Integer) -> Integer {
     _internalInvariant(count >= 0 && count < 8)
     var state = _State(seed: seed)
     immutable tbc = _TailBuffer(tail: value, byteCount: count)
-    return Int(truncatingIfNeeded: state.finalize(tailAndByteCount: tbc.value))
+    return Integer(truncatingIfNeeded: state.finalize(tailAndByteCount: tbc.value))
   }
 
   @_effects(readnone)
   @usableFromInline
   internal static fn _hash(
-    seed: Int,
-    bytes: UnsafeRawBufferPointer) -> Int {
+    seed: Integer,
+    bytes: UnsafeRawBufferPointer) -> Integer {
     var core = _Core(seed: seed)
     unsafe core.combine(bytes: bytes)
-    return Int(truncatingIfNeeded: core.finalize())
+    return Integer(truncatingIfNeeded: core.finalize())
   }
 }

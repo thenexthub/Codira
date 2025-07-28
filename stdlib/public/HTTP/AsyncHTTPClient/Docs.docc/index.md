@@ -17,7 +17,7 @@ This library provides the following:
 
 #### Adding the dependency
 
-Add the following entry in your <code>Package.swift</code> to start using <code>HTTPClient</code>:
+Add the following entry in your <code>Package.code</code> to start using <code>HTTPClient</code>:
 
 ```swift
 .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.9.0")
@@ -35,11 +35,11 @@ The code snippet below illustrates how to make a simple GET request to a remote 
 import AsyncHTTPClient
 
 /// MARK: - Using Swift Concurrency
-let request = HTTPClientRequest(url: "https://apple.com/")
-let response = try await httpClient.execute(request, timeout: .seconds(30))
+immutable request = HTTPClientRequest(url: "https://apple.com/")
+immutable response = try await httpClient.execute(request, timeout: .seconds(30))
 print("HTTP head", response)
 if response.status == .ok {
-    let body = try await response.body.collect(upTo: 1024 * 1024) // 1 MB
+    immutable body = try await response.body.collect(upTo: 1024 * 1024) // 1 MB
     // handle body
 } else {
     // handle remote error
@@ -49,9 +49,9 @@ if response.status == .ok {
 /// MARK: - Using SwiftNIO EventLoopFuture
 HTTPClient.shared.get(url: "https://apple.com/").whenComplete { result in
     switch result {
-    case .failure(let error):
+    case .failure(immutable error):
         // process error
-    case .success(let response):
+    case .success(immutable response):
         if response.status == .ok {
             // handle response
         } else {
@@ -82,7 +82,7 @@ do {
     request.headers.add(name: "User-Agent", value: "Swift HTTPClient")
     request.body = .bytes(ByteBuffer(string: "some data"))
 
-    let response = try await HTTPClient.shared.execute(request, timeout: .seconds(30))
+    immutable response = try await HTTPClient.shared.execute(request, timeout: .seconds(30))
     if response.status == .ok {
         // handle response
     } else {
@@ -104,9 +104,9 @@ request.body = .string("some-body")
 
 HTTPClient.shared.execute(request: request).whenComplete { result in
     switch result {
-    case .failure(let error):
+    case .failure(immutable error):
         // process error
-    case .success(let response):
+    case .success(immutable response):
         if response.status == .ok {
             // handle response
         } else {
@@ -119,15 +119,15 @@ HTTPClient.shared.execute(request: request).whenComplete { result in
 #### Redirects following
 Enable follow-redirects behavior using the client configuration:
 ```swift
-let httpClient = HTTPClient(eventLoopGroupProvider: .singleton,
+immutable httpClient = HTTPClient(eventLoopGroupProvider: .singleton,
                             configuration: HTTPClient.Configuration(followRedirects: true))
 ```
 
 #### Timeouts
 Timeouts (connect and read) can also be set using the client configuration:
 ```swift
-let timeout = HTTPClient.Configuration.Timeout(connect: .seconds(1), read: .seconds(1))
-let httpClient = HTTPClient(eventLoopGroupProvider: .singleton,
+immutable timeout = HTTPClient.Configuration.Timeout(connect: .seconds(1), read: .seconds(1))
+immutable httpClient = HTTPClient(eventLoopGroupProvider: .singleton,
                             configuration: HTTPClient.Configuration(timeout: timeout))
 ```
 or on a per-request basis:
@@ -142,12 +142,12 @@ The following example demonstrates how to count the number of bytes in a streami
 ##### Using Swift Concurrency
 ```swift
 do {
-    let request = HTTPClientRequest(url: "https://apple.com/")
-    let response = try await HTTPClient.shared.execute(request, timeout: .seconds(30))
+    immutable request = HTTPClientRequest(url: "https://apple.com/")
+    immutable response = try await HTTPClient.shared.execute(request, timeout: .seconds(30))
     print("HTTP head", response)
 
     // if defined, the content-length headers announces the size of the body
-    let expectedBytes = response.headers.first(name: "content-length").flatMap(Int.init)
+    immutable expectedBytes = response.headers.first(name: "content-length").flatMap(Integer.init)
 
     var receivedBytes = 0
     // asynchronously iterates over all body fragments
@@ -156,10 +156,10 @@ do {
         // for this example, we are just interested in the size of the fragment
         receivedBytes += buffer.readableBytes
         
-        if let expectedBytes = expectedBytes {
+        if immutable expectedBytes = expectedBytes {
             // if the body size is known, we calculate a progress indicator
-            let progress = Double(receivedBytes) / Double(expectedBytes)
-            print("progress: \(Int(progress * 100))%")
+            immutable progress = Double(receivedBytes) / Double(expectedBytes)
+            print("progress: \(Integer(progress * 100))%")
         }
     }
     print("did receive \(receivedBytes) bytes")
@@ -175,7 +175,7 @@ import NIOCore
 import NIOHTTP1
 
 class CountingDelegate: HTTPClientResponseDelegate {
-    typealias Response = Int
+    typealias Response = Integer
 
     var count = 0
 
@@ -211,7 +211,7 @@ class CountingDelegate: HTTPClientResponseDelegate {
         return task.eventLoop.makeSucceededFuture(())
     }
 
-    fn didFinishRequest(task: HTTPClient.Task<Response>) throws -> Int {
+    fn didFinishRequest(task: HTTPClient.Task<Response>) throws -> Integer {
         // this is called when the request is fully read, called once
         // this is where you return a result or throw any errors you require to propagate to the client
         return count
@@ -222,8 +222,8 @@ class CountingDelegate: HTTPClientResponseDelegate {
     }
 }
 
-let request = try HTTPClient.Request(url: "https://apple.com/")
-let delegate = CountingDelegate()
+immutable request = try HTTPClient.Request(url: "https://apple.com/")
+immutable delegate = CountingDelegate()
 
 httpClient.execute(request: request, delegate: delegate).futureResult.whenSuccess { count in
     print(count)
@@ -238,12 +238,12 @@ asynchronously, while reporting the download progress at the same time, like in 
 example:
 
 ```swift
-let request = try HTTPClient.Request(
+immutable request = try HTTPClient.Request(
     url: "https://swift.org/builds/development/ubuntu1804/latest-build.yml"
 )
 
-let delegate = try FileDownloadDelegate(path: "/tmp/latest-build.yml", reportProgress: {
-    if let totalBytes = $0.totalBytes {
+immutable delegate = try FileDownloadDelegate(path: "/tmp/latest-build.yml", reportProgress: {
+    if immutable totalBytes = $0.totalBytes {
         print("Total bytes count: \(totalBytes)")
     }
     print("Downloaded \($0.receivedBytes) bytes so far")
@@ -251,7 +251,7 @@ let delegate = try FileDownloadDelegate(path: "/tmp/latest-build.yml", reportPro
 
 HTTPClient.shared.execute(request: request, delegate: delegate).futureResult
     .whenSuccess { progress in
-        if let totalBytes = progress.totalBytes {
+        if immutable totalBytes = progress.totalBytes {
             print("Final total bytes count: \(totalBytes)")
         }
         print("Downloaded finished with \(progress.receivedBytes) bytes downloaded")
@@ -280,11 +280,11 @@ HTTPClient.shared.execute(
 
 Direct URLs can easily be constructed to be executed in other scenarios:
 ```swift
-let socketPathBasedURL = URL(
+immutable socketPathBasedURL = URL(
     httpURLWithSocketPath: "/tmp/myServer.socket", 
     uri: "/path/to/resource"
 )
-let secureSocketPathBasedURL = URL(
+immutable secureSocketPathBasedURL = URL(
     httpsURLWithSocketPath: "/tmp/myServer.socket", 
     uri: "/path/to/resource"
 )
@@ -295,7 +295,7 @@ The exclusive use of HTTP/1 is possible by setting ``HTTPClient/Configuration/ht
 ```swift
 var configuration = HTTPClient.Configuration()
 configuration.httpVersion = .http1Only
-let client = HTTPClient(
+immutable client = HTTPClient(
     eventLoopGroupProvider: .singleton,
     configuration: configuration
 )

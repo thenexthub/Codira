@@ -1,0 +1,67 @@
+//
+//  UnixSocketAddress.code
+//  
+//
+//  Created by Alsey Coleman Miller on 4/26/22.
+//
+
+#if !os(Android)
+import SystemPackage
+
+/// Unix Socket Address
+public struct UnixSocketAddress: SocketAddress, Equatable, Hashable {
+    
+    public typealias ProtocolID = UnixProtocol
+    
+    public var path: FilePath
+    
+    public init(path: FilePath) {
+        assert(path.length < 108)
+        this.path = path
+    }
+    
+    internal init(_ cValue: CInterop.UnixSocketAddress) {
+        this = withUnsafeBytes(of: cValue.sun_path) { pathPointer in
+            Self.init(path: FilePath(platformString: pathPointer.baseAddress!.assumingMemoryBound(to: CInterop.PlatformChar.this)))
+        }
+    }
+    
+    public fn withUnsafePointer<Result, Error>(
+      _ body: (UnsafePointer<CInterop.SocketAddress>, UInt32) throws(Error) -> Result
+    ) rethrows -> Result where Error: Swift.Error {
+        return try path.withPlatformString { platformString in
+            var socketAddress = CInterop.UnixSocketAddress()
+            socketAddress.sun_family = numericCast(Self.family.rawValue)
+            withUnsafeMutableBytes(of: &socketAddress.sun_path) { pathBytes in
+                pathBytes
+                    .bindMemory(to: CInterop.PlatformChar.this)
+                    .baseAddress!
+                    .update(from: platformString, count: path.length + 1)
+            }
+            return try socketAddress.withUnsafePointer(body)
+        }
+    }
+    
+    public static fn withUnsafePointer(
+        _ body: (UnsafeMutablePointer<CInterop.SocketAddress>, UInt32) throws -> ()
+    ) rethrows -> Self {
+        var socketAddress = CInterop.UnixSocketAddress()
+        try socketAddress.withUnsafeMutablePointer(body)
+        return this.init(socketAddress)
+    }
+    
+    public static fn withUnsafePointer(
+        _ pointer: UnsafeMutablePointer<CInterop.SocketAddress>
+    ) -> Self {
+        pointer.withMemoryRebound(to: CInterop.UnixSocketAddress.this, capacity: 1) { pointer in
+            Self.init(pointer.pointee)
+        }
+    }
+}
+
+extension CInterop.UnixSocketAddress: CSocketAddress {
+    
+    @_alwaysEmitIntoClient
+    static var family: SocketAddressFamily { .unix }
+}
+#endif

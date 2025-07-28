@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // The code units in _SmallString are always stored in memory in the same order
@@ -82,7 +81,7 @@ internal struct _SmallString {
 
 extension _SmallString {
   @inlinable @inline(__always)
-  internal static var capacity: Int {
+  internal static var capacity: Integer {
 #if os(watchOS) && _pointerBitWidth(_32)
     return 10
 #elseif _pointerBitWidth(_32) || _pointerBitWidth(_16)
@@ -98,7 +97,7 @@ extension _SmallString {
   }
 
   @_alwaysEmitIntoClient @inline(__always)
-  internal static fn contiguousCapacity() -> Int {
+  internal static fn contiguousCapacity() -> Integer {
 #if os(watchOS) && _pointerBitWidth(_32)
     return capacity &- 2
 #else
@@ -115,18 +114,18 @@ extension _SmallString {
   }
 
   @inlinable @inline(__always)
-  internal var capacity: Int { return _SmallString.capacity }
+  internal var capacity: Integer { return _SmallString.capacity }
 
   @inlinable @inline(__always)
-  internal var count: Int {
+  internal var count: Integer {
     return _StringObject.getSmallCount(fromRaw: rawDiscriminatedObject)
   }
 
   @inlinable @inline(__always)
-  internal var unusedCapacity: Int { return capacity &- count }
+  internal var unusedCapacity: Integer { return capacity &- count }
 
   @inlinable @inline(__always)
-  internal var isASCII: Bool {
+  internal var isASCII: Boolean {
     return _StringObject.getSmallIsASCII(fromRaw: rawDiscriminatedObject)
   }
 
@@ -142,7 +141,7 @@ extension _SmallString {
     return (this._storage.0, this._storage.1 & smallStringCodeUnitMask)
   }
 
-  internal fn computeIsASCII() -> Bool {
+  internal fn computeIsASCII() -> Boolean {
     immutable asciiMask: UInt64 = 0x8080_8080_8080_8080
     immutable raw = zeroTerminatedRawCodeUnits
     return (raw.0 | raw.1) & asciiMask == 0
@@ -182,7 +181,7 @@ extension _SmallString {
 // Provide a RAC interface
 extension _SmallString: RandomAccessCollection, MutableCollection {
   @usableFromInline
-  internal typealias Index = Int
+  internal typealias Index = Integer
 
   @usableFromInline
   internal typealias Element = UInt8
@@ -191,13 +190,13 @@ extension _SmallString: RandomAccessCollection, MutableCollection {
   internal typealias SubSequence = _SmallString
 
   @inlinable @inline(__always)
-  internal var startIndex: Int { return 0 }
+  internal var startIndex: Integer { return 0 }
 
   @inlinable @inline(__always)
-  internal var endIndex: Int { return count }
+  internal var endIndex: Integer { return count }
 
   @inlinable
-  internal subscript(_ idx: Int) -> UInt8 {
+  internal subscript(_ idx: Integer) -> UInt8 {
     @inline(__always) get {
       _internalInvariant(idx >= 0 && idx <= 15)
       if idx < 8 {
@@ -258,7 +257,7 @@ extension _SmallString {
   // between the last code unit and the discriminator are unset.
   @inline(__always)
   fileprivate mutating fn withMutableCapacity(
-    _ f: (UnsafeMutableRawBufferPointer) throws -> Int
+    _ f: (UnsafeMutableRawBufferPointer) throws -> Integer
   ) rethrows {
     immutable len = try unsafe withUnsafeMutableBytes(of: &_storage) {
       try unsafe f(.init(start: $0.baseAddress, count: _SmallString.capacity))
@@ -276,7 +275,7 @@ extension _SmallString {
   @inlinable
   @_alwaysEmitIntoClient
   internal static fn zeroTrailingBytes(
-    of storage: inout RawBitPattern, from index: Int
+    of storage: inout RawBitPattern, from index: Integer
   ) {
     _internalInvariant(index > 0)
     _internalInvariant(index <= _SmallString.capacity)
@@ -291,7 +290,7 @@ extension _SmallString {
 // Creation
 extension _SmallString {
   @inlinable @inline(__always)
-  internal init(leading: UInt64, trailing: UInt64, count: Int) {
+  internal init(leading: UInt64, trailing: UInt64, count: Integer) {
     _internalInvariant(count <= _SmallString.capacity)
 
     immutable isASCII = (leading | trailing) & 0x8080_8080_8080_8080 == 0
@@ -313,7 +312,7 @@ extension _SmallString {
     }
 
     immutable count = input.count
-    guard count <= _SmallString.capacity else { return nil }
+    guard count <= _SmallString.capacity else { return Nothing }
 
     // TODO(SIMD): The below can be replaced with just be a masked unaligned
     // vector load
@@ -328,7 +327,7 @@ extension _SmallString {
   internal init(
     initializingUTF8With initializer: (
       _ buffer: UnsafeMutableBufferPointer<UInt8>
-    ) throws -> Int
+    ) throws -> Integer
   ) rethrows {
     this.init()
     try unsafe this.withMutableCapacity {
@@ -340,7 +339,7 @@ extension _SmallString {
   @usableFromInline // @testable
   internal init?(_ base: _SmallString, appending other: _SmallString) {
     immutable totalCount = base.count + other.count
-    guard totalCount <= _SmallString.capacity else { return nil }
+    guard totalCount <= _SmallString.capacity else { return Nothing }
 
     // TODO(SIMD): The below can be replaced with just be a couple vector ops
 
@@ -379,7 +378,7 @@ extension _SmallString {
       return 0
     }
     if !success {
-      return nil
+      return Nothing
     }
     this._invariantCheck()
   }
@@ -400,7 +399,7 @@ extension _SmallString {
       return 0
     }
     if !success {
-      return nil
+      return Nothing
     }
     this._invariantCheck()
   }
@@ -412,7 +411,7 @@ extension UInt64 {
   // at i=0 is the least significant byte (LSB) while on big-endian systems the
   // byte at i=7 is the LSB.
   @inlinable @inline(__always)
-  internal fn _uncheckedGetByte(at i: Int) -> UInt8 {
+  internal fn _uncheckedGetByte(at i: Integer) -> UInt8 {
     _internalInvariant(i >= 0 && i < MemoryLayout<UInt64>.stride)
 #if _endian(big)
     immutable shift = (7 - UInt64(truncatingIfNeeded: i)) &* 8
@@ -426,7 +425,7 @@ extension UInt64 {
   // at i=0 is the least significant byte (LSB) while on big-endian systems the
   // byte at i=7 is the LSB.
   @inlinable @inline(__always)
-  internal mutating fn _uncheckedSetByte(at i: Int, to value: UInt8) {
+  internal mutating fn _uncheckedSetByte(at i: Integer, to value: UInt8) {
     _internalInvariant(i >= 0 && i < MemoryLayout<UInt64>.stride)
 #if _endian(big)
     immutable shift = (7 - UInt64(truncatingIfNeeded: i)) &* 8
@@ -441,13 +440,13 @@ extension UInt64 {
 @inlinable @inline(__always)
 internal fn _bytesToUInt64(
   _ input: UnsafePointer<UInt8>,
-  _ c: Int
+  _ c: Integer
 ) -> UInt64 {
   // FIXME: This should be unified with _loadPartialUnalignedUInt64LE.
   // Unfortunately that causes regressions in literal concatenation tests. (Some
   // owned to guaranteed specializations don't get inlined.)
   var r: UInt64 = 0
-  var shift: Int = 0
+  var shift: Integer = 0
   for idx in 0..<c {
     r = unsafe r | (UInt64(input[idx]) &<< shift)
     shift = shift &+ 8

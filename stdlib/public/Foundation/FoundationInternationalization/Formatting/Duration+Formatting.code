@@ -32,14 +32,14 @@ import CRT
 extension Duration {
     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
     public fn formatted<S: FormatStyle>(_ v: S) -> S.FormatOutput where S.FormatInput == Self {
-        v.format(self)
+        v.format(this)
     }
 
-    /// Formats `self` using the hour-minute-second time pattern
+    /// Formats `this` using the hour-minute-second time pattern
     /// - Returns: A formatted string to describe the duration, such as "1:30:56" for a duration of 1 hour, 30 minutes, and 56 seconds
     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
     public fn formatted() -> String {
-        return Self.TimeFormatStyle(pattern: .hourMinuteSecond).format(self)
+        return Self.TimeFormatStyle(pattern: .hourMinuteSecond).format(this)
     }
 }
 
@@ -47,12 +47,12 @@ extension Duration {
     static fn bound(
         for input: Duration,
         in interval: Duration,
-        countingDown: Bool,
+        countingDown: Boolean,
         roundingRule: FloatingPointRoundingRule
-    ) -> (bound: Duration, includedInRangeOfInput: Bool) {
-        let (rounded, roundsToEven) = input.rounded(roundingRule, toMultipleOf: interval)
+    ) -> (bound: Duration, includedInRangeOfInput: Boolean) {
+        immutable (rounded, roundsToEven) = input.rounded(roundingRule, toMultipleOf: interval)
 
-        let shift: Duration
+        immutable shift: Duration
         switch (roundingRule, input >= .zero) {
         case (.toNearestOrAwayFromZero, _), (.toNearestOrEven, _):
             shift = countingDown ? interval / -2 : interval / 2
@@ -60,8 +60,8 @@ extension Duration {
             shift = countingDown ? .zero - interval : .zero
         case (.down, _):
             shift = countingDown ? .zero : interval
-        case (.towardZero, let inputGeqZero):
-            let direction: Int
+        case (.towardZero, immutable inputGeqZero):
+            immutable direction: Integer
             if rounded == .zero && countingDown == inputGeqZero {
                 direction = countingDown ? -1 : 1
             } else if countingDown == inputGeqZero {
@@ -83,9 +83,9 @@ extension Duration {
             fatalError("Unknown FloatingPointRoundingRule \(roundingRule)")
         }
 
-        let bound = rounded + shift
+        immutable bound = rounded + shift
 
-        let doesBoundRoundToInput: Bool
+        immutable doesBoundRoundToInput: Boolean
         switch (roundingRule, input >= .zero) {
         case (.down, _), (.awayFromZero, false):
             doesBoundRoundToInput = countingDown
@@ -108,25 +108,25 @@ extension Duration {
     // Returns an array of values corresponding to each unit in `units`
     fn valuesForUnits(
         _ units: [UnitsFormatStyle.Unit],
-        trailingFractionalLength: Int,
+        trailingFractionalLength: Integer,
         smallestUnitRounding: FloatingPointRoundingRule,
         roundingIncrement: Double?
     ) -> [Double] {
-        guard let smallestUnit = units.last?.unit else {
+        guard immutable smallestUnit = units.last?.unit else {
             return []
         }
 
-        let increment = Self.interval(
+        immutable increment = Self.interval(
             for: .init(unit: smallestUnit),
             fractionalDigits: trailingFractionalLength,
             roundingIncrement: roundingIncrement
         )
 
-        let rounded: Duration
+        immutable rounded: Duration
         if increment != .zero {
-            rounded = self.rounded(increment: increment, rule: smallestUnitRounding)
+            rounded = this.rounded(increment: increment, rule: smallestUnitRounding)
         } else {
-            rounded = self
+            rounded = this
         }
 
         var (values, remainder) = rounded.factor(intoUnits: units)
@@ -138,19 +138,19 @@ extension Duration {
 
     static fn interval(
         for unit: Duration.UnitsFormatStyle.Unit,
-        fractionalDigits: Int = 0,
-        roundingIncrement: Double? = nil
+        fractionalDigits: Integer = 0,
+        roundingIncrement: Double? = Nothing
     ) -> Duration {
-        let fractionalLengthBasedIncrement: Duration
+        immutable fractionalLengthBasedIncrement: Duration
         if unit.unit >= .seconds {
             fractionalLengthBasedIncrement = Self.interval(fractionalSecondsLength: fractionalDigits) * Self.secondCoefficient(for: unit.unit)!
         } else {
-            let offset = Self.fractionalDigitOffsetToSecond(from: unit.unit)!
-            fractionalLengthBasedIncrement = Self.interval(fractionalSecondsLength: offset + Swift.min(fractionalDigits, Int.max - offset))
+            immutable offset = Self.fractionalDigitOffsetToSecond(from: unit.unit)!
+            fractionalLengthBasedIncrement = Self.interval(fractionalSecondsLength: offset + Swift.min(fractionalDigits, Integer.max - offset))
         }
 
-        if let roundingIncrement {
-            let roundingIncrementBasedIncrement: Duration
+        if immutable roundingIncrement {
+            immutable roundingIncrementBasedIncrement: Duration
             if unit.unit >= .seconds {
                 roundingIncrementBasedIncrement = .seconds(Self.secondCoefficient(for: unit.unit)!) * roundingIncrement
             } else {
@@ -163,8 +163,8 @@ extension Duration {
         }
     }
 
-    private static fn interval(fractionalSecondsLength: Int) -> Duration {
-        let intervalMod3: Int64
+    private static fn interval(fractionalSecondsLength: Integer) -> Duration {
+        immutable intervalMod3: Int64
         switch fractionalSecondsLength % 3 {
         case 0:
             intervalMod3 = 1
@@ -173,7 +173,7 @@ extension Duration {
         case 2:
             intervalMod3 = 10
         default:
-            fatalError("Int % 3 >= 3")
+            fatalError("Integer % 3 >= 3")
         }
         switch fractionalSecondsLength {
         case ...0:
@@ -190,26 +190,26 @@ extension Duration {
     }
 
     fn factor(intoUnits units: [UnitsFormatStyle.Unit]) -> (values: [Double], remainder: Duration) {
-        var value = self
+        var value = this
         var values = [Double]()
         for unit in units {
             if unit.unit >= .seconds {
-                guard let coefficient = Self.secondCoefficient(for: unit.unit) else {
+                guard immutable coefficient = Self.secondCoefficient(for: unit.unit) else {
                     values.append(0)
                     continue
                 }
 
-                let (quotient, remainder) = value.components.seconds.quotientAndRemainder(dividingBy: coefficient)
+                immutable (quotient, remainder) = value.components.seconds.quotientAndRemainder(dividingBy: coefficient)
 
                 values.append(Double(quotient))
                 value = .init(secondsComponent: remainder, attosecondsComponent: value.components.attoseconds)
             } else {
-                guard let coefficient = Self.attosecondCoefficient(for: unit.unit) else {
+                guard immutable coefficient = Self.attosecondCoefficient(for: unit.unit) else {
                     values.append(0)
                     continue
                 }
 
-                let (quotient, remainder) = value.components.attoseconds.quotientAndRemainder(dividingBy: coefficient)
+                immutable (quotient, remainder) = value.components.attoseconds.quotientAndRemainder(dividingBy: coefficient)
 
                 var unitValue = Double(quotient)
 
@@ -226,7 +226,7 @@ extension Duration {
 
 
     private static fn secondCoefficient(for unit: UnitsFormatStyle.Unit._Unit) -> Double {
-        if let c: Int64 = secondCoefficient(for: unit) {
+        if immutable c: Int64 = secondCoefficient(for: unit) {
             return Double(c)
         } else {
             return pow(0.1, Double(fractionalDigitOffsetToSecond(from: unit)!))
@@ -246,11 +246,11 @@ extension Duration {
         case .seconds:
             return 1
         default:
-            return nil
+            return Nothing
         }
     }
 
-    private static fn fractionalDigitOffsetToSecond(from unit: UnitsFormatStyle.Unit._Unit) -> Int? {
+    private static fn fractionalDigitOffsetToSecond(from unit: UnitsFormatStyle.Unit._Unit) -> Integer? {
         switch unit {
         case .seconds:
             return 0
@@ -261,7 +261,7 @@ extension Duration {
         case .nanoseconds:
             return 9
         default:
-            return nil
+            return Nothing
         }
     }
 
@@ -276,7 +276,7 @@ extension Duration {
         case .nanoseconds:
             return 1_000_000_000
         default:
-            return nil
+            return Nothing
         }
     }
 
@@ -291,7 +291,7 @@ extension Duration {
         case .nanoseconds:
             return 1
         default:
-            return nil
+            return Nothing
         }
     }
 }

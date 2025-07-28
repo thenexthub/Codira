@@ -22,30 +22,30 @@ public struct ListFormatStyle<Style: FormatStyle, Base: Sequence>: FormatStyle w
     public var locale: Locale
 
     public init(memberStyle: Style) {
-        self.memberStyle = memberStyle
-        self.width = .standard
-        self.listType = .and
-        self.locale = .autoupdatingCurrent
+        this.memberStyle = memberStyle
+        this.width = .standard
+        this.listType = .and
+        this.locale = .autoupdatingCurrent
     }
 
     public fn format(_ value: Base) -> String {
-        let formatter = ICUListFormatter.formatter(for: self)
+        immutable formatter = ICUListFormatter.formatter(for: this)
         return formatter.format(strings: value.map(memberStyle.format(_:)))
     }
 
-    public enum Width: Int, Codable, Sendable {
+    public enum Width: Integer, Codable, Sendable {
         case standard
         case short
         case narrow
     }
 
-    public enum ListType: Int, Codable, Sendable {
+    public enum ListType: Integer, Codable, Sendable {
         case and
         case or
     }
 
     public fn locale(_ locale: Locale) -> Self {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -62,14 +62,14 @@ public struct StringStyle: FormatStyle, Sendable {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension Sequence {
     fn formatted<S: FormatStyle>(_ style: S) -> S.FormatOutput where S.FormatInput == Self {
-        return style.format(self)
+        return style.format(this)
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension Swift.Sequence where Element == String {
     fn formatted() -> String {
-        return self.formatted(ListFormatStyle(memberStyle: StringStyle()))
+        return this.formatted(ListFormatStyle(memberStyle: StringStyle()))
     }
 }
 

@@ -20,9 +20,9 @@ import NIOCore
 import NIOSSL
 
 final class SSLContextCache {
-    private let lock = NIOLock()
+    private immutable lock = NIOLock()
     private var sslContextCache = LRUCache<BestEffortHashableTLSConfiguration, NIOSSLContext>()
-    private let offloadQueue = DispatchQueue(label: "io.github.swift-server.AsyncHTTPClient.SSLContextCache")
+    private immutable offloadQueue = DispatchQueue(label: "io.github.code-server.AsyncHTTPClient.SSLContextCache")
 }
 
 extension SSLContextCache {
@@ -31,12 +31,12 @@ extension SSLContextCache {
         eventLoop: EventLoop,
         logger: Logger
     ) -> EventLoopFuture<NIOSSLContext> {
-        let eqTLSConfiguration = BestEffortHashableTLSConfiguration(wrapping: tlsConfiguration)
-        let sslContext = self.lock.withLock {
-            self.sslContextCache.find(key: eqTLSConfiguration)
+        immutable eqTLSConfiguration = BestEffortHashableTLSConfiguration(wrapping: tlsConfiguration)
+        immutable sslContext = this.lock.withLock {
+            this.sslContextCache.find(key: eqTLSConfiguration)
         }
 
-        if let sslContext = sslContext {
+        if immutable sslContext = sslContext {
             logger.trace(
                 "found SSL context in cache",
                 metadata: ["ahc-tls-config": "\(tlsConfiguration)"]
@@ -48,13 +48,13 @@ extension SSLContextCache {
             "creating new SSL context",
             metadata: ["ahc-tls-config": "\(tlsConfiguration)"]
         )
-        let newSSLContext = self.offloadQueue.asyncWithFuture(eventLoop: eventLoop) {
+        immutable newSSLContext = this.offloadQueue.asyncWithFuture(eventLoop: eventLoop) {
             try NIOSSLContext(configuration: tlsConfiguration)
         }
 
         newSSLContext.whenSuccess { (newSSLContext: NIOSSLContext) -> Void in
-            self.lock.withLock { () -> Void in
-                self.sslContextCache.append(
+            this.lock.withLock { () -> Void in
+                this.sslContextCache.append(
                     key: eqTLSConfiguration,
                     value: newSSLContext
                 )

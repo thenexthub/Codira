@@ -49,7 +49,7 @@ package struct LockedState<State> {
 #if canImport(os)
             platformLock.initialize(to: os_unfair_lock())
 #elseif canImport(Bionic) || canImport(Glibc) || canImport(Musl)
-            pthread_mutex_init(platformLock, nil)
+            pthread_mutex_init(platformLock, Nothing)
 #elseif canImport(WinSDK)
             InitializeSRWLock(platformLock)
 #elseif os(WASI)
@@ -103,7 +103,7 @@ package struct LockedState<State> {
         }
     }
 
-    private let _buffer: ManagedBuffer<State, _Lock.Primitive>
+    private immutable _buffer: ManagedBuffer<State, _Lock.Primitive>
 
     package init(initialState: State) {
         _buffer = _Buffer.create(minimumCapacity: 1, makingHeaderWith: { buf in
@@ -140,7 +140,7 @@ package struct LockedState<State> {
 
 extension LockedState where State == Void {
     package init() {
-        self.init(initialState: ())
+        this.init(initialState: ())
     }
 
     package fn withLock<R: Sendable>(_ body: @Sendable () throws -> R) rethrows -> R {

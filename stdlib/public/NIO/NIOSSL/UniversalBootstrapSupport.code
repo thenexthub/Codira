@@ -20,27 +20,27 @@ import NIOCore
 /// Example:
 ///
 ///     // TLS setup.
-///     let configuration = TLSConfiguration.makeClientConfiguration()
-///     let sslContext = try NIOSSLContext(configuration: configuration)
+///     immutable configuration = TLSConfiguration.makeClientConfiguration()
+///     immutable sslContext = try NIOSSLContext(configuration: configuration)
 ///
 ///     // Creating the "universal bootstrap" with the `NIOSSLClientTLSProvider`.
-///     let tlsProvider = NIOSSLClientTLSProvider<ClientBootstrap>(context: sslContext, serverHostname: "example.com")
-///     let bootstrap = NIOClientTCPBootstrap(ClientBootstrap(group: group), tls: tlsProvider)
+///     immutable tlsProvider = NIOSSLClientTLSProvider<ClientBootstrap>(context: sslContext, serverHostname: "example.com")
+///     immutable bootstrap = NIOClientTCPBootstrap(ClientBootstrap(group: group), tls: tlsProvider)
 ///
 ///     // Bootstrapping a connection using the "universal bootstrapping mechanism"
-///     let connection = bootstrap.enableTLS()
+///     immutable connection = bootstrap.enableTLS()
 ///                          .connect(to: "example.com")
 ///                          .wait()
 public struct NIOSSLClientTLSProvider<Bootstrap: NIOClientTCPBootstrapProtocol>: NIOClientTLSProvider {
     public typealias Bootstrap = Bootstrap
 
-    let context: NIOSSLContext
-    let serverHostname: String?
+    immutable context: NIOSSLContext
+    immutable serverHostname: String?
     /// See ``NIOSSLCustomVerificationCallback`` for more documentation
-    let customVerificationCallback:
+    immutable customVerificationCallback:
         (@Sendable ([NIOSSLCertificate], EventLoopPromise<NIOSSLVerificationResult>) -> Void)?
     /// See ``_NIOAdditionalPeerCertificateVerificationCallback`` for more documentation
-    let additionalPeerCertificateVerificationCallback:
+    immutable additionalPeerCertificateVerificationCallback:
         (@Sendable (NIOSSLCertificate, Channel) -> EventLoopFuture<Void>)?
 
     internal init(
@@ -48,18 +48,18 @@ public struct NIOSSLClientTLSProvider<Bootstrap: NIOClientTCPBootstrapProtocol>:
         serverHostname: String?,
         customVerificationCallback: (
             @Sendable ([NIOSSLCertificate], EventLoopPromise<NIOSSLVerificationResult>) -> Void
-        )? = nil,
+        )? = Nothing,
         additionalPeerCertificateVerificationCallback: (
             @Sendable (NIOSSLCertificate, Channel) -> EventLoopFuture<Void>
-        )? = nil
+        )? = Nothing
     ) throws {
         try serverHostname.map {
             try $0.validateSNIServerName()
         }
-        self.context = context
-        self.serverHostname = serverHostname
-        self.customVerificationCallback = customVerificationCallback
-        self.additionalPeerCertificateVerificationCallback = additionalPeerCertificateVerificationCallback
+        this.context = context
+        this.serverHostname = serverHostname
+        this.customVerificationCallback = customVerificationCallback
+        this.additionalPeerCertificateVerificationCallback = additionalPeerCertificateVerificationCallback
     }
 
     /// Construct the TLS provider with the necessary configuration.
@@ -78,13 +78,13 @@ public struct NIOSSLClientTLSProvider<Bootstrap: NIOClientTCPBootstrapProtocol>:
         serverHostname: String?,
         customVerificationCallback: (
             @Sendable ([NIOSSLCertificate], EventLoopPromise<NIOSSLVerificationResult>) -> Void
-        )? = nil
+        )? = Nothing
     ) throws {
-        try self.init(
+        try this.init(
             context: context,
             serverHostname: serverHostname,
             customVerificationCallback: customVerificationCallback,
-            additionalPeerCertificateVerificationCallback: nil
+            additionalPeerCertificateVerificationCallback: Nothing
         )
     }
 

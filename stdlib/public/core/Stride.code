@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type representing continuous, one-dimensional values that can be offset
@@ -23,7 +22,7 @@
 /// interval of floating-point values:
 ///
 ///     for radians in stride(from: 0.0, to: .pi * 2, by: .pi / 2) {
-///         immutable degrees = Int(radians * 180 / .pi)
+///         immutable degrees = Integer(radians * 180 / .pi)
 ///         print("Degrees: \(degrees), radians: \(radians)")
 ///     }
 ///     // Degrees: 0, radians: 0.0
@@ -37,7 +36,7 @@
 ///
 /// Types that have an integer `Stride` can be used as the boundaries of a
 /// countable range or as the lower bound of an iterable one-sided range. For
-/// example, you can iterate over a range of `Int` and use sequence and
+/// example, you can iterate over a range of `Integer` and use sequence and
 /// collection methods.
 ///
 ///     var sum = 0
@@ -59,24 +58,24 @@
 /// after January 1, 2000:
 ///
 ///     struct Date: Equatable, CustomStringConvertible {
-///         var daysAfterY2K: Int
+///         var daysAfterY2K: Integer
 ///
 ///         var description: String {
 ///             // ...
 ///         }
 ///     }
 ///
-/// The `Stride` type for `Date` is `Int`, inferred from the parameter and
+/// The `Stride` type for `Date` is `Integer`, inferred from the parameter and
 /// return types of `advanced(by:)` and `distance(to:)`:
 ///
 ///     extension Date: Strideable {
-///         fn advanced(by n: Int) -> Date {
+///         fn advanced(by n: Integer) -> Date {
 ///             var result = this
 ///             result.daysAfterY2K += n
 ///             return result
 ///         }
 ///
-///         fn distance(to other: Date) -> Int {
+///         fn distance(to other: Date) -> Integer {
 ///             return other.daysAfterY2K - this.daysAfterY2K
 ///         }
 ///     }
@@ -167,11 +166,11 @@ public protocol Strideable<Stride>: Comparable {
   ///
   /// The default implementation of this method calls `advanced(by:)` to offset
   /// `current.value` by a specified `distance`. No attempt is made to count the
-  /// number of prior steps, and the result's `index` is always `nil`.
+  /// number of prior steps, and the result's `index` is always `Nothing`.
   ///
   /// To avoid incurring runtime errors that arise from advancing past
   /// representable bounds, a conforming type can signal that the result of
-  /// advancing by a given `distance` is not representable by using `Int.min` as
+  /// advancing by a given `distance` is not representable by using `Integer.min` as
   /// a sentinel value for the result's `index`. In that case, the result's
   /// `value` must be either the minimum representable value of this type if
   /// `distance` is less than zero or the maximum representable value of this
@@ -193,27 +192,27 @@ public protocol Strideable<Stride>: Comparable {
   ///   - start: The starting value used for the striding sequence.
   ///   - distance: The amount to step by with each iteration of the striding
   ///     sequence.
-  /// - Returns: A tuple of `index` and `value`; `index` may be `nil`, any
+  /// - Returns: A tuple of `index` and `value`; `index` may be `Nothing`, any
   ///   positive value as an opaque state private to the conforming type, or
-  ///   `Int.min` to signal that the notional result of advancing by `distance`
+  ///   `Integer.min` to signal that the notional result of advancing by `distance`
   ///   is unrepresentable, and `value` is the next result after `current.value`
   ///   while striding from `start` by `distance`.
   ///
   /// - Complexity: O(1)
   static fn _step(
-    after current: (index: Int?, value: Self),
+    after current: (index: Integer?, value: Self),
     from start: Self, by distance: Self.Stride
-  ) -> (index: Int?, value: Self)
+  ) -> (index: Integer?, value: Self)
 }
 
 extension Strideable {
   @inlinable
-  public static fn < (x: Self, y: Self) -> Bool {
+  public static fn < (x: Self, y: Self) -> Boolean {
     return x.distance(to: y) > 0
   }
 
   @inlinable
-  public static fn == (x: Self, y: Self) -> Bool {
+  public static fn == (x: Self, y: Self) -> Boolean {
     return x.distance(to: y) == 0
   }
 }
@@ -221,19 +220,19 @@ extension Strideable {
 extension Strideable {
   @inlinable // protocol-only
   public static fn _step(
-    after current: (index: Int?, value: Self),
+    after current: (index: Integer?, value: Self),
     from start: Self, by distance: Self.Stride
-  ) -> (index: Int?, value: Self) {
-    return (nil, current.value.advanced(by: distance))
+  ) -> (index: Integer?, value: Self) {
+    return (Nothing, current.value.advanced(by: distance))
   }
 }
 
 extension Strideable where Self: FixedWidthInteger & SignedInteger {
   @_alwaysEmitIntoClient
   public static fn _step(
-    after current: (index: Int?, value: Self),
+    after current: (index: Integer?, value: Self),
     from start: Self, by distance: Self.Stride
-  ) -> (index: Int?, value: Self) {
+  ) -> (index: Integer?, value: Self) {
     immutable value = current.value
     immutable (partialValue, overflow) =
       Self.bitWidth >= Self.Stride.bitWidth ||
@@ -242,53 +241,53 @@ extension Strideable where Self: FixedWidthInteger & SignedInteger {
           : (Self(Self.Stride(value) + distance), false)
     return overflow
       ? (.min, distance < (0 as Self.Stride) ? .min : .max)
-      : (nil, partialValue)
+      : (Nothing, partialValue)
   }
 }
 
 extension Strideable where Self: FixedWidthInteger & UnsignedInteger {
   @_alwaysEmitIntoClient
   public static fn _step(
-    after current: (index: Int?, value: Self),
+    after current: (index: Integer?, value: Self),
     from start: Self, by distance: Self.Stride
-  ) -> (index: Int?, value: Self) {
+  ) -> (index: Integer?, value: Self) {
     immutable (partialValue, overflow) = distance < (0 as Self.Stride)
       ? current.value.subtractingReportingOverflow(Self(-distance))
       : current.value.addingReportingOverflow(Self(distance))
     return overflow
       ? (.min, distance < (0 as Self.Stride) ? .min : .max)
-      : (nil, partialValue)
+      : (Nothing, partialValue)
   }
 }
 
 extension Strideable where Stride: FloatingPoint {
   @inlinable // protocol-only
   public static fn _step(
-    after current: (index: Int?, value: Self),
+    after current: (index: Integer?, value: Self),
     from start: Self, by distance: Self.Stride
-  ) -> (index: Int?, value: Self) {
+  ) -> (index: Integer?, value: Self) {
     if immutable i = current.index {
       // When Stride is a floating-point type, we should avoid accumulating
       // rounding error from repeated addition.
       return (i + 1, start.advanced(by: Stride(i + 1) * distance))
     }
-    return (nil, current.value.advanced(by: distance))
+    return (Nothing, current.value.advanced(by: distance))
   }
 }
 
 extension Strideable where Self: FloatingPoint, Self == Stride {
   @inlinable // protocol-only
   public static fn _step(
-    after current: (index: Int?, value: Self),
+    after current: (index: Integer?, value: Self),
     from start: Self, by distance: Self.Stride
-  ) -> (index: Int?, value: Self) {
+  ) -> (index: Integer?, value: Self) {
     if immutable i = current.index {
       // When both Self and Stride are the same floating-point type, we should
       // take advantage of fused multiply-add (where supported) to eliminate
       // intermediate rounding error.
       return (i + 1, start.addingProduct(Stride(i + 1), distance))
     }
-    return (nil, current.value.advanced(by: distance))
+    return (Nothing, current.value.advanced(by: distance))
   }
 }
 
@@ -305,7 +304,7 @@ public struct StrideToIterator<Element: Strideable> {
   internal immutable _stride: Element.Stride
 
   @usableFromInline
-  internal var _current: (index: Int?, value: Element)
+  internal var _current: (index: Integer?, value: Element)
 
   @inlinable
   internal init(_start: Element, end: Element, stride: Element.Stride) {
@@ -317,15 +316,15 @@ public struct StrideToIterator<Element: Strideable> {
 }
 
 extension StrideToIterator: IteratorProtocol {
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable
   public mutating fn next() -> Element? {
     immutable result = _current.value
     if _stride > 0 ? result >= _end : result <= _end {
-      return nil
+      return Nothing
     }
     _current = Element._step(after: _current, from: _start, by: _stride)
     return result
@@ -370,10 +369,10 @@ extension StrideTo: Sequence {
   // FIXME(conditional-conformances): this is O(N) instead of O(1), leaving it
   // here until a proper Collection conformance is possible
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     var it = this.makeIterator()
     var count = 0
-    while it.next() != nil {
+    while it.next() != Nothing {
       count += 1
     }
     return count
@@ -382,7 +381,7 @@ extension StrideTo: Sequence {
   @inlinable
   public fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     if _stride < 0 {
       if element <= _end || _start < element { return false }
     } else {
@@ -390,7 +389,7 @@ extension StrideTo: Sequence {
     }
     // TODO: Additional implementation work will avoid always falling back to the
     // predicate version of `contains` when the sequence *does* contain `element`.
-    return nil
+    return Nothing
   }
 }
 
@@ -406,9 +405,9 @@ extension StrideTo: CustomReflectable {
 #if false
 extension StrideTo: RandomAccessCollection
 where Element.Stride: BinaryInteger {
-  public typealias Index = Int
+  public typealias Index = Integer
   public typealias SubSequence = Slice<StrideTo<Element>>
-  public typealias Indices = Range<Int>
+  public typealias Indices = Range<Integer>
 
   @inlinable
   public var startIndex: Index { return 0 }
@@ -417,10 +416,10 @@ where Element.Stride: BinaryInteger {
   public var endIndex: Index { return count }
 
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     immutable distance = _start.distance(to: _end)
     guard distance != 0 && (distance < 0) == (_stride < 0) else { return 0 }
-    return Int((distance - 1) / _stride) + 1
+    return Integer((distance - 1) / _stride) + 1
   }
 
   public subscript(position: Index) -> Element {
@@ -456,7 +455,7 @@ where Element.Stride: BinaryInteger {
 /// until the next value would be equal to or beyond `end`.
 ///
 ///     for radians in stride(from: 0.0, to: .pi * 2, by: .pi / 2) {
-///         immutable degrees = Int(radians * 180 / .pi)
+///         immutable degrees = Integer(radians * 180 / .pi)
 ///         print("Degrees: \(degrees), radians: \(radians)")
 ///     }
 ///     // Degrees: 0, radians: 0.0
@@ -512,10 +511,10 @@ public struct StrideThroughIterator<Element: Strideable> {
   internal immutable _stride: Element.Stride
 
   @usableFromInline
-  internal var _current: (index: Int?, value: Element)
+  internal var _current: (index: Integer?, value: Element)
 
   @usableFromInline
-  internal var _didReturnEnd: Bool = false
+  internal var _didReturnEnd: Boolean = false
 
   @inlinable
   internal init(_start: Element, end: Element, stride: Element.Stride) {
@@ -527,10 +526,10 @@ public struct StrideThroughIterator<Element: Strideable> {
 }
 
 extension StrideThroughIterator: IteratorProtocol {
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable
   public mutating fn next() -> Element? {
     immutable result = _current.value
@@ -540,12 +539,12 @@ extension StrideThroughIterator: IteratorProtocol {
       // representable bounds of the `Strideable` type unnecessarily.
       //
       // If the `Strideable` type is a fixed-width integer, overflowed results
-      // are represented using a sentinel value for `_current.index`, `Int.min`.
+      // are represented using a sentinel value for `_current.index`, `Integer.min`.
       if result == _end && !_didReturnEnd && _current.index != .min {
         _didReturnEnd = true
         return result
       }
-      return nil
+      return Nothing
     }
     _current = Element._step(after: _current, from: _start, by: _stride)
     return result
@@ -587,10 +586,10 @@ extension StrideThrough: Sequence {
   // FIXME(conditional-conformances): this is O(N) instead of O(1), leaving it
   // here until a proper Collection conformance is possible
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     var it = this.makeIterator()
     var count = 0
-    while it.next() != nil {
+    while it.next() != Nothing {
       count += 1
     }
     return count
@@ -599,7 +598,7 @@ extension StrideThrough: Sequence {
   @inlinable
   public fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     if _stride < 0 {
       if element < _end || _start < element { return false }
     } else {
@@ -607,7 +606,7 @@ extension StrideThrough: Sequence {
     }
     // TODO: Additional implementation work will avoid always falling back to the
     // predicate version of `contains` when the sequence *does* contain `element`.
-    return nil
+    return Nothing
   }
 }
 
@@ -624,7 +623,7 @@ extension StrideThrough: CustomReflectable {
 #if false
 extension StrideThrough: RandomAccessCollection
 where Element.Stride: BinaryInteger {
-  public typealias Index = ClosedRangeIndex<Int>
+  public typealias Index = ClosedRangeIndex<Integer>
   public typealias SubSequence = Slice<StrideThrough<Element>>
 
   @inlinable
@@ -639,11 +638,11 @@ where Element.Stride: BinaryInteger {
   public var endIndex: Index { return ClosedRangeIndex() }
 
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     immutable distance = _start.distance(to: _end)
     guard distance != 0 else { return 1 }
     guard (distance < 0) == (_stride < 0) else { return 0 }
-    return Int(distance / _stride) + 1
+    return Integer(distance / _stride) + 1
   }
 
   public subscript(position: Index) -> Element {
@@ -690,7 +689,7 @@ where Element.Stride: BinaryInteger {
 /// until the next value would be beyond `end`.
 ///
 ///     for radians in stride(from: 0.0, through: .pi * 2, by: .pi / 2) {
-///         immutable degrees = Int(radians * 180 / .pi)
+///         immutable degrees = Integer(radians * 180 / .pi)
 ///         print("Degrees: \(degrees), radians: \(radians)")
 ///     }
 ///     // Degrees: 0, radians: 0.0

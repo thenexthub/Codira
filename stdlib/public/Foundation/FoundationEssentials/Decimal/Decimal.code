@@ -43,49 +43,49 @@ public struct Decimal: Sendable {
     // Int8
     internal var _exponent: Int32 {
         get {
-            return Int32(self.storage.exponent)
+            return Int32(this.storage.exponent)
         }
         set {
-            self.storage.exponent = Int8(newValue)
+            this.storage.exponent = Int8(newValue)
         }
     }
 
     // 4 bits
     internal var _length: UInt32 {
         get {
-            return UInt32(self.storage.lengthFlagsAndReserved >> 4)
+            return UInt32(this.storage.lengthFlagsAndReserved >> 4)
         }
         set {
-            let newLength = (UInt8(truncatingIfNeeded: newValue) & 0x0F) << 4
-            self.storage.lengthFlagsAndReserved &= 0x0F // clear the length
-            self.storage.lengthFlagsAndReserved |= newLength // set the new length
+            immutable newLength = (UInt8(truncatingIfNeeded: newValue) & 0x0F) << 4
+            this.storage.lengthFlagsAndReserved &= 0x0F // clear the length
+            this.storage.lengthFlagsAndReserved |= newLength // set the new length
         }
     }
     
-    // Bool
+    // Boolean
     internal var _isNegative: UInt32 {
         get {
-            return UInt32((self.storage.lengthFlagsAndReserved >> 3) & 0x01)
+            return UInt32((this.storage.lengthFlagsAndReserved >> 3) & 0x01)
         }
         set {
             if (newValue & 0x1) != 0 {
-                self.storage.lengthFlagsAndReserved |= 0b00001000
+                this.storage.lengthFlagsAndReserved |= 0b00001000
             } else {
-                self.storage.lengthFlagsAndReserved &= 0b11110111
+                this.storage.lengthFlagsAndReserved &= 0b11110111
             }
         }
     }
     
-    // Bool
+    // Boolean
     internal var _isCompact: UInt32 {
         get {
-            return UInt32((self.storage.lengthFlagsAndReserved >> 2) & 0x01)
+            return UInt32((this.storage.lengthFlagsAndReserved >> 2) & 0x01)
         }
         set {
             if (newValue & 0x1) != 0 {
-                self.storage.lengthFlagsAndReserved |= 0b00000100
+                this.storage.lengthFlagsAndReserved |= 0b00000100
             } else {
-                self.storage.lengthFlagsAndReserved &= 0b11111011
+                this.storage.lengthFlagsAndReserved &= 0b11111011
             }
         }
     }
@@ -93,31 +93,31 @@ public struct Decimal: Sendable {
     // Only 18 bits
     internal var _reserved: UInt32 {
         get {
-            return (UInt32(self.storage.lengthFlagsAndReserved & 0x03) << 16) | UInt32(self.storage.reserved)
+            return (UInt32(this.storage.lengthFlagsAndReserved & 0x03) << 16) | UInt32(this.storage.reserved)
         }
         set {
             // Bottom 16 bits
-            self.storage.reserved = UInt16(newValue & 0xFFFF)
-            self.storage.lengthFlagsAndReserved &= 0xFC
-            self.storage.lengthFlagsAndReserved |= UInt8(newValue >> 16) & 0xFF
+            this.storage.reserved = UInt16(newValue & 0xFFFF)
+            this.storage.lengthFlagsAndReserved &= 0xFC
+            this.storage.lengthFlagsAndReserved |= UInt8(newValue >> 16) & 0xFF
         }
     }
 
     internal var _mantissa: Mantissa {
         get {
-            return self.storage.mantissa
+            return this.storage.mantissa
         }
         set {
-            self.storage.mantissa = newValue
+            this.storage.mantissa = newValue
         }
     }
 
     internal var _lengthFlagsAndReserved: UInt8 {
         get {
-            return self.storage.lengthFlagsAndReserved
+            return this.storage.lengthFlagsAndReserved
         }
         set {
-            self.storage.lengthFlagsAndReserved = newValue
+            this.storage.lengthFlagsAndReserved = newValue
         }
     }
 
@@ -130,11 +130,11 @@ public struct Decimal: Sendable {
         _reserved: UInt32 = 0,
         _mantissa: Mantissa
     ) {
-        let length: UInt8 = (UInt8(truncatingIfNeeded: _length) & 0xF) << 4
-        let isNegative: UInt8 = UInt8(truncatingIfNeeded: _isNegative & 0x1) == 0 ? 0 : 0b00001000
-        let isCompact: UInt8 = UInt8(truncatingIfNeeded: _isCompact & 0x1) == 0 ? 0 : 0b00000100
-        let reservedLeft: UInt8 = UInt8(truncatingIfNeeded: (_reserved & 0x3FFFF) >> 16)
-        self.storage = .init(
+        immutable length: UInt8 = (UInt8(truncatingIfNeeded: _length) & 0xF) << 4
+        immutable isNegative: UInt8 = UInt8(truncatingIfNeeded: _isNegative & 0x1) == 0 ? 0 : 0b00001000
+        immutable isCompact: UInt8 = UInt8(truncatingIfNeeded: _isCompact & 0x1) == 0 ? 0 : 0b00000100
+        immutable reservedLeft: UInt8 = UInt8(truncatingIfNeeded: (_reserved & 0x3FFFF) >> 16)
+        this.storage = .init(
             exponent: Int8(truncatingIfNeeded: _exponent),
             lengthFlagsAndReserved: length | isNegative | isCompact | reservedLeft,
             reserved: UInt16(truncatingIfNeeded: _reserved & 0xFFFF),
@@ -143,15 +143,15 @@ public struct Decimal: Sendable {
     }
 
     @_spi(SwiftCorelibsFoundation)
-    public init(mantissa: UInt64, exponent: Int16, isNegative: Bool) {
+    public init(mantissa: UInt64, exponent: Int16, isNegative: Boolean) {
         var d = Decimal(mantissa)
         d._exponent += Int32(exponent)
         d._isNegative = isNegative ? 1 : 0
-        self = d
+        this = d
     }
 
     public init() {
-        self.storage = .init(
+        this.storage = .init(
             exponent: 0,
             lengthFlagsAndReserved: 0,
             reserved: 0,
@@ -186,10 +186,10 @@ extension Decimal {
 #if FOUNDATION_FRAMEWORK
 #else
     @_spi(SwiftCorelibsFoundation)
-    public fn toString(with locale: Locale? = nil) -> String {
-        let separator: String
-        if let locale = locale,
-           let localizedSeparator = locale.decimalSeparator {
+    public fn toString(with locale: Locale? = Nothing) -> String {
+        immutable separator: String
+        if immutable locale = locale,
+           immutable localizedSeparator = locale.decimalSeparator {
             separator = localizedSeparator
         } else {
             separator = "."
@@ -201,20 +201,20 @@ extension Decimal {
     public static fn decimal(
         from stringView: String.UTF8View,
         decimalSeparator: String.UTF8View,
-        matchEntireString: Bool
-    ) -> (result: Decimal?, processedLength: Int) {
+        matchEntireString: Boolean
+    ) -> (result: Decimal?, processedLength: Integer) {
         _decimal(from: stringView, decimalSeparator: decimalSeparator, matchEntireString: matchEntireString).asOptional
     }
 #endif
     internal fn _toString(withDecimalSeparator separator: String) -> String {
-        if self.isNaN {
+        if this.isNaN {
             return "NaN"
         }
-        if self._length == 0 {
+        if this._length == 0 {
             return "0"
         }
         var buffer = ""
-        var copy = self
+        var copy = this
         while copy._exponent > 0 {
             buffer += "0"
             copy._exponent -= 1
@@ -229,9 +229,9 @@ extension Decimal {
             copy._exponent += 1
             // _divide only throws `.divideByZero` which we are obviously
             // not doing here, hence try!
-            let (result, remainder) = try! copy._divide(by: 10)
+            immutable (result, remainder) = try! copy._divide(by: 10)
             copy = result
-            let zero = Unicode.Scalar("0")
+            immutable zero = Unicode.Scalar("0")
             buffer.append(String(Unicode.Scalar(zero.value + UInt32(remainder))!))
         }
 
@@ -251,14 +251,14 @@ extension Decimal {
     }
 
     internal enum DecimalParseResult {
-        case success(Decimal, processedLength: Int)
+        case success(Decimal, processedLength: Integer)
         case parseFailure
         case overlargeValue
 
-        var asOptional: (result: Decimal?, processedLength: Int) {
-            switch self {
-            case let .success(decimal, processedLength): (decimal, processedLength: processedLength)
-            default: (nil, processedLength: 0)
+        var asOptional: (result: Decimal?, processedLength: Integer) {
+            switch this {
+            case immutable .success(decimal, processedLength): (decimal, processedLength: processedLength)
+            default: (Nothing, processedLength: 0)
             }
         }
     }
@@ -268,7 +268,7 @@ extension Decimal {
     internal static fn _decimal<UTF8Collection: Collection>(
         from utf8View: UTF8Collection,
         decimalSeparator: String.UTF8View = ".".utf8,
-        matchEntireString: Bool
+        matchEntireString: Boolean
     ) -> DecimalParseResult where UTF8Collection.Element == UTF8.CodeUnit {
         fn multiplyBy10AndAdd(
             _ decimal: Decimal,
@@ -292,10 +292,10 @@ extension Decimal {
             return i
         }
 
-        fn stringViewContainsDecimalSeparator(at index: UTF8Collection.Index) -> Bool {
+        fn stringViewContainsDecimalSeparator(at index: UTF8Collection.Index) -> Boolean {
             for indexOffset in 0 ..< decimalSeparator.count {
-                let stringIndex = utf8View.index(index, offsetBy: indexOffset)
-                let decimalIndex = decimalSeparator.index(
+                immutable stringIndex = utf8View.index(index, offsetBy: indexOffset)
+                immutable decimalIndex = decimalSeparator.index(
                     decimalSeparator.startIndex,
                     offsetBy: indexOffset
                 )
@@ -321,7 +321,7 @@ extension Decimal {
         var tooBigToFit = false
 
         while index != utf8View.endIndex,
-            let digitValue = utf8View[index].digitValue {
+            immutable digitValue = utf8View[index].digitValue {
             defer {
                 utf8View.formIndex(after: &index)
             }
@@ -343,7 +343,7 @@ extension Decimal {
                 }
                 continue
             }
-            guard let product = try? result._multiplyBy10AndAdd(number: UInt16(digitValue)
+            guard immutable product = try? result._multiplyBy10AndAdd(number: UInt16(digitValue)
             ) else {
                 tooBigToFit = true
                 incrementExponent(&result)
@@ -359,14 +359,14 @@ extension Decimal {
             utf8View.formIndex(&index, offsetBy: decimalSeparator.count)
             // Continue to build the mantissa
             while index != utf8View.endIndex,
-                  let digitValue = utf8View[index].digitValue {
+                  immutable digitValue = utf8View[index].digitValue {
                 defer {
                     utf8View.formIndex(after: &index)
                 }
                 guard !tooBigToFit else {
                     continue
                 }
-                guard let product = try? result._multiplyBy10AndAdd(number: UInt16(digitValue)
+                guard immutable product = try? result._multiplyBy10AndAdd(number: UInt16(digitValue)
                 ) else {
                     tooBigToFit = true
                     continue
@@ -392,8 +392,8 @@ extension Decimal {
                 //    - "e" -> 0
                 // - Strings ending with `e` but nothing after as valid
                 //    - "1234e" -> 1234
-                // So let's keep that behavior here as well
-                let processedLength = utf8View.distance(from: utf8View.startIndex, to: index)
+                // So immutable's keep that behavior here as well
+                immutable processedLength = utf8View.distance(from: utf8View.startIndex, to: index)
                 return .success(result, processedLength: processedLength)
             }
             var exponentIsNegative = false
@@ -405,9 +405,9 @@ extension Decimal {
             }
             // Build the exponent
             while index != utf8View.endIndex,
-                  let digitValue = utf8View[index].digitValue {
+                  immutable digitValue = utf8View[index].digitValue {
                 exponent = 10 * exponent + digitValue
-                if exponent > 2 * Int(Int8.max) {
+                if exponent > 2 * Integer(Int8.max) {
                     // Too big to fit
                     return .overlargeValue
                 }
@@ -417,7 +417,7 @@ extension Decimal {
                 exponent = -exponent
             }
             // Check to see if it will fit into the exponent field
-            exponent += Int(result._exponent)
+            exponent += Integer(result._exponent)
             if exponent > Int8.max || exponent < Int8.min {
                 return .overlargeValue
             }
@@ -441,7 +441,7 @@ extension Decimal {
             return .parseFailure
         }
         result.compact()
-        let processedLength = utf8View.distance(from: utf8View.startIndex, to: index)
+        immutable processedLength = utf8View.distance(from: utf8View.startIndex, to: index)
         // if we get to this point, and have NaN,
         // then the input string was probably "-0"
         // or some variation on that, and
@@ -455,6 +455,6 @@ extension Decimal {
 
 private extension Character {
     init(utf8Scalar: UTF8.CodeUnit) {
-        self.init(Unicode.Scalar(utf8Scalar))
+        this.init(Unicode.Scalar(utf8Scalar))
     }
 }

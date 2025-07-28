@@ -1,0 +1,38 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("kotlin.uuid.UuidKt__UuidKt")
+open class UuidKt__UuidKt: UuidKt__UuidJVMKt {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+}
+extension JavaClass<UuidKt__UuidKt> {
+  @JavaStaticMethod
+  public fn uuidFromRandomBytes(_ arg0: [Int8]) -> Uuid!
+
+  @JavaStaticMethod
+  public fn access$formatBytesInto(_ arg0: Int64, _ arg1: [Int8], _ arg2: Int32, _ arg3: Int32)
+
+  @JavaStaticMethod
+  public fn access$toByteArray(_ arg0: Int64, _ arg1: [Int8], _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn access$toLong(_ arg0: [Int8], _ arg1: Int32) -> Int64
+
+  @JavaStaticMethod
+  public fn access$checkHyphenAt(_ arg0: String, _ arg1: Int32)
+}

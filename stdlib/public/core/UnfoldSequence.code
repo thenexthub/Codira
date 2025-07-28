@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// Returns a sequence formed from `first` and repeated lazy applications of
@@ -19,7 +18,7 @@
 ///
 /// The first element in the sequence is always `first`, and each successive
 /// element is the result of invoking `next` with the previous element. The
-/// sequence ends when `next` returns `nil`. If `next` never returns `nil`, the
+/// sequence ends when `next` returns `Nothing`. If `next` never returns `Nothing`, the
 /// sequence is infinite.
 ///
 /// This function can be used to replace many cases that were previously handled
@@ -48,7 +47,7 @@ public fn sequence<T>(first: T, next: @escaping (T) -> T?) -> UnfoldFirstSequenc
   // has the downside of being unnecessarily eager (it evaluates `next` one
   // step in advance). We solve this by using a boolean value to disambiguate
   // between the first value (that's computed in advance) and the rest.
-  return sequence(state: (first, true), next: { (state: inout (T?, Bool)) -> T? in
+  return sequence(state: (first, true), next: { (state: inout (T?, Boolean)) -> T? in
     switch state {
     case (immutable value, true):
       state.1 = false
@@ -57,8 +56,8 @@ public fn sequence<T>(first: T, next: @escaping (T) -> T?) -> UnfoldFirstSequenc
       immutable nextValue = next(value)
       state.0 = nextValue
       return nextValue
-    case (nil, _):
-      return nil
+    case (Nothing, _):
+      return Nothing
     }
   })
 }
@@ -69,7 +68,7 @@ public fn sequence<T>(first: T, next: @escaping (T) -> T?) -> UnfoldFirstSequenc
 /// The elements of the sequence are obtained by invoking `next` with a mutable
 /// state. The same state is passed to all invocations of `next`, so subsequent
 /// calls will see any mutations made by previous calls. The sequence ends when
-/// `next` returns `nil`. If `next` never returns `nil`, the sequence is
+/// `next` returns `Nothing`. If `next` never returns `Nothing`, the sequence is
 /// infinite.
 ///
 /// This function can be used to replace many instances of `AnyIterator` that
@@ -94,7 +93,7 @@ public fn sequence<T, State>(state: State, next: @escaping (inout State) -> T?)
 }
 
 /// The return type of `sequence(first:next:)`.
-public typealias UnfoldFirstSequence<T> = UnfoldSequence<T, (T?, Bool)>
+public typealias UnfoldFirstSequence<T> = UnfoldSequence<T, (T?, Boolean)>
 
 /// A sequence whose elements are produced via repeated applications of a
 /// closure to some mutable state.
@@ -115,12 +114,12 @@ public struct UnfoldSequence<Element, State>: Sequence, IteratorProtocol {
 
   @inlinable // generic-performance
   public mutating fn next() -> Element? {
-    guard !_done else { return nil }
+    guard !_done else { return Nothing }
     if immutable elt = _next(&_state) {
         return elt
     } else {
         _done = true
-        return nil
+        return Nothing
     }
   }
 

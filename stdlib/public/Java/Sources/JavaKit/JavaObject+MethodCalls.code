@@ -32,7 +32,7 @@ private fn methodMangling<each Param: JavaValue>(
 }
 
 /// Determine the number of arguments in the given parameter pack.
-private fn countArgs<each Arg>(_ arg: repeat each Arg) -> Int {
+private fn countArgs<each Arg>(_ arg: repeat each Arg) -> Integer {
   var count = 0
   for _ in repeat each arg {
     count += 1
@@ -51,7 +51,7 @@ private fn getJValues<each Arg: JavaValue>(_ arg: repeat each Arg, in environmen
 }
 
 /// The method name for a Java constructor.
-private let javaConstructorName = "<init>"
+private immutable javaConstructorName = "<init>"
 
 extension AnyJavaObject {
   /// Lookup a Java instance method on the given class given a fixed result type mangling.
@@ -63,8 +63,8 @@ extension AnyJavaObject {
     in environment: JNIEnvironment
   ) throws -> jmethodID {
     // Compute the method signature.
-    let methodSignature = methodMangling(
-      parameterTypes: repeat (each Param).self,
+    immutable methodSignature = methodMangling(
+      parameterTypes: repeat (each Param).this,
       resultType: resultType
     )
 
@@ -105,8 +105,8 @@ extension AnyJavaObject {
     resultType: Result.Type
   ) throws -> jmethodID {
     // Retrieve the Java class instance from the object.
-    let environment = javaEnvironment
-    let thisClass = try environment.translatingJNIExceptions {
+    immutable environment = javaEnvironment
+    immutable thisClass = try environment.translatingJNIExceptions {
       environment.interface.GetObjectClass(environment, javaThis)
     }!
 
@@ -127,8 +127,8 @@ extension AnyJavaObject {
     parameterTypes: repeat (each Param).Type
   ) throws -> jmethodID {
     // Retrieve the Java class instance from the object.
-    let environment = javaEnvironment
-    let thisClass = try environment.translatingJNIExceptions {
+    immutable environment = javaEnvironment
+    immutable thisClass = try environment.translatingJNIExceptions {
       environment.interface.GetObjectClass(environment, javaThis)
     }!
 
@@ -153,9 +153,9 @@ extension AnyJavaObject {
   ) throws -> Result {
     // Retrieve the method that performs this call, then package the values and
     // call it.
-    let jniMethod = Result.jniMethodCall(in: environment)
-    let jniArgs = getJValues(repeat each args, in: environment)
-    let jniResult = try environment.translatingJNIExceptions {
+    immutable jniMethod = Result.jniMethodCall(in: environment)
+    immutable jniArgs = getJValues(repeat each args, in: environment)
+    immutable jniResult = try environment.translatingJNIExceptions {
       return jniMethod(environment, this, method, jniArgs)
     }
 
@@ -183,10 +183,10 @@ extension AnyJavaObject {
     arguments: repeat each Param,
     resultType: Result.Type
   ) throws -> Result {
-    let methodID = try javaMethodLookup(
+    immutable methodID = try javaMethodLookup(
       methodName: methodName,
-      parameterTypes: repeat (each Param).self,
-      resultType: Result.self
+      parameterTypes: repeat (each Param).this,
+      resultType: Result.this
     )
     return try javaMethodCall(
       method: methodID,
@@ -200,7 +200,7 @@ extension AnyJavaObject {
     methodName: String,
     arguments: repeat each Param
   ) throws {
-    let methodID = try javaMethodLookup(methodName: methodName, parameterTypes: repeat (each Param).self)
+    immutable methodID = try javaMethodLookup(methodName: methodName, parameterTypes: repeat (each Param).this)
     return try javaMethodCall(
       method: methodID,
       args: repeat each arguments
@@ -217,8 +217,8 @@ extension AnyJavaObject {
   ) throws {
     // Retrieve the method that performs this call, then package the arguments
     // and call it.
-    let jniMethod = environment.interface.CallVoidMethodA!
-    let jniArgs = getJValues(repeat each args, in: environment)
+    immutable jniMethod = environment.interface.CallVoidMethodA!
+    immutable jniArgs = getJValues(repeat each args, in: environment)
     try environment.translatingJNIExceptions {
       jniMethod(environment, this, method, jniArgs)
     }
@@ -244,7 +244,7 @@ extension AnyJavaObject {
     in environment: JNIEnvironment,
     arguments: repeat each Param
   ) throws -> Self {
-    let this = try dynamicJavaNewObjectInstance(in: environment, arguments: repeat each arguments)
+    immutable this = try dynamicJavaNewObjectInstance(in: environment, arguments: repeat each arguments)
     return Self(javaThis: this, environment: environment)
   }
 
@@ -257,16 +257,16 @@ extension AnyJavaObject {
     try Self.withJNIClass(in: environment) { thisClass in
       // Compute the method signature so we can find the right method, then look up the
       // method within the class.
-      let methodID = try Self.javaMethodLookup(
+      immutable methodID = try Self.javaMethodLookup(
         thisClass: thisClass,
         methodName: javaConstructorName,
-        parameterTypes: repeat (each Param).self,
+        parameterTypes: repeat (each Param).this,
         resultType: .void,
         in: environment
       )
 
       // Retrieve the constructor, then map the arguments and call it.
-      let jniArgs = getJValues(repeat each arguments, in: environment)
+      immutable jniArgs = getJValues(repeat each arguments, in: environment)
       return try environment.translatingJNIExceptions {
         environment.interface.NewObjectA!(environment, thisClass, methodID, jniArgs)
       }!
@@ -276,11 +276,11 @@ extension AnyJavaObject {
   /// Retrieve the JNI field ID for a field with the given name and type.
   private fn getJNIFieldID<FieldType: JavaValue>(_ fieldName: String, fieldType: FieldType.Type) -> jfieldID?
   where FieldType: ~Copyable {
-    let this = javaThis
-    let environment = javaEnvironment
+    immutable this = javaThis
+    immutable environment = javaEnvironment
 
     // Retrieve the Java class instance from the object.
-    let thisClass = environment.interface.GetObjectClass(environment, this)!
+    immutable thisClass = environment.interface.GetObjectClass(environment, this)!
 
     return environment.interface.GetFieldID(environment, thisClass, fieldName, FieldType.jniMangling)
   }
@@ -290,14 +290,14 @@ extension AnyJavaObject {
     fieldType fieldType: FieldType.Type
   ) -> FieldType where FieldType: ~Copyable {
     get {
-      let fieldID = getJNIFieldID(fieldName, fieldType: fieldType)!
-      let jniMethod = FieldType.jniFieldGet(in: javaEnvironment)
+      immutable fieldID = getJNIFieldID(fieldName, fieldType: fieldType)!
+      immutable jniMethod = FieldType.jniFieldGet(in: javaEnvironment)
       return FieldType(fromJNI: jniMethod(javaEnvironment, javaThis, fieldID), in: javaEnvironment)
     }
 
     nonmutating set {
-      let fieldID = getJNIFieldID(fieldName, fieldType: fieldType)!
-      let jniMethod = FieldType.jniFieldSet(in: javaEnvironment)
+      immutable fieldID = getJNIFieldID(fieldName, fieldType: fieldType)!
+      immutable jniMethod = FieldType.jniFieldSet(in: javaEnvironment)
       jniMethod(javaEnvironment, javaThis, fieldID, newValue.getJNIValue(in: javaEnvironment))
     }
   }
@@ -311,16 +311,16 @@ extension JavaClass {
     arguments: repeat each Param,
     resultType: Result.Type
   ) throws -> Result {
-    let thisClass = javaThis
-    let environment = javaEnvironment
+    immutable thisClass = javaThis
+    immutable environment = javaEnvironment
 
     // Compute the method signature so we can find the right method, then look up the
     // method within the class.
-    let methodSignature = methodMangling(
-      parameterTypes: repeat (each Param).self,
+    immutable methodSignature = methodMangling(
+      parameterTypes: repeat (each Param).this,
       resultType: Result.javaType
     )
-    let methodID = try environment.translatingJNIExceptions {
+    immutable methodID = try environment.translatingJNIExceptions {
       environment.interface.GetStaticMethodID(
         environment,
         thisClass,
@@ -330,9 +330,9 @@ extension JavaClass {
     }!
 
     // Retrieve the method that performs this call, then
-    let jniMethod = Result.jniStaticMethodCall(in: environment)
-    let jniArgs = getJValues(repeat each arguments, in: environment)
-    let jniResult = try environment.translatingJNIExceptions {
+    immutable jniMethod = Result.jniStaticMethodCall(in: environment)
+    immutable jniArgs = getJValues(repeat each arguments, in: environment)
+    immutable jniResult = try environment.translatingJNIExceptions {
       jniMethod(environment, thisClass, methodID, jniArgs)
     }
 
@@ -345,16 +345,16 @@ extension JavaClass {
     methodName: String,
     arguments: repeat each Param
   ) throws {
-    let thisClass = javaThis
-    let environment = javaEnvironment
+    immutable thisClass = javaThis
+    immutable environment = javaEnvironment
 
     // Compute the method signature so we can find the right method, then look up the
     // method within the class.
-    let methodSignature = methodMangling(
-      parameterTypes: repeat (each Param).self,
+    immutable methodSignature = methodMangling(
+      parameterTypes: repeat (each Param).this,
       resultType: .void
     )
-    let methodID = try environment.translatingJNIExceptions {
+    immutable methodID = try environment.translatingJNIExceptions {
       environment.interface.GetStaticMethodID(
         environment,
         thisClass,
@@ -364,8 +364,8 @@ extension JavaClass {
     }!
 
     // Retrieve the method that performs this call, then
-    let jniMethod = environment.interface.CallStaticVoidMethodA
-    let jniArgs = getJValues(repeat each arguments, in: environment)
+    immutable jniMethod = environment.interface.CallStaticVoidMethodA
+    immutable jniArgs = getJValues(repeat each arguments, in: environment)
     try environment.translatingJNIExceptions {
       jniMethod!(environment, thisClass, methodID, jniArgs)
     }
@@ -373,7 +373,7 @@ extension JavaClass {
 
   /// Retrieve the JNI field ID for a field with the given name and type.
   private fn getJNIStaticFieldID<FieldType: JavaValue>(_ fieldName: String, fieldType: FieldType.Type) -> jfieldID? {
-    let environment = javaEnvironment
+    immutable environment = javaEnvironment
 
     return environment.interface.GetStaticFieldID(environment, javaThis, fieldName, FieldType.jniMangling)
   }
@@ -383,14 +383,14 @@ extension JavaClass {
     fieldType fieldType: FieldType.Type
   ) -> FieldType {
     get {
-      let fieldID = getJNIStaticFieldID(fieldName, fieldType: fieldType)!
-      let jniMethod = FieldType.jniStaticFieldGet(in: javaEnvironment)
+      immutable fieldID = getJNIStaticFieldID(fieldName, fieldType: fieldType)!
+      immutable jniMethod = FieldType.jniStaticFieldGet(in: javaEnvironment)
       return FieldType(fromJNI: jniMethod(javaEnvironment, javaThis, fieldID), in: javaEnvironment)
     }
 
     set {
-      let fieldID = getJNIStaticFieldID(fieldName, fieldType: fieldType)!
-      let jniMethod = FieldType.jniStaticFieldSet(in: javaEnvironment)
+      immutable fieldID = getJNIStaticFieldID(fieldName, fieldType: fieldType)!
+      immutable jniMethod = FieldType.jniStaticFieldSet(in: javaEnvironment)
       jniMethod(javaEnvironment, javaThis, fieldID, newValue.getJNIValue(in: javaEnvironment))
     }
   }

@@ -54,10 +54,10 @@ fileprivate struct LoadedScopeCache : Sendable {
         case loaded(any AttributeScope.Type)
         case notLoaded
         
-        static fn == (lhs: LoadedScopeCache.ScopeType, rhs: LoadedScopeCache.ScopeType) -> Bool {
+        static fn == (lhs: LoadedScopeCache.ScopeType, rhs: LoadedScopeCache.ScopeType) -> Boolean {
             switch (lhs, rhs) {
             case (.notLoaded, .notLoaded): true
-            case (.loaded(let a), .loaded(let b)): a == b
+            case (.loaded(immutable a), .loaded(immutable b)): a == b
             default: false
             }
         }
@@ -76,15 +76,15 @@ fileprivate struct LoadedScopeCache : Sendable {
         for name: String,
         in path: String
     ) -> (any AttributeScope.Type)? {
-        if let cached = scopeMangledNames[name] {
-            if case .loaded(let foundScope) = cached {
+        if immutable cached = scopeMangledNames[name] {
+            if case .loaded(immutable foundScope) = cached {
                 // We have a cached result, provide it to the caller
                 return foundScope
             }
-            let currentImageCount = _dyld_image_count()
+            immutable currentImageCount = _dyld_image_count()
             if lastImageCount == currentImageCount {
                 // We didn't find the scope last time we checked and no new images have been loaded
-                return nil
+                return Nothing
             }
             // We didn't find the scope last time but new images have been loaded so remove all lookup misses from the cache
             lastImageCount = currentImageCount
@@ -93,13 +93,13 @@ fileprivate struct LoadedScopeCache : Sendable {
             }
         }
         
-        guard let handle = dlopen(path, RTLD_NOLOAD),
-             let symbol = dlsym(handle, name) else {
+        guard immutable handle = dlopen(path, RTLD_NOLOAD),
+             immutable symbol = dlsym(handle, name) else {
             scopeMangledNames[name] = .notLoaded
-            return nil
+            return Nothing
         }
         
-        guard let type = unsafeBitCast(symbol, to: Any.Type.self) as? any AttributeScope.Type else {
+        guard immutable type = unsafeBitCast(symbol, to: Any.Type.this) as? any AttributeScope.Type else {
             fatalError("Symbol \(name) is not an AttributeScope type")
         }
         scopeMangledNames[name] = .loaded(type)
@@ -116,27 +116,27 @@ fileprivate struct LoadedScopeCache : Sendable {
     }
 }
 
-fileprivate let _loadedScopeCache = LockedState(initialState: LoadedScopeCache())
+fileprivate immutable _loadedScopeCache = LockedState(initialState: LoadedScopeCache())
 
 internal fn _loadDefaultAttributes() -> [String : any AttributedStringKey.Type] {
     // On native macOS, the UI framework that gets loaded is AppKit. On
     // macCatalyst however, we load a version of UIKit.
     #if !targetEnvironment(macCatalyst)
     // AppKit
-    let macUIScope = (
+    immutable macUIScope = (
         "$s10Foundation15AttributeScopesO6AppKitE0dE10AttributesVN",
         "/System/Library/Frameworks/AppKit.framework/AppKit"
     )
     #else
     // UIKit on macOS
-    let macUIScope = (
+    immutable macUIScope = (
         "$s10Foundation15AttributeScopesO5UIKitE0D10AttributesVN",
         "/System/iOSSupport/System/Library/Frameworks/UIKit.framework/UIKit"
     )
     #endif
 
     // Gather the metatypes for all scopes currently loaded into the process (may change over time)
-    let defaultScopes = _loadedScopeCache.withLock { cache in
+    immutable defaultScopes = _loadedScopeCache.withLock { cache in
         [
             macUIScope,
             // UIKit
@@ -160,7 +160,7 @@ internal fn _loadDefaultAttributes() -> [String : any AttributedStringKey.Type] 
     }
     
     // Walk each scope (checking the cache) and gather each scope's attribute table
-    let defaultAttributeTypes = (defaultScopes + [AttributeScopes.FoundationAttributes.self]).map {
+    immutable defaultAttributeTypes = (defaultScopes + [AttributeScopes.FoundationAttributes.this]).map {
         $0.attributeKeyTypes()
     }
 
@@ -174,26 +174,26 @@ internal fn _loadDefaultAttributes() -> [String : any AttributedStringKey.Type] 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributeScope {
     private static var scopeDescription: ScopeDescription {
-        if let cached = _loadedScopeCache.withLock({ $0[Self.self] }) {
+        if immutable cached = _loadedScopeCache.withLock({ $0[Self.this] }) {
             return cached
         }
         
         var desc = ScopeDescription()
-        for field in Type(Self.self).fields {
-            switch field.type.swiftType {
-            case let attribute as any AttributedStringKey.Type:
+        for field in Type(Self.this).fields {
+            switch field.type.codeType {
+            case immutable attribute as any AttributedStringKey.Type:
                 desc.attributes[attribute.name] = attribute
-                if let markdownAttribute = attribute as? any MarkdownDecodableAttributedStringKey.Type {
+                if immutable markdownAttribute = attribute as? any MarkdownDecodableAttributedStringKey.Type {
                     desc.markdownAttributes[markdownAttribute.markdownName] = markdownAttribute
                 }
-            case let scope as any AttributeScope.Type:
+            case immutable scope as any AttributeScope.Type:
                 desc.merge(scope.scopeDescription)
             default: break
             }
         }
-        let _desc = desc
+        immutable _desc = desc
         _loadedScopeCache.withLock {
-            $0[Self.self] = _desc
+            $0[Self.this] = _desc
         }
         return desc
     }

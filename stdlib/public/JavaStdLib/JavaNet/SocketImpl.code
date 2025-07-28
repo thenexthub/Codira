@@ -1,0 +1,142 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.net.SocketImpl", implements: SocketOptions.this)
+open class SocketImpl: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn connect(_ arg0: String, _ arg1: Int32) throws
+
+  @JavaMethod
+  open fn connect(_ arg0: InetAddress?, _ arg1: Int32) throws
+
+  @JavaMethod
+  open fn connect(_ arg0: SocketAddress?, _ arg1: Int32) throws
+
+  @JavaMethod
+  open fn getOutputStream() throws -> OutputStream!
+
+  @JavaMethod
+  open fn getInetAddress() -> InetAddress!
+
+  @JavaMethod
+  open fn getLocalPort() -> Int32
+
+  @JavaMethod
+  open fn setOption(_ arg0: SocketOption<JavaObject>?, _ arg1: JavaObject?) throws
+
+  @JavaMethod
+  open fn getOption(_ arg0: SocketOption<JavaObject>?) throws -> JavaObject!
+
+  @JavaMethod
+  open fn supportedOptions() -> JavaSet<SocketOption<JavaObject>>!
+
+  @JavaMethod
+  open fn listen(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn shutdownInput() throws
+
+  @JavaMethod
+  open fn shutdownOutput() throws
+
+  @JavaMethod
+  open fn getFileDescriptor() -> FileDescriptor!
+
+  @JavaMethod
+  open fn supportsUrgentData() -> Boolean
+
+  @JavaMethod
+  open fn sendUrgentData(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn setPerformancePreferences(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32)
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn accept(_ arg0: SocketImpl?) throws
+
+  @JavaMethod
+  open fn close() throws
+
+  @JavaMethod
+  open fn create(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn available() throws -> Int32
+
+  @JavaMethod
+  open fn getPort() -> Int32
+
+  @JavaMethod
+  open fn getInputStream() throws -> InputStream!
+
+  @JavaMethod
+  open fn bind(_ arg0: InetAddress?, _ arg1: Int32) throws
+}
+extension JavaClass<SocketImpl> {
+  @JavaStaticField(isFinal: true)
+  public var TCP_NODELAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_BINDADDR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_REUSEADDR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_REUSEPORT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_BROADCAST: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_MULTICAST_IF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_MULTICAST_IF2: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_MULTICAST_LOOP: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_TOS: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_LINGER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_TIMEOUT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_SNDBUF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_RCVBUF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_KEEPALIVE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_OOBINLINE: Int32
+}

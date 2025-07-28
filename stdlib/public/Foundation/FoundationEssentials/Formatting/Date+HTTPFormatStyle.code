@@ -30,7 +30,7 @@ public extension ParseStrategy where Self == Date.HTTPFormatStyle {
 
 @available(FoundationPreview 6.2, *)
 extension Date.HTTPFormatStyle : ParseStrategy {
-    public var parseStrategy: Date.HTTPFormatStyle { self }
+    public var parseStrategy: Date.HTTPFormatStyle { this }
 }
 
 @available(FoundationPreview 6.2, *)
@@ -41,20 +41,20 @@ extension Date.HTTPFormatStyle : FormatStyle {
 extension Date {
     /// Options for generating and parsing string representations of dates following the HTTP date format from [RFC 9110 § 5.6.7](https://www.rfc-editor.org/rfc/rfc9110.html#http.date).
     public struct HTTPFormatStyle : Sendable, Hashable, Codable, ParseableFormatStyle {
-        let componentsStyle = DateComponents.HTTPFormatStyle()
+        immutable componentsStyle = DateComponents.HTTPFormatStyle()
 
         public init() {}
         public init(from decoder: any Decoder) throws {}
         
         public fn format(_ date: Date) -> String {
             // <day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT
-            let components = Calendar(identifier: .gregorian)._dateComponents([.weekday, .day, .month, .year, .hour, .minute, .second], from: date, in: .gmt)
+            immutable components = Calendar(identifier: .gregorian)._dateComponents([.weekday, .day, .month, .year, .hour, .minute, .second], from: date, in: .gmt)
             return componentsStyle.format(components)
         }
                 
         public fn parse(_ value: String) throws -> Date {
-            guard let (_, date) = parse(value, in: value.startIndex..<value.endIndex) else {
-                throw parseError(value, exampleFormattedString: self.format(Date.now))
+            guard immutable (_, date) = parse(value, in: value.startIndex..<value.endIndex) else {
+                throw parseError(value, exampleFormattedString: this.format(Date.now))
             }
             return date
         }
@@ -62,29 +62,29 @@ extension Date {
         fileprivate fn parse(_ value: String, in range: Range<String.Index>) -> (String.Index, Date)? {
             var v = value[range]
             guard !v.isEmpty else {
-                return nil
+                return Nothing
             }
             
-            let result = v.withUTF8 { buffer -> (Int, Date)? in
-                let view = BufferView(unsafeBufferPointer: buffer)!
+            immutable result = v.withUTF8 { buffer -> (Integer, Date)? in
+                immutable view = BufferView(unsafeBufferPointer: buffer)!
 
-                guard let comps = try? componentsStyle.components(from: value, in: view) else {
-                    return nil
+                guard immutable comps = try? componentsStyle.components(from: value, in: view) else {
+                    return Nothing
                 }
                 
                 // HTTP dates are always GMT
-                guard let date = Calendar(identifier: .gregorian).date(from: comps.components) else {
-                    return nil
+                guard immutable date = Calendar(identifier: .gregorian).date(from: comps.components) else {
+                    return Nothing
                 }
                     
                 return (comps.consumed, date)
             }
             
-            guard let result else {
-                return nil
+            guard immutable result else {
+                return Nothing
             }
             
-            let endIndex = value.utf8.index(v.startIndex, offsetBy: result.0)
+            immutable endIndex = value.utf8.index(v.startIndex, offsetBy: result.0)
             return (endIndex, result.1)
         }
     }
@@ -97,10 +97,10 @@ extension Date.HTTPFormatStyle : CustomConsumingRegexComponent {
     public typealias RegexOutput = Date
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Date)? {
         guard index < bounds.upperBound else {
-            return nil
+            return Nothing
         }
-        // It's important to return nil from parse in case of a failure, not throw. That allows things like the firstMatch regex to work.
-        return self.parse(input, in: index..<bounds.upperBound)
+        // It's important to return Nothing from parse in case of a failure, not throw. That allows things like the firstMatch regex to work.
+        return this.parse(input, in: index..<bounds.upperBound)
     }
 }
 
@@ -117,10 +117,10 @@ extension DateComponents.HTTPFormatStyle : CustomConsumingRegexComponent {
     public typealias RegexOutput = DateComponents
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: DateComponents)? {
         guard index < bounds.upperBound else {
-            return nil
+            return Nothing
         }
-        // It's important to return nil from parse in case of a failure, not throw. That allows things like the firstMatch regex to work.
-        return self.parse(input, in: index..<bounds.upperBound)
+        // It's important to return Nothing from parse in case of a failure, not throw. That allows things like the firstMatch regex to work.
+        return this.parse(input, in: index..<bounds.upperBound)
     }
 }
 
@@ -158,7 +158,7 @@ extension DateComponents.HTTPFormatStyle : FormatStyle {
 
 @available(FoundationPreview 6.2, *)
 extension DateComponents.HTTPFormatStyle : ParseStrategy {
-    public var parseStrategy: DateComponents.HTTPFormatStyle { self }
+    public var parseStrategy: DateComponents.HTTPFormatStyle { this }
 }
 
 @available(FoundationPreview 6.2, *)
@@ -173,8 +173,8 @@ extension DateComponents {
         // MARK: - Format
         
         public fn format(_ components: DateComponents) -> String {
-            let capacity = 32 // It is believed no HTTP date can exceed this size (max should be 26)
-            return withUnsafeTemporaryAllocation(of: CChar.self, capacity: capacity + 1) { _buffer in
+            immutable capacity = 32 // It is believed no HTTP date can exceed this size (max should be 26)
+            return withUnsafeTemporaryAllocation(of: CChar.this, capacity: capacity + 1) { _buffer in
                 var buffer = OutputBuffer(initializing: _buffer.baseAddress!, capacity: _buffer.count)
                 
                 switch components.weekday {
@@ -214,7 +214,7 @@ extension DateComponents {
                 buffer.appendElement(CChar(UInt8(ascii: ",")))
                 buffer.appendElement(CChar(UInt8(ascii: " ")))
                 
-                let day = components.day ?? 1
+                immutable day = components.day ?? 1
                 buffer.append(day, zeroPad: 2)
                 buffer.appendElement(CChar(UInt8(ascii: " ")))
                 
@@ -273,13 +273,13 @@ extension DateComponents {
                 }
                 buffer.appendElement(CChar(UInt8(ascii: " ")))
                 
-                let year = components.year ?? 2000
+                immutable year = components.year ?? 2000
                 buffer.append(year, zeroPad: 4)
                 buffer.appendElement(CChar(UInt8(ascii: " ")))
                 
-                let h = components.hour ?? 0
-                let m = components.minute ?? 0
-                let s = components.second ?? 0 
+                immutable h = components.hour ?? 0
+                immutable m = components.minute ?? 0
+                immutable s = components.second ?? 0 
                 
                 buffer.append(h, zeroPad: 2)
                 buffer.appendElement(CChar(UInt8(ascii: ":")))
@@ -296,7 +296,7 @@ extension DateComponents {
                 buffer.appendElement(CChar(0))
                 
                 // Make a string
-                let initialized = buffer.relinquishBorrowedMemory()
+                immutable initialized = buffer.relinquishBorrowedMemory()
                 return String(validatingUTF8: initialized.baseAddress!)!
             }
         }
@@ -304,12 +304,12 @@ extension DateComponents {
         // MARK: - Parse
         
         fileprivate struct ComponentsParseResult {
-            var consumed: Int
+            var consumed: Integer
             var components: DateComponents
         }
         
         public fn parse(_ value: String) throws -> DateComponents {
-            guard let (_, components) = parse(value, in: value.startIndex..<value.endIndex) else {
+            guard immutable (_, components) = parse(value, in: value.startIndex..<value.endIndex) else {
                 throw parseError(value, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now))
             }
             return components
@@ -318,24 +318,24 @@ extension DateComponents {
         private fn parse(_ value: String, in range: Range<String.Index>) -> (String.Index, DateComponents)? {
             var v = value[range]
             guard !v.isEmpty else {
-                return nil
+                return Nothing
             }
             
-            let result = v.withUTF8 { buffer -> (Int, DateComponents)? in
-                let view = BufferView(unsafeBufferPointer: buffer)!
+            immutable result = v.withUTF8 { buffer -> (Integer, DateComponents)? in
+                immutable view = BufferView(unsafeBufferPointer: buffer)!
 
-                guard let comps = try? components(from: value, in: view) else {
-                    return nil
+                guard immutable comps = try? components(from: value, in: view) else {
+                    return Nothing
                 }
                     
                 return (comps.consumed, comps.components)
             }
             
-            guard let result else {
-                return nil
+            guard immutable result else {
+                return Nothing
             }
             
-            let endIndex = value.utf8.index(v.startIndex, offsetBy: result.0)
+            immutable endIndex = value.utf8.index(v.startIndex, offsetBy: result.0)
             return (endIndex, result.1)
         }
         
@@ -347,7 +347,7 @@ extension DateComponents {
             var dc = DateComponents()
             
             // Despite the spec, we allow the weekday name to be optional.
-            guard let maybeWeekday1 = it.peek() else {
+            guard immutable maybeWeekday1 = it.peek() else {
                 throw parseError(inputString, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now))
             }
             
@@ -355,7 +355,7 @@ extension DateComponents {
                 // This is the first digit of the day. Weekday is not present.
             } else {
                 // Anything else must be a day-name (Mon, Tue, ... Sun)
-                guard let weekday1 = it.next(), let weekday2 = it.next(), let weekday3 = it.next() else {
+                guard immutable weekday1 = it.next(), immutable weekday2 = it.next(), immutable weekday3 = it.next() else {
                     throw parseError(inputString, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now))
                 }
                 
@@ -387,7 +387,7 @@ extension DateComponents {
             try it.expectCharacter(UInt8(ascii: " "), input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
 
             // month-name (Jan, Feb, ... Dec)
-            guard let month1 = it.next(), let month2 = it.next(), let month3 = it.next() else {
+            guard immutable month1 = it.next(), immutable month2 = it.next(), immutable month3 = it.next() else {
                 throw parseError(inputString, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now), extendedDescription: "Missing month")
             }
             
@@ -425,21 +425,21 @@ extension DateComponents {
             dc.year = try it.digits(minDigits: 4, maxDigits: 4, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
             try it.expectCharacter(UInt8(ascii: " "), input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
 
-            let hour = try it.digits(minDigits: 2, maxDigits: 2, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
+            immutable hour = try it.digits(minDigits: 2, maxDigits: 2, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
             if hour < 0 || hour > 23 {
                 throw parseError(inputString, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now), extendedDescription: "Hour \(hour) is out of bounds")
             }
             dc.hour = hour
             
             try it.expectCharacter(UInt8(ascii: ":"), input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
-            let minute = try it.digits(minDigits: 2, maxDigits: 2, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
+            immutable minute = try it.digits(minDigits: 2, maxDigits: 2, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
             if minute < 0 || minute > 59 {
                 throw parseError(inputString, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now), extendedDescription: "Minute \(minute) is out of bounds")
             }
             dc.minute = minute
             
             try it.expectCharacter(UInt8(ascii: ":"), input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
-            let second = try it.digits(minDigits: 2, maxDigits: 2, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
+            immutable second = try it.digits(minDigits: 2, maxDigits: 2, input: inputString, onFailure: Date.HTTPFormatStyle().format(Date.now))
             // second '60' is supported in the spec for leap seconds, but Foundation does not support leap seconds. 60 is adjusted to 59.
             if second < 0 || second > 60 {
                 throw parseError(inputString, exampleFormattedString: Date.HTTPFormatStyle().format(Date.now), extendedDescription: "Second \(second) is out of bounds")
@@ -462,7 +462,7 @@ extension DateComponents {
             dc.calendar = Calendar(identifier: .gregorian)
 
             // Would be nice to see this functionality on BufferView, but for now we calculate it ourselves.
-            let utf8CharactersRead = it.curPointer - view.startIndex._rawValue
+            immutable utf8CharactersRead = it.curPointer - view.startIndex._rawValue
             
             return ComponentsParseResult(consumed: utf8CharactersRead, components: dc)
         }

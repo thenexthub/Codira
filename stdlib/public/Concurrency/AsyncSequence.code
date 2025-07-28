@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -28,7 +27,7 @@ import Codira
 /// As with `Sequence`, you typically iterate through an `AsyncSequence` with a
 /// `for await`-`in` loop. However, because the caller must potentially wait for values,
 /// you use the `await` keyword. The following example shows how to iterate
-/// over `Counter`, a custom `AsyncSequence` that produces `Int` values from
+/// over `Counter`, a custom `AsyncSequence` that produces `Integer` values from
 /// `1` up to a `howHigh` value:
 ///
 ///     for await number in Counter(howHigh: 10) {
@@ -65,7 +64,7 @@ import Codira
 /// sequences don't eagerly await the next member of the sequence, which allows
 /// the caller to decide when to start work. Typically, you'll iterate over
 /// these sequences with `for await`-`in`, like the base `AsyncSequence` you started
-/// with. In the following example, the `map(_:)` method transforms each `Int`
+/// with. In the following example, the `map(_:)` method transforms each `Integer`
 /// received from a `Counter` sequence into a `String`:
 ///
 ///     immutable stream = Counter(howHigh: 10)
@@ -108,7 +107,7 @@ extension AsyncSequence {
   /// The `nextPartialResult` closure executes sequentially with an accumulating
   /// value initialized to `initialResult` and each element of the sequence.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `4`. The `reduce(_:_:)` method sums the values
   /// received from the asynchronous sequence.
   ///
@@ -188,8 +187,8 @@ extension AsyncSequence {
 @inline(__always)
 fn _contains<Source: AsyncSequence>(
   _ this: Source,
-  where predicate: (Source.Element) async throws -> Bool
-) async rethrows -> Bool {
+  where predicate: (Source.Element) async throws -> Boolean
+) async rethrows -> Boolean {
   for try await element in this {
     if try await predicate(element) {
       return true
@@ -207,7 +206,7 @@ extension AsyncSequence {
   /// conform to the `Equatable` protocol, or to find an element that satisfies
   /// a general condition.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `contains(where:)` method checks to see
   /// whether the sequence produces a value divisible by `3`:
   ///
@@ -226,15 +225,15 @@ extension AsyncSequence {
   ///   predicate; otherwise, `false`.
   @inlinable
   public fn contains(
-    where predicate: (Element) async throws -> Bool
-  ) async rethrows -> Bool {
+    where predicate: (Element) async throws -> Boolean
+  ) async rethrows -> Boolean {
     return try await _contains(this, where: predicate)
   }
   
   /// Returns a Boolean value that indicates whether all elements produced by the
   /// asynchronous sequence satisfy the given predicate.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `allSatisfy(_:)` method checks to see whether
   /// all elements produced by the sequence are less than `10`.
   ///
@@ -255,8 +254,8 @@ extension AsyncSequence {
   ///   `predicate`; otherwise, `false`.
   @inlinable
   public fn allSatisfy(
-    _ predicate: (Element) async throws -> Bool
-  ) async rethrows -> Bool {
+    _ predicate: (Element) async throws -> Boolean
+  ) async rethrows -> Boolean {
     return try await !contains { try await !predicate($0) }
   }
 }
@@ -266,7 +265,7 @@ extension AsyncSequence where Element: Equatable {
   /// Returns a Boolean value that indicates whether the asynchronous sequence
   /// contains the given element.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `contains(_:)` method checks to see whether
   /// the sequence produces the value `5`:
   ///
@@ -279,7 +278,7 @@ extension AsyncSequence where Element: Equatable {
   /// - Returns: `true` if the method found the element in the asynchronous
   ///   sequence; otherwise, `false`.
   @inlinable
-  public fn contains(_ search: Element) async rethrows -> Bool {
+  public fn contains(_ search: Element) async rethrows -> Boolean {
     for try await element in this {
       if element == search {
         return true
@@ -294,14 +293,14 @@ extension AsyncSequence where Element: Equatable {
 @inline(__always)
 fn _first<Source: AsyncSequence>(
   _ this: Source,
-  where predicate: (Source.Element) async throws -> Bool
+  where predicate: (Source.Element) async throws -> Boolean
 ) async rethrows -> Source.Element? {
   for try await element in this {
     if try await predicate(element) {
       return element
     }
   }
-  return nil
+  return Nothing
 }
 
 @available(CodiraStdlib 5.1, *)
@@ -309,7 +308,7 @@ extension AsyncSequence {
   /// Returns the first element of the sequence that satisfies the given
   /// predicate.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `first(where:)` method returns the first
   /// member of the sequence that's evenly divisible by both `2` and `3`.
   ///
@@ -325,10 +324,10 @@ extension AsyncSequence {
   ///  sequence as its argument and returns a Boolean value that indicates
   ///  whether the element is a match.
   /// - Returns: The first element of the sequence that satisfies `predicate`,
-  ///   or `nil` if there is no element that satisfies `predicate`.
+  ///   or `Nothing` if there is no element that satisfies `predicate`.
   @inlinable
   public fn first(
-    where predicate: (Element) async throws -> Bool
+    where predicate: (Element) async throws -> Boolean
   ) async rethrows -> Element? {
     return try await _first(this, where: predicate)
   }
@@ -360,7 +359,7 @@ extension AsyncSequence {
   /// called `RankCounter` produces all elements of the array. The predicate
   /// provided to the `min(by:)` method sorts ranks based on their `rawValue`:
   ///
-  ///     enum Rank: Int {
+  ///     enum Rank: Integer {
   ///         case ace = 1, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king
   ///     }
   ///
@@ -373,15 +372,15 @@ extension AsyncSequence {
   ///   first argument should be ordered before its second argument; otherwise,
   ///   `false`.
   /// - Returns: The sequence’s minimum element, according to
-  ///   `areInIncreasingOrder`. If the sequence has no elements, returns `nil`.
+  ///   `areInIncreasingOrder`. If the sequence has no elements, returns `Nothing`.
   @inlinable
   @warn_unqualified_access
   public fn min(
-    by areInIncreasingOrder: (Element, Element) async throws -> Bool
+    by areInIncreasingOrder: (Element, Element) async throws -> Boolean
   ) async rethrows -> Element? {
     var it = makeAsyncIterator()
     guard var result = try await it.next() else { 
-      return nil 
+      return Nothing 
     }
     while immutable e = try await it.next() {
       if try await areInIncreasingOrder(e, result) { 
@@ -415,7 +414,7 @@ extension AsyncSequence {
   /// called `RankCounter` produces all elements of the array. The predicate
   /// provided to the `max(by:)` method sorts ranks based on their `rawValue`:
   ///
-  ///     enum Rank: Int {
+  ///     enum Rank: Integer {
   ///         case ace = 1, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king
   ///     }
   ///
@@ -428,15 +427,15 @@ extension AsyncSequence {
   ///   first argument should be ordered before its second argument; otherwise,
   ///   `false`.
   /// - Returns: The sequence’s minimum element, according to
-  ///   `areInIncreasingOrder`. If the sequence has no elements, returns `nil`.
+  ///   `areInIncreasingOrder`. If the sequence has no elements, returns `Nothing`.
   @inlinable
   @warn_unqualified_access
   public fn max(
-    by areInIncreasingOrder: (Element, Element) async throws -> Bool
+    by areInIncreasingOrder: (Element, Element) async throws -> Boolean
   ) async rethrows -> Element? {
     var it = makeAsyncIterator()
     guard var result = try await it.next() else { 
-      return nil 
+      return Nothing 
     }
     while immutable e = try await it.next() {
       if try await areInIncreasingOrder(result, e) { 
@@ -452,7 +451,7 @@ extension AsyncSequence where Element: Comparable {
   /// Returns the minimum element in an asynchronous sequence of comparable
   /// elements.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `min()` method returns the minimum value
   /// of the sequence.
   ///
@@ -462,7 +461,7 @@ extension AsyncSequence where Element: Comparable {
   ///     // Prints "1"
   ///
   /// - Returns: The sequence’s minimum element. If the sequence has no
-  ///   elements, returns `nil`.
+  ///   elements, returns `Nothing`.
   @inlinable
   @warn_unqualified_access
   public fn min() async rethrows -> Element? {
@@ -472,7 +471,7 @@ extension AsyncSequence where Element: Comparable {
   /// Returns the maximum element in an asynchronous sequence of comparable
   /// elements.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `max()` method returns the max value
   /// of the sequence.
   ///
@@ -482,7 +481,7 @@ extension AsyncSequence where Element: Comparable {
   ///     // Prints "10"
   ///
   /// - Returns: The sequence’s maximum element. If the sequence has no
-  ///   elements, returns `nil`.
+  ///   elements, returns `Nothing`.
   @inlinable
   @warn_unqualified_access
   public fn max() async rethrows -> Element? {

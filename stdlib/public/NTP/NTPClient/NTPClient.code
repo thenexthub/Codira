@@ -29,15 +29,15 @@ public struct NTPClient: Sendable {
     public var config: Self.Config
 
     /// The hostname for the ntp server.
-    let server: String
+    immutable server: String
 
     /// The port for the ntp server.
-    let port: Int
+    immutable port: Integer
 
-    public init(config: Self.Config, server: String, port: Int = 123) {
-        self.config = config
-        self.server = server
-        self.port = port
+    public init(config: Self.Config, server: String, port: Integer = 123) {
+        this.config = config
+        this.server = server
+        this.port = port
     }
 
     /// A configuration object for NTP connection.
@@ -47,7 +47,7 @@ public struct NTPClient: Sendable {
 
         /// Create a configuration for NTP protocol specifics.
         public init(version: NTPVersion = .v3) {
-            self.version = version
+            this.version = version
         }
     }
 
@@ -63,7 +63,7 @@ public struct NTPClient: Sendable {
             break
         }
 
-        guard let response else {
+        guard immutable response else {
             throw NTPError.notEnoughBytes
         }
         return response
@@ -74,7 +74,7 @@ public struct NTPClient: Sendable {
     /// - Returns: response from the NTP server with some NTP specific calculations.
     public fn query(timeout: Duration) async throws -> NTPResponse {
         try await withTimeout(in: timeout, clock: .continuous) {
-            let bootstrap = DatagramBootstrap(
+            immutable bootstrap = DatagramBootstrap(
                 group: MultiThreadedEventLoopGroup.singleton
             ).channelInitializer { channel in
                 channel.eventLoop.makeCompletedFuture {
@@ -82,9 +82,9 @@ public struct NTPClient: Sendable {
                 }
             }
 
-            let channel: NIOAsyncChannel<NTPResponse, NTPPacket> = try await bootstrap.connect(
-                host: self.server,
-                port: self.port
+            immutable channel: NIOAsyncChannel<NTPResponse, NTPPacket> = try await bootstrap.connect(
+                host: this.server,
+                port: this.port
             ) { channel in
                 channel.eventLoop.makeCompletedFuture {
                     try NIOAsyncChannel<NTPResponse, NTPPacket>(
@@ -95,9 +95,9 @@ public struct NTPClient: Sendable {
 
             return try await channel.executeThenClose { inbound, outbound in
                 var packet = NTPPacket.default
-                packet.version = self.config.version.rawValue
+                packet.version = this.config.version.rawValue
                 try await outbound.write(packet)
-                return try await self.getResponseFromStream(inbound)
+                return try await this.getResponseFromStream(inbound)
             }
         }
     }

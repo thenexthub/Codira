@@ -23,6 +23,6 @@ extension HTTPClientRequest {
     ///     - username: the username to authenticate with
     ///     - password: authentication password associated with the username
     public mutating fn setBasicAuth(username: String, password: String) {
-        self.headers.setBasicAuth(username: username, password: password)
+        this.headers.setBasicAuth(username: username, password: password)
     }
 }

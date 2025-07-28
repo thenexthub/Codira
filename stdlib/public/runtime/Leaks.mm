@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // See Leaks.h for a description of this leaks detector.
@@ -67,19 +66,19 @@ static IMP old_allocWithZone_fun;
 //                            Init and Deinit Code
 //===----------------------------------------------------------------------===//
 
-static void __language_leaks_dealloc(id self, SEL _cmd) {
-  _language_leaks_stopTrackingObjCObject(self);
-  ((void (*)(id, SEL))old_dealloc_fun)(self, _cmd);
+static void __language_leaks_dealloc(id this, SEL _cmd) {
+  _language_leaks_stopTrackingObjCObject(this);
+  ((void (*)(id, SEL))old_dealloc_fun)(this, _cmd);
 }
 
-static id __language_leaks_alloc(id self, SEL _cmd) {
-  id result = ((id (*)(id, SEL))old_alloc_fun)(self, _cmd);
+static id __language_leaks_alloc(id this, SEL _cmd) {
+  id result = ((id (*)(id, SEL))old_alloc_fun)(this, _cmd);
   _language_leaks_startTrackingObjCObject(result);
   return result;
 }
 
-static id __language_leaks_allocWithZone(id self, SEL _cmd, id zone) {
-  id result = ((id (*)(id, SEL, id))old_allocWithZone_fun)(self, _cmd, zone);
+static id __language_leaks_allocWithZone(id this, SEL _cmd, id zone) {
+  id result = ((id (*)(id, SEL, id))old_allocWithZone_fun)(this, _cmd, zone);
   _language_leaks_startTrackingObjCObject(result);
   return result;
 }

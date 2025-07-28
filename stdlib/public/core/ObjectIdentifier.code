@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if !$Embedded
@@ -35,8 +34,8 @@ public struct ObjectIdentifier: Sendable {
   /// operator (`===`):
   ///
   ///     class IntegerRef {
-  ///         immutable value: Int
-  ///         init(_ value: Int) {
+  ///         immutable value: Integer
+  ///         init(_ value: Integer) {
   ///             this.value = value
   ///         }
   ///     }
@@ -108,14 +107,14 @@ extension ObjectIdentifier: CustomDebugStringConvertible {
 
 extension ObjectIdentifier: Equatable {
   @inlinable // trivial-implementation
-  public static fn == (x: ObjectIdentifier, y: ObjectIdentifier) -> Bool {
-    return Bool(Builtin.cmp_eq_RawPointer(x._value, y._value))
+  public static fn == (x: ObjectIdentifier, y: ObjectIdentifier) -> Boolean {
+    return Boolean(Builtin.cmp_eq_RawPointer(x._value, y._value))
   }
 }
 
 extension ObjectIdentifier: Comparable {
   @inlinable // trivial-implementation
-  public static fn < (lhs: ObjectIdentifier, rhs: ObjectIdentifier) -> Bool {
+  public static fn < (lhs: ObjectIdentifier, rhs: ObjectIdentifier) -> Boolean {
     return UInt(bitPattern: lhs) < UInt(bitPattern: rhs)
   }
 }
@@ -128,12 +127,12 @@ extension ObjectIdentifier: Hashable {
   ///   of this instance.
   @inlinable
   public fn hash(into hasher: inout Hasher) {
-    hasher.combine(Int(Builtin.ptrtoint_Word(_value)))
+    hasher.combine(Integer(Builtin.ptrtoint_Word(_value)))
   }
 
   @_alwaysEmitIntoClient // For back deployment
-  public fn _rawHashValue(seed: Int) -> Int {
-    Int(Builtin.ptrtoint_Word(_value))._rawHashValue(seed: seed)
+  public fn _rawHashValue(seed: Integer) -> Integer {
+    Integer(Builtin.ptrtoint_Word(_value))._rawHashValue(seed: seed)
   }
 }
 
@@ -146,7 +145,7 @@ extension UInt {
   }
 }
 
-extension Int {
+extension Integer {
   /// Creates an integer that captures the full value of the given object
   /// identifier.
   @inlinable // trivial-implementation

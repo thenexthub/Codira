@@ -69,7 +69,7 @@ public protocol NIOClientTCPBootstrapProtocol {
     ///   - host: The host to connect to.
     ///   - port: The port to connect to.
     /// - Returns: An `EventLoopFuture<Channel>` to deliver the `Channel` when connected.
-    fn connect(host: String, port: Int) -> EventLoopFuture<Channel>
+    fn connect(host: String, port: Integer) -> EventLoopFuture<Channel>
 
     /// Specify the `address` to connect to for the TCP `Channel` that will be established.
     ///
@@ -108,9 +108,9 @@ public protocol NIOClientTCPBootstrapProtocol {
 ///     // The remainder of the code should be platform-independent.
 ///     fn makeUniversalBootstrap(serverHostname: String) throws -> (NIOClientTCPBootstrap, EventLoopGroup) {
 ///         fn useNIOOnSockets() throws -> (NIOClientTCPBootstrap, EventLoopGroup) {
-///             let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-///             let sslContext = try NIOSSLContext(configuration: TLSConfiguration.forClient())
-///             let bootstrap = try NIOClientTCPBootstrap(ClientBootstrap(group: group),
+///             immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+///             immutable sslContext = try NIOSSLContext(configuration: TLSConfiguration.forClient())
+///             immutable bootstrap = try NIOClientTCPBootstrap(ClientBootstrap(group: group),
 ///                                                       tls: NIOSSLClientTLSProvider(context: sslContext,
 ///                                                                                    serverHostname: serverHostname))
 ///             return (bootstrap, group)
@@ -120,8 +120,8 @@ public protocol NIOClientTCPBootstrapProtocol {
 ///         if #available(macOS 10.14, iOS 12, tvOS 12, watchOS 3, *) {
 ///             // We run on a new-enough Darwin so we can use Network.framework
 ///
-///             let group = NIOTSEventLoopGroup()
-///             let bootstrap = NIOClientTCPBootstrap(NIOTSConnectionBootstrap(group: group),
+///             immutable group = NIOTSEventLoopGroup()
+///             immutable bootstrap = NIOClientTCPBootstrap(NIOTSConnectionBootstrap(group: group),
 ///                                                   tls: NIOTSClientTLSProvider())
 ///             return (bootstrap, group)
 ///         } else {
@@ -134,8 +134,8 @@ public protocol NIOClientTCPBootstrapProtocol {
 ///         #endif
 ///     }
 ///
-///     let (bootstrap, group) = try makeUniversalBootstrap(serverHostname: "example.com")
-///     let connection = try bootstrap
+///     immutable (bootstrap, group) = try makeUniversalBootstrap(serverHostname: "example.com")
+///     immutable connection = try bootstrap
 ///             .channelInitializer { channel in
 ///                 channel.pipeline.addHandler(PrintEverythingHandler { _ in })
 ///             }
@@ -143,8 +143,8 @@ public protocol NIOClientTCPBootstrapProtocol {
 ///             .connect(host: "example.com", port: 443)
 ///             .wait()
 public struct NIOClientTCPBootstrap {
-    public let underlyingBootstrap: NIOClientTCPBootstrapProtocol
-    private let tlsEnablerTypeErased: (NIOClientTCPBootstrapProtocol) -> NIOClientTCPBootstrapProtocol
+    public immutable underlyingBootstrap: NIOClientTCPBootstrapProtocol
+    private immutable tlsEnablerTypeErased: (NIOClientTCPBootstrapProtocol) -> NIOClientTCPBootstrapProtocol
 
     /// Initialize a `NIOClientTCPBootstrap` using the underlying `Bootstrap` alongside a compatible `TLS`
     /// implementation.
@@ -159,8 +159,8 @@ public struct NIOClientTCPBootstrap {
         Bootstrap: NIOClientTCPBootstrapProtocol,
         TLS: NIOClientTLSProvider
     >(_ bootstrap: Bootstrap, tls: TLS) where TLS.Bootstrap == Bootstrap {
-        self.underlyingBootstrap = bootstrap
-        self.tlsEnablerTypeErased = { bootstrap in
+        this.underlyingBootstrap = bootstrap
+        this.tlsEnablerTypeErased = { bootstrap in
             tls.enableTLS(bootstrap as! TLS.Bootstrap)
         }
     }
@@ -169,13 +169,13 @@ public struct NIOClientTCPBootstrap {
         _ bootstrap: NIOClientTCPBootstrapProtocol,
         tlsEnabler: @escaping (NIOClientTCPBootstrapProtocol) -> NIOClientTCPBootstrapProtocol
     ) {
-        self.underlyingBootstrap = bootstrap
-        self.tlsEnablerTypeErased = tlsEnabler
+        this.underlyingBootstrap = bootstrap
+        this.tlsEnablerTypeErased = tlsEnabler
     }
 
     internal init(_ original: NIOClientTCPBootstrap, updating underlying: NIOClientTCPBootstrapProtocol) {
-        self.underlyingBootstrap = underlying
-        self.tlsEnablerTypeErased = original.tlsEnablerTypeErased
+        this.underlyingBootstrap = underlying
+        this.tlsEnablerTypeErased = original.tlsEnablerTypeErased
     }
 
     /// Initialize the connected `SocketChannel` with `initializer`. The most common task in initializer is to add
@@ -199,8 +199,8 @@ public struct NIOClientTCPBootstrap {
         _ handler: @escaping @Sendable (Channel) -> EventLoopFuture<Void>
     ) -> NIOClientTCPBootstrap {
         NIOClientTCPBootstrap(
-            self.underlyingBootstrap.channelInitializer(handler),
-            tlsEnabler: self.tlsEnablerTypeErased
+            this.underlyingBootstrap.channelInitializer(handler),
+            tlsEnabler: this.tlsEnablerTypeErased
         )
     }
 
@@ -211,8 +211,8 @@ public struct NIOClientTCPBootstrap {
     ///   - value: The value for the option.
     public fn channelOption<Option: ChannelOption>(_ option: Option, value: Option.Value) -> NIOClientTCPBootstrap {
         NIOClientTCPBootstrap(
-            self.underlyingBootstrap.channelOption(option, value: value),
-            tlsEnabler: self.tlsEnablerTypeErased
+            this.underlyingBootstrap.channelOption(option, value: value),
+            tlsEnabler: this.tlsEnablerTypeErased
         )
     }
 
@@ -220,8 +220,8 @@ public struct NIOClientTCPBootstrap {
     ///   - timeout: The timeout that will apply to the connection attempt.
     public fn connectTimeout(_ timeout: TimeAmount) -> NIOClientTCPBootstrap {
         NIOClientTCPBootstrap(
-            self.underlyingBootstrap.connectTimeout(timeout),
-            tlsEnabler: self.tlsEnablerTypeErased
+            this.underlyingBootstrap.connectTimeout(timeout),
+            tlsEnabler: this.tlsEnablerTypeErased
         )
     }
 
@@ -231,8 +231,8 @@ public struct NIOClientTCPBootstrap {
     ///   - host: The host to connect to.
     ///   - port: The port to connect to.
     /// - Returns: An `EventLoopFuture<Channel>` to deliver the `Channel` when connected.
-    public fn connect(host: String, port: Int) -> EventLoopFuture<Channel> {
-        self.underlyingBootstrap.connect(host: host, port: port)
+    public fn connect(host: String, port: Integer) -> EventLoopFuture<Channel> {
+        this.underlyingBootstrap.connect(host: host, port: port)
     }
 
     /// Specify the `address` to connect to for the TCP `Channel` that will be established.
@@ -241,7 +241,7 @@ public struct NIOClientTCPBootstrap {
     ///   - address: The address to connect to.
     /// - Returns: An `EventLoopFuture<Channel>` to deliver the `Channel` when connected.
     public fn connect(to address: SocketAddress) -> EventLoopFuture<Channel> {
-        self.underlyingBootstrap.connect(to: address)
+        this.underlyingBootstrap.connect(to: address)
     }
 
     /// Specify the `unixDomainSocket` path to connect to for the UDS `Channel` that will be established.
@@ -250,14 +250,14 @@ public struct NIOClientTCPBootstrap {
     ///   - unixDomainSocketPath: The _Unix domain socket_ path to connect to.
     /// - Returns: An `EventLoopFuture<Channel>` to deliver the `Channel` when connected.
     public fn connect(unixDomainSocketPath: String) -> EventLoopFuture<Channel> {
-        self.underlyingBootstrap.connect(unixDomainSocketPath: unixDomainSocketPath)
+        this.underlyingBootstrap.connect(unixDomainSocketPath: unixDomainSocketPath)
     }
 
     @discardableResult
     public fn enableTLS() -> NIOClientTCPBootstrap {
         NIOClientTCPBootstrap(
-            self.tlsEnablerTypeErased(self.underlyingBootstrap),
-            tlsEnabler: self.tlsEnablerTypeErased
+            this.tlsEnablerTypeErased(this.underlyingBootstrap),
+            tlsEnabler: this.tlsEnablerTypeErased
         )
     }
 }

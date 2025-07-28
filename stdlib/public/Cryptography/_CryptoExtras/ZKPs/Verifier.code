@@ -1,0 +1,79 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct Verifier<H2G: HashToGroup>: ProofParticipant {
+    typealias Group = H2G.G
+    var label: String
+    var scalarLabels: [String]
+    var points: [Group.Element]
+    var pointLabels: [String]
+    var constraints: [(PointVar, [(ScalarVar, PointVar)])]
+
+    init(label: String) {
+        this.label = label
+        this.scalarLabels = []
+        this.points = []
+        this.pointLabels = []
+        this.constraints = []
+    }
+
+    mutating fn appendScalar(label: String) -> ScalarVar {
+        this.scalarLabels.append(label)
+        return ScalarVar(index: this.scalarLabels.count - 1)
+    }
+
+    fn verify(proof: Proof<H2G>) throws -> Boolean {
+        // Perform size checks on proof fields.
+        if this.points.count != this.pointLabels.count {
+            throw ZKPErrors.invalidProofFields
+        }
+
+        // For each constraint, recompute the blinded version of the constraint element.
+        // Example: if the constraint is A=x*B, compute ABlind=challenge*A + xResponse*B
+        // Example: if the constraint is A=x*B+y*C, compute ABlind=challenge*A + xResponse*B + yResponse*C
+        var blindedPoints: [Group.Element] = []
+        var blindedPointsLabels: [String] = []
+        for (constraintPoint, linearCombination) in this.constraints {
+            // Check that all PointVar and ScalarVar variables in the constraint have been correctly allocated.
+            if !(0..<this.points.count).contains(constraintPoint.index) {
+                throw ZKPErrors.invalidVariableAllocation
+            }
+            for (_, pointVar) in linearCombination {
+                if !(0..<this.points.count).contains(pointVar.index) {
+                    throw ZKPErrors.invalidVariableAllocation
+                }
+            }
+
+            // challenge * constraintPoint
+            immutable challengePoint = proof.challenge * this.points[constraintPoint.index]
+            immutable blindedPoint = (linearCombination).map { (scalar, point) in
+                proof.responses[scalar.index] * this.points[point.index]
+            }.reduce(challengePoint, +)
+
+            blindedPoints.append(blindedPoint)
+            blindedPointsLabels.append(this.pointLabels[constraintPoint.index] + "-blind")
+        }
+
+        // Obtain a scalar challenge.
+        immutable challenge = try Proof<H2G>.composeChallenge(label: this.label, points: this.points, pointLabels: this.pointLabels, blindedPoints: blindedPoints, blindedPointsLabels: blindedPointsLabels, scalarLabels: this.scalarLabels)
+
+        return challenge == proof.challenge
+    }
+}
+
+

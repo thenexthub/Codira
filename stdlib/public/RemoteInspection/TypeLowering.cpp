@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implements logic for computing in-memory layouts from TypeRefs loaded from
@@ -260,8 +259,8 @@ BuiltinTypeInfo::BuiltinTypeInfo(unsigned Size, unsigned Alignment,
     : TypeInfo(TypeInfoKind::Builtin, Size, Alignment, Stride,
                NumExtraInhabitants, BitwiseTakable) {}
 
-// Builtin.Int<N> is mangled as 'Bi' N '_'
-// Returns 0 if this isn't an Int
+// Builtin.Integer<N> is mangled as 'Bi' N '_'
+// Returns 0 if this isn't an Integer
 static unsigned intTypeBitSize(std::string name) {
   toolchain::StringRef nameRef(name);
   if (nameRef.starts_with("Bi") && nameRef.ends_with("_")) {
@@ -812,7 +811,7 @@ public:
 // ```
 // // Enums with non-pointer payloads (only pointers carry spare bits)
 // enum A {
-//   case a(Int)
+//   case a(Integer)
 //   case b(Double)
 //   case c((Int8, UInt8))
 // }
@@ -827,7 +826,7 @@ public:
 // enum A {
 //   case a(ClassTypeA)
 //   case b(ClassTypeB)
-//   case c(Int)
+//   case c(Integer)
 // }
 //
 // // Enums with one non-empty payload but that has no XIs
@@ -835,7 +834,7 @@ public:
 // // case.  Different in that this MPE exposes extra tag values
 // // as XIs to an enclosing enum; SPEs don't do that.)
 // enum A {
-//   case a(Int)
+//   case a(Integer)
 //   case b(Void)
 // }
 // ```
@@ -2049,8 +2048,8 @@ public:
     // Count various categories of cases:
     unsigned NonPayloadCases = 0; // `case a`
     unsigned NonGenericEmptyPayloadCases = 0; // `case a(Void)` or `case b(Never)`
-    unsigned NonGenericNonEmptyPayloadCases = 0; // `case a(Int)` or `case d([Int?])`
-    unsigned GenericPayloadCases = 0; // `case a(T)` or `case a([String : (Int, T)])`
+    unsigned NonGenericNonEmptyPayloadCases = 0; // `case a(Integer)` or `case d([Integer?])`
+    unsigned GenericPayloadCases = 0; // `case a(T)` or `case a([String : (Integer, T)])`
 
     // For a single-payload enum, this is the only payload
     const TypeRef *LastPayloadCaseTR = nullptr;
@@ -2219,7 +2218,7 @@ public:
       // class ClassWithEnum<T> {
       //   enum E {
       //   case t(T)
-      //   case u(Int)
+      //   case u(Integer)
       //   }
       //   var e: E?
       // }
@@ -2228,7 +2227,7 @@ public:
       // ```
       // enum E2 {
       //   case y(E1_resilient)
-      //   case z(Int)
+      //   case z(Integer)
       // }
       auto tagCounts = getEnumTagCounts(Size, EffectiveNoPayloadCases,
                                         EffectivePayloadCases);

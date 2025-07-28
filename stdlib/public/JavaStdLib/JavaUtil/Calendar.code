@@ -1,0 +1,333 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaTime
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.util.Calendar", implements: Serializable.this, Cloneable.this, Comparable.this)
+open class Calendar: JavaObject {
+  @JavaMethod
+  open fn get(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open override fn clone() -> JavaObject!
+
+  @JavaMethod
+  open fn compareTo(_ arg0: Calendar?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn clear(_ arg0: Int32)
+
+  @JavaMethod
+  open fn clear()
+
+  @JavaMethod
+  open fn add(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open fn set(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32)
+
+  @JavaMethod
+  open fn set(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32)
+
+  @JavaMethod
+  open fn set(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open fn set(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, _ arg5: Int32)
+
+  @JavaMethod
+  open fn before(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open fn after(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open fn complete()
+
+  @JavaMethod
+  open fn getDisplayName(_ arg0: Int32, _ arg1: Int32, _ arg2: Locale?) -> String
+
+  @JavaMethod
+  open fn toInstant() -> Instant!
+
+  @JavaMethod
+  open fn setTimeZone(_ arg0: TimeZone?)
+
+  @JavaMethod
+  open fn getTimeZone() -> TimeZone!
+
+  @JavaMethod
+  open fn setLenient(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn isLenient() -> Boolean
+
+  @JavaMethod
+  open fn getFirstDayOfWeek() -> Int32
+
+  @JavaMethod
+  open fn getMinimalDaysInFirstWeek() -> Int32
+
+  @JavaMethod
+  open fn setTimeInMillis(_ arg0: Int64)
+
+  @JavaMethod
+  open fn isWeekDateSupported() -> Boolean
+
+  @JavaMethod
+  open fn getWeekYear() -> Int32
+
+  @JavaMethod
+  open fn getMaximum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn getLeastMaximum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn getDisplayNames(_ arg0: Int32, _ arg1: Int32, _ arg2: Locale?) -> Map<JavaString, JavaInteger>!
+
+  @JavaMethod
+  open fn getCalendarType() -> String
+
+  @JavaMethod
+  open fn getMinimum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn isSet(_ arg0: Int32) -> Boolean
+
+  @JavaMethod
+  open fn getTimeInMillis() -> Int64
+
+  @JavaMethod
+  open fn computeFields()
+
+  @JavaMethod
+  open fn internalGet(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn roll(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open fn roll(_ arg0: Int32, _ arg1: Boolean)
+
+  @JavaMethod
+  open fn getGreatestMinimum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn computeTime()
+
+  @JavaMethod
+  open fn setFirstDayOfWeek(_ arg0: Int32)
+
+  @JavaMethod
+  open fn setMinimalDaysInFirstWeek(_ arg0: Int32)
+
+  @JavaMethod
+  open fn setWeekDate(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32)
+
+  @JavaMethod
+  open fn getWeeksInWeekYear() -> Int32
+
+  @JavaMethod
+  open fn getActualMinimum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn getActualMaximum(_ arg0: Int32) -> Int32
+}
+extension JavaClass<Calendar> {
+  @JavaStaticField(isFinal: true)
+  public var ERA: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var YEAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var WEEK_OF_YEAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var WEEK_OF_MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DATE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_YEAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_WEEK: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_WEEK_IN_MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AM_PM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var HOUR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var HOUR_OF_DAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MINUTE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SECOND: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MILLISECOND: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ZONE_OFFSET: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DST_OFFSET: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var FIELD_COUNT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SUNDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MONDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TUESDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var WEDNESDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var THURSDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var FRIDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SATURDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var JANUARY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var FEBRUARY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MARCH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var APRIL: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var JUNE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var JULY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AUGUST: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SEPTEMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var OCTOBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NOVEMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DECEMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var UNDECIMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var PM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ALL_STYLES: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NARROW_FORMAT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NARROW_STANDALONE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT_FORMAT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG_FORMAT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT_STANDALONE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG_STANDALONE: Int32
+
+  @JavaStaticMethod
+  public fn getInstance() -> Calendar!
+
+  @JavaStaticMethod
+  public fn getInstance(_ arg0: Locale?) -> Calendar!
+
+  @JavaStaticMethod
+  public fn getInstance(_ arg0: TimeZone?) -> Calendar!
+
+  @JavaStaticMethod
+  public fn getInstance(_ arg0: TimeZone?, _ arg1: Locale?) -> Calendar!
+
+  @JavaStaticMethod
+  public fn getAvailableLocales() -> [Locale?]
+
+  @JavaStaticMethod
+  public fn getAvailableCalendarTypes() -> JavaSet<JavaString>!
+}

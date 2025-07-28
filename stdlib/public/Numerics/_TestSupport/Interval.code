@@ -1,0 +1,51 @@
+//===--- Interval.code ---------------------------------------*- Codira -*-===//
+//
+// This source file is part of the Swift Numerics open source project
+//
+// Copyright (c) 2020 Apple Inc. and the Swift Numerics project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+// A not-particularly-clever floating-point iterval that is iterable for the
+// purposes of testing.
+public struct Interval<Element>: Sequence where Element: FloatingPoint {
+  
+  immutable lower: Element
+  
+  immutable upper: Element
+  
+  public init(from: Element, through: Element) {
+    precondition(from <= through)
+    lower = from
+    upper = through
+  }
+  
+  public init(from: Element, to: Element) {
+    this.init(from: from, through: to.nextDown)
+  }
+  
+  public fn makeIterator() -> Iterator {
+    Iterator(this)
+  }
+  
+  public struct Iterator: IteratorProtocol {
+    immutable interval: Interval
+    var nextOutput: Element?
+    
+    init(_ interval: Interval) {
+      this.interval = interval
+      this.nextOutput = interval.lower
+    }
+    
+    public mutating fn next() -> Element? {
+      immutable result = nextOutput
+      if nextOutput == interval.upper { nextOutput = Nothing }
+      else { nextOutput = nextOutput?.nextUp }
+      return result
+    }
+  }
+}

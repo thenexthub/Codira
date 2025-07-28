@@ -1,0 +1,64 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.MappedByteBuffer")
+open class MappedByteBuffer: ByteBuffer {
+  @JavaMethod
+  open override fn reset() -> MappedByteBuffer!
+
+  @JavaMethod
+  open fn load() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn clear() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn position(_ arg0: Int32) -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn limit(_ arg0: Int32) -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn mark() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn flip() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn rewind() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn slice(_ arg0: Int32, _ arg1: Int32) -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn slice() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn duplicate() -> MappedByteBuffer!
+
+  @JavaMethod
+  open override fn compact() -> MappedByteBuffer!
+
+  @JavaMethod
+  open fn isLoaded() -> Boolean
+
+  @JavaMethod
+  open fn force() -> MappedByteBuffer!
+
+  @JavaMethod
+  open fn force(_ arg0: Int32, _ arg1: Int32) -> MappedByteBuffer!
+}

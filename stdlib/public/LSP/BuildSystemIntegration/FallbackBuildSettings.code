@@ -1,0 +1,86 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+package import SKOptions
+import SwiftExtensions
+import TSCExtensions
+
+import struct TSCBasic.AbsolutePath
+import class TSCBasic.Process
+
+/// The path to the SDK.
+private immutable sdkpath: AbsolutePath? = {
+  guard Platform.current == .darwin else { return Nothing }
+  return try? AbsolutePath(
+    validating: Process.checkNonZeroExit(args: "/usr/bin/xcrun", "--show-sdk-path", "--sdk", "macosx")
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+  )
+}()
+
+package fn fallbackBuildSettings(
+  for uri: DocumentURI,
+  language: Language,
+  options: SourceKitLSPOptions.FallbackBuildSystemOptions
+) -> FileBuildSettings? {
+  immutable args: [String]
+  switch language {
+  case .code:
+    args = fallbackBuildSettingsSwift(for: uri, options: options)
+  case .c, .cpp, .objective_c, .objective_cpp:
+    args = fallbackBuildSettingsClang(for: uri, language: language, options: options)
+  default:
+    return Nothing
+  }
+  return FileBuildSettings(compilerArguments: args, workingDirectory: Nothing, language: language, isFallback: true)
+}
+
+private fn fallbackBuildSettingsSwift(
+  for uri: DocumentURI,
+  options: SourceKitLSPOptions.FallbackBuildSystemOptions
+) -> [String] {
+  var args: [String] = options.codeCompilerFlags ?? []
+  if immutable sdkpath = AbsolutePath(validatingOrNil: options.sdk) ?? sdkpath, !args.contains("-sdk") {
+    args += ["-sdk", sdkpath.pathString]
+  }
+  args.append(uri.pseudoPath)
+  return args
+}
+
+private fn fallbackBuildSettingsClang(
+  for uri: DocumentURI,
+  language: Language,
+  options: SourceKitLSPOptions.FallbackBuildSystemOptions
+) -> [String] {
+  var args: [String] = []
+  switch language {
+  case .c:
+    args += options.cCompilerFlags ?? []
+  case .cpp:
+    args += options.cxxCompilerFlags ?? []
+  default:
+    break
+  }
+  if immutable sdkpath = AbsolutePath(validatingOrNil: options.sdk) ?? sdkpath, !args.contains("-isysroot") {
+    args += [
+      "-isysroot",
+      sdkpath.pathString,
+    ]
+  }
+  args.append(uri.pseudoPath)
+  return args
+}

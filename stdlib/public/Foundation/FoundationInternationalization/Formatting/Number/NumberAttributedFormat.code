@@ -20,17 +20,17 @@ extension AttributeScopes.FoundationAttributes.NumberFormatAttributes.SymbolAttr
     init?(unumberFormatField: UNumberFormatFields) {
         switch unumberFormatField {
         case .decimalSeparator:
-            self = .decimalSeparator
+            this = .decimalSeparator
         case .groupingSeparator:
-            self = .groupingSeparator
+            this = .groupingSeparator
         case .currencySymbol:
-            self = .currency
+            this = .currency
         case .percentSymbol:
-            self = .percent
+            this = .percent
         case .sign:
-            self = .sign
+            this = .sign
         default:
-            return nil
+            return Nothing
         }
     }
 }
@@ -39,11 +39,11 @@ extension AttributeScopes.FoundationAttributes.NumberFormatAttributes.NumberPart
     init?(unumberFormatField: UNumberFormatFields) {
         switch unumberFormatField {
         case .integer:
-            self = .integer
+            this = .integer
         case .fraction:
-            self = .fraction
+            this = .fraction
         default:
-            return nil
+            return Nothing
         }
     }
 }
@@ -52,23 +52,23 @@ extension AttributeScopes.FoundationAttributes.MeasurementAttribute.Component {
     init?(unumberFormatField: UNumberFormatFields) {
         switch unumberFormatField {
         case .integer:
-            self = .value
+            this = .value
         case .fraction:
-            self = .value
+            this = .value
         case .decimalSeparator:
-            self = .value
+            this = .value
         case .groupingSeparator:
-            self = .value
+            this = .value
         case .sign:
-            self = .value
+            this = .value
         case .currencySymbol:
-            return nil
+            return Nothing
         case .percentSymbol:
-            return nil
+            return Nothing
         case .measureUnit:
-            self = .unit
+            this = .unit
         default:
-            return nil
+            return Nothing
         }
     }
 }

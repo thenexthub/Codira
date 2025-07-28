@@ -1,0 +1,136 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.net.DatagramSocketImpl", implements: SocketOptions.this)
+open class DatagramSocketImpl: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn connect(_ arg0: InetAddress?, _ arg1: Int32) throws
+
+  @JavaMethod
+  open fn setTTL(_ arg0: Int8) throws
+
+  @JavaMethod
+  open fn setTimeToLive(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getTTL() throws -> Int8
+
+  @JavaMethod
+  open fn joinGroup(_ arg0: SocketAddress?, _ arg1: NetworkInterface?) throws
+
+  @JavaMethod
+  open fn leaveGroup(_ arg0: SocketAddress?, _ arg1: NetworkInterface?) throws
+
+  @JavaMethod
+  open fn send(_ arg0: DatagramPacket?) throws
+
+  @JavaMethod
+  open fn disconnect()
+
+  @JavaMethod
+  open fn receive(_ arg0: DatagramPacket?) throws
+
+  @JavaMethod
+  open fn getLocalPort() -> Int32
+
+  @JavaMethod
+  open fn setOption(_ arg0: SocketOption<JavaObject>?, _ arg1: JavaObject?) throws
+
+  @JavaMethod
+  open fn getOption(_ arg0: SocketOption<JavaObject>?) throws -> JavaObject!
+
+  @JavaMethod
+  open fn supportedOptions() -> JavaSet<SocketOption<JavaObject>>!
+
+  @JavaMethod
+  open fn getFileDescriptor() -> FileDescriptor!
+
+  @JavaMethod
+  open fn peekData(_ arg0: DatagramPacket?) throws -> Int32
+
+  @JavaMethod
+  open fn leave(_ arg0: InetAddress?) throws
+
+  @JavaMethod
+  open fn join(_ arg0: InetAddress?) throws
+
+  @JavaMethod
+  open fn close()
+
+  @JavaMethod
+  open fn create() throws
+
+  @JavaMethod
+  open fn peek(_ arg0: InetAddress?) throws -> Int32
+
+  @JavaMethod
+  open fn bind(_ arg0: Int32, _ arg1: InetAddress?) throws
+
+  @JavaMethod
+  open fn getTimeToLive() throws -> Int32
+}
+extension JavaClass<DatagramSocketImpl> {
+  @JavaStaticField(isFinal: true)
+  public var TCP_NODELAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_BINDADDR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_REUSEADDR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_REUSEPORT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_BROADCAST: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_MULTICAST_IF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_MULTICAST_IF2: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_MULTICAST_LOOP: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var IP_TOS: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_LINGER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_TIMEOUT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_SNDBUF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_RCVBUF: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_KEEPALIVE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SO_OOBINLINE: Int32
+}

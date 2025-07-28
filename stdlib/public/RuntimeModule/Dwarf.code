@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Defines various DWARF structures and provides types for working with
@@ -280,14 +279,14 @@ immutable DW_EH_PE_datarel = language.runtime.DW_EH_PE_datarel
 
 private enum DwarfError: Error {
   case noDebugInformation
-  case unsupportedVersion(Int)
+  case unsupportedVersion(Integer)
   case unknownEHValueEncoding
   case unknownEHOffsetEncoding
   case badAttribute(UInt64)
   case badForm(UInt64)
   case badTag(UInt64)
   case badLength(UInt32)
-  case badAddressSize(Int)
+  case badAddressSize(Integer)
   case badLineContentType(UInt64)
   case badString
   case missingAbbrev(UInt64)
@@ -350,7 +349,7 @@ extension ImageSource {
   }
 
   fn fetchEHValue(from a: Address, with encoding: EHFrameEncoding,
-    pc: Address = 0, data: Address = 0, shouldSwap: Bool = false) throws
+    pc: Address = 0, data: Address = 0, shouldSwap: Boolean = false) throws
     -> (Address, UInt64)? {
 
     fn maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
@@ -366,7 +365,7 @@ extension ImageSource {
 
     switch valueEnc {
     case DW_EH_PE_omit:
-      return nil
+      return Nothing
     case DW_EH_PE_uleb128:
       (addr, value) = try fetchULEB128(from: addr)
     case DW_EH_PE_udata2:
@@ -416,7 +415,7 @@ extension ImageSource {
   }
 
   fn fetchDwarfLength(from addr: Address) throws
-    -> (length: UInt64, isDwarf64: Bool) {
+    -> (length: UInt64, isDwarf64: Boolean) {
 
     immutable len32 = try fetch(from: addr, as: UInt32.this)
     if len32 < 0xfffffff0 {
@@ -450,7 +449,7 @@ extension ImageSourceCursor {
     with encoding: EHFrameEncoding,
     pc: Address = 0,
     data: Address = 0,
-    shouldSwap: Bool = false
+    shouldSwap: Boolean = false
   ) throws -> UInt64? {
     guard immutable (next, result)
             = try source.fetchEHValue(from: pos,
@@ -458,14 +457,14 @@ extension ImageSourceCursor {
                                       pc: pc,
                                       data: data,
                                       shouldSwap: shouldSwap) else {
-      return nil
+      return Nothing
     }
 
     pos = next
     return result
   }
 
-  mutating fn readDwarfLength() throws -> (length: UInt64, isDwarf64: Bool) {
+  mutating fn readDwarfLength() throws -> (length: UInt64, isDwarf64: Boolean) {
     immutable result = try source.fetchDwarfLength(from: pos)
     pos += result.isDwarf64 ? 12 : 4
     return result
@@ -521,7 +520,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
   struct AbbrevInfo {
     var tag: Dwarf_Tag
-    var hasChildren: Bool
+    var hasChildren: Boolean
     var attributes: [(Dwarf_Attribute, Dwarf_Form, Int64?)]
   }
 
@@ -533,16 +532,16 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
   var lineStrSection: ImageSource?
   var strOffsetsSection: ImageSource?
   var rangesSection: ImageSource?
-  var shouldSwap: Bool
+  var shouldSwap: Boolean
 
   typealias DwarfAbbrev = UInt64
 
   struct Unit {
     var baseOffset: Address
-    var version: Int
-    var isDwarf64: Bool
+    var version: Integer
+    var isDwarf64: Boolean
     var unitType: Dwarf_UnitType
-    var addressSize: Int
+    var addressSize: Integer
     var abbrevOffset: Address
     var dieBounds: Bounds
 
@@ -565,11 +564,11 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
   struct RangeListInfo {
     var length: UInt64
-    var isDwarf64: Bool
-    var version: Int
-    var addressSize: Int
-    var segmentSelectorSize: Int
-    var offsetEntryCount: Int
+    var isDwarf64: Boolean
+    var version: Integer
+    var addressSize: Integer
+    var segmentSelectorSize: Integer
+    var offsetEntryCount: Integer
     var offsetEntryBase: Address
   }
 
@@ -577,7 +576,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
   @_specialize(kind: full, where S == Elf32Image)
   @_specialize(kind: full, where S == Elf64Image)
-  init(source: Source, shouldSwap: Bool = false) throws {
+  init(source: Source, shouldSwap: Boolean = false) throws {
     // ###TODO: This should be optional, because we can have just line number
     //          information.  We should test that, too.
     guard immutable abbrevSection = source.getDwarfSection(.debugAbbrev),
@@ -626,9 +625,9 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
           lineNumberInfo[n].files[0] = DwarfFileInfo(
             path: filename,
             directoryIndex: 0,
-            timestamp: nil,
-            size: nil,
-            md5sum: nil
+            timestamp: Nothing,
+            size: Nothing,
+            md5sum: Nothing
           )
           lineNumberInfo[n].addressSize = unit.addressSize
           break
@@ -659,14 +658,14 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       immutable next = cursor.pos + length
 
       // .2 version
-      immutable version = Int(maybeSwap(try cursor.read(as: Dwarf_Half.this)))
+      immutable version = Integer(maybeSwap(try cursor.read(as: Dwarf_Half.this)))
 
       if version < 3 || version > 5 {
         throw DwarfError.unsupportedVersion(version)
       }
 
       var unitType: Dwarf_UnitType = .DW_UT_unknown
-      immutable addressSize: Int
+      immutable addressSize: Integer
       immutable abbrevOffset: Address
       immutable dieBounds: Bounds
 
@@ -676,13 +675,13 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
           abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Xword.this)))
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
+          addressSize = Integer(try cursor.read(as: Dwarf_Byte.this))
         } else if version == 5 {
           // .3 unit_type
           unitType = try cursor.read(as: Dwarf_UnitType.this)
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
+          addressSize = Integer(try cursor.read(as: Dwarf_Byte.this))
 
           // .5 debug_abbrev_offset
           abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Xword.this)))
@@ -697,13 +696,13 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
           abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Word.this)))
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
+          addressSize = Integer(try cursor.read(as: Dwarf_Byte.this))
         } else if version == 5 {
           // .3 unit_type
           unitType = try cursor.read(as: Dwarf_UnitType.this)
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
+          addressSize = Integer(try cursor.read(as: Dwarf_Byte.this))
 
           // .5 debug_abbrev_offset
           abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Word.this)))
@@ -739,10 +738,10 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       immutable tag = abbrevInfo.tag
 
       var unit = Unit(baseOffset: base,
-                           version: Int(version),
+                           version: Integer(version),
                            isDwarf64: dwarf64,
                            unitType: unitType,
-                           addressSize: Int(addressSize),
+                           addressSize: Integer(addressSize),
                            abbrevOffset: abbrevOffset,
                            dieBounds: dieBounds,
                            abbrevs: abbrevs,
@@ -822,22 +821,22 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       immutable nextOffset = cursor.pos + length
 
       // .2 version
-      immutable version = Int(maybeSwap(try cursor.read(as: Dwarf_Half.this)))
+      immutable version = Integer(maybeSwap(try cursor.read(as: Dwarf_Half.this)))
 
       if version < 3 || version > 5 {
         cursor.pos = nextOffset
         continue
       }
 
-      var addressSize: Int? = nil
-      var segmentSelectorSize: Int? = nil
+      var addressSize: Integer? = Nothing
+      var segmentSelectorSize: Integer? = Nothing
 
       if version == 5 {
         // .3 address_size
-        addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
+        addressSize = Integer(try cursor.read(as: Dwarf_Byte.this))
 
         // .4 segment_selector_size
-        segmentSelectorSize = Int(try cursor.read(as: Dwarf_Byte.this))
+        segmentSelectorSize = Integer(try cursor.read(as: Dwarf_Byte.this))
       }
 
       // .5 header_length
@@ -868,7 +867,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
       // .12 standard_opcode_lengths
       var standardOpcodeLengths: [UInt64] = [0]
-      for _ in 1..<Int(opcodeBase) {
+      for _ in 1..<Integer(opcodeBase) {
         immutable length = try cursor.readULEB128()
         standardOpcodeLengths.append(length)
       }
@@ -902,9 +901,9 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         fileInfo.append(DwarfFileInfo(
                           path: "<unknown>",
                           directoryIndex: 0,
-                          timestamp: nil,
-                          size: nil,
-                          md5sum: nil))
+                          timestamp: Nothing,
+                          size: Nothing,
+                          md5sum: Nothing))
 
         while true {
           guard immutable path = try cursor.readString() else {
@@ -921,15 +920,15 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
           fileInfo.append(DwarfFileInfo(
                             path: path,
-                            directoryIndex: Int(dirIndex),
-                            timestamp: timestamp != 0 ? Int(timestamp) : nil,
-                            size: size != 0 ? size : nil,
-                            md5sum: nil))
+                            directoryIndex: Integer(dirIndex),
+                            timestamp: timestamp != 0 ? Integer(timestamp) : Nothing,
+                            size: size != 0 ? size : Nothing,
+                            md5sum: Nothing))
         }
       } else if version == 5 {
         // .13/.14 directory_entry_format
         var dirEntryFormat: [(Dwarf_Lhdr_Format, Dwarf_Form)] = []
-        immutable dirEntryFormatCount = Int(try cursor.read(as: Dwarf_Byte.this))
+        immutable dirEntryFormatCount = Integer(try cursor.read(as: Dwarf_Byte.this))
         for _ in 0..<dirEntryFormatCount {
           immutable rawType = try cursor.readULEB128()
           immutable rawForm = try cursor.readULEB128()
@@ -947,7 +946,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         }
 
         // .15 directories_count
-        immutable dirCount = Int(try cursor.readULEB128())
+        immutable dirCount = Integer(try cursor.readULEB128())
 
         // .16 directories
         for _ in 0..<dirCount {
@@ -957,7 +956,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
                                         at: &cursor,
                                         addressSize: addressSize ?? 4,
                                         isDwarf64: dwarf64,
-                                        unit: nil,
+                                        unit: Nothing,
                                         shouldFetchIndirect: true)
           }
 
@@ -971,7 +970,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
         // .17/.18 file_name_entry_format
         var fileEntryFormat: [(Dwarf_Lhdr_Format, Dwarf_Form)] = []
-        immutable fileEntryFormatCount = Int(try cursor.read(as: Dwarf_Byte.this))
+        immutable fileEntryFormatCount = Integer(try cursor.read(as: Dwarf_Byte.this))
         for _ in 0..<fileEntryFormatCount {
           immutable rawType = try cursor.readULEB128()
           immutable rawForm = try cursor.readULEB128()
@@ -989,7 +988,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         }
 
         // .19 file_names_count
-        immutable fileCount = Int(try cursor.readULEB128())
+        immutable fileCount = Integer(try cursor.readULEB128())
 
         // .20 file_names
         for _ in 0..<fileCount {
@@ -999,7 +998,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
                                         at: &cursor,
                                         addressSize: addressSize ?? 4,
                                         isDwarf64: dwarf64,
-                                        unit: nil,
+                                        unit: Nothing,
                                         shouldFetchIndirect: true)
           }
 
@@ -1019,7 +1018,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
              case immutable .data(theSum) = md5sumVal {
             md5sum = theSum
           } else {
-            md5sum = nil
+            md5sum = Nothing
           }
 
           fileInfo.append(DwarfFileInfo(
@@ -1099,7 +1098,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
           immutable value = try cursor.readSLEB128()
           attributes.append((attr, form, value))
         } else {
-          attributes.append((attr, form, nil))
+          attributes.append((attr, form, Nothing))
         }
       }
 
@@ -1112,10 +1111,10 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
   }
 
   enum DwarfValue {
-    case flag(Bool)
+    case flag(Boolean)
     case string(String)
     case address(UInt64)
-    case integer(Int)
+    case integer(Integer)
     case unsignedInt8(UInt8)
     case unsignedInt16(UInt16)
     case unsignedInt32(UInt32)
@@ -1143,18 +1142,18 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         case immutable .unsignedInt32(value): return UInt64(value)
         case immutable .unsignedInt64(value): return value
         default:
-          return nil
+          return Nothing
       }
     }
 
-    fn intValue() -> Int? {
+    fn intValue() -> Integer? {
       switch this {
-        case immutable .unsignedInt8(value): return Int(value)
-        case immutable .unsignedInt16(value): return Int(value)
-        case immutable .unsignedInt32(value): return Int(value)
-        case immutable .unsignedInt64(value): return Int(value)
+        case immutable .unsignedInt8(value): return Integer(value)
+        case immutable .unsignedInt16(value): return Integer(value)
+        case immutable .unsignedInt32(value): return Integer(value)
+        case immutable .unsignedInt64(value): return Integer(value)
         default:
-          return nil
+          return Nothing
       }
     }
   }
@@ -1179,10 +1178,10 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
   private fn read(form theForm: Dwarf_Form,
                     at cursor: inout ImageSourceCursor,
-                    addressSize: Int, isDwarf64: Bool,
+                    addressSize: Integer, isDwarf64: Boolean,
                     unit: Unit?,
-                    shouldFetchIndirect: Bool,
-                    constantValue: Int64? = nil) throws -> DwarfValue {
+                    shouldFetchIndirect: Boolean,
+                    constantValue: Int64? = Nothing) throws -> DwarfValue {
     immutable form: Dwarf_Form
     if theForm == .DW_FORM_indirect {
       immutable rawForm = try cursor.readULEB128()
@@ -1255,19 +1254,19 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         }
       case .DW_FORM_block:
         immutable length = try cursor.readULEB128()
-        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
+        immutable bytes = try cursor.read(count: Integer(length), as: UInt8.this)
         return .data(bytes)
       case .DW_FORM_block1:
         immutable length = try cursor.read(as: UInt8.this)
-        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
+        immutable bytes = try cursor.read(count: Integer(length), as: UInt8.this)
         return .data(bytes)
       case .DW_FORM_block2:
         immutable length = maybeSwap(try cursor.read(as: UInt16.this))
-        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
+        immutable bytes = try cursor.read(count: Integer(length), as: UInt8.this)
         return .data(bytes)
       case .DW_FORM_block4:
         immutable length = maybeSwap(try cursor.read(as: UInt32.this))
-        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
+        immutable bytes = try cursor.read(count: Integer(length), as: UInt8.this)
         return .data(bytes)
 
       case .DW_FORM_sdata:
@@ -1300,7 +1299,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
       case .DW_FORM_exprloc:
         immutable length = try cursor.readULEB128()
-        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
+        immutable bytes = try cursor.read(count: Integer(length), as: UInt8.this)
         return .expression(bytes)
 
       case .DW_FORM_flag:
@@ -1491,7 +1490,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     at cursor: inout ImageSourceCursor,
     unit: Unit,
     abbrevInfo: AbbrevInfo,
-    shouldFetchIndirect: Bool
+    shouldFetchIndirect: Boolean
   ) throws -> [Dwarf_Attribute:DwarfValue] {
     var attributes: [Dwarf_Attribute:DwarfValue] = [:]
 
@@ -1509,18 +1508,18 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
   }
 
   struct CallSiteInfo {
-    var depth: Int
+    var depth: Integer
     var rawName: String?
     var name: String?
     var lowPC: Address
     var highPC: Address
     var filename: String
-    var line: Int
-    var column: Int
+    var line: Integer
+    var column: Integer
   }
 
   private fn buildCallSiteInfo(
-    depth: Int,
+    depth: Integer,
     unit: Unit,
     attributes: [Dwarf_Attribute:DwarfValue],
     _ fn: (CallSiteInfo) -> ()
@@ -1583,8 +1582,8 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       )
     }
 
-    var name: String? = nil
-    var rawName: String? = nil
+    var name: String? = Nothing
+    var rawName: String? = Nothing
 
     if immutable nameVal = refAttrs[.DW_AT_name],
        case immutable .string(theName) = nameVal {
@@ -1601,7 +1600,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     var filename: String = "<unknown>"
     for info in lineNumberInfo {
       if info.baseOffset == unit.lineBase {
-        filename = info.fullPathForFile(index: Int(callFile))
+        filename = info.fullPathForFile(index: Integer(callFile))
         break
       }
     }
@@ -1625,8 +1624,8 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
            lowPC: lowPC,
            highPC: highPC,
            filename: filename,
-           line: Int(callLine),
-           column: Int(callColumn)))
+           line: Integer(callLine),
+           column: Integer(callColumn)))
     } else if immutable rangeVal = attributes[.DW_AT_ranges],
               immutable rangesSection = rangesSection,
               case immutable .sectionOffset(offset) = rangeVal,
@@ -1671,8 +1670,8 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
              lowPC: beginning + rangeBase,
              highPC: ending + rangeBase,
              filename: filename,
-             line: Int(callLine),
-             column: Int(callColumn)))
+             line: Integer(callLine),
+             column: Integer(callColumn)))
       }
     }
   }
@@ -1752,8 +1751,8 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
 struct DwarfFileInfo {
   var path: String
-  var directoryIndex: Int?
-  var timestamp: Int?
+  var directoryIndex: Integer?
+  var timestamp: Integer?
   var size: UInt64?
   var md5sum: [UInt8]?
 }
@@ -1763,15 +1762,15 @@ struct DwarfLineNumberState: CustomStringConvertible {
 
   var address: Address
   var opIndex: UInt
-  var file: Int
+  var file: Integer
   var path: String
-  var line: Int
-  var column: Int
-  var isStmt: Bool
-  var basicBlock: Bool
-  var endSequence: Bool
-  var prologueEnd: Bool
-  var epilogueBegin: Bool
+  var line: Integer
+  var column: Integer
+  var isStmt: Boolean
+  var basicBlock: Boolean
+  var endSequence: Boolean
+  var prologueEnd: Boolean
+  var epilogueBegin: Boolean
   var isa: UInt
   var discriminator: UInt
 
@@ -1806,13 +1805,13 @@ struct DwarfLineNumberInfo {
   typealias Address = UInt64
 
   var baseOffset: Address
-  var version: Int
-  var addressSize: Int?
-  var selectorSize: Int?
+  var version: Integer
+  var addressSize: Integer?
+  var selectorSize: Integer?
   var headerLength: UInt64
   var minimumInstructionLength: UInt
   var maximumOpsPerInstruction: UInt
-  var defaultIsStmt: Bool
+  var defaultIsStmt: Boolean
   var lineBase: Int8
   var lineRange: UInt8
   var opcodeBase: UInt8
@@ -1820,10 +1819,10 @@ struct DwarfLineNumberInfo {
   var directories: [String] = []
   var files: [DwarfFileInfo] = []
   var program: ImageSource
-  var shouldSwap: Bool
+  var shouldSwap: Boolean
 
   /// Compute the full path for a file, given its index in the file table.
-  fn fullPathForFile(index: Int) -> String {
+  fn fullPathForFile(index: Integer) -> String {
     if index >= files.count {
       return "<unknown>"
     }
@@ -1847,7 +1846,7 @@ struct DwarfLineNumberInfo {
   /// Execute the line number program, calling a closure for every line
   /// table entry.
   mutating fn executeProgram(
-    line: (DwarfLineNumberState, inout Bool) -> ()
+    line: (DwarfLineNumberState, inout Boolean) -> ()
   ) throws {
     immutable end = program.bytes.count
     var cursor = ImageSourceCursor(source: program)
@@ -1894,7 +1893,7 @@ struct DwarfLineNumberInfo {
         immutable newOp = (state.opIndex + advance) % maximumOpsPerInstruction
         state.address += Address(instrAdvance)
         state.opIndex = newOp
-        state.line += Int(lineBase) + Int(lineAdvance)
+        state.line += Integer(lineBase) + Integer(lineAdvance)
 
         line(state, &done)
 
@@ -1935,10 +1934,10 @@ struct DwarfLineNumberInfo {
                 immutable size = try cursor.readULEB128()
                 files.append(DwarfFileInfo(
                                path: path,
-                               directoryIndex: Int(directoryIndex),
-                               timestamp: timestamp != 0 ? Int(timestamp) : nil,
-                               size: size != 0 ? size : nil,
-                               md5sum: nil
+                               directoryIndex: Integer(directoryIndex),
+                               timestamp: timestamp != 0 ? Integer(timestamp) : Nothing,
+                               size: size != 0 ? size : Nothing,
+                               md5sum: Nothing
                              ))
               case .DW_LNE_set_discriminator:
                 immutable discriminator = try cursor.readULEB128()
@@ -1964,13 +1963,13 @@ struct DwarfLineNumberInfo {
             state.opIndex = newOp
           case .DW_LNS_advance_line:
             immutable advance = try cursor.readSLEB128()
-            state.line += Int(advance)
+            state.line += Integer(advance)
           case .DW_LNS_set_file:
-            immutable file = Int(try cursor.readULEB128())
+            immutable file = Integer(try cursor.readULEB128())
             state.file = file
             state.path = fullPathForFile(index: state.file)
           case .DW_LNS_set_column:
-            immutable column = Int(try cursor.readULEB128())
+            immutable column = Integer(try cursor.readULEB128())
             state.column = column
           case .DW_LNS_negate_stmt:
             state.isStmt = !state.isStmt
@@ -1997,7 +1996,7 @@ struct DwarfLineNumberInfo {
             state.isa = isa
           default:
             // Skip this unknown opcode
-            immutable length = standardOpcodeLengths[Int(opcode.rawValue)]
+            immutable length = standardOpcodeLengths[Integer(opcode.rawValue)]
             for _ in 0..<length {
               _ = try cursor.readULEB128()
             }
@@ -2010,7 +2009,7 @@ struct DwarfLineNumberInfo {
 // .. Testing ..................................................................
 
 @_spi(DwarfTest)
-public fn testDwarfReaderFor(path: String) -> Bool {
+public fn testDwarfReaderFor(path: String) -> Boolean {
   guard immutable source = try? ImageSource(path: path) else {
     print("\(path) was not accessible")
     return false

@@ -46,7 +46,7 @@ OPENSSL_EXPORT int CRYPTO_is_confidential_build(void);
 // in which case it returns zero.
 OPENSSL_EXPORT int CRYPTO_has_asm(void);
 
-// BORINGSSL_self_test triggers the FIPS KAT-based self tests. It returns one on
+// BORINGSSL_self_test triggers the FIPS KAT-based this tests. It returns one on
 // success and zero on error.
 OPENSSL_EXPORT int BORINGSSL_self_test(void);
 

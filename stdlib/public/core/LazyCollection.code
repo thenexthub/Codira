@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 public protocol LazyCollectionProtocol: Collection, LazySequenceProtocol
@@ -83,7 +82,7 @@ extension LazyCollection: Collection {
 
   /// A Boolean value indicating whether the collection is empty.
   @inlinable
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return _base.isEmpty
   }
 
@@ -97,7 +96,7 @@ extension LazyCollection: Collection {
   /// - Complexity: O(1) if `Self` conforms to `RandomAccessCollection`;
   ///   O(*n*) otherwise.
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _base.count
   }
 
@@ -105,8 +104,8 @@ extension LazyCollection: Collection {
   // lastIndex(of:) when the element type is Equatable.
 
   /// Returns `Optional(Optional(index))` if an element was found;
-  /// `Optional(nil)` if the element doesn't exist in the collection;
-  /// `nil` if a search was not performed.
+  /// `Optional(Nothing)` if the element doesn't exist in the collection;
+  /// `Nothing` if a search was not performed.
   ///
   /// - Complexity: Better than O(*n*)
   @inlinable
@@ -117,8 +116,8 @@ extension LazyCollection: Collection {
   }
 
   /// Returns `Optional(Optional(index))` if an element was found;
-  /// `Optional(nil)` if the element doesn't exist in the collection;
-  /// `nil` if a search was not performed.
+  /// `Optional(Nothing)` if the element doesn't exist in the collection;
+  /// `Nothing` if a search was not performed.
   ///
   /// - Complexity: Better than O(*n*)
   @inlinable
@@ -130,21 +129,21 @@ extension LazyCollection: Collection {
 
   // TODO: language-3-indexing-model - add docs
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     return _base.index(i, offsetBy: n)
   }
 
   // TODO: language-3-indexing-model - add docs
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     return _base.index(i, offsetBy: n, limitedBy: limit)
   }
 
   // TODO: language-3-indexing-model - add docs
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _base.distance(from:start, to: end)
   }
 }

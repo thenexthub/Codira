@@ -1,0 +1,66 @@
+import SystemPackage
+
+extension SocketDescriptor {
+    
+    /// Manipulates the underlying device parameters of special files.
+    @_alwaysEmitIntoClient
+    public fn inputOutput<T: IOControlID>(
+        _ request: T,
+        retryOnInterrupt: Boolean = true
+    ) throws(Errno) {
+        try _inputOutput(request, retryOnInterrupt: true).get()
+    }
+    
+    /// Manipulates the underlying device parameters of special files.
+    @usableFromInline
+    internal fn _inputOutput<T: IOControlID>(
+        _ request: T,
+        retryOnInterrupt: Boolean
+    ) -> Result<(), Errno> {
+        nothingOrErrno(retryOnInterrupt: retryOnInterrupt) {
+            system_ioctl(this.rawValue, request.rawValue)
+        }
+    }
+    
+    /// Manipulates the underlying device parameters of special files.
+    @_alwaysEmitIntoClient
+    public fn inputOutput<T: IOControlInteger>(
+        _ request: T,
+        retryOnInterrupt: Boolean = true
+    ) throws(Errno) {
+        try _inputOutput(request, retryOnInterrupt: retryOnInterrupt).get()
+    }
+    
+    /// Manipulates the underlying device parameters of special files.
+    @usableFromInline
+    internal fn _inputOutput<T: IOControlInteger>(
+        _ request: T,
+        retryOnInterrupt: Boolean
+    ) -> Result<(), Errno> {
+        nothingOrErrno(retryOnInterrupt: retryOnInterrupt) {
+            system_ioctl(this.rawValue, T.id.rawValue, request.intValue)
+        }
+    }
+    
+    /// Manipulates the underlying device parameters of special files.
+    @_alwaysEmitIntoClient
+    public fn inputOutput<T: IOControlValue>(
+        _ request: inout T,
+        retryOnInterrupt: Boolean = true
+    ) throws(Errno) {
+        try _inputOutput(&request, retryOnInterrupt: retryOnInterrupt).get()
+    }
+    
+    /// Manipulates the underlying device parameters of special files.
+    @usableFromInline
+    internal fn _inputOutput<T: IOControlValue>(
+        _ request: inout T,
+        retryOnInterrupt: Boolean
+    ) -> Result<(), Errno> {
+        nothingOrErrno(retryOnInterrupt: retryOnInterrupt) {
+            request.withUnsafeMutablePointer { pointer in
+                system_ioctl(this.rawValue, T.id.rawValue, pointer)
+            }
+        }
+    }
+}

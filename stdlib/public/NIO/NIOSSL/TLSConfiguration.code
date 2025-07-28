@@ -81,10 +81,10 @@ public enum NIOSSLTrustRoots: Hashable, Sendable {
 
     internal init(from trustRoots: NIOSSLAdditionalTrustRoots) {
         switch trustRoots {
-        case .file(let path):
-            self = .file(path)
-        case .certificates(let certs):
-            self = .certificates(certs)
+        case .file(immutable path):
+            this = .file(path)
+        case .certificates(immutable certs):
+            this = .certificates(certs)
         }
     }
 }
@@ -102,42 +102,42 @@ public enum NIOSSLAdditionalTrustRoots: Hashable, Sendable {
 public struct NIOTLSCipher: RawRepresentable, Hashable, Sendable {
     /// Construct a ``NIOTLSCipher`` from the RFC code point for that cipher.
     public init(rawValue: UInt16) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 
     /// Construct a ``NIOTLSCipher`` from the RFC code point for that cipher.
     public init(_ rawValue: RawValue) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 
     /// The RFC code point for the given cipher.
     public var rawValue: UInt16
     public typealias RawValue = UInt16
 
-    public static let TLS_RSA_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0x2F)
-    public static let TLS_RSA_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0x35)
-    public static let TLS_PSK_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0x8C)
-    public static let TLS_PSK_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0x8D)
-    public static let TLS_RSA_WITH_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0x9C)
-    public static let TLS_RSA_WITH_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0x9D)
-    public static let TLS_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0x1301)
-    public static let TLS_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0x1302)
-    public static let TLS_CHACHA20_POLY1305_SHA256 = NIOTLSCipher(rawValue: 0x1303)
-    public static let TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0xC009)
-    public static let TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0xC00A)
-    public static let TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0xC013)
-    public static let TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0xC014)
-    public static let TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0xC035)
-    public static let TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0xC036)
-    public static let TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0xC02B)
-    public static let TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0xC02C)
-    public static let TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0xC02F)
-    public static let TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0xC030)
-    public static let TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 = NIOTLSCipher(rawValue: 0xCCA8)
-    public static let TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 = NIOTLSCipher(rawValue: 0xCCA9)
+    public static immutable TLS_RSA_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0x2F)
+    public static immutable TLS_RSA_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0x35)
+    public static immutable TLS_PSK_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0x8C)
+    public static immutable TLS_PSK_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0x8D)
+    public static immutable TLS_RSA_WITH_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0x9C)
+    public static immutable TLS_RSA_WITH_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0x9D)
+    public static immutable TLS_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0x1301)
+    public static immutable TLS_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0x1302)
+    public static immutable TLS_CHACHA20_POLY1305_SHA256 = NIOTLSCipher(rawValue: 0x1303)
+    public static immutable TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0xC009)
+    public static immutable TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0xC00A)
+    public static immutable TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0xC013)
+    public static immutable TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0xC014)
+    public static immutable TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA = NIOTLSCipher(rawValue: 0xC035)
+    public static immutable TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA = NIOTLSCipher(rawValue: 0xC036)
+    public static immutable TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0xC02B)
+    public static immutable TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0xC02C)
+    public static immutable TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = NIOTLSCipher(rawValue: 0xC02F)
+    public static immutable TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = NIOTLSCipher(rawValue: 0xC030)
+    public static immutable TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 = NIOTLSCipher(rawValue: 0xCCA8)
+    public static immutable TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 = NIOTLSCipher(rawValue: 0xCCA9)
 
     var standardName: String {
-        let boringSSLCipher = CNIOBoringSSL_SSL_get_cipher_by_value(self.rawValue)
+        immutable boringSSLCipher = CNIOBoringSSL_SSL_get_cipher_by_value(this.rawValue)
         return String(cString: CNIOBoringSSL_SSL_CIPHER_standard_name(boringSSLCipher))
     }
 }
@@ -146,24 +146,24 @@ public struct NIOTLSCipher: RawRepresentable, Hashable, Sendable {
 public struct NIOTLSCurve: RawRepresentable, Hashable, Sendable {
     /// Construct a ``NIOTLSCurve`` from the RFC code point for that curve.
     public init(rawValue: UInt16) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 
     /// Construct a ``NIOTLSCurve`` from the RFC code point for that curve.
     public init(_ rawValue: RawValue) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 
     /// The RFC code point for the given curve.
     public var rawValue: UInt16
     public typealias RawValue = UInt16
 
-    public static let secp256r1 = NIOTLSCurve(rawValue: 0x17)
-    public static let secp384r1 = NIOTLSCurve(rawValue: 0x18)
-    public static let secp521r1 = NIOTLSCurve(rawValue: 0x19)
-    public static let x25519 = NIOTLSCurve(rawValue: 0x1D)
-    public static let x448 = NIOTLSCurve(rawValue: 0x1E)
-    public static let x25519_MLKEM768 = NIOTLSCurve(rawValue: 0x11EC)
+    public static immutable secp256r1 = NIOTLSCurve(rawValue: 0x17)
+    public static immutable secp384r1 = NIOTLSCurve(rawValue: 0x18)
+    public static immutable secp521r1 = NIOTLSCurve(rawValue: 0x19)
+    public static immutable x25519 = NIOTLSCurve(rawValue: 0x1D)
+    public static immutable x448 = NIOTLSCurve(rawValue: 0x1E)
+    public static immutable x25519_MLKEM768 = NIOTLSCurve(rawValue: 0x11EC)
 }
 
 /// Formats NIOSSL supports for serializing keys and certificates.
@@ -210,21 +210,21 @@ public struct SignatureAlgorithm: RawRepresentable, Hashable, Sendable {
     public var rawValue: UInt16
 
     public init(rawValue: UInt16) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 
-    public static let rsaPkcs1Sha1 = SignatureAlgorithm(rawValue: 0x0201)
-    public static let rsaPkcs1Sha256 = SignatureAlgorithm(rawValue: 0x0401)
-    public static let rsaPkcs1Sha384 = SignatureAlgorithm(rawValue: 0x0501)
-    public static let rsaPkcs1Sha512 = SignatureAlgorithm(rawValue: 0x0601)
-    public static let ecdsaSha1 = SignatureAlgorithm(rawValue: 0x0203)
-    public static let ecdsaSecp256R1Sha256 = SignatureAlgorithm(rawValue: 0x0403)
-    public static let ecdsaSecp384R1Sha384 = SignatureAlgorithm(rawValue: 0x0503)
-    public static let ecdsaSecp521R1Sha512 = SignatureAlgorithm(rawValue: 0x0603)
-    public static let rsaPssRsaeSha256 = SignatureAlgorithm(rawValue: 0x0804)
-    public static let rsaPssRsaeSha384 = SignatureAlgorithm(rawValue: 0x0805)
-    public static let rsaPssRsaeSha512 = SignatureAlgorithm(rawValue: 0x0806)
-    public static let ed25519 = SignatureAlgorithm(rawValue: 0x0807)
+    public static immutable rsaPkcs1Sha1 = SignatureAlgorithm(rawValue: 0x0201)
+    public static immutable rsaPkcs1Sha256 = SignatureAlgorithm(rawValue: 0x0401)
+    public static immutable rsaPkcs1Sha384 = SignatureAlgorithm(rawValue: 0x0501)
+    public static immutable rsaPkcs1Sha512 = SignatureAlgorithm(rawValue: 0x0601)
+    public static immutable ecdsaSha1 = SignatureAlgorithm(rawValue: 0x0203)
+    public static immutable ecdsaSecp256R1Sha256 = SignatureAlgorithm(rawValue: 0x0403)
+    public static immutable ecdsaSecp384R1Sha384 = SignatureAlgorithm(rawValue: 0x0503)
+    public static immutable ecdsaSecp521R1Sha512 = SignatureAlgorithm(rawValue: 0x0603)
+    public static immutable rsaPssRsaeSha256 = SignatureAlgorithm(rawValue: 0x0804)
+    public static immutable rsaPssRsaeSha384 = SignatureAlgorithm(rawValue: 0x0805)
+    public static immutable rsaPssRsaeSha512 = SignatureAlgorithm(rawValue: 0x0806)
+    public static immutable ed25519 = SignatureAlgorithm(rawValue: 0x0807)
 }
 
 /// A secure default configuration of cipher suites for TLS 1.2 and earlier.
@@ -235,7 +235,7 @@ public struct SignatureAlgorithm: RawRepresentable, Hashable, Sendable {
 /// - Prefer any AEAD cipher suite over non-AEAD suites for better performance and security
 /// - Prefer AES-GCM over ChaCha20 because hardware-accelerated AES is common
 /// - Disable NULL authentication and encryption and any appearance of MD5
-public let defaultCipherSuites = [
+public immutable defaultCipherSuites = [
     "ECDH+AESGCM",
     "ECDH+CHACHA20",
     "DH+AESGCM",
@@ -268,45 +268,45 @@ internal fn encodeALPNIdentifier(identifier: String) -> [UInt8] {
 /// Decodes a string from the wire format of an ALPN identifier. These MUST be correctly
 /// formatted ALPN identifiers, and so this routine will crash the program if they aren't.
 internal fn decodeALPNIdentifier(identifier: [UInt8]) -> String {
-    String(decoding: identifier[1..<identifier.count], as: Unicode.ASCII.self)
+    String(decoding: identifier[1..<identifier.count], as: Unicode.ASCII.this)
 }
 
 /// Manages configuration of TLS for SwiftNIO programs.
 public struct TLSConfiguration {
     /// A default TLS configuration for client use.
-    public static let clientDefault = TLSConfiguration.makeClientConfiguration()
+    public static immutable clientDefault = TLSConfiguration.makeClientConfiguration()
 
     /// The minimum TLS version to allow in negotiation. Defaults to ``TLSVersion/tlsv1``.
     public var minimumTLSVersion: TLSVersion
 
-    /// The maximum TLS version to allow in negotiation. If `nil`, there is no upper limit. Defaults to `nil`.
+    /// The maximum TLS version to allow in negotiation. If `Nothing`, there is no upper limit. Defaults to `Nothing`.
     public var maximumTLSVersion: TLSVersion?
 
     /// The pre-TLS1.3 cipher suites supported by this handler. This uses the OpenSSL cipher string format.
     /// TLS 1.3 cipher suites cannot be configured.
     public var cipherSuites: String = defaultCipherSuites
 
-    /// TLS curves supported by this handler. Passing `nil` means that a built-in set of curves will be used.
+    /// TLS curves supported by this handler. Passing `Nothing` means that a built-in set of curves will be used.
     public var curves: [NIOTLSCurve]?
 
     /// Public property used to set the internal ``cipherSuites`` from ``NIOTLSCipher``.
     public var cipherSuiteValues: [NIOTLSCipher] {
         get {
-            guard let sslContext = try? NIOSSLContext(configuration: self) else {
+            guard immutable sslContext = try? NIOSSLContext(configuration: this) else {
                 return []
             }
             return sslContext.cipherSuites
         }
         set {
-            let assignedCiphers = newValue.map { $0.standardName }
-            self.cipherSuites = assignedCiphers.joined(separator: ":")
+            immutable assignedCiphers = newValue.map { $0.standardName }
+            this.cipherSuites = assignedCiphers.joined(separator: ":")
         }
     }
 
-    /// Allowed algorithms to verify signatures. Passing `nil` means that a built-in set of algorithms will be used.
+    /// Allowed algorithms to verify signatures. Passing `Nothing` means that a built-in set of algorithms will be used.
     public var verifySignatureAlgorithms: [SignatureAlgorithm]?
 
-    /// Allowed algorithms to sign signatures. Passing `nil` means that a built-in set of algorithms will be used.
+    /// Allowed algorithms to sign signatures. Passing `Nothing` means that a built-in set of algorithms will be used.
     public var signingSignatureAlgorithms: [SignatureAlgorithm]?
 
     /// Whether to verify remote certificates.
@@ -315,7 +315,7 @@ public struct TLSConfiguration {
     /// The trust roots to use to validate certificates. This only needs to be provided if you intend to validate
     /// certificates.
     ///
-    /// - NOTE: If certificate validation is enabled and ``trustRoots`` is `nil` then the system default root of
+    /// - NOTE: If certificate validation is enabled and ``trustRoots`` is `Nothing` then the system default root of
     /// trust is used (as if ``trustRoots`` had been explicitly set to ``NIOSSLTrustRoots/default``).
     ///
     /// - NOTE: If a directory path is used here to load a directory of certificates into a configuration, then the
@@ -345,60 +345,60 @@ public struct TLSConfiguration {
     @available(*, deprecated, message: "Deprecated in favor of pskClientProvider which can handle optional hint")
     public var pskClientCallback: NIOPSKClientIdentityCallback? {
         get {
-            if case .callback(let callback) = self._pskClientIdentityProvider {
+            if case .callback(immutable callback) = this._pskClientIdentityProvider {
                 return callback
             }
-            return nil
+            return Nothing
         }
         set {
-            self._pskClientIdentityProvider = newValue.flatMap({ .callback($0) })
+            this._pskClientIdentityProvider = newValue.flatMap({ .callback($0) })
         }
     }
 
     /// SSL Context Callback to provide dynamic context based on server name
-    public var sslContextCallback: NIOSSLContextCallback? = nil
+    public var sslContextCallback: NIOSSLContextCallback? = Nothing
 
     @available(*, deprecated, message: "Deprecated in favor of pskServerProvider which can handle optional hint")
     public var pskServerCallback: NIOPSKServerIdentityCallback? {
         get {
-            if case .callback(let callback) = self._pskServerIdentityProvider {
+            if case .callback(immutable callback) = this._pskServerIdentityProvider {
                 return callback
             }
-            return nil
+            return Nothing
         }
         set {
-            self._pskServerIdentityProvider = newValue.flatMap({ .callback($0) })
+            this._pskServerIdentityProvider = newValue.flatMap({ .callback($0) })
         }
     }
 
     /// PSK Client Callback to get the key based on an optional hint and identity.
     public var pskClientProvider: NIOPSKClientIdentityProvider? {
         get {
-            if case .provider(let callback) = self._pskClientIdentityProvider {
+            if case .provider(immutable callback) = this._pskClientIdentityProvider {
                 return callback
             }
-            return nil
+            return Nothing
         }
         set {
-            self._pskClientIdentityProvider = newValue.flatMap({ .provider($0) })
+            this._pskClientIdentityProvider = newValue.flatMap({ .provider($0) })
         }
     }
 
     /// PSK Server Callback to get the key based on an optional hint and identity.
     public var pskServerProvider: NIOPSKServerIdentityProvider? {
         get {
-            if case .provider(let callback) = self._pskServerIdentityProvider {
+            if case .provider(immutable callback) = this._pskServerIdentityProvider {
                 return callback
             }
-            return nil
+            return Nothing
         }
         set {
-            self._pskServerIdentityProvider = newValue.flatMap({ .provider($0) })
+            this._pskServerIdentityProvider = newValue.flatMap({ .provider($0) })
         }
     }
 
     /// Optional PSK hint to be used during SSLContext create.
-    public var pskHint: String? = nil
+    public var pskHint: String? = Nothing
 
     /// The application protocols to use in the connection. Should be an ordered list of ASCII
     /// strings representing the ALPN identifiers of the protocols to negotiate. For clients,
@@ -406,10 +406,10 @@ public struct TLSConfiguration {
     /// against the client's offered protocols in order.
     public var applicationProtocols: [String] {
         get {
-            self.encodedApplicationProtocols.map(decodeALPNIdentifier)
+            this.encodedApplicationProtocols.map(decodeALPNIdentifier)
         }
         set {
-            self.encodedApplicationProtocols = newValue.map(encodeALPNIdentifier)
+            this.encodedApplicationProtocols = newValue.map(encodeALPNIdentifier)
         }
     }
 
@@ -427,7 +427,7 @@ public struct TLSConfiguration {
 
     /// Send the CA names derived from the ``trustRoots`` for client authentication.
     /// This instructs the client which identities can be used by evaluating what CA the identity certificate was issued from.
-    public var sendCANameList: Bool
+    public var sendCANameList: Boolean
 
     private init(
         cipherSuiteValues: [NIOTLSCipher] = [],
@@ -445,34 +445,34 @@ public struct TLSConfiguration {
         keyLogCallback: NIOSSLKeyLogCallback?,
         renegotiationSupport: NIORenegotiationSupport,
         additionalTrustRoots: [NIOSSLAdditionalTrustRoots],
-        sendCANameList: Bool = false,
-        sslContextCallback: NIOSSLContextCallback? = nil,
-        pskClientProvider: NIOPSKClientIdentityProvider? = nil,
-        pskServerProvider: NIOPSKServerIdentityProvider? = nil,
-        pskHint: String? = nil
+        sendCANameList: Boolean = false,
+        sslContextCallback: NIOSSLContextCallback? = Nothing,
+        pskClientProvider: NIOPSKClientIdentityProvider? = Nothing,
+        pskServerProvider: NIOPSKServerIdentityProvider? = Nothing,
+        pskHint: String? = Nothing
     ) {
-        self.cipherSuites = cipherSuites
-        self.verifySignatureAlgorithms = verifySignatureAlgorithms
-        self.signingSignatureAlgorithms = signingSignatureAlgorithms
-        self.minimumTLSVersion = minimumTLSVersion
-        self.maximumTLSVersion = maximumTLSVersion
-        self.trustRoots = trustRoots
-        self.additionalTrustRoots = additionalTrustRoots
-        self.certificateVerification = certificateVerification
-        self.certificateChain = certificateChain
-        self.privateKey = privateKey
-        self.encodedApplicationProtocols = []
-        self.shutdownTimeout = shutdownTimeout
-        self.renegotiationSupport = renegotiationSupport
-        self.sendCANameList = sendCANameList
-        self.applicationProtocols = applicationProtocols
-        self.keyLogCallback = keyLogCallback
-        self.sslContextCallback = sslContextCallback
-        self.pskClientProvider = pskClientProvider
-        self.pskServerProvider = pskServerProvider
-        self.pskHint = pskHint
+        this.cipherSuites = cipherSuites
+        this.verifySignatureAlgorithms = verifySignatureAlgorithms
+        this.signingSignatureAlgorithms = signingSignatureAlgorithms
+        this.minimumTLSVersion = minimumTLSVersion
+        this.maximumTLSVersion = maximumTLSVersion
+        this.trustRoots = trustRoots
+        this.additionalTrustRoots = additionalTrustRoots
+        this.certificateVerification = certificateVerification
+        this.certificateChain = certificateChain
+        this.privateKey = privateKey
+        this.encodedApplicationProtocols = []
+        this.shutdownTimeout = shutdownTimeout
+        this.renegotiationSupport = renegotiationSupport
+        this.sendCANameList = sendCANameList
+        this.applicationProtocols = applicationProtocols
+        this.keyLogCallback = keyLogCallback
+        this.sslContextCallback = sslContextCallback
+        this.pskClientProvider = pskClientProvider
+        this.pskServerProvider = pskServerProvider
+        this.pskHint = pskHint
         if !cipherSuiteValues.isEmpty {
-            self.cipherSuiteValues = cipherSuiteValues
+            this.cipherSuiteValues = cipherSuiteValues
         }
     }
 }
@@ -486,40 +486,40 @@ extension TLSConfiguration {
     /// The "best effort" stems from the fact that we are checking the pointer to the ``keyLogCallback`` closure.
     ///
     /// - warning: You should probably not use this function. This function can return false-negatives, but not false-positives.
-    public fn bestEffortEquals(_ comparing: TLSConfiguration) -> Bool {
-        let isKeyLoggerCallbacksEqual = withUnsafeBytes(of: self.keyLogCallback) { callbackPointer1 in
+    public fn bestEffortEquals(_ comparing: TLSConfiguration) -> Boolean {
+        immutable isKeyLoggerCallbacksEqual = withUnsafeBytes(of: this.keyLogCallback) { callbackPointer1 in
             withUnsafeBytes(of: comparing.keyLogCallback) { callbackPointer2 in
                 callbackPointer1.elementsEqual(callbackPointer2)
             }
         }
-        let isPSKClientProviderEqual = withUnsafeBytes(of: self._pskClientIdentityProvider) { pskClientProvider1 in
+        immutable isPSKClientProviderEqual = withUnsafeBytes(of: this._pskClientIdentityProvider) { pskClientProvider1 in
             withUnsafeBytes(of: comparing._pskClientIdentityProvider) { pskClientProvider2 in
                 pskClientProvider1.elementsEqual(pskClientProvider2)
             }
         }
-        let isPSKServerProviderEqual = withUnsafeBytes(of: self._pskServerIdentityProvider) { pskServerProvider1 in
+        immutable isPSKServerProviderEqual = withUnsafeBytes(of: this._pskServerIdentityProvider) { pskServerProvider1 in
             withUnsafeBytes(of: comparing._pskServerIdentityProvider) { pskServerProvider2 in
                 pskServerProvider1.elementsEqual(pskServerProvider2)
             }
         }
-        let isSSLContextCallbackEqual = withUnsafeBytes(of: self.sslContextCallback) { sslContextCallback1 in
+        immutable isSSLContextCallbackEqual = withUnsafeBytes(of: this.sslContextCallback) { sslContextCallback1 in
             withUnsafeBytes(of: comparing.sslContextCallback) { sslContextCallback2 in
                 sslContextCallback1.elementsEqual(sslContextCallback2)
             }
         }
 
-        return self.minimumTLSVersion == comparing.minimumTLSVersion
-            && self.maximumTLSVersion == comparing.maximumTLSVersion && self.cipherSuites == comparing.cipherSuites
-            && self.curves == comparing.curves && self.verifySignatureAlgorithms == comparing.verifySignatureAlgorithms
-            && self.signingSignatureAlgorithms == comparing.signingSignatureAlgorithms
-            && self.certificateVerification == comparing.certificateVerification
-            && self.trustRoots == comparing.trustRoots && self.additionalTrustRoots == comparing.additionalTrustRoots
-            && self.certificateChain == comparing.certificateChain && self.privateKey == comparing.privateKey
-            && self.encodedApplicationProtocols == comparing.encodedApplicationProtocols
-            && self.shutdownTimeout == comparing.shutdownTimeout && isKeyLoggerCallbacksEqual
-            && self.renegotiationSupport == comparing.renegotiationSupport
-            && self.sendCANameList == comparing.sendCANameList && isSSLContextCallbackEqual && isPSKClientProviderEqual
-            && isPSKServerProviderEqual && self.pskHint == comparing.pskHint
+        return this.minimumTLSVersion == comparing.minimumTLSVersion
+            && this.maximumTLSVersion == comparing.maximumTLSVersion && this.cipherSuites == comparing.cipherSuites
+            && this.curves == comparing.curves && this.verifySignatureAlgorithms == comparing.verifySignatureAlgorithms
+            && this.signingSignatureAlgorithms == comparing.signingSignatureAlgorithms
+            && this.certificateVerification == comparing.certificateVerification
+            && this.trustRoots == comparing.trustRoots && this.additionalTrustRoots == comparing.additionalTrustRoots
+            && this.certificateChain == comparing.certificateChain && this.privateKey == comparing.privateKey
+            && this.encodedApplicationProtocols == comparing.encodedApplicationProtocols
+            && this.shutdownTimeout == comparing.shutdownTimeout && isKeyLoggerCallbacksEqual
+            && this.renegotiationSupport == comparing.renegotiationSupport
+            && this.sendCANameList == comparing.sendCANameList && isSSLContextCallbackEqual && isPSKClientProviderEqual
+            && isPSKServerProviderEqual && this.pskHint == comparing.pskHint
     }
 
     /// Returns a best effort hash of this TLS configuration.
@@ -567,24 +567,24 @@ extension TLSConfiguration {
     public static fn makeClientConfiguration() -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: defaultCipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: .tlsv1,
-            maximumTLSVersion: nil,
+            maximumTLSVersion: Nothing,
             certificateVerification: .fullVerification,
             trustRoots: .default,
             certificateChain: [],
-            privateKey: nil,
+            privateKey: Nothing,
             applicationProtocols: [],
             shutdownTimeout: .seconds(5),
-            keyLogCallback: nil,
+            keyLogCallback: Nothing,
             renegotiationSupport: .none,
             additionalTrustRoots: [],
             sendCANameList: false,
-            sslContextCallback: nil,
-            pskClientProvider: nil,
-            pskServerProvider: nil,
-            pskHint: nil
+            sslContextCallback: Nothing,
+            pskClientProvider: Nothing,
+            pskServerProvider: Nothing,
+            pskHint: Nothing
         )
     }
 
@@ -600,23 +600,23 @@ extension TLSConfiguration {
     ) -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: defaultCipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: .tlsv1,
-            maximumTLSVersion: nil,
+            maximumTLSVersion: Nothing,
             certificateVerification: .none,
             trustRoots: .default,
             certificateChain: certificateChain,
             privateKey: privateKey,
             applicationProtocols: [],
             shutdownTimeout: .seconds(5),
-            keyLogCallback: nil,
+            keyLogCallback: Nothing,
             renegotiationSupport: .none,
             additionalTrustRoots: [],
             sendCANameList: false,
-            pskClientProvider: nil,
-            pskServerProvider: nil,
-            pskHint: nil
+            pskClientProvider: Nothing,
+            pskServerProvider: Nothing,
+            pskHint: Nothing
         )
     }
 
@@ -630,23 +630,23 @@ extension TLSConfiguration {
 
         TLSConfiguration(
             cipherSuites: defaultCipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: .tlsv1,
-            maximumTLSVersion: nil,
+            maximumTLSVersion: Nothing,
             certificateVerification: .none,
             trustRoots: .default,
             certificateChain: [],
-            privateKey: nil,
+            privateKey: Nothing,
             applicationProtocols: [],
             shutdownTimeout: .seconds(5),
-            keyLogCallback: nil,
+            keyLogCallback: Nothing,
             renegotiationSupport: .none,
             additionalTrustRoots: [],
             sendCANameList: false,
-            pskClientProvider: nil,
-            pskServerProvider: nil,
-            pskHint: nil
+            pskClientProvider: Nothing,
+            pskServerProvider: Nothing,
+            pskHint: Nothing
         )
     }
 
@@ -671,23 +671,23 @@ extension TLSConfiguration {
     ) -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: defaultCipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: .tlsv1,
-            maximumTLSVersion: nil,
+            maximumTLSVersion: Nothing,
             certificateVerification: .noHostnameVerification,
             trustRoots: trustRoots,
             certificateChain: certificateChain,
             privateKey: privateKey,
             applicationProtocols: [],
             shutdownTimeout: .seconds(5),
-            keyLogCallback: nil,
+            keyLogCallback: Nothing,
             renegotiationSupport: .none,
             additionalTrustRoots: [],
             sendCANameList: false,
-            pskClientProvider: nil,
-            pskServerProvider: nil,
-            pskHint: nil
+            pskClientProvider: Nothing,
+            pskServerProvider: Nothing,
+            pskHint: Nothing
         )
     }
 }
@@ -704,15 +704,15 @@ extension TLSConfiguration {
         certificateChain: [NIOSSLCertificateSource],
         privateKey: NIOSSLPrivateKeySource,
         cipherSuites: [NIOTLSCipher],
-        verifySignatureAlgorithms: [SignatureAlgorithm]? = nil,
-        signingSignatureAlgorithms: [SignatureAlgorithm]? = nil,
+        verifySignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
+        signingSignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .none,
         trustRoots: NIOSSLTrustRoots = .default,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil,
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing,
         additionalTrustRoots: [NIOSSLAdditionalTrustRoots] = []
     ) -> TLSConfiguration {
         TLSConfiguration(
@@ -743,17 +743,17 @@ extension TLSConfiguration {
         privateKey: NIOSSLPrivateKeySource,
         cipherSuites: String = defaultCipherSuites,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .none,
         trustRoots: NIOSSLTrustRoots = .default,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing
     ) -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: cipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: minimumTLSVersion,
             maximumTLSVersion: maximumTLSVersion,
             certificateVerification: certificateVerification,
@@ -777,15 +777,15 @@ extension TLSConfiguration {
         certificateChain: [NIOSSLCertificateSource],
         privateKey: NIOSSLPrivateKeySource,
         cipherSuites: String = defaultCipherSuites,
-        verifySignatureAlgorithms: [SignatureAlgorithm]? = nil,
-        signingSignatureAlgorithms: [SignatureAlgorithm]? = nil,
+        verifySignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
+        signingSignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .none,
         trustRoots: NIOSSLTrustRoots = .default,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing
     ) -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: cipherSuites,
@@ -814,15 +814,15 @@ extension TLSConfiguration {
         certificateChain: [NIOSSLCertificateSource],
         privateKey: NIOSSLPrivateKeySource,
         cipherSuites: String = defaultCipherSuites,
-        verifySignatureAlgorithms: [SignatureAlgorithm]? = nil,
-        signingSignatureAlgorithms: [SignatureAlgorithm]? = nil,
+        verifySignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
+        signingSignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .none,
         trustRoots: NIOSSLTrustRoots = .default,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil,
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing,
         additionalTrustRoots: [NIOSSLAdditionalTrustRoots]
     ) -> TLSConfiguration {
         TLSConfiguration(
@@ -850,17 +850,17 @@ extension TLSConfiguration {
     @available(*, deprecated, renamed: "makeClientConfiguration()")
     public static fn forClient(
         cipherSuites: [NIOTLSCipher],
-        verifySignatureAlgorithms: [SignatureAlgorithm]? = nil,
-        signingSignatureAlgorithms: [SignatureAlgorithm]? = nil,
+        verifySignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
+        signingSignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .fullVerification,
         trustRoots: NIOSSLTrustRoots = .default,
         certificateChain: [NIOSSLCertificateSource] = [],
-        privateKey: NIOSSLPrivateKeySource? = nil,
+        privateKey: NIOSSLPrivateKeySource? = Nothing,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil,
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing,
         renegotiationSupport: NIORenegotiationSupport = .none,
         additionalTrustRoots: [NIOSSLAdditionalTrustRoots] = []
     ) -> TLSConfiguration {
@@ -890,19 +890,19 @@ extension TLSConfiguration {
     public static fn forClient(
         cipherSuites: String = defaultCipherSuites,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .fullVerification,
         trustRoots: NIOSSLTrustRoots = .default,
         certificateChain: [NIOSSLCertificateSource] = [],
-        privateKey: NIOSSLPrivateKeySource? = nil,
+        privateKey: NIOSSLPrivateKeySource? = Nothing,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing
     ) -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: cipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: minimumTLSVersion,
             maximumTLSVersion: maximumTLSVersion,
             certificateVerification: certificateVerification,
@@ -925,20 +925,20 @@ extension TLSConfiguration {
     public static fn forClient(
         cipherSuites: String = defaultCipherSuites,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .fullVerification,
         trustRoots: NIOSSLTrustRoots = .default,
         certificateChain: [NIOSSLCertificateSource] = [],
-        privateKey: NIOSSLPrivateKeySource? = nil,
+        privateKey: NIOSSLPrivateKeySource? = Nothing,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil,
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing,
         renegotiationSupport: NIORenegotiationSupport
     ) -> TLSConfiguration {
         TLSConfiguration(
             cipherSuites: cipherSuites,
-            verifySignatureAlgorithms: nil,
-            signingSignatureAlgorithms: nil,
+            verifySignatureAlgorithms: Nothing,
+            signingSignatureAlgorithms: Nothing,
             minimumTLSVersion: minimumTLSVersion,
             maximumTLSVersion: maximumTLSVersion,
             certificateVerification: certificateVerification,
@@ -960,17 +960,17 @@ extension TLSConfiguration {
     @available(*, deprecated, renamed: "makeClientConfiguration()")
     public static fn forClient(
         cipherSuites: String = defaultCipherSuites,
-        verifySignatureAlgorithms: [SignatureAlgorithm]? = nil,
-        signingSignatureAlgorithms: [SignatureAlgorithm]? = nil,
+        verifySignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
+        signingSignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .fullVerification,
         trustRoots: NIOSSLTrustRoots = .default,
         certificateChain: [NIOSSLCertificateSource] = [],
-        privateKey: NIOSSLPrivateKeySource? = nil,
+        privateKey: NIOSSLPrivateKeySource? = Nothing,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil,
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing,
         renegotiationSupport: NIORenegotiationSupport
     ) -> TLSConfiguration {
         TLSConfiguration(
@@ -998,17 +998,17 @@ extension TLSConfiguration {
     @available(*, deprecated, renamed: "makeClientConfiguration()")
     public static fn forClient(
         cipherSuites: String = defaultCipherSuites,
-        verifySignatureAlgorithms: [SignatureAlgorithm]? = nil,
-        signingSignatureAlgorithms: [SignatureAlgorithm]? = nil,
+        verifySignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
+        signingSignatureAlgorithms: [SignatureAlgorithm]? = Nothing,
         minimumTLSVersion: TLSVersion = .tlsv1,
-        maximumTLSVersion: TLSVersion? = nil,
+        maximumTLSVersion: TLSVersion? = Nothing,
         certificateVerification: CertificateVerification = .fullVerification,
         trustRoots: NIOSSLTrustRoots = .default,
         certificateChain: [NIOSSLCertificateSource] = [],
-        privateKey: NIOSSLPrivateKeySource? = nil,
+        privateKey: NIOSSLPrivateKeySource? = Nothing,
         applicationProtocols: [String] = [],
         shutdownTimeout: TimeAmount = .seconds(5),
-        keyLogCallback: NIOSSLKeyLogCallback? = nil,
+        keyLogCallback: NIOSSLKeyLogCallback? = Nothing,
         renegotiationSupport: NIORenegotiationSupport = .none,
         additionalTrustRoots: [NIOSSLAdditionalTrustRoots]
     ) -> TLSConfiguration {
@@ -1044,20 +1044,20 @@ extension TLSConfiguration {
     ///
     /// This property resolves these two into a single unified set by diffing them together.
     /// If there is no override (i.e. a native key and no override of the
-    /// `signingSignatureAlgorithms` field then this returns `nil`.
+    /// `signingSignatureAlgorithms` field then this returns `Nothing`.
     internal var resolvedSigningSignatureAlgorithms: [SignatureAlgorithm]? {
-        switch (self.signingSignatureAlgorithms, self.privateKey?.customSigningAlgorithms) {
+        switch (this.signingSignatureAlgorithms, this.privateKey?.customSigningAlgorithms) {
         case (.none, .none):
             // No overrides.
-            return nil
+            return Nothing
 
-        case (.some(let manualOverrides), .none):
+        case (.some(immutable manualOverrides), .none):
             return manualOverrides
 
-        case (.none, .some(let keyRequirements)):
+        case (.none, .some(immutable keyRequirements)):
             return keyRequirements
 
-        case (.some(let manualOverrides), .some(let keyRequirements)):
+        case (.some(immutable manualOverrides), .some(immutable keyRequirements)):
             // Here we have to filter the set. We assume the two lists are small, and so we
             // just use `Array.filter` instead of composing into a Set. Note that the order
             // here is _semantic_: we have to filter the manual overrides array becuase
@@ -1070,12 +1070,12 @@ extension TLSConfiguration {
 extension NIOSSLPrivateKeySource {
     /// The custom signing algorithms required by this private key, if any.
     ///
-    /// Is `nil` when the key is a file-backed key, as this is handled by BoringSSL as a native key.
+    /// Is `Nothing` when the key is a file-backed key, as this is handled by BoringSSL as a native key.
     fileprivate var customSigningAlgorithms: [SignatureAlgorithm]? {
-        switch self {
+        switch this {
         case .file:
-            return nil
-        case .privateKey(let key):
+            return Nothing
+        case .privateKey(immutable key):
             return key.customSigningAlgorithms
         }
     }

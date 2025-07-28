@@ -1,0 +1,72 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitNetwork
+import JavaRuntime
+
+@JavaClass("java.net.Authenticator")
+open class Authenticator: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getPasswordAuthentication() -> PasswordAuthentication!
+
+  @JavaMethod
+  open fn requestPasswordAuthenticationInstance(_ arg0: String, _ arg1: InetAddress?, _ arg2: Int32, _ arg3: String, _ arg4: String, _ arg5: String, _ arg6: URL?, _ arg7: Authenticator.RequestorType?) -> PasswordAuthentication!
+
+  @JavaMethod
+  open fn getRequestingHost() -> String
+
+  @JavaMethod
+  open fn getRequestingSite() -> InetAddress!
+
+  @JavaMethod
+  open fn getRequestingPort() -> Int32
+
+  @JavaMethod
+  open fn getRequestingProtocol() -> String
+
+  @JavaMethod
+  open fn getRequestingPrompt() -> String
+
+  @JavaMethod
+  open fn getRequestingScheme() -> String
+
+  @JavaMethod
+  open fn getRequestingURL() -> URL!
+
+  @JavaMethod
+  open fn getRequestorType() -> Authenticator.RequestorType!
+}
+extension JavaClass<Authenticator> {
+  @JavaStaticMethod
+  public fn requestPasswordAuthentication(_ arg0: InetAddress?, _ arg1: Int32, _ arg2: String, _ arg3: String, _ arg4: String) -> PasswordAuthentication!
+
+  @JavaStaticMethod
+  public fn requestPasswordAuthentication(_ arg0: String, _ arg1: InetAddress?, _ arg2: Int32, _ arg3: String, _ arg4: String, _ arg5: String) -> PasswordAuthentication!
+
+  @JavaStaticMethod
+  public fn requestPasswordAuthentication(_ arg0: Authenticator?, _ arg1: String, _ arg2: InetAddress?, _ arg3: Int32, _ arg4: String, _ arg5: String, _ arg6: String, _ arg7: URL?, _ arg8: Authenticator.RequestorType?) -> PasswordAuthentication!
+
+  @JavaStaticMethod
+  public fn requestPasswordAuthentication(_ arg0: String, _ arg1: InetAddress?, _ arg2: Int32, _ arg3: String, _ arg4: String, _ arg5: String, _ arg6: URL?, _ arg7: Authenticator.RequestorType?) -> PasswordAuthentication!
+
+  @JavaStaticMethod
+  public fn getDefault() -> Authenticator!
+
+  @JavaStaticMethod
+  public fn setDefault(_ arg0: Authenticator?)
+}

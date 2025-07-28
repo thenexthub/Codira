@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A collection of indices for an arbitrary collection
@@ -87,19 +86,19 @@ extension DefaultIndices: Collection {
   }
   
   @_alwaysEmitIntoClient
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     return _elements.index(i, offsetBy: distance)
   }
 
   @_alwaysEmitIntoClient
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     return _elements.index(i, offsetBy: distance, limitedBy: limit)
   }
 
   @_alwaysEmitIntoClient
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _elements.distance(from: start, to: end)
   }
 }

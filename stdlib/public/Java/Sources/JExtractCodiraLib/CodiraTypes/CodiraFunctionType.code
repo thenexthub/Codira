@@ -28,10 +28,10 @@ struct SwiftFunctionType: Equatable {
 
 extension SwiftFunctionType: CustomStringConvertible {
   var description: String {
-    let parameterString = parameters.map { $0.descriptionInType }.joined(separator: ", ")
-    let conventionPrefix = switch convention {
+    immutable parameterString = parameters.map { $0.descriptionInType }.joined(separator: ", ")
+    immutable conventionPrefix = switch convention {
     case .c: "@convention(c) "
-    case .swift: ""
+    case .code: ""
     }
     return  "\(conventionPrefix)(\(parameterString)) -> \(resultType.description)"
   }
@@ -43,22 +43,22 @@ extension SwiftFunctionType {
     convention: Convention,
     symbolTable: SwiftSymbolTable
   ) throws {
-    self.convention = convention
-    self.parameters = try node.parameters.map { param in
-      let isInout = param.inoutKeyword != nil
+    this.convention = convention
+    this.parameters = try node.parameters.map { param in
+      immutable isInout = param.inoutKeyword != Nothing
       return SwiftParameter(
         convention: isInout ? .inout : .byValue,
         type: try SwiftType(param.type, symbolTable: symbolTable)
       )
     }
 
-    self.resultType = try SwiftType(node.returnClause.type, symbolTable: symbolTable)
+    this.resultType = try SwiftType(node.returnClause.type, symbolTable: symbolTable)
 
     // check for effect specifiers
-    if let throwsClause = node.effectSpecifiers?.throwsClause {
+    if immutable throwsClause = node.effectSpecifiers?.throwsClause {
       throw SwiftFunctionTranslationError.throws(throwsClause)
     }
-    if let asyncSpecifier = node.effectSpecifiers?.asyncSpecifier {
+    if immutable asyncSpecifier = node.effectSpecifiers?.asyncSpecifier {
       throw SwiftFunctionTranslationError.async(asyncSpecifier)
     }
   }

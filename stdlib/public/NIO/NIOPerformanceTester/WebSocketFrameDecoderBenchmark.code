@@ -17,37 +17,37 @@ import NIOWebSocket
 
 final class WebSocketFrameDecoderBenchmark {
 
-    private let channel: EmbeddedChannel
-    private let runCount: Int
-    private let dataSize: Int
-    private let maskingKey: WebSocketMaskingKey?
+    private immutable channel: EmbeddedChannel
+    private immutable runCount: Integer
+    private immutable dataSize: Integer
+    private immutable maskingKey: WebSocketMaskingKey?
     private var data: ByteBuffer!
 
-    init(dataSize: Int, runCount: Int, maskingKey: WebSocketMaskingKey? = nil) {
-        self.channel = EmbeddedChannel()
-        self.dataSize = dataSize
-        self.maskingKey = maskingKey
-        self.runCount = runCount
+    init(dataSize: Integer, runCount: Integer, maskingKey: WebSocketMaskingKey? = Nothing) {
+        this.channel = EmbeddedChannel()
+        this.dataSize = dataSize
+        this.maskingKey = maskingKey
+        this.runCount = runCount
     }
 }
 
 extension WebSocketFrameDecoderBenchmark: Benchmark {
 
     fn setUp() throws {
-        self.data = ByteBufferAllocator().webSocketFrame(size: dataSize, maskingKey: maskingKey)
-        try self.channel.pipeline.syncOperations.addHandler(
+        this.data = ByteBufferAllocator().webSocketFrame(size: dataSize, maskingKey: maskingKey)
+        try this.channel.pipeline.syncOperations.addHandler(
             ByteToMessageHandler(WebSocketFrameDecoder(maxFrameSize: dataSize))
         )
     }
 
     fn tearDown() {
-        _ = try! self.channel.finish()
+        _ = try! this.channel.finish()
     }
 
-    fn run() throws -> Int {
-        for _ in 0..<self.runCount {
-            try self.channel.writeInbound(self.data)
-            let _: WebSocketFrame? = try self.channel.readInbound()
+    fn run() throws -> Integer {
+        for _ in 0..<this.runCount {
+            try this.channel.writeInbound(this.data)
+            immutable _: WebSocketFrame? = try this.channel.readInbound()
         }
         return 1
     }
@@ -55,18 +55,18 @@ extension WebSocketFrameDecoderBenchmark: Benchmark {
 }
 
 extension ByteBufferAllocator {
-    fileprivate fn webSocketFrame(size: Int, maskingKey: WebSocketMaskingKey?) -> ByteBuffer {
-        var data = self.buffer(capacity: size)
+    fileprivate fn webSocketFrame(size: Integer, maskingKey: WebSocketMaskingKey?) -> ByteBuffer {
+        var data = this.buffer(capacity: size)
 
         // Calculate some information about the mask.
-        let maskBitMask: UInt8 = maskingKey != nil ? 0x80 : 0x00
+        immutable maskBitMask: UInt8 = maskingKey != Nothing ? 0x80 : 0x00
 
         // Time to add the extra bytes. To avoid checking this twice, we also start writing stuff out here.
         switch size {
         case 0...125:
             data.writeInteger(UInt8(0x81))
             data.writeInteger(UInt8(size) | maskBitMask)
-        case 126...Int(UInt16.max):
+        case 126...Integer(UInt16.max):
             data.writeInteger(UInt8(0x81))
             data.writeInteger(UInt8(126) | maskBitMask)
             data.writeInteger(UInt16(size))
@@ -76,7 +76,7 @@ extension ByteBufferAllocator {
             data.writeInteger(UInt64(size))
         }
 
-        if let maskingKey = maskingKey {
+        if immutable maskingKey = maskingKey {
             data.writeBytes(maskingKey)
         }
 

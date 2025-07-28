@@ -1,0 +1,68 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.net.Inet4Address")
+open class Inet4Address: InetAddress {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open override fn getAddress() -> [Int8]
+
+  @JavaMethod
+  open override fn getHostAddress() -> String
+
+  @JavaMethod
+  open override fn isLinkLocalAddress() -> Boolean
+
+  @JavaMethod
+  open override fn isAnyLocalAddress() -> Boolean
+
+  @JavaMethod
+  open override fn isMulticastAddress() -> Boolean
+
+  @JavaMethod
+  open override fn isLoopbackAddress() -> Boolean
+
+  @JavaMethod
+  open override fn isSiteLocalAddress() -> Boolean
+
+  @JavaMethod
+  open override fn isMCGlobal() -> Boolean
+
+  @JavaMethod
+  open override fn isMCNodeLocal() -> Boolean
+
+  @JavaMethod
+  open override fn isMCLinkLocal() -> Boolean
+
+  @JavaMethod
+  open override fn isMCSiteLocal() -> Boolean
+
+  @JavaMethod
+  open override fn isMCOrgLocal() -> Boolean
+}
+extension JavaClass<Inet4Address> {
+  @JavaStaticMethod
+  public fn ofLiteral(_ arg0: String) -> Inet4Address!
+
+  @JavaStaticMethod
+  public fn ofPosixLiteral(_ arg0: String) -> Inet4Address!
+}

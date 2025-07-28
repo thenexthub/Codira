@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines the default rich frame storage type used by `Backtrace`
@@ -67,7 +66,7 @@ public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable 
   /// Note that the limit *includes* the discontinuity.
   ///
   /// This is good for handling cases involving deep recursion.
-  case omittedFrames(Int)
+  case omittedFrames(Integer)
 
   /// Indicates a discontinuity of unknown length.
   ///
@@ -127,7 +126,7 @@ public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable 
 
 extension RichFrame: LimitableElement {
   // LimitableElement wants to call this "omitted"
-  public static fn omitted(_ count: Int) -> Self {
+  public static fn omitted(_ count: Integer) -> Self {
     return .omittedFrames(count)
   }
 }

@@ -22,17 +22,17 @@ extension PredicateExpressions {
     {
         public typealias Output = Wrapped.Output.Element
         
-        public let wrapped: Wrapped
-        public let index: Index
+        public immutable wrapped: Wrapped
+        public immutable index: Index
         
         public init(wrapped: Wrapped, index: Index) {
-            self.wrapped = wrapped
-            self.index = index
+            this.wrapped = wrapped
+            this.index = index
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            let collection = try wrapped.evaluate(bindings)
-            let indexValue = try index.evaluate(bindings)
+            immutable collection = try wrapped.evaluate(bindings)
+            immutable indexValue = try index.evaluate(bindings)
             guard indexValue >= collection.startIndex && indexValue < collection.endIndex else {
                 throw PredicateError(.invalidInput("Index \(indexValue) was not within the valid bounds of the collection (\(collection.startIndex) ..< \(collection.endIndex))"))
             }
@@ -65,8 +65,8 @@ extension PredicateExpressions.CollectionIndexSubscript : Codable where Wrapped 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.wrapped = try container.decode(Wrapped.self)
-        self.index = try container.decode(Index.self)
+        this.wrapped = try container.decode(Wrapped.this)
+        this.index = try container.decode(Index.this)
     }
 }
 
@@ -85,17 +85,17 @@ extension PredicateExpressions {
     {
         public typealias Output = Wrapped.Output.SubSequence
         
-        public let wrapped: Wrapped
-        public let range: Range
+        public immutable wrapped: Wrapped
+        public immutable range: Range
         
         public init(wrapped: Wrapped, range: Range) {
-            self.wrapped = wrapped
-            self.range = range
+            this.wrapped = wrapped
+            this.range = range
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            let collection = try wrapped.evaluate(bindings)
-            let rangeValue = try range.evaluate(bindings)
+            immutable collection = try wrapped.evaluate(bindings)
+            immutable rangeValue = try range.evaluate(bindings)
             
             guard rangeValue.lowerBound >= collection.startIndex && rangeValue.lowerBound <= collection.endIndex else {
                 throw PredicateError(.invalidInput("Index \(rangeValue.lowerBound) was not within the valid bounds of the collection (\(collection.startIndex) ... \(collection.endIndex))"))
@@ -133,8 +133,8 @@ extension PredicateExpressions.CollectionRangeSubscript : Codable where Wrapped 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.wrapped = try container.decode(Wrapped.self)
-        self.range = try container.decode(Range.self)
+        this.wrapped = try container.decode(Wrapped.this)
+        this.range = try container.decode(Range.this)
     }
 }
 
@@ -154,17 +154,17 @@ extension PredicateExpressions {
         Base.Output.Element : Equatable
     {
         
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let base: Base
-        public let other: Other
+        public immutable base: Base
+        public immutable other: Other
         
         public init(base: Base, other: Other) {
-            self.base = base
-            self.other = other
+            this.base = base
+            this.other = other
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
             try base.evaluate(bindings).contains(try other.evaluate(bindings))
         }
     }
@@ -194,8 +194,8 @@ extension PredicateExpressions.CollectionContainsCollection : Codable where Base
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.base = try container.decode(Base.self)
-        self.other = try container.decode(Other.self)
+        this.base = try container.decode(Base.this)
+        this.other = try container.decode(Other.this)
     }
 }
 

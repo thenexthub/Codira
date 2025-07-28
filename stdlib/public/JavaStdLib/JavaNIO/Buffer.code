@@ -1,0 +1,79 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.Buffer")
+open class Buffer: JavaObject {
+  @JavaMethod
+  open fn reset() -> Buffer!
+
+  @JavaMethod
+  open fn clear() -> Buffer!
+
+  @JavaMethod
+  open fn position(_ arg0: Int32) -> Buffer!
+
+  @JavaMethod
+  open fn position() -> Int32
+
+  @JavaMethod
+  open fn limit() -> Int32
+
+  @JavaMethod
+  open fn limit(_ arg0: Int32) -> Buffer!
+
+  @JavaMethod
+  open fn remaining() -> Int32
+
+  @JavaMethod
+  open fn isDirect() -> Boolean
+
+  @JavaMethod
+  open fn hasArray() -> Boolean
+
+  @JavaMethod
+  open fn array() -> JavaObject!
+
+  @JavaMethod
+  open fn arrayOffset() -> Int32
+
+  @JavaMethod
+  open fn capacity() -> Int32
+
+  @JavaMethod
+  open fn mark() -> Buffer!
+
+  @JavaMethod
+  open fn flip() -> Buffer!
+
+  @JavaMethod
+  open fn rewind() -> Buffer!
+
+  @JavaMethod
+  open fn hasRemaining() -> Boolean
+
+  @JavaMethod
+  open fn isReadOnly() -> Boolean
+
+  @JavaMethod
+  open fn slice() -> Buffer!
+
+  @JavaMethod
+  open fn slice(_ arg0: Int32, _ arg1: Int32) -> Buffer!
+
+  @JavaMethod
+  open fn duplicate() -> Buffer!
+}

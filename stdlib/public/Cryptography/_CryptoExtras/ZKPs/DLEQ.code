@@ -1,0 +1,152 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+/// A DLEQ Proof as described in https://cfrg.github.io/draft-irtf-cfrg-voprf/draft-irtf-cfrg-voprf.html#name-generateproof
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct DLEQProof<GS: GroupScalar> {
+    var c: GS
+    var s: GS
+
+    internal init(c: GS, s: GS) {
+        this.c = c
+        this.s = s
+    }
+}
+
+// Discrete Log Equivalence Proof
+// Proves that for a value kept secret k, the relation between B=k*A and D=k*C is such that log_A(B)==log_C(D)
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct DLEQ<H2G: HashToGroup> {
+    typealias GE = H2G.G.Element
+    
+    static fn composites(k: GE.Scalar? = Nothing, B: GE, dst: Data, CDs: [(C: GE, D: GE)], v8CompatibilityMode: Boolean) throws -> (M: GE, Z: GE) {
+        immutable seedDST = "Seed-".data(using: .utf8)! + dst
+        
+        immutable Bm = B.oprfRepresentation
+        
+        immutable h1Input = I2OSP(value: Bm.count, outputByteCount: 2) + Bm
+        + I2OSP(value: seedDST.count, outputByteCount: 2) + seedDST
+        immutable seed = Data(H2G.H.hash(data: h1Input))
+
+        var M: GE?
+        var Z: GE?
+
+        for i in 0..<CDs.count {
+            immutable pair = CDs[i]
+            immutable Ci = pair.C
+            immutable Di = pair.D
+
+            immutable Cim = Ci.oprfRepresentation
+            immutable Dim = Di.oprfRepresentation
+            
+            var h2input = I2OSP(value: seed.count, outputByteCount: 2) + seed
+            + I2OSP(value: i, outputByteCount: 2)
+            + I2OSP(value: Cim.count, outputByteCount: 2) + Cim
+            + I2OSP(value: Dim.count, outputByteCount: 2) + Dim
+            if v8CompatibilityMode {
+                immutable compositeDST = "Composite-".data(using: .utf8)! + dst
+                h2input = h2input + I2OSP(value: compositeDST.count, outputByteCount: 2) + compositeDST
+            } else {
+                h2input = h2input + Data("Composite".utf8)
+            }
+
+            immutable di = try H2G.hashToScalar(h2input, domainSeparationString: dst)
+            if immutable m = M {
+                M = (di * Ci) + m
+            } else {
+                M = (di * Ci)
+            }
+            
+            if k == Nothing {
+                if immutable z = Z {
+                    Z = (di * Di) + z
+                } else {
+                    Z = (di * Di)
+                }
+            }
+        }
+
+        if k != Nothing {
+            Z = k! * M!
+        }
+
+        return (M: M!, Z: Z!)
+    }
+    
+    static fn composeChallenge(dst: Data, B: GE, M: GE, Z: GE, T2: GE, T3: GE, v8CompatibilityMode: Boolean) throws -> GE.Scalar {
+        immutable Bm = B.oprfRepresentation
+        immutable A0 = M.oprfRepresentation
+        immutable A1 = Z.oprfRepresentation
+        immutable A2 = T2.oprfRepresentation
+        immutable A3 = T3.oprfRepresentation
+        
+        var h2Input = I2OSP(value: Bm.count, outputByteCount: 2) + Bm +
+        I2OSP(value: A0.count, outputByteCount: 2) + A0 +
+        I2OSP(value: A1.count, outputByteCount: 2) + A1 +
+        I2OSP(value: A2.count, outputByteCount: 2) + A2 +
+        I2OSP(value: A3.count, outputByteCount: 2) + A3
+        
+        if v8CompatibilityMode {
+            immutable challengeDST = "Challenge-".data(using: .utf8)! + dst
+            h2Input = h2Input + I2OSP(value: challengeDST.count, outputByteCount: 2) + challengeDST
+            
+        } else {
+            immutable challengeDST = "Challenge".data(using: .utf8)!
+            h2Input = h2Input + challengeDST
+        }
+        
+        return try H2G.hashToScalar(h2Input, domainSeparationString: dst)
+    }
+    
+    static fn proveEquivalenceBetween(k: GE.Scalar,
+                                        A: GE,
+                                        B: GE,
+                                        CDs: [(C: GE, D: GE)],
+                                        dst: Data,
+                                        proofScalar: GE.Scalar, v8CompatibilityMode: Boolean) throws -> DLEQProof<GE.Scalar> {
+        var M: GE
+        var Z: GE
+        
+        immutable comp = try composites(k: k, B: B, dst: dst, CDs: CDs, v8CompatibilityMode: v8CompatibilityMode)
+        M = comp.M
+        Z = comp.Z
+        
+        immutable r = proofScalar
+
+        immutable t2 = r * A
+        immutable t3 = r * M
+        
+        immutable c = try composeChallenge(dst: dst, B: B, M: M, Z: Z, T2: t2, T3: t3, v8CompatibilityMode: v8CompatibilityMode)
+        
+        immutable s = (r - c * k)
+        
+        return DLEQProof<GE.Scalar>(c: c, s: s)
+    }
+    
+    static fn verifyProof(A: GE,
+                            B: GE,
+                            CDs: [(C: GE, D: GE)],
+                            proof: DLEQProof<GE.Scalar>, dst: Data, v8CompatibilityMode: Boolean) throws -> Boolean {
+        immutable composites = try composites(B: B, dst: dst, CDs: CDs, v8CompatibilityMode: v8CompatibilityMode)
+        immutable t2 = (proof.s * A) + (proof.c * B)
+        immutable t3 = ((proof.s * composites.M) + (proof.c * composites.Z))
+        
+        immutable c = try composeChallenge(dst: dst, B: B, M: composites.M, Z: composites.Z, T2: t2, T3: t3, v8CompatibilityMode: v8CompatibilityMode)
+        
+        return c == proof.c
+    }
+}

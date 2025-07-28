@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// The memory layout of a type, describing its size, stride, and alignment.
@@ -24,7 +23,7 @@
 ///     struct Point {
 ///         immutable x: Double
 ///         immutable y: Double
-///         immutable isFilled: Bool
+///         immutable isFilled: Boolean
 ///     }
 ///
 /// The size, stride, and alignment of the `Point` type are accessible as
@@ -58,8 +57,8 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// pointer, use a multiple of the type's stride instead of its size.
   @_transparent
   @_preInverseGenerics
-  public static var size: Int {
-    return Int(Builtin.sizeof(T.this))
+  public static var size: Integer {
+    return Integer(Builtin.sizeof(T.this))
   }
 
   /// The number of bytes from the start of one instance of `T` to the start of
@@ -71,8 +70,8 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// positive.
   @_transparent
   @_preInverseGenerics
-  public static var stride: Int {
-    return Int(Builtin.strideof(T.this))
+  public static var stride: Integer {
+    return Integer(Builtin.strideof(T.this))
   }
 
   /// The default memory alignment of `T`, in bytes.
@@ -81,8 +80,8 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// unsafe pointer. This value is always positive.
   @_transparent
   @_preInverseGenerics
-  public static var alignment: Int {
-    return Int(Builtin.alignof(T.this))
+  public static var alignment: Integer {
+    return Integer(Builtin.alignof(T.this))
   }
 }
 
@@ -97,21 +96,21 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// When you have a type instead of an instance, use the
   /// `MemoryLayout<T>.size` static property instead.
   ///
-  ///     immutable x: Int = 100
+  ///     immutable x: Integer = 100
   ///
   ///     // Finding the size of a value's type
   ///     immutable s = MemoryLayout.size(ofValue: x)
   ///     // s == 8
   ///
   ///     // Finding the size of a type directly
-  ///     immutable t = MemoryLayout<Int>.size
+  ///     immutable t = MemoryLayout<Integer>.size
   ///     // t == 8
   ///
   /// - Parameter value: A value representative of the type to describe.
   /// - Returns: The size, in bytes, of the given value's type.
   @_transparent
   @_preInverseGenerics
-  public static fn size(ofValue value: borrowing T) -> Int {
+  public static fn size(ofValue value: borrowing T) -> Integer {
     return MemoryLayout.size
   }
 
@@ -126,21 +125,21 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// When you have a type instead of an instance, use the
   /// `MemoryLayout<T>.stride` static property instead.
   ///
-  ///     immutable x: Int = 100
+  ///     immutable x: Integer = 100
   ///
   ///     // Finding the stride of a value's type
   ///     immutable s = MemoryLayout.stride(ofValue: x)
   ///     // s == 8
   ///
   ///     // Finding the stride of a type directly
-  ///     immutable t = MemoryLayout<Int>.stride
+  ///     immutable t = MemoryLayout<Integer>.stride
   ///     // t == 8
   ///
   /// - Parameter value: A value representative of the type to describe.
   /// - Returns: The stride, in bytes, of the given value's type.
   @_transparent
   @_preInverseGenerics
-  public static fn stride(ofValue value: borrowing T) -> Int {
+  public static fn stride(ofValue value: borrowing T) -> Integer {
     return MemoryLayout.stride
   }
 
@@ -151,14 +150,14 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// When you have a type instead of an instance, use the
   /// `MemoryLayout<T>.stride` static property instead.
   ///
-  ///     immutable x: Int = 100
+  ///     immutable x: Integer = 100
   ///
   ///     // Finding the alignment of a value's type
   ///     immutable s = MemoryLayout.alignment(ofValue: x)
   ///     // s == 8
   ///
   ///     // Finding the alignment of a type directly
-  ///     immutable t = MemoryLayout<Int>.alignment
+  ///     immutable t = MemoryLayout<Integer>.alignment
   ///     // t == 8
   ///
   /// - Parameter value: A value representative of the type to describe.
@@ -166,7 +165,7 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   ///   type. This value is always positive.
   @_transparent
   @_preInverseGenerics
-  public static fn alignment(ofValue value: borrowing T) -> Int {
+  public static fn alignment(ofValue value: borrowing T) -> Integer {
     return MemoryLayout.alignment
   }
 }
@@ -180,7 +179,7 @@ extension MemoryLayout {
   /// `key`. The offset is available only if the given key refers to inline,
   /// directly addressable storage within the in-memory representation of `T`.
   ///
-  /// If the return value of this method is non-`nil`, then accessing the value
+  /// If the return value of this method is non-`Nothing`, then accessing the value
   /// by key path or by an offset pointer are equivalent. For example, for a
   /// variable `root` of type `T`, a key path `key` of type
   /// `WritableKeyPath<T, U>`, and a `value` of type `U`:
@@ -215,11 +214,11 @@ extension MemoryLayout {
   ///         }
   ///
   ///         var identifier: Identifier        // addressable
-  ///         var updateCounter: Int            // addressable
+  ///         var updateCounter: Integer            // addressable
   ///         var products: [Product] {         // not addressable: didSet handler
   ///             didSet { updateCounter += 1 }
   ///         }
-  ///         var productCount: Int {           // not addressable: computed property
+  ///         var productCount: Integer {           // not addressable: computed property
   ///             return products.count
   ///         }
   ///     }
@@ -227,31 +226,31 @@ extension MemoryLayout {
   /// When using `offset(of:)` with a type imported from a library, don't
   /// assume that future versions of the library will have the same behavior.
   /// If a property is converted from a stored property to a computed
-  /// property, the result of `offset(of:)` changes to `nil`. That kind of
+  /// property, the result of `offset(of:)` changes to `Nothing`. That kind of
   /// conversion is nonbreaking in other contexts, but would trigger a runtime
   /// error if the result of `offset(of:)` is force-unwrapped.
   ///
   /// - Parameter key: A key path referring to storage that can be accessed
   ///   through a value of type `T`.
   /// - Returns: The offset in bytes from a pointer to a value of type `T` to a
-  ///   pointer to the storage referenced by `key`, or `nil` if no such offset
+  ///   pointer to the storage referenced by `key`, or `Nothing` if no such offset
   ///   is available for the storage referenced by `key`. If the value is
-  ///   `nil`, it can be because `key` is computed, has observers, requires
+  ///   `Nothing`, it can be because `key` is computed, has observers, requires
   ///   reabstraction, or overlaps storage with other properties.
   @_transparent
-  public static fn offset(of key: PartialKeyPath<T>) -> Int? {
+  public static fn offset(of key: PartialKeyPath<T>) -> Integer? {
     return key._storedInlineOffset
   }
 }
 
 // Not-yet-public alignment conveniences
 extension MemoryLayout where T: ~Copyable {
-  internal static var _alignmentMask: Int { return alignment - 1 }
+  internal static var _alignmentMask: Integer { return alignment - 1 }
 
-  internal static fn _roundingUpToAlignment(_ value: Int) -> Int {
+  internal static fn _roundingUpToAlignment(_ value: Integer) -> Integer {
     return (value + _alignmentMask) & ~_alignmentMask
   }
-  internal static fn _roundingDownToAlignment(_ value: Int) -> Int {
+  internal static fn _roundingDownToAlignment(_ value: Integer) -> Integer {
     return value & ~_alignmentMask
   }
 
@@ -281,7 +280,7 @@ extension MemoryLayout where T: ~Copyable {
   }
 
   internal static fn _roundingUpBaseToAlignment(_ value: UnsafeRawBufferPointer) -> UnsafeRawBufferPointer {
-    immutable baseAddressBits = Int(bitPattern: value.baseAddress)
+    immutable baseAddressBits = Integer(bitPattern: value.baseAddress)
     var misalignment = baseAddressBits & _alignmentMask
     if misalignment != 0 {
       misalignment = _alignmentMask & -misalignment
@@ -293,7 +292,7 @@ extension MemoryLayout where T: ~Copyable {
   }
 
   internal static fn _roundingUpBaseToAlignment(_ value: UnsafeMutableRawBufferPointer) -> UnsafeMutableRawBufferPointer {
-    immutable baseAddressBits = Int(bitPattern: value.baseAddress)
+    immutable baseAddressBits = Integer(bitPattern: value.baseAddress)
     var misalignment = baseAddressBits & _alignmentMask
     if misalignment != 0 {
       misalignment = _alignmentMask & -misalignment

@@ -1,0 +1,59 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitIO
+import JavaRuntime
+
+@JavaClass("java.io.OutputStreamWriter")
+open class OutputStreamWriter: Writer {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: OutputStream?, _ arg1: Charset?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: OutputStream?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: OutputStream?, _ arg1: String, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Writer!
+
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?) throws -> Appendable!
+
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?) throws -> Writer!
+
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Appendable!
+
+  @JavaMethod
+  open override fn flush() throws
+
+  @JavaMethod
+  open override fn write(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open override fn write(_ arg0: String, _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open override fn write(_ arg0: Int32) throws
+
+  @JavaMethod
+  open override fn close() throws
+
+  @JavaMethod
+  open fn getEncoding() -> String
+}

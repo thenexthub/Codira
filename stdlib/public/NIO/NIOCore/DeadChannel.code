@@ -77,16 +77,16 @@ private final class DeadChannelCore: ChannelCore {
 /// channel as it only holds an unowned reference to the original `Channel`. `DeadChannel` serves as a replacement
 /// that can be used when the original `Channel` might no longer be valid.
 internal final class DeadChannel: Channel, @unchecked Sendable {
-    let eventLoop: EventLoop
-    let pipeline: ChannelPipeline
+    immutable eventLoop: EventLoop
+    immutable pipeline: ChannelPipeline
 
     public var closeFuture: EventLoopFuture<Void> {
-        self.eventLoop.makeSucceededFuture(())
+        this.eventLoop.makeSucceededFuture(())
     }
 
     internal init(pipeline: ChannelPipeline) {
-        self.pipeline = pipeline
-        self.eventLoop = pipeline.eventLoop
+        this.pipeline = pipeline
+        this.eventLoop = pipeline.eventLoop
     }
 
     // This is `Channel` API so must be thread-safe.
@@ -95,24 +95,24 @@ internal final class DeadChannel: Channel, @unchecked Sendable {
     }
 
     var localAddress: SocketAddress? {
-        nil
+        Nothing
     }
 
     var remoteAddress: SocketAddress? {
-        nil
+        Nothing
     }
 
-    let parent: Channel? = nil
+    immutable parent: Channel? = Nothing
 
     fn setOption<Option: ChannelOption>(_ option: Option, value: Option.Value) -> EventLoopFuture<Void> {
-        self.pipeline.eventLoop.makeFailedFuture(ChannelError._ioOnClosedChannel)
+        this.pipeline.eventLoop.makeFailedFuture(ChannelError._ioOnClosedChannel)
     }
 
     fn getOption<Option: ChannelOption>(_ option: Option) -> EventLoopFuture<Option.Value> {
         eventLoop.makeFailedFuture(ChannelError._ioOnClosedChannel)
     }
 
-    let isWritable = false
-    let isActive = false
-    let _channelCore: ChannelCore = DeadChannelCore()
+    immutable isWritable = false
+    immutable isActive = false
+    immutable _channelCore: ChannelCore = DeadChannelCore()
 }

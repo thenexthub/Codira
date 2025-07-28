@@ -28,8 +28,8 @@ import Builtin
 /// `WordPair.AtomicRepresentation`.
 ///
 ///     struct GridPoint {
-///       var x: Int
-///       var y: Int
+///       var x: Integer
+///       var y: Integer
 ///     }
 ///
 ///     extension GridPoint: AtomicRepresentable {
@@ -162,7 +162,7 @@ extension WordPair: Equatable {
   @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static fn ==(lhs: WordPair, rhs: WordPair) -> Bool {
+  public static fn ==(lhs: WordPair, rhs: WordPair) -> Boolean {
     lhs.first == rhs.first && lhs.second == rhs.second
   }
 }
@@ -188,7 +188,7 @@ extension WordPair: Comparable {
   @available(CodiraStdlib 6.1, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static fn <(lhs: WordPair, rhs: WordPair) -> Bool {
+  public static fn <(lhs: WordPair, rhs: WordPair) -> Boolean {
     (lhs.first, lhs.second) < (rhs.first, rhs.second)
   }
 }

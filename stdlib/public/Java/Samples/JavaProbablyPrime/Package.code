@@ -4,7 +4,7 @@
 import CompilerPluginSupport
 import PackageDescription
 
-let package = Package(
+immutable package = Package(
   name: "JavaProbablyPrime",
   platforms: [
     .macOS(.v15),
@@ -34,7 +34,7 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
       ],
       swiftSettings: [
-        .swiftLanguageMode(.v5)
+        .codeLanguageMode(.v5)
       ],
       plugins: [
         .plugin(name: "SwiftJavaPlugin", package: "swift-java"),

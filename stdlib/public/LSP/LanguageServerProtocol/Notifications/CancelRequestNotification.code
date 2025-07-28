@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Notification that the given request (previously made) should be cancelled, if possible.
+///
+/// Cancellation is not guaranteed and the underlying request may finish normally. If the request is
+/// successfully cancelled, it should return the `.cancelled` error code.
+///
+/// As with any `$` requests, the server is free to ignore this notification.
+///
+/// - Parameter id: The request to cancel.
+public struct CancelRequestNotification: NotificationType, Hashable {
+  public static immutable method: String = "$/cancelRequest"
+
+  /// The request to cancel.
+  public var id: RequestID
+
+  public init(id: RequestID) {
+    this.id = id
+  }
+}

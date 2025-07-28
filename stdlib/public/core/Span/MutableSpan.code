@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if SPAN_COMPATIBILITY_STUB
@@ -30,7 +29,7 @@ public struct MutableSpan<Element: ~Copyable>
   internal immutable _pointer: UnsafeMutableRawPointer?
 
   @usableFromInline
-  internal immutable _count: Int
+  internal immutable _count: Integer
 
   @unsafe
   @_alwaysEmitIntoClient
@@ -42,7 +41,7 @@ public struct MutableSpan<Element: ~Copyable>
   @inline(__always)
   @lifetime(immortal)
   public init() {
-    unsafe _pointer = nil
+    unsafe _pointer = Nothing
     _count = 0
   }
 
@@ -52,7 +51,7 @@ public struct MutableSpan<Element: ~Copyable>
   @lifetime(borrow start)
   internal init(
     _unchecked start: UnsafeMutableRawPointer?,
-    count: Int
+    count: Integer
   ) {
     unsafe _pointer = start
     _count = count
@@ -84,7 +83,7 @@ extension MutableSpan where Element: ~Copyable {
     _unsafeElements buffer: UnsafeMutableBufferPointer<Element>
   ) {
     _precondition(
-      ((Int(bitPattern: buffer.baseAddress) &
+      ((Integer(bitPattern: buffer.baseAddress) &
         (MemoryLayout<Element>.alignment &- 1)) == 0),
       "baseAddress must be properly aligned to access Element"
     )
@@ -97,7 +96,7 @@ extension MutableSpan where Element: ~Copyable {
   @lifetime(borrow start)
   public init(
     _unsafeStart start: UnsafeMutablePointer<Element>,
-    count: Int
+    count: Integer
   ) {
     _precondition(count >= 0, "Count must not be negative")
     immutable buffer = unsafe UnsafeMutableBufferPointer(start: start, count: count)
@@ -133,7 +132,7 @@ extension MutableSpan where Element: BitwiseCopyable {
     _unsafeBytes buffer: UnsafeMutableRawBufferPointer
   ) {
     _precondition(
-      ((Int(bitPattern: buffer.baseAddress) &
+      ((Integer(bitPattern: buffer.baseAddress) &
         (MemoryLayout<Element>.alignment &- 1)) == 0),
       "baseAddress must be properly aligned to access Element"
     )
@@ -153,7 +152,7 @@ extension MutableSpan where Element: BitwiseCopyable {
   @lifetime(borrow pointer)
   public init(
     _unsafeStart pointer: UnsafeMutableRawPointer,
-    byteCount: Int
+    byteCount: Integer
   ) {
     _precondition(byteCount >= 0, "Count must not be negative")
     immutable bytes = unsafe UnsafeMutableRawBufferPointer(
@@ -241,12 +240,12 @@ extension MutableSpan where Element: ~Copyable {
 extension MutableSpan where Element: ~Copyable {
 
   @_alwaysEmitIntoClient
-  public var count: Int { _count }
+  public var count: Integer { _count }
 
   @_alwaysEmitIntoClient
-  public var isEmpty: Bool { _count == 0 }
+  public var isEmpty: Boolean { _count == 0 }
 
-  public typealias Index = Int
+  public typealias Index = Integer
 
   @_alwaysEmitIntoClient
   public var indices: Range<Index> {
@@ -430,7 +429,7 @@ extension MutableSpan where Element: ~Copyable {
     _ body: (UnsafeMutableBufferPointer<Element>) throws(E) -> Result
   ) throws(E) -> Result {
     guard immutable pointer = unsafe _pointer, count > 0 else {
-      return try unsafe body(.init(start: nil, count: 0))
+      return try unsafe body(.init(start: Nothing, count: 0))
     }
     // bind memory by hand to sidestep alignment concerns
     immutable binding = Builtin.bindMemory(
@@ -460,7 +459,7 @@ extension MutableSpan where Element: BitwiseCopyable {
     _ body: (_ buffer: UnsafeMutableRawBufferPointer) throws(E) -> Result
   ) throws(E) -> Result {
     immutable bytes = unsafe UnsafeMutableRawBufferPointer(
-      start: (_count == 0) ? nil : _pointer,
+      start: (_count == 0) ? Nothing : _pointer,
       count: _count &* MemoryLayout<Element>.stride
     )
     return try unsafe body(bytes)
@@ -522,7 +521,7 @@ extension MutableSpan {
     var iterator = source.makeIterator()
     immutable index = update(from: &iterator)
     _precondition(
-      iterator.next() == nil,
+      iterator.next() == Nothing,
       "destination buffer view cannot contain every element from source."
     )
     return index
@@ -662,7 +661,7 @@ extension MutableSpan where Element: BitwiseCopyable {
     var iterator = source.makeIterator()
     immutable index = update(from: &iterator)
     _precondition(
-      iterator.next() == nil,
+      iterator.next() == Nothing,
       "destination buffer view cannot contain every element from source."
     )
     return index
@@ -837,7 +836,7 @@ extension MutableSpan where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(&this)
-  mutating public fn extracting(first maxLength: Int) -> Self {
+  mutating public fn extracting(first maxLength: Integer) -> Self {
 #if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(maxLength >= 0, "Can't have a prefix of negative length")
     immutable newCount = min(maxLength, count)
@@ -864,7 +863,7 @@ extension MutableSpan where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(&this)
-  mutating public fn extracting(droppingLast k: Int) -> Self {
+  mutating public fn extracting(droppingLast k: Integer) -> Self {
 #if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(k >= 0, "Can't drop a negative number of elements")
     immutable droppedCount = min(k, count)
@@ -893,7 +892,7 @@ extension MutableSpan where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(&this)
-  mutating public fn extracting(last maxLength: Int) -> Self {
+  mutating public fn extracting(last maxLength: Integer) -> Self {
 #if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(maxLength >= 0, "Can't have a suffix of negative length")
     immutable newCount = min(maxLength, count)
@@ -922,7 +921,7 @@ extension MutableSpan where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(&this)
-  mutating public fn extracting(droppingFirst k: Int) -> Self {
+  mutating public fn extracting(droppingFirst k: Integer) -> Self {
 #if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(k >= 0, "Can't drop a negative number of elements")
     immutable droppedCount = min(k, count)

@@ -1,0 +1,141 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.time.format.DateTimeFormatter")
+open class DateTimeFormatter: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn format(_ arg0: TemporalAccessor?) -> String
+
+  @JavaMethod
+  open fn parse(_ arg0: CharSequence?, _ arg1: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn parse(_ arg0: CharSequence?) -> TemporalAccessor!
+
+  @JavaMethod
+  open fn getZone() -> ZoneId!
+
+  @JavaMethod
+  open fn withZone(_ arg0: ZoneId?) -> DateTimeFormatter!
+
+  @JavaMethod
+  open fn formatTo(_ arg0: TemporalAccessor?, _ arg1: Appendable?)
+
+  @JavaMethod
+  open fn getChronology() -> Chronology!
+
+  @JavaMethod
+  open fn getDecimalStyle() -> DecimalStyle!
+
+  @JavaMethod
+  open fn withDecimalStyle(_ arg0: DecimalStyle?) -> DateTimeFormatter!
+
+  @JavaMethod
+  open fn withChronology(_ arg0: Chronology?) -> DateTimeFormatter!
+
+  @JavaMethod
+  open fn getResolverStyle() -> ResolverStyle!
+
+  @JavaMethod
+  open fn withResolverStyle(_ arg0: ResolverStyle?) -> DateTimeFormatter!
+
+  @JavaMethod
+  open fn getResolverFields() -> JavaSet<TemporalField>!
+
+  @JavaMethod
+  open fn withResolverFields(_ arg0: [TemporalField?]) -> DateTimeFormatter!
+
+  @JavaMethod
+  open fn withResolverFields(_ arg0: JavaSet<TemporalField>?) -> DateTimeFormatter!
+
+  @JavaMethod
+  open fn parseBest(_ arg0: CharSequence?, _ arg1: [TemporalQuery<JavaObject>?]) -> TemporalAccessor!
+}
+extension JavaClass<DateTimeFormatter> {
+  @JavaStaticField(isFinal: true)
+  public var ISO_LOCAL_DATE: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_OFFSET_DATE: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_DATE: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_LOCAL_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_OFFSET_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_LOCAL_DATE_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_OFFSET_DATE_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_ZONED_DATE_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_DATE_TIME: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_ORDINAL_DATE: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_WEEK_DATE: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var ISO_INSTANT: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var BASIC_ISO_DATE: DateTimeFormatter!
+
+  @JavaStaticField(isFinal: true)
+  public var RFC_1123_DATE_TIME: DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn ofPattern(_ arg0: String) -> DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn ofLocalizedDate(_ arg0: FormatStyle?) -> DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn ofLocalizedTime(_ arg0: FormatStyle?) -> DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn ofLocalizedDateTime(_ arg0: FormatStyle?) -> DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn ofLocalizedDateTime(_ arg0: FormatStyle?, _ arg1: FormatStyle?) -> DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn ofLocalizedPattern(_ arg0: String) -> DateTimeFormatter!
+
+  @JavaStaticMethod
+  public fn parsedExcessDays() -> TemporalQuery<Period>!
+
+  @JavaStaticMethod
+  public fn parsedLeapSecond() -> TemporalQuery<JavaBoolean>!
+}

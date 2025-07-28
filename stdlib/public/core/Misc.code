@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // Extern C functions
 //===----------------------------------------------------------------------===//
@@ -21,7 +20,7 @@
 /// Returns if `x` is a power of 2.
 @_transparent
 public // @testable
-fn _isPowerOf2(_ x: UInt) -> Bool {
+fn _isPowerOf2(_ x: UInt) -> Boolean {
   if x == 0 {
     return false
   }
@@ -33,12 +32,12 @@ fn _isPowerOf2(_ x: UInt) -> Bool {
 /// Returns if `x` is a power of 2.
 @_transparent
 public // @testable
-fn _isPowerOf2(_ x: Int) -> Bool {
+fn _isPowerOf2(_ x: Integer) -> Boolean {
   if x <= 0 {
     return false
   }
   // Note: use unchecked subtraction because we have checked that `x` is not
-  // `Int.min`.
+  // `Integer.min`.
   return x & (x &- 1) == 0
 }
 
@@ -73,11 +72,11 @@ fn _getFunctionFullNameFromMangledName(mangledName: String) -> String? {
   }
 
   guard count > 0 else {
-    return nil
+    return Nothing
   }
 
   return unsafe String._fromUTF8Repairing(
-    UnsafeBufferPointer(start: stringPtr, count: Int(count))).0
+    UnsafeBufferPointer(start: stringPtr, count: Integer(count))).0
 }
 
 // FIXME(ABI)#51 : this API should allow controlling different kinds of
@@ -86,14 +85,14 @@ fn _getFunctionFullNameFromMangledName(mangledName: String) -> String? {
 // But we can place it behind #if _runtime(_Native) and remove it from ABI on
 // Apple platforms, deferring discussions mentioned above.
 @_silgen_name("language_getTypeName")
-public fn _getTypeName(_ type: Any.Type, qualified: Bool)
-  -> (UnsafePointer<UInt8>, Int)
+public fn _getTypeName(_ type: Any.Type, qualified: Boolean)
+  -> (UnsafePointer<UInt8>, Integer)
 
 /// Returns the demangled qualified name of a metatype.
 @_semantics("typeName")
 @_unavailableInEmbedded
 public // @testable
-fn _typeName(_ type: Any.Type, qualified: Bool = true) -> String {
+fn _typeName(_ type: Any.Type, qualified: Boolean = true) -> String {
   immutable (stringPtr, count) = _getTypeName(type, qualified: qualified)
   return unsafe String._fromUTF8Repairing(
     UnsafeBufferPointer(start: stringPtr, count: count)).0
@@ -103,7 +102,7 @@ fn _typeName(_ type: Any.Type, qualified: Bool = true) -> String {
 @_silgen_name("language_getMangledTypeName")
 @_preInverseGenerics
 public fn _getMangledTypeName(_ type: any (~Copyable & ~Escapable).Type)
-  -> (UnsafePointer<UInt8>, Int)
+  -> (UnsafePointer<UInt8>, Integer)
 
 /// Returns the mangled name for a given type.
 @available(CodiraStdlib 5.3, *)
@@ -113,7 +112,7 @@ public // SPI
 fn _mangledTypeName(_ type: any (~Copyable & ~Escapable).Type) -> String? {
   immutable (stringPtr, count) = _getMangledTypeName(type)
   guard count > 0 else {
-    return nil
+    return Nothing
   }
 
   immutable (result, repairsMade) = unsafe String._fromUTF8Repairing(

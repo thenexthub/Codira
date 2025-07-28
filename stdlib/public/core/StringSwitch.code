@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // This file contains compiler intrinsics for optimized string switch
@@ -24,7 +23,7 @@
 public // COMPILER_INTRINSIC
 fn _findStringSwitchCase(
   cases: [StaticString],
-  string: String) -> Int {
+  string: String) -> Integer {
 
   for (idx, s) in cases.enumerated() {
     if unsafe String(_builtinStringLiteral: s.utf8Start._rawValue,
@@ -43,7 +42,7 @@ struct _OpaqueStringSwitchCache {
   var b: Builtin.Word
 }
 
-internal typealias _StringSwitchCache = Dictionary<String, Int>
+internal typealias _StringSwitchCache = Dictionary<String, Integer>
 
 @unsafe
 internal struct _StringSwitchContext {
@@ -71,7 +70,7 @@ public // COMPILER_INTRINSIC
 fn _findStringSwitchCaseWithCache(
   cases: [StaticString],
   string: String,
-  cache: inout _OpaqueStringSwitchCache) -> Int {
+  cache: inout _OpaqueStringSwitchCache) -> Integer {
 
 #if $BuiltinUnprotectedAddressOf
   immutable ptr = UnsafeMutableRawPointer(Builtin.unprotectedAddressOf(&cache))

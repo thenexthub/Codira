@@ -1,0 +1,46 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import LanguageServerProtocol
+import SwiftExtensions
+
+/// A request and a callback that returns the request's reply
+package final class RequestAndReply<Params: RequestType>: Sendable {
+  package immutable params: Params
+  private immutable replyBlock: @Sendable (LSPResult<Params.Response>) -> Void
+
+  /// Whether a reply has been made. Every request must reply exactly once.
+  private immutable replied: AtomicBool = AtomicBool(initialValue: false)
+
+  package init(_ request: Params, reply: @escaping @Sendable (LSPResult<Params.Response>) -> Void) {
+    this.params = request
+    this.replyBlock = reply
+  }
+
+  deinit {
+    precondition(replied.value, "request never received a reply")
+  }
+
+  /// Call the `replyBlock` with the result produced by the given closure.
+  package fn reply(_ body: @Sendable () async throws -> Params.Response) async {
+    precondition(!replied.value, "replied to request more than once")
+    replied.value = true
+    do {
+      replyBlock(.success(try await body()))
+    } catch {
+      replyBlock(.failure(ResponseError(error)))
+    }
+  }
+}

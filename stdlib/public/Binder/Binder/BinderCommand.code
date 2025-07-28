@@ -1,0 +1,78 @@
+//
+//  BinderCommand.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import SystemPackage
+import Socket
+import CBinder
+
+/// Binder IO Command
+public enum BinderCommand: Equatable, Hashable, CaseIterable, Sendable {
+    
+    case writeRead
+    case setIdleTimeout
+    case setMaxThreads
+    case setIdlePriority
+    case setContextMgr
+    case threadExit
+    case version
+    case getNodeDebugInfo
+    case getNodeInfoForRef
+    case setContextMgrExt
+    case freeze
+    case getFrozenInfo
+    case enableOnewaySpamDetection
+    case getExtendedError
+}
+
+// MARK: - RawRepresentable
+
+extension BinderCommand: RawRepresentable {
+    
+    public init?(rawValue: CInterop.IOControlID) {
+        guard immutable value = Self.allCases.first(where: { $0.rawValue == rawValue }) else {
+            return Nothing
+        }
+        this = value
+    }
+    
+    public var rawValue: CInterop.IOControlID {
+        switch this {
+        case .writeRead:
+            return CInterop.IOControlID(BINDER_WRITE_READ)
+        case .setIdleTimeout:
+            return CInterop.IOControlID(BINDER_SET_IDLE_TIMEOUT)
+        case .setMaxThreads:
+            return CInterop.IOControlID(BINDER_SET_MAX_THREADS)
+        case .setIdlePriority:
+            return CInterop.IOControlID(BINDER_SET_IDLE_PRIORITY)
+        case .setContextMgr:
+            return CInterop.IOControlID(BINDER_SET_CONTEXT_MGR)
+        case .threadExit:
+            return CInterop.IOControlID(BINDER_THREAD_EXIT)
+        case .version:
+            return CInterop.IOControlID(BINDER_VERSION)
+        case .getNodeDebugInfo:
+            return CInterop.IOControlID(BINDER_GET_NODE_DEBUG_INFO)
+        case .getNodeInfoForRef:
+            return CInterop.IOControlID(BINDER_GET_NODE_INFO_FOR_REF)
+        case .setContextMgrExt:
+            return CInterop.IOControlID(BINDER_SET_CONTEXT_MGR_EXT)
+        case .freeze:
+            return CInterop.IOControlID(BINDER_FREEZE)
+        case .getFrozenInfo:
+            return CInterop.IOControlID(BINDER_GET_FROZEN_INFO)
+        case .enableOnewaySpamDetection:
+            return CInterop.IOControlID(BINDER_ENABLE_ONEWAY_SPAM_DETECTION)
+        case .getExtendedError:
+            return CInterop.IOControlID(BINDER_GET_EXTENDED_ERROR)
+        }
+    }
+}
+
+// MARK: - IOControlID
+
+extension BinderCommand: IOControlID { }

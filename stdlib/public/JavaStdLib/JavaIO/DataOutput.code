@@ -1,0 +1,61 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.io.DataOutput")
+public struct DataOutput {
+  @JavaMethod
+  public fn write(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  public fn write(_ arg0: [Int8]) throws
+
+  @JavaMethod
+  public fn write(_ arg0: Int32) throws
+
+  @JavaMethod
+  public fn writeInt(_ arg0: Int32) throws
+
+  @JavaMethod
+  public fn writeUTF(_ arg0: String) throws
+
+  @JavaMethod
+  public fn writeLong(_ arg0: Int64) throws
+
+  @JavaMethod
+  public fn writeByte(_ arg0: Int32) throws
+
+  @JavaMethod
+  public fn writeShort(_ arg0: Int32) throws
+
+  @JavaMethod
+  public fn writeBytes(_ arg0: String) throws
+
+  @JavaMethod
+  public fn writeChar(_ arg0: Int32) throws
+
+  @JavaMethod
+  public fn writeFloat(_ arg0: Float) throws
+
+  @JavaMethod
+  public fn writeDouble(_ arg0: Double) throws
+
+  @JavaMethod
+  public fn writeBoolean(_ arg0: Boolean) throws
+
+  @JavaMethod
+  public fn writeChars(_ arg0: String) throws
+}

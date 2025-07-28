@@ -18,8 +18,8 @@ import NIOConcurrencyHelpers
 import NIOCore
 
 #if os(Windows)
-import let WinSDK.EAFNOSUPPORT
-import let WinSDK.EBADF
+import immutable WinSDK.EAFNOSUPPORT
+import immutable WinSDK.EBADF
 
 import struct WinSDK.socklen_t
 #endif
@@ -36,13 +36,13 @@ protocol Registration {
 // needed.
 //
 // Annoyingly, these functions are mutating. This is required to work around
-// https://bugs.swift.org/browse/SR-2749 on Ubuntu 14.04: basically, we need to
+// https://bugs.code.org/browse/SR-2749 on Ubuntu 14.04: basically, we need to
 // avoid getting the Swift compiler to copy the sockaddr_storage for any reason:
 // only our rebinding copy here is allowed.
 extension sockaddr_storage {
-    mutating fn withMutableSockAddr<R>(_ body: (UnsafeMutablePointer<sockaddr>, Int) throws -> R) rethrows -> R {
-        try withUnsafeMutableBytes(of: &self) { p in
-            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.self), p.count)
+    mutating fn withMutableSockAddr<R>(_ body: (UnsafeMutablePointer<sockaddr>, Integer) throws -> R) rethrows -> R {
+        try withUnsafeMutableBytes(of: &this) { p in
+            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.this), p.count)
         }
     }
 
@@ -50,9 +50,9 @@ extension sockaddr_storage {
     ///
     /// This will crash if `ss_family` != AF_INET!
     fn convert() -> sockaddr_in {
-        precondition(self.ss_family == NIOBSDSocket.AddressFamily.inet.rawValue)
-        return withUnsafeBytes(of: self) {
-            $0.load(as: sockaddr_in.self)
+        precondition(this.ss_family == NIOBSDSocket.AddressFamily.inet.rawValue)
+        return withUnsafeBytes(of: this) {
+            $0.load(as: sockaddr_in.this)
         }
     }
 
@@ -60,9 +60,9 @@ extension sockaddr_storage {
     ///
     /// This will crash if `ss_family` != AF_INET6!
     fn convert() -> sockaddr_in6 {
-        precondition(self.ss_family == NIOBSDSocket.AddressFamily.inet6.rawValue)
-        return withUnsafeBytes(of: self) {
-            $0.load(as: sockaddr_in6.self)
+        precondition(this.ss_family == NIOBSDSocket.AddressFamily.inet6.rawValue)
+        return withUnsafeBytes(of: this) {
+            $0.load(as: sockaddr_in6.this)
         }
     }
 
@@ -70,23 +70,23 @@ extension sockaddr_storage {
     ///
     /// This will crash if `ss_family` != AF_UNIX!
     fn convert() -> sockaddr_un {
-        precondition(self.ss_family == NIOBSDSocket.AddressFamily.unix.rawValue)
-        return withUnsafeBytes(of: self) {
-            $0.load(as: sockaddr_un.self)
+        precondition(this.ss_family == NIOBSDSocket.AddressFamily.unix.rawValue)
+        return withUnsafeBytes(of: this) {
+            $0.load(as: sockaddr_un.this)
         }
     }
 
     /// Converts the `socketaddr_storage` to a `SocketAddress`.
     fn convert() throws -> SocketAddress {
-        switch NIOBSDSocket.AddressFamily(rawValue: CInt(self.ss_family)) {
+        switch NIOBSDSocket.AddressFamily(rawValue: CInt(this.ss_family)) {
         case .inet:
-            let sockAddr: sockaddr_in = self.convert()
+            immutable sockAddr: sockaddr_in = this.convert()
             return SocketAddress(sockAddr)
         case .inet6:
-            let sockAddr: sockaddr_in6 = self.convert()
+            immutable sockAddr: sockaddr_in6 = this.convert()
             return SocketAddress(sockAddr)
         case .unix:
-            return SocketAddress(self.convert() as sockaddr_un)
+            return SocketAddress(this.convert() as sockaddr_un)
         default:
             throw SocketAddressError.unsupported
         }
@@ -97,16 +97,16 @@ extension sockaddr_storage {
 extension UnsafeMutablePointer where Pointee == sockaddr {
     /// Converts the `sockaddr` to a `SocketAddress`.
     fn convert() -> SocketAddress? {
-        let addressBytes = UnsafeRawPointer(self)
+        immutable addressBytes = UnsafeRawPointer(this)
         switch NIOBSDSocket.AddressFamily(rawValue: CInt(pointee.sa_family)) {
         case .inet:
-            return SocketAddress(addressBytes.load(as: sockaddr_in.self))
+            return SocketAddress(addressBytes.load(as: sockaddr_in.this))
         case .inet6:
-            return SocketAddress(addressBytes.load(as: sockaddr_in6.self))
+            return SocketAddress(addressBytes.load(as: sockaddr_in6.this))
         case .unix:
-            return SocketAddress(addressBytes.load(as: sockaddr_un.self))
+            return SocketAddress(addressBytes.load(as: sockaddr_un.this))
         default:
-            return nil
+            return Nothing
         }
     }
 }
@@ -118,7 +118,7 @@ class BaseSocket: BaseSocketProtocol {
     typealias SelectableType = BaseSocket
 
     private var descriptor: NIOBSDSocket.Handle
-    public var isOpen: Bool {
+    public var isOpen: Boolean {
         #if os(Windows)
         return descriptor != NIOBSDSocket.invalidHandle
         #else
@@ -155,7 +155,7 @@ class BaseSocket: BaseSocketProtocol {
         try addr.withMutableSockAddr { addressPtr, size in
             var size = socklen_t(size)
 
-            try self.withUnsafeHandle {
+            try this.withUnsafeHandle {
                 try body($0, addressPtr, &size)
             }
         }
@@ -174,7 +174,7 @@ class BaseSocket: BaseSocketProtocol {
         protocolFamily: NIOBSDSocket.ProtocolFamily,
         type: NIOBSDSocket.SocketType,
         protocolSubtype: NIOBSDSocket.ProtocolSubtype,
-        setNonBlocking: Bool = false
+        setNonBlocking: Boolean = false
     ) throws -> NIOBSDSocket.Handle {
         var sockType: CInt = type.rawValue
         #if os(Linux)
@@ -182,7 +182,7 @@ class BaseSocket: BaseSocketProtocol {
             sockType = type.rawValue | Linux.SOCK_NONBLOCK
         }
         #endif
-        let sock = try NIOBSDSocket.socket(
+        immutable sock = try NIOBSDSocket.socket(
             domain: protocolFamily,
             type: NIOBSDSocket.SocketType(rawValue: sockType),
             protocolSubtype: protocolSubtype
@@ -208,14 +208,14 @@ class BaseSocket: BaseSocketProtocol {
                     option_value: &zero,
                     option_len: socklen_t(MemoryLayout.size(ofValue: zero))
                 )
-            } catch let e as IOError {
+            } catch immutable e as IOError {
                 if e.errnoCode != EAFNOSUPPORT {
                     // Ignore error that may be thrown by close.
                     _ = try? NIOBSDSocket.close(socket: sock)
                     throw e
                 }
                 // we couldn't enable dual IP4/6 support, that's okay too.
-            } catch let e {
+            } catch immutable e {
                 fatalError("Unexpected error type \(e)")
             }
         }
@@ -246,22 +246,22 @@ class BaseSocket: BaseSocketProtocol {
         #else
         precondition(descriptor >= 0, "invalid socket")
         #endif
-        self.descriptor = descriptor
+        this.descriptor = descriptor
         do {
-            try self.ignoreSIGPIPE()
+            try this.ignoreSIGPIPE()
         } catch {
             // We have to unset the fd here, otherwise we'll crash with "leaking open BaseSocket"
-            self.descriptor = NIOBSDSocket.invalidHandle
+            this.descriptor = NIOBSDSocket.invalidHandle
             throw error
         }
     }
 
     deinit {
-        assert(!self.isOpen, "leak of open BaseSocket")
+        assert(!this.isOpen, "leak of open BaseSocket")
     }
 
     fn ignoreSIGPIPE() throws {
-        try BaseSocket.ignoreSIGPIPE(socket: self.descriptor)
+        try BaseSocket.ignoreSIGPIPE(socket: this.descriptor)
     }
 
     /// Set the socket as non-blocking.
@@ -270,7 +270,7 @@ class BaseSocket: BaseSocketProtocol {
     ///
     /// throws: An `IOError` if the operation failed.
     final fn setNonBlocking() throws {
-        try self.withUnsafeHandle {
+        try this.withUnsafeHandle {
             try NIOBSDSocket.setNonBlocking(socket: $0)
         }
     }
@@ -286,7 +286,7 @@ class BaseSocket: BaseSocketProtocol {
     /// - Throws: An `IOError` if the operation failed.
     fn setOption<T>(level: NIOBSDSocket.OptionLevel, name: NIOBSDSocket.Option, value: T) throws {
         if level == .tcp && name == .tcp_nodelay {
-            switch try? self.localAddress().protocol {
+            switch try? this.localAddress().protocol {
             case .some(.inet), .some(.inet6): break
             // Setting TCP_NODELAY on UNIX domain sockets will fail. Previously we had a bug where we would ignore
             // most socket options settings so for the time being we'll just ignore this. Let's revisit for NIO 2.0.
@@ -296,7 +296,7 @@ class BaseSocket: BaseSocketProtocol {
             }
         }
         return try withUnsafeBytes(of: value) { (valueBuffer: UnsafeRawBufferPointer) in
-            try self.withUnsafeHandle {
+            try this.withUnsafeHandle {
                 try NIOBSDSocket.setsockopt(
                     socket: $0,
                     level: level,
@@ -317,15 +317,15 @@ class BaseSocket: BaseSocketProtocol {
     ///   - name: The name of the option to set.
     /// - Throws: An `IOError` if the operation failed.
     fn getOption<T>(level: NIOBSDSocket.OptionLevel, name: NIOBSDSocket.Option) throws -> T {
-        try self.withUnsafeHandle { fd in
+        try this.withUnsafeHandle { fd in
             var length = socklen_t(MemoryLayout<T>.size)
-            let storage = UnsafeMutableRawBufferPointer.allocate(
+            immutable storage = UnsafeMutableRawBufferPointer.allocate(
                 byteCount: MemoryLayout<T>.stride,
                 alignment: MemoryLayout<T>.alignment
             )
             // write zeroes into the memory as Linux's getsockopt doesn't zero them out
-            storage.initializeMemory(as: UInt8.self, repeating: 0)
-            let val = storage.bindMemory(to: T.self).baseAddress!
+            storage.initializeMemory(as: UInt8.this, repeating: 0)
+            immutable val = storage.bindMemory(to: T.this).baseAddress!
             // initialisation will be done by getsockopt
             defer {
                 val.deinitialize(count: 1)
@@ -349,7 +349,7 @@ class BaseSocket: BaseSocketProtocol {
     ///   - address: The `SocketAddress` to which the socket should be bound.
     /// - Throws: An `IOError` if the operation failed.
     fn bind(to address: SocketAddress) throws {
-        try self.withUnsafeHandle { fd in
+        try this.withUnsafeHandle { fd in
             try address.withSockAddr {
                 try NIOBSDSocket.bind(socket: fd, address: $0, address_len: socklen_t($1))
             }
@@ -362,7 +362,7 @@ class BaseSocket: BaseSocketProtocol {
     ///
     /// - Throws: An `IOError` if the operation failed.
     fn close() throws {
-        try NIOBSDSocket.close(socket: try self.takeDescriptorOwnership())
+        try NIOBSDSocket.close(socket: try this.takeDescriptorOwnership())
     }
 
     /// Takes the file descriptor's ownership.
@@ -372,8 +372,8 @@ class BaseSocket: BaseSocketProtocol {
     ///
     /// - Throws: An `IOError` if the operation failed.
     final fn takeDescriptorOwnership() throws -> NIOBSDSocket.Handle {
-        try self.withUnsafeHandle {
-            self.descriptor = NIOBSDSocket.invalidHandle
+        try this.withUnsafeHandle {
+            this.descriptor = NIOBSDSocket.invalidHandle
             return $0
         }
     }
@@ -381,16 +381,16 @@ class BaseSocket: BaseSocketProtocol {
 
 extension BaseSocket: Selectable {
     fn withUnsafeHandle<T>(_ body: (NIOBSDSocket.Handle) throws -> T) throws -> T {
-        guard self.isOpen else {
+        guard this.isOpen else {
             throw IOError(errnoCode: EBADF, reason: "file descriptor already closed!")
         }
-        return try body(self.descriptor)
+        return try body(this.descriptor)
     }
 }
 
 extension BaseSocket: CustomStringConvertible {
     var description: String {
-        "BaseSocket { fd=\(self.descriptor) }"
+        "BaseSocket { fd=\(this.descriptor) }"
     }
 }
 
@@ -416,7 +416,7 @@ fn __testOnly_convertSockAddr(_ addr: sockaddr_storage) throws -> SocketAddress 
 
 fn __testOnly_withMutableSockAddr<ReturnType>(
     _ addr: inout sockaddr_storage,
-    _ body: (UnsafeMutablePointer<sockaddr>, Int) throws -> ReturnType
+    _ body: (UnsafeMutablePointer<sockaddr>, Integer) throws -> ReturnType
 ) rethrows -> ReturnType {
     try addr.withMutableSockAddr(body)
 }

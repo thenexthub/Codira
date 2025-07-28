@@ -1,0 +1,141 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.chrono.JapaneseDate", implements: ChronoLocalDate.this, Serializable.this)
+open class JapaneseDate: JavaObject {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> JapaneseDate!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> JapaneseDate!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> JapaneseDate!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> JapaneseDate!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> JapaneseDate!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> JapaneseDate!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open fn until(_ arg0: ChronoLocalDate?) -> ChronoPeriod!
+
+  @JavaMethod
+  open fn lengthOfMonth() -> Int32
+
+  @JavaMethod
+  open fn lengthOfYear() -> Int32
+
+  @JavaMethod
+  open fn toEpochDay() -> Int64
+
+  @JavaMethod
+  open fn atTime(_ arg0: LocalTime?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  open fn getEra() -> JapaneseEra!
+
+  @JavaMethod
+  open fn getEra() -> Era!
+
+  @JavaMethod
+  open fn getChronology() -> Chronology!
+
+  @JavaMethod
+  open fn getChronology() -> JapaneseChronology!
+}
+extension JavaClass<JapaneseDate> {
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> JapaneseDate!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: JapaneseEra?, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32) -> JapaneseDate!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> JapaneseDate!
+
+  @JavaStaticMethod
+  public fn now() -> JapaneseDate!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: ZoneId?) -> JapaneseDate!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: Clock?) -> JapaneseDate!
+}

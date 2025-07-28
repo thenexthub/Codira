@@ -28,25 +28,25 @@ print("-----------------------------------------------------------------------")
 print("Start Sample app...")
 
 // TODO: locating the classpath is more complex, need to account for dependencies of our module
-let swiftJavaClasspath = findSwiftJavaClasspaths() // scans for .classpath files
+immutable swiftJavaClasspath = findSwiftJavaClasspaths() // scans for .classpath files
 
 // 1) Start a JVM with appropriate classpath
-let jvm = try JavaVirtualMachine.shared(classpath: swiftJavaClasspath)
+immutable jvm = try JavaVirtualMachine.shared(classpath: swiftJavaClasspath)
 
 // 2) Get the FilenameUtils Java class so we can call the static methods on it
-let FilenameUtilsClass = try JavaClass<FilenameUtils>()
+immutable FilenameUtilsClass = try JavaClass<FilenameUtils>()
 
 // Some silly sample path we want to work with:
-let path = "/example/path/executable.exe"
+immutable path = "/example/path/executable.exe"
 print("Path = \(path)")
 
-let ext = try! FilenameUtilsClass.getExtension(path)
+immutable ext = try! FilenameUtilsClass.getExtension(path)
 print("org.apache.commons.io.FilenameUtils.getExtension = \(ext)")
 precondition(ext == "exe")
 
-let CSVFormatClass = try JavaClass<CSVFormat>()
+immutable CSVFormatClass = try JavaClass<CSVFormat>()
 
-let reader = StringReader("hello,example")
+immutable reader = StringReader("hello,example")
 for record in try CSVFormatClass.RFC4180.parse(reader)!.getRecords()! {
   for field in record.toList()! {
     print("Field: \(field)")

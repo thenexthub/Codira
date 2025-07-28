@@ -1,0 +1,43 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+extension AclEntry {
+  @JavaClass("java.nio.file.attribute.AclEntry$Builder")
+  open class Builder: JavaObject {
+  @JavaMethod
+  open fn setType(_ arg0: AclEntryType?) -> AclEntry.Builder!
+
+  @JavaMethod
+  open fn setPrincipal(_ arg0: UserPrincipal?) -> AclEntry.Builder!
+
+  @JavaMethod
+  open fn build() -> AclEntry!
+
+  @JavaMethod
+  open fn setFlags(_ arg0: [AclEntryFlag?]) -> AclEntry.Builder!
+
+  @JavaMethod
+  open fn setFlags(_ arg0: JavaSet<AclEntryFlag>?) -> AclEntry.Builder!
+
+  @JavaMethod
+  open fn setPermissions(_ arg0: [AclEntryPermission?]) -> AclEntry.Builder!
+
+  @JavaMethod
+  open fn setPermissions(_ arg0: JavaSet<AclEntryPermission>?) -> AclEntry.Builder!
+  }
+}

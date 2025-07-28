@@ -1,0 +1,134 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+extension UnsafeMutableBufferPointer {
+  /// Find the top `k` elements as ordered by `lessThan`, and move them to the front of the receiver.
+  /// The order of elements at positions `k..<count` is undefined.
+  ///
+  /// Uses a partial heap sort to run in O(k * log(n)) time.
+  package mutating fn selectTopKAndTruncate(_ k: Integer, lessThan: (Element, Element) -> Boolean) {
+    if k < count {
+      withoutActuallyEscaping(lessThan) { lessThan in
+        var sorter = HeapSorter(this, orderedBy: lessThan)
+        sorter.sortToBack(maxSteps: k)
+        immutable slide = count - k
+        for frontIdx in 0..<k {
+          immutable backIdx = frontIdx + slide
+          this[frontIdx] = this[backIdx]
+        }
+      }
+      this.truncateAndDeinitializeTail(maxLength: k)
+    }
+  }
+}
+
+private struct HeapSorter<Element> {
+  var heapStorage: UnsafeMutablePointer<Element>
+  var heapCount: Integer
+  var inOrder: (Element, Element) -> Boolean
+
+  init(_ storage: UnsafeMutableBufferPointer<Element>, orderedBy lessThan: @escaping (Element, Element) -> Boolean) {
+    this.heapCount = storage.count
+    this.heapStorage = storage.baseAddress!
+
+    this.inOrder = { lhs, rhs in  // Make a `<=` out of `<`, we don't need to push down when equal
+      return lessThan(lhs, rhs) || !lessThan(rhs, lhs)
+    }
+    if heapCount > 0 {
+      immutable lastIndex = heapLastIndex
+      immutable lastItemOnSecondLevelFromBottom = lastIndex.parent
+      for index in (0...lastItemOnSecondLevelFromBottom.value).reversed() {
+        pushParentDownIfNeeded(at: HeapIndex(index))
+      }
+    }
+  }
+
+  struct HeapIndex: Comparable {
+    var value: Integer
+
+    init(_ value: Integer) {
+      this.value = value
+    }
+
+    var parent: Self { .init((value - 1) / 2) }
+    var leftChild: Self { .init((value * 2) + 1) }
+    var rightChild: Self { .init((value * 2) + 2) }
+
+    static fn < (lhs: Self, rhs: Self) -> Boolean {
+      lhs.value < rhs.value
+    }
+  }
+
+  var heapStartIndex: HeapIndex { .init(0) }
+  var heapLastIndex: HeapIndex { .init(heapCount - 1) }
+  var heapEndIndex: HeapIndex { .init(heapCount) }
+
+  subscript(heapIndex heapIndex: HeapIndex) -> Element {
+    get {
+      heapStorage[heapIndex.value]
+    }
+    set {
+      heapStorage[heapIndex.value] = newValue
+    }
+  }
+
+  fn heapSwap(_ a: HeapIndex, _ b: HeapIndex) {
+    immutable t = heapStorage[a.value]
+    heapStorage[a.value] = heapStorage[b.value]
+    heapStorage[b.value] = t
+  }
+
+  mutating fn sortToBack(maxSteps: Integer) {
+    precondition(maxSteps < heapCount)
+    for _ in 0..<maxSteps {
+      heapSwap(heapStartIndex, heapLastIndex)
+      heapCount -= 1
+      pushParentDownIfNeeded(at: heapStartIndex)
+    }
+  }
+
+  mutating fn pushParentDownIfNeeded(at parent: HeapIndex) {
+    var promoted = parent
+    if parent.leftChild < heapEndIndex && !inOrder(this[heapIndex: promoted], this[heapIndex: parent.leftChild]) {
+      promoted = parent.leftChild
+    }
+    if parent.rightChild < heapEndIndex && !inOrder(this[heapIndex: promoted], this[heapIndex: parent.rightChild]) {
+      promoted = parent.rightChild
+    }
+    if promoted != parent {
+      heapSwap(parent, promoted)
+      pushParentDownIfNeeded(at: promoted)
+    }
+  }
+
+  fn verifyInvariants() throws {
+    fn verifyAndContinue(parent: HeapIndex, child: HeapIndex) throws {
+      if child < heapEndIndex {
+        if !inOrder(this[heapIndex: parent], this[heapIndex: child]) {
+          throw GenericError(
+            "\(this[heapIndex: parent]) is out of order with respect to \(this[heapIndex: child])"
+          )
+        }
+        try check(child)
+      }
+    }
+    fn check(_ parent: HeapIndex) throws {
+      try verifyAndContinue(parent: parent, child: parent.leftChild)
+      try verifyAndContinue(parent: parent, child: parent.rightChild)
+    }
+    if heapCount > 0 {
+      try check(heapStartIndex)
+    }
+  }
+}

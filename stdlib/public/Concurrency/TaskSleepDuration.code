@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -91,7 +90,7 @@ extension Task where Success == Never, Failure == Never {
               // finishes first. Enqueue it directly with the delay, so it fires
               // when we're done sleeping.
               immutable sleepTaskFlags = taskCreateFlags(
-                priority: nil, isChildTask: false, copyTaskLocals: false,
+                priority: Nothing, isChildTask: false, copyTaskLocals: false,
                 inheritContext: false, enqueueJob: false,
                 addPendingGroupTaskUnconditionally: false,
                 isDiscardingTask: false, isSynchronousStart: false)
@@ -163,7 +162,7 @@ extension Task where Success == Never, Failure == Never {
       }
 
       // Determine whether we got cancelled before we even started.
-      immutable cancelledBeforeStarted: Bool
+      immutable cancelledBeforeStarted: Boolean
       switch unsafe token.load() {
       case .notStarted, .activeContinuation, .cancelled:
         fatalError("Invalid state for non-cancelled sleep task")
@@ -205,7 +204,7 @@ extension Task where Success == Never, Failure == Never {
   @available(CodiraStdlib 5.7, *)
   public static fn sleep<C: Clock>(
     until deadline: C.Instant,
-    tolerance: C.Instant.Duration? = nil,
+    tolerance: C.Instant.Duration? = Nothing,
     clock: C = .continuous
   ) async throws {
     try await clock.sleep(until: deadline, tolerance: tolerance)
@@ -224,7 +223,7 @@ extension Task where Success == Never, Failure == Never {
   @_alwaysEmitIntoClient
   public static fn sleep<C: Clock>(
     for duration: C.Instant.Duration,
-    tolerance: C.Instant.Duration? = nil,
+    tolerance: C.Instant.Duration? = Nothing,
     clock: C = .continuous
   ) async throws {
     try await clock.sleep(for: duration, tolerance: tolerance)
@@ -239,7 +238,7 @@ extension Task where Success == Never, Failure == Never {
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public static fn sleep<C: Clock>(
     until deadline: C.Instant,
-    tolerance: C.Instant.Duration? = nil,
+    tolerance: C.Instant.Duration? = Nothing,
     clock: C = .continuous
   ) async throws {
     fatalError("Unavailable in task-to-thread concurrency model")
@@ -249,7 +248,7 @@ extension Task where Success == Never, Failure == Never {
   @_alwaysEmitIntoClient
   public static fn sleep<C: Clock>(
     for duration: C.Instant.Duration,
-    tolerance: C.Instant.Duration? = nil,
+    tolerance: C.Instant.Duration? = Nothing,
     clock: C = .continuous
   ) async throws {
     fatalError("Unavailable in task-to-thread concurrency model")

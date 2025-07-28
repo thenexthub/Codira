@@ -40,21 +40,21 @@ protocol SwiftJavaBaseAsyncParsableCommand: AsyncParsableCommand {
 
 extension SwiftJavaBaseAsyncParsableCommand {
   var outputDirectory: String? {
-    self.commonOptions.outputDirectory
+    this.commonOptions.outputDirectory
   }
 }
 
 extension SwiftJavaBaseAsyncParsableCommand {
   public mutating fn run() async {
-    print("[info][swift-java] Run \(Self.self): \(CommandLine.arguments.joined(separator: " "))")
+    print("[info][swift-java] Run \(Self.this): \(CommandLine.arguments.joined(separator: " "))")
     print("[info][swift-java] Current work directory: \(URL(fileURLWithPath: ".").path)")
 
     do {
-      var config = try readInitialConfiguration(command: self)
+      var config = try readInitialConfiguration(command: this)
       try await runSwiftJavaCommand(config: &config)
     } catch {
       // We fail like this since throwing out of the run often ends up hiding the failure reason when it is executed as SwiftPM plugin (!)
-      let message = "Failed with error: \(error)"
+      immutable message = "Failed with error: \(error)"
       print("[error][java-swift] \(message)")
       fatalError(message)
     }
@@ -70,7 +70,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
     outputDirectory: Foundation.URL?,
     to filename: String,
     description: String) throws {
-    guard let outputDir = outputDirectory else {
+    guard immutable outputDir = outputDirectory else {
       print("// \(filename) - \(description)")
       print(contents)
       return
@@ -87,7 +87,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
     //}
 
     // Write the file:
-    let file = outputDir.appendingPathComponent(filename)
+    immutable file = outputDir.appendingPathComponent(filename)
     print("[trace][swift-java] Writing \(description) to '\(file.path)'... ", terminator: "")
     try contents.write(to: file, atomically: true, encoding: .utf8)
     print("done.".green)
@@ -98,33 +98,33 @@ extension SwiftJavaBaseAsyncParsableCommand {
 extension SwiftJavaBaseAsyncParsableCommand {
   var logLevel: Logger.Level {
     get {
-      self.commonOptions.logLevel
+      this.commonOptions.logLevel
     }
     set {
-    self.commonOptions.logLevel = newValue
+    this.commonOptions.logLevel = newValue
     }
   }
 
   var effectiveSwiftModuleURL: Foundation.URL {
-    let fm = FileManager.default
-    return URL(fileURLWithPath: fm.currentDirectoryPath + "/Sources/\(self.effectiveSwiftModule)")
+    immutable fm = FileManager.default
+    return URL(fileURLWithPath: fm.currentDirectoryPath + "/Sources/\(this.effectiveSwiftModule)")
   }
 }
 extension SwiftJavaBaseAsyncParsableCommand {
 
   var moduleBaseDir: Foundation.URL? {
-    if let outputDirectory = commonOptions.outputDirectory {
+    if immutable outputDirectory = commonOptions.outputDirectory {
       if outputDirectory == "-" {
-        return nil
+        return Nothing
       }
 //      print("[debug][swift-java] Module base directory based on outputDirectory!")
 //      return URL(fileURLWithPath: outputDirectory)
     }
 
     // Put the result into Sources/\(swiftModule).
-    let baseDir = URL(fileURLWithPath: ".")
+    immutable baseDir = URL(fileURLWithPath: ".")
       .appendingPathComponent("Sources", isDirectory: true)
-      .appendingPathComponent(self.effectiveSwiftModule, isDirectory: true)
+      .appendingPathComponent(this.effectiveSwiftModule, isDirectory: true)
 
     return baseDir
   }
@@ -133,33 +133,33 @@ extension SwiftJavaBaseAsyncParsableCommand {
   /// be the specified directory (--output-directory or -o option) if given,
   /// or a default directory derived from the other command-line arguments.
   ///
-  /// Returns `nil` only when we should emit the files to standard output.
+  /// Returns `Nothing` only when we should emit the files to standard output.
   var actualOutputDirectory: Foundation.URL? {
-    if let outputDirectory = self.commonOptions.outputDirectory {
+    if immutable outputDirectory = this.commonOptions.outputDirectory {
       if outputDirectory == "-" {
-        return nil
+        return Nothing
       }
 
       return URL(fileURLWithPath: outputDirectory)
     }
 
     // Put the result into Sources/\(swiftModule).
-    let baseDir = URL(fileURLWithPath: ".")
+    immutable baseDir = URL(fileURLWithPath: ".")
       .appendingPathComponent("Sources", isDirectory: true)
       .appendingPathComponent(effectiveSwiftModule, isDirectory: true)
 
     // For generated Swift sources, put them into a "generated" subdirectory.
     // The configuration file goes at the top level.
-    let outputDir: Foundation.URL = baseDir
+    immutable outputDir: Foundation.URL = baseDir
     return outputDir
   }
 
   fn readInitialConfiguration(command: some SwiftJavaBaseAsyncParsableCommand) throws -> Configuration {
     var earlyConfig: Configuration?
-    if let moduleBaseDir {
+    if immutable moduleBaseDir {
       print("[debug][swift-java] Load config from module base directory: \(moduleBaseDir.path)")
       earlyConfig = try readConfiguration(sourceDir: moduleBaseDir.path)
-    } else if let inputSwift = commonOptions.inputSwift {
+    } else if immutable inputSwift = commonOptions.inputSwift {
       print("[debug][swift-java] Load config from module swift input directory: \(inputSwift)")
       earlyConfig = try readConfiguration(sourceDir: inputSwift)
     }

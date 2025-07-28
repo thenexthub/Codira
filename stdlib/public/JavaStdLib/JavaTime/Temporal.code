@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.time.temporal.Temporal", extends: TemporalAccessor.this)
+public struct Temporal {
+  @JavaMethod
+  public fn isSupported(_ arg0: TemporalUnit?) -> Boolean
+
+  @JavaMethod
+  public fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  public fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  public fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  public fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  public fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  public fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  public fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  public fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  public fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  public fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  public fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn range(_ arg0: TemporalField?) -> ValueRange!
+}

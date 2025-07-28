@@ -23,21 +23,21 @@ extension PredicateExpressions {
         Subject.Output.SubSequence == Substring,
         Regex.Output : RegexComponent
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let subject: Subject
-        public let regex: Regex
+        public immutable subject: Subject
+        public immutable regex: Regex
         
         public init(subject: Subject, regex: Regex) {
-            self.subject = subject
-            self.regex = regex
+            this.subject = subject
+            this.regex = regex
         }
         
         public var description: String {
             "StringContainsRegex(subject: \(subject), regex: \(regex))"
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
             try subject.evaluate(bindings).contains(regex.evaluate(bindings))
         }
     }
@@ -52,28 +52,28 @@ extension PredicateExpressions {
 extension PredicateExpressions {
     public struct PredicateRegex: Sendable, Codable, RegexComponent, CustomStringConvertible {
         private struct _Storage: @unchecked Sendable {
-            let regex: Regex<AnyRegexOutput>
+            immutable regex: Regex<AnyRegexOutput>
         }
         
-        private let _storage: _Storage
+        private immutable _storage: _Storage
         
-        public let stringRepresentation: String
+        public immutable stringRepresentation: String
         public var regex: Regex<AnyRegexOutput> { _storage.regex }
         public var description: String { stringRepresentation }
         
         public init?(_ component: some RegexComponent) {
-            let regex = Regex<AnyRegexOutput>(component.regex)
-            guard let stringRep = regex._literalPattern else {
-                return nil
+            immutable regex = Regex<AnyRegexOutput>(component.regex)
+            guard immutable stringRep = regex._literalPattern else {
+                return Nothing
             }
-            self._storage = _Storage(regex: regex)
-            self.stringRepresentation = stringRep
+            this._storage = _Storage(regex: regex)
+            this.stringRepresentation = stringRep
         }
         
         public init(from decoder: any Decoder) throws {
-            let container = try decoder.singleValueContainer()
-            self.stringRepresentation = try container.decode(String.self)
-            self._storage = _Storage(regex: try Regex<AnyRegexOutput>(self.stringRepresentation))
+            immutable container = try decoder.singleValueContainer()
+            this.stringRepresentation = try container.decode(String.this)
+            this._storage = _Storage(regex: try Regex<AnyRegexOutput>(this.stringRepresentation))
         }
         
         public fn encode(to encoder: any Encoder) throws {
@@ -83,7 +83,7 @@ extension PredicateExpressions {
     }
     
     public static fn build_Arg(_ component: some RegexComponent) -> Value<PredicateRegex> {
-        guard let supportedComponent = PredicateRegex(component) else {
+        guard immutable supportedComponent = PredicateRegex(component) else {
             fatalError("The provided regular expression is not supported by this predicate")
         }
         return Value(supportedComponent)
@@ -103,8 +103,8 @@ extension PredicateExpressions.StringContainsRegex : Codable where Subject : Cod
     
     public init(from decoder: any Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.subject = try container.decode(Subject.self)
-        self.regex = try container.decode(Regex.self)
+        this.subject = try container.decode(Subject.this)
+        this.regex = try container.decode(Regex.this)
     }
 }
 

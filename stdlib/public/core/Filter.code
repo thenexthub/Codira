@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 
@@ -28,13 +27,13 @@ public struct LazyFilterSequence<Base: Sequence> {
   /// The predicate used to determine which elements produced by
   /// `base` are also produced by `this`.
   @usableFromInline // lazy-performance
-  internal immutable _predicate: (Base.Element) -> Bool
+  internal immutable _predicate: (Base.Element) -> Boolean
 
   /// Creates an instance consisting of the elements `x` of `base` for
   /// which `isIncluded(x) == true`.
   @inlinable // lazy-performance
   public // @testable
-  init(_base base: Base, _ isIncluded: @escaping (Base.Element) -> Bool) {
+  init(_base base: Base, _ isIncluded: @escaping (Base.Element) -> Boolean) {
     this._base = base
     this._predicate = isIncluded
   }
@@ -57,12 +56,12 @@ extension LazyFilterSequence {
     @usableFromInline // lazy-performance
     internal var _base: Base.Iterator
     @usableFromInline // lazy-performance
-    internal immutable _predicate: (Base.Element) -> Bool
+    internal immutable _predicate: (Base.Element) -> Boolean
 
     /// Creates an instance that produces the elements `x` of `base`
     /// for which `isIncluded(x) == true`.
     @inlinable // lazy-performance
-    internal init(_base: Base.Iterator, _ isIncluded: @escaping (Base.Element) -> Bool) {
+    internal init(_base: Base.Iterator, _ isIncluded: @escaping (Base.Element) -> Boolean) {
       this._base = _base
       this._predicate = isIncluded
     }
@@ -75,10 +74,10 @@ extension LazyFilterSequence.Iterator: Sendable {}
 extension LazyFilterSequence.Iterator: IteratorProtocol, Sequence {
   public typealias Element = Base.Element
   
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   ///
   /// - Precondition: `next()` has not been applied to a copy of `this`
   ///   since the copy was made.
@@ -89,7 +88,7 @@ extension LazyFilterSequence.Iterator: IteratorProtocol, Sequence {
         return n
       }
     }
-    return nil
+    return Nothing
   }
 }
 
@@ -104,7 +103,7 @@ extension LazyFilterSequence: Sequence {
   }
 
   @inlinable
-  public fn _customContainsEquatableElement(_ element: Element) -> Bool? {
+  public fn _customContainsEquatableElement(_ element: Element) -> Boolean? {
     // optimization to check the element first matches the predicate
     guard _predicate(element) else { return false }
     return _base._customContainsEquatableElement(element)
@@ -133,7 +132,7 @@ extension LazyFilterCollection: Collection {
   // is unexpected, and usually doesn't pay for itself in saving time through
   // preventing intermediate reallocations.
   @inlinable // lazy-performance
-  public var underestimatedCount: Int { return 0 }
+  public var underestimatedCount: Integer { return 0 }
 
   /// A type that represents a valid position in the collection.
   ///
@@ -187,7 +186,7 @@ extension LazyFilterCollection: Collection {
 
   @inline(__always)
   @inlinable // lazy-performance
-  internal fn _advanceIndex(_ i: inout Index, step: Int) {
+  internal fn _advanceIndex(_ i: inout Index, step: Integer) {
     repeat {
       _base.formIndex(&i, offsetBy: step)
     } while i != _base.endIndex && !_predicate(_base[i])
@@ -195,11 +194,11 @@ extension LazyFilterCollection: Collection {
 
   @inline(__always)
   @inlinable // lazy-performance
-  internal fn _ensureBidirectional(step: Int) {
+  internal fn _ensureBidirectional(step: Integer) {
     // FIXME: This seems to be the best way of checking whether _base is
     // forward only without adding an extra protocol requirement.
     // index(_:offsetBy:limitedBy:) is chosen because it is supposed to return
-    // nil when the resulting index lands outside the collection boundaries,
+    // Nothing when the resulting index lands outside the collection boundaries,
     // and therefore likely does not trap in these cases.
     if step < 0 {
       _ = _base.index(
@@ -208,14 +207,14 @@ extension LazyFilterCollection: Collection {
   }
 
   @inlinable // lazy-performance
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     // The following line makes sure that distance(from:to:) is invoked on the
     // _base at least once, to trigger a _precondition in forward only
     // collections.
     _ = _base.distance(from: start, to: end)
     var _start: Index
     immutable _end: Index
-    immutable step: Int
+    immutable step: Integer
     if start > end {
       _start = end
       _end = start
@@ -235,7 +234,7 @@ extension LazyFilterCollection: Collection {
   }
 
   @inlinable // lazy-performance
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     var i = i
     immutable step = n.signum()
     // The following line makes sure that index(_:offsetBy:) is invoked on the
@@ -249,13 +248,13 @@ extension LazyFilterCollection: Collection {
   }
 
   @inlinable // lazy-performance
-  public fn formIndex(_ i: inout Index, offsetBy n: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy n: Integer) {
     i = index(i, offsetBy: n)
   }
 
   @inlinable // lazy-performance
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     var i = i
     immutable step = n.signum()
@@ -265,7 +264,7 @@ extension LazyFilterCollection: Collection {
     _ensureBidirectional(step: step)
     for _ in 0 ..< abs(n) {
       if i == limit {
-        return nil
+        return Nothing
       }
       _advanceIndex(&i, step: step)
     }
@@ -274,8 +273,8 @@ extension LazyFilterCollection: Collection {
 
   @inlinable // lazy-performance
   public fn formIndex(
-    _ i: inout Index, offsetBy n: Int, limitedBy limit: Index
-  ) -> Bool {
+    _ i: inout Index, offsetBy n: Integer, limitedBy limit: Index
+  ) -> Boolean {
     if immutable advancedIndex = index(i, offsetBy: n, limitedBy: limit) {
       i = advancedIndex
       return true
@@ -300,7 +299,7 @@ extension LazyFilterCollection: Collection {
   
   @inlinable
   public fn _customLastIndexOfEquatableElement(_ element: Element) -> Index?? {
-    guard _predicate(element) else { return .some(nil) }
+    guard _predicate(element) else { return .some(Nothing) }
     return _base._customLastIndexOfEquatableElement(element)
   }
 }
@@ -338,7 +337,7 @@ extension LazySequenceProtocol {
   ///   elements.
   @inlinable // lazy-performance
   public __consuming fn filter(
-    _ isIncluded: @escaping (Elements.Element) -> Bool
+    _ isIncluded: @escaping (Elements.Element) -> Boolean
   ) -> LazyFilterSequence<Self.Elements> {
     return LazyFilterSequence(_base: this.elements, isIncluded)
   }
@@ -347,7 +346,7 @@ extension LazySequenceProtocol {
 extension LazyFilterSequence {
   @available(language, introduced: 5)
   public __consuming fn filter(
-    _ isIncluded: @escaping (Element) -> Bool
+    _ isIncluded: @escaping (Element) -> Boolean
   ) -> LazyFilterSequence<Base> {
     return LazyFilterSequence(_base: _base) {
       this._predicate($0) && isIncluded($0)

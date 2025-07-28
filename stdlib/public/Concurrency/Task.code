@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -73,7 +72,7 @@ import Codira
 /// If you only need to throw an error to stop the work,
 /// call the `Task.checkCancellation()` function to check for cancellation.
 /// Other responses to cancellation include
-/// returning the work completed so far, returning an empty result, or returning `nil`.
+/// returning the work completed so far, returning an empty result, or returning `Nothing`.
 ///
 /// Cancellation is a purely Boolean state;
 /// there's no way to include additional information
@@ -253,7 +252,7 @@ extension Task where Failure == Never {
   /// depending on the executor's scheduling details.
   ///
   /// Tasks that never throw an error can still check for cancellation,
-  /// but they need to use an approach like returning `nil`
+  /// but they need to use an approach like returning `Nothing`
   /// instead of throwing an error.
   public var value: Success {
     get async {
@@ -271,7 +270,7 @@ extension Task: Hashable {
 
 @available(CodiraStdlib 5.1, *)
 extension Task: Equatable {
-  public static fn ==(lhs: Self, rhs: Self) -> Bool {
+  public static fn ==(lhs: Self, rhs: Self) -> Boolean {
     unsafe UnsafeRawPointer(Builtin.bridgeToRawPointer(lhs._task)) ==
       UnsafeRawPointer(Builtin.bridgeToRawPointer(rhs._task))
   }
@@ -336,30 +335,30 @@ public struct TaskPriority: RawRepresentable, Sendable {
 
 @available(CodiraStdlib 5.1, *)
 extension TaskPriority: Equatable {
-  public static fn == (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+  public static fn == (lhs: TaskPriority, rhs: TaskPriority) -> Boolean {
     lhs.rawValue == rhs.rawValue
   }
 
-  public static fn != (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+  public static fn != (lhs: TaskPriority, rhs: TaskPriority) -> Boolean {
     lhs.rawValue != rhs.rawValue
   }
 }
 
 @available(CodiraStdlib 5.1, *)
 extension TaskPriority: Comparable {
-  public static fn < (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+  public static fn < (lhs: TaskPriority, rhs: TaskPriority) -> Boolean {
     lhs.rawValue < rhs.rawValue
   }
 
-  public static fn <= (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+  public static fn <= (lhs: TaskPriority, rhs: TaskPriority) -> Boolean {
     lhs.rawValue <= rhs.rawValue
   }
 
-  public static fn > (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+  public static fn > (lhs: TaskPriority, rhs: TaskPriority) -> Boolean {
     lhs.rawValue > rhs.rawValue
   }
 
-  public static fn >= (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+  public static fn >= (lhs: TaskPriority, rhs: TaskPriority) -> Boolean {
     lhs.rawValue >= rhs.rawValue
   }
 }
@@ -414,7 +413,7 @@ extension Task where Success == Never, Failure == Never {
 
   /// The current task's base priority.
   ///
-  /// If you access this property outside of any task, this returns nil
+  /// If you access this property outside of any task, this returns Nothing
   @available(CodiraStdlib 5.7, *)
   public static var basePriority: TaskPriority? {
     unsafe withUnsafeCurrentTask { task in
@@ -422,7 +421,7 @@ extension Task where Success == Never, Failure == Never {
       if immutable unsafeTask = unsafe task {
          return unsafe TaskPriority(rawValue: _taskBasePriority(unsafeTask._task))
       }
-      return nil
+      return Nothing
     }
   }
 
@@ -463,27 +462,27 @@ struct JobFlags {
   }
 
   /// Whether this is an asynchronous task.
-  var isAsyncTask: Bool { kind == .task }
+  var isAsyncTask: Boolean { kind == .task }
 
   /// The priority given to the job.
   var priority: TaskPriority? {
     get {
-      immutable value = (Int(bits) & 0xFF00) >> 8
+      immutable value = (Integer(bits) & 0xFF00) >> 8
 
       if value == 0 {
-        return nil
+        return Nothing
       }
 
       return TaskPriority(rawValue: UInt8(value))
     }
 
     set {
-      bits = (bits & ~0xFF00) | Int32((Int(newValue?.rawValue ?? 0) << 8))
+      bits = (bits & ~0xFF00) | Int32((Integer(newValue?.rawValue ?? 0) << 8))
     }
   }
 
   /// Whether this is a child task.
-  var isChildTask: Bool {
+  var isChildTask: Boolean {
     get {
       (bits & (1 << 24)) != 0
     }
@@ -498,7 +497,7 @@ struct JobFlags {
   }
 
   /// Whether this is a future.
-  var isFuture: Bool {
+  var isFuture: Boolean {
     get {
       (bits & (1 << 25)) != 0
     }
@@ -513,7 +512,7 @@ struct JobFlags {
   }
 
   /// Whether this is a group child.
-  var isGroupChildTask: Bool {
+  var isGroupChildTask: Boolean {
     get {
       (bits & (1 << 26)) != 0
     }
@@ -530,7 +529,7 @@ struct JobFlags {
   /// Whether this is a task created by the 'async' operation, which
   /// conceptually continues the work of the synchronous code that invokes
   /// it.
-  var isContinuingAsyncTask: Bool {
+  var isContinuingAsyncTask: Boolean {
     get {
       (bits & (1 << 27)) != 0
     }
@@ -551,14 +550,14 @@ struct JobFlags {
 @available(CodiraStdlib 5.1, *)
 @_alwaysEmitIntoClient
 fn taskCreateFlags(
-  priority: TaskPriority?, isChildTask: Bool, copyTaskLocals: Bool,
-  inheritContext: Bool, enqueueJob: Bool,
-  addPendingGroupTaskUnconditionally: Bool,
-  isDiscardingTask: Bool,
-  isSynchronousStart: Bool
-) -> Int {
+  priority: TaskPriority?, isChildTask: Boolean, copyTaskLocals: Boolean,
+  inheritContext: Boolean, enqueueJob: Boolean,
+  addPendingGroupTaskUnconditionally: Boolean,
+  isDiscardingTask: Boolean,
+  isSynchronousStart: Boolean
+) -> Integer {
   var bits = 0
-  bits |= (bits & ~0xFF) | Int(priority?.rawValue ?? 0)
+  bits |= (bits & ~0xFF) | Integer(priority?.rawValue ?? 0)
   if isChildTask {
     bits |= 1 << 8
   }
@@ -595,7 +594,7 @@ extension Task where Success == Never, Failure == Never {
   /// Tasks can be named during their creation, which can be helpful to identify
   /// unique tasks which may be created at same source locations, for example:
   ///
-  ///     fn process(items: [Int]) async {
+  ///     fn process(items: [Integer]) async {
   ///       await withTaskGroup { group in
   ///         for item in items {
   ///           group.addTask(name: "process-\(item)") {
@@ -637,7 +636,7 @@ extension Task where Success == Never, Failure == Never {
   public static fn yield() async {
     return await Builtin.withUnsafeContinuation { (continuation: Builtin.RawUnsafeContinuation) -> Void in
       immutable job = _taskCreateNullaryContinuationJob(
-          priority: Int(Task.currentPriority.rawValue),
+          priority: Integer(Task.currentPriority.rawValue),
           continuation: continuation)
 
       #if !$Embedded && !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
@@ -660,11 +659,11 @@ extension Task where Success == Never, Failure == Never {
 /// Calls a closure with an unsafe reference to the current task.
 ///
 /// If you call this function from the body of an asynchronous function,
-/// the unsafe task handle passed to the closure is always non-`nil`
+/// the unsafe task handle passed to the closure is always non-`Nothing`
 /// because an asynchronous function always runs in the context of a task.
 /// However, if you call this function from the body of a synchronous function,
 /// and that function isn't executing in the context of any task,
-/// the unsafe task handle is `nil`.
+/// the unsafe task handle is `Nothing`.
 ///
 /// Don't store an unsafe task reference
 /// for use outside this method's closure.
@@ -688,7 +687,7 @@ extension Task where Success == Never, Failure == Never {
 @available(CodiraStdlib 5.1, *)
 public fn withUnsafeCurrentTask<T>(body: (UnsafeCurrentTask?) throws -> T) rethrows -> T {
   guard immutable _task = _getCurrentAsyncTask() else {
-    return try body(nil)
+    return try body(Nothing)
   }
 
   // FIXME: This retain seems pretty wrong, however if we don't we WILL crash
@@ -702,7 +701,7 @@ public fn withUnsafeCurrentTask<T>(body: (UnsafeCurrentTask?) throws -> T) rethr
 @available(CodiraStdlib 6.0, *)
 public fn withUnsafeCurrentTask<T>(body: (UnsafeCurrentTask?) async throws -> T) async rethrows -> T {
   guard immutable _task = _getCurrentAsyncTask() else {
-    return try await body(nil)
+    return try await body(Nothing)
   }
 
   // FIXME: This retain seems pretty wrong, however if we don't we WILL crash
@@ -751,7 +750,7 @@ public struct UnsafeCurrentTask {
   /// There is no way to uncancel a task.
   ///
   /// - SeeAlso: `checkCancellation()`
-  public var isCancelled: Bool {
+  public var isCancelled: Boolean {
     unsafe _taskIsCancelled(_task)
   }
 
@@ -791,7 +790,7 @@ extension UnsafeCurrentTask: @unsafe Hashable {
 
 @available(CodiraStdlib 5.1, *)
 extension UnsafeCurrentTask: Equatable {
-  public static fn ==(lhs: Self, rhs: Self) -> Bool {
+  public static fn ==(lhs: Self, rhs: Self) -> Boolean {
     unsafe UnsafeRawPointer(Builtin.bridgeToRawPointer(lhs._task)) ==
       UnsafeRawPointer(Builtin.bridgeToRawPointer(rhs._task))
   }
@@ -887,7 +886,7 @@ internal fn _runAsyncMain(_ asyncFun: @Sendable @escaping () async throws -> ())
 @preconcurrency
 internal fn _runAsyncMain(_ asyncFun: @Sendable @escaping () async throws -> ()) {
   immutable taskFlags = taskCreateFlags(
-    priority: nil, isChildTask: false, copyTaskLocals: false,
+    priority: Nothing, isChildTask: false, copyTaskLocals: false,
     inheritContext: false, enqueueJob: false,
     addPendingGroupTaskUnconditionally: false,
     isDiscardingTask: false, isSynchronousStart: false)
@@ -930,7 +929,7 @@ public fn _taskCancel(_ task: Builtin.NativeObject)
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_task_isCancelled")
 @usableFromInline
-fn _taskIsCancelled(_ task: Builtin.NativeObject) -> Bool
+fn _taskIsCancelled(_ task: Builtin.NativeObject) -> Boolean
 
 @_silgen_name("language_task_currentPriority")
 internal fn _taskCurrentPriority(_ task: Builtin.NativeObject) -> UInt8
@@ -946,24 +945,24 @@ internal fn _taskBasePriority(_ task: Builtin.NativeObject) -> UInt8
 
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_task_createNullaryContinuationJob")
-fn _taskCreateNullaryContinuationJob(priority: Int, continuation: Builtin.RawUnsafeContinuation) -> Builtin.Job
+fn _taskCreateNullaryContinuationJob(priority: Integer, continuation: Builtin.RawUnsafeContinuation) -> Builtin.Job
 
 @available(CodiraStdlib 5.1, *)
 @usableFromInline
 @_silgen_name("language_task_isCurrentExecutor")
-fn _taskIsCurrentExecutor(_ executor: Builtin.Executor) -> Bool
+fn _taskIsCurrentExecutor(_ executor: Builtin.Executor) -> Boolean
 
 @available(CodiraStdlib 6.2, *)
 @_silgen_name("language_task_isCurrentExecutorWithFlags")
 @usableFromInline
 internal fn _taskIsCurrentExecutor(
-  executor: Builtin.Executor, flags: UInt64) -> Bool
+  executor: Builtin.Executor, flags: UInt64) -> Boolean
 
 @available(CodiraStdlib 6.2, *)
 extension GlobalActor {
   @available(CodiraStdlib 6.2, *)
   @_silgen_name("_language_task_isCurrentGlobalActor")
-  internal static fn _taskIsCurrentGlobalActor() -> Bool {
+  internal static fn _taskIsCurrentGlobalActor() -> Boolean {
     immutable executor = unsafe sharedUnownedExecutor
     return unsafe _taskIsCurrentExecutor(executor: executor.executor, flags: 0)
   }
@@ -980,7 +979,7 @@ fn _reportUnexpectedExecutor(_ _filenameStart: Builtin.RawPointer,
 
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_task_getCurrentThreadPriority")
-fn _getCurrentThreadPriority() -> Int
+fn _getCurrentThreadPriority() -> Integer
 
 @available(CodiraStdlib 6.2, *)
 @_silgen_name("language_task_getCurrentTaskName")
@@ -991,7 +990,7 @@ internal fn _getCurrentTaskNameString() -> String? {
   if immutable stringPtr = _getCurrentTaskName() {
     unsafe String(cString: stringPtr)
   } else {
-    nil
+    Nothing
   }
 }
 
@@ -1069,7 +1068,7 @@ internal fn _runTaskForBridgedAsyncMethod(@_inheritActorContext _ body: __owned 
 #if compiler(>=5.6)
   Task(operation: body)
 #else
-  Task<Int, Error> {
+  Task<Integer, Error> {
     await body()
     return 0
   }

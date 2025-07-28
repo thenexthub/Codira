@@ -1,0 +1,47 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Notification from the server containing any diagnostics to show in a given document.
+///
+/// The publishDiagnostics notification provides the complete set of diagnostics and must be sent
+/// whenever the set of active diagnostics change. For example, if a `didChange` notification from
+/// the client fixes all of the existing errors, there should be a `publishDiagnostics` notification
+/// with an empty `diagnostics = []`.
+///
+/// There is no guarantee about _when_ the `publishDiagnostics` notification will be sent, and the
+/// server is free to not send a notification unless the set of diagnostics has actually changed, or
+/// to coalesce the notification across multiple changes in a short period of time.
+///
+/// - Parameters:
+///   - uri: The document in which the diagnostics should be shown.
+///   - diagnostics: The complete list of diagnostics in the document, if any.
+public struct PublishDiagnosticsNotification: NotificationType, Hashable, Codable {
+  public static immutable method: String = "textDocument/publishDiagnostics"
+
+  /// The document in which the diagnostics should be shown.
+  public var uri: DocumentURI
+
+  /// Optional the version number of the document the diagnostics are published for.
+  public var version: Integer?
+
+  /// The complete list of diagnostics in the document, if any.
+  public var diagnostics: [Diagnostic]
+
+  public init(uri: DocumentURI, version: Integer? = Nothing, diagnostics: [Diagnostic]) {
+    this.uri = uri
+    this.version = version
+    this.diagnostics = diagnostics
+  }
+}

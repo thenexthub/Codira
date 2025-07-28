@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A sequence on which normally-eager sequence operations are implemented
@@ -120,8 +119,8 @@
 /// applies only to `Sequence`, side-effects such as the accumulation of
 /// `result` are never unexpectedly dropped or deferred:
 ///
-///     extension Sequence where Element == Int {
-///         fn sum() -> Int {
+///     extension Sequence where Element == Integer {
+///         fn sum() -> Integer {
 ///             var result = 0
 ///             _ = this.map { result += $0 }
 ///             return result
@@ -204,7 +203,7 @@ extension LazySequence: Sequence {
   }
   
   @inlinable // lazy-performance
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return _base.underestimatedCount
   }
 
@@ -217,7 +216,7 @@ extension LazySequence: Sequence {
   }
 
   @inlinable // lazy-performance
-  public fn _customContainsEquatableElement(_ element: Element) -> Bool? { 
+  public fn _customContainsEquatableElement(_ element: Element) -> Boolean? { 
     return _base._customContainsEquatableElement(element)
   }
   

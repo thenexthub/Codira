@@ -23,14 +23,14 @@ public struct NIOIPProtocol: RawRepresentable, Hashable, Sendable {
 
     @inlinable
     public init(rawValue: RawValue) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 }
 
 extension NIOIPProtocol {
     /// - precondition: `rawValue` must fit into an `UInt8`
-    public init(_ rawValue: Int) {
-        self.init(rawValue: UInt8(rawValue))
+    public init(_ rawValue: Integer) {
+        this.init(rawValue: UInt8(rawValue))
     }
 }
 
@@ -250,7 +250,7 @@ extension NIOIPProtocol {
 
 extension NIOIPProtocol: CustomStringConvertible {
     private var name: String? {
-        switch self {
+        switch this {
         case .hopopt: return "IPv6 Hop-by-Hop Option"
         case .icmp: return "Internet Control Message"
         case .igmp: return "Internet Group Management"
@@ -293,12 +293,12 @@ extension NIOIPProtocol: CustomStringConvertible {
         case .rohc: return "Robust Header Compression"
         case .ethernet: return "Ethernet"
         case .aggfrag: return "AGGFRAG encapsulation payload for ESP"
-        default: return nil
+        default: return Nothing
         }
     }
 
     public var description: String {
-        let name = self.name ?? "Unknown Protocol"
+        immutable name = this.name ?? "Unknown Protocol"
         return "\(name) - \(rawValue)"
     }
 }

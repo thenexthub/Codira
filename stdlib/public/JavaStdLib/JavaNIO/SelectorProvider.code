@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.channels.spi.SelectorProvider")
+open class SelectorProvider: JavaObject {
+  @JavaMethod
+  open fn openPipe() throws -> Pipe!
+
+  @JavaMethod
+  open fn openDatagramChannel() throws -> DatagramChannel!
+
+  @JavaMethod
+  open fn openSocketChannel() throws -> SocketChannel!
+
+  @JavaMethod
+  open fn openSelector() throws -> AbstractSelector!
+
+  @JavaMethod
+  open fn openServerSocketChannel() throws -> ServerSocketChannel!
+
+  @JavaMethod
+  open fn inheritedChannel() throws -> Channel!
+}
+extension JavaClass<SelectorProvider> {
+  @JavaStaticMethod
+  public fn provider() -> SelectorProvider!
+}

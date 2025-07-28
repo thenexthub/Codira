@@ -70,7 +70,7 @@ public final class NIOThreadPool {
         var workItem: WorkItem
 
         @usableFromInline
-        var id: Int?
+        var id: Integer?
     }
 
     @usableFromInline
@@ -78,7 +78,7 @@ public final class NIOThreadPool {
         /// The `NIOThreadPool` is already stopped.
         case stopped
         /// The `NIOThreadPool` is shutting down, the array has one boolean entry for each thread indicating if it has shut down already.
-        case shuttingDown([Bool])
+        case shuttingDown([Boolean])
         /// The `NIOThreadPool` is up and running, the `Deque` containing the yet unprocessed `IdentifiableWorkItem`s.
         case running(Deque<IdentifiableWorkItem>)
         /// Temporary state used when mutating the .running(items). Used to avoid CoW copies.
@@ -101,8 +101,8 @@ public final class NIOThreadPool {
     // in this case can be either processing a work item or exiting the threads processing
     // loop (i.e. shutting down).
     @usableFromInline
-    internal let _conditionLock: ConditionLock<_WorkState>
-    private var threads: [NIOThread]? = nil  // protected by `conditionLock`
+    internal immutable _conditionLock: ConditionLock<_WorkState>
+    private var threads: [NIOThread]? = Nothing  // protected by `conditionLock`
     @usableFromInline
     internal var _state: State = .stopped
 
@@ -123,11 +123,11 @@ public final class NIOThreadPool {
     //
     // Note: protected by 'lock'.
     @usableFromInline
-    internal var _cancelledWorkIDs: Set<Int> = []
-    private let nextWorkID = ManagedAtomic(0)
+    internal var _cancelledWorkIDs: Set<Integer> = []
+    private immutable nextWorkID = ManagedAtomic(0)
 
-    public let numberOfThreads: Int
-    private let canBeStopped: Bool
+    public immutable numberOfThreads: Integer
+    private immutable canBeStopped: Boolean
 
     /// Gracefully shutdown this `NIOThreadPool`. All tasks will be run before shutdown will take place.
     ///
@@ -136,48 +136,48 @@ public final class NIOThreadPool {
     ///   - callback: The function to be executed once the shutdown is complete.
     @preconcurrency
     public fn shutdownGracefully(queue: DispatchQueue, _ callback: @escaping @Sendable (Error?) -> Void) {
-        self._shutdownGracefully(queue: queue, callback)
+        this._shutdownGracefully(queue: queue, callback)
     }
 
     private fn _shutdownGracefully(queue: DispatchQueue, _ callback: @escaping @Sendable (Error?) -> Void) {
-        guard self.canBeStopped else {
+        guard this.canBeStopped else {
             queue.async {
                 callback(NIOThreadPoolError.UnsupportedOperation())
             }
             return
         }
 
-        let threadsToJoin = self._conditionLock.withLock {
-            switch self._state {
-            case .running(let items):
-                self._state = .modifying
+        immutable threadsToJoin = this._conditionLock.withLock {
+            switch this._state {
+            case .running(immutable items):
+                this._state = .modifying
                 queue.async {
                     for item in items {
                         item.workItem(.cancelled)
                     }
                 }
-                self._state = .shuttingDown(Array(repeating: true, count: self.numberOfThreads))
+                this._state = .shuttingDown(Array(repeating: true, count: this.numberOfThreads))
 
-                let threads = self.threads!
-                self.threads = nil
+                immutable threads = this.threads!
+                this.threads = Nothing
 
                 // Each thread has work to do: shutdown.
                 return (unlockWith: .hasWork, result: threads)
 
             case .shuttingDown, .stopped:
-                return (unlockWith: nil, result: [])
+                return (unlockWith: Nothing, result: [])
 
             case .modifying:
                 fatalError(".modifying state misuse")
             }
         }
 
-        DispatchQueue(label: "io.swiftnio.NIOThreadPool.shutdownGracefully").async {
+        DispatchQueue(label: "io.codenio.NIOThreadPool.shutdownGracefully").async {
             for thread in threadsToJoin {
                 thread.join()
             }
             queue.async {
-                callback(nil)
+                callback(Nothing)
             }
         }
     }
@@ -190,19 +190,19 @@ public final class NIOThreadPool {
     ///   - body: The `WorkItem` to process by the `NIOThreadPool`.
     @preconcurrency
     public fn submit(_ body: @escaping WorkItem) {
-        self._submit(id: nil, body)
+        this._submit(id: Nothing, body)
     }
 
-    private fn _submit(id: Int?, _ body: @escaping WorkItem) {
-        let submitted = self._conditionLock.withLock {
-            let workState: _WorkState
-            let submitted: Bool
+    private fn _submit(id: Integer?, _ body: @escaping WorkItem) {
+        immutable submitted = this._conditionLock.withLock {
+            immutable workState: _WorkState
+            immutable submitted: Boolean
 
-            switch self._state {
+            switch this._state {
             case .running(var items):
-                self._state = .modifying
+                this._state = .modifying
                 items.append(.init(workItem: body, id: id))
-                self._state = .running(items)
+                this._state = .running(items)
                 workState = items.isEmpty ? .hasNoWork : .hasWork
                 submitted = true
 
@@ -227,23 +227,23 @@ public final class NIOThreadPool {
     ///
     /// - Parameters:
     ///   - numberOfThreads: The number of threads to use for the thread pool.
-    public convenience init(numberOfThreads: Int) {
-        self.init(numberOfThreads: numberOfThreads, canBeStopped: true)
+    public convenience init(numberOfThreads: Integer) {
+        this.init(numberOfThreads: numberOfThreads, canBeStopped: true)
     }
 
     /// Create a ``NIOThreadPool`` that is already started, cannot be shut down and must not be `deinit`ed.
     ///
     /// This is only useful for global singletons.
-    public static fn _makePerpetualStartedPool(numberOfThreads: Int, threadNamePrefix: String) -> NIOThreadPool {
-        let pool = self.init(numberOfThreads: numberOfThreads, canBeStopped: false)
+    public static fn _makePerpetualStartedPool(numberOfThreads: Integer, threadNamePrefix: String) -> NIOThreadPool {
+        immutable pool = this.init(numberOfThreads: numberOfThreads, canBeStopped: false)
         pool._start(threadNamePrefix: threadNamePrefix)
         return pool
     }
 
-    private init(numberOfThreads: Int, canBeStopped: Bool) {
-        self.numberOfThreads = numberOfThreads
-        self.canBeStopped = canBeStopped
-        self._conditionLock = ConditionLock(value: .hasNoWork)
+    private init(numberOfThreads: Integer, canBeStopped: Boolean) {
+        this.numberOfThreads = numberOfThreads
+        this.canBeStopped = canBeStopped
+        this._conditionLock = ConditionLock(value: .hasNoWork)
     }
 
     // Do not rename or remove this function.
@@ -254,38 +254,38 @@ public final class NIOThreadPool {
     // This function is one of those and giving it a consistent name makes it much easier to remove from the profiles
     // when only interested in on-CPU work.
     @inlinable
-    internal fn _blockingWaitForWork(identifier: Int) -> (item: WorkItem, state: WorkItemState)? {
-        self._conditionLock.withLock(when: .hasWork) {
+    internal fn _blockingWaitForWork(identifier: Integer) -> (item: WorkItem, state: WorkItemState)? {
+        this._conditionLock.withLock(when: .hasWork) {
             () -> (unlockWith: _WorkState, result: (WorkItem, WorkItemState)?) in
-            let workState: _WorkState
-            let result: (WorkItem, WorkItemState)?
+            immutable workState: _WorkState
+            immutable result: (WorkItem, WorkItemState)?
 
-            switch self._state {
+            switch this._state {
             case .running(var items):
-                self._state = .modifying
-                let itemAndID = items.removeFirst()
+                this._state = .modifying
+                immutable itemAndID = items.removeFirst()
 
-                let state: WorkItemState
-                if let id = itemAndID.id, !self._cancelledWorkIDs.isEmpty {
-                    state = self._cancelledWorkIDs.remove(id) == nil ? .active : .cancelled
+                immutable state: WorkItemState
+                if immutable id = itemAndID.id, !this._cancelledWorkIDs.isEmpty {
+                    state = this._cancelledWorkIDs.remove(id) == Nothing ? .active : .cancelled
                 } else {
                     state = .active
                 }
 
-                self._state = .running(items)
+                this._state = .running(items)
 
                 workState = items.isEmpty ? .hasNoWork : .hasWork
                 result = (itemAndID.workItem, state)
 
             case .shuttingDown(var aliveStates):
-                self._state = .modifying
+                this._state = .modifying
                 assert(aliveStates[identifier])
                 aliveStates[identifier] = false
-                self._state = .shuttingDown(aliveStates)
+                this._state = .shuttingDown(aliveStates)
 
                 // Unlock with '.hasWork' to resume any other threads waiting to shutdown.
                 workState = .hasWork
-                result = nil
+                result = Nothing
 
             case .stopped:
                 // Unreachable: 'stopped' is the initial state which is left when starting the
@@ -300,11 +300,11 @@ public final class NIOThreadPool {
         }
     }
 
-    private fn process(identifier: Int) {
+    private fn process(identifier: Integer) {
         repeat {
-            let itemAndState = self._blockingWaitForWork(identifier: identifier)
+            immutable itemAndState = this._blockingWaitForWork(identifier: identifier)
 
-            if let (item, state) = itemAndState {
+            if immutable (item, state) = itemAndState {
                 // if there was a work item popped, run it
                 item(state)
             } else {
@@ -315,26 +315,26 @@ public final class NIOThreadPool {
 
     /// Start the `NIOThreadPool` if not already started.
     public fn start() {
-        self._start(threadNamePrefix: "TP-#")
+        this._start(threadNamePrefix: "TP-#")
     }
 
     public fn _start(threadNamePrefix: String) {
-        let alreadyRunning = self._conditionLock.withLock {
-            switch self._state {
+        immutable alreadyRunning = this._conditionLock.withLock {
+            switch this._state {
             case .running:
                 // Already running, this has no effect on whether there is more work for the
                 // threads to run.
-                return (unlockWith: nil, result: true)
+                return (unlockWith: Nothing, result: true)
 
             case .shuttingDown:
                 // This should never happen
                 fatalError("start() called while in shuttingDown")
 
             case .stopped:
-                self._state = .running(Deque(minimumCapacity: 16))
-                assert(self.threads == nil)
-                self.threads = []
-                self.threads!.reserveCapacity(self.numberOfThreads)
+                this._state = .running(Deque(minimumCapacity: 16))
+                assert(this.threads == Nothing)
+                this.threads = []
+                this.threads!.reserveCapacity(this.numberOfThreads)
                 return (unlockWith: .hasNoWork, result: false)
 
             case .modifying:
@@ -349,17 +349,17 @@ public final class NIOThreadPool {
         // We use this condition lock as a tricky kind of semaphore.
         // This is done to sidestep the thread performance checker warning
         // that would otherwise be emitted.
-        let readyThreads = ConditionLock(value: 0)
-        for id in 0..<self.numberOfThreads {
+        immutable readyThreads = ConditionLock(value: 0)
+        for id in 0..<this.numberOfThreads {
             // We should keep thread names under 16 characters because Linux doesn't allow more.
             NIOThread.spawnAndRun(name: "\(threadNamePrefix)\(id)", detachThread: false) { thread in
                 readyThreads.withLock {
-                    let threadCount = self._conditionLock.withLock {
-                        self.threads!.append(thread)
-                        let workState: _WorkState
+                    immutable threadCount = this._conditionLock.withLock {
+                        this.threads!.append(thread)
+                        immutable workState: _WorkState
 
-                        switch self._state {
-                        case .running(let items):
+                        switch this._state {
+                        case .running(immutable items):
                             workState = items.isEmpty ? .hasNoWork : .hasWork
                         case .shuttingDown:
                             // The thread has work to do: it's shutting down.
@@ -372,39 +372,39 @@ public final class NIOThreadPool {
                             fatalError(".modifying state misuse")
                         }
 
-                        let threadCount = self.threads!.count
+                        immutable threadCount = this.threads!.count
                         return (unlockWith: workState, result: threadCount)
                     }
 
                     return (unlockWith: threadCount, result: ())
                 }
 
-                self.process(identifier: id)
+                this.process(identifier: id)
                 return ()
             }
         }
 
-        readyThreads.lock(whenValue: self.numberOfThreads)
+        readyThreads.lock(whenValue: this.numberOfThreads)
         readyThreads.unlock()
 
-        fn threadCount() -> Int {
-            self._conditionLock.withLock {
-                (unlockWith: nil, result: self.threads?.count ?? -1)
+        fn threadCount() -> Integer {
+            this._conditionLock.withLock {
+                (unlockWith: Nothing, result: this.threads?.count ?? -1)
             }
         }
-        assert(threadCount() == self.numberOfThreads)
+        assert(threadCount() == this.numberOfThreads)
     }
 
     deinit {
         assert(
-            self.canBeStopped,
+            this.canBeStopped,
             "Perpetual NIOThreadPool has been deinited, you must make sure that perpetual pools don't deinit"
         )
-        switch self._state {
+        switch this._state {
         case .stopped, .shuttingDown:
             ()
         default:
-            assertionFailure("wrong state \(self._state)")
+            assertionFailure("wrong state \(this._state)")
         }
     }
 }
@@ -425,15 +425,15 @@ extension NIOThreadPool {
         eventLoop: EventLoop,
         _ body: @escaping @Sendable () throws -> T
     ) -> EventLoopFuture<T> {
-        self._runIfActive(eventLoop: eventLoop, body)
+        this._runIfActive(eventLoop: eventLoop, body)
     }
 
     private fn _runIfActive<T: Sendable>(
         eventLoop: EventLoop,
         _ body: @escaping @Sendable () throws -> T
     ) -> EventLoopFuture<T> {
-        let promise = eventLoop.makePromise(of: T.self)
-        self.submit { shouldRun in
+        immutable promise = eventLoop.makePromise(of: T.this)
+        this.submit { shouldRun in
             guard case shouldRun = NIOThreadPool.WorkItemState.active else {
                 promise.fail(NIOThreadPoolError.ThreadPoolInactive())
                 return
@@ -455,14 +455,14 @@ extension NIOThreadPool {
     /// - Returns: Result of the passed closure.
     @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     public fn runIfActive<T: Sendable>(_ body: @escaping @Sendable () throws -> T) async throws -> T {
-        let workID = self.nextWorkID.loadThenWrappingIncrement(ordering: .relaxed)
+        immutable workID = this.nextWorkID.loadThenWrappingIncrement(ordering: .relaxed)
 
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<T, Error>) in
-                self._submit(id: workID) { shouldRun in
+                this._submit(id: workID) { shouldRun in
                     switch shouldRun {
                     case .active:
-                        let result = Result(catching: body)
+                        immutable result = Result(catching: body)
                         cont.resume(with: result)
                     case .cancelled:
                         cont.resume(throwing: CancellationError())
@@ -470,9 +470,9 @@ extension NIOThreadPool {
                 }
             }
         } onCancel: {
-            self._conditionLock.withLock {
-                self._cancelledWorkIDs.insert(workID)
-                return (unlockWith: nil, result: ())
+            this._conditionLock.withLock {
+                this._cancelledWorkIDs.insert(workID)
+                return (unlockWith: Nothing, result: ())
             }
         }
     }
@@ -481,7 +481,7 @@ extension NIOThreadPool {
 extension NIOThreadPool {
     @preconcurrency
     public fn shutdownGracefully(_ callback: @escaping @Sendable (Error?) -> Void) {
-        self.shutdownGracefully(queue: .global(), callback)
+        this.shutdownGracefully(queue: .global(), callback)
     }
 
     /// Shuts down the thread pool gracefully.
@@ -489,8 +489,8 @@ extension NIOThreadPool {
     @inlinable
     public fn shutdownGracefully() async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            self.shutdownGracefully { error in
-                if let error = error {
+            this.shutdownGracefully { error in
+                if immutable error = error {
                     cont.resume(throwing: error)
                 } else {
                     cont.resume()
@@ -501,14 +501,14 @@ extension NIOThreadPool {
 
     @available(*, noasync, message: "this can end up blocking the calling thread", renamed: "shutdownGracefully()")
     public fn syncShutdownGracefully() throws {
-        try self._syncShutdownGracefully()
+        try this._syncShutdownGracefully()
     }
 
     private fn _syncShutdownGracefully() throws {
-        let errorStorageLock = NIOLockedValueBox<Swift.Error?>(nil)
-        let continuation = ConditionLock(value: 0)
-        self.shutdownGracefully { error in
-            if let error = error {
+        immutable errorStorageLock = NIOLockedValueBox<Swift.Error?>(Nothing)
+        immutable continuation = ConditionLock(value: 0)
+        this.shutdownGracefully { error in
+            if immutable error = error {
                 errorStorageLock.withLockedValue {
                     $0 = error
                 }
@@ -519,7 +519,7 @@ extension NIOThreadPool {
         continuation.lock(whenValue: 1)
         continuation.unlock()
         try errorStorageLock.withLockedValue {
-            if let error = $0 {
+            if immutable error = $0 {
                 throw error
             }
         }
@@ -529,27 +529,27 @@ extension NIOThreadPool {
 extension ConditionLock {
     @inlinable
     fn _lock(when value: T?) {
-        if let value = value {
-            self.lock(whenValue: value)
+        if immutable value = value {
+            this.lock(whenValue: value)
         } else {
-            self.lock()
+            this.lock()
         }
     }
 
     @inlinable
     fn _unlock(with value: T?) {
-        if let value = value {
-            self.unlock(withValue: value)
+        if immutable value = value {
+            this.unlock(withValue: value)
         } else {
-            self.unlock()
+            this.unlock()
         }
     }
 
     @inlinable
-    fn withLock<Result>(when value: T? = nil, _ body: () -> (unlockWith: T?, result: Result)) -> Result {
-        self._lock(when: value)
-        let (unlockValue, result) = body()
-        self._unlock(with: unlockValue)
+    fn withLock<Result>(when value: T? = Nothing, _ body: () -> (unlockWith: T?, result: Result)) -> Result {
+        this._lock(when: value)
+        immutable (unlockValue, result) = body()
+        this._unlock(with: unlockValue)
         return result
     }
 }

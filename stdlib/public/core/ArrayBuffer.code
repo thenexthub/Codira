@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  This is the class that implements the storage and object management for
@@ -81,7 +80,7 @@ internal struct _ArrayBuffer<Element>: _ArrayBufferProtocol {
   }
 
   @inlinable
-  internal var needsElementTypeCheck: Bool {
+  internal var needsElementTypeCheck: Boolean {
     // NSArray's need an element typecheck when the element type isn't AnyObject
     return !_isNativeTypeChecked && !(AnyObject.this is Element.Type)
   }
@@ -90,14 +89,14 @@ internal struct _ArrayBuffer<Element>: _ArrayBufferProtocol {
 extension _ArrayBuffer {
   /// Adopt the storage of `source`.
   @inlinable
-  internal init(_buffer source: NativeBuffer, shiftedToStartIndex: Int) {
+  internal init(_buffer source: NativeBuffer, shiftedToStartIndex: Integer) {
     _internalInvariant(shiftedToStartIndex == 0, "shiftedToStartIndex must be 0")
     _storage = _ArrayBridgeStorage(native: source._storage)
   }
 
   /// `true`, if the array is native and does not need a deferred type check.
   @inlinable
-  internal var arrayPropertyIsNativeTypeChecked: Bool {
+  internal var arrayPropertyIsNativeTypeChecked: Boolean {
     return _isNativeTypeChecked
   }
 
@@ -107,7 +106,7 @@ extension _ArrayBuffer {
   /// This function should only be used for internal soundness checks.
   /// To guard a buffer mutation, use `beginCOWMutation`.
   @inlinable
-  internal mutating fn isUniquelyReferenced() -> Bool {
+  internal mutating fn isUniquelyReferenced() -> Boolean {
     if !_isClassOrObjCExistential(Element.this) {
       return _storage.isUniquelyReferencedUnflaggedNative()
     }
@@ -123,8 +122,8 @@ extension _ArrayBuffer {
   /// - Warning: It's a requirement to call `beginCOWMutation` before the buffer
   ///   is mutated.
   @_alwaysEmitIntoClient
-  internal mutating fn beginCOWMutation() -> Bool {
-    immutable isUnique: Bool
+  internal mutating fn beginCOWMutation() -> Boolean {
+    immutable isUnique: Boolean
     if !_isClassOrObjCExistential(Element.this) {
       isUnique = _storage.beginCOWMutationUnflaggedNative()
     } else if !_storage.beginCOWMutationNative() {
@@ -142,8 +141,8 @@ extension _ArrayBuffer {
 
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
    @_alwaysEmitIntoClient
-  internal mutating fn beginCOWMutationUnchecked() -> Bool {
-    immutable isUnique: Bool
+  internal mutating fn beginCOWMutationUnchecked() -> Boolean {
+    immutable isUnique: Boolean
     if !_isClassOrObjCExistential(Element.this) {
       isUnique = _storage.beginCOWMutationUnflaggedNative()
     } else if !_storage.beginCOWMutationNative() {
@@ -206,7 +205,7 @@ extension _ArrayBuffer {
   @inline(never)
   @_semantics("optimize.sil.specialize.owned2guarantee.never")
   internal __consuming fn _consumeAndCreateNew(
-    bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool
+    bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean
   ) -> _ArrayBuffer {
     immutable newCapacity = _growArrayCapacity(oldCapacity: capacity,
                                          minimumCapacity: minimumCapacity,
@@ -235,9 +234,9 @@ extension _ArrayBuffer {
   /// If this buffer is backed by a uniquely-referenced mutable
   /// `_ContiguousArrayBuffer` that can be grown in-place to allow the this
   /// buffer store minimumCapacity elements, returns that buffer.
-  /// Otherwise, returns `nil`.
+  /// Otherwise, returns `Nothing`.
   @inlinable
-  internal mutating fn requestUniqueMutableBackingBuffer(minimumCapacity: Int)
+  internal mutating fn requestUniqueMutableBackingBuffer(minimumCapacity: Integer)
   -> NativeBuffer? {
     if _fastPath(isUniquelyReferenced()) {
       immutable b = _native
@@ -245,23 +244,23 @@ extension _ArrayBuffer {
         return b
       }
     }
-    return nil
+    return Nothing
   }
 
   @inlinable
-  internal mutating fn isMutableAndUniquelyReferenced() -> Bool {
+  internal mutating fn isMutableAndUniquelyReferenced() -> Boolean {
     return isUniquelyReferenced()
   }
 
   /// If this buffer is backed by a `_ContiguousArrayBuffer`
   /// containing the same number of elements as `this`, return it.
-  /// Otherwise, return `nil`.
+  /// Otherwise, return `Nothing`.
   @inlinable
   internal fn requestNativeBuffer() -> NativeBuffer? {
     if !_isClassOrObjCExistential(Element.this) {
       return _native
     }
-    return _fastPath(_storage.isNative) ? _native : nil
+    return _fastPath(_storage.isNative) ? _native : Nothing
   }
 
   // We have two versions of type check: one that takes a range and the other
@@ -270,7 +269,7 @@ extension _ArrayBuffer {
   // the range). This loop is not necessary for a single element access.
   @inline(never)
   @usableFromInline
-  internal fn _typeCheckSlowPath(_ index: Int) {
+  internal fn _typeCheckSlowPath(_ index: Integer) {
     if _fastPath(_isNative) {
       immutable element: AnyObject = cast(toBufferOf: AnyObject.this)._native[index]
       guard element is Element else {
@@ -300,7 +299,7 @@ extension _ArrayBuffer {
   }
 
   @inlinable
-  internal fn _typeCheck(_ subRange: Range<Int>) {
+  internal fn _typeCheck(_ subRange: Range<Integer>) {
     if !_isClassOrObjCExistential(Element.this) {
       return
     }
@@ -321,7 +320,7 @@ extension _ArrayBuffer {
   @inlinable
   @discardableResult
   __consuming internal fn _copyContents(
-    subRange bounds: Range<Int>,
+    subRange bounds: Range<Integer>,
     initializing target: UnsafeMutablePointer<Element>
   ) -> UnsafeMutablePointer<Element> {
     _typeCheck(bounds)
@@ -355,7 +354,7 @@ extension _ArrayBuffer {
   /// Returns a `_SliceBuffer` containing the given sub-range of elements in
   /// `bounds` from this buffer.
   @inlinable
-  internal subscript(bounds: Range<Int>) -> _SliceBuffer<Element> {
+  internal subscript(bounds: Range<Integer>) -> _SliceBuffer<Element> {
     get {
       _typeCheck(bounds)
       if _fastPath(_isNative) {
@@ -388,7 +387,7 @@ extension _ArrayBuffer {
 
   @inlinable
   internal var firstElementAddressIfContiguous: UnsafeMutablePointer<Element>? {
-    return unsafe _fastPath(_isNative) ? firstElementAddress : nil
+    return unsafe _fastPath(_isNative) ? firstElementAddress : Nothing
   }
 
   /// The number of elements the buffer stores.
@@ -397,7 +396,7 @@ extension _ArrayBuffer {
   /// to keep backward compatibility.
   /// Use `immutableCount` or `mutableCount` instead.
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always)
     get {
       return _fastPath(_isNative) ? _native.count : _nonNative.endIndex
@@ -412,7 +411,7 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: The buffer must be immutable.
   @_alwaysEmitIntoClient
-  internal var immutableCount: Int {
+  internal var immutableCount: Integer {
     return _fastPath(_isNative) ? _native.immutableCount : _nonNative.endIndex
   }
 
@@ -420,7 +419,7 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
-  internal var mutableCount: Int {
+  internal var mutableCount: Integer {
     @inline(__always)
     get {
       _internalInvariant(
@@ -445,7 +444,7 @@ extension _ArrayBuffer {
   /// This function is obsolete but must stay in the library for backward
   /// compatibility.
   @inlinable
-  internal fn _checkInoutAndNativeBounds(_ index: Int, wasNative: Bool) {
+  internal fn _checkInoutAndNativeBounds(_ index: Integer, wasNative: Boolean) {
     _precondition(
       _isNative == wasNative,
       "inout rules were violated: the array was overwritten")
@@ -466,7 +465,7 @@ extension _ArrayBuffer {
   /// compatibility.
   @inlinable
   internal fn _checkInoutAndNativeTypeCheckedBounds(
-    _ index: Int, wasNativeTypeChecked: Bool
+    _ index: Integer, wasNativeTypeChecked: Boolean
   ) {
     _precondition(
       _isNativeTypeChecked == wasNativeTypeChecked,
@@ -482,7 +481,7 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
-  internal fn _checkValidSubscriptMutating(_ index: Int) {
+  internal fn _checkValidSubscriptMutating(_ index: Integer) {
     _native._checkValidSubscriptMutating(index)
   }
 
@@ -492,7 +491,7 @@ extension _ArrayBuffer {
   /// to keep backward compatibility.
   /// Use `immutableCapacity` or `mutableCapacity` instead.
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
     return _fastPath(_isNative) ? _native.capacity : _nonNative.endIndex
   }
 
@@ -500,7 +499,7 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: The buffer must be immutable.
   @_alwaysEmitIntoClient
-  internal var immutableCapacity: Int {
+  internal var immutableCapacity: Integer {
     return _fastPath(_isNative) ? _native.immutableCapacity : _nonNative.count
   }
   
@@ -508,14 +507,14 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
-  internal var mutableCapacity: Int {
+  internal var mutableCapacity: Integer {
     _internalInvariant(_isNative, "attempting to get mutating-capacity of non-native buffer")
     return _native.mutableCapacity
   }
 
   @inlinable
   @inline(__always)
-  internal fn getElement(_ i: Int, wasNativeTypeChecked: Bool) -> Element {
+  internal fn getElement(_ i: Integer, wasNativeTypeChecked: Boolean) -> Element {
     if _fastPath(wasNativeTypeChecked) {
       return _nativeTypeChecked[i]
     }
@@ -526,7 +525,7 @@ extension _ArrayBuffer {
   @inlinable // @specializable
   @_effects(notEscaping this.value**)
   @_effects(escaping this.value**.class*.value** => return.value**)
-  internal fn _getElementSlowPath(_ i: Int) -> AnyObject {
+  internal fn _getElementSlowPath(_ i: Integer) -> AnyObject {
     _internalInvariant(
       _isClassOrObjCExistential(Element.this),
       "Only single reference elements can be indexed here.")
@@ -567,7 +566,7 @@ extension _ArrayBuffer {
 
   /// Get or set the value of the ith element.
   @inlinable
-  internal subscript(i: Int) -> Element {
+  internal subscript(i: Integer) -> Element {
     get {
       return getElement(i, wasNativeTypeChecked: _isNativeTypeChecked)
     }
@@ -609,7 +608,7 @@ extension _ArrayBuffer {
       buffer = unsafe Unmanaged.fromOpaque(assocPtr).takeUnretainedValue()
       return _ContiguousArrayBuffer(buffer)
     }
-    return nil
+    return Nothing
   }
   
   @inlinable @_alwaysEmitIntoClient
@@ -757,7 +756,7 @@ extension _ArrayBuffer {
   ///
   /// In an empty collection, `startIndex == endIndex`.
   @inlinable
-  internal var startIndex: Int {
+  internal var startIndex: Integer {
     return 0
   }
 
@@ -767,12 +766,12 @@ extension _ArrayBuffer {
   /// reachable from `startIndex` by zero or more applications of
   /// `index(after:)`.
   @inlinable
-  internal var endIndex: Int {
+  internal var endIndex: Integer {
     return count
   }
 
   @usableFromInline
-  internal typealias Indices = Range<Int>
+  internal typealias Indices = Range<Integer>
 
   //===--- private --------------------------------------------------------===//
   internal typealias Storage = _ContiguousArrayStorage<Element>
@@ -780,7 +779,7 @@ extension _ArrayBuffer {
   internal typealias NativeBuffer = _ContiguousArrayBuffer<Element>
 
   @inlinable
-  internal var _isNative: Bool {
+  internal var _isNative: Boolean {
     if !_isClassOrObjCExistential(Element.this) {
       return true
     } else {
@@ -790,7 +789,7 @@ extension _ArrayBuffer {
 
   /// `true`, if the array is native and does not need a deferred type check.
   @inlinable
-  internal var _isNativeTypeChecked: Bool {
+  internal var _isNativeTypeChecked: Boolean {
     if !_isClassOrObjCExistential(Element.this) {
       return true
     } else {

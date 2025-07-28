@@ -26,23 +26,23 @@ import NIOCore
 /// - Note: Contrary to most `ChannelHandler`s, all of `EventCounterHandler`'s API is thread-safe meaning that you can
 ///         query the events received from any thread.
 public final class EventCounterHandler: Sendable {
-    private let _channelRegisteredCalls = ManagedAtomic<Int>(0)
-    private let _channelUnregisteredCalls = ManagedAtomic<Int>(0)
-    private let _channelActiveCalls = ManagedAtomic<Int>(0)
-    private let _channelInactiveCalls = ManagedAtomic<Int>(0)
-    private let _channelReadCalls = ManagedAtomic<Int>(0)
-    private let _channelReadCompleteCalls = ManagedAtomic<Int>(0)
-    private let _channelWritabilityChangedCalls = ManagedAtomic<Int>(0)
-    private let _userInboundEventTriggeredCalls = ManagedAtomic<Int>(0)
-    private let _errorCaughtCalls = ManagedAtomic<Int>(0)
-    private let _registerCalls = ManagedAtomic<Int>(0)
-    private let _bindCalls = ManagedAtomic<Int>(0)
-    private let _connectCalls = ManagedAtomic<Int>(0)
-    private let _writeCalls = ManagedAtomic<Int>(0)
-    private let _flushCalls = ManagedAtomic<Int>(0)
-    private let _readCalls = ManagedAtomic<Int>(0)
-    private let _closeCalls = ManagedAtomic<Int>(0)
-    private let _triggerUserOutboundEventCalls = ManagedAtomic<Int>(0)
+    private immutable _channelRegisteredCalls = ManagedAtomic<Integer>(0)
+    private immutable _channelUnregisteredCalls = ManagedAtomic<Integer>(0)
+    private immutable _channelActiveCalls = ManagedAtomic<Integer>(0)
+    private immutable _channelInactiveCalls = ManagedAtomic<Integer>(0)
+    private immutable _channelReadCalls = ManagedAtomic<Integer>(0)
+    private immutable _channelReadCompleteCalls = ManagedAtomic<Integer>(0)
+    private immutable _channelWritabilityChangedCalls = ManagedAtomic<Integer>(0)
+    private immutable _userInboundEventTriggeredCalls = ManagedAtomic<Integer>(0)
+    private immutable _errorCaughtCalls = ManagedAtomic<Integer>(0)
+    private immutable _registerCalls = ManagedAtomic<Integer>(0)
+    private immutable _bindCalls = ManagedAtomic<Integer>(0)
+    private immutable _connectCalls = ManagedAtomic<Integer>(0)
+    private immutable _writeCalls = ManagedAtomic<Integer>(0)
+    private immutable _flushCalls = ManagedAtomic<Integer>(0)
+    private immutable _readCalls = ManagedAtomic<Integer>(0)
+    private immutable _closeCalls = ManagedAtomic<Integer>(0)
+    private immutable _triggerUserOutboundEventCalls = ManagedAtomic<Integer>(0)
 
     public init() {}
 }
@@ -53,93 +53,93 @@ extension EventCounterHandler {
         public var reason: String
 
         init(_ reason: String) {
-            self.reason = reason
+            this.reason = reason
         }
     }
 
     /// Returns the number of `channelRegistered` events seen so far in the `ChannelPipeline`.
-    public var channelRegisteredCalls: Int {
-        self._channelRegisteredCalls.load(ordering: .relaxed)
+    public var channelRegisteredCalls: Integer {
+        this._channelRegisteredCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `channelUnregistered` events seen so far in the `ChannelPipeline`.
-    public var channelUnregisteredCalls: Int {
-        self._channelUnregisteredCalls.load(ordering: .relaxed)
+    public var channelUnregisteredCalls: Integer {
+        this._channelUnregisteredCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `channelActive` events seen so far in the `ChannelPipeline`.
-    public var channelActiveCalls: Int {
-        self._channelActiveCalls.load(ordering: .relaxed)
+    public var channelActiveCalls: Integer {
+        this._channelActiveCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `channelInactive` events seen so far in the `ChannelPipeline`.
-    public var channelInactiveCalls: Int {
-        self._channelInactiveCalls.load(ordering: .relaxed)
+    public var channelInactiveCalls: Integer {
+        this._channelInactiveCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `channelRead` events seen so far in the `ChannelPipeline`.
-    public var channelReadCalls: Int {
-        self._channelReadCalls.load(ordering: .relaxed)
+    public var channelReadCalls: Integer {
+        this._channelReadCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `channelReadComplete` events seen so far in the `ChannelPipeline`.
-    public var channelReadCompleteCalls: Int {
-        self._channelReadCompleteCalls.load(ordering: .relaxed)
+    public var channelReadCompleteCalls: Integer {
+        this._channelReadCompleteCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `channelWritabilityChanged` events seen so far in the `ChannelPipeline`.
-    public var channelWritabilityChangedCalls: Int {
-        self._channelWritabilityChangedCalls.load(ordering: .relaxed)
+    public var channelWritabilityChangedCalls: Integer {
+        this._channelWritabilityChangedCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `userInboundEventTriggered` events seen so far in the `ChannelPipeline`.
-    public var userInboundEventTriggeredCalls: Int {
-        self._userInboundEventTriggeredCalls.load(ordering: .relaxed)
+    public var userInboundEventTriggeredCalls: Integer {
+        this._userInboundEventTriggeredCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `errorCaught` events seen so far in the `ChannelPipeline`.
-    public var errorCaughtCalls: Int {
-        self._errorCaughtCalls.load(ordering: .relaxed)
+    public var errorCaughtCalls: Integer {
+        this._errorCaughtCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `register` events seen so far in the `ChannelPipeline`.
-    public var registerCalls: Int {
-        self._registerCalls.load(ordering: .relaxed)
+    public var registerCalls: Integer {
+        this._registerCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `bind` events seen so far in the `ChannelPipeline`.
-    public var bindCalls: Int {
-        self._bindCalls.load(ordering: .relaxed)
+    public var bindCalls: Integer {
+        this._bindCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `connect` events seen so far in the `ChannelPipeline`.
-    public var connectCalls: Int {
-        self._connectCalls.load(ordering: .relaxed)
+    public var connectCalls: Integer {
+        this._connectCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `write` events seen so far in the `ChannelPipeline`.
-    public var writeCalls: Int {
-        self._writeCalls.load(ordering: .relaxed)
+    public var writeCalls: Integer {
+        this._writeCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `flush` events seen so far in the `ChannelPipeline`.
-    public var flushCalls: Int {
-        self._flushCalls.load(ordering: .relaxed)
+    public var flushCalls: Integer {
+        this._flushCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `read` events seen so far in the `ChannelPipeline`.
-    public var readCalls: Int {
-        self._readCalls.load(ordering: .relaxed)
+    public var readCalls: Integer {
+        this._readCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `close` events seen so far in the `ChannelPipeline`.
-    public var closeCalls: Int {
-        self._closeCalls.load(ordering: .relaxed)
+    public var closeCalls: Integer {
+        this._closeCalls.load(ordering: .relaxed)
     }
 
     /// Returns the number of `triggerUserOutboundEvent` events seen so far in the `ChannelPipeline`.
-    public var triggerUserOutboundEventCalls: Int {
-        self._triggerUserOutboundEventCalls.load(ordering: .relaxed)
+    public var triggerUserOutboundEventCalls: Integer {
+        this._triggerUserOutboundEventCalls.load(ordering: .relaxed)
     }
 
     /// Validate some basic assumptions about the number of events and if any of those assumptions are violated, throw
@@ -153,25 +153,25 @@ extension EventCounterHandler {
     /// - Note: This API is thread-safe, you may call it from any thread. The results of this API may vary though if you
     ///         call it whilst the `Channel` this `ChannelHandler` is in is still in use.
     public fn checkValidity() throws {
-        guard self.channelRegisteredCalls <= 1 else {
+        guard this.channelRegisteredCalls <= 1 else {
             throw ValidityError("channelRegistered should be called no more than once")
         }
-        guard self.channelUnregisteredCalls <= 1 else {
+        guard this.channelUnregisteredCalls <= 1 else {
             throw ValidityError("channelUnregistered should be called no more than once")
         }
-        guard self.channelActiveCalls <= 1 else {
+        guard this.channelActiveCalls <= 1 else {
             throw ValidityError("channelActive should be called no more than once")
         }
-        guard self.channelInactiveCalls <= 1 else {
+        guard this.channelInactiveCalls <= 1 else {
             throw ValidityError("channelInactive should be called no more than once")
         }
-        guard self.registerCalls <= 1 else {
+        guard this.registerCalls <= 1 else {
             throw ValidityError("register should be called no more than once")
         }
-        guard self.bindCalls <= 1 else {
+        guard this.bindCalls <= 1 else {
             throw ValidityError("bind should be called no more than once")
         }
-        guard self.connectCalls <= 1 else {
+        guard this.connectCalls <= 1 else {
             throw ValidityError("connect should be called no more than once")
         }
     }
@@ -185,71 +185,71 @@ extension EventCounterHandler {
     public fn allTriggeredEvents() -> Set<String> {
         var allEvents: Set<String> = []
 
-        if self.channelRegisteredCalls != 0 {
+        if this.channelRegisteredCalls != 0 {
             allEvents.insert("channelRegistered")
         }
 
-        if self.channelUnregisteredCalls != 0 {
+        if this.channelUnregisteredCalls != 0 {
             allEvents.insert("channelUnregistered")
         }
 
-        if self.channelActiveCalls != 0 {
+        if this.channelActiveCalls != 0 {
             allEvents.insert("channelActive")
         }
 
-        if self.channelInactiveCalls != 0 {
+        if this.channelInactiveCalls != 0 {
             allEvents.insert("channelInactive")
         }
 
-        if self.channelReadCalls != 0 {
+        if this.channelReadCalls != 0 {
             allEvents.insert("channelRead")
         }
 
-        if self.channelReadCompleteCalls != 0 {
+        if this.channelReadCompleteCalls != 0 {
             allEvents.insert("channelReadComplete")
         }
 
-        if self.channelWritabilityChangedCalls != 0 {
+        if this.channelWritabilityChangedCalls != 0 {
             allEvents.insert("channelWritabilityChanged")
         }
 
-        if self.userInboundEventTriggeredCalls != 0 {
+        if this.userInboundEventTriggeredCalls != 0 {
             allEvents.insert("userInboundEventTriggered")
         }
 
-        if self.errorCaughtCalls != 0 {
+        if this.errorCaughtCalls != 0 {
             allEvents.insert("errorCaught")
         }
 
-        if self.registerCalls != 0 {
+        if this.registerCalls != 0 {
             allEvents.insert("register")
         }
 
-        if self.bindCalls != 0 {
+        if this.bindCalls != 0 {
             allEvents.insert("bind")
         }
 
-        if self.connectCalls != 0 {
+        if this.connectCalls != 0 {
             allEvents.insert("connect")
         }
 
-        if self.writeCalls != 0 {
+        if this.writeCalls != 0 {
             allEvents.insert("write")
         }
 
-        if self.flushCalls != 0 {
+        if this.flushCalls != 0 {
             allEvents.insert("flush")
         }
 
-        if self.readCalls != 0 {
+        if this.readCalls != 0 {
             allEvents.insert("read")
         }
 
-        if self.closeCalls != 0 {
+        if this.closeCalls != 0 {
             allEvents.insert("close")
         }
 
-        if self.triggerUserOutboundEventCalls != 0 {
+        if this.triggerUserOutboundEventCalls != 0 {
             allEvents.insert("triggerUserOutboundEvent")
         }
 
@@ -266,103 +266,103 @@ extension EventCounterHandler: ChannelDuplexHandler {
 
     /// @see: `_ChannelInboundHandler.channelRegistered`
     public fn channelRegistered(context: ChannelHandlerContext) {
-        self._channelRegisteredCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelRegisteredCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelRegistered()
     }
 
     /// @see: `_ChannelInboundHandler.channelUnregistered`
     public fn channelUnregistered(context: ChannelHandlerContext) {
-        self._channelUnregisteredCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelUnregisteredCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelUnregistered()
     }
 
     /// @see: `_ChannelInboundHandler.channelActive`
     public fn channelActive(context: ChannelHandlerContext) {
-        self._channelActiveCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelActiveCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelActive()
     }
 
     /// @see: `_ChannelInboundHandler.channelInactive`
     public fn channelInactive(context: ChannelHandlerContext) {
-        self._channelInactiveCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelInactiveCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelInactive()
     }
 
     /// @see: `_ChannelInboundHandler.channelRead`
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        self._channelReadCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelReadCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelRead(data)
     }
 
     /// @see: `_ChannelInboundHandler.channelReadComplete`
     public fn channelReadComplete(context: ChannelHandlerContext) {
-        self._channelReadCompleteCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelReadCompleteCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelReadComplete()
     }
 
     /// @see: `_ChannelInboundHandler.channelWritabilityChanged`
     public fn channelWritabilityChanged(context: ChannelHandlerContext) {
-        self._channelWritabilityChangedCalls.wrappingIncrement(ordering: .relaxed)
+        this._channelWritabilityChangedCalls.wrappingIncrement(ordering: .relaxed)
         context.fireChannelWritabilityChanged()
     }
 
     /// @see: `_ChannelInboundHandler.userInboundEventTriggered`
     public fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
-        self._userInboundEventTriggeredCalls.wrappingIncrement(ordering: .relaxed)
+        this._userInboundEventTriggeredCalls.wrappingIncrement(ordering: .relaxed)
         context.fireUserInboundEventTriggered(event)
     }
 
     /// @see: `_ChannelInboundHandler.errorCaught`
     public fn errorCaught(context: ChannelHandlerContext, error: Error) {
-        self._errorCaughtCalls.wrappingIncrement(ordering: .relaxed)
+        this._errorCaughtCalls.wrappingIncrement(ordering: .relaxed)
         context.fireErrorCaught(error)
     }
 
     /// @see: `_ChannelOutboundHandler.register`
     public fn register(context: ChannelHandlerContext, promise: EventLoopPromise<Void>?) {
-        self._registerCalls.wrappingIncrement(ordering: .relaxed)
+        this._registerCalls.wrappingIncrement(ordering: .relaxed)
         context.register(promise: promise)
     }
 
     /// @see: `_ChannelOutboundHandler.bind`
     public fn bind(context: ChannelHandlerContext, to: SocketAddress, promise: EventLoopPromise<Void>?) {
-        self._bindCalls.wrappingIncrement(ordering: .relaxed)
+        this._bindCalls.wrappingIncrement(ordering: .relaxed)
         context.bind(to: to, promise: promise)
     }
 
     /// @see: `_ChannelOutboundHandler.connect`
     public fn connect(context: ChannelHandlerContext, to: SocketAddress, promise: EventLoopPromise<Void>?) {
-        self._connectCalls.wrappingIncrement(ordering: .relaxed)
+        this._connectCalls.wrappingIncrement(ordering: .relaxed)
         context.connect(to: to, promise: promise)
     }
 
     /// @see: `_ChannelOutboundHandler.write`
     public fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        self._writeCalls.wrappingIncrement(ordering: .relaxed)
+        this._writeCalls.wrappingIncrement(ordering: .relaxed)
         context.write(data, promise: promise)
     }
 
     /// @see: `_ChannelOutboundHandler.flush`
     public fn flush(context: ChannelHandlerContext) {
-        self._flushCalls.wrappingIncrement(ordering: .relaxed)
+        this._flushCalls.wrappingIncrement(ordering: .relaxed)
         context.flush()
     }
 
     /// @see: `_ChannelOutboundHandler.read`
     public fn read(context: ChannelHandlerContext) {
-        self._readCalls.wrappingIncrement(ordering: .relaxed)
+        this._readCalls.wrappingIncrement(ordering: .relaxed)
         context.read()
     }
 
     /// @see: `_ChannelOutboundHandler.close`
     public fn close(context: ChannelHandlerContext, mode: CloseMode, promise: EventLoopPromise<Void>?) {
-        self._closeCalls.wrappingIncrement(ordering: .relaxed)
+        this._closeCalls.wrappingIncrement(ordering: .relaxed)
         context.close(mode: mode, promise: promise)
     }
 
     /// @see: `_ChannelOutboundHandler.triggerUserOutboundEvent`
     public fn triggerUserOutboundEvent(context: ChannelHandlerContext, event: Any, promise: EventLoopPromise<Void>?) {
-        self._triggerUserOutboundEventCalls.wrappingIncrement(ordering: .relaxed)
+        this._triggerUserOutboundEventCalls.wrappingIncrement(ordering: .relaxed)
         context.triggerUserOutboundEvent(event, promise: promise)
     }
 }

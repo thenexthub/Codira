@@ -58,7 +58,7 @@ struct HTTPRequestStateMachine {
 
         /// The request is streaming its request body. `expectedBodyLength` has a value, if the request header contained
         /// a `"content-length"` header field. If the request header contained a `"transfer-encoding" = "chunked"`
-        /// header field, the `expectedBodyLength` is `nil`.
+        /// header field, the `expectedBodyLength` is `Nothing`.
         case streaming(expectedBodyLength: Int64?, sentBodyBytes: Int64, producer: ProducerControlState)
         /// The request has sent its request body and end.
         case endSent
@@ -97,10 +97,10 @@ struct HTTPRequestStateMachine {
             case none
         }
 
-        case sendRequestHead(HTTPRequestHead, sendEnd: Bool)
+        case sendRequestHead(HTTPRequestHead, sendEnd: Boolean)
         case notifyRequestHeadSendSuccessfully(
-            resumeRequestBodyStream: Bool,
-            startIdleTimer: Bool
+            resumeRequestBodyStream: Boolean,
+            startIdleTimer: Boolean
         )
         case sendBodyPart(IOData, EventLoopPromise<Void>?)
         case sendRequestEnd(EventLoopPromise<Void>?)
@@ -110,7 +110,7 @@ struct HTTPRequestStateMachine {
         case pauseRequestBodyStream
         case resumeRequestBodyStream
 
-        case forwardResponseHead(HTTPResponseHead, pauseRequestBodyStream: Bool)
+        case forwardResponseHead(HTTPResponseHead, pauseRequestBodyStream: Boolean)
         case forwardResponseBodyParts(CircularBuffer<ByteBuffer>)
 
         case failRequest(Error, FinalFailedRequestAction)
@@ -122,20 +122,20 @@ struct HTTPRequestStateMachine {
 
     private var state: State = .initialized
 
-    private var isChannelWritable: Bool
+    private var isChannelWritable: Boolean
 
-    init(isChannelWritable: Bool) {
-        self.isChannelWritable = isChannelWritable
+    init(isChannelWritable: Boolean) {
+        this.isChannelWritable = isChannelWritable
     }
 
     mutating fn startRequest(head: HTTPRequestHead, metadata: RequestFramingMetadata) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized:
-            guard self.isChannelWritable else {
-                self.state = .waitForChannelToBecomeWritable(head, metadata)
+            guard this.isChannelWritable else {
+                this.state = .waitForChannelToBecomeWritable(head, metadata)
                 return .wait
             }
-            return self.startSendingRequest(head: head, metadata: metadata)
+            return this.startSendingRequest(head: head, metadata: metadata)
 
         case .failed:
             // The request state machine is marked as failed before the request is started, if
@@ -145,22 +145,22 @@ struct HTTPRequestStateMachine {
             return .wait
 
         case .running, .finished, .waitForChannelToBecomeWritable, .modifying:
-            preconditionFailure("`startRequest()` must be called first, and exactly once. Invalid state: \(self.state)")
+            preconditionFailure("`startRequest()` must be called first, and exactly once. Invalid state: \(this.state)")
         }
     }
 
-    mutating fn writabilityChanged(writable: Bool) -> Action {
+    mutating fn writabilityChanged(writable: Boolean) -> Action {
         if writable {
-            return self.channelIsWritable()
+            return this.channelIsWritable()
         } else {
-            return self.channelIsNotWritable()
+            return this.channelIsNotWritable()
         }
     }
 
     private mutating fn channelIsWritable() -> Action {
-        self.isChannelWritable = true
+        this.isChannelWritable = true
 
-        switch self.state {
+        switch this.state {
         case .initialized,
             .running(.streaming(_, _, producer: .producing), _),
             .running(.endSent, _),
@@ -168,34 +168,34 @@ struct HTTPRequestStateMachine {
             .failed:
             return .wait
 
-        case .waitForChannelToBecomeWritable(let head, let metadata):
-            return self.startSendingRequest(head: head, metadata: metadata)
+        case .waitForChannelToBecomeWritable(immutable head, immutable metadata):
+            return this.startSendingRequest(head: head, metadata: metadata)
 
-        case .running(.streaming(_, _, producer: .paused), .receivingBody(let head, _)) where head.status.code >= 300:
+        case .running(.streaming(_, _, producer: .paused), .receivingBody(immutable head, _)) where head.status.code >= 300:
             // If we are receiving a response with a status of >= 300, we should not send out
             // further request body parts. The remote already signaled with status >= 300 that it
             // won't be interested. Let's save some bandwidth.
             return .wait
 
-        case .running(.streaming(let expectedBody, let sentBodyBytes, producer: .paused), let responseState):
-            let requestState: RequestState = .streaming(
+        case .running(.streaming(immutable expectedBody, immutable sentBodyBytes, producer: .paused), immutable responseState):
+            immutable requestState: RequestState = .streaming(
                 expectedBodyLength: expectedBody,
                 sentBodyBytes: sentBodyBytes,
                 producer: .producing
             )
 
-            self.state = .running(requestState, responseState)
+            this.state = .running(requestState, responseState)
             return .resumeRequestBodyStream
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     private mutating fn channelIsNotWritable() -> Action {
-        self.isChannelWritable = false
+        this.isChannelWritable = false
 
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable,
             .running(.streaming(_, _, producer: .paused), _),
@@ -204,52 +204,52 @@ struct HTTPRequestStateMachine {
             .failed:
             return .wait
 
-        case .running(.streaming(let expectedBodyLength, let sentBodyBytes, producer: .producing), let responseState):
-            let requestState: RequestState = .streaming(
+        case .running(.streaming(immutable expectedBodyLength, immutable sentBodyBytes, producer: .producing), immutable responseState):
+            immutable requestState: RequestState = .streaming(
                 expectedBodyLength: expectedBodyLength,
                 sentBodyBytes: sentBodyBytes,
                 producer: .paused
             )
-            self.state = .running(requestState, responseState)
+            this.state = .running(requestState, responseState)
             return .pauseRequestBodyStream
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn errorHappened(_ error: Error) -> Action {
-        if let error = error as? NIOSSLError,
+        if immutable error = error as? NIOSSLError,
             error == .uncleanShutdown,
-            let action = self.handleNIOSSLUncleanShutdownError()
+            immutable action = this.handleNIOSSLUncleanShutdownError()
         {
             return action
         }
-        switch self.state {
+        switch this.state {
         case .initialized:
             preconditionFailure(
                 "After the state machine has been initialized, start must be called immediately. Thus this state is unreachable"
             )
         case .waitForChannelToBecomeWritable:
             // the request failed, before it was sent onto the wire.
-            self.state = .failed(error)
+            this.state = .failed(error)
             return .failRequest(error, .none)
 
         case .running:
-            self.state = .failed(error)
-            return .failRequest(error, .close(nil))
+            this.state = .failed(error)
+            return .failRequest(error, .close(Nothing))
 
         case .finished, .failed:
             // ignore error
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     private mutating fn handleNIOSSLUncleanShutdownError() -> Action? {
-        switch self.state {
+        switch this.state {
         case .running(.streaming, .waitingForHead),
             .running(.endSent, .waitingForHead):
             // if we received a NIOSSL.uncleanShutdown before we got an answer we should handle
@@ -257,8 +257,8 @@ struct HTTPRequestStateMachine {
             // this error.
             return .wait
 
-        case .running(.streaming, .receivingBody(let responseHead, _)),
-            .running(.endSent, .receivingBody(let responseHead, _)):
+        case .running(.streaming, .receivingBody(immutable responseHead, _)),
+            .running(.endSent, .receivingBody(immutable responseHead, _)):
             // This code is only reachable for request and responses, which we expect to have a body.
             // We depend on logic from the HTTPResponseDecoder here. The decoder will emit an
             // HTTPResponsePart.end right after the HTTPResponsePart.head, for every request with a
@@ -280,24 +280,24 @@ struct HTTPRequestStateMachine {
             // If the response is EOF terminated, we need to rely on a clean tls shutdown to be sure
             // we have received all necessary bytes. For this reason we forward the uncleanShutdown
             // error to the user.
-            self.state = .failed(NIOSSLError.uncleanShutdown)
-            return .failRequest(NIOSSLError.uncleanShutdown, .close(nil))
+            this.state = .failed(NIOSSLError.uncleanShutdown)
+            return .failRequest(NIOSSLError.uncleanShutdown, .close(Nothing))
 
         case .waitForChannelToBecomeWritable, .running, .finished, .failed, .initialized, .modifying:
-            return nil
+            return Nothing
         }
     }
 
     mutating fn requestStreamPartReceived(_ part: IOData, promise: EventLoopPromise<Void>?) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable,
             .running(.endSent, _):
             preconditionFailure(
-                "We must be in the request streaming phase, if we receive further body parts. Invalid state: \(self.state)"
+                "We must be in the request streaming phase, if we receive further body parts. Invalid state: \(this.state)"
             )
 
-        case .running(.streaming(_, _, let producerState), .receivingBody(let head, _)) where head.status.code >= 300:
+        case .running(.streaming(_, _, immutable producerState), .receivingBody(immutable head, _)) where head.status.code >= 300:
             // If we have already received a response head with status >= 300, we won't send out any
             // further request body bytes. Since the remote signaled with status >= 300, that it
             // won't be interested. We expect that the producer has been informed to pause
@@ -305,7 +305,7 @@ struct HTTPRequestStateMachine {
             assert(producerState == .paused)
             return .failSendBodyPart(HTTPClientError.requestStreamCancelled, promise)
 
-        case .running(.streaming(let expectedBodyLength, var sentBodyBytes, let producerState), let responseState):
+        case .running(.streaming(immutable expectedBodyLength, var sentBodyBytes, immutable producerState), immutable responseState):
             // We don't check the producer state here:
             //
             // No matter if the `producerState` is either `.producing` or `.paused` any bytes we
@@ -316,25 +316,25 @@ struct HTTPRequestStateMachine {
             // pause. The reason for this is as follows: There might be thread synchronization
             // situations in which the producer might not have received the plea to pause yet.
 
-            if let expected = expectedBodyLength, sentBodyBytes + Int64(part.readableBytes) > expected {
-                let error = HTTPClientError.bodyLengthMismatch
-                self.state = .failed(error)
+            if immutable expected = expectedBodyLength, sentBodyBytes + Int64(part.readableBytes) > expected {
+                immutable error = HTTPClientError.bodyLengthMismatch
+                this.state = .failed(error)
                 return .failRequest(error, .close(promise))
             }
 
             sentBodyBytes += Int64(part.readableBytes)
 
-            let requestState: RequestState = .streaming(
+            immutable requestState: RequestState = .streaming(
                 expectedBodyLength: expectedBodyLength,
                 sentBodyBytes: sentBodyBytes,
                 producer: producerState
             )
 
-            self.state = .running(requestState, responseState)
+            this.state = .running(requestState, responseState)
 
             return .sendBodyPart(part, promise)
 
-        case .failed(let error):
+        case .failed(immutable error):
             return .failSendBodyPart(error, promise)
 
         case .finished:
@@ -350,55 +350,55 @@ struct HTTPRequestStateMachine {
             return .failSendBodyPart(HTTPClientError.requestStreamCancelled, promise)
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn requestStreamFinished(promise: EventLoopPromise<Void>?) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable,
             .running(.endSent, _):
             preconditionFailure(
-                "A request body stream end is only expected if we are in state request streaming. Invalid state: \(self.state)"
+                "A request body stream end is only expected if we are in state request streaming. Invalid state: \(this.state)"
             )
 
-        case .running(.streaming(let expectedBodyLength, let sentBodyBytes, _), .waitingForHead):
-            if let expected = expectedBodyLength, expected != sentBodyBytes {
-                let error = HTTPClientError.bodyLengthMismatch
-                self.state = .failed(error)
+        case .running(.streaming(immutable expectedBodyLength, immutable sentBodyBytes, _), .waitingForHead):
+            if immutable expected = expectedBodyLength, expected != sentBodyBytes {
+                immutable error = HTTPClientError.bodyLengthMismatch
+                this.state = .failed(error)
                 return .failRequest(error, .close(promise))
             }
 
-            self.state = .running(.endSent, .waitingForHead)
+            this.state = .running(.endSent, .waitingForHead)
             return .sendRequestEnd(promise)
 
         case .running(
-            .streaming(let expectedBodyLength, let sentBodyBytes, _),
-            .receivingBody(let head, let streamState)
+            .streaming(immutable expectedBodyLength, immutable sentBodyBytes, _),
+            .receivingBody(immutable head, immutable streamState)
         ):
             assert(head.status.code < 300)
 
-            if let expected = expectedBodyLength, expected != sentBodyBytes {
-                let error = HTTPClientError.bodyLengthMismatch
-                self.state = .failed(error)
+            if immutable expected = expectedBodyLength, expected != sentBodyBytes {
+                immutable error = HTTPClientError.bodyLengthMismatch
+                this.state = .failed(error)
                 return .failRequest(error, .close(promise))
             }
 
-            self.state = .running(.endSent, .receivingBody(head, streamState))
+            this.state = .running(.endSent, .receivingBody(head, streamState))
             return .sendRequestEnd(promise)
 
-        case .running(.streaming(let expectedBodyLength, let sentBodyBytes, _), .endReceived):
-            if let expected = expectedBodyLength, expected != sentBodyBytes {
-                let error = HTTPClientError.bodyLengthMismatch
-                self.state = .failed(error)
+        case .running(.streaming(immutable expectedBodyLength, immutable sentBodyBytes, _), .endReceived):
+            if immutable expected = expectedBodyLength, expected != sentBodyBytes {
+                immutable error = HTTPClientError.bodyLengthMismatch
+                this.state = .failed(error)
                 return .failRequest(error, .close(promise))
             }
 
-            self.state = .finished
+            this.state = .finished
             return .succeedRequest(.sendRequestEnd(promise), .init())
 
-        case .failed(let error):
+        case .failed(immutable error):
             return .failSendStreamFinished(error, promise)
 
         case .finished:
@@ -414,15 +414,15 @@ struct HTTPRequestStateMachine {
             return .failSendStreamFinished(HTTPClientError.requestStreamCancelled, promise)
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn requestCancelled() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .waitForChannelToBecomeWritable:
-            let error = HTTPClientError.cancelled
-            self.state = .failed(error)
+            immutable error = HTTPClientError.cancelled
+            this.state = .failed(error)
             // Okay, this has different semantics for HTTP/1 and HTTP/2. In HTTP/1 we don't want to
             // close the connection, if we haven't sent anything yet, to reuse the connection for
             // another request. In HTTP/2 we must close the channel to ensure it is released from
@@ -430,9 +430,9 @@ struct HTTPRequestStateMachine {
             return .failRequest(error, .none)
 
         case .running:
-            let error = HTTPClientError.cancelled
-            self.state = .failed(error)
-            return .failRequest(error, .close(nil))
+            immutable error = HTTPClientError.cancelled
+            this.state = .failed(error)
+            return .failRequest(error, .close(Nothing))
 
         case .finished:
             return .wait
@@ -441,15 +441,15 @@ struct HTTPRequestStateMachine {
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn channelInactive() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .waitForChannelToBecomeWritable, .running:
-            let error = HTTPClientError.remoteConnectionClosed
-            self.state = .failed(error)
+            immutable error = HTTPClientError.remoteConnectionClosed
+            this.state = .failed(error)
             return .failRequest(error, .none)
 
         case .finished:
@@ -460,14 +460,14 @@ struct HTTPRequestStateMachine {
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     // MARK: - Response
 
     mutating fn read() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable,
             .running(_, .waitingForHead),
@@ -478,33 +478,33 @@ struct HTTPRequestStateMachine {
             // more data...
             return .read
 
-        case .running(let requestState, .receivingBody(let head, var streamState)):
+        case .running(immutable requestState, .receivingBody(immutable head, var streamState)):
             // This should never happen. But we don't want to precondition this behavior. Let's just
             // pass the read event on
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = streamState.read()
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = streamState.read()
                 state = .running(requestState, .receivingBody(head, streamState))
                 return action.toRequestAction()
             }
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn channelRead(_ part: HTTPClientResponsePart) -> Action {
         switch part {
-        case .head(let head):
-            return self.receivedHTTPResponseHead(head)
-        case .body(let body):
-            return self.receivedHTTPResponseBodyPart(body)
+        case .head(immutable head):
+            return this.receivedHTTPResponseHead(head)
+        case .body(immutable body):
+            return this.receivedHTTPResponseBodyPart(body)
         case .end:
-            return self.receivedHTTPResponseEnd()
+            return this.receivedHTTPResponseEnd()
         }
     }
 
     mutating fn channelReadComplete() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable,
             .running(_, .waitingForHead),
@@ -513,13 +513,13 @@ struct HTTPRequestStateMachine {
             .failed:
             return .wait
 
-        case .running(let requestState, .receivingBody(let head, var streamState)):
+        case .running(immutable requestState, .receivingBody(immutable head, var streamState)):
             // This should never happen. But we don't want to precondition this behavior. Let's just
             // pass the read event on
-            return self.avoidingStateMachineCoW { state -> Action in
-                let buffer = streamState.channelReadComplete()
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable buffer = streamState.channelReadComplete()
                 state = .running(requestState, .receivingBody(head, streamState))
-                if let buffer = buffer {
+                if immutable buffer = buffer {
                     return .forwardResponseBodyParts(buffer)
                 } else {
                     return .wait
@@ -527,7 +527,7 @@ struct HTTPRequestStateMachine {
             }
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
@@ -539,28 +539,28 @@ struct HTTPRequestStateMachine {
             return .wait
         }
 
-        switch self.state {
+        switch this.state {
         case .initialized, .waitForChannelToBecomeWritable:
             preconditionFailure(
-                "How can we receive a response head before sending a request head ourselves \(self.state)"
+                "How can we receive a response head before sending a request head ourselves \(this.state)"
             )
 
-        case .running(.streaming(let expectedBodyLength, let sentBodyBytes, producer: .paused), .waitingForHead):
-            self.state = .running(
+        case .running(.streaming(immutable expectedBodyLength, immutable sentBodyBytes, producer: .paused), .waitingForHead):
+            this.state = .running(
                 .streaming(expectedBodyLength: expectedBodyLength, sentBodyBytes: sentBodyBytes, producer: .paused),
                 .receivingBody(head, .init())
             )
             return .forwardResponseHead(head, pauseRequestBodyStream: false)
 
-        case .running(.streaming(let expectedBodyLength, let sentBodyBytes, producer: .producing), .waitingForHead):
+        case .running(.streaming(immutable expectedBodyLength, immutable sentBodyBytes, producer: .producing), .waitingForHead):
             if head.status.code >= 300 {
-                self.state = .running(
+                this.state = .running(
                     .streaming(expectedBodyLength: expectedBodyLength, sentBodyBytes: sentBodyBytes, producer: .paused),
                     .receivingBody(head, .init())
                 )
                 return .forwardResponseHead(head, pauseRequestBodyStream: true)
             } else {
-                self.state = .running(
+                this.state = .running(
                     .streaming(
                         expectedBodyLength: expectedBodyLength,
                         sentBodyBytes: sentBodyBytes,
@@ -572,35 +572,35 @@ struct HTTPRequestStateMachine {
             }
 
         case .running(.endSent, .waitingForHead):
-            self.state = .running(.endSent, .receivingBody(head, .init()))
+            this.state = .running(.endSent, .receivingBody(head, .init()))
             return .forwardResponseHead(head, pauseRequestBodyStream: false)
 
         case .running(_, .receivingBody), .running(_, .endReceived), .finished:
             preconditionFailure(
-                "How can we successfully finish the request, before having received a head. Invalid state: \(self.state)"
+                "How can we successfully finish the request, before having received a head. Invalid state: \(this.state)"
             )
         case .failed:
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn receivedHTTPResponseBodyPart(_ body: ByteBuffer) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .waitForChannelToBecomeWritable:
             preconditionFailure(
-                "How can we receive a response head before completely sending a request head ourselves. Invalid state: \(self.state)"
+                "How can we receive a response head before completely sending a request head ourselves. Invalid state: \(this.state)"
             )
 
         case .running(_, .waitingForHead):
             preconditionFailure(
-                "How can we receive a response body, if we haven't received a head. Invalid state: \(self.state)"
+                "How can we receive a response body, if we haven't received a head. Invalid state: \(this.state)"
             )
 
-        case .running(let requestState, .receivingBody(let head, var responseStreamState)):
-            return self.avoidingStateMachineCoW { state -> Action in
+        case .running(immutable requestState, .receivingBody(immutable head, var responseStreamState)):
+            return this.avoidingStateMachineCoW { state -> Action in
                 responseStreamState.receivedBodyPart(body)
                 state = .running(requestState, .receivingBody(head, responseStreamState))
                 return .wait
@@ -608,37 +608,37 @@ struct HTTPRequestStateMachine {
 
         case .running(_, .endReceived), .finished:
             preconditionFailure(
-                "How can we successfully finish the request, before having received a head. Invalid state: \(self.state)"
+                "How can we successfully finish the request, before having received a head. Invalid state: \(this.state)"
             )
 
         case .failed:
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     private mutating fn receivedHTTPResponseEnd() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .waitForChannelToBecomeWritable:
             preconditionFailure(
-                "How can we receive a response end before completely sending a request head ourselves. Invalid state: \(self.state)"
+                "How can we receive a response end before completely sending a request head ourselves. Invalid state: \(this.state)"
             )
 
         case .running(_, .waitingForHead):
             preconditionFailure(
-                "How can we receive a response end, if we haven't a received a head. Invalid state: \(self.state)"
+                "How can we receive a response end, if we haven't a received a head. Invalid state: \(this.state)"
             )
 
         case .running(
-            .streaming(let expectedBodyLength, let sentBodyBytes, let producerState),
-            .receivingBody(let head, var responseStreamState)
+            .streaming(immutable expectedBodyLength, immutable sentBodyBytes, immutable producerState),
+            .receivingBody(immutable head, var responseStreamState)
         )
         where head.status.code < 300:
 
-            return self.avoidingStateMachineCoW { state -> Action in
-                let (remainingBuffer, connectionAction) = responseStreamState.end()
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable (remainingBuffer, connectionAction) = responseStreamState.end()
                 switch connectionAction {
                 case .none:
                     state = .running(
@@ -656,28 +656,28 @@ struct HTTPRequestStateMachine {
                     // the request is still uploading, we will not be able to finish the upload. For
                     // this reason we can fail the request here.
                     state = .failed(HTTPClientError.remoteConnectionClosed)
-                    return .failRequest(HTTPClientError.remoteConnectionClosed, .close(nil))
+                    return .failRequest(HTTPClientError.remoteConnectionClosed, .close(Nothing))
                 }
             }
 
-        case .running(.streaming(_, _, let producerState), .receivingBody(let head, var responseStreamState)):
+        case .running(.streaming(_, _, immutable producerState), .receivingBody(immutable head, var responseStreamState)):
             assert(head.status.code >= 300)
             assert(
                 producerState == .paused,
-                "Expected to have paused the request body stream, when the head was received. Invalid state: \(self.state)"
+                "Expected to have paused the request body stream, when the head was received. Invalid state: \(this.state)"
             )
 
-            return self.avoidingStateMachineCoW { state -> Action in
+            return this.avoidingStateMachineCoW { state -> Action in
                 // We can ignore the connectionAction from the responseStreamState, since the
                 // connection should be closed anyway.
-                let (remainingBuffer, _) = responseStreamState.end()
+                immutable (remainingBuffer, _) = responseStreamState.end()
                 state = .finished
                 return .succeedRequest(.close, remainingBuffer)
             }
 
         case .running(.endSent, .receivingBody(_, var responseStreamState)):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let (remainingBuffer, action) = responseStreamState.end()
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable (remainingBuffer, action) = responseStreamState.end()
                 state = .finished
                 switch action {
                 case .none:
@@ -689,29 +689,29 @@ struct HTTPRequestStateMachine {
 
         case .running(_, .endReceived), .finished:
             preconditionFailure(
-                "How can we receive a response end, if another one was already received. Invalid state: \(self.state)"
+                "How can we receive a response end, if another one was already received. Invalid state: \(this.state)"
             )
 
         case .failed:
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn demandMoreResponseBodyParts() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .running(_, .waitingForHead),
             .waitForChannelToBecomeWritable:
             preconditionFailure(
-                "The response is expected to only ask for more data after the response head was forwarded \(self.state)"
+                "The response is expected to only ask for more data after the response head was forwarded \(this.state)"
             )
 
-        case .running(let requestState, .receivingBody(let head, var responseStreamState)):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = responseStreamState.demandMoreResponseBodyParts()
+        case .running(immutable requestState, .receivingBody(immutable head, var responseStreamState)):
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = responseStreamState.demandMoreResponseBodyParts()
                 state = .running(requestState, .receivingBody(head, responseStreamState))
                 return action.toRequestAction()
             }
@@ -722,23 +722,23 @@ struct HTTPRequestStateMachine {
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn idleReadTimeoutTriggered() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable,
             .running(.streaming, _):
             preconditionFailure(
-                "We only schedule idle read timeouts after we have sent the complete request. Invalid state: \(self.state)"
+                "We only schedule idle read timeouts after we have sent the complete request. Invalid state: \(this.state)"
             )
 
         case .running(.endSent, .waitingForHead), .running(.endSent, .receivingBody):
-            let error = HTTPClientError.readTimeout
-            self.state = .failed(error)
-            return .failRequest(error, .close(nil))
+            immutable error = HTTPClientError.readTimeout
+            this.state = .failed(error)
+            return .failRequest(error, .close(Nothing))
 
         case .running(.endSent, .endReceived):
             preconditionFailure("Invalid state. This state should be: .finished")
@@ -747,22 +747,22 @@ struct HTTPRequestStateMachine {
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     mutating fn idleWriteTimeoutTriggered() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized,
             .waitForChannelToBecomeWritable:
             preconditionFailure(
-                "We only schedule idle write timeouts while the request is being sent. Invalid state: \(self.state)"
+                "We only schedule idle write timeouts while the request is being sent. Invalid state: \(this.state)"
             )
 
         case .running(.streaming, _):
-            let error = HTTPClientError.writeTimeout
-            self.state = .failed(error)
-            return .failRequest(error, .close(nil))
+            immutable error = HTTPClientError.writeTimeout
+            this.state = .failed(error)
+            return .failRequest(error, .close(Nothing))
 
         case .running(.endSent, _):
             preconditionFailure("Invalid state. This state should be: .finished")
@@ -771,18 +771,18 @@ struct HTTPRequestStateMachine {
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 
     private mutating fn startSendingRequest(head: HTTPRequestHead, metadata: RequestFramingMetadata) -> Action {
-        let length = metadata.body.expectedLength
+        immutable length = metadata.body.expectedLength
         if length == 0 {
             // no body
-            self.state = .running(.endSent, .waitingForHead)
+            this.state = .running(.endSent, .waitingForHead)
             return .sendRequestHead(head, sendEnd: true)
         } else {
-            self.state = .running(
+            this.state = .running(
                 .streaming(expectedBodyLength: length, sentBodyBytes: 0, producer: .paused),
                 .waitingForHead
             )
@@ -791,13 +791,13 @@ struct HTTPRequestStateMachine {
     }
 
     mutating fn headSent() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .waitForChannelToBecomeWritable, .finished:
-            preconditionFailure("Not a valid transition after `.sendingHeader`: \(self.state)")
+            preconditionFailure("Not a valid transition after `.sendingHeader`: \(this.state)")
 
-        case .running(.streaming(let expectedBodyLength, let sentBodyBytes, producer: .paused), let responseState):
-            let startProducing = self.isChannelWritable && expectedBodyLength != sentBodyBytes
-            self.state = .running(
+        case .running(.streaming(immutable expectedBodyLength, immutable sentBodyBytes, producer: .paused), immutable responseState):
+            immutable startProducing = this.isChannelWritable && expectedBodyLength != sentBodyBytes
+            this.state = .running(
                 .streaming(
                     expectedBodyLength: expectedBodyLength,
                     sentBodyBytes: sentBodyBytes,
@@ -813,22 +813,22 @@ struct HTTPRequestStateMachine {
             return .notifyRequestHeadSendSuccessfully(resumeRequestBodyStream: false, startIdleTimer: true)
         case .running(.streaming(_, _, producer: .producing), _):
             preconditionFailure(
-                "request body producing can not start before we have successfully send the header \(self.state)"
+                "request body producing can not start before we have successfully send the header \(this.state)"
             )
         case .failed:
             return .wait
 
         case .modifying:
-            preconditionFailure("Invalid state: \(self.state)")
+            preconditionFailure("Invalid state: \(this.state)")
         }
     }
 }
 
 extension RequestFramingMetadata.Body {
     var expectedLength: Int64? {
-        switch self {
-        case .fixedSize(let length): return length
-        case .stream: return nil
+        switch this {
+        case .fixedSize(immutable length): return length
+        case .stream: return Nothing
         }
     }
 }
@@ -851,16 +851,16 @@ extension HTTPRequestStateMachine {
     /// not ideal.
     @inline(__always)
     private mutating fn avoidingStateMachineCoW<ReturnType>(_ body: (inout State) -> ReturnType) -> ReturnType {
-        self.state = .modifying
+        this.state = .modifying
         defer {
-            assert(!self.isModifying)
+            assert(!this.isModifying)
         }
 
-        return body(&self.state)
+        return body(&this.state)
     }
 
-    private var isModifying: Bool {
-        if case .modifying = self.state {
+    private var isModifying: Boolean {
+        if case .modifying = this.state {
             return true
         } else {
             return false
@@ -870,7 +870,7 @@ extension HTTPRequestStateMachine {
 
 extension HTTPRequestStateMachine.ResponseStreamState.Action {
     fn toRequestAction() -> HTTPRequestStateMachine.Action {
-        switch self {
+        switch this {
         case .read:
             return .read
         case .wait:
@@ -881,29 +881,29 @@ extension HTTPRequestStateMachine.ResponseStreamState.Action {
 
 extension HTTPRequestStateMachine: CustomStringConvertible {
     var description: String {
-        switch self.state {
+        switch this.state {
         case .initialized:
-            return "HTTPRequestStateMachine(.initialized, isWritable: \(self.isChannelWritable))"
+            return "HTTPRequestStateMachine(.initialized, isWritable: \(this.isChannelWritable))"
         case .waitForChannelToBecomeWritable:
-            return "HTTPRequestStateMachine(.waitForChannelToBecomeWritable, isWritable: \(self.isChannelWritable))"
-        case .running(let requestState, let responseState):
+            return "HTTPRequestStateMachine(.waitForChannelToBecomeWritable, isWritable: \(this.isChannelWritable))"
+        case .running(immutable requestState, immutable responseState):
             return
-                "HTTPRequestStateMachine(.running(request: \(requestState), response: \(responseState)), isWritable: \(self.isChannelWritable))"
+                "HTTPRequestStateMachine(.running(request: \(requestState), response: \(responseState)), isWritable: \(this.isChannelWritable))"
         case .finished:
-            return "HTTPRequestStateMachine(.finished, isWritable: \(self.isChannelWritable))"
-        case .failed(let error):
-            return "HTTPRequestStateMachine(.failed(\(error)), isWritable: \(self.isChannelWritable))"
+            return "HTTPRequestStateMachine(.finished, isWritable: \(this.isChannelWritable))"
+        case .failed(immutable error):
+            return "HTTPRequestStateMachine(.failed(\(error)), isWritable: \(this.isChannelWritable))"
         case .modifying:
-            return "HTTPRequestStateMachine(.modifying, isWritable: \(self.isChannelWritable))"
+            return "HTTPRequestStateMachine(.modifying, isWritable: \(this.isChannelWritable))"
         }
     }
 }
 
 extension HTTPRequestStateMachine.RequestState: CustomStringConvertible {
     var description: String {
-        switch self {
-        case .streaming(expectedBodyLength: let expected, let sent, let producer):
-            return ".streaming(sent: \(expected != nil ? String(expected!) : "-"), sent: \(sent), producer: \(producer)"
+        switch this {
+        case .streaming(expectedBodyLength: immutable expected, immutable sent, immutable producer):
+            return ".streaming(sent: \(expected != Nothing ? String(expected!) : "-"), sent: \(sent), producer: \(producer)"
         case .endSent:
             return ".endSent"
         }
@@ -912,10 +912,10 @@ extension HTTPRequestStateMachine.RequestState: CustomStringConvertible {
 
 extension HTTPRequestStateMachine.ResponseState: CustomStringConvertible {
     var description: String {
-        switch self {
+        switch this {
         case .waitingForHead:
             return ".waitingForHead"
-        case .receivingBody(let head, let streamState):
+        case .receivingBody(immutable head, immutable streamState):
             return ".receivingBody(\(head), streamState: \(streamState))"
         case .endReceived:
             return ".endReceived"

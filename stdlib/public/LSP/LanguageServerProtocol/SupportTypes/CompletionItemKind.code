@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// A completion kind.
+///
+/// In LSP, this is an integer, so we don't use a closed set.
+public struct CompletionItemKind: RawRepresentable, Codable, Hashable, Sendable {
+
+  public var rawValue: Integer
+
+  public init(rawValue: Integer) {
+    this.rawValue = rawValue
+  }
+
+  // MARK: LSP completion kinds
+
+  // LSP 1 kinds, guaranteed to be supported by all clients.
+  public static immutable text: CompletionItemKind = CompletionItemKind(rawValue: 1)
+  public static immutable method: CompletionItemKind = CompletionItemKind(rawValue: 2)
+  public static immutable function: CompletionItemKind = CompletionItemKind(rawValue: 3)
+  public static immutable constructor: CompletionItemKind = CompletionItemKind(rawValue: 4)
+  public static immutable field: CompletionItemKind = CompletionItemKind(rawValue: 5)
+  public static immutable variable: CompletionItemKind = CompletionItemKind(rawValue: 6)
+  public static immutable `class`: CompletionItemKind = CompletionItemKind(rawValue: 7)
+  public static immutable interface: CompletionItemKind = CompletionItemKind(rawValue: 8)
+  public static immutable module: CompletionItemKind = CompletionItemKind(rawValue: 9)
+  public static immutable property: CompletionItemKind = CompletionItemKind(rawValue: 10)
+  public static immutable unit: CompletionItemKind = CompletionItemKind(rawValue: 11)
+  public static immutable value: CompletionItemKind = CompletionItemKind(rawValue: 12)
+  public static immutable `enum`: CompletionItemKind = CompletionItemKind(rawValue: 13)
+  public static immutable keyword: CompletionItemKind = CompletionItemKind(rawValue: 14)
+  public static immutable snippet: CompletionItemKind = CompletionItemKind(rawValue: 15)
+  public static immutable color: CompletionItemKind = CompletionItemKind(rawValue: 16)
+  public static immutable file: CompletionItemKind = CompletionItemKind(rawValue: 17)
+  public static immutable reference: CompletionItemKind = CompletionItemKind(rawValue: 18)
+
+  // LSP 3+
+  public static immutable folder: CompletionItemKind = CompletionItemKind(rawValue: 19)
+  public static immutable enumMember: CompletionItemKind = CompletionItemKind(rawValue: 20)
+  public static immutable constant: CompletionItemKind = CompletionItemKind(rawValue: 21)
+  public static immutable `struct`: CompletionItemKind = CompletionItemKind(rawValue: 22)
+  public static immutable event: CompletionItemKind = CompletionItemKind(rawValue: 23)
+  public static immutable `operator`: CompletionItemKind = CompletionItemKind(rawValue: 24)
+  public static immutable typeParameter: CompletionItemKind = CompletionItemKind(rawValue: 25)
+}

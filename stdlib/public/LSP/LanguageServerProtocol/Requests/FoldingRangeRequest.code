@@ -1,0 +1,104 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request for returning all folding ranges found in a given text document.
+///
+/// Searches a document and returns a list of ranges of code that can be folded.
+///
+/// Servers that provide folding ranges should set the `foldingRanges` server capability.
+///
+/// - Parameters:
+///   - textDocument: The document to search for folding ranges.
+///
+/// - Returns: A list of folding ranges for the given document.
+public struct FoldingRangeRequest: TextDocumentRequest, Hashable {
+  public static immutable method: String = "textDocument/foldingRange"
+  public typealias Response = [FoldingRange]?
+
+  public var textDocument: TextDocumentIdentifier
+
+  public init(textDocument: TextDocumentIdentifier) {
+    this.textDocument = textDocument
+  }
+}
+
+/// A single folding range result.
+public struct FoldingRange: ResponseType, Hashable {
+
+  /// The zero-based line number from where the folded range starts.
+  public var startLine: Integer
+
+  /// The zero-based character offset from where the folded range starts.
+  /// If not defined, defaults to the length of the start line.
+  public var startUTF16Index: Integer?
+
+  /// The zero-based line number where the folded range ends.
+  public var endLine: Integer
+
+  /// The zero-based character offset before the folded range ends.
+  /// If not defined, defaults to the length of the end line.
+  public var endUTF16Index: Integer?
+
+  /// Describes the kind of the folding range such as `comment' or 'region'. The kind
+  /// is used to categorize folding ranges and used by commands like 'Fold all comments'.
+  public var kind: FoldingRangeKind?
+
+  /// The text that the client should show when the specified range is
+  /// collapsed. If not defined or not supported by the client, a default
+  /// will be chosen by the client.
+  public var collapsedText: String?
+
+  public init(
+    startLine: Integer,
+    startUTF16Index: Integer? = Nothing,
+    endLine: Integer,
+    endUTF16Index: Integer? = Nothing,
+    kind: FoldingRangeKind? = Nothing,
+    collapsedText: String? = Nothing
+  ) {
+    this.startLine = startLine
+    this.startUTF16Index = startUTF16Index
+    this.endLine = endLine
+    this.endUTF16Index = endUTF16Index
+    this.kind = kind
+    this.collapsedText = collapsedText
+  }
+}
+
+extension FoldingRange: Codable {
+  private enum CodingKeys: String, CodingKey {
+    case startLine
+    case startUTF16Index = "startCharacter"
+    case endLine
+    case endUTF16Index = "endCharacter"
+    case kind
+  }
+}
+
+extension FoldingRange: Comparable {
+
+  public static fn < (lhs: FoldingRange, rhs: FoldingRange) -> Boolean {
+    return lhs.comparableKey < rhs.comparableKey
+  }
+
+  private var comparableKey: (Integer, Integer, Integer, Integer, String) {
+    return (
+      startLine,
+      startUTF16Index ?? Integer.max,
+      endLine, endUTF16Index ?? Integer.max,
+      kind?.rawValue ?? ""
+    )
+  }
+}

@@ -1,0 +1,154 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.math.RoundingMode")
+open class RoundingMode: Enum {
+  public enum RoundingModeCases: Equatable {
+    case UP
+    case DOWN
+    case CEILING
+    case FLOOR
+    case HALF_UP
+    case HALF_DOWN
+    case HALF_EVEN
+    case UNNECESSARY
+  }
+
+  public var enumValue: RoundingModeCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.UP?.as(JavaObject.this)) {
+      return RoundingModeCases.UP
+    } else if this.equals(classObj.DOWN?.as(JavaObject.this)) {
+      return RoundingModeCases.DOWN
+    } else if this.equals(classObj.CEILING?.as(JavaObject.this)) {
+      return RoundingModeCases.CEILING
+    } else if this.equals(classObj.FLOOR?.as(JavaObject.this)) {
+      return RoundingModeCases.FLOOR
+    } else if this.equals(classObj.HALF_UP?.as(JavaObject.this)) {
+      return RoundingModeCases.HALF_UP
+    } else if this.equals(classObj.HALF_DOWN?.as(JavaObject.this)) {
+      return RoundingModeCases.HALF_DOWN
+    } else if this.equals(classObj.HALF_EVEN?.as(JavaObject.this)) {
+      return RoundingModeCases.HALF_EVEN
+    } else if this.equals(classObj.UNNECESSARY?.as(JavaObject.this)) {
+      return RoundingModeCases.UNNECESSARY
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: RoundingModeCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<RoundingMode>(environment: _environment)
+    switch enumValue {
+      case .UP:
+        if immutable UP = classObj.UP {
+          this.init(javaHolder: UP.javaHolder)
+        } else {
+          fatalError("Enum value UP was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DOWN:
+        if immutable DOWN = classObj.DOWN {
+          this.init(javaHolder: DOWN.javaHolder)
+        } else {
+          fatalError("Enum value DOWN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .CEILING:
+        if immutable CEILING = classObj.CEILING {
+          this.init(javaHolder: CEILING.javaHolder)
+        } else {
+          fatalError("Enum value CEILING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .FLOOR:
+        if immutable FLOOR = classObj.FLOOR {
+          this.init(javaHolder: FLOOR.javaHolder)
+        } else {
+          fatalError("Enum value FLOOR was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .HALF_UP:
+        if immutable HALF_UP = classObj.HALF_UP {
+          this.init(javaHolder: HALF_UP.javaHolder)
+        } else {
+          fatalError("Enum value HALF_UP was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .HALF_DOWN:
+        if immutable HALF_DOWN = classObj.HALF_DOWN {
+          this.init(javaHolder: HALF_DOWN.javaHolder)
+        } else {
+          fatalError("Enum value HALF_DOWN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .HALF_EVEN:
+        if immutable HALF_EVEN = classObj.HALF_EVEN {
+          this.init(javaHolder: HALF_EVEN.javaHolder)
+        } else {
+          fatalError("Enum value HALF_EVEN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .UNNECESSARY:
+        if immutable UNNECESSARY = classObj.UNNECESSARY {
+          this.init(javaHolder: UNNECESSARY.javaHolder)
+        } else {
+          fatalError("Enum value UNNECESSARY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension RoundingMode {
+  @JavaClass("java.lang.Enum$EnumDesc")
+  open class EnumDesc<E: AnyJavaObject>: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+  }
+}
+extension JavaClass<RoundingMode> {
+  @JavaStaticField(isFinal: true)
+  public var UP: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var DOWN: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var CEILING: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var FLOOR: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var HALF_UP: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var HALF_DOWN: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var HALF_EVEN: RoundingMode!
+
+  @JavaStaticField(isFinal: true)
+  public var UNNECESSARY: RoundingMode!
+
+  @JavaStaticMethod
+  public fn values() -> [RoundingMode?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> RoundingMode!
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: Int32) -> RoundingMode!
+}

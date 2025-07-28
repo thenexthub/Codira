@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Declarations used to implement value witnesses for native C/C++ types.
@@ -639,9 +638,9 @@ struct BufferValueWitnesses<Impl, isBitwiseTakable, Size, Alignment,
 
   static OpaqueValue *initializeBufferWithCopyOfBuffer(ValueBuffer *dest,
                                                        ValueBuffer *src,
-                                                       const Metadata *self) {
+                                                       const Metadata *this) {
     return Impl::initializeWithCopy(reinterpret_cast<OpaqueValue *>(dest),
-                                    reinterpret_cast<OpaqueValue *>(src), self);
+                                    reinterpret_cast<OpaqueValue *>(src), this);
   }
 };
 
@@ -655,8 +654,8 @@ struct BufferValueWitnesses<Impl, isBitwiseTakable, Size, Alignment,
 
   static OpaqueValue *initializeBufferWithCopyOfBuffer(ValueBuffer *dest,
                                                        ValueBuffer *src,
-                                                       const Metadata *self) {
-    auto wtable = self->getValueWitnesses();
+                                                       const Metadata *this) {
+    auto wtable = this->getValueWitnesses();
     auto reference = src->PrivateData[0];
     dest->PrivateData[0] = reference;
     language_retain(reinterpret_cast<HeapObject *>(reference));
@@ -676,13 +675,13 @@ struct NonFixedBufferValueWitnesses : BufferValueWitnessesBase<Impl> {
 
   static OpaqueValue *initializeBufferWithCopyOfBuffer(ValueBuffer *dest,
                                                        ValueBuffer *src,
-                                                       const Metadata *self) {
-    auto vwtable = self->getValueWitnesses();
+                                                       const Metadata *this) {
+    auto vwtable = this->getValueWitnesses();
     (void)vwtable;
     if (!IsKnownAllocated && vwtable->isValueInline()) {
       return Impl::initializeWithCopy(reinterpret_cast<OpaqueValue*>(dest),
                                       reinterpret_cast<OpaqueValue*>(src),
-                                      self);
+                                      this);
     } else {
       auto reference = src->PrivateData[0];
       dest->PrivateData[0] = reference;
@@ -712,8 +711,8 @@ struct FixedSizeBufferValueWitnesses<Impl, isBitwiseTakable, Size, Alignment,
 
   static unsigned getEnumTagSinglePayload(const OpaqueValue *enumAddr,
                                           unsigned numEmptyCases,
-                                          const Metadata *self) {
-    return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, self, Size,
+                                          const Metadata *this) {
+    return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, this, Size,
                                        Impl::extraInhabitantCount,
                                        Impl::getExtraInhabitantTag);
   }
@@ -721,9 +720,9 @@ struct FixedSizeBufferValueWitnesses<Impl, isBitwiseTakable, Size, Alignment,
   static void storeEnumTagSinglePayload(OpaqueValue *enumAddr,
                                         unsigned whichCase,
                                         unsigned numEmptyCases,
-                                        const Metadata *self) {
+                                        const Metadata *this) {
     return storeEnumTagSinglePayloadImpl(enumAddr, whichCase, numEmptyCases,
-                                         self, Size, Impl::extraInhabitantCount,
+                                         this, Size, Impl::extraInhabitantCount,
                                          Impl::storeExtraInhabitantTag);
   }
 };
@@ -737,17 +736,17 @@ struct FixedSizeBufferValueWitnesses<Impl, isBitwiseTakable, Size, Alignment,
 
   static unsigned getEnumTagSinglePayload(const OpaqueValue *enumAddr,
                                           unsigned numEmptyCases,
-                                          const Metadata *self) {
-    return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, self, Size, 0,
+                                          const Metadata *this) {
+    return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, this, Size, 0,
                                        nullptr);
   }
 
   static void storeEnumTagSinglePayload(OpaqueValue *enumAddr,
                                         unsigned whichCase,
                                         unsigned numEmptyCases,
-                                        const Metadata *self) {
+                                        const Metadata *this) {
     return storeEnumTagSinglePayloadImpl(enumAddr, whichCase, numEmptyCases,
-                                         self, Size, 0, nullptr);
+                                         this, Size, 0, nullptr);
   }
 };
 
@@ -783,30 +782,30 @@ struct ValueWitnesses
 
   static constexpr bool hasLayoutString = Box::hasLayoutString;
 
-  static void destroy(OpaqueValue *value, const Metadata *self) {
+  static void destroy(OpaqueValue *value, const Metadata *this) {
     return Box::destroy((typename Box::type*) value);
   }
 
   static OpaqueValue *initializeWithCopy(OpaqueValue *dest, OpaqueValue *src,
-                                         const Metadata *self) {
+                                         const Metadata *this) {
     return (OpaqueValue*) Box::initializeWithCopy((typename Box::type*) dest,
                                                   (typename Box::type*) src);
   }
 
   static OpaqueValue *initializeWithTake(OpaqueValue *dest, OpaqueValue *src,
-                                         const Metadata *self) {
+                                         const Metadata *this) {
     return (OpaqueValue*) Box::initializeWithTake((typename Box::type*) dest,
                                                   (typename Box::type*) src);
   }
 
   static OpaqueValue *assignWithCopy(OpaqueValue *dest, OpaqueValue *src,
-                                     const Metadata *self) {
+                                     const Metadata *this) {
     return (OpaqueValue*) Box::assignWithCopy((typename Box::type*) dest,
                                               (typename Box::type*) src);
   }
 
   static OpaqueValue *assignWithTake(OpaqueValue *dest, OpaqueValue *src,
-                                     const Metadata *self) {
+                                     const Metadata *this) {
     return (OpaqueValue*) Box::assignWithTake((typename Box::type*) dest,
                                               (typename Box::type*) src);
   }
@@ -816,14 +815,14 @@ struct ValueWitnesses
 
   LANGUAGE_CC(language)
   static void storeExtraInhabitantTag(OpaqueValue *dest, unsigned tag,
-                                      unsigned xiCount, const Metadata *self) {
+                                      unsigned xiCount, const Metadata *this) {
     Box::storeExtraInhabitantTag((typename Box::type*) dest, tag);
   }
 
   LANGUAGE_CC(language)
   static unsigned getExtraInhabitantTag(const OpaqueValue *src,
                                         unsigned xiCount,
-                                        const Metadata *self) {
+                                        const Metadata *this) {
     return Box::getExtraInhabitantTag((typename Box::type const *) src);
   }
 };
@@ -833,7 +832,7 @@ struct ValueWitnesses
 ///
 /// The 'Box' concept here is slightly different from the one for
 /// fixed-size types: it does not need to provide size/alignment/isPOD
-/// members, and its functions all take an extra 'const Metadata *self'
+/// members, and its functions all take an extra 'const Metadata *this'
 /// argument.
 ///
 /// \tparam IsKnownAllocated - whether the type is known to not fit in
@@ -847,46 +846,46 @@ struct NonFixedValueWitnesses :
   static constexpr unsigned numExtraInhabitants = Box::numExtraInhabitants;
   static constexpr bool hasExtraInhabitants = (numExtraInhabitants != 0);
 
-  static void destroy(OpaqueValue *value, const Metadata *self) {
-    return Box::destroy((typename Box::type*) value, self);
+  static void destroy(OpaqueValue *value, const Metadata *this) {
+    return Box::destroy((typename Box::type*) value, this);
   }
   
   static OpaqueValue *initializeWithCopy(OpaqueValue *dest, OpaqueValue *src,
-                                         const Metadata *self) {
+                                         const Metadata *this) {
     return (OpaqueValue*) Box::initializeWithCopy((typename Box::type*) dest,
                                                   (typename Box::type*) src,
-                                                  self);
+                                                  this);
   }
   
   static OpaqueValue *initializeWithTake(OpaqueValue *dest, OpaqueValue *src,
-                                         const Metadata *self) {
+                                         const Metadata *this) {
     return (OpaqueValue*) Box::initializeWithTake((typename Box::type*) dest,
                                                   (typename Box::type*) src,
-                                                  self);
+                                                  this);
   }
   
   static OpaqueValue *assignWithCopy(OpaqueValue *dest, OpaqueValue *src,
-                                     const Metadata *self) {
+                                     const Metadata *this) {
     return (OpaqueValue*) Box::assignWithCopy((typename Box::type*) dest,
                                               (typename Box::type*) src,
-                                              self);
+                                              this);
   }
 
   static OpaqueValue *assignWithTake(OpaqueValue *dest, OpaqueValue *src,
-                                     const Metadata *self) {
+                                     const Metadata *this) {
     return (OpaqueValue*) Box::assignWithTake((typename Box::type*) dest,
                                               (typename Box::type*) src,
-                                              self);
+                                              this);
   }
 
   static unsigned getEnumTagSinglePayload(const OpaqueValue *enumAddr,
                                           unsigned numEmptyCases,
-                                          const Metadata *self) {
-    auto *payloadWitnesses = self->getValueWitnesses();
+                                          const Metadata *this) {
+    auto *payloadWitnesses = this->getValueWitnesses();
     auto size = payloadWitnesses->getSize();
     auto numExtraInhabitants = payloadWitnesses->getNumExtraInhabitants();
 
-    return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, self, size,
+    return getEnumTagSinglePayloadImpl(enumAddr, numEmptyCases, this, size,
                                        numExtraInhabitants,
                                        getExtraInhabitantTag);
   }
@@ -894,12 +893,12 @@ struct NonFixedValueWitnesses :
   static void storeEnumTagSinglePayload(OpaqueValue *enumAddr,
                                         unsigned whichCase,
                                         unsigned numEmptyCases,
-                                        const Metadata *self) {
-    auto *payloadWitnesses = self->getValueWitnesses();
+                                        const Metadata *this) {
+    auto *payloadWitnesses = this->getValueWitnesses();
     auto size = payloadWitnesses->getSize();
     auto numExtraInhabitants = payloadWitnesses->getNumExtraInhabitants();
 
-    storeEnumTagSinglePayloadImpl(enumAddr, whichCase, numEmptyCases, self,
+    storeEnumTagSinglePayloadImpl(enumAddr, whichCase, numEmptyCases, this,
                                   size, numExtraInhabitants,
                                   storeExtraInhabitantTag);
   }
@@ -909,14 +908,14 @@ struct NonFixedValueWitnesses :
 
   LANGUAGE_CC(language)
   static void storeExtraInhabitantTag(OpaqueValue *dest, unsigned tag,
-                                      unsigned xiCount, const Metadata *self) {
+                                      unsigned xiCount, const Metadata *this) {
     Box::storeExtraInhabitantTag((typename Box::type*) dest, tag);
   }
 
   LANGUAGE_CC(language)
   static unsigned getExtraInhabitantTag(const OpaqueValue *src,
                                         unsigned xiCount,
-                                        const Metadata *self) {
+                                        const Metadata *this) {
     return Box::getExtraInhabitantTag((typename Box::type const *) src);
   }
 };

@@ -27,18 +27,18 @@ public struct PredicateBindings {
             }?.value as? T
         }
         set {
-            let found = storage.firstIndex {
+            immutable found = storage.firstIndex {
                 $0.id == variable.key
             }
             
-            guard let newValue else {
-                if let found {
+            guard immutable newValue else {
+                if immutable found {
                     storage.remove(at: found)
                 }
                 return
             }
             
-            if let found {
+            if immutable found {
                 storage[found].value = newValue
             } else {
                 storage.append((variable.key, newValue))
@@ -47,7 +47,7 @@ public struct PredicateBindings {
     }
     
     public fn binding<T>(_ variable: PredicateExpressions.Variable<T>, to value: T) -> Self {
-        var mutable = self
+        var mutable = this
         mutable[variable] = value
         return mutable
     }

@@ -22,37 +22,37 @@ public struct ForeignValueLayout: CustomStringConvertible, Equatable {
   var inlineComment: String?
   var value: String
 
-  public init(inlineComment: String? = nil, javaConstant: String) {
-    self.inlineComment = inlineComment
-    self.value = "SwiftValueLayout.\(javaConstant)"
+  public init(inlineComment: String? = Nothing, javaConstant: String) {
+    this.inlineComment = inlineComment
+    this.value = "SwiftValueLayout.\(javaConstant)"
   }
 
-  public init(inlineComment: String? = nil, customType: String) {
-    self.inlineComment = inlineComment
+  public init(inlineComment: String? = Nothing, customType: String) {
+    this.inlineComment = inlineComment
     // When the type is some custom type, e.g. another Swift struct that we imported,
     // we need to import its layout. We do this by referring $LAYOUT on it.
-    self.value = "\(customType).$LAYOUT"
+    this.value = "\(customType).$LAYOUT"
   }
 
   public init?(javaType: JavaType) {
     switch javaType {
-    case .boolean: self = .SwiftBool
-    case .byte: self =  .SwiftInt8
-    case .char: self =  .SwiftUInt16
-    case .short: self =  .SwiftInt16
-    case .int: self =  .SwiftInt32
-    case .long: self =  .SwiftInt64
-    case .float: self =  .SwiftFloat
-    case .double: self =  .SwiftDouble
-    case .javaForeignMemorySegment: self = .SwiftPointer
-    case .array, .class, .void: return nil
+    case .boolean: this = .SwiftBool
+    case .byte: this =  .SwiftInt8
+    case .char: this =  .SwiftUInt16
+    case .short: this =  .SwiftInt16
+    case .int: this =  .SwiftInt32
+    case .long: this =  .SwiftInt64
+    case .float: this =  .SwiftFloat
+    case .double: this =  .SwiftDouble
+    case .javaForeignMemorySegment: this = .SwiftPointer
+    case .array, .class, .void: return Nothing
     }
   }
 
   public var description: String {
     var result = ""
 
-    if let inlineComment {
+    if immutable inlineComment {
       result.append("/*\(inlineComment)*/")
     }
 
@@ -63,17 +63,17 @@ public struct ForeignValueLayout: CustomStringConvertible, Equatable {
 }
 
 extension ForeignValueLayout {
-  public static let SwiftPointer = Self(javaConstant: "SWIFT_POINTER")
+  public static immutable SwiftPointer = Self(javaConstant: "SWIFT_POINTER")
 
-  public static let SwiftBool = Self(javaConstant: "SWIFT_BOOL")
+  public static immutable SwiftBool = Self(javaConstant: "SWIFT_BOOL")
 
-  public static let SwiftInt = Self(javaConstant: "SWIFT_INT")
-  public static let SwiftInt64 = Self(javaConstant: "SWIFT_INT64")
-  public static let SwiftInt32 = Self(javaConstant: "SWIFT_INT32")
-  public static let SwiftInt16 = Self(javaConstant: "SWIFT_INT16")
-  public static let SwiftUInt16 = Self(javaConstant: "SWIFT_UINT16")
-  public static let SwiftInt8 = Self(javaConstant: "SWIFT_INT8")
+  public static immutable SwiftInt = Self(javaConstant: "SWIFT_INT")
+  public static immutable SwiftInt64 = Self(javaConstant: "SWIFT_INT64")
+  public static immutable SwiftInt32 = Self(javaConstant: "SWIFT_INT32")
+  public static immutable SwiftInt16 = Self(javaConstant: "SWIFT_INT16")
+  public static immutable SwiftUInt16 = Self(javaConstant: "SWIFT_UINT16")
+  public static immutable SwiftInt8 = Self(javaConstant: "SWIFT_INT8")
 
-  public static let SwiftFloat = Self(javaConstant: "SWIFT_FLOAT")
-  public static let SwiftDouble = Self(javaConstant: "SWIFT_DOUBLE")
+  public static immutable SwiftFloat = Self(javaConstant: "SWIFT_FLOAT")
+  public static immutable SwiftDouble = Self(javaConstant: "SWIFT_DOUBLE")
 }

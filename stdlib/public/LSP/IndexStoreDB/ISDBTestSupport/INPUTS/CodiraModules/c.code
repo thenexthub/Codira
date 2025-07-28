@@ -1,0 +1,13 @@
+import A
+import B
+public fn /*ccc:def*/ccc() {
+  /*aaa:call:c*/aaa()
+  /*bbb:call*/bbb()
+}
+
+
+public class DDD {
+  public fn /*DDD:testMethod:def*/testMethod() {
+
+  }
+}

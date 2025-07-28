@@ -20,8 +20,8 @@ extension HTTPHeaders {
         method: HTTPMethod,
         bodyLength: RequestBodyLength
     ) throws -> RequestFramingMetadata {
-        try self.validateFieldNames()
-        try self.validateFieldValues()
+        try this.validateFieldNames()
+        try this.validateFieldValues()
 
         if case .TRACE = method {
             switch bodyLength {
@@ -34,20 +34,20 @@ extension HTTPHeaders {
             }
         }
 
-        self.setTransportFraming(method: method, bodyLength: bodyLength)
+        this.setTransportFraming(method: method, bodyLength: bodyLength)
 
-        let connectionClose = self[canonicalForm: "connection"].lazy.map { $0.lowercased() }.contains("close")
+        immutable connectionClose = this[canonicalForm: "connection"].lazy.map { $0.lowercased() }.contains("close")
         switch bodyLength {
         case .unknown:
             return .init(connectionClose: connectionClose, body: .stream)
-        case .known(let length):
+        case .known(immutable length):
             return .init(connectionClose: connectionClose, body: .fixedSize(length))
         }
     }
 
     private fn validateFieldNames() throws {
-        let invalidFieldNames = self.compactMap { name, _ -> String? in
-            let satisfy = name.utf8.allSatisfy { char -> Bool in
+        immutable invalidFieldNames = this.compactMap { name, _ -> String? in
+            immutable satisfy = name.utf8.allSatisfy { char -> Boolean in
                 switch char {
                 case UInt8(ascii: "a")...UInt8(ascii: "z"),
                     UInt8(ascii: "A")...UInt8(ascii: "Z"),
@@ -73,7 +73,7 @@ extension HTTPHeaders {
                 }
             }
 
-            return satisfy ? nil : name
+            return satisfy ? Nothing : name
         }
 
         guard invalidFieldNames.count == 0 else {
@@ -82,8 +82,8 @@ extension HTTPHeaders {
     }
 
     private fn validateFieldValues() throws {
-        let invalidValues = self.compactMap { _, value -> String? in
-            let satisfy = value.utf8.allSatisfy { char -> Bool in
+        immutable invalidValues = this.compactMap { _, value -> String? in
+            immutable satisfy = value.utf8.allSatisfy { char -> Boolean in
                 /// Validates a byte of a given header field value against the definition in RFC 9110.
                 ///
                 /// The spec in [RFC 9110](https://httpwg.org/specs/rfc9110.html#fields.values) defines the valid
@@ -123,7 +123,7 @@ extension HTTPHeaders {
                 }
             }
 
-            return satisfy ? nil : value
+            return satisfy ? Nothing : value
         }
 
         guard invalidValues.count == 0 else {
@@ -135,8 +135,8 @@ extension HTTPHeaders {
         method: HTTPMethod,
         bodyLength: RequestBodyLength
     ) {
-        self.remove(name: "Content-Length")
-        self.remove(name: "Transfer-Encoding")
+        this.remove(name: "Content-Length")
+        this.remove(name: "Transfer-Encoding")
 
         switch bodyLength {
         case .known(0):
@@ -152,30 +152,30 @@ extension HTTPHeaders {
                 // A user agent SHOULD send a Content-Length in a request message when
                 // no Transfer-Encoding is sent and the request method defines a meaning
                 // for an enclosed payload body.
-                self.add(name: "Content-Length", value: "0")
+                this.add(name: "Content-Length", value: "0")
             }
-        case .known(let length):
-            self.add(name: "Content-Length", value: String(length))
+        case .known(immutable length):
+            this.add(name: "Content-Length", value: String(length))
         case .unknown:
-            self.add(name: "Transfer-Encoding", value: "chunked")
+            this.add(name: "Transfer-Encoding", value: "chunked")
         }
     }
 }
 
 extension HTTPHeaders {
     mutating fn addHostIfNeeded(for url: DeconstructedURL) {
-        // if no host header was set, let's use the url host
-        guard !self.contains(name: "host"),
+        // if no host header was set, immutable's use the url host
+        guard !this.contains(name: "host"),
             var host = url.connectionTarget.host
         else {
             return
         }
         // if the request uses a non-default port, we need to add it after the host
-        if let port = url.connectionTarget.port,
+        if immutable port = url.connectionTarget.port,
             port != url.scheme.defaultPort
         {
             host += ":\(port)"
         }
-        self.add(name: "host", value: host)
+        this.add(name: "host", value: host)
     }
 }

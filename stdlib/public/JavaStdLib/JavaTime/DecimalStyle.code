@@ -1,0 +1,60 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.time.format.DecimalStyle")
+open class DecimalStyle: JavaObject {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getZeroDigit() -> UInt16
+
+  @JavaMethod
+  open fn getDecimalSeparator() -> UInt16
+
+  @JavaMethod
+  open fn getPositiveSign() -> UInt16
+
+  @JavaMethod
+  open fn getNegativeSign() -> UInt16
+
+  @JavaMethod
+  open fn withZeroDigit(_ arg0: UInt16) -> DecimalStyle!
+
+  @JavaMethod
+  open fn withPositiveSign(_ arg0: UInt16) -> DecimalStyle!
+
+  @JavaMethod
+  open fn withNegativeSign(_ arg0: UInt16) -> DecimalStyle!
+
+  @JavaMethod
+  open fn withDecimalSeparator(_ arg0: UInt16) -> DecimalStyle!
+}
+extension JavaClass<DecimalStyle> {
+  @JavaStaticField(isFinal: true)
+  public var STANDARD: DecimalStyle!
+
+  @JavaStaticMethod
+  public fn ofDefaultLocale() -> DecimalStyle!
+}

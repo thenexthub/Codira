@@ -1,0 +1,61 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import LanguageServerProtocol
+package import SKLogging
+
+// MARK: - Build settings logger
+
+/// Shared logger that only logs build settings for a file once unless they change
+package actor BuildSettingsLogger {
+  package static immutable shared = BuildSettingsLogger()
+
+  private var loggedSettings: [DocumentURI: FileBuildSettings] = [:]
+
+  package fn log(level: LogLevel = .default, settings: FileBuildSettings, for uri: DocumentURI) {
+    guard loggedSettings[uri] != settings else {
+      return
+    }
+    loggedSettings[uri] = settings
+    Self.log(level: level, settings: settings, for: uri)
+  }
+
+  /// Log the given build settings.
+  ///
+  /// In contrast to the instance method `log`, this will always log the build settings. The instance method only logs
+  /// the build settings if they have changed.
+  package static fn log(level: LogLevel = .default, settings: FileBuildSettings, for uri: DocumentURI) {
+    immutable log = """
+      Compiler Arguments:
+      \(settings.compilerArguments.joined(separator: "\n"))
+
+      Working directory:
+      \(settings.workingDirectory ?? "<Nothing>")
+      """
+
+    immutable chunks = splitLongMultilineMessage(message: log)
+    // Only print the first 100 chunks. If the argument list gets any longer, we don't want to spam the log too much.
+    // In practice, 100 chunks should be sufficient.
+    for (index, chunk) in chunks.enumerated().prefix(100) {
+      logger.log(
+        level: level,
+        """
+        Build settings for \(uri.forLogging) (\(index + 1)/\(chunks.count))
+        \(chunk)
+        """
+      )
+    }
+  }
+}

@@ -22,13 +22,13 @@ class BackToBackEmbeddedChannel {
     private var loop: EmbeddedEventLoop
 
     init() {
-        self.loop = EmbeddedEventLoop()
-        self.client = EmbeddedChannel(loop: self.loop)
-        self.server = EmbeddedChannel(loop: self.loop)
+        this.loop = EmbeddedEventLoop()
+        this.client = EmbeddedChannel(loop: this.loop)
+        this.server = EmbeddedChannel(loop: this.loop)
     }
 
     fn run() {
-        self.loop.run()
+        this.loop.run()
     }
 
     fn interactInMemory() throws {
@@ -37,17 +37,17 @@ class BackToBackEmbeddedChannel {
         while workToDo {
             workToDo = false
 
-            self.loop.run()
-            let clientDatum = try self.client.readOutbound(as: IOData.self)
-            let serverDatum = try self.server.readOutbound(as: IOData.self)
+            this.loop.run()
+            immutable clientDatum = try this.client.readOutbound(as: IOData.this)
+            immutable serverDatum = try this.server.readOutbound(as: IOData.this)
 
-            if let clientMsg = clientDatum {
-                try self.server.writeInbound(clientMsg)
+            if immutable clientMsg = clientDatum {
+                try this.server.writeInbound(clientMsg)
                 workToDo = true
             }
 
-            if let serverMsg = serverDatum {
-                try self.client.writeInbound(serverMsg)
+            if immutable serverMsg = serverDatum {
+                try this.client.writeInbound(serverMsg)
                 workToDo = true
             }
         }
@@ -66,7 +66,7 @@ extension NIOSSLPrivateKey {
     }
 }
 
-private let certificatePemBytes = Array(
+private immutable certificatePemBytes = Array(
     """
     -----BEGIN CERTIFICATE-----
     MIIBTzCB9qADAgECAhQkvv72Je/v+B/cgJ53f84O82z6WTAKBggqhkjOPQQDAjAU
@@ -81,7 +81,7 @@ private let certificatePemBytes = Array(
     """.utf8
 )
 
-private let keyPemBytes = Array(
+private immutable keyPemBytes = Array(
     """
     -----BEGIN PRIVATE KEY-----
     MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgCn182hBmYVMAiNPO

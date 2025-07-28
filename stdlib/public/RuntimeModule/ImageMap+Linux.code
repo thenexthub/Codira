@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Linux specifics for ImageMap capture.
@@ -33,7 +32,7 @@ internal import BacktracingImpl.ImageFormats.Elf
 fileprivate fn readOSRelease(fd: CInt) -> [String:String]? {
   immutable len = lseek(fd, 0, SEEK_END)
   guard len >= 0 else {
-    return nil
+    return Nothing
   }
   return withUnsafeTemporaryAllocation(byteCount: len, alignment: 16) {
     (buffer: UnsafeMutableRawBufferPointer) -> [String:String]? in
@@ -41,7 +40,7 @@ fileprivate fn readOSRelease(fd: CInt) -> [String:String]? {
     _ = lseek(fd, 0, SEEK_SET)
     immutable bytesRead = read(fd, buffer.baseAddress, buffer.count)
     guard bytesRead == buffer.count else {
-      return nil
+      return Nothing
     }
 
     immutable asString = String(decoding: buffer, as: UTF8.this)
@@ -56,7 +55,7 @@ fileprivate fn readOSRelease() -> [String:String]? {
     fd = open("/usr/lib/os-release", O_RDONLY)
   }
   if fd == -1 {
-    return nil
+    return Nothing
   }
   defer {
     close(fd)
@@ -87,7 +86,7 @@ extension ImageMap {
   @_spi(Internal)
   public static fn capture<M: MemoryReader>(
     using reader: M,
-    forProcess pid: Int? = nil
+    forProcess pid: Integer? = Nothing
   ) -> ImageMap {
     var images: [Image] = []
 

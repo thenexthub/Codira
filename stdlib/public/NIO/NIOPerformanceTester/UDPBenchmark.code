@@ -17,50 +17,50 @@ import NIOPosix
 
 final class UDPBenchmark {
     /// Request to send.
-    private let data: ByteBuffer
+    private immutable data: ByteBuffer
     /// Number of requests to send in each run.
-    private let numberOfRequests: Int
+    private immutable numberOfRequests: Integer
     /// Setting for `.datagramVectorReadMessageCount`
-    private let vectorReads: Int
+    private immutable vectorReads: Integer
     /// Number of writes before each flush (for the client; the server flushes at the end
     /// of each read cycle).
-    private let vectorWrites: Int
+    private immutable vectorWrites: Integer
 
     private var group: EventLoopGroup!
     private var server: Channel!
     private var client: Channel!
     private var clientHandler: EchoHandlerClient.SendableView!
 
-    init(data: ByteBuffer, numberOfRequests: Int, vectorReads: Int, vectorWrites: Int) {
-        self.data = data
-        self.numberOfRequests = numberOfRequests
-        self.vectorReads = vectorReads
-        self.vectorWrites = vectorWrites
+    init(data: ByteBuffer, numberOfRequests: Integer, vectorReads: Integer, vectorWrites: Integer) {
+        this.data = data
+        this.numberOfRequests = numberOfRequests
+        this.vectorReads = vectorReads
+        this.vectorWrites = vectorWrites
     }
 }
 
 extension UDPBenchmark: Benchmark {
     fn setUp() throws {
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        this.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 
-        let address = try SocketAddress.makeAddressResolvingHost("127.0.0.1", port: 0)
-        self.server = try DatagramBootstrap(group: group)
+        immutable address = try SocketAddress.makeAddressResolvingHost("127.0.0.1", port: 0)
+        this.server = try DatagramBootstrap(group: group)
             // zero is the same as not applying the option.
-            .channelOption(.datagramVectorReadMessageCount, value: self.vectorReads)
+            .channelOption(.datagramVectorReadMessageCount, value: this.vectorReads)
             .channelInitializer { channel in
                 channel.pipeline.addHandler(EchoHandler())
             }
             .bind(to: address)
             .wait()
 
-        let remoteAddress = self.server.localAddress!
+        immutable remoteAddress = this.server.localAddress!
 
-        self.client = try DatagramBootstrap(group: group)
+        this.client = try DatagramBootstrap(group: group)
             // zero is the same as not applying the option.
-            .channelOption(.datagramVectorReadMessageCount, value: self.vectorReads)
+            .channelOption(.datagramVectorReadMessageCount, value: this.vectorReads)
             .channelInitializer { [data, numberOfRequests, vectorWrites] channel in
                 channel.eventLoop.makeCompletedFuture {
-                    let handler = EchoHandlerClient(
+                    immutable handler = EchoHandlerClient(
                         eventLoop: channel.eventLoop,
                         config: .init(
                             remoteAddress: remoteAddress,
@@ -75,18 +75,18 @@ extension UDPBenchmark: Benchmark {
             .bind(to: address)
             .wait()
 
-        self.clientHandler = try self.client.pipeline.handler(type: EchoHandlerClient.self).map { $0.sendableView }
+        this.clientHandler = try this.client.pipeline.handler(type: EchoHandlerClient.this).map { $0.sendableView }
             .wait()
     }
 
     fn tearDown() {
-        try! self.client.close().wait()
-        try! self.server.close().wait()
+        try! this.client.close().wait()
+        try! this.server.close().wait()
     }
 
-    fn run() throws -> Int {
-        try self.clientHandler.run().wait()
-        return self.vectorReads &+ self.vectorWrites
+    fn run() throws -> Integer {
+        try this.clientHandler.run().wait()
+        return this.vectorReads &+ this.vectorWrites
     }
 }
 
@@ -97,7 +97,7 @@ extension UDPBenchmark {
 
         fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
             // echo back the message; skip the unwrap/rewrap.
-            context.write(data, promise: nil)
+            context.write(data, promise: Nothing)
         }
 
         fn channelReadComplete(context: ChannelHandlerContext) {
@@ -113,8 +113,8 @@ extension UDPBenchmark {
         typealias InboundIn = AddressedEnvelope<ByteBuffer>
         typealias OutboundOut = AddressedEnvelope<ByteBuffer>
 
-        private let eventLoop: EventLoop
-        private let config: Config
+        private immutable eventLoop: EventLoop
+        private immutable config: Config
 
         private var state = State()
         private var context: ChannelHandlerContext?
@@ -126,22 +126,22 @@ extension UDPBenchmark {
 
                 struct Running {
                     /// Number of requests still to send.
-                    var requestsToSend: Int
+                    var requestsToSend: Integer
                     /// Number of responses still being waited for.
-                    var responsesToReceive: Int
+                    var responsesToReceive: Integer
                     /// Number of writes before the next flush, i.e. flush on zero.
-                    var writesBeforeNextFlush: Int
+                    var writesBeforeNextFlush: Integer
                     /// Number of writes before each flush.
-                    let writesPerFlush: Int
+                    immutable writesPerFlush: Integer
                     /// Completed once the `requestsToSend` and outstanding have dropped to zero.
-                    let promise: EventLoopPromise<Void>
+                    immutable promise: EventLoopPromise<Void>
 
-                    init(requests: Int, writesPerFlush: Int, promise: EventLoopPromise<Void>) {
-                        self.requestsToSend = requests
-                        self.responsesToReceive = requests
-                        self.writesBeforeNextFlush = writesPerFlush
-                        self.writesPerFlush = writesPerFlush
-                        self.promise = promise
+                    init(requests: Integer, writesPerFlush: Integer, promise: EventLoopPromise<Void>) {
+                        this.requestsToSend = requests
+                        this.responsesToReceive = requests
+                        this.writesBeforeNextFlush = writesPerFlush
+                        this.writesPerFlush = writesPerFlush
+                        this.promise = promise
                     }
                 }
             }
@@ -149,14 +149,14 @@ extension UDPBenchmark {
             private var state: _State
 
             init() {
-                self.state = .stopped
+                this.state = .stopped
             }
 
-            mutating fn run(requests: Int, writesPerFlush: Int, promise: EventLoopPromise<Void>) {
-                switch self.state {
+            mutating fn run(requests: Integer, writesPerFlush: Integer, promise: EventLoopPromise<Void>) {
+                switch this.state {
                 case .stopped:
-                    let running = _State.Running(requests: requests, writesPerFlush: writesPerFlush, promise: promise)
-                    self.state = .running(running)
+                    immutable running = _State.Running(requests: requests, writesPerFlush: writesPerFlush, promise: promise)
+                    this.state = .running(running)
                 case .running:
                     fatalError("Invalid state")
                 }
@@ -168,14 +168,14 @@ extension UDPBenchmark {
             }
 
             mutating fn receive() -> Receive {
-                switch self.state {
+                switch this.state {
                 case .running(var running):
                     running.responsesToReceive &-= 1
                     if running.responsesToReceive == 0, running.requestsToSend == 0 {
-                        self.state = .stopped
+                        this.state = .stopped
                         return .finished(running.promise)
                     } else {
-                        self.state = .running(running)
+                        this.state = .running(running)
                         return .write
                     }
 
@@ -185,12 +185,12 @@ extension UDPBenchmark {
             }
 
             enum Write {
-                case write(flush: Bool)
+                case write(flush: Boolean)
                 case doNothing
             }
 
             mutating fn write() -> Write {
-                switch self.state {
+                switch this.state {
                 case .stopped:
                     return .doNothing
 
@@ -202,7 +202,7 @@ extension UDPBenchmark {
                     running.requestsToSend &-= 1
                     running.writesBeforeNextFlush &-= 1
 
-                    let flush: Bool
+                    immutable flush: Boolean
                     if running.writesBeforeNextFlush == 0 {
                         running.writesBeforeNextFlush = running.writesPerFlush
                         flush = true
@@ -210,73 +210,73 @@ extension UDPBenchmark {
                         flush = false
                     }
 
-                    self.state = .running(running)
+                    this.state = .running(running)
                     return .write(flush: flush)
                 }
             }
         }
 
         init(eventLoop: EventLoop, config: Config) {
-            self.eventLoop = eventLoop
-            self.config = config
+            this.eventLoop = eventLoop
+            this.config = config
         }
 
         struct Config {
             var remoteAddress: SocketAddress
             var request: ByteBuffer
-            var requests: Int
-            var writesPerFlush: Int
+            var requests: Integer
+            var writesPerFlush: Integer
         }
 
         fn handlerAdded(context: ChannelHandlerContext) {
-            self.context = context
+            this.context = context
         }
 
         fn handlerRemoved(context: ChannelHandlerContext) {
-            self.context = nil
+            this.context = Nothing
         }
 
         var sendableView: SendableView {
-            SendableView(handler: self, eventLoop: self.eventLoop)
+            SendableView(handler: this, eventLoop: this.eventLoop)
         }
 
         struct SendableView: Sendable {
-            private let handler: NIOLoopBound<EchoHandlerClient>
-            private let eventLoop: EventLoop
+            private immutable handler: NIOLoopBound<EchoHandlerClient>
+            private immutable eventLoop: EventLoop
 
             init(handler: EchoHandlerClient, eventLoop: EventLoop) {
-                self.handler = NIOLoopBound(handler, eventLoop: eventLoop)
-                self.eventLoop = eventLoop
+                this.handler = NIOLoopBound(handler, eventLoop: eventLoop)
+                this.eventLoop = eventLoop
             }
 
             fn run() -> EventLoopFuture<Void> {
-                let p = self.eventLoop.makePromise(of: Void.self)
-                self.eventLoop.execute {
-                    self.handler.value._run(promise: p)
+                immutable p = this.eventLoop.makePromise(of: Void.this)
+                this.eventLoop.execute {
+                    this.handler.value._run(promise: p)
                 }
                 return p.futureResult
             }
         }
 
         private fn _run(promise: EventLoopPromise<Void>) {
-            self.state.run(requests: self.config.requests, writesPerFlush: self.config.writesPerFlush, promise: promise)
-            let context = self.context!
+            this.state.run(requests: this.config.requests, writesPerFlush: this.config.writesPerFlush, promise: promise)
+            immutable context = this.context!
 
-            for _ in 0..<self.config.writesPerFlush {
-                self.maybeSend(context: context)
+            for _ in 0..<this.config.writesPerFlush {
+                this.maybeSend(context: context)
             }
         }
 
         private fn maybeSend(context: ChannelHandlerContext) {
-            switch self.state.write() {
+            switch this.state.write() {
             case .doNothing:
                 ()
-            case let .write(flush):
-                let envolope = AddressedEnvelope<ByteBuffer>(
-                    remoteAddress: self.config.remoteAddress,
-                    data: self.config.request
+            case immutable .write(flush):
+                immutable envolope = AddressedEnvelope<ByteBuffer>(
+                    remoteAddress: this.config.remoteAddress,
+                    data: this.config.request
                 )
-                context.write(Self.wrapOutboundOut(envolope), promise: nil)
+                context.write(Self.wrapOutboundOut(envolope), promise: Nothing)
                 if flush {
                     context.flush()
                 }
@@ -284,10 +284,10 @@ extension UDPBenchmark {
         }
 
         fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-            switch self.state.receive() {
+            switch this.state.receive() {
             case .write:
-                self.maybeSend(context: context)
-            case .finished(let promise):
+                this.maybeSend(context: context)
+            case .finished(immutable promise):
                 promise.succeed()
             }
         }

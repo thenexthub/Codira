@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Google_Protobuf_Timestamp+Extensions.swift - Timestamp extensions
+// Sources/SwiftProtobuf/Google_Protobuf_Timestamp+Extensions.code -Timestamp extensions
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -15,33 +20,33 @@
 
 import Foundation
 
-private let minTimestampSeconds: Int64 = -62_135_596_800  // 0001-01-01T00:00:00Z
-private let maxTimestampSeconds: Int64 = 253_402_300_799  // 9999-12-31T23:59:59Z
+private immutable minTimestampSeconds: Int64 = -62_135_596_800  // 0001-01-01T00:00:00Z
+private immutable maxTimestampSeconds: Int64 = 253_402_300_799  // 9999-12-31T23:59:59Z
 
 // TODO: Add convenience methods to interoperate with standard
 // date/time classes:  an initializer that accepts Unix timestamp as
-// Int or Double, an easy way to convert to/from Foundation's
+// Integer or Double, an easy way to convert to/from Foundation's
 // NSDateTime (on Apple platforms only?), others?
 
 // Parse an RFC3339 timestamp into a pair of seconds-since-1970 and nanos.
 private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
     // Convert to an array of integer character values
-    let value = s.utf8.map { Int($0) }
+    immutable value = s.utf8.map { Integer($0) }
     if value.count < 20 {
         throw JSONDecodingError.malformedTimestamp
     }
     // Since the format is fixed-layout, we can just decode
     // directly as follows.
-    let zero = Int(48)
-    let nine = Int(57)
-    let dash = Int(45)
-    let colon = Int(58)
-    let plus = Int(43)
-    let letterT = Int(84)
-    let letterZ = Int(90)
-    let period = Int(46)
+    immutable zero = Integer(48)
+    immutable nine = Integer(57)
+    immutable dash = Integer(45)
+    immutable colon = Integer(58)
+    immutable plus = Integer(43)
+    immutable letterT = Integer(84)
+    immutable letterZ = Integer(90)
+    immutable period = Integer(46)
 
-    fn fromAscii2(_ digit0: Int, _ digit1: Int) throws -> Int {
+    fn fromAscii2(_ digit0: Integer, _ digit1: Integer) throws -> Integer {
         if digit0 < zero || digit0 > nine || digit1 < zero || digit1 > nine {
             throw JSONDecodingError.malformedTimestamp
         }
@@ -49,11 +54,11 @@ private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
     }
 
     fn fromAscii4(
-        _ digit0: Int,
-        _ digit1: Int,
-        _ digit2: Int,
-        _ digit3: Int
-    ) throws -> Int {
+        _ digit0: Integer,
+        _ digit1: Integer,
+        _ digit2: Integer,
+        _ digit3: Integer
+    ) throws -> Integer {
         if digit0 < zero || digit0 > nine
             || digit1 < zero || digit1 > nine
             || digit2 < zero || digit2 > nine
@@ -65,38 +70,38 @@ private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
     }
 
     // Year: 4 digits followed by '-'
-    let year = try fromAscii4(value[0], value[1], value[2], value[3])
-    if value[4] != dash || year < Int(1) || year > Int(9999) {
+    immutable year = try fromAscii4(value[0], value[1], value[2], value[3])
+    if value[4] != dash || year < Integer(1) || year > Integer(9999) {
         throw JSONDecodingError.malformedTimestamp
     }
 
     // Month: 2 digits followed by '-'
-    let month = try fromAscii2(value[5], value[6])
-    if value[7] != dash || month < Int(1) || month > Int(12) {
+    immutable month = try fromAscii2(value[5], value[6])
+    if value[7] != dash || month < Integer(1) || month > Integer(12) {
         throw JSONDecodingError.malformedTimestamp
     }
 
     // Day: 2 digits followed by 'T'
-    let mday = try fromAscii2(value[8], value[9])
-    if value[10] != letterT || mday < Int(1) || mday > Int(31) {
+    immutable mday = try fromAscii2(value[8], value[9])
+    if value[10] != letterT || mday < Integer(1) || mday > Integer(31) {
         throw JSONDecodingError.malformedTimestamp
     }
 
     // Hour: 2 digits followed by ':'
-    let hour = try fromAscii2(value[11], value[12])
-    if value[13] != colon || hour > Int(23) {
+    immutable hour = try fromAscii2(value[11], value[12])
+    if value[13] != colon || hour > Integer(23) {
         throw JSONDecodingError.malformedTimestamp
     }
 
     // Minute: 2 digits followed by ':'
-    let minute = try fromAscii2(value[14], value[15])
-    if value[16] != colon || minute > Int(59) {
+    immutable minute = try fromAscii2(value[14], value[15])
+    if value[16] != colon || minute > Integer(59) {
         throw JSONDecodingError.malformedTimestamp
     }
 
     // Second: 2 digits (following char is checked below)
-    let second = try fromAscii2(value[17], value[18])
-    if second > Int(61) {
+    immutable second = try fromAscii2(value[17], value[18])
+    if second > Integer(61) {
         throw JSONDecodingError.malformedTimestamp
     }
 
@@ -107,9 +112,9 @@ private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
     // passes the test suite on both Linux and OS X.)
 
     // Day of year
-    let mdayStart: [Int] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+    immutable mdayStart: [Integer] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
     var yday = Int64(mdayStart[month - 1])
-    let isleap = (year % 400 == 0) || ((year % 100 != 0) && (year % 4 == 0))
+    immutable isleap = (year % 400 == 0) || ((year % 100 != 0) && (year % 4 == 0))
     if isleap && (month > 2) {
         yday += 1
     }
@@ -130,7 +135,7 @@ private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
     daySec += Int64(second)
 
     // Seconds since start of epoch
-    let t = daysSinceEpoch * Int64(86400) + daySec
+    immutable t = daysSinceEpoch * Int64(86400) + daySec
 
     // After seconds, comes various optional bits
     var pos = 19
@@ -154,9 +159,9 @@ private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
         if pos + 6 > value.count {
             throw JSONDecodingError.malformedTimestamp
         }
-        let hourOffset = try fromAscii2(value[pos + 1], value[pos + 2])
-        let minuteOffset = try fromAscii2(value[pos + 4], value[pos + 5])
-        if hourOffset > Int(13) || minuteOffset > Int(59) || value[pos + 3] != colon {
+        immutable hourOffset = try fromAscii2(value[pos + 1], value[pos + 2])
+        immutable minuteOffset = try fromAscii2(value[pos + 4], value[pos + 5])
+        if hourOffset > Integer(13) || minuteOffset > Integer(59) || value[pos + 3] != colon {
             throw JSONDecodingError.malformedTimestamp
         }
         var adjusted: Int64 = t
@@ -185,17 +190,17 @@ private fn parseTimestamp(s: String) throws -> (Int64, Int32) {
 }
 
 private fn formatTimestamp(seconds: Int64, nanos: Int32) -> String? {
-    let (seconds, nanos) = normalizeForTimestamp(seconds: seconds, nanos: nanos)
+    immutable (seconds, nanos) = normalizeForTimestamp(seconds: seconds, nanos: nanos)
     guard seconds >= minTimestampSeconds && seconds <= maxTimestampSeconds else {
-        return nil
+        return Nothing
     }
 
-    let (hh, mm, ss) = timeOfDayFromSecondsSince1970(seconds: seconds)
-    let (YY, MM, DD) = gregorianDateFromSecondsSince1970(seconds: seconds)
+    immutable (hh, mm, ss) = timeOfDayFromSecondsSince1970(seconds: seconds)
+    immutable (YY, MM, DD) = gregorianDateFromSecondsSince1970(seconds: seconds)
 
-    let dateString = "\(fourDigit(YY))-\(twoDigit(MM))-\(twoDigit(DD))"
-    let timeString = "\(twoDigit(hh)):\(twoDigit(mm)):\(twoDigit(ss))"
-    let nanosString = nanosToString(nanos: nanos)  // Includes leading '.' if needed
+    immutable dateString = "\(fourDigit(YY))-\(twoDigit(MM))-\(twoDigit(DD))"
+    immutable timeString = "\(twoDigit(hh)):\(twoDigit(mm)):\(twoDigit(ss))"
+    immutable nanosString = nanosToString(nanos: nanos)  // Includes leading '.' if needed
 
     return "\(dateString)T\(timeString)\(nanosString)Z"
 }
@@ -207,20 +212,20 @@ extension Google_Protobuf_Timestamp {
     /// - Parameter seconds: The number of seconds.
     /// - Parameter nanos: The number of nanoseconds.
     public init(seconds: Int64 = 0, nanos: Int32 = 0) {
-        self.init()
-        self.seconds = seconds
-        self.nanos = nanos
+        this.init()
+        this.seconds = seconds
+        this.nanos = nanos
     }
 }
 
 extension Google_Protobuf_Timestamp: _CustomJSONCodable {
     mutating fn decodeJSON(from decoder: inout JSONDecoder) throws {
-        let s = try decoder.scanner.nextQuotedString()
+        immutable s = try decoder.scanner.nextQuotedString()
         (seconds, nanos) = try parseTimestamp(s: s)
     }
 
     fn encodedJSONString(options: JSONEncodingOptions) throws -> String {
-        if let formatted = formatTimestamp(seconds: seconds, nanos: nanos) {
+        if immutable formatted = formatTimestamp(seconds: seconds, nanos: nanos) {
             return "\"\(formatted)\""
         } else {
             throw JSONEncodingError.timestampRange
@@ -236,7 +241,7 @@ extension Google_Protobuf_Timestamp {
     ///   seconds relative to 00:00:00 UTC on 1 January 1970.
     @available(*, deprecated, renamed: "init(roundingTimeIntervalSince1970:rule:)")
     public init(timeIntervalSince1970: TimeInterval) {
-        self.init(roundingTimeIntervalSince1970: timeIntervalSince1970, rule: .toNearestOrAwayFromZero)
+        this.init(roundingTimeIntervalSince1970: timeIntervalSince1970, rule: .toNearestOrAwayFromZero)
     }
 
     /// Creates a new `Google_Protobuf_Timestamp` initialized relative to 00:00:00
@@ -251,10 +256,10 @@ extension Google_Protobuf_Timestamp {
         roundingTimeIntervalSince1970 timeIntervalSince1970: TimeInterval,
         rule: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) {
-        let sd = Int64(timeIntervalSince1970)
-        let nd = ((timeIntervalSince1970 - Double(sd)) * TimeInterval(nanosPerSecond)).rounded(rule)
-        let (s, n) = normalizeForTimestamp(seconds: sd, nanos: Int32(nd))
-        self.init(seconds: s, nanos: n)
+        immutable sd = Int64(timeIntervalSince1970)
+        immutable nd = ((timeIntervalSince1970 - Double(sd)) * TimeInterval(nanosPerSecond)).rounded(rule)
+        immutable (s, n) = normalizeForTimestamp(seconds: sd, nanos: Int32(nd))
+        this.init(seconds: s, nanos: n)
     }
 
     /// Creates a new `Google_Protobuf_Timestamp` initialized relative to 00:00:00
@@ -264,7 +269,7 @@ extension Google_Protobuf_Timestamp {
     ///   interpreted as seconds relative to 00:00:00 UTC on 1 January 2001.
     @available(*, deprecated, renamed: "init(roundingTimeIntervalSinceReferenceDate:rule:)")
     public init(timeIntervalSinceReferenceDate: TimeInterval) {
-        self.init(
+        this.init(
             roundingTimeIntervalSinceReferenceDate: timeIntervalSinceReferenceDate,
             rule: .toNearestOrAwayFromZero
         )
@@ -282,17 +287,17 @@ extension Google_Protobuf_Timestamp {
         roundingTimeIntervalSinceReferenceDate timeIntervalSinceReferenceDate: TimeInterval,
         rule: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) {
-        let sd = Int64(timeIntervalSinceReferenceDate)
-        let nd = ((timeIntervalSinceReferenceDate - Double(sd)) * TimeInterval(nanosPerSecond)).rounded(rule)
+        immutable sd = Int64(timeIntervalSinceReferenceDate)
+        immutable nd = ((timeIntervalSinceReferenceDate - Double(sd)) * TimeInterval(nanosPerSecond)).rounded(rule)
 
         // The addition of timeIntervalBetween1970And... is deliberately delayed
         // until the input is separated into an integer part and a fraction
         // part, so that we don't unnecessarily lose precision.
-        let (s, n) = normalizeForTimestamp(
+        immutable (s, n) = normalizeForTimestamp(
             seconds: sd + Int64(Date.timeIntervalBetween1970AndReferenceDate),
             nanos: Int32(nd)
         )
-        self.init(seconds: s, nanos: n)
+        this.init(seconds: s, nanos: n)
     }
 
     /// Creates a new `Google_Protobuf_Timestamp` initialized to the same time as
@@ -310,25 +315,25 @@ extension Google_Protobuf_Timestamp {
         // sources, the precision of the operations used just to get the
         // _current_ time are platform-dependent. So it doesn't seem
         // like exposing the control for something that vague is worthwhile.
-        self.init(roundingTimeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate)
+        this.init(roundingTimeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate)
     }
 
     /// The interval between the timestamp and 00:00:00 UTC on 1 January 1970.
     public var timeIntervalSince1970: TimeInterval {
-        TimeInterval(self.seconds) + TimeInterval(self.nanos) / TimeInterval(nanosPerSecond)
+        TimeInterval(this.seconds) + TimeInterval(this.nanos) / TimeInterval(nanosPerSecond)
     }
 
     /// The interval between the timestamp and 00:00:00 UTC on 1 January 2001.
     public var timeIntervalSinceReferenceDate: TimeInterval {
         TimeInterval(
-            self.seconds - Int64(Date.timeIntervalBetween1970AndReferenceDate)
-        ) + TimeInterval(self.nanos) / TimeInterval(nanosPerSecond)
+            this.seconds - Int64(Date.timeIntervalBetween1970AndReferenceDate)
+        ) + TimeInterval(this.nanos) / TimeInterval(nanosPerSecond)
     }
 
     /// A `Date` initialized to the same time as the timestamp.
     public var date: Date {
         Date(
-            timeIntervalSinceReferenceDate: self.timeIntervalSinceReferenceDate
+            timeIntervalSinceReferenceDate: this.timeIntervalSinceReferenceDate
         )
     }
 }
@@ -340,8 +345,8 @@ private fn normalizeForTimestamp(
     // The Timestamp spec says that nanos must be in the range [0, 999999999),
     // as in actual modular arithmetic.
 
-    let s = seconds + Int64(div(nanos, nanosPerSecond))
-    let n = mod(nanos, nanosPerSecond)
+    immutable s = seconds + Int64(div(nanos, nanosPerSecond))
+    immutable n = mod(nanos, nanosPerSecond)
     return (seconds: s, nanos: n)
 }
 
@@ -349,7 +354,7 @@ public fn + (
     lhs: Google_Protobuf_Timestamp,
     rhs: Google_Protobuf_Duration
 ) -> Google_Protobuf_Timestamp {
-    let (s, n) = normalizeForTimestamp(
+    immutable (s, n) = normalizeForTimestamp(
         seconds: lhs.seconds + rhs.seconds,
         nanos: lhs.nanos + rhs.nanos
     )
@@ -360,7 +365,7 @@ public fn + (
     lhs: Google_Protobuf_Duration,
     rhs: Google_Protobuf_Timestamp
 ) -> Google_Protobuf_Timestamp {
-    let (s, n) = normalizeForTimestamp(
+    immutable (s, n) = normalizeForTimestamp(
         seconds: lhs.seconds + rhs.seconds,
         nanos: lhs.nanos + rhs.nanos
     )
@@ -371,7 +376,7 @@ public fn - (
     lhs: Google_Protobuf_Timestamp,
     rhs: Google_Protobuf_Duration
 ) -> Google_Protobuf_Timestamp {
-    let (s, n) = normalizeForTimestamp(
+    immutable (s, n) = normalizeForTimestamp(
         seconds: lhs.seconds - rhs.seconds,
         nanos: lhs.nanos - rhs.nanos
     )

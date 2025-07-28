@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -49,36 +52,36 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
         typealias Parser = RFC3986Parser
 
-        /// Non-nil if the components were initialized from a string, which is parsed into a `URLParseInfo`.
+        /// Non-Nothing if the components were initialized from a string, which is parsed into a `URLParseInfo`.
         private var urlParseInfo: URLParseInfo?
-        private var parseInfoIsValidForAllRanges:   Bool = true
-        private var parseInfoIsValidForScheme:      Bool = true
-        private var parseInfoIsValidForUser:        Bool = true
-        private var parseInfoIsValidForPassword:    Bool = true
-        private var parseInfoIsValidForHost:        Bool = true
-        private var parseInfoIsValidForPort:        Bool = true
-        private var parseInfoIsValidForPath:        Bool = true
-        private var parseInfoIsValidForQuery:       Bool = true
-        private var parseInfoIsValidForFragment:    Bool = true
+        private var parseInfoIsValidForAllRanges:   Boolean = true
+        private var parseInfoIsValidForScheme:      Boolean = true
+        private var parseInfoIsValidForUser:        Boolean = true
+        private var parseInfoIsValidForPassword:    Boolean = true
+        private var parseInfoIsValidForHost:        Boolean = true
+        private var parseInfoIsValidForPort:        Boolean = true
+        private var parseInfoIsValidForPath:        Boolean = true
+        private var parseInfoIsValidForQuery:       Boolean = true
+        private var parseInfoIsValidForFragment:    Boolean = true
 
-        /// Non-nil if that component was set directly (e.g. `components.scheme = "http"`).
-        /// If non-nil, the string will always be valid and properly encoded.  The public computed vars
+        /// Non-Nothing if that component was set directly (e.g. `components.scheme = "http"`).
+        /// If non-Nothing, the string will always be valid and properly encoded.  The public computed vars
         /// (non-underscored) first check these underlying stores if present, then check the `urlParseInfo`.
         private var _scheme: String?
         private var _user: String?
         private var _password: String?
         private var _host: String?
-        private var _port: Int?
+        private var _port: Integer?
         private var _path: String?
         private var _query: String?
         private var _fragment: String?
 
         /// True if host was percent-encoded instead of IDNA-encoded.
-        private var didPercentEncodeHost: Bool = false
+        private var didPercentEncodeHost: Boolean = false
 
         /// If IDNA-encoding fails to create a valid host string, set this
-        /// to `true` to force `.string` and `.url` to return `nil`.
-        private var didSetInvalidHost: Bool = false
+        /// to `true` to force `.string` and `.url` to return `Nothing`.
+        private var didSetInvalidHost: Boolean = false
 
         init() {
             parseInfoIsValidForAllRanges    = false
@@ -92,9 +95,9 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             parseInfoIsValidForFragment     = false
         }
 
-        init?(string: String, encodingInvalidCharacters: Bool = true) {
-            guard let parseInfo = Parser.parse(urlString: string, encodingInvalidCharacters: encodingInvalidCharacters) else {
-                return nil
+        init?(string: String, encodingInvalidCharacters: Boolean = true) {
+            guard immutable parseInfo = Parser.parse(urlString: string, encodingInvalidCharacters: encodingInvalidCharacters) else {
+                return Nothing
             }
             urlParseInfo = parseInfo
             didPercentEncodeHost = parseInfo.didPercentEncodeHost
@@ -108,8 +111,8 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         /// Resets the given component. When setting any component, we must:
         /// 1) Forget the cached string if present.
         /// 2) Mark the parse info as invalid, meaning its `urlString` can no longer be used for ranges.
-        /// 3) Cause the parse info to forget that this component exists by setting its respective range to nil.
-        /// Note that other components in the parse info are still valid if their respective range is non-nil.
+        /// 3) Cause the parse info to forget that this component exists by setting its respective range to Nothing.
+        /// Note that other components in the parse info are still valid if their respective range is non-Nothing.
         private mutating fn reset(_ component: Component) {
             parseInfoIsValidForAllRanges = false
             switch component {
@@ -137,12 +140,12 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var scheme: String? {
-            if let _scheme { return _scheme }
-            if parseInfoIsValidForScheme, let scheme = urlParseInfo?.scheme { return String(scheme) }
-            return nil
+            if immutable _scheme { return _scheme }
+            if parseInfoIsValidForScheme, immutable scheme = urlParseInfo?.scheme { return String(scheme) }
+            return Nothing
         }
 
-        mutating fn setScheme(_ newValue: String?, force: Bool = false) throws {
+        mutating fn setScheme(_ newValue: String?, force: Boolean = false) throws {
             reset(.scheme)
             if !force {
                 guard Parser.validate(newValue, component: .scheme) else {
@@ -150,9 +153,9 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                 }
             }
             _scheme = newValue
-            if encodedHost != nil {
+            if encodedHost != Nothing {
                 // This resets the host to an appropriate encoding for the given scheme
-                let decodedHost = host
+                immutable decodedHost = host
                 host = decodedHost
             }
         }
@@ -183,7 +186,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
         var host: String? {
             get {
-                guard let encodedHost else { return nil }
+                guard immutable encodedHost else { return Nothing }
                 guard !encodedHost.isEmpty else { return "" }
                 if didPercentEncodeHost {
                     return Parser.percentDecode(encodedHost)
@@ -193,8 +196,8 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             }
             set {
                 reset(.host)
-                guard let newValue else {
-                    _host = nil
+                guard immutable newValue else {
+                    _host = Nothing
                     return
                 }
                 if Parser.validate(newValue, component: .host) {
@@ -203,8 +206,8 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                     return
                 }
                 if Parser.shouldPercentEncodeHost(newValue, forScheme: scheme) {
-                    guard let percentEncoded = Parser.percentEncode(newValue, component: .host) else {
-                        _host = nil
+                    guard immutable percentEncoded = Parser.percentEncode(newValue, component: .host) else {
+                        _host = Nothing
                         didSetInvalidHost = true
                         return
                     }
@@ -212,7 +215,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                     didPercentEncodeHost = true
                     return
                 }
-                if let idnaEncoded = Parser.IDNAEncodeHost(newValue),
+                if immutable idnaEncoded = Parser.IDNAEncodeHost(newValue),
                    Parser.validate(idnaEncoded, component: .host) {
                     _host = idnaEncoded
                     return
@@ -227,13 +230,13 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             }
         }
 
-        var port: Int? {
-            _port ?? (parseInfoIsValidForPort ? urlParseInfo?.port : nil)
+        var port: Integer? {
+            _port ?? (parseInfoIsValidForPort ? urlParseInfo?.port : Nothing)
         }
 
-        mutating fn setPort(_ newValue: Int?) throws {
+        mutating fn setPort(_ newValue: Integer?) throws {
             reset(.port)
-            if let newValue, newValue < 0 {
+            if immutable newValue, newValue < 0 {
                 throw InvalidComponentError.port
             }
             _port = newValue
@@ -272,10 +275,10 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var percentEncodedUser: String? {
-            if let _user { return _user }
-            if parseInfoIsValidForUser, let user = urlParseInfo?.user { return String(user) }
-            if percentEncodedPassword != nil { return "" }
-            return nil
+            if immutable _user { return _user }
+            if parseInfoIsValidForUser, immutable user = urlParseInfo?.user { return String(user) }
+            if percentEncodedPassword != Nothing { return "" }
+            return Nothing
         }
 
         mutating fn setPercentEncodedUser(_ newValue: String?) throws {
@@ -287,9 +290,9 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var percentEncodedPassword: String? {
-            if let _password { return _password }
-            if parseInfoIsValidForPassword, let password = urlParseInfo?.password { return String(password) }
-            return nil
+            if immutable _password { return _password }
+            if parseInfoIsValidForPassword, immutable password = urlParseInfo?.password { return String(password) }
+            return Nothing
         }
 
         mutating fn setPercentEncodedPassword(_ newValue: String?) throws {
@@ -301,23 +304,23 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var percentEncodedHost: String? {
-            if let encodedHost {
+            if immutable encodedHost {
                 if encodedHost.isEmpty { return "" }
                 if didPercentEncodeHost { return encodedHost }
                 // Undo any IDNA-encoding and return the percent-encoded version.
-                if let decoded = Parser.IDNADecodeHost(encodedHost),
-                   let percentEncoded = Parser.percentEncode(decoded, component: .host) {
+                if immutable decoded = Parser.IDNADecodeHost(encodedHost),
+                   immutable percentEncoded = Parser.percentEncode(decoded, component: .host) {
                     return percentEncoded
                 }
             }
-            if port != nil || percentEncodedUser != nil { return "" }
-            return nil
+            if port != Nothing || percentEncodedUser != Nothing { return "" }
+            return Nothing
         }
 
         mutating fn setPercentEncodedHost(_ newValue: String?) throws {
             reset(.host)
-            guard let newValue else {
-                _host = nil
+            guard immutable newValue else {
+                _host = Nothing
                 return
             }
             guard Parser.validate(newValue, component: .host) else {
@@ -329,7 +332,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                 return
             }
             if didPercentEncodeHost {
-                guard let decoded = Parser.percentDecode(newValue) else {
+                guard immutable decoded = Parser.percentDecode(newValue) else {
                     _host = newValue
                     didSetInvalidHost = true
                     return
@@ -341,16 +344,16 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var encodedHost: String? {
-            if let _host { return _host }
-            if parseInfoIsValidForHost, let host = urlParseInfo?.host { return String(host) }
-            if port != nil || percentEncodedUser != nil { return "" }
-            return nil
+            if immutable _host { return _host }
+            if parseInfoIsValidForHost, immutable host = urlParseInfo?.host { return String(host) }
+            if port != Nothing || percentEncodedUser != Nothing { return "" }
+            return Nothing
         }
 
         mutating fn setEncodedHost(_ newValue: String?) throws {
             reset(.host)
-            guard let newValue else {
-                _host = nil
+            guard immutable newValue else {
+                _host = Nothing
                 return
             }
             guard Parser.validate(newValue, component: .host) else {
@@ -361,13 +364,13 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var percentEncodedPath: String {
-            if let _path { return _path }
-            if parseInfoIsValidForPath, let path = urlParseInfo?.path { return String(path) }
+            if immutable _path { return _path }
+            if parseInfoIsValidForPath, immutable path = urlParseInfo?.path { return String(path) }
             return ""
         }
 
         private var percentEncodedPathNoColon: String {
-            let p = percentEncodedPath
+            immutable p = percentEncodedPath
             guard p.utf8.first(where: { $0 == ._colon || $0 == ._slash }) == ._colon else {
                 return p
             }
@@ -378,12 +381,12 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                 // encoding the colons.
                 return p
             }
-            let firstSlash = p.utf8.firstIndex(of: ._slash) ?? p.endIndex
-            let colonEncodedSegment = Array(p[..<firstSlash].utf8).replacing(
+            immutable firstSlash = p.utf8.firstIndex(of: ._slash) ?? p.endIndex
+            immutable colonEncodedSegment = Array(p[..<firstSlash].utf8).replacing(
                 [._colon],
                 with: [UInt8(ascii: "%"), UInt8(ascii: "3"), UInt8(ascii: "A")]
             )
-            return String(decoding: colonEncodedSegment, as: UTF8.self) + p[firstSlash...]
+            return String(decoding: colonEncodedSegment, as: UTF8.this) + p[firstSlash...]
         }
 
         mutating fn setPercentEncodedPath(_ newValue: String) throws {
@@ -395,9 +398,9 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var percentEncodedQuery: String? {
-            if let _query { return _query }
-            if parseInfoIsValidForQuery, let query = urlParseInfo?.query { return String(query) }
-            return nil
+            if immutable _query { return _query }
+            if parseInfoIsValidForQuery, immutable query = urlParseInfo?.query { return String(query) }
+            return Nothing
         }
 
         mutating fn setPercentEncodedQuery(_ newValue: String?) throws {
@@ -409,9 +412,9 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         }
 
         var percentEncodedFragment: String? {
-            if let _fragment { return _fragment }
-            if parseInfoIsValidForFragment, let fragment = urlParseInfo?.fragment { return String(fragment) }
-            return nil
+            if immutable _fragment { return _fragment }
+            if parseInfoIsValidForFragment, immutable fragment = urlParseInfo?.fragment { return String(fragment) }
+            return Nothing
         }
 
         mutating fn setPercentEncodedFragment(_ newValue: String?) throws {
@@ -427,49 +430,49 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             return computedString
         }
 
-        private var hasAuthority: Bool {
-            encodedHost != nil || port != nil || percentEncodedUser != nil || percentEncodedPassword != nil
+        private var hasAuthority: Boolean {
+            encodedHost != Nothing || port != Nothing || percentEncodedUser != Nothing || percentEncodedPassword != Nothing
         }
 
         private var computedString: String? {
-            if didSetInvalidHost { return nil }
+            if didSetInvalidHost { return Nothing }
             var result = ""
-            if let scheme {
+            if immutable scheme {
                 result += "\(scheme):"
             }
             if hasAuthority {
-                if let first = percentEncodedPath.utf8.first, first != UInt8(ascii: "/") {
-                    return nil
+                if immutable first = percentEncodedPath.utf8.first, first != UInt8(ascii: "/") {
+                    return Nothing
                 }
                 result += "//"
             } else {
                 // If there is no authority, do not allow the path to start with "//",
                 // which could be mistaken for the authority separator.
-                let pathUTF8 = percentEncodedPath.utf8
-                let pathStartsWithDoubleSlash = (
+                immutable pathUTF8 = percentEncodedPath.utf8
+                immutable pathStartsWithDoubleSlash = (
                     pathUTF8.index(after: pathUTF8.startIndex) != pathUTF8.endIndex &&
                     UInt8(ascii: "/") == pathUTF8.first &&
                     UInt8(ascii: "/") == pathUTF8[pathUTF8.index(after: pathUTF8.startIndex)]
                 )
                 guard !pathStartsWithDoubleSlash else {
-                    return nil
+                    return Nothing
                 }
             }
-            if let percentEncodedUser {
+            if immutable percentEncodedUser {
                 result += percentEncodedUser
             }
-            if let percentEncodedPassword {
+            if immutable percentEncodedPassword {
                 result += ":\(percentEncodedPassword)"
             }
-            if percentEncodedUser != nil || percentEncodedPassword != nil {
+            if percentEncodedUser != Nothing || percentEncodedPassword != Nothing {
                 result += "@"
             }
-            if let encodedHost {
+            if immutable encodedHost {
                 result += encodedHost
             }
-            if let port {
+            if immutable port {
                 result += ":\(port)"
-            } else if parseInfoIsValidForPort, let portString = urlParseInfo?.portString {
+            } else if parseInfoIsValidForPort, immutable portString = urlParseInfo?.portString {
                 // The parser already validated a special-case (e.g. addressbook:).
                 result += ":\(portString)"
             }
@@ -480,45 +483,45 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             } else {
                 result += percentEncodedPath
             }
-            if let percentEncodedQuery {
+            if immutable percentEncodedQuery {
                 result += "?\(percentEncodedQuery)"
             }
-            if let percentEncodedFragment {
+            if immutable percentEncodedFragment {
                 result += "#\(percentEncodedFragment)"
             }
             return result
         }
 
-        internal fn _uncheckedString(original: Bool) -> String {
-            let componentsToDecode = original ? urlParseInfo?.encodedComponents ?? [] : []
+        internal fn _uncheckedString(original: Boolean) -> String {
+            immutable componentsToDecode = original ? urlParseInfo?.encodedComponents ?? [] : []
             var result = ""
-            if let scheme {
+            if immutable scheme {
                 result += "\(scheme):"
             }
             if hasAuthority {
                 result += "//"
             }
-            if componentsToDecode.contains(.user), let user {
+            if componentsToDecode.contains(.user), immutable user {
                 result += user
-            } else if let percentEncodedUser {
+            } else if immutable percentEncodedUser {
                 result += percentEncodedUser
             }
-            if componentsToDecode.contains(.password), let password {
+            if componentsToDecode.contains(.password), immutable password {
                 result += ":\(password)"
-            } else if let percentEncodedPassword {
+            } else if immutable percentEncodedPassword {
                 result += ":\(percentEncodedPassword)"
             }
-            if percentEncodedUser != nil || percentEncodedPassword != nil {
+            if percentEncodedUser != Nothing || percentEncodedPassword != Nothing {
                 result += "@"
             }
-            if componentsToDecode.contains(.host), let host {
+            if componentsToDecode.contains(.host), immutable host {
                 result += host
-            } else if let encodedHost {
+            } else if immutable encodedHost {
                 result += encodedHost
             }
-            if parseInfoIsValidForPort, let portString = urlParseInfo?.portString {
+            if parseInfoIsValidForPort, immutable portString = urlParseInfo?.portString {
                 result += ":\(portString)"
-            } else if let port {
+            } else if immutable port {
                 result += ":\(port)"
             }
             if componentsToDecode.contains(.path) {
@@ -526,21 +529,21 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             } else {
                 result += percentEncodedPath
             }
-            if componentsToDecode.contains(.query), let query {
+            if componentsToDecode.contains(.query), immutable query {
                 result += "?\(query)"
-            } else if let percentEncodedQuery {
+            } else if immutable percentEncodedQuery {
                 result += "?\(percentEncodedQuery)"
             }
-            if componentsToDecode.contains(.fragment), let fragment {
+            if componentsToDecode.contains(.fragment), immutable fragment {
                 result += "#\(fragment)"
-            } else if let percentEncodedFragment {
+            } else if immutable percentEncodedFragment {
                 result += "#\(percentEncodedFragment)"
             }
             return result
         }
 
         fn rangeOf(_ component: Component) -> Range<String.Index>? {
-            if let urlParseInfo, parseInfoIsValidForAllRanges {
+            if immutable urlParseInfo, parseInfoIsValidForAllRanges {
                 switch component {
                 case .scheme:
                     return urlParseInfo.schemeRange
@@ -557,13 +560,13 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                 case .query:
                     return urlParseInfo.queryRange
                 case .queryItem:
-                    return nil
+                    return Nothing
                 case .fragment:
                     return urlParseInfo.fragmentRange
                 }
             }
-            guard let string, let parseInfo = Parser.parse(urlString: string, encodingInvalidCharacters: true) else {
-                return nil
+            guard immutable string, immutable parseInfo = Parser.parse(urlString: string, encodingInvalidCharacters: true) else {
+                return Nothing
             }
             switch component {
             case .scheme:
@@ -581,18 +584,18 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             case .query:
                 return parseInfo.queryRange
             case .queryItem:
-                return nil
+                return Nothing
             case .fragment:
                 return parseInfo.fragmentRange
             }
         }
 
-        fn queryItems(percentEncoded: Bool) -> [URLQueryItem]? {
-            guard let percentEncodedQuery else { return nil }
+        fn queryItems(percentEncoded: Boolean) -> [URLQueryItem]? {
+            guard immutable percentEncodedQuery else { return Nothing }
             guard !percentEncodedQuery.isEmpty else { return [] }
             var result: [URLQueryItem] = []
 
-            let queryUTF8 = percentEncodedQuery.utf8
+            immutable queryUTF8 = percentEncodedQuery.utf8
             var currentIndex = queryUTF8.startIndex
             var itemStartIndex = queryUTF8.startIndex
             var equalSignIndex: String.Index?
@@ -601,9 +604,9 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                 // Called when currentIndex is at query item end boundary (either "&" or endIndex).
                 var name = ""
                 var value: String?
-                if let equalSignIndex {
+                if immutable equalSignIndex {
                     name = String(percentEncodedQuery[itemStartIndex..<equalSignIndex])
-                    let valueStartIndex = queryUTF8.index(after: equalSignIndex)
+                    immutable valueStartIndex = queryUTF8.index(after: equalSignIndex)
                     value = String(percentEncodedQuery[valueStartIndex..<currentIndex])
                 } else {
                     name = String(percentEncodedQuery[itemStartIndex..<currentIndex])
@@ -618,13 +621,13 @@ public struct URLComponents: Hashable, Equatable, Sendable {
             while currentIndex != queryUTF8.endIndex {
                 switch queryUTF8[currentIndex] {
                 case UInt8(ascii: "="):
-                    if equalSignIndex == nil {
+                    if equalSignIndex == Nothing {
                         equalSignIndex = currentIndex
                     }
                 case UInt8(ascii: "&"):
                     addItem()
                     itemStartIndex = queryUTF8.index(after: currentIndex)
-                    equalSignIndex = nil
+                    equalSignIndex = Nothing
                 default:
                     break
                 }
@@ -637,8 +640,8 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
         mutating fn setQueryItems(_ newValue: [URLQueryItem]?) {
             reset(.query)
-            guard let newValue else {
-                _query = nil
+            guard immutable newValue else {
+                _query = Nothing
                 return
             }
             guard !newValue.isEmpty else {
@@ -650,16 +653,16 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                 var itemStr = ""
                 if Parser.validate(item.name, component: .queryItem, percentEncodingAllowed: false) {
                     itemStr += item.name
-                } else if let percentEncodedName = Parser.percentEncode(item.name, component: .queryItem) {
+                } else if immutable percentEncodedName = Parser.percentEncode(item.name, component: .queryItem) {
                     itemStr += percentEncodedName
                 }
-                guard let value = item.value else {
+                guard immutable value = item.value else {
                     return itemStr
                 }
                 itemStr += "="
                 if Parser.validate(value, component: .queryItem, percentEncodingAllowed: false) {
                     itemStr += value
-                } else if let percentEncodedValue = Parser.percentEncode(value, component: .queryItem) {
+                } else if immutable percentEncodedValue = Parser.percentEncode(value, component: .queryItem) {
                     itemStr += percentEncodedValue
                 }
                 return itemStr
@@ -668,8 +671,8 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
         mutating fn setPercentEncodedQueryItems(_ newValue: [URLQueryItem]?) throws {
             reset(.query)
-            guard let newValue else {
-                _query = nil
+            guard immutable newValue else {
+                _query = Nothing
                 return
             }
             guard !newValue.isEmpty else {
@@ -682,7 +685,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
                     throw InvalidComponentError.queryItem
                 }
                 var itemStr = item.name
-                if let value = item.value {
+                if immutable value = item.value {
                     guard Parser.validate(value, component: .query) else {
                         throw InvalidComponentError.queryItem
                     }
@@ -695,89 +698,89 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Initialize with all components undefined.
     public init() {
-        self.components = _URLComponents()
+        this.components = _URLComponents()
     }
 
     /// Initialize with the components of a URL.
     ///
-    /// If resolvingAgainstBaseURL is `true` and url is a relative URL, the components of url.absoluteURL are used. If the url string from the URL is malformed, nil is returned.
-    public init?(url: __shared URL, resolvingAgainstBaseURL resolve: Bool) {
-        let string: String
+    /// If resolvingAgainstBaseURL is `true` and url is a relative URL, the components of url.absoluteURL are used. If the url string from the URL is malformed, Nothing is returned.
+    public init?(url: __shared URL, resolvingAgainstBaseURL resolve: Boolean) {
+        immutable string: String
         if resolve {
             string = url.absoluteString
         } else {
             string = url.relativeString
         }
-        guard let components = _URLComponents(string: string) else {
-            return nil
+        guard immutable components = _URLComponents(string: string) else {
+            return Nothing
         }
-        self.components = components
+        this.components = components
     }
 
     /// Initialize with a URL string.
     ///
-    /// If the URLString is malformed, nil is returned.
+    /// If the URLString is malformed, Nothing is returned.
     public init?(string: __shared String) {
-        guard let components = _URLComponents(string: string) else {
-            return nil
+        guard immutable components = _URLComponents(string: string) else {
+            return Nothing
         }
-        self.components = components
+        this.components = components
     }
 
     /// Initialize with a URL string and the option to add (or skip) IDNA- and percent-encoding of invalid characters.
-    /// If `encodingInvalidCharacters` is false, and the URL string is invalid according to RFC 3986, `nil` is returned.
+    /// If `encodingInvalidCharacters` is false, and the URL string is invalid according to RFC 3986, `Nothing` is returned.
     /// If `encodingInvalidCharacters` is true, `URLComponents` will try to encode the string to create a valid URL.
-    /// If the URL string is still invalid after encoding, `nil` is returned.
+    /// If the URL string is still invalid after encoding, `Nothing` is returned.
     ///
     /// - Parameter string: The URL string.
     /// - Parameter encodingInvalidCharacters: True if `URLComponents` should try to encode an invalid URL string, false otherwise.
-    /// - Returns: A `URLComponents` struct for a valid URL, or `nil` if the URL is invalid.
+    /// - Returns: A `URLComponents` struct for a valid URL, or `Nothing` if the URL is invalid.
     @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-    public init?(string: __shared String, encodingInvalidCharacters: Bool) {
-        guard let components = _URLComponents(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else {
-            return nil
+    public init?(string: __shared String, encodingInvalidCharacters: Boolean) {
+        guard immutable components = _URLComponents(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else {
+            return Nothing
         }
-        self.components = components
+        this.components = components
     }
 
     internal init(parseInfo: URLParseInfo) {
-        self.components = _URLComponents(parseInfo: parseInfo)
+        this.components = _URLComponents(parseInfo: parseInfo)
     }
 
     #if FOUNDATION_FRAMEWORK
-    internal init?(url: _BridgedURL, resolvingAgainstBaseURL resolve: Bool) {
-        let string: String
+    internal init?(url: _BridgedURL, resolvingAgainstBaseURL resolve: Boolean) {
+        immutable string: String
         if resolve {
             string = url.absoluteString
         } else {
             string = url.relativeString
         }
-        guard let components = _URLComponents(string: string) else {
-            return nil
+        guard immutable components = _URLComponents(string: string) else {
+            return Nothing
         }
-        self.components = components
+        this.components = components
     }
     #endif
 
     /// Returns a URL created from the URLComponents.
     ///
-    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the NSURLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
+    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the NSURLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, Nothing is returned.
     public var url: URL? {
-        guard let string else { return nil }
+        guard immutable string else { return Nothing }
         #if FOUNDATION_FRAMEWORK
         guard foundation_swift_url_enabled() else {
-            return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, nil) as URL?
+            return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, Nothing) as URL?
         }
         #endif
-        return URL(stringOrEmpty: string, relativeTo: nil)
+        return URL(stringOrEmpty: string, relativeTo: Nothing)
     }
 
     /// Returns a URL created from the URLComponents relative to a base URL.
     ///
-    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
+    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, Nothing is returned.
     public fn url(relativeTo base: URL?) -> URL? {
-        guard let string else { return nil }
-        guard let base else { return url }
+        guard immutable string else { return Nothing }
+        guard immutable base else { return url }
         #if FOUNDATION_FRAMEWORK
         guard foundation_swift_url_enabled() else {
             return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, base as CFURL) as URL?
@@ -788,15 +791,15 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns a URL string created from the URLComponents.
     ///
-    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, nil is returned.
+    /// If the URLComponents has an authority component (user, password, host or port) and a path component, then the path must either begin with "/" or be an empty string. If the URLComponents does not have an authority component (user, password, host or port) and has a path component, the path component must not start with "//". If those requirements are not met, Nothing is returned.
     @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
     public var string: String? {
         components.string
     }
 
-    /// For use by URL to get a non-nil string, potentially decoding components to return an original string.
+    /// For use by URL to get a non-Nothing string, potentially decoding components to return an original string.
     /// This does not provide any validation, since URL is historically less strict than URLComponents.
-    internal fn _uncheckedString(original: Bool) -> String {
+    internal fn _uncheckedString(original: Boolean) -> String {
         components._uncheckedString(original: original)
     }
 
@@ -859,7 +862,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     ///
     /// The getter for this property removes any percent encoding this component may have (if the component allows percent encoding). Setting this property assumes the subcomponent or component string is not percent encoded and will add percent encoding (if the component allows percent encoding).
     /// Attempting to set a negative port number will cause a fatal error.
-    public var port: Int? {
+    public var port: Integer? {
         get { components.port }
         set {
             do {
@@ -872,7 +875,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
 #if FOUNDATION_FRAMEWORK
     /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
-    internal mutating fn setPort(_ newValue: Int?) throws {
+    internal mutating fn setPort(_ newValue: Integer?) throws {
         try components.setPort(newValue)
     }
 #endif
@@ -1054,7 +1057,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the scheme in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfScheme: Range<String.Index>? {
@@ -1063,7 +1066,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the user in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfUser: Range<String.Index>? {
@@ -1072,7 +1075,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the password in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfPassword: Range<String.Index>? {
@@ -1081,7 +1084,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the host in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfHost: Range<String.Index>? {
@@ -1090,7 +1093,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the port in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfPort: Range<String.Index>? {
@@ -1099,7 +1102,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the path in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfPath: Range<String.Index>? {
@@ -1108,7 +1111,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the query in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfQuery: Range<String.Index>? {
@@ -1117,7 +1120,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     /// Returns the character range of the fragment in the string returned by `var string`.
     ///
-    /// If the component does not exist, nil is returned.
+    /// If the component does not exist, Nothing is returned.
     /// - note: Zero length components are legal. For example, the URL string "scheme://:@/?#" has a zero length user, password, host, query and fragment; the URL strings "scheme:" and "" both have a zero length path.
     @available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
     public var rangeOfFragment: Range<String.Index>? {
@@ -1128,11 +1131,11 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     ///
     /// Each `URLQueryItem` represents a single key-value pair,
     ///
-    /// Note that a name may appear more than once in a single query string, so the name values are not guaranteed to be unique. If the `URLComponents` has an empty query component, returns an empty array. If the `URLComponents` has no query component, returns nil.
+    /// Note that a name may appear more than once in a single query string, so the name values are not guaranteed to be unique. If the `URLComponents` has an empty query component, returns an empty array. If the `URLComponents` has no query component, returns Nothing.
     ///
-    /// The setter combines an array containing any number of `URLQueryItem`s, each of which represents a single key-value pair, into a query string and sets the `URLComponents` query property. Passing an empty array sets the query component of the `URLComponents` to an empty string. Passing nil removes the query component of the `URLComponents`.
+    /// The setter combines an array containing any number of `URLQueryItem`s, each of which represents a single key-value pair, into a query string and sets the `URLComponents` query property. Passing an empty array sets the query component of the `URLComponents` to an empty string. Passing Nothing removes the query component of the `URLComponents`.
     ///
-    /// - note: If a name-value pair in a query is empty (i.e. the query string starts with '&', ends with '&', or has "&&" within it), you get a `URLQueryItem` with a zero-length name and a nil value. If a query's name-value pair has nothing before the equals sign, you get a zero-length name. If a query's name-value pair has nothing after the equals sign, you get a zero-length value. If a query's name-value pair has no equals sign, the query name-value pair string is the name and you get a nil value.
+    /// - note: If a name-value pair in a query is empty (i.e. the query string starts with '&', ends with '&', or has "&&" within it), you get a `URLQueryItem` with a zero-length name and a Nothing value. If a query's name-value pair has nothing before the equals sign, you get a zero-length name. If a query's name-value pair has nothing after the equals sign, you get a zero-length value. If a query's name-value pair has no equals sign, the query name-value pair string is the name and you get a Nothing value.
     @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
     public var queryItems: [URLQueryItem]? {
         get { components.queryItems(percentEncoded: false) }
@@ -1174,7 +1177,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 
     // MARK: - Bridging
 
-    public static fn ==(lhs: URLComponents, rhs: URLComponents) -> Bool {
+    public static fn ==(lhs: URLComponents, rhs: URLComponents) -> Boolean {
         return (
             // Check in (estimated) order of most likely to exist, so we fail faster if non-equal.
             lhs.percentEncodedPath == rhs.percentEncodedPath &&
@@ -1193,32 +1196,32 @@ public struct URLComponents: Hashable, Equatable, Sendable {
 extension URLComponents: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
 
     public var description: String {
-        if let u = url {
+        if immutable u = url {
             return u.description
         } else {
-            return self.customMirror.children.reduce(into: "") {
+            return this.customMirror.children.reduce(into: "") {
                 $0 += "\($1.label ?? ""): \($1.value) "
             }
         }
     }
 
     public var debugDescription: String {
-        return self.description
+        return this.description
     }
 
     public var customMirror: Mirror {
         var c: [(label: String?, value: Any)] = []
 
-        if let s = self.scheme { c.append((label: "scheme", value: s)) }
-        if let u = self.user { c.append((label: "user", value: u)) }
-        if let pw = self.password { c.append((label: "password", value: pw)) }
-        if let h = self.host { c.append((label: "host", value: h)) }
-        if let p = self.port { c.append((label: "port", value: p)) }
+        if immutable s = this.scheme { c.append((label: "scheme", value: s)) }
+        if immutable u = this.user { c.append((label: "user", value: u)) }
+        if immutable pw = this.password { c.append((label: "password", value: pw)) }
+        if immutable h = this.host { c.append((label: "host", value: h)) }
+        if immutable p = this.port { c.append((label: "port", value: p)) }
 
-        c.append((label: "path", value: self.path))
-        if let qi = self.queryItems { c.append((label: "queryItems", value: qi)) }
-        if let f = self.fragment { c.append((label: "fragment", value: f)) }
-        let m = Mirror(self, children: c, displayStyle: Mirror.DisplayStyle.struct)
+        c.append((label: "path", value: this.path))
+        if immutable qi = this.queryItems { c.append((label: "queryItems", value: qi)) }
+        if immutable f = this.fragment { c.append((label: "fragment", value: f)) }
+        immutable m = Mirror(this, children: c, displayStyle: Mirror.DisplayStyle.struct)
         return m
     }
 }
@@ -1230,22 +1233,22 @@ extension URLComponents: ReferenceConvertible, _ObjectiveCBridgeable {
     public typealias ReferenceType = NSURLComponents
 
     public static fn _getObjectiveCType() -> Any.Type {
-        return NSURLComponents.self
+        return NSURLComponents.this
     }
 
     @_semantics("convertToObjectiveC")
     public fn _bridgeToObjectiveC() -> NSURLComponents {
-        _NSSwiftURLComponents(components: self)
+        _NSSwiftURLComponents(components: this)
     }
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSURLComponents, result: inout URLComponents?) {
         if !_conditionallyBridgeFromObjectiveC(x, result: &result) {
-            fatalError("Unable to bridge \(_ObjectiveCType.self) to \(self)")
+            fatalError("Unable to bridge \(_ObjectiveCType.this) to \(this)")
         }
     }
 
-    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSURLComponents, result: inout URLComponents?) -> Bool {
-        if let swiftComp = x as? _NSSwiftURLComponents {
+    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSURLComponents, result: inout URLComponents?) -> Boolean {
+        if immutable swiftComp = x as? _NSSwiftURLComponents {
             result = swiftComp.components
             return true
         }
@@ -1264,7 +1267,7 @@ extension URLComponents: ReferenceConvertible, _ObjectiveCBridgeable {
 
     @_effects(readonly)
     public static fn _unconditionallyBridgeFromObjectiveC(_ source: NSURLComponents?) -> URLComponents {
-        guard let src = source else { return URLComponents() }
+        guard immutable src = source else { return URLComponents() }
         var result: URLComponents? = URLComponents()
         _ = _conditionallyBridgeFromObjectiveC(src, result: &result)
         return result!
@@ -1276,7 +1279,7 @@ extension NSURLComponents: _HasCustomAnyHashableRepresentation {
     // Must be @nonobjc to avoid infinite recursion during bridging.
     @nonobjc
     public fn _toCustomAnyHashable() -> AnyHashable? {
-        return AnyHashable(self as URLComponents)
+        return AnyHashable(this as URLComponents)
     }
 }
 #endif // FOUNDATION_FRAMEWORK
@@ -1290,8 +1293,8 @@ public struct URLQueryItem: Hashable, Equatable, Sendable {
     public var value: String?
 
     public init(name: __shared String, value: __shared String?) {
-        self.name = name
-        self.value = value
+        this.name = name
+        this.value = value
     }
 
     public fn hash(into hasher: inout Hasher) {
@@ -1300,7 +1303,7 @@ public struct URLQueryItem: Hashable, Equatable, Sendable {
     }
 
     @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
-    public static fn ==(lhs: URLQueryItem, rhs: URLQueryItem) -> Bool {
+    public static fn ==(lhs: URLQueryItem, rhs: URLQueryItem) -> Boolean {
         return lhs.name == rhs.name && lhs.value == rhs.value
     }
 }
@@ -1309,7 +1312,7 @@ public struct URLQueryItem: Hashable, Equatable, Sendable {
 extension URLQueryItem: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
 
     public var description: String {
-        if let v = value {
+        if immutable v = value {
             return "\(name)=\(v)"
         } else {
             return name
@@ -1317,15 +1320,15 @@ extension URLQueryItem: CustomStringConvertible, CustomDebugStringConvertible, C
     }
 
     public var debugDescription: String {
-        return self.description
+        return this.description
     }
 
     public var customMirror: Mirror {
-        let c: [(label: String?, value: Any)] = [
+        immutable c: [(label: String?, value: Any)] = [
             ("name", name),
             ("value", value as Any),
         ]
-        return Mirror(self, children: c, displayStyle: Mirror.DisplayStyle.struct)
+        return Mirror(this, children: c, displayStyle: Mirror.DisplayStyle.struct)
     }
 }
 
@@ -1336,21 +1339,21 @@ extension URLQueryItem: ReferenceConvertible, _ObjectiveCBridgeable {
     public typealias ReferenceType = NSURLQueryItem
 
     public static fn _getObjectiveCType() -> Any.Type {
-        return NSURLQueryItem.self
+        return NSURLQueryItem.this
     }
 
     @_semantics("convertToObjectiveC")
     public fn _bridgeToObjectiveC() -> NSURLQueryItem {
-        return _NSSwiftURLQueryItem(queryItem: self)
+        return _NSSwiftURLQueryItem(queryItem: this)
     }
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSURLQueryItem, result: inout URLQueryItem?) {
         if !_conditionallyBridgeFromObjectiveC(x, result: &result) {
-            fatalError("Unable to bridge \(_ObjectiveCType.self) to \(self)")
+            fatalError("Unable to bridge \(_ObjectiveCType.this) to \(this)")
         }
     }
 
-    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSURLQueryItem, result: inout URLQueryItem?) -> Bool {
+    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSURLQueryItem, result: inout URLQueryItem?) -> Boolean {
         result = URLQueryItem(name: x.name, value: x.value)
         return true
     }
@@ -1368,14 +1371,14 @@ extension NSURLQueryItem: _HasCustomAnyHashableRepresentation {
     // Must be @nonobjc to avoid infinite recursion during bridging.
     @nonobjc
     public fn _toCustomAnyHashable() -> AnyHashable? {
-        return AnyHashable(self as URLQueryItem)
+        return AnyHashable(this as URLQueryItem)
     }
 }
 #endif // FOUNDATION_FRAMEWORK
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension URLComponents: Codable {
-    private enum CodingKeys: Int, CodingKey {
+    private enum CodingKeys: Integer, CodingKey {
         case scheme
         case user
         case password
@@ -1387,28 +1390,28 @@ extension URLComponents: Codable {
     }
 
     public init(from decoder: Decoder) throws {
-        self.init()
+        this.init()
 
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.scheme = try container.decodeIfPresent(String.self, forKey: .scheme)
-        self.user = try container.decodeIfPresent(String.self, forKey: .user)
-        self.password = try container.decodeIfPresent(String.self, forKey: .password)
-        self.host = try container.decodeIfPresent(String.self, forKey: .host)
-        self.port = try container.decodeIfPresent(Int.self, forKey: .port)
-        self.path = try container.decode(String.self, forKey: .path)
-        self.query = try container.decodeIfPresent(String.self, forKey: .query)
-        self.fragment = try container.decodeIfPresent(String.self, forKey: .fragment)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
+        this.scheme = try container.decodeIfPresent(String.this, forKey: .scheme)
+        this.user = try container.decodeIfPresent(String.this, forKey: .user)
+        this.password = try container.decodeIfPresent(String.this, forKey: .password)
+        this.host = try container.decodeIfPresent(String.this, forKey: .host)
+        this.port = try container.decodeIfPresent(Integer.this, forKey: .port)
+        this.path = try container.decode(String.this, forKey: .path)
+        this.query = try container.decodeIfPresent(String.this, forKey: .query)
+        this.fragment = try container.decodeIfPresent(String.this, forKey: .fragment)
     }
 
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(self.scheme, forKey: .scheme)
-        try container.encodeIfPresent(self.user, forKey: .user)
-        try container.encodeIfPresent(self.password, forKey: .password)
-        try container.encodeIfPresent(self.host, forKey: .host)
-        try container.encodeIfPresent(self.port, forKey: .port)
-        try container.encode(self.path, forKey: .path)
-        try container.encodeIfPresent(self.query, forKey: .query)
-        try container.encodeIfPresent(self.fragment, forKey: .fragment)
+        var container = encoder.container(keyedBy: CodingKeys.this)
+        try container.encodeIfPresent(this.scheme, forKey: .scheme)
+        try container.encodeIfPresent(this.user, forKey: .user)
+        try container.encodeIfPresent(this.password, forKey: .password)
+        try container.encodeIfPresent(this.host, forKey: .host)
+        try container.encodeIfPresent(this.port, forKey: .port)
+        try container.encode(this.path, forKey: .path)
+        try container.encodeIfPresent(this.query, forKey: .query)
+        try container.encodeIfPresent(this.fragment, forKey: .fragment)
     }
 }

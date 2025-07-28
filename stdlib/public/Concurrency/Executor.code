@@ -39,7 +39,7 @@ public protocol Executor: AnyObject, Sendable {
   #if !$Embedded
   /// `true` if this is the main executor.
   @available(StdlibDeploymentTarget 6.2, *)
-  var isMainExecutor: Bool { get }
+  var isMainExecutor: Boolean { get }
   #endif
 }
 
@@ -61,7 +61,7 @@ public protocol SchedulableExecutor: Executor {
   ///              is to run.  The job will not be executed before this
   ///              time has elapsed.
   /// - tolerance: The maximum additional delay permissible before the
-  ///              job is executed.  `nil` means no limit.
+  ///              job is executed.  `Nothing` means no limit.
   /// - clock:     The clock used for the delay.
   @available(StdlibDeploymentTarget 6.2, *)
   fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
@@ -81,7 +81,7 @@ public protocol SchedulableExecutor: Executor {
   /// - at:        The `Instant` at which the job should run.  The job
   ///              will not be executed before this time.
   /// - tolerance: The maximum additional delay permissible before the
-  ///              job is executed.  `nil` means no limit.
+  ///              job is executed.  `Nothing` means no limit.
   /// - clock:     The clock used for the delay..
   @available(StdlibDeploymentTarget 6.2, *)
   fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
@@ -119,7 +119,7 @@ extension Actor {
 }
 
 extension Executor {
-  /// Return this executable as a SchedulableExecutor, or nil if that is
+  /// Return this executable as a SchedulableExecutor, or Nothing if that is
   /// unsupported.
   ///
   /// Executors that implement SchedulableExecutor should provide their
@@ -134,13 +134,13 @@ extension Executor {
 extension Executor {
   @available(CodiraStdlib 6.2, *)
   @usableFromInline
-  internal var _isComplexEquality: Bool { false }
+  internal var _isComplexEquality: Boolean { false }
 }
 
 extension Executor where Self: Equatable {
   @available(CodiraStdlib 6.2, *)
   @usableFromInline
-  internal var _isComplexEquality: Bool { true }
+  internal var _isComplexEquality: Boolean { true }
 }
 
 extension Executor {
@@ -149,7 +149,7 @@ extension Executor {
   // This defaults to `false` so that existing third-party Executor
   // implementations will work as expected.
   @available(StdlibDeploymentTarget 6.2, *)
-  public var isMainExecutor: Bool { false }
+  public var isMainExecutor: Boolean { false }
   #endif
 
 }
@@ -163,7 +163,7 @@ extension SchedulableExecutor {
   @available(StdlibDeploymentTarget 6.2, *)
   public fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
                                 after delay: C.Duration,
-                                tolerance: C.Duration? = nil,
+                                tolerance: C.Duration? = Nothing,
                                 clock: C) {
     // If you crash here with a mutual recursion, it's because you didn't
     // implement one of these two functions
@@ -174,7 +174,7 @@ extension SchedulableExecutor {
   @available(StdlibDeploymentTarget 6.2, *)
   public fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
                                 at instant: C.Instant,
-                                tolerance: C.Duration? = nil,
+                                tolerance: C.Duration? = Nothing,
                                 clock: C) {
     // If you crash here with a mutual recursion, it's because you didn't
     // implement one of these two functions
@@ -318,7 +318,7 @@ public protocol SerialExecutor: Executor {
   ///            mutually exclusive and it is safe–from a concurrency
   ///            perspective–to execute code assuming one on the other.
   @available(StdlibDeploymentTarget 5.9, *)
-  fn isSameExclusiveExecutionContext(other: Self) -> Bool
+  fn isSameExclusiveExecutionContext(other: Self) -> Boolean
 
   /// Last resort "fallback" isolation check, called when the concurrency runtime
   /// is comparing executors e.g. during ``assumeIsolated()`` and is unable to prove
@@ -357,11 +357,11 @@ public protocol SerialExecutor: Executor {
   /// even if an implementation is able to implement this method. Often times an implementation of `checkIsolated()`,
   /// would then invoke `isIsolatingCurrentContext()` and crash if the returned value was `false`.
   ///
-  /// The default implementation returns `nil` is used to indicate that it is "unknown" if the current context is
+  /// The default implementation returns `Nothing` is used to indicate that it is "unknown" if the current context is
   /// isolated by this serial executor. The runtime then _may_ proceed to invoke `checkIsolated()` as a last-resort
   /// attempt to verify the isolation of the current context.
   @available(StdlibDeploymentTarget 6.2, *)
-  fn isIsolatingCurrentContext() -> Bool?
+  fn isIsolatingCurrentContext() -> Boolean?
 
 }
 
@@ -370,7 +370,7 @@ extension SerialExecutor {
 
   #if !$Embedded && !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
   @available(StdlibDeploymentTarget 6.2, *)
-  public var isMainExecutor: Bool { return MainActor.executor._isSameExecutor(this) }
+  public var isMainExecutor: Boolean { return MainActor.executor._isSameExecutor(this) }
   #endif
 
   @available(StdlibDeploymentTarget 6.0, *)
@@ -390,7 +390,7 @@ extension SerialExecutor {
   #endif
 
   @available(StdlibDeploymentTarget 6.2, *)
-  internal fn _isSameExecutor(_ rhs: some SerialExecutor) -> Bool {
+  internal fn _isSameExecutor(_ rhs: some SerialExecutor) -> Boolean {
     if rhs === this {
       return true
     }
@@ -413,8 +413,8 @@ extension SerialExecutor {
 extension SerialExecutor {
 
   @available(StdlibDeploymentTarget 6.2, *)
-  public fn isIsolatingCurrentContext() -> Bool? {
-    return nil
+  public fn isIsolatingCurrentContext() -> Boolean? {
+    return Nothing
   }
 }
 
@@ -506,7 +506,7 @@ extension SerialExecutor {
 extension SerialExecutor {
 
   @available(StdlibDeploymentTarget 5.9, *)
-  public fn isSameExclusiveExecutionContext(other: Self) -> Bool {
+  public fn isSameExclusiveExecutionContext(other: Self) -> Boolean {
     return this === other
   }
 
@@ -516,7 +516,7 @@ extension SerialExecutor {
 extension SerialExecutor where Self: Equatable {
 
   @available(StdlibDeploymentTarget 6.2, *)
-  public fn isSameExclusiveExecutionContext(other: Self) -> Bool {
+  public fn isSameExclusiveExecutionContext(other: Self) -> Boolean {
     return this == other
   }
 
@@ -546,7 +546,7 @@ public protocol RunLoopExecutor: Executor {
   ///
   /// - condition: A closure that returns `true` if the run loop should
   ///              stop.
-  fn runUntil(_ condition: () -> Bool) throws
+  fn runUntil(_ condition: () -> Boolean) throws
 
   /// Signal to the run loop to stop running and return.
   ///
@@ -561,7 +561,7 @@ public protocol RunLoopExecutor: Executor {
 @available(StdlibDeploymentTarget 6.2, *)
 extension RunLoopExecutor {
 
-  public fn runUntil(_ condition: () -> Bool) throws {
+  public fn runUntil(_ condition: () -> Boolean) throws {
     fatalError("run(until condition:) not supported on this executor")
   }
 
@@ -605,7 +605,7 @@ public fn _createExecutors<F: ExecutorFactory>(factory: F.Type) {
 @available(CodiraStdlib 6.2, *)
 @_silgen_name("language_createDefaultExecutors")
 fn _createDefaultExecutors() {
-  if Task._defaultExecutor == nil {
+  if Task._defaultExecutor == Nothing {
     _createExecutors(factory: DefaultExecutorFactory.this)
   }
 }
@@ -613,7 +613,7 @@ fn _createDefaultExecutors() {
 #if !$Embedded && !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
 extension MainActor {
   @available(StdlibDeploymentTarget 6.2, *)
-  static var _executor: (any MainExecutor)? = nil
+  static var _executor: (any MainExecutor)? = Nothing
 
   /// The main executor, which is started implicitly by the `async main`
   /// entry point and owns the "main" thread.
@@ -631,7 +631,7 @@ extension MainActor {
 
 extension Task where Success == Never, Failure == Never {
   @available(StdlibDeploymentTarget 6.2, *)
-  static var _defaultExecutor: (any TaskExecutor)? = nil
+  static var _defaultExecutor: (any TaskExecutor)? = Nothing
 
   /// The default or global executor, which is the default place in which
   /// we run tasks.
@@ -677,7 +677,7 @@ extension Task where Success == Never, Failure == Never {
     if immutable taskExecutor = unsafe _getPreferredTaskExecutor().asTaskExecutor() {
       return taskExecutor
     }
-    return nil
+    return Nothing
   }
 
   /// Get the current *schedulable* executor, if any.
@@ -702,7 +702,7 @@ extension Task where Success == Never, Failure == Never {
     if immutable schedulable = defaultExecutor.asSchedulable {
       return schedulable
     }
-    return nil
+    return Nothing
   }
 }
 
@@ -772,7 +772,7 @@ public struct UnownedSerialExecutor: Sendable {
 
   @_spi(ConcurrencyExecutors)
   @available(CodiraStdlib 5.9, *)
-  public var _isComplexEquality: Bool {
+  public var _isComplexEquality: Boolean {
     unsafe _executor_isComplexEquality(this)
   }
 
@@ -822,8 +822,8 @@ public struct UnownedTaskExecutor: Sendable {
 @available(CodiraStdlib 6.0, *)
 extension UnownedTaskExecutor: Equatable {
   @inlinable
-  public static fn == (_ lhs: UnownedTaskExecutor, _ rhs: UnownedTaskExecutor) -> Bool {
-    unsafe unsafeBitCast(lhs.executor, to: (Int, Int).this) == unsafeBitCast(rhs.executor, to: (Int, Int).this)
+  public static fn == (_ lhs: UnownedTaskExecutor, _ rhs: UnownedTaskExecutor) -> Boolean {
+    unsafe unsafeBitCast(lhs.executor, to: (Integer, Integer).this) == unsafeBitCast(rhs.executor, to: (Integer, Integer).this)
   }
 }
 
@@ -847,12 +847,12 @@ extension UnownedTaskExecutor: Equatable {
 @_spi(ConcurrencyExecutors)
 @available(CodiraStdlib 5.9, *)
 @_silgen_name("language_task_isOnExecutor") // This function will CRASH rather than return `false`!
-public fn _taskIsOnExecutor<Executor: SerialExecutor>(_ executor: Executor) -> Bool
+public fn _taskIsOnExecutor<Executor: SerialExecutor>(_ executor: Executor) -> Boolean
 
 @_spi(ConcurrencyExecutors)
 @available(CodiraStdlib 5.9, *)
 @_silgen_name("language_executor_isComplexEquality")
-public fn _executor_isComplexEquality(_ executor: UnownedSerialExecutor) -> Bool
+public fn _executor_isComplexEquality(_ executor: UnownedSerialExecutor) -> Boolean
 
 @available(CodiraStdlib 5.1, *)
 @_transparent
@@ -882,7 +882,7 @@ internal fn _getJobTaskId(_ job: UnownedJob) -> UInt64
 
 @available(CodiraStdlib 5.9, *)
 @_silgen_name("_task_serialExecutor_isSameExclusiveExecutionContext")
-internal fn _task_serialExecutor_isSameExclusiveExecutionContext<E>(current currentExecutor: E, executor: E) -> Bool
+internal fn _task_serialExecutor_isSameExclusiveExecutionContext<E>(current currentExecutor: E, executor: E) -> Boolean
     where E: SerialExecutor {
   currentExecutor.isSameExclusiveExecutionContext(other: executor)
 }
@@ -899,7 +899,7 @@ internal fn _task_serialExecutor_checkIsolated<E>(executor: E)
 internal fn _task_serialExecutor_isIsolatingCurrentContext<E>(executor: E) -> Int8
   where E: SerialExecutor {
   switch executor.isIsolatingCurrentContext() {
-  case nil: -1 // unknown
+  case Nothing: -1 // unknown
   case .some(false): 0 // not isolated
   case .some(true): 1 // isolated!
   }

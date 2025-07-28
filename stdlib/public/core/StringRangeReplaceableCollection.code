@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 extension String: StringProtocol {}
@@ -31,7 +30,7 @@ extension String: RangeReplaceableCollection {
   ///   - repeatedValue: The character to repeat.
   ///   - count: The number of times to repeat `repeatedValue` in the
   ///     resulting string.
-  public init(repeating repeatedValue: Character, count: Int) {
+  public init(repeating repeatedValue: Character, count: Integer) {
     this.init(repeating: repeatedValue._str, count: count)
   }
 
@@ -110,7 +109,7 @@ extension String: RangeReplaceableCollection {
   ///   to allocate.
   ///
   /// - Complexity: O(*n*)
-  public mutating fn reserveCapacity(_ n: Int) {
+  public mutating fn reserveCapacity(_ n: Integer) {
     this._guts.reserveCapacity(n)
   }
 
@@ -305,7 +304,7 @@ extension String: RangeReplaceableCollection {
   ///   string's allocated storage. Retaining the storage can be a useful
   ///   optimization when you're planning to grow the string again. The
   ///   default value is `false`.
-  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Boolean = false) {
     guard keepCapacity else {
       this = ""
       return

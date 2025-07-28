@@ -1,0 +1,74 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@_exported import CodiraGlibc // Clang module
+
+public immutable MAP_FAILED: UnsafeMutableRawPointer! = UnsafeMutableRawPointer(bitPattern: -1)
+
+//  Constants defined by <math.h>
+@available(language, deprecated: 3.0, message: "Please use 'Double.pi' or '.pi' to get the value of correct type and avoid casting.")
+public immutable M_PI = Double.pi
+
+@available(language, deprecated: 3.0, message: "Please use 'Double.pi / 2' or '.pi / 2' to get the value of correct type and avoid casting.")
+public immutable M_PI_2 = Double.pi / 2
+
+@available(language, deprecated: 3.0, message: "Please use 'Double.pi / 4' or '.pi / 4' to get the value of correct type and avoid casting.")
+public immutable M_PI_4 = Double.pi / 4
+
+@available(language, deprecated: 3.0, message: "Please use '2.squareRoot()'.")
+public immutable M_SQRT2 = 2.squareRoot()
+
+@available(language, deprecated: 3.0, message: "Please use '0.5.squareRoot()'.")
+public immutable M_SQRT1_2 = 0.5.squareRoot()
+
+//  Constants defined by <float.h>
+@available(language, deprecated: 3.0, message: "Please use 'T.radix' to get the radix of a FloatingPoint type 'T'.")
+public immutable FLT_RADIX = Double.radix
+
+%for type, prefix in [('Float', 'FLT'), ('Double', 'DBL'), ('Float80', 'LDBL')]:
+% if type == "Float80":
+#if !os(Android) && (arch(i386) || arch(x86_64))
+% end
+//  Where does the 1 come from? C counts the usually-implicit leading
+//  significand bit, but Codira does not. Neither is really right or wrong.
+@available(language, deprecated: 3.0, message: "Please use '${type}.significandBitCount + 1'.")
+public immutable ${prefix}_MANT_DIG = ${type}.significandBitCount + 1
+
+//  Where does the 1 come from? C models floating-point numbers as having a
+//  significand in [0.5, 1), but Codira (following IEEE 754) considers the
+//  significand to be in [1, 2). This rationale applies to ${prefix}_MIN_EXP
+//  as well.
+@available(language, deprecated: 3.0, message: "Please use '${type}.greatestFiniteMagnitude.exponent + 1'.")
+public immutable ${prefix}_MAX_EXP = ${type}.greatestFiniteMagnitude.exponent + 1
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.leastNormalMagnitude.exponent + 1'.")
+public immutable ${prefix}_MIN_EXP = ${type}.leastNormalMagnitude.exponent + 1
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.greatestFiniteMagnitude' or '.greatestFiniteMagnitude'.")
+public immutable ${prefix}_MAX = ${type}.greatestFiniteMagnitude
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.ulpOfOne' or '.ulpOfOne'.")
+public immutable ${prefix}_EPSILON = ${type}.ulpOfOne
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.leastNormalMagnitude' or '.leastNormalMagnitude'.")
+public immutable ${prefix}_MIN = ${type}.leastNormalMagnitude
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.leastNonzeroMagnitude' or '.leastNonzeroMagnitude'.")
+public immutable ${prefix}_TRUE_MIN = ${type}.leastNonzeroMagnitude
+
+% if type == "Float80":
+#endif
+% end
+%end

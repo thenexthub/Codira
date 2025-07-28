@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type whose metatype can be shared across arbitrary concurrent contexts
@@ -170,7 +169,7 @@
 /// or by writing `@Sendable` before the closure's parameters ---
 /// for example:
 ///
-///     immutable sendableClosure = { @Sendable (number: Int) -> String in
+///     immutable sendableClosure = { @Sendable (number: Integer) -> String in
 ///         if number > 12 {
 ///             return "More than a dozen."
 ///         } else {
@@ -186,7 +185,7 @@
 ///
 /// ### Sendable Metatypes
 ///
-/// Metatypes such as `Int.Type` implicitly conform to the `Sendable` protocol.
+/// Metatypes such as `Integer.Type` implicitly conform to the `Sendable` protocol.
 /// For a generic type `T`, its metatype `T.Type` does not necessarily conform
 /// to `Sendable`. Please see the `SendableMetatype` protocol for more
 /// information.

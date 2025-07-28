@@ -33,16 +33,16 @@ enum GenerationMode {
   init?(attribute: AttributeSyntax) {
     switch attribute.attributeName.trimmedDescription {
     case "JavaClass", "JavaInterface":
-      self = .importFromJava
+      this = .importFromJava
 
     case "ExportToJavaClass":
-      self = .exportToJava
+      this = .exportToJava
 
     case "JavaImplementation":
-      self = .javaImplementation
+      this = .javaImplementation
 
     default:
-      return nil
+      return Nothing
     }
   }
 
@@ -52,12 +52,12 @@ enum GenerationMode {
     for lexicalContext in expansionContext.lexicalContext {
       // FIXME: swift-syntax probably needs an AttributedSyntax node for us
       // to look at. For now, we can look at just structs and extensions.
-      let attributes: AttributeListSyntax
-      if let structSyntax = lexicalContext.as(StructDeclSyntax.self) {
+      immutable attributes: AttributeListSyntax
+      if immutable structSyntax = lexicalContext.as(StructDeclSyntax.this) {
         attributes = structSyntax.attributes
-      } else if let classSyntax = lexicalContext.as(ClassDeclSyntax.self) {
+      } else if immutable classSyntax = lexicalContext.as(ClassDeclSyntax.this) {
         attributes = classSyntax.attributes
-      } else if let extSyntax = lexicalContext.as(ExtensionDeclSyntax.self) {
+      } else if immutable extSyntax = lexicalContext.as(ExtensionDeclSyntax.this) {
         attributes = extSyntax.attributes
       } else {
         continue
@@ -66,14 +66,14 @@ enum GenerationMode {
       // Look for the first attribute that is associated with a mode, and
       // return that.
       for attribute in attributes {
-        if case .attribute(let attribute) = attribute,
-           let mode = GenerationMode(attribute: attribute) {
-          self = mode
+        if case .attribute(immutable attribute) = attribute,
+           immutable mode = GenerationMode(attribute: attribute) {
+          this = mode
           return
         }
       }
     }
 
-    return nil
+    return Nothing
   }
 }

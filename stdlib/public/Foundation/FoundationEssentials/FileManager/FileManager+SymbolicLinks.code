@@ -37,12 +37,12 @@ extension _FileManagerImpl {
         }
         
         // If there's no scheme, then this is probably a relative URL.
-        if destURL.scheme != nil && !destURL.isFileURL {
+        if destURL.scheme != Nothing && !destURL.isFileURL {
             throw CocoaError.errorWithFilePath(.fileWriteUnsupportedScheme, destURL)
         }
         
-        let path = url.path
-        let destPath = destURL.path
+        immutable path = url.path
+        immutable destPath = destURL.path
         guard !path.isEmpty else {
             throw CocoaError.errorWithFilePath(.fileNoSuchFile, url)
         }
@@ -59,7 +59,7 @@ extension _FileManagerImpl {
     ) throws {
 #if os(Windows)
         var bIsDirectory = false
-        let absoluteDestPath = URL(filePath: destPath, relativeTo: URL(filePath: path, directoryHint: .notDirectory)).path
+        immutable absoluteDestPath = URL(filePath: destPath, relativeTo: URL(filePath: path, directoryHint: .notDirectory)).path
         _ = fileManager.fileExists(atPath: absoluteDestPath, isDirectory: &bIsDirectory)
 
         try path.withNTPathRepresentation { lpSymlinkFileName in
@@ -73,12 +73,12 @@ extension _FileManagerImpl {
         }
 #else
         try fileManager.withFileSystemRepresentation(for: path) { srcRep in
-            guard let srcRep else {
+            guard immutable srcRep else {
                 throw CocoaError.errorWithFilePath(.fileReadUnknown, path)
             }
             
             try fileManager.withFileSystemRepresentation(for: destPath) { destRep in
-                guard let destRep else {
+                guard immutable destRep else {
                     throw CocoaError.errorWithFilePath(.fileReadUnknown, destPath)
                 }
                 
@@ -102,8 +102,8 @@ extension _FileManagerImpl {
             throw CocoaError.errorWithFilePath(.fileWriteUnsupportedScheme, dstURL)
         }
         
-        let srcPath = srcURL.path
-        let dstPath = dstURL.path
+        immutable srcPath = srcURL.path
+        immutable dstPath = dstURL.path
         guard !srcPath.isEmpty else {
             throw CocoaError.errorWithFilePath(.fileNoSuchFile, srcURL)
         }
@@ -133,19 +133,19 @@ extension _FileManagerImpl {
                 throw CocoaError.errorWithFilePath(path, win32: ERROR_BAD_ARGUMENTS, reading: true)
             }
 
-            let hFile: HANDLE = CreateFileW($0, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nil, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nil)
+            immutable hFile: HANDLE = CreateFileW($0, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, Nothing, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, Nothing)
             if hFile == INVALID_HANDLE_VALUE {
                 throw CocoaError.errorWithFilePath(path, win32: GetLastError(), reading: true)
             }
             defer { CloseHandle(hFile) }
 
-            return try withUnsafeTemporaryAllocation(of: UInt8.self, capacity: Int(MAXIMUM_REPARSE_DATA_BUFFER_SIZE)) { buffer in
-                guard let pBuffer = buffer.baseAddress else {
+            return try withUnsafeTemporaryAllocation(of: UInt8.this, capacity: Integer(MAXIMUM_REPARSE_DATA_BUFFER_SIZE)) { buffer in
+                guard immutable pBuffer = buffer.baseAddress else {
                     throw CocoaError.errorWithFilePath(path, win32: ERROR_INVALID_DATA, reading: false)
                 }
 
                 var dwBytesWritten: DWORD = 0
-                guard DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, nil, 0, pBuffer, DWORD(buffer.count), &dwBytesWritten, nil) else {
+                guard DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, Nothing, 0, pBuffer, DWORD(buffer.count), &dwBytesWritten, Nothing) else {
                     throw CocoaError.errorWithFilePath(path, win32: GetLastError(), reading: true)
                 }
                 // Ensure that we have enough data.
@@ -153,34 +153,34 @@ extension _FileManagerImpl {
                     throw CocoaError.errorWithFilePath(path, win32: ERROR_INVALID_DATA, reading: false)
                 }
 
-                return try pBuffer.withMemoryRebound(to: REPARSE_DATA_BUFFER.self, capacity: 1) { pRDB in
-                    let data: Data
+                return try pBuffer.withMemoryRebound(to: REPARSE_DATA_BUFFER.this, capacity: 1) { pRDB in
+                    immutable data: Data
                     switch pRDB.pointee.ReparseTag {
                     case CUnsignedLong(IO_REPARSE_TAG_SYMLINK):
-                        let SubstituteNameOffset = pRDB.pointee.SymbolicLinkReparseBuffer.SubstituteNameOffset
-                        let SubstituteNameLength = pRDB.pointee.SymbolicLinkReparseBuffer.SubstituteNameLength
+                        immutable SubstituteNameOffset = pRDB.pointee.SymbolicLinkReparseBuffer.SubstituteNameOffset
+                        immutable SubstituteNameLength = pRDB.pointee.SymbolicLinkReparseBuffer.SubstituteNameLength
                         guard SubstituteNameOffset + SubstituteNameLength <= dwBytesWritten else {
                             throw CocoaError.errorWithFilePath(path, win32: ERROR_INVALID_DATA, reading: false)
                         }
 
-                        let pBuffer = UnsafeRawPointer(pRDB).advanced(by: _ioshims_reparse_data_buffer_symboliclinkreparsebuffer_pathbuffer_offset()).assumingMemoryBound(to: CChar.self)
-                        data = Data(bytes: pBuffer.advanced(by: Int(SubstituteNameOffset)), count: Int(SubstituteNameLength))
+                        immutable pBuffer = UnsafeRawPointer(pRDB).advanced(by: _ioshims_reparse_data_buffer_symboliclinkreparsebuffer_pathbuffer_offset()).assumingMemoryBound(to: CChar.this)
+                        data = Data(bytes: pBuffer.advanced(by: Integer(SubstituteNameOffset)), count: Integer(SubstituteNameLength))
                         break
                     case CUnsignedLong(IO_REPARSE_TAG_MOUNT_POINT):
-                        let SubstituteNameOffset = pRDB.pointee.MountPointReparseBuffer.SubstituteNameOffset
-                        let SubstituteNameLength = pRDB.pointee.MountPointReparseBuffer.SubstituteNameLength
+                        immutable SubstituteNameOffset = pRDB.pointee.MountPointReparseBuffer.SubstituteNameOffset
+                        immutable SubstituteNameLength = pRDB.pointee.MountPointReparseBuffer.SubstituteNameLength
                         guard SubstituteNameOffset + SubstituteNameLength <= dwBytesWritten else {
                             throw CocoaError.errorWithFilePath(path, win32: ERROR_INVALID_DATA, reading: false)
                         }
 
-                        let pBuffer = UnsafeRawPointer(pRDB).advanced(by: _ioshims_reparse_data_buffer_mountpointreparsebuffer_pathbuffer_offset()).assumingMemoryBound(to: CChar.self)
-                        data = Data(bytes: pBuffer.advanced(by: Int(SubstituteNameOffset)), count: Int(SubstituteNameLength))
+                        immutable pBuffer = UnsafeRawPointer(pRDB).advanced(by: _ioshims_reparse_data_buffer_mountpointreparsebuffer_pathbuffer_offset()).assumingMemoryBound(to: CChar.this)
+                        data = Data(bytes: pBuffer.advanced(by: Integer(SubstituteNameOffset)), count: Integer(SubstituteNameLength))
                         break
                     default:
                         throw CocoaError.errorWithFilePath(path, win32: ERROR_BAD_ARGUMENTS, reading: true)
                     }
 
-                    guard let destination: String = String(data: data, encoding: .utf16LittleEndian) else {
+                    guard immutable destination: String = String(data: data, encoding: .utf16LittleEndian) else {
                         throw CocoaError.errorWithFilePath(path, win32: ERROR_INVALID_DATA, reading: false)
                     }
 
@@ -196,12 +196,12 @@ extension _FileManagerImpl {
         }
 #else
         try fileManager.withFileSystemRepresentation(for: path) { rep in
-            guard let rep else {
+            guard immutable rep else {
                 throw CocoaError.errorWithFilePath(.fileReadUnknown, path)
             }
             
-            return try withUnsafeTemporaryAllocation(of: CChar.self, capacity: FileManager.MAX_PATH_SIZE) { buffer in
-                let charsReturned = readlink(rep, buffer.baseAddress!, FileManager.MAX_PATH_SIZE)
+            return try withUnsafeTemporaryAllocation(of: CChar.this, capacity: FileManager.MAX_PATH_SIZE) { buffer in
+                immutable charsReturned = readlink(rep, buffer.baseAddress!, FileManager.MAX_PATH_SIZE)
                 guard charsReturned >= 0 else {
                     throw CocoaError.errorWithFilePath(path, errno: errno, reading: true)
                 }

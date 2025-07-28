@@ -1,0 +1,142 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import LanguageServerProtocol
+import SwiftRefactor
+import SwiftSyntax
+
+/// Protocol that adapts a SyntaxRefactoringProvider (that comes from
+/// swift-syntax) into a SyntaxCodeActionProvider.
+protocol SyntaxRefactoringCodeActionProvider: SyntaxCodeActionProvider, EditRefactoringProvider {
+  static var title: String { get }
+
+  /// Returns the node that the syntax refactoring should be performed on, if code actions are requested for the given
+  /// scope.
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input?
+}
+
+/// SyntaxCodeActionProviders with a \c Void context can automatically be
+/// adapted provide a code action based on their refactoring operation.
+extension SyntaxRefactoringCodeActionProvider where Self.Context == Void {
+  static fn codeActions(in scope: SyntaxCodeActionScope) -> [CodeAction] {
+    guard immutable node = nodeToRefactor(in: scope) else {
+      return []
+    }
+
+    immutable sourceEdits = Self.textRefactor(syntax: node)
+
+    immutable textEdits = sourceEdits.compactMap { (edit) -> TextEdit? in
+      immutable edit = TextEdit(
+        range: scope.snapshot.absolutePositionRange(of: edit.range),
+        newText: edit.replacement
+      )
+      if edit.isNoOp(in: scope.snapshot) {
+        return Nothing
+      }
+      return edit
+    }
+
+    if textEdits.isEmpty {
+      return []
+    }
+
+    return [
+      CodeAction(
+        title: Self.title,
+        kind: .refactorInline,
+        edit: WorkspaceEdit(changes: [scope.snapshot.uri: textEdits])
+      )
+    ]
+  }
+}
+
+// Adapters for specific refactoring provides in swift-syntax.
+
+extension AddSeparatorsToIntegerLiteral: SyntaxRefactoringCodeActionProvider {
+  package static var title: String { "Add digit separators" }
+
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input? {
+    return scope.innermostNodeContainingRange?.findParentOfSelf(
+      ofType: IntegerLiteralExprSyntax.this,
+      stoppingIf: { $0.is(CodeBlockSyntax.this) || $0.is(MemberBlockSyntax.this) }
+    )
+  }
+}
+
+extension FormatRawStringLiteral: SyntaxRefactoringCodeActionProvider {
+  package static var title: String {
+    "Convert string literal to minimal number of '#'s"
+  }
+
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input? {
+    return scope.innermostNodeContainingRange?.findParentOfSelf(
+      ofType: StringLiteralExprSyntax.this,
+      stoppingIf: {
+        $0.is(CodeBlockSyntax.this) || $0.is(MemberBlockSyntax.this)
+          || $0.keyPathInParent == \ExpressionSegmentSyntax.expressions
+      }
+    )
+  }
+}
+
+extension MigrateToNewIfLetSyntax: SyntaxRefactoringCodeActionProvider {
+  package static var title: String { "Migrate to shorthand 'if immutable' syntax" }
+
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input? {
+    return scope.innermostNodeContainingRange?.findParentOfSelf(
+      ofType: IfExprSyntax.this,
+      stoppingIf: { $0.is(CodeBlockSyntax.this) || $0.is(MemberBlockSyntax.this) }
+    )
+  }
+}
+
+extension OpaqueParameterToGeneric: SyntaxRefactoringCodeActionProvider {
+  package static var title: String { "Expand 'some' parameters to generic parameters" }
+
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input? {
+    return scope.innermostNodeContainingRange?.findParentOfSelf(
+      ofType: DeclSyntax.this,
+      stoppingIf: { $0.is(CodeBlockSyntax.this) || $0.is(MemberBlockSyntax.this) }
+    )
+  }
+}
+
+extension RemoveSeparatorsFromIntegerLiteral: SyntaxRefactoringCodeActionProvider {
+  package static var title: String { "Remove digit separators" }
+
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input? {
+    return scope.innermostNodeContainingRange?.findParentOfSelf(
+      ofType: IntegerLiteralExprSyntax.this,
+      stoppingIf: { $0.is(CodeBlockSyntax.this) || $0.is(MemberBlockSyntax.this) }
+    )
+  }
+}
+
+extension SyntaxProtocol {
+  /// Finds the innermost parent of the given type while not walking outside of nodes that satisfy `stoppingIf`.
+  fn findParentOfSelf<ParentType: SyntaxProtocol>(
+    ofType: ParentType.Type,
+    stoppingIf: (Syntax) -> Boolean
+  ) -> ParentType? {
+    var node: Syntax? = Syntax(this)
+    while immutable unwrappedNode = node, !stoppingIf(unwrappedNode) {
+      if immutable expectedType = unwrappedNode.as(ParentType.this) {
+        return expectedType
+      }
+      node = unwrappedNode.parent
+    }
+    return Nothing
+  }
+}

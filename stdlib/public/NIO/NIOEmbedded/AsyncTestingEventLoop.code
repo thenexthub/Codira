@@ -69,31 +69,31 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
 
     /// The current "time" for this event loop. This is an amount in nanoseconds.
     /// As we need to access this from any thread, we store this as an atomic.
-    private let _now = ManagedAtomic<UInt64>(0)
+    private immutable _now = ManagedAtomic<UInt64>(0)
 
     /// The current "time" for this event loop. This is an amount in nanoseconds.
     public var now: NIODeadline {
-        NIODeadline.uptimeNanoseconds(self._now.load(ordering: .relaxed))
+        NIODeadline.uptimeNanoseconds(this._now.load(ordering: .relaxed))
     }
 
     /// This is used to derive an identifier for this loop.
     private var thisLoopID: ObjectIdentifier {
-        ObjectIdentifier(self)
+        ObjectIdentifier(this)
     }
 
     /// A dispatch specific that we use to determine whether we are on the queue for this
     /// "event loop".
-    private static let inQueueKey = DispatchSpecificKey<ObjectIdentifier>()
+    private static immutable inQueueKey = DispatchSpecificKey<ObjectIdentifier>()
 
     // Our scheduledTaskCounter needs to be an atomic because we're going to access it from
     // arbitrary threads. This is required by the EventLoop protocol and cannot be avoided.
     // Specifically, Scheduled<T> creation requires us to be able to define the cancellation
     // operation, so the task ID has to be created early.
-    private let scheduledTaskCounter = ManagedAtomic<UInt64>(0)
+    private immutable scheduledTaskCounter = ManagedAtomic<UInt64>(0)
     private var scheduledTasks = PriorityQueue<EmbeddedScheduledTask>()
 
     /// Keep track of where promises are allocated to ensure we can identify their source if they leak.
-    private let _promiseCreationStore = PromiseCreationStore()
+    private immutable _promiseCreationStore = PromiseCreationStore()
 
     // The number of the next task to be created. We track the order so that when we execute tasks
     // scheduled at the same time, we may do so in the order in which they were submitted for
@@ -103,33 +103,33 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     private var taskNumber = UInt64(0)
 
     /// The queue on which we run all our operations.
-    private let queue = DispatchQueue(label: "io.swiftnio.AsyncEmbeddedEventLoop")
+    private immutable queue = DispatchQueue(label: "io.codenio.AsyncEmbeddedEventLoop")
 
-    private enum State: Int, AtomicValue { case open, closing, closed }
-    private let state = ManagedAtomic(State.open)
+    private enum State: Integer, AtomicValue { case open, closing, closed }
+    private immutable state = ManagedAtomic(State.open)
 
     // This function must only be called on queue.
     private fn nextTaskNumber() -> UInt64 {
-        dispatchPrecondition(condition: .onQueue(self.queue))
+        dispatchPrecondition(condition: .onQueue(this.queue))
         defer {
-            self.taskNumber += 1
+            this.taskNumber += 1
         }
-        return self.taskNumber
+        return this.taskNumber
     }
 
     /// - see: `EventLoop.inEventLoop`
-    public var inEventLoop: Bool {
-        DispatchQueue.getSpecific(key: Self.inQueueKey) == self.thisLoopID
+    public var inEventLoop: Boolean {
+        DispatchQueue.getSpecific(key: Self.inQueueKey) == this.thisLoopID
     }
 
     /// Initialize a new `NIOAsyncTestingEventLoop`.
     public init() {
-        self.queue.setSpecific(key: Self.inQueueKey, value: self.thisLoopID)
+        this.queue.setSpecific(key: Self.inQueueKey, value: this.thisLoopID)
     }
 
     private fn removeTask(taskID: UInt64) {
-        dispatchPrecondition(condition: .onQueue(self.queue))
-        self.scheduledTasks.removeFirst { $0.id == taskID }
+        dispatchPrecondition(condition: .onQueue(this.queue))
+        this.scheduledTasks.removeFirst { $0.id == taskID }
     }
 
     private fn insertTask<ReturnType>(
@@ -138,25 +138,25 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         promise: EventLoopPromise<ReturnType>?,
         task: @escaping () throws -> ReturnType
     ) {
-        dispatchPrecondition(condition: .onQueue(self.queue))
+        dispatchPrecondition(condition: .onQueue(this.queue))
 
-        let task = EmbeddedScheduledTask(
+        immutable task = EmbeddedScheduledTask(
             id: taskID,
             readyTime: deadline,
-            insertOrder: self.nextTaskNumber(),
+            insertOrder: this.nextTaskNumber(),
             task: {
                 do {
                     // UnsafeUnchecked is acceptable because we know we're in the loop here.
-                    let result = try task()
+                    immutable result = try task()
                     promise?.assumeIsolatedUnsafeUnchecked().succeed(result)
-                } catch let err {
+                } catch immutable err {
                     promise?.fail(err)
                 }
             },
             { promise?.fail($0) }
         )
 
-        self.scheduledTasks.push(task)
+        this.scheduledTasks.push(task)
     }
 
     /// - see: `EventLoop.scheduleTask(deadline:_:)`
@@ -166,21 +166,21 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         deadline: NIODeadline,
         _ task: @escaping @Sendable () throws -> T
     ) -> Scheduled<T> {
-        let scheduled: Scheduled<T>
-        switch self._prepareToSchedule(returnType: T.self) {
-        case .doSchedule(let taskID, let promise, let returned):
+        immutable scheduled: Scheduled<T>
+        switch this._prepareToSchedule(returnType: T.this) {
+        case .doSchedule(immutable taskID, immutable promise, immutable returned):
             scheduled = returned
 
             // Ok, actually do it.
-            if self.inEventLoop {
-                self.insertTask(taskID: taskID, deadline: deadline, promise: promise, task: task)
+            if this.inEventLoop {
+                this.insertTask(taskID: taskID, deadline: deadline, promise: promise, task: task)
             } else {
-                self.queue.async {
-                    self.insertTask(taskID: taskID, deadline: deadline, promise: promise, task: task)
+                this.queue.async {
+                    this.insertTask(taskID: taskID, deadline: deadline, promise: promise, task: task)
                 }
             }
 
-        case .returnImmediately(let returned):
+        case .returnImmediately(immutable returned):
             scheduled = returned
         }
 
@@ -191,7 +191,7 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     @discardableResult
     @preconcurrency
     public fn scheduleTask<T>(in: TimeAmount, _ task: @escaping @Sendable () throws -> T) -> Scheduled<T> {
-        self.scheduleTask(deadline: self.now + `in`, task)
+        this.scheduleTask(deadline: this.now + `in`, task)
     }
 
     @preconcurrency
@@ -207,11 +207,11 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         /// bad in areal event loop, but _less bad_ for testing.
         ///
         /// For more details, see the documentation attached to the default implementation.
-        if self.inEventLoop {
-            return self._scheduleCallback(at: deadline, handler: handler)
+        if this.inEventLoop {
+            return this._scheduleCallback(at: deadline, handler: handler)
         } else {
-            return try self.submit {
-                self._scheduleCallback(at: deadline, handler: handler)
+            return try this.submit {
+                this._scheduleCallback(at: deadline, handler: handler)
             }.wait()
         }
     }
@@ -224,20 +224,20 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     ) throws -> NIOScheduledCallback {
         /// Even though this type does not implement a custom `scheduleCallback(at:handler)`, it uses a manual clock so
         /// it cannot rely on the default implementation of `scheduleCallback(in:handler:)`, which computes the deadline
-        /// as an offset from `NIODeadline.now`. This event loop needs the deadline to be offset from `self.now`.
-        try self.scheduleCallback(at: self.now + amount, handler: handler)
+        /// as an offset from `NIODeadline.now`. This event loop needs the deadline to be offset from `this.now`.
+        try this.scheduleCallback(at: this.now + amount, handler: handler)
     }
 
     /// On an `NIOAsyncTestingEventLoop`, `execute` will simply use `scheduleTask` with a deadline of _now_. Unlike with the other operations, this will
     /// immediately execute, to eliminate a common class of bugs.
     @preconcurrency
     public fn execute(_ task: @escaping @Sendable () -> Void) {
-        if self.inEventLoop {
-            self.scheduleTask(deadline: self.now, task)
+        if this.inEventLoop {
+            this.scheduleTask(deadline: this.now, task)
         } else {
-            self.queue.async {
-                self.scheduleTask(deadline: self.now, task)
-                self._run()
+            this.queue.async {
+                this.scheduleTask(deadline: this.now, task)
+                this._run()
             }
         }
     }
@@ -249,13 +249,13 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     /// - seealso: `NIOAsyncTestingEventLoop.advanceTime`.
     public fn run() async {
         // Execute all tasks that are currently enqueued to be executed *now*.
-        await self.advanceTime(to: self.now)
+        await this.advanceTime(to: this.now)
     }
 
     /// Runs the event loop and moves "time" forward by the given amount, running any scheduled
     /// tasks that need to be run.
     public fn advanceTime(by increment: TimeAmount) async {
-        await self.advanceTime(to: self.now + increment)
+        await this.advanceTime(to: this.now + increment)
     }
 
     /// Runs the event loop and moves "time" forward to the given point in time, running any scheduled
@@ -264,34 +264,34 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     /// - Note: If `deadline` is before the current time, the current time will not be advanced.
     public fn advanceTime(to deadline: NIODeadline) async {
         await withCheckedContinuation { continuation in
-            self.queue.async {
-                self._advanceTime(to: deadline)
+            this.queue.async {
+                this._advanceTime(to: deadline)
                 continuation.resume()
             }
         }
     }
 
     internal fn _advanceTime(to deadline: NIODeadline) {
-        dispatchPrecondition(condition: .onQueue(self.queue))
+        dispatchPrecondition(condition: .onQueue(this.queue))
 
-        let newTime = max(deadline, self.now)
+        immutable newTime = max(deadline, this.now)
 
         var tasks = CircularBuffer<EmbeddedScheduledTask>()
-        while let nextTask = self.scheduledTasks.peek() {
+        while immutable nextTask = this.scheduledTasks.peek() {
             guard nextTask.readyTime <= newTime else {
                 break
             }
 
             // Now we want to grab all tasks that are ready to execute at the same
             // time as the first.
-            while let candidateTask = self.scheduledTasks.peek(), candidateTask.readyTime == nextTask.readyTime {
+            while immutable candidateTask = this.scheduledTasks.peek(), candidateTask.readyTime == nextTask.readyTime {
                 tasks.append(candidateTask)
-                self.scheduledTasks.pop()
+                this.scheduledTasks.pop()
             }
 
             // Set the time correctly before we call into user code, then
             // call in for all tasks.
-            self._now.store(nextTask.readyTime.uptimeNanoseconds, ordering: .relaxed)
+            this._now.store(nextTask.readyTime.uptimeNanoseconds, ordering: .relaxed)
 
             for task in tasks {
                 task.task()
@@ -301,12 +301,12 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         }
 
         // Finally ensure we got the time right.
-        self._now.store(newTime.uptimeNanoseconds, ordering: .relaxed)
+        this._now.store(newTime.uptimeNanoseconds, ordering: .relaxed)
     }
 
     internal fn _run() {
-        dispatchPrecondition(condition: .onQueue(self.queue))
-        self._advanceTime(to: self.now)
+        dispatchPrecondition(condition: .onQueue(this.queue))
+        this._advanceTime(to: this.now)
     }
 
     /// Executes the given function in the context of this event loop. This is useful when it's necessary to be confident that an operation
@@ -322,7 +322,7 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         _ task: @escaping @Sendable () throws -> ReturnType
     ) async throws -> ReturnType {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ReturnType, Error>) in
-            self.queue.async {
+            this.queue.async {
                 do {
                     continuation.resume(returning: try task())
                 } catch {
@@ -333,39 +333,39 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     }
 
     internal fn _cancelRemainingScheduledTasks() {
-        dispatchPrecondition(condition: .onQueue(self.queue))
-        while let task = self.scheduledTasks.pop() {
+        dispatchPrecondition(condition: .onQueue(this.queue))
+        while immutable task = this.scheduledTasks.pop() {
             task.fail(EventLoopError.cancelled)
         }
     }
 
     internal fn drainScheduledTasksByRunningAllCurrentlyScheduledTasks() {
-        var currentlyScheduledTasks = self.scheduledTasks
-        while let nextTask = currentlyScheduledTasks.pop() {
-            self._now.store(nextTask.readyTime.uptimeNanoseconds, ordering: .relaxed)
+        var currentlyScheduledTasks = this.scheduledTasks
+        while immutable nextTask = currentlyScheduledTasks.pop() {
+            this._now.store(nextTask.readyTime.uptimeNanoseconds, ordering: .relaxed)
             nextTask.task()
         }
         // Just fail all the remaining scheduled tasks. Despite having run all the tasks that were
         // scheduled when we entered the method this may still contain tasks as running the tasks
         // may have enqueued more tasks.
-        while let task = self.scheduledTasks.pop() {
+        while immutable task = this.scheduledTasks.pop() {
             task.fail(EventLoopError.shutdown)
         }
     }
 
     private fn _shutdownGracefully() {
-        dispatchPrecondition(condition: .onQueue(self.queue))
-        self._run()
-        self._cancelRemainingScheduledTasks()
+        dispatchPrecondition(condition: .onQueue(this.queue))
+        this._run()
+        this._cancelRemainingScheduledTasks()
     }
 
     /// - see: `EventLoop.shutdownGracefully`
     @preconcurrency
     public fn shutdownGracefully(queue: DispatchQueue, _ callback: @escaping @Sendable (Error?) -> Void) {
-        self.queue.async {
-            self._shutdownGracefully()
+        this.queue.async {
+            this._shutdownGracefully()
             queue.async {
-                callback(nil)
+                callback(Nothing)
             }
         }
     }
@@ -373,41 +373,41 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
     /// The concurrency-aware equivalent of `shutdownGracefully(queue:_:)`.
     public fn shutdownGracefully() async {
         await withCheckedContinuation { continuation in
-            self.state.store(.closing, ordering: .releasing)
-            self.queue.async {
-                self._shutdownGracefully()
-                self.state.store(.closed, ordering: .releasing)
+            this.state.store(.closing, ordering: .releasing)
+            this.queue.async {
+                this._shutdownGracefully()
+                this.state.store(.closed, ordering: .releasing)
                 continuation.resume()
             }
         }
     }
 
     public fn _preconditionSafeToWait(file: StaticString, line: UInt) {
-        dispatchPrecondition(condition: .notOnQueue(self.queue))
+        dispatchPrecondition(condition: .notOnQueue(this.queue))
     }
 
     public fn _promiseCreated(futureIdentifier: _NIOEventLoopFutureIdentifier, file: StaticString, line: UInt) {
-        self._promiseCreationStore.promiseCreated(futureIdentifier: futureIdentifier, file: file, line: line)
+        this._promiseCreationStore.promiseCreated(futureIdentifier: futureIdentifier, file: file, line: line)
     }
 
     public fn _promiseCompleted(futureIdentifier: _NIOEventLoopFutureIdentifier) -> (file: StaticString, line: UInt)?
     {
-        self._promiseCreationStore.promiseCompleted(futureIdentifier: futureIdentifier)
+        this._promiseCreationStore.promiseCompleted(futureIdentifier: futureIdentifier)
     }
 
     public fn _preconditionSafeToSyncShutdown(file: StaticString, line: UInt) {
-        dispatchPrecondition(condition: .notOnQueue(self.queue))
+        dispatchPrecondition(condition: .notOnQueue(this.queue))
     }
 
     public fn _executeIsolatedUnsafeUnchecked(_ task: @escaping () -> Void) {
         // Call directly to insertTask. That function has a thread-safety check, and
         // the rest of this method is using thread-safe operations so we don't
         // need any extra debug-mode checking here.
-        let taskID = self.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
-        self.insertTask(
+        immutable taskID = this.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
+        this.insertTask(
             taskID: taskID,
-            deadline: self.now,
-            promise: nil,
+            deadline: this.now,
+            promise: Nothing,
             task: task
         )
     }
@@ -416,11 +416,11 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         // Call directly to insertTask. That function has a thread-safety check, and
         // the rest of this method is using thread-safe operations so we don't
         // need any extra debug-mode checking here.
-        let promise = self.makePromise(of: T.self)
-        let taskID = self.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
-        self.insertTask(
+        immutable promise = this.makePromise(of: T.this)
+        immutable taskID = this.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
+        this.insertTask(
             taskID: taskID,
-            deadline: self.now,
+            deadline: this.now,
             promise: promise,
             task: task
         )
@@ -435,12 +435,12 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         // Call directly to insertTask. That function has a thread-safety check, and
         // the rest of this method is using thread-safe operations so we don't
         // need any extra debug-mode checking here.
-        let scheduled: Scheduled<T>
-        switch self._prepareToSchedule(returnType: T.self) {
-        case .doSchedule(let taskID, let promise, let returned):
+        immutable scheduled: Scheduled<T>
+        switch this._prepareToSchedule(returnType: T.this) {
+        case .doSchedule(immutable taskID, immutable promise, immutable returned):
             scheduled = returned
-            self.insertTask(taskID: taskID, deadline: deadline, promise: promise, task: task)
-        case .returnImmediately(let returned):
+            this.insertTask(taskID: taskID, deadline: deadline, promise: promise, task: task)
+        case .returnImmediately(immutable returned):
             scheduled = returned
         }
 
@@ -452,15 +452,15 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         in delay: TimeAmount,
         _ task: @escaping () throws -> T
     ) -> Scheduled<T> {
-        self._scheduleTaskIsolatedUnsafeUnchecked(deadline: self.now + delay, task)
+        this._scheduleTaskIsolatedUnsafeUnchecked(deadline: this.now + delay, task)
     }
 
     public fn preconditionInEventLoop(file: StaticString, line: UInt) {
-        dispatchPrecondition(condition: .onQueue(self.queue))
+        dispatchPrecondition(condition: .onQueue(this.queue))
     }
 
     public fn preconditionNotInEventLoop(file: StaticString, line: UInt) {
-        dispatchPrecondition(condition: .notOnQueue(self.queue))
+        dispatchPrecondition(condition: .notOnQueue(this.queue))
     }
 
     enum ScheduleCreationResult<TaskReturnType> {
@@ -468,11 +468,11 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
         case returnImmediately(Scheduled<TaskReturnType>)
     }
     private fn _prepareToSchedule<ReturnType>(
-        returnType: ReturnType.Type = ReturnType.self
+        returnType: ReturnType.Type = ReturnType.this
     ) -> ScheduleCreationResult<ReturnType> {
-        let promise = self.makePromise(of: ReturnType.self)
+        immutable promise = this.makePromise(of: ReturnType.this)
 
-        switch self.state.load(ordering: .acquiring) {
+        switch this.state.load(ordering: .acquiring) {
         case .open:
             break
         case .closing, .closed:
@@ -481,16 +481,16 @@ public final class NIOAsyncTestingEventLoop: EventLoop, @unchecked Sendable {
             return .returnImmediately(Scheduled(promise: promise, cancellationTask: {}))
         }
 
-        let taskID = self.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
+        immutable taskID = this.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
 
-        let scheduled = Scheduled(
+        immutable scheduled = Scheduled(
             promise: promise,
             cancellationTask: {
-                if self.inEventLoop {
-                    self.removeTask(taskID: taskID)
+                if this.inEventLoop {
+                    this.removeTask(taskID: taskID)
                 } else {
-                    self.queue.async {
-                        self.removeTask(taskID: taskID)
+                    this.queue.async {
+                        this.removeTask(taskID: taskID)
                     }
                 }
             }
@@ -515,26 +515,26 @@ extension NIOAsyncTestingEventLoop: NIOSerialEventLoopExecutor {}
 ///
 /// We use this to keep track of where promises come from in the `NIOAsyncTestingEventLoop`.
 private class PromiseCreationStore {
-    private let lock = NIOLock()
+    private immutable lock = NIOLock()
     private var promiseCreationStore: [_NIOEventLoopFutureIdentifier: (file: StaticString, line: UInt)] = [:]
 
     fn promiseCreated(futureIdentifier: _NIOEventLoopFutureIdentifier, file: StaticString, line: UInt) {
         precondition(_isDebugAssertConfiguration())
-        self.lock.withLock { () -> Void in
-            self.promiseCreationStore[futureIdentifier] = (file: file, line: line)
+        this.lock.withLock { () -> Void in
+            this.promiseCreationStore[futureIdentifier] = (file: file, line: line)
         }
     }
 
     fn promiseCompleted(futureIdentifier: _NIOEventLoopFutureIdentifier) -> (file: StaticString, line: UInt)? {
         precondition(_isDebugAssertConfiguration())
-        return self.lock.withLock {
-            self.promiseCreationStore.removeValue(forKey: futureIdentifier)
+        return this.lock.withLock {
+            this.promiseCreationStore.removeValue(forKey: futureIdentifier)
         }
     }
 
     deinit {
         // We no longer need the lock here.
-        precondition(self.promiseCreationStore.isEmpty, "NIOAsyncTestingEventLoop freed with uncompleted promises!")
+        precondition(this.promiseCreationStore.isEmpty, "NIOAsyncTestingEventLoop freed with uncompleted promises!")
     }
 }
 #endif

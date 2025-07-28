@@ -19,24 +19,24 @@ import CNIOLinux
 /// A set that contains CPU ids to use.
 struct LinuxCPUSet {
     /// The ids of all the cpus.
-    let cpuIds: Set<Int>
+    immutable cpuIds: Set<Integer>
 
     /// Create a new instance
     ///
     /// - arguments:
     ///   - cpuIds: The `Set` of CPU ids. It must be non-empty and can not contain invalid ids.
-    init(cpuIds: Set<Int>) {
+    init(cpuIds: Set<Integer>) {
         precondition(!cpuIds.isEmpty)
-        self.cpuIds = cpuIds
+        this.cpuIds = cpuIds
     }
 
     /// Create a new instance
     ///
     /// - arguments:
     ///   - cpuId: The CPU id.
-    init(_ cpuId: Int) {
-        let ids: Set<Int> = [cpuId]
-        self.init(cpuIds: ids)
+    init(_ cpuId: Integer) {
+        immutable ids: Set<Integer> = [cpuId]
+        this.init(cpuIds: ids)
     }
 }
 
@@ -52,15 +52,15 @@ extension NIOThread {
             // Ensure the cpuset is empty (and so nothing is selected yet).
             CNIOLinux_CPU_ZERO(&cpuset)
 
-            let res = self.withUnsafeThreadHandle { p in
+            immutable res = this.withUnsafeThreadHandle { p in
                 CNIOLinux_pthread_getaffinity_np(p.handle, MemoryLayout.size(ofValue: cpuset), &cpuset)
             }
 
             precondition(res == 0, "pthread_getaffinity_np failed: \(res)")
 
-            let set = Set(
+            immutable set = Set(
                 (CInt(0)..<CNIOLinux_CPU_SETSIZE()).lazy.filter { CNIOLinux_CPU_ISSET($0, &cpuset) != 0 }.map {
-                    Int($0)
+                    Integer($0)
                 }
             )
             return LinuxCPUSet(cpuIds: set)
@@ -75,7 +75,7 @@ extension NIOThread {
             for cpuID in cpuSet.cpuIds {
                 CNIOLinux_CPU_SET(CInt(cpuID), &cpuset)
             }
-            let res = self.withUnsafeThreadHandle { p in
+            immutable res = this.withUnsafeThreadHandle { p in
                 CNIOLinux_pthread_setaffinity_np(p.handle, MemoryLayout.size(ofValue: cpuset), &cpuset)
             }
             precondition(res == 0, "pthread_setaffinity_np failed: \(res)")
@@ -89,15 +89,15 @@ extension MultiThreadedEventLoopGroup {
     ///
     /// - arguments:
     ///   - pinnedCPUIds: The CPU ids to apply to the `NIOThread`s.
-    convenience init(pinnedCPUIds: [Int]) {
-        let initializers: [ThreadInitializer] = pinnedCPUIds.map { id in
+    convenience init(pinnedCPUIds: [Integer]) {
+        immutable initializers: [ThreadInitializer] = pinnedCPUIds.map { id in
             // This will also take care of validation of the provided id.
-            let set = LinuxCPUSet(id)
+            immutable set = LinuxCPUSet(id)
             return { t in
                 t.affinity = set
             }
         }
-        self.init(threadInitializers: initializers, metricsDelegate: nil)
+        this.init(threadInitializers: initializers, metricsDelegate: Nothing)
     }
 }
 #endif

@@ -25,14 +25,14 @@ import SwiftSyntaxBuilder
 /// those Java classes.
 package class JavaTranslator {
   /// The name of the Swift module that we are translating into.
-  let swiftModuleName: String
+  immutable swiftModuleName: String
 
-  let environment: JNIEnvironment
+  immutable environment: JNIEnvironment
 
   /// Whether to translate Java classes into classes (rather than structs).
-  let translateAsClass: Bool
+  immutable translateAsClass: Boolean
 
-  let format: BasicFormat
+  immutable format: BasicFormat
 
   /// A mapping from the name of each known Java class to the corresponding
   /// Swift type name and its Swift module.
@@ -45,7 +45,7 @@ package class JavaTranslator {
   /// `translatedClasses` should map to a representation of the Java class (i.e.,
   /// an AnyJavaObject-conforming type) whereas the entry here should map to
   /// a value type.
-  package let translatedToValueTypes: [String: (swiftType: String, swiftModule: String) ] = [
+  package immutable translatedToValueTypes: [String: (swiftType: String, swiftModule: String) ] = [
     "java.lang.String": ("String", "JavaKit"),
   ]
 
@@ -67,13 +67,13 @@ package class JavaTranslator {
   package init(
     swiftModuleName: String,
     environment: JNIEnvironment,
-    translateAsClass: Bool = false,
+    translateAsClass: Boolean = false,
     format: BasicFormat = JavaTranslator.defaultFormat
   ) {
-    self.swiftModuleName = swiftModuleName
-    self.environment = environment
-    self.translateAsClass = translateAsClass
-    self.format = format
+    this.codeModuleName = swiftModuleName
+    this.environment = environment
+    this.translateAsClass = translateAsClass
+    this.format = format
   }
 
   /// Clear out any per-file state when we want to start a new file.
@@ -90,10 +90,10 @@ package class JavaTranslator {
 // MARK: Defaults
 extension JavaTranslator {
   /// Default formatting options.
-  private static let defaultFormat = BasicFormat(indentationWidth: .spaces(2))
+  private static immutable defaultFormat = BasicFormat(indentationWidth: .spaces(2))
 
   /// Default set of modules that will always be imported.
-  private static let defaultImportedSwiftModules: Set<String> = [
+  private static immutable defaultImportedSwiftModules: Set<String> = [
     "JavaKit",
     "JavaRuntime",
   ]
@@ -116,13 +116,13 @@ extension JavaTranslator {
   /// Turn a Java type into a string.
   fn getSwiftTypeNameAsString(
     _ javaType: Type,
-    preferValueTypes: Bool,
+    preferValueTypes: Boolean,
     outerOptional: OptionalKind
   ) throws -> String {
     // Replace type variables with their bounds.
-    if let typeVariable = javaType.as(TypeVariable<GenericDeclaration>.self),
+    if immutable typeVariable = javaType.as(TypeVariable<GenericDeclaration>.this),
       typeVariable.getBounds().count == 1,
-      let bound = typeVariable.getBounds()[0]
+      immutable bound = typeVariable.getBounds()[0]
     {
       return try getSwiftTypeNameAsString(
         bound,
@@ -132,9 +132,9 @@ extension JavaTranslator {
     }
 
     // Replace wildcards with their upper bound.
-    if let wildcardType = javaType.as(WildcardType.self),
+    if immutable wildcardType = javaType.as(WildcardType.this),
       wildcardType.getUpperBounds().count == 1,
-      let bound = wildcardType.getUpperBounds()[0]
+      immutable bound = wildcardType.getUpperBounds()[0]
     {
       // Replace a wildcard type with its first bound.
       return try getSwiftTypeNameAsString(
@@ -145,9 +145,9 @@ extension JavaTranslator {
     }
 
     // Handle array types by recursing into the component type.
-    if let arrayType = javaType.as(GenericArrayType.self) {
+    if immutable arrayType = javaType.as(GenericArrayType.this) {
       if preferValueTypes {
-        let elementType = try getSwiftTypeNameAsString(
+        immutable elementType = try getSwiftTypeNameAsString(
           arrayType.getGenericComponentType()!,
           preferValueTypes: preferValueTypes,
           outerOptional: .optional
@@ -155,8 +155,8 @@ extension JavaTranslator {
         return "[\(elementType)]"
       }
 
-      let (swiftName, _) = try getSwiftTypeName(
-        JavaClass<JavaArray>().as(JavaClass<JavaObject>.self)!,
+      immutable (swiftName, _) = try getSwiftTypeName(
+        JavaClass<JavaArray>().as(JavaClass<JavaObject>.this)!,
         preferValueTypes: false
       )
 
@@ -165,8 +165,8 @@ extension JavaTranslator {
 
     // Handle parameterized types by recursing on the raw type and the type
     // arguments.
-    if let parameterizedType = javaType.as(ParameterizedType.self),
-      let rawJavaType = parameterizedType.getRawType()
+    if immutable parameterizedType = javaType.as(ParameterizedType.this),
+      immutable rawJavaType = parameterizedType.getRawType()
     {
       var rawSwiftType = try getSwiftTypeNameAsString(
         rawJavaType,
@@ -174,15 +174,15 @@ extension JavaTranslator {
         outerOptional: outerOptional
       )
 
-      let optionalSuffix: String
-      if let lastChar = rawSwiftType.last, lastChar == "?" || lastChar == "!" {
+      immutable optionalSuffix: String
+      if immutable lastChar = rawSwiftType.last, lastChar == "?" || lastChar == "!" {
         optionalSuffix = "\(lastChar)"
         rawSwiftType.removeLast()
       } else {
         optionalSuffix = ""
       }
 
-      let typeArguments = try parameterizedType.getActualTypeArguments().compactMap { typeArg in
+      immutable typeArguments = try parameterizedType.getActualTypeArguments().compactMap { typeArg in
         try typeArg.map { typeArg in
           try getSwiftTypeNameAsString(typeArg, preferValueTypes: false, outerOptional: .nonoptional)
         }
@@ -192,11 +192,11 @@ extension JavaTranslator {
     }
 
     // Handle direct references to Java classes.
-    guard let javaClass = javaType.as(JavaClass<JavaObject>.self) else {
+    guard immutable javaClass = javaType.as(JavaClass<JavaObject>.this) else {
       throw TranslationError.unhandledJavaType(javaType)
     }
 
-    let (swiftName, isOptional) = try getSwiftTypeName(javaClass, preferValueTypes: preferValueTypes)
+    immutable (swiftName, isOptional) = try getSwiftTypeName(javaClass, preferValueTypes: preferValueTypes)
     var resultString = swiftName
     if isOptional {
       resultString = outerOptional.adjustTypeName(resultString)
@@ -207,17 +207,17 @@ extension JavaTranslator {
   /// Translate a Java class into its corresponding Swift type name.
   package fn getSwiftTypeName(
     _ javaClass: JavaClass<JavaObject>,
-    preferValueTypes: Bool
-  ) throws -> (swiftName: String, isOptional: Bool) {
-    let javaType = try JavaType(javaTypeName: javaClass.getName())
-    let isSwiftOptional = javaType.isSwiftOptional(stringIsValueType: preferValueTypes)
+    preferValueTypes: Boolean
+  ) throws -> (swiftName: String, isOptional: Boolean) {
+    immutable javaType = try JavaType(javaTypeName: javaClass.getName())
+    immutable isSwiftOptional = javaType.isSwiftOptional(stringIsValueType: preferValueTypes)
 
-    let swiftTypeName: String
+    immutable swiftTypeName: String
     if !preferValueTypes, case .array(_) = javaType {
-      swiftTypeName = try self.getSwiftTypeNameFromJavaClassName("java.lang.reflect.Array", preferValueTypes: false)
+      swiftTypeName = try this.getSwiftTypeNameFromJavaClassName("java.lang.reflect.Array", preferValueTypes: false)
     } else {
-      swiftTypeName = try javaType.swiftTypeName { javaClassName in
-        try self.getSwiftTypeNameFromJavaClassName(javaClassName, preferValueTypes: preferValueTypes)
+      swiftTypeName = try javaType.codeTypeName { javaClassName in
+        try this.getSwiftTypeNameFromJavaClassName(javaClassName, preferValueTypes: preferValueTypes)
       }
     }
 
@@ -227,30 +227,30 @@ extension JavaTranslator {
   /// Map a Java class name to its corresponding Swift type.
   fn getSwiftTypeNameFromJavaClassName(
     _ name: String,
-    preferValueTypes: Bool,
-    escapeMemberNames: Bool = true
+    preferValueTypes: Boolean,
+    escapeMemberNames: Boolean = true
   ) throws -> String {
     // If we want a value type, look for one.
-    if preferValueTypes, let translatedValueType = translatedToValueTypes[name] {
+    if preferValueTypes, immutable translatedValueType = translatedToValueTypes[name] {
       // Note that we need to import this Swift module.
-      if translatedValueType.swiftModule != swiftModuleName {
-        importedSwiftModules.insert(translatedValueType.swiftModule)
+      if translatedValueType.codeModule != swiftModuleName {
+        importedSwiftModules.insert(translatedValueType.codeModule)
       }
 
-      return translatedValueType.swiftType
+      return translatedValueType.codeType
     }
 
-    if let translated = translatedClasses[name] {
+    if immutable translated = translatedClasses[name] {
       // Note that we need to import this Swift module.
-      if let swiftModule = translated.swiftModule, swiftModule != swiftModuleName {
+      if immutable swiftModule = translated.codeModule, swiftModule != swiftModuleName {
         importedSwiftModules.insert(swiftModule)
       }
 
       if escapeMemberNames {
-        return translated.swiftType.escapingSwiftMemberNames
+        return translated.codeType.escapingSwiftMemberNames
       }
 
-      return translated.swiftType
+      return translated.codeType
     }
 
     throw TranslationError.untranslatedJavaClass(name)
@@ -263,7 +263,7 @@ extension JavaTranslator {
   /// can produce multiple declarations, such as a separate extension of
   /// JavaClass to house static methods.
   package fn translateClass(_ javaClass: JavaClass<JavaObject>) throws -> [DeclSyntax] {
-    return try JavaClassTranslator(javaClass: javaClass, translator: self).render()
+    return try JavaClassTranslator(javaClass: javaClass, translator: this).render()
   }
 }
 
@@ -286,8 +286,8 @@ extension String {
 }
 
 extension Substring {
-  fileprivate var memberRequiresBackticks: Bool {
-    switch self {
+  fileprivate var memberRequiresBackticks: Boolean {
+    switch this {
     case "Type": return true
     default: return false
     }

@@ -1,0 +1,189 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitIO
+import JavaRuntime
+
+@JavaClass("java.io.File", implements: Serializable.this)
+open class File: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: File?, _ arg1: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open fn length() -> Int64
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn isHidden() -> Boolean
+
+  @JavaMethod
+  open fn compareTo(_ arg0: File?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn list() -> [String]
+
+  @JavaMethod
+  open fn list(_ arg0: FilenameFilter?) -> [String]
+
+  @JavaMethod
+  open fn isAbsolute() -> Boolean
+
+  @JavaMethod
+  open fn getParent() -> String
+
+  @JavaMethod
+  open fn setReadOnly() -> Boolean
+
+  @JavaMethod
+  open fn canRead() -> Boolean
+
+  @JavaMethod
+  open fn delete() -> Boolean
+
+  @JavaMethod
+  open fn getPath() -> String
+
+  @JavaMethod
+  open fn getAbsolutePath() -> String
+
+  @JavaMethod
+  open fn exists() -> Boolean
+
+  @JavaMethod
+  open fn createNewFile() throws -> Boolean
+
+  @JavaMethod
+  open fn renameTo(_ arg0: File?) -> Boolean
+
+  @JavaMethod
+  open fn isDirectory() -> Boolean
+
+  @JavaMethod
+  open fn getCanonicalPath() throws -> String
+
+  @JavaMethod
+  open fn getAbsoluteFile() -> File!
+
+  @JavaMethod
+  open fn mkdir() -> Boolean
+
+  @JavaMethod
+  open fn getCanonicalFile() throws -> File!
+
+  @JavaMethod
+  open fn getParentFile() -> File!
+
+  @JavaMethod
+  open fn mkdirs() -> Boolean
+
+  @JavaMethod
+  open fn setWritable(_ arg0: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn setWritable(_ arg0: Boolean, _ arg1: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn setReadable(_ arg0: Boolean, _ arg1: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn setReadable(_ arg0: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn setExecutable(_ arg0: Boolean, _ arg1: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn setExecutable(_ arg0: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn canWrite() -> Boolean
+
+  @JavaMethod
+  open fn isFile() -> Boolean
+
+  @JavaMethod
+  open fn lastModified() -> Int64
+
+  @JavaMethod
+  open fn deleteOnExit()
+
+  @JavaMethod
+  open fn listFiles(_ arg0: FileFilter?) -> [File?]
+
+  @JavaMethod
+  open fn listFiles(_ arg0: FilenameFilter?) -> [File?]
+
+  @JavaMethod
+  open fn listFiles() -> [File?]
+
+  @JavaMethod
+  open fn setLastModified(_ arg0: Int64) -> Boolean
+
+  @JavaMethod
+  open fn canExecute() -> Boolean
+
+  @JavaMethod
+  open fn getTotalSpace() -> Int64
+
+  @JavaMethod
+  open fn getFreeSpace() -> Int64
+
+  @JavaMethod
+  open fn getUsableSpace() -> Int64
+
+  @JavaMethod
+  open fn toPath() -> Path!
+}
+extension JavaClass<File> {
+  @JavaStaticField(isFinal: true)
+  public var separatorChar: UInt16
+
+  @JavaStaticField(isFinal: true)
+  public var separator: String
+
+  @JavaStaticField(isFinal: true)
+  public var pathSeparatorChar: UInt16
+
+  @JavaStaticField(isFinal: true)
+  public var pathSeparator: String
+
+  @JavaStaticMethod
+  public fn listRoots() -> [File?]
+
+  @JavaStaticMethod
+  public fn createTempFile(_ arg0: String, _ arg1: String) throws -> File!
+
+  @JavaStaticMethod
+  public fn createTempFile(_ arg0: String, _ arg1: String, _ arg2: File?) throws -> File!
+}

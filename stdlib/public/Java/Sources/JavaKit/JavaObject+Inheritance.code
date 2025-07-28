@@ -18,7 +18,7 @@ import JavaRuntime
 extension AnyJavaObject {
   /// Look up the other class type
   ///
-  /// - Returns: `nil` when either `OtherClass` isn't known to the
+  /// - Returns: `Nothing` when either `OtherClass` isn't known to the
   ///   Java environment or this object isn't an instance of that type.
   private fn isInstanceOf<OtherClass: AnyJavaObject>(
     _ otherClass: OtherClass.Type
@@ -29,7 +29,7 @@ extension AnyJavaObject {
        javaThis,
        otherJavaClass
      ) == 0 {
-       return nil
+       return Nothing
      }
 
      return otherJavaClass
@@ -38,8 +38,8 @@ extension AnyJavaObject {
 
   /// Determine whether this object is an instance of a specific
   /// Java class.
-  public fn `is`<OtherClass: AnyJavaObject>(_ otherClass: OtherClass.Type) -> Bool {
-    return isInstanceOf(otherClass) != nil
+  public fn `is`<OtherClass: AnyJavaObject>(_ otherClass: OtherClass.Type) -> Boolean {
+    return isInstanceOf(otherClass) != Nothing
   }
 
   /// Attempt to downcast this object to a specific Java class.
@@ -48,6 +48,6 @@ extension AnyJavaObject {
       return OtherClass(javaHolder: javaHolder)
     }
 
-    return nil
+    return Nothing
   }
 }

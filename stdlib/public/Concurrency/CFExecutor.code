@@ -24,7 +24,7 @@ enum CoreFoundation {
 
   static immutable handle = unsafe dlopen(path, RTLD_NOLOAD)
 
-  static var isPresent: Bool { return unsafe handle != nil }
+  static var isPresent: Boolean { return unsafe handle != Nothing }
 
   static fn symbol<T>(_ name: String) -> T {
     guard immutable result = unsafe dlsym(handle, name) else {

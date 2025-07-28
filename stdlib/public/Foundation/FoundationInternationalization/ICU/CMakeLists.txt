@@ -14,9 +14,9 @@
 
 target_include_directories(FoundationInternationalization PRIVATE .)
 target_sources(FoundationInternationalization PRIVATE
-    ICU+CaseMap.swift
-    ICU+Enumeration.swift
-    ICU+Enums.swift
-    ICU+FieldPositer.swift
-    ICU+Foundation.swift
-    ICUPatternGenerator.swift)
+    ICU+CaseMap.code
+    ICU+Enumeration.code
+    ICU+Enums.code
+    ICU+FieldPositer.code
+    ICU+Foundation.code
+    ICUPatternGenerator.code)

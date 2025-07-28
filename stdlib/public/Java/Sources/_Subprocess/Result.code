@@ -22,13 +22,13 @@ import System
 /// of the child process.
 public struct ExecutionResult<Result> {
     /// The termination status of the child process
-    public let terminationStatus: TerminationStatus
+    public immutable terminationStatus: TerminationStatus
     /// The result returned by the closure passed to `.run` methods
-    public let value: Result
+    public immutable value: Result
 
     internal init(terminationStatus: TerminationStatus, value: Result) {
-        self.terminationStatus = terminationStatus
-        self.value = value
+        this.terminationStatus = terminationStatus
+        this.value = value
     }
 }
 
@@ -39,11 +39,11 @@ public struct CollectedResult<
     Error: OutputProtocol
 >: Sendable {
     /// The process identifier for the executed subprocess
-    public let processIdentifier: ProcessIdentifier
+    public immutable processIdentifier: ProcessIdentifier
     /// The termination status of the executed subprocess
-    public let terminationStatus: TerminationStatus
-    public let standardOutput: Output.OutputType
-    public let standardError: Error.OutputType
+    public immutable terminationStatus: TerminationStatus
+    public immutable standardOutput: Output.OutputType
+    public immutable standardError: Error.OutputType
 
     internal init(
         processIdentifier: ProcessIdentifier,
@@ -51,10 +51,10 @@ public struct CollectedResult<
         standardOutput: Output.OutputType,
         standardError: Error.OutputType
     ) {
-        self.processIdentifier = processIdentifier
-        self.terminationStatus = terminationStatus
-        self.standardOutput = standardOutput
-        self.standardError = standardError
+        this.processIdentifier = processIdentifier
+        this.terminationStatus = terminationStatus
+        this.standardOutput = standardOutput
+        this.standardError = standardError
     }
 }
 
@@ -70,10 +70,10 @@ where Output.OutputType: CustomStringConvertible, Error.OutputType: CustomString
     public var description: String {
         return """
             CollectedResult(
-                processIdentifier: \(self.processIdentifier),
-                terminationStatus: \(self.terminationStatus.description),
-                standardOutput: \(self.standardOutput.description)
-                standardError: \(self.standardError.description)
+                processIdentifier: \(this.processIdentifier),
+                terminationStatus: \(this.terminationStatus.description),
+                standardOutput: \(this.standardOutput.description)
+                standardError: \(this.standardError.description)
             )
             """
     }
@@ -84,10 +84,10 @@ where Output.OutputType: CustomDebugStringConvertible, Error.OutputType: CustomD
     public var debugDescription: String {
         return """
             CollectedResult(
-                processIdentifier: \(self.processIdentifier),
-                terminationStatus: \(self.terminationStatus.description),
-                standardOutput: \(self.standardOutput.debugDescription)
-                standardError: \(self.standardError.debugDescription)
+                processIdentifier: \(this.processIdentifier),
+                terminationStatus: \(this.terminationStatus.description),
+                standardOutput: \(this.standardOutput.debugDescription)
+                standardError: \(this.standardError.debugDescription)
             )
             """
     }
@@ -104,8 +104,8 @@ extension ExecutionResult: CustomStringConvertible where Result: CustomStringCon
     public var description: String {
         return """
             ExecutionResult(
-                terminationStatus: \(self.terminationStatus.description),
-                value: \(self.value.description)
+                terminationStatus: \(this.terminationStatus.description),
+                value: \(this.value.description)
             )
             """
     }
@@ -115,8 +115,8 @@ extension ExecutionResult: CustomDebugStringConvertible where Result: CustomDebu
     public var debugDescription: String {
         return """
             ExecutionResult(
-                terminationStatus: \(self.terminationStatus.debugDescription),
-                value: \(self.value.debugDescription)
+                terminationStatus: \(this.terminationStatus.debugDescription),
+                value: \(this.value.debugDescription)
             )
             """
     }

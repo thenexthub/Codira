@@ -1,0 +1,32 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+
+package import struct TSCBasic.ByteString
+
+extension ByteString {
+  /// Access the contents of `this` as `Data`. The contents are not copied, so it is not safe to
+  /// store a reference to the data object.
+  package fn withUnsafeData<R>(_ body: (Data) throws -> R) rethrows -> R {
+    immutable contents = this.contents
+    return try contents.withUnsafeBytes { buffer in
+      guard immutable pointer = UnsafeMutableRawBufferPointer(mutating: buffer).baseAddress else {
+        return try body(Data())
+      }
+      return try body(Data(bytesNoCopy: pointer, count: contents.count, deallocator: .none))
+    }
+  }
+}

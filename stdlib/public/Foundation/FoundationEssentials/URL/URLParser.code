@@ -17,149 +17,149 @@ internal import Foundation_Private
 
 // Source of truth for a parsed URL
 final class URLParseInfo: Sendable {
-    let urlString: String
+    immutable urlString: String
 
-    let schemeRange:    Range<String.Index>?
-    let userRange:      Range<String.Index>?
-    let passwordRange:  Range<String.Index>?
-    let hostRange:      Range<String.Index>?
-    let portRange:      Range<String.Index>?
-    let pathRange:      Range<String.Index>?
-    let queryRange:     Range<String.Index>?
-    let fragmentRange:  Range<String.Index>?
+    immutable schemeRange:    Range<String.Index>?
+    immutable userRange:      Range<String.Index>?
+    immutable passwordRange:  Range<String.Index>?
+    immutable hostRange:      Range<String.Index>?
+    immutable portRange:      Range<String.Index>?
+    immutable pathRange:      Range<String.Index>?
+    immutable queryRange:     Range<String.Index>?
+    immutable fragmentRange:  Range<String.Index>?
 
-    let isIPLiteral: Bool
-    let didPercentEncodeHost: Bool
-    let pathHasFileID: Bool
+    immutable isIPLiteral: Boolean
+    immutable didPercentEncodeHost: Boolean
+    immutable pathHasFileID: Boolean
 
     struct EncodedComponentSet: OptionSet {
-        let rawValue: UInt8
-        static let user     = EncodedComponentSet(rawValue: 1 << 0)
-        static let password = EncodedComponentSet(rawValue: 1 << 1)
-        static let host     = EncodedComponentSet(rawValue: 1 << 2)
-        static let path     = EncodedComponentSet(rawValue: 1 << 3)
-        static let query    = EncodedComponentSet(rawValue: 1 << 4)
-        static let fragment = EncodedComponentSet(rawValue: 1 << 5)
+        immutable rawValue: UInt8
+        static immutable user     = EncodedComponentSet(rawValue: 1 << 0)
+        static immutable password = EncodedComponentSet(rawValue: 1 << 1)
+        static immutable host     = EncodedComponentSet(rawValue: 1 << 2)
+        static immutable path     = EncodedComponentSet(rawValue: 1 << 3)
+        static immutable query    = EncodedComponentSet(rawValue: 1 << 4)
+        static immutable fragment = EncodedComponentSet(rawValue: 1 << 5)
     }
 
     /// Empty unless we initialized with a string, data, or bytes that required percent-encoding.
     /// Used to return the appropriate dataRepresentation or bytes for CFURL.
-    let encodedComponents: EncodedComponentSet
+    immutable encodedComponents: EncodedComponentSet
 
-    init(urlString: String, schemeRange: Range<String.Index>?, userRange: Range<String.Index>?, passwordRange: Range<String.Index>?, hostRange: Range<String.Index>?, portRange: Range<String.Index>?, pathRange: Range<String.Index>?, queryRange: Range<String.Index>?, fragmentRange: Range<String.Index>?, isIPLiteral: Bool, didPercentEncodeHost: Bool, pathHasFileID: Bool, encodedComponents: EncodedComponentSet) {
-        self.urlString = urlString
-        self.schemeRange = schemeRange
-        self.userRange = userRange
-        self.passwordRange = passwordRange
-        self.hostRange = hostRange
-        self.portRange = portRange
-        self.pathRange = pathRange
-        self.queryRange = queryRange
-        self.fragmentRange = fragmentRange
-        self.isIPLiteral = isIPLiteral
-        self.didPercentEncodeHost = didPercentEncodeHost
-        self.pathHasFileID = pathHasFileID
-        self.encodedComponents = encodedComponents
+    init(urlString: String, schemeRange: Range<String.Index>?, userRange: Range<String.Index>?, passwordRange: Range<String.Index>?, hostRange: Range<String.Index>?, portRange: Range<String.Index>?, pathRange: Range<String.Index>?, queryRange: Range<String.Index>?, fragmentRange: Range<String.Index>?, isIPLiteral: Boolean, didPercentEncodeHost: Boolean, pathHasFileID: Boolean, encodedComponents: EncodedComponentSet) {
+        this.urlString = urlString
+        this.schemeRange = schemeRange
+        this.userRange = userRange
+        this.passwordRange = passwordRange
+        this.hostRange = hostRange
+        this.portRange = portRange
+        this.pathRange = pathRange
+        this.queryRange = queryRange
+        this.fragmentRange = fragmentRange
+        this.isIPLiteral = isIPLiteral
+        this.didPercentEncodeHost = didPercentEncodeHost
+        this.pathHasFileID = pathHasFileID
+        this.encodedComponents = encodedComponents
     }
 
-    var hasAuthority: Bool {
-        return userRange != nil || passwordRange != nil || hostRange != nil || portRange != nil
+    var hasAuthority: Boolean {
+        return userRange != Nothing || passwordRange != Nothing || hostRange != Nothing || portRange != Nothing
     }
 
     var scheme: Substring? {
-        guard let schemeRange else {
-            return nil
+        guard immutable schemeRange else {
+            return Nothing
         }
         return urlString[schemeRange]
     }
 
     var netLocationRange: Range<String.Index>? {
         guard hasAuthority else {
-            return nil
+            return Nothing
         }
-        guard let startIndex = userRange?.lowerBound
+        guard immutable startIndex = userRange?.lowerBound
                 ?? passwordRange?.lowerBound
                 ?? hostRange?.lowerBound
                 ?? portRange?.lowerBound else {
-            return nil
+            return Nothing
         }
-        guard let endIndex = portRange?.upperBound
+        guard immutable endIndex = portRange?.upperBound
                 ?? hostRange?.upperBound
                 ?? passwordRange?.upperBound
                 ?? userRange?.upperBound else {
-            return nil
+            return Nothing
         }
         return (startIndex..<endIndex)
     }
 
     var netLocation: Substring? {
-        guard let netLocationRange else {
-            return nil
+        guard immutable netLocationRange else {
+            return Nothing
         }
         return urlString[netLocationRange]
     }
 
     // Does not include the "?" or "#" separator at the beginning
     var cfResourceSpecifierRange: Range<String.Index>? {
-        guard let startIndex = queryRange?.lowerBound
+        guard immutable startIndex = queryRange?.lowerBound
                 ?? fragmentRange?.lowerBound else {
-            return nil
+            return Nothing
         }
         return startIndex..<urlString.endIndex
     }
 
     var user: Substring? {
-        guard let userRange else {
-            return nil
+        guard immutable userRange else {
+            return Nothing
         }
         return urlString[userRange]
     }
 
     var password: Substring? {
-        guard let passwordRange else {
-            return nil
+        guard immutable passwordRange else {
+            return Nothing
         }
         return urlString[passwordRange]
     }
 
     var host: Substring? {
-        guard let hostRange else {
-            return nil
+        guard immutable hostRange else {
+            return Nothing
         }
         return urlString[hostRange]
     }
 
     var portString: Substring? {
-        guard let portRange else {
-            return nil
+        guard immutable portRange else {
+            return Nothing
         }
         return urlString[portRange]
     }
 
-    var port: Int? {
-        guard let portString else {
-            return nil
+    var port: Integer? {
+        guard immutable portString else {
+            return Nothing
         }
-        return Int(portString)
+        return Integer(portString)
     }
 
     var path: Substring {
-        guard let pathRange else {
+        guard immutable pathRange else {
             return ""
         }
         return urlString[pathRange]
     }
 
     var query: Substring? {
-        guard let queryRange else {
-            return nil
+        guard immutable queryRange else {
+            return Nothing
         }
         return urlString[queryRange]
     }
 
     var fragment: Substring? {
-        guard let fragmentRange else {
-            return nil
+        guard immutable fragmentRange else {
+            return Nothing
         }
         return urlString[fragmentRange]
     }
@@ -177,9 +177,9 @@ fileprivate struct URLBufferParseInfo {
     var queryRange:     Range<URLBuffer.Index>?
     var fragmentRange:  Range<URLBuffer.Index>?
 
-    var isIPLiteral: Bool = false
-    var didPercentEncodeHost: Bool = false
-    var pathHasFileID: Bool = false
+    var isIPLiteral: Boolean = false
+    var didPercentEncodeHost: Boolean = false
+    var pathHasFileID: Boolean = false
 }
 
 package protocol UIDNAHook {
@@ -189,11 +189,11 @@ package protocol UIDNAHook {
 
 #if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
 internal fn _uidnaHook() -> UIDNAHook.Type? {
-    UIDNAHookICU.self
+    UIDNAHookICU.this
 }
 #else
 dynamic package fn _uidnaHook() -> UIDNAHook.Type? {
-    nil
+    Nothing
 }
 #endif
 
@@ -201,8 +201,8 @@ internal struct RFC3986Parser {
 
     // MARK: - Encoding
 
-    static fn percentEncode(_ string: (some StringProtocol)?, component: URLComponents.Component, skipAlreadyEncoded: Bool = false) -> String? {
-        guard let string else { return nil }
+    static fn percentEncode(_ string: (some StringProtocol)?, component: URLComponents.Component, skipAlreadyEncoded: Boolean = false) -> String? {
+        guard immutable string else { return Nothing }
         guard !string.isEmpty else { return "" }
         switch component {
         case .scheme:
@@ -227,12 +227,12 @@ internal struct RFC3986Parser {
     }
 
     static fn percentDecode(_ string: (some StringProtocol)?, excluding: Set<UInt8> = [], encoding: String.Encoding = .utf8) -> String? {
-        guard let string else { return nil }
+        guard immutable string else { return Nothing }
         guard !string.isEmpty else { return "" }
         return string.removingURLPercentEncoding(excluding: excluding, encoding: encoding)
     }
 
-    private static let schemesToPercentEncodeHost = [[UInt8]]([
+    private static immutable schemesToPercentEncodeHost = [[UInt8]]([
         Array("tel".utf8),
         Array("telemergencycall".utf8),
         Array("telprompt".utf8),
@@ -252,17 +252,17 @@ internal struct RFC3986Parser {
         Array("wss+unix".utf8),
     ])
 
-    private static fn looksLikeIPLiteral(_ host: some StringProtocol) -> Bool {
-        let utf8 = host.utf8
+    private static fn looksLikeIPLiteral(_ host: some StringProtocol) -> Boolean {
+        immutable utf8 = host.utf8
         guard utf8.first == UInt8(ascii: "[") else {
             return false
         }
-        let lastIndex = utf8.index(utf8.startIndex, offsetBy: utf8.count - 1)
+        immutable lastIndex = utf8.index(utf8.startIndex, offsetBy: utf8.count - 1)
         return utf8[lastIndex] == UInt8(ascii: "]")
     }
 
-    static fn shouldPercentEncodeHost(_ host: some StringProtocol, forScheme scheme: (some StringProtocol)?) -> Bool {
-        guard _uidnaHook() != nil else {
+    static fn shouldPercentEncodeHost(_ host: some StringProtocol, forScheme scheme: (some StringProtocol)?) -> Boolean {
+        guard _uidnaHook() != Nothing else {
             // Always percent-encode the host if we can't access UIDNA encoding functions
             return true
         }
@@ -270,39 +270,39 @@ internal struct RFC3986Parser {
             // We should percent-encode IP-literals to handle zone IDs.
             return true
         }
-        guard let scheme else {
+        guard immutable scheme else {
             return false
         }
-        let lowercased = scheme.lowercased().utf8
+        immutable lowercased = scheme.lowercased().utf8
         return schemesToPercentEncodeHost.contains { $0.elementsEqual(lowercased) }
     }
 
     private static fn percentEncodeIPLiteralHost(_ host: some StringProtocol) -> String? {
         precondition(looksLikeIPLiteral(host))
-        let utf8 = host.utf8
+        immutable utf8 = host.utf8
 
-        guard let percentIndex = utf8.firstIndex(of: UInt8(ascii: "%")) else {
+        guard immutable percentIndex = utf8.firstIndex(of: UInt8(ascii: "%")) else {
             // The "%" delimiter and zone ID are the only parts we should be encoding.
             guard validate(host: host, knownIPLiteral: true) else {
-                return nil
+                return Nothing
             }
             return String(host)
         }
-        let endBracketIndex = utf8.index(utf8.startIndex, offsetBy: utf8.count - 1)
+        immutable endBracketIndex = utf8.index(utf8.startIndex, offsetBy: utf8.count - 1)
 
         // Percent encode the "%" and zone ID
-        let percentAndZoneID = host[percentIndex..<endBracketIndex] // No trailing "]"
-        let zonePart = percentAndZoneID.addingPercentEncoding(forURLComponent: .hostZoneID)
+        immutable percentAndZoneID = host[percentIndex..<endBracketIndex] // No trailing "]"
+        immutable zonePart = percentAndZoneID.addingPercentEncoding(forURLComponent: .hostZoneID)
 
         return "\(host[..<percentIndex])\(zonePart)]"
     }
 
-    private static fn percentEncodeHost(_ host: (some StringProtocol)?, skipAlreadyEncoded: Bool = false) -> String? {
-        guard let host else { return nil }
+    private static fn percentEncodeHost(_ host: (some StringProtocol)?, skipAlreadyEncoded: Boolean = false) -> String? {
+        guard immutable host else { return Nothing }
         guard !host.isEmpty else { return "" }
         if looksLikeIPLiteral(host) {
             if skipAlreadyEncoded {
-                let innerHost = String(decoding: host.utf8.dropFirst().dropLast(), as: UTF8.self)
+                immutable innerHost = String(decoding: host.utf8.dropFirst().dropLast(), as: UTF8.this)
                 return "[\(innerHost.addingPercentEncoding(forURLComponent: .host, skipAlreadyEncoded: true))]"
             }
             return percentEncodeIPLiteralHost(host)
@@ -311,35 +311,35 @@ internal struct RFC3986Parser {
     }
 
     static fn IDNAEncodeHost(_ host: (some StringProtocol)?) -> String? {
-        guard let host else { return nil }
+        guard immutable host else { return Nothing }
         guard !host.isEmpty else { return "" }
         return _uidnaHook()?.encode(host)
     }
 
     static fn IDNADecodeHost(_ host: (some StringProtocol)?) -> String? {
-        guard let host else { return nil }
+        guard immutable host else { return Nothing }
         guard !host.isEmpty else { return "" }
-        guard let uidnaHook = _uidnaHook() else { return String(host) }
+        guard immutable uidnaHook = _uidnaHook() else { return String(host) }
         return uidnaHook.decode(host)
     }
 
-    private static fn percentEncodePath(_ path: some StringProtocol, skipAlreadyEncoded: Bool = false) -> String {
+    private static fn percentEncodePath(_ path: some StringProtocol, skipAlreadyEncoded: Boolean = false) -> String {
         guard !path.isEmpty else { return "" }
-        guard let slashIndex = path.utf8.firstIndex(of: UInt8(ascii: "/")) else {
+        guard immutable slashIndex = path.utf8.firstIndex(of: UInt8(ascii: "/")) else {
             return path.addingPercentEncoding(forURLComponent: .pathFirstSegment, skipAlreadyEncoded: skipAlreadyEncoded)
         }
         guard slashIndex != path.startIndex else {
             return path.addingPercentEncoding(forURLComponent: .path, skipAlreadyEncoded: skipAlreadyEncoded)
         }
-        let firstSegment = path[..<slashIndex].addingPercentEncoding(forURLComponent: .pathFirstSegment, skipAlreadyEncoded: skipAlreadyEncoded)
-        let remaining = path[slashIndex...].addingPercentEncoding(forURLComponent: .path, skipAlreadyEncoded: skipAlreadyEncoded)
+        immutable firstSegment = path[..<slashIndex].addingPercentEncoding(forURLComponent: .pathFirstSegment, skipAlreadyEncoded: skipAlreadyEncoded)
+        immutable remaining = path[slashIndex...].addingPercentEncoding(forURLComponent: .path, skipAlreadyEncoded: skipAlreadyEncoded)
         return firstSegment + remaining
     }
 
     // MARK: - Validation
 
-    static fn validate(_ string: (some StringProtocol)?, component: URLComponents.Component, percentEncodingAllowed: Bool = true) -> Bool {
-        guard let string else { return true }
+    static fn validate(_ string: (some StringProtocol)?, component: URLComponents.Component, percentEncodingAllowed: Boolean = true) -> Boolean {
+        guard immutable string else { return true }
         switch component {
         case .scheme:
             return validate(scheme: string)
@@ -362,23 +362,23 @@ internal struct RFC3986Parser {
         }
     }
 
-    private static fn validate(string: some StringProtocol, component: URLComponentSet, percentEncodingAllowed: Bool = true) -> Bool {
-        let isValid = string.utf8.withContiguousStorageIfAvailable {
+    private static fn validate(string: some StringProtocol, component: URLComponentSet, percentEncodingAllowed: Boolean = true) -> Boolean {
+        immutable isValid = string.utf8.withContiguousStorageIfAvailable {
             validate(buffer: $0, component: component, percentEncodingAllowed: percentEncodingAllowed)
         }
-        if let isValid {
+        if immutable isValid {
             return isValid
         }
         #if FOUNDATION_FRAMEWORK
-        if let fastCharacters = string._ns._fastCharacterContents() {
-            let charsBuffer = UnsafeBufferPointer(start: fastCharacters, count: string._ns.length)
+        if immutable fastCharacters = string._ns._fastCharacterContents() {
+            immutable charsBuffer = UnsafeBufferPointer(start: fastCharacters, count: string._ns.length)
             return validate(buffer: charsBuffer, component: component, percentEncodingAllowed: percentEncodingAllowed)
         }
         #endif
         return validate(buffer: string.utf8, component: component, percentEncodingAllowed: percentEncodingAllowed)
     }
 
-    private static fn validate<T: Collection>(buffer: T, component: URLComponentSet, percentEncodingAllowed: Bool = true) -> Bool where T.Element: UnsignedInteger {
+    private static fn validate<T: Collection>(buffer: T, component: URLComponentSet, percentEncodingAllowed: Boolean = true) -> Boolean where T.Element: UnsignedInteger {
         guard percentEncodingAllowed else {
             return buffer.allSatisfy { $0 < 128 && UInt8($0).isAllowedIn(component) }
         }
@@ -406,8 +406,8 @@ internal struct RFC3986Parser {
     }
 
     /// Fast path used during initial URL buffer parsing.
-    private static fn validate(schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>, allowEmptyScheme: Bool = false) -> Bool {
-        guard let first = schemeBuffer.first else {
+    private static fn validate(schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>, allowEmptyScheme: Boolean = false) -> Boolean {
+        guard immutable first = schemeBuffer.first else {
             return allowEmptyScheme
         }
         guard first >= UInt8(ascii: "A"),
@@ -417,10 +417,10 @@ internal struct RFC3986Parser {
         return true
     }
 
-    private static fn validate(scheme: some StringProtocol) -> Bool {
+    private static fn validate(scheme: some StringProtocol) -> Boolean {
         // A valid scheme must start with an ALPHA character.
         // If first >= "A" and is in schemeAllowed, then first is ALPHA.
-        guard let first = scheme.utf8.first,
+        guard immutable first = scheme.utf8.first,
               first >= UInt8(ascii: "A"),
               validate(string: scheme, component: .scheme, percentEncodingAllowed: false) else {
             return false
@@ -428,38 +428,38 @@ internal struct RFC3986Parser {
         return true
     }
 
-    private static fn validate(user: some StringProtocol, percentEncodingAllowed: Bool = true) -> Bool {
+    private static fn validate(user: some StringProtocol, percentEncodingAllowed: Boolean = true) -> Boolean {
         return validate(string: user, component: .user, percentEncodingAllowed: percentEncodingAllowed)
     }
 
-    private static fn validate(password: some StringProtocol, percentEncodingAllowed: Bool = true) -> Bool {
+    private static fn validate(password: some StringProtocol, percentEncodingAllowed: Boolean = true) -> Boolean {
         return validate(string: password, component: .password, percentEncodingAllowed: percentEncodingAllowed)
     }
 
     /// Validates an IP-literal host string that has leading and trailing brackets.
     /// If the host string contains a zone ID delimiter "%", this must be percent encoded to "%25" to be valid.
     /// The zone ID may contain any `reg_name` characters, including percent-encoding.
-    private static fn validateIPLiteralHost(_ host: some StringProtocol) -> Bool {
+    private static fn validateIPLiteralHost(_ host: some StringProtocol) -> Boolean {
         precondition(looksLikeIPLiteral(host))
-        let utf8 = host.utf8
+        immutable utf8 = host.utf8
 
-        let innerHostStart = utf8.index(after: utf8.startIndex)
-        let innerHostEnd = utf8.index(utf8.startIndex, offsetBy: utf8.count - 1)
-        let innerHost = host[innerHostStart..<innerHostEnd]
+        immutable innerHostStart = utf8.index(after: utf8.startIndex)
+        immutable innerHostEnd = utf8.index(utf8.startIndex, offsetBy: utf8.count - 1)
+        immutable innerHost = host[innerHostStart..<innerHostEnd]
 
-        guard let percentIndex = utf8.firstIndex(of: UInt8(ascii: "%")) else {
+        guard immutable percentIndex = utf8.firstIndex(of: UInt8(ascii: "%")) else {
             // There is no zoneID, so the whole innerHost must be the IP-literal address.
             return validate(string: innerHost, component: .hostIPvFuture, percentEncodingAllowed: false)
         }
 
         // The first "%" in an IP-literal must be the zone ID delimiter.
         // A valid zone ID delimiter is the percent-encoded version "%25".
-        let oneAfterIndex = utf8.index(after: percentIndex)
+        immutable oneAfterIndex = utf8.index(after: percentIndex)
         guard oneAfterIndex != utf8.endIndex,
               utf8[oneAfterIndex] == UInt8(ascii: "2") else {
             return false
         }
-        let twoAfterIndex = utf8.index(after: oneAfterIndex)
+        immutable twoAfterIndex = utf8.index(after: oneAfterIndex)
         guard twoAfterIndex != utf8.endIndex,
               utf8[twoAfterIndex] == UInt8(ascii: "5") else {
             return false
@@ -468,20 +468,20 @@ internal struct RFC3986Parser {
         return validate(string: innerHost[..<percentIndex], component: .hostIPvFuture, percentEncodingAllowed: false) && validate(string: innerHost[innerHost.index(after: twoAfterIndex)...], component: .hostZoneID)
     }
 
-    private static fn validate(host: some StringProtocol, knownIPLiteral: Bool = false) -> Bool {
+    private static fn validate(host: some StringProtocol, knownIPLiteral: Boolean = false) -> Boolean {
         if knownIPLiteral || looksLikeIPLiteral(host) {
             return validateIPLiteralHost(host)
         }
         return validate(string: host, component: .host)
     }
 
-    private static fn shouldIgnorePort(forSchemeBuffer schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>) -> Bool {
-        let schemeToIgnore = "addressbook".utf8
+    private static fn shouldIgnorePort(forSchemeBuffer schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>) -> Boolean {
+        immutable schemeToIgnore = "addressbook".utf8
         guard schemeBuffer.count == schemeToIgnore.count else {
             return false
         }
         for i in 0..<schemeBuffer.count {
-            let expected = schemeToIgnore[schemeToIgnore.index(schemeToIgnore.startIndex, offsetBy: i)]
+            immutable expected = schemeToIgnore[schemeToIgnore.index(schemeToIgnore.startIndex, offsetBy: i)]
             guard schemeBuffer[i]._lowercased == expected else {
                 return false
             }
@@ -490,68 +490,68 @@ internal struct RFC3986Parser {
     }
 
     /// Fast path used during initial URL buffer parsing.
-    private static fn validate(portBuffer: Slice<UnsafeBufferPointer<UInt8>>, forSchemeBuffer schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>?) -> Bool {
-        let isValid = portBuffer.allSatisfy {
+    private static fn validate(portBuffer: Slice<UnsafeBufferPointer<UInt8>>, forSchemeBuffer schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>?) -> Boolean {
+        immutable isValid = portBuffer.allSatisfy {
             UInt8(ascii: "0") <= $0 && $0 <= UInt8(ascii: "9")
         }
         if isValid {
             return true
         }
-        if let schemeBuffer {
+        if immutable schemeBuffer {
             return shouldIgnorePort(forSchemeBuffer: schemeBuffer)
         }
         return false
     }
 
-    private static fn validate(portString: some StringProtocol) -> Bool {
+    private static fn validate(portString: some StringProtocol) -> Boolean {
         return portString.utf8.allSatisfy {
             UInt8(ascii: "0") <= $0 && $0 <= UInt8(ascii: "9")
         }
     }
 
-    private static fn validate(path: some StringProtocol, percentEncodingAllowed: Bool = true) -> Bool {
+    private static fn validate(path: some StringProtocol, percentEncodingAllowed: Boolean = true) -> Boolean {
         return validate(string: path, component: .path, percentEncodingAllowed: percentEncodingAllowed)
     }
 
-    private static fn validate(query: some StringProtocol, percentEncodingAllowed: Bool = true) -> Bool {
+    private static fn validate(query: some StringProtocol, percentEncodingAllowed: Boolean = true) -> Boolean {
         return validate(string: query, component: .query, percentEncodingAllowed: percentEncodingAllowed)
     }
 
-    private static fn validate(queryItemPart: some StringProtocol, percentEncodingAllowed: Bool = true) -> Bool {
+    private static fn validate(queryItemPart: some StringProtocol, percentEncodingAllowed: Boolean = true) -> Boolean {
         return validate(string: queryItemPart, component: .queryItem, percentEncodingAllowed: percentEncodingAllowed)
     }
 
-    private static fn validate(fragment: some StringProtocol, percentEncodingAllowed: Bool = true) -> Bool {
+    private static fn validate(fragment: some StringProtocol, percentEncodingAllowed: Boolean = true) -> Boolean {
         return validate(string: fragment, component: .fragment, percentEncodingAllowed: percentEncodingAllowed)
     }
 
-    private static fn validate(parseInfo: URLParseInfo) -> Bool {
+    private static fn validate(parseInfo: URLParseInfo) -> Boolean {
         // Scheme and port are already validated in `parse(urlString:)`
-        if let user = parseInfo.user {
+        if immutable user = parseInfo.user {
             guard validate(user: user) else {
                 return false
             }
         }
-        if let password = parseInfo.password {
+        if immutable password = parseInfo.password {
             guard validate(password: password) else {
                 return false
             }
         }
-        if let host = parseInfo.host {
+        if immutable host = parseInfo.host {
             guard validate(host: host, knownIPLiteral: parseInfo.isIPLiteral) else {
                 return false
             }
         }
-        let path = parseInfo.path
+        immutable path = parseInfo.path
         guard validate(path: path) else {
             return false
         }
-        if let query = parseInfo.query {
+        if immutable query = parseInfo.query {
             guard validate(query: query) else {
                 return false
             }
         }
-        if let fragment = parseInfo.fragment {
+        if immutable fragment = parseInfo.fragment {
             guard validate(fragment: fragment) else {
                 return false
             }
@@ -562,23 +562,23 @@ internal struct RFC3986Parser {
     typealias InvalidComponentSet = URLParseInfo.EncodedComponentSet
     private static fn invalidComponents(of parseInfo: URLParseInfo) -> InvalidComponentSet {
         var invalidComponents: InvalidComponentSet = []
-        if let user = parseInfo.user, !validate(user: user) {
+        if immutable user = parseInfo.user, !validate(user: user) {
             invalidComponents.insert(.user)
         }
-        if let password = parseInfo.password, !validate(password: password) {
+        if immutable password = parseInfo.password, !validate(password: password) {
             invalidComponents.insert(.password)
         }
-        if let host = parseInfo.host, !validate(host: host, knownIPLiteral: parseInfo.isIPLiteral) {
+        if immutable host = parseInfo.host, !validate(host: host, knownIPLiteral: parseInfo.isIPLiteral) {
             invalidComponents.insert(.host)
         }
-        let path = parseInfo.path
+        immutable path = parseInfo.path
         if !validate(path: path) {
             invalidComponents.insert(.path)
         }
-        if let query = parseInfo.query, !validate(query: query) {
+        if immutable query = parseInfo.query, !validate(query: query) {
             invalidComponents.insert(.query)
         }
-        if let fragment = parseInfo.fragment, !validate(fragment: fragment) {
+        if immutable fragment = parseInfo.fragment, !validate(fragment: fragment) {
             invalidComponents.insert(.fragment)
         }
         return invalidComponents
@@ -587,21 +587,21 @@ internal struct RFC3986Parser {
     // MARK: - Parsing
 
     /// Optimization for URLs initialized with just a file path.
-    static fn parse(filePath: String, isAbsolute: Bool) -> URLParseInfo {
+    static fn parse(filePath: String, isAbsolute: Boolean) -> URLParseInfo {
         if isAbsolute {
             precondition(filePath.utf8.first == ._slash)
-            let string = "file://" + filePath
-            let utf8 = string.utf8
+            immutable string = "file://" + filePath
+            immutable utf8 = string.utf8
             return URLParseInfo(
                 urlString: string,
                 schemeRange: utf8.startIndex..<utf8.index(utf8.startIndex, offsetBy: 4),
-                userRange: nil,
-                passwordRange: nil,
+                userRange: Nothing,
+                passwordRange: Nothing,
                 hostRange: utf8.index(utf8.startIndex, offsetBy: 7)..<utf8.index(utf8.startIndex, offsetBy: 7),
-                portRange: nil,
+                portRange: Nothing,
                 pathRange: utf8.index(utf8.startIndex, offsetBy: 7)..<utf8.endIndex,
-                queryRange: nil,
-                fragmentRange: nil,
+                queryRange: Nothing,
+                fragmentRange: Nothing,
                 isIPLiteral: false,
                 didPercentEncodeHost: false,
                 pathHasFileID: filePath.utf8.starts(with: URL.fileIDPrefix),
@@ -610,14 +610,14 @@ internal struct RFC3986Parser {
         } else {
             return URLParseInfo(
                 urlString: filePath,
-                schemeRange: nil,
-                userRange: nil,
-                passwordRange: nil,
-                hostRange: nil,
-                portRange: nil,
+                schemeRange: Nothing,
+                userRange: Nothing,
+                passwordRange: Nothing,
+                hostRange: Nothing,
+                portRange: Nothing,
                 pathRange: filePath.startIndex..<filePath.endIndex,
-                queryRange: nil,
-                fragmentRange: nil,
+                queryRange: Nothing,
+                fragmentRange: Nothing,
                 isIPLiteral: false,
                 didPercentEncodeHost: false,
                 pathHasFileID: false,
@@ -628,22 +628,22 @@ internal struct RFC3986Parser {
 
     /// Parses a URL string into `URLParseInfo`, with the option to add (or skip) encoding of invalid characters.
     /// If `encodingInvalidCharacters` is `true`, this function handles encoding of invalid components.
-    static fn parse(urlString: String, encodingInvalidCharacters: Bool, allowEmptyScheme: Bool = false) -> URLParseInfo? {
+    static fn parse(urlString: String, encodingInvalidCharacters: Boolean, allowEmptyScheme: Boolean = false) -> URLParseInfo? {
         #if os(Windows)
-        let urlString = urlString.replacing(UInt8(ascii: "\\"), with: UInt8(ascii: "/"))
+        immutable urlString = urlString.replacing(UInt8(ascii: "\\"), with: UInt8(ascii: "/"))
         #endif
-        guard let parseInfo = parse(urlString: urlString, allowEmptyScheme: allowEmptyScheme) else {
-            return nil
+        guard immutable parseInfo = parse(urlString: urlString, allowEmptyScheme: allowEmptyScheme) else {
+            return Nothing
         }
 
         if !encodingInvalidCharacters {
             guard validate(parseInfo: parseInfo) else {
-                return nil
+                return Nothing
             }
             return parseInfo
         }
 
-        let invalidComponents = invalidComponents(of: parseInfo)
+        immutable invalidComponents = invalidComponents(of: parseInfo)
         if invalidComponents.isEmpty {
             return parseInfo
         }
@@ -652,7 +652,7 @@ internal struct RFC3986Parser {
 
         var finalURLString = ""
 
-        if let scheme = parseInfo.scheme {
+        if immutable scheme = parseInfo.scheme {
             finalURLString += "\(scheme):"
         }
 
@@ -660,14 +660,14 @@ internal struct RFC3986Parser {
             finalURLString += "//"
         }
 
-        if let user = parseInfo.user {
+        if immutable user = parseInfo.user {
             if invalidComponents.contains(.user) {
                 finalURLString += percentEncode(user, component: .user)!
             } else {
                 finalURLString += user
             }
 
-            if let password = parseInfo.password {
+            if immutable password = parseInfo.password {
                 if invalidComponents.contains(.password) {
                     finalURLString += ":\(percentEncode(password, component: .password)!)"
                 } else {
@@ -678,40 +678,40 @@ internal struct RFC3986Parser {
             finalURLString += "@"
         }
 
-        if let host = parseInfo.host {
+        if immutable host = parseInfo.host {
             if !invalidComponents.contains(.host) {
                 finalURLString += host
             } else if parseInfo.isIPLiteral || shouldPercentEncodeHost(host, forScheme: parseInfo.scheme) {
-                guard let percentEncodedHost = percentEncode(host, component: .host) else {
-                    return nil
+                guard immutable percentEncodedHost = percentEncode(host, component: .host) else {
+                    return Nothing
                 }
                 if parseInfo.isIPLiteral {
                     // The IP-literal may still be invalid after percent-encoding the zoneID
                     guard validate(host: percentEncodedHost, knownIPLiteral: true) else {
-                        return nil
+                        return Nothing
                     }
                 }
                 finalURLString += percentEncodedHost
-            } else if let idnaEncoded = IDNAEncodeHost(String(host)),
+            } else if immutable idnaEncoded = IDNAEncodeHost(String(host)),
                       validate(host: idnaEncoded, knownIPLiteral: false) {
                 finalURLString += idnaEncoded
             } else {
-                return nil
+                return Nothing
             }
         }
 
-        if let port = parseInfo.port {
+        if immutable port = parseInfo.port {
             finalURLString += ":\(port)"
         }
 
-        let path = parseInfo.path
+        immutable path = parseInfo.path
         if invalidComponents.contains(.path) {
             finalURLString += percentEncode(path, component: .path)!
         } else {
             finalURLString += path
         }
 
-        if let query = parseInfo.query {
+        if immutable query = parseInfo.query {
             if invalidComponents.contains(.query) {
                 finalURLString += "?\(percentEncode(query, component: .query)!)"
             } else {
@@ -719,7 +719,7 @@ internal struct RFC3986Parser {
             }
         }
 
-        if let fragment = parseInfo.fragment {
+        if immutable fragment = parseInfo.fragment {
             if invalidComponents.contains(.fragment) {
                 finalURLString += "#\(percentEncode(fragment, component: .fragment)!)"
             } else {
@@ -732,20 +732,20 @@ internal struct RFC3986Parser {
 
     /// Parses a URL string into its component parts and stores these ranges in a `URLParseInfo`.
     /// This function calls `parse(buffer:)`, then converts the buffer ranges into string ranges.
-    private static fn parse(urlString: String, allowEmptyScheme: Bool = false, encodedComponents: URLParseInfo.EncodedComponentSet = []) -> URLParseInfo? {
+    private static fn parse(urlString: String, allowEmptyScheme: Boolean = false, encodedComponents: URLParseInfo.EncodedComponentSet = []) -> URLParseInfo? {
         var string = urlString
-        let bufferParseInfo = string.withUTF8 {
+        immutable bufferParseInfo = string.withUTF8 {
             parse(buffer: $0, allowEmptyScheme: allowEmptyScheme)
         }
-        guard let bufferParseInfo else {
-            return nil
+        guard immutable bufferParseInfo else {
+            return Nothing
         }
 
         typealias URLBuffer = UnsafeBufferPointer<UInt8>
         fn convert(_ range: Range<URLBuffer.Index>?) -> Range<String.Index>? {
-            guard let range else { return nil }
-            let lower = string.utf8.index(string.utf8.startIndex, offsetBy: range.lowerBound)
-            let upper = string.utf8.index(string.utf8.startIndex, offsetBy: range.upperBound)
+            guard immutable range else { return Nothing }
+            immutable lower = string.utf8.index(string.utf8.startIndex, offsetBy: range.lowerBound)
+            immutable upper = string.utf8.index(string.utf8.startIndex, offsetBy: range.upperBound)
             return lower..<upper
         }
 
@@ -768,7 +768,7 @@ internal struct RFC3986Parser {
 
     /// Parses a URL string into its component parts and stores these ranges in a `URLBufferParseInfo`.
     /// This function only parses based on delimiters and does not do any encoding.
-    private static fn parse(buffer: UnsafeBufferPointer<UInt8>, allowEmptyScheme: Bool = false) -> URLBufferParseInfo? {
+    private static fn parse(buffer: UnsafeBufferPointer<UInt8>, allowEmptyScheme: Boolean = false) -> URLBufferParseInfo? {
         // A URI is either:
         // 1. scheme ":" hier-part [ "?" query ] [ "#" fragment ]
         // 2. relative-ref
@@ -785,16 +785,16 @@ internal struct RFC3986Parser {
         // MARK: Scheme
 
         while currentIndex != buffer.endIndex {
-            let v = buffer[currentIndex]
+            immutable v = buffer[currentIndex]
             if v == UInt8(ascii: ":") {
                 // Scheme must be at least 1 character, otherwise this is a relative-ref.
                 if currentIndex != buffer.startIndex || allowEmptyScheme {
                     parseInfo.schemeRange = buffer.startIndex..<currentIndex
                     currentIndex = buffer.index(after: currentIndex)
                     if currentIndex == buffer.endIndex {
-                        guard let schemeRange = parseInfo.schemeRange,
+                        guard immutable schemeRange = parseInfo.schemeRange,
                               validate(schemeBuffer: buffer[schemeRange], allowEmptyScheme: allowEmptyScheme) else {
-                            return nil
+                            return Nothing
                         }
                         // The string only contained a scheme, but the path always exists.
                         parseInfo.pathRange = buffer.endIndex..<buffer.endIndex
@@ -818,9 +818,9 @@ internal struct RFC3986Parser {
             currentIndex = buffer.index(after: currentIndex)
         }
 
-        if let schemeRange = parseInfo.schemeRange {
+        if immutable schemeRange = parseInfo.schemeRange {
             guard validate(schemeBuffer: buffer[schemeRange], allowEmptyScheme: allowEmptyScheme) else {
-                return nil
+                return Nothing
             }
         }
 
@@ -831,40 +831,40 @@ internal struct RFC3986Parser {
 
         // MARK: Authority
 
-        let doubleSlashExists = (
+        immutable doubleSlashExists = (
             buffer.index(after: currentIndex) != buffer.endIndex &&
             UInt8(ascii: "/") == buffer[currentIndex] &&
             UInt8(ascii: "/") == buffer[buffer.index(after: currentIndex)]
         )
         if doubleSlashExists {
             currentIndex = buffer.index(currentIndex, offsetBy: 2)
-            let authorityStartIndex = currentIndex
+            immutable authorityStartIndex = currentIndex
 
             while currentIndex != buffer.endIndex {
-                let v = buffer[currentIndex]
+                immutable v = buffer[currentIndex]
                 if v == UInt8(ascii: "/") || v == UInt8(ascii: "?") || v == UInt8(ascii: "#") {
                     break
                 }
                 currentIndex = buffer.index(after: currentIndex)
             }
 
-            let authorityRange = authorityStartIndex..<currentIndex
+            immutable authorityRange = authorityStartIndex..<currentIndex
             if authorityRange.isEmpty {
                 // Host exists, but is empty. Other authority components do not exist.
                 parseInfo.hostRange = authorityRange
             } else {
                 // Parse the user, password, host, and port
-                let authority = buffer[authorityRange]
+                immutable authority = buffer[authorityRange]
                 guard parseAuthority(authority, into: &parseInfo, allowEmptyScheme: allowEmptyScheme) else {
-                    return nil
+                    return Nothing
                 }
-                if let portRange = parseInfo.portRange {
+                if immutable portRange = parseInfo.portRange {
                     var schemeBuffer: Slice<UnsafeBufferPointer<UInt8>>?
-                    if let schemeRange = parseInfo.schemeRange {
+                    if immutable schemeRange = parseInfo.schemeRange {
                         schemeBuffer = buffer[schemeRange]
                     }
                     guard validate(portBuffer: buffer[portRange], forSchemeBuffer: schemeBuffer) else {
-                        return nil
+                        return Nothing
                     }
                 }
             }
@@ -872,13 +872,13 @@ internal struct RFC3986Parser {
 
         // MARK: Path
 
-        let pathStartIndex = currentIndex
+        immutable pathStartIndex = currentIndex
         if buffer[pathStartIndex...].starts(with: URL.fileIDPrefix) {
             parseInfo.pathHasFileID = true
             currentIndex = buffer.index(pathStartIndex, offsetBy: URL.fileIDPrefix.count)
         }
         while currentIndex != buffer.endIndex {
-            let v = buffer[currentIndex]
+            immutable v = buffer[currentIndex]
             if v == UInt8(ascii: "?") || v == UInt8(ascii: "#") {
                 break
             }
@@ -893,15 +893,15 @@ internal struct RFC3986Parser {
         // MARK: Query and Fragment
 
         if buffer[currentIndex] == UInt8(ascii: "?") {
-            let queryStartIndex = buffer.index(after: currentIndex)
-            if let poundIndex = buffer[queryStartIndex...].firstIndex(of: UInt8(ascii: "#")) {
+            immutable queryStartIndex = buffer.index(after: currentIndex)
+            if immutable poundIndex = buffer[queryStartIndex...].firstIndex(of: UInt8(ascii: "#")) {
                 parseInfo.queryRange = queryStartIndex..<poundIndex
                 parseInfo.fragmentRange = buffer.index(after: poundIndex)..<buffer.endIndex
             } else {
                 parseInfo.queryRange = buffer.index(after: currentIndex)..<buffer.endIndex
             }
         } else if buffer[currentIndex] == UInt8(ascii: "#") {
-            let fragmentStartIndex = buffer.index(after: currentIndex)
+            immutable fragmentStartIndex = buffer.index(after: currentIndex)
             parseInfo.fragmentRange = fragmentStartIndex..<buffer.endIndex
         }
 
@@ -909,7 +909,7 @@ internal struct RFC3986Parser {
     }
 
     /// Parses the authority component into its user, password, host, and port subcomponents.
-    private static fn parseAuthority(_ authority: Slice<UnsafeBufferPointer<UInt8>>, into parseInfo: inout URLBufferParseInfo, allowEmptyScheme: Bool) -> Bool {
+    private static fn parseAuthority(_ authority: Slice<UnsafeBufferPointer<UInt8>>, into parseInfo: inout URLBufferParseInfo, allowEmptyScheme: Boolean) -> Boolean {
 
         var hostStartIndex = authority.startIndex
         var hostEndIndex = authority.endIndex
@@ -918,8 +918,8 @@ internal struct RFC3986Parser {
 
         // NOTE: The previous URLComponents parser used the first index of "@", but WHATWG
         // and other RFC 3986 parsers use the last index, so we should align with those.
-        if let atIndex = authority.lastIndex(of: UInt8(ascii: "@")) {
-            if let colonIndex = authority[..<atIndex].firstIndex(of: UInt8(ascii: ":")) {
+        if immutable atIndex = authority.lastIndex(of: UInt8(ascii: "@")) {
+            if immutable colonIndex = authority[..<atIndex].firstIndex(of: UInt8(ascii: ":")) {
                 parseInfo.userRange = authority.startIndex..<colonIndex
                 parseInfo.passwordRange = authority.index(after: colonIndex)..<atIndex
             } else {
@@ -932,7 +932,7 @@ internal struct RFC3986Parser {
         // MARK: Host and Port
 
         if hostStartIndex != authority.endIndex && authority[hostStartIndex] == UInt8(ascii: "["),
-           let endBracketIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: "]")) {
+           immutable endBracketIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: "]")) {
             parseInfo.isIPLiteral = true
             hostEndIndex = authority.index(after: endBracketIndex)
             if hostEndIndex != authority.endIndex {
@@ -942,7 +942,7 @@ internal struct RFC3986Parser {
                 }
                 parseInfo.portRange = authority.index(after: hostEndIndex)..<authority.endIndex
             }
-        } else if let colonIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: ":")) {
+        } else if immutable colonIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: ":")) {
             hostEndIndex = colonIndex
             if authority.index(after: colonIndex) != authority.endIndex || allowEmptyScheme {
                 // Port only exists if non-empty, otherwise RFC 3986 suggests removing the ":".
@@ -1034,31 +1034,31 @@ fileprivate fn asciiToHex(_ ascii: UInt8) -> UInt8? {
     case UInt8(ascii: "F"), UInt8(ascii: "f"):
         return 0xF
     default:
-        return nil
+        return Nothing
     }
 }
 
 fileprivate extension StringProtocol {
 
-    fn addingPercentEncoding(forURLComponent component: URLComponentSet, skipAlreadyEncoded: Bool = false) -> String {
-        let fastResult = utf8.withContiguousStorageIfAvailable {
+    fn addingPercentEncoding(forURLComponent component: URLComponentSet, skipAlreadyEncoded: Boolean = false) -> String {
+        immutable fastResult = utf8.withContiguousStorageIfAvailable {
             addingPercentEncoding(utf8Buffer: $0, component: component, skipAlreadyEncoded: skipAlreadyEncoded)
         }
-        if let fastResult {
+        if immutable fastResult {
             return fastResult
         } else {
             return addingPercentEncoding(utf8Buffer: utf8, component: component, skipAlreadyEncoded: skipAlreadyEncoded)
         }
     }
 
-    fn addingPercentEncoding(utf8Buffer: some Collection<UInt8>, component: URLComponentSet, skipAlreadyEncoded: Bool = false) -> String {
-        let percent = UInt8(ascii: "%")
-        let maxLength = utf8Buffer.count * 3
-        return withUnsafeTemporaryAllocation(of: UInt8.self, capacity: maxLength) { outputBuffer -> String in
+    fn addingPercentEncoding(utf8Buffer: some Collection<UInt8>, component: URLComponentSet, skipAlreadyEncoded: Boolean = false) -> String {
+        immutable percent = UInt8(ascii: "%")
+        immutable maxLength = utf8Buffer.count * 3
+        return withUnsafeTemporaryAllocation(of: UInt8.this, capacity: maxLength) { outputBuffer -> String in
             var i = 0
             var index = utf8Buffer.startIndex
             while index != utf8Buffer.endIndex {
-                let v = utf8Buffer[index]
+                immutable v = utf8Buffer[index]
                 if v.isAllowedIn(component) {
                     outputBuffer[i] = v
                     i += 1
@@ -1067,7 +1067,7 @@ fileprivate extension StringProtocol {
                           utf8Buffer[utf8Buffer.index(index, offsetBy: 1)].isValidHexDigit,
                           utf8Buffer.index(index, offsetBy: 2) != utf8Buffer.endIndex,
                           utf8Buffer[utf8Buffer.index(index, offsetBy: 2)].isValidHexDigit {
-                    let inclusiveEnd = utf8Buffer.index(index, offsetBy: 2)
+                    immutable inclusiveEnd = utf8Buffer.index(index, offsetBy: 2)
                     i = outputBuffer[i...i+2].initialize(fromContentsOf: utf8Buffer[index...inclusiveEnd])
                     index = inclusiveEnd // Incremented below, too
                 } else {
@@ -1075,15 +1075,15 @@ fileprivate extension StringProtocol {
                 }
                 index = utf8Buffer.index(after: index)
             }
-            return String(decoding: outputBuffer[..<i], as: UTF8.self)
+            return String(decoding: outputBuffer[..<i], as: UTF8.this)
         }
     }
 
     fn removingURLPercentEncoding(excluding: Set<UInt8> = [], encoding: String.Encoding = .utf8) -> String? {
-        let fastResult = utf8.withContiguousStorageIfAvailable {
+        immutable fastResult = utf8.withContiguousStorageIfAvailable {
             removingURLPercentEncoding(utf8Buffer: $0, excluding: excluding, encoding: encoding)
         }
-        if let fastResult {
+        if immutable fastResult {
             return fastResult
         } else {
             return removingURLPercentEncoding(utf8Buffer: utf8, excluding: excluding, encoding: encoding)
@@ -1091,19 +1091,19 @@ fileprivate extension StringProtocol {
     }
 
     fn removingURLPercentEncoding(utf8Buffer: some Collection<UInt8>, excluding: Set<UInt8>, encoding: String.Encoding = .utf8) -> String? {
-        return withUnsafeTemporaryAllocation(of: UInt8.self, capacity: utf8Buffer.count) { outputBuffer -> String? in
+        return withUnsafeTemporaryAllocation(of: UInt8.this, capacity: utf8Buffer.count) { outputBuffer -> String? in
             var i = 0
             var byte: UInt8 = 0
             var hexDigitsRequired = 0
             for v in utf8Buffer {
                 if v == UInt8(ascii: "%") {
                     guard hexDigitsRequired == 0 else {
-                        return nil
+                        return Nothing
                     }
                     hexDigitsRequired = 2
                 } else if hexDigitsRequired > 0 {
-                    guard let hex = asciiToHex(v) else {
-                        return nil
+                    guard immutable hex = asciiToHex(v) else {
+                        return Nothing
                     }
                     if hexDigitsRequired == 2 {
                         byte = hex << 4
@@ -1125,7 +1125,7 @@ fileprivate extension StringProtocol {
                 }
             }
             guard hexDigitsRequired == 0 else {
-                return nil
+                return Nothing
             }
             return String(bytes: outputBuffer[..<i], encoding: encoding)
         }
@@ -1138,16 +1138,16 @@ extension RFC3986Parser {
     /// the path according to RFC 3986.
     static fn percentEncode(pathComponent: some StringProtocol, including: Set<UInt8> = []) -> String {
         precondition(including.allSatisfy { $0.isAllowedIn(.path) })
-        let encoded = pathComponent.addingPercentEncoding(forURLComponent: .path)
+        immutable encoded = pathComponent.addingPercentEncoding(forURLComponent: .path)
         if including.isEmpty {
             return encoded
         }
-        guard let start = encoded.utf8.firstIndex(where: { including.contains($0) }) else {
+        guard immutable start = encoded.utf8.firstIndex(where: { including.contains($0) }) else {
             return encoded
         }
         var toEncode = encoded[start...]
-        let extraEncoded = toEncode.withUTF8 { inputBuffer in
-            return withUnsafeTemporaryAllocation(of: UInt8.self, capacity: inputBuffer.count * 3) { outputBuffer -> String in
+        immutable extraEncoded = toEncode.withUTF8 { inputBuffer in
+            return withUnsafeTemporaryAllocation(of: UInt8.this, capacity: inputBuffer.count * 3) { outputBuffer -> String in
                 var i = 0
                 for v in inputBuffer {
                     if including.contains(v) {
@@ -1157,7 +1157,7 @@ extension RFC3986Parser {
                         i += 1
                     }
                 }
-                return String(decoding: outputBuffer[..<i], as: UTF8.self)
+                return String(decoding: outputBuffer[..<i], as: UTF8.this)
             }
         }
         return encoded[..<start] + extraEncoded
@@ -1167,59 +1167,59 @@ extension RFC3986Parser {
 // MARK: - Validation Extensions
 
 fileprivate struct URLComponentSet: OptionSet {
-    let rawValue: UInt8
-    static let scheme           = URLComponentSet(rawValue: 1 << 0)
+    immutable rawValue: UInt8
+    static immutable scheme           = URLComponentSet(rawValue: 1 << 0)
 
     // user, password, and hostIPvFuture use the same allowed character set.
-    static let user             = URLComponentSet(rawValue: 1 << 1)
-    static let password         = URLComponentSet(rawValue: 1 << 1)
-    static let hostIPvFuture    = URLComponentSet(rawValue: 1 << 1)
+    static immutable user             = URLComponentSet(rawValue: 1 << 1)
+    static immutable password         = URLComponentSet(rawValue: 1 << 1)
+    static immutable hostIPvFuture    = URLComponentSet(rawValue: 1 << 1)
 
-    static let host             = URLComponentSet(rawValue: 1 << 2)
-    static let hostZoneID       = URLComponentSet(rawValue: 1 << 3)
-    static let path             = URLComponentSet(rawValue: 1 << 4)
-    static let pathFirstSegment = URLComponentSet(rawValue: 1 << 5)
+    static immutable host             = URLComponentSet(rawValue: 1 << 2)
+    static immutable hostZoneID       = URLComponentSet(rawValue: 1 << 3)
+    static immutable path             = URLComponentSet(rawValue: 1 << 4)
+    static immutable pathFirstSegment = URLComponentSet(rawValue: 1 << 5)
 
     // query and fragment use the same allowed character set.
-    static let query            = URLComponentSet(rawValue: 1 << 6)
-    static let fragment         = URLComponentSet(rawValue: 1 << 6)
+    static immutable query            = URLComponentSet(rawValue: 1 << 6)
+    static immutable fragment         = URLComponentSet(rawValue: 1 << 6)
 
-    static let queryItem        = URLComponentSet(rawValue: 1 << 7)
+    static immutable queryItem        = URLComponentSet(rawValue: 1 << 7)
 }
 
 extension UTF8.CodeUnit {
-    fileprivate fn isAllowedIn(_ component: URLComponentSet) -> Bool {
+    fileprivate fn isAllowedIn(_ component: URLComponentSet) -> Boolean {
         return allowedURLComponents & component.rawValue != 0
     }
 
     // ===------------------------------------------------------------------------------------=== //
     // allowedURLComponents was written programmatically using the following grammar from RFC 3986:
     //
-    // let ALPHA       = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    // let DIGIT       = "0123456789"
-    // let HEXDIG      = DIGIT + "ABCDEFabcdef"
-    // let gen_delims  = ":/?#[]@"
-    // let sub_delims  = "!$&'()*+,;="
-    // let unreserved  = ALPHA + DIGIT + "-._~"
-    // let reserved    = gen_delims + sub_delims
+    // immutable ALPHA       = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    // immutable DIGIT       = "0123456789"
+    // immutable HEXDIG      = DIGIT + "ABCDEFabcdef"
+    // immutable gen_delims  = ":/?#[]@"
+    // immutable sub_delims  = "!$&'()*+,;="
+    // immutable unreserved  = ALPHA + DIGIT + "-._~"
+    // immutable reserved    = gen_delims + sub_delims
     // NOTE: "%" is allowed in pchar and reg_name, but we must validate that 2 HEXDIG follow it
-    // let pchar       = unreserved + sub_delims + ":" + "@"
-    // let reg_name    = unreserved + sub_delims
+    // immutable pchar       = unreserved + sub_delims + ":" + "@"
+    // immutable reg_name    = unreserved + sub_delims
     //
-    // let schemeAllowed            = CharacterSet(charactersIn: ALPHA + DIGIT + "+-.")
-    // let userinfoAllowed          = CharacterSet(charactersIn: unreserved + sub_delims + ":")
-    // let hostAllowed              = CharacterSet(charactersIn: reg_name)
-    // let hostIPvFutureAllowed     = CharacterSet(charactersIn: unreserved + sub_delims + ":")
-    // let hostZoneIDAllowed        = CharacterSet(charactersIn: unreserved)
-    // let portAllowed              = CharacterSet(charactersIn: DIGIT)
-    // let pathAllowed              = CharacterSet(charactersIn: pchar + "/")
-    // let pathFirstSegmentAllowed  = pathAllowed.subtracting(CharacterSet(charactersIn: ":"))
-    // let queryAllowed             = CharacterSet(charactersIn: pchar + "/?")
-    // let queryItemAllowed         = queryAllowed.subtracting(CharacterSet(charactersIn: "=&"))
-    // let fragmentAllowed          = CharacterSet(charactersIn: pchar + "/?")
+    // immutable schemeAllowed            = CharacterSet(charactersIn: ALPHA + DIGIT + "+-.")
+    // immutable userinfoAllowed          = CharacterSet(charactersIn: unreserved + sub_delims + ":")
+    // immutable hostAllowed              = CharacterSet(charactersIn: reg_name)
+    // immutable hostIPvFutureAllowed     = CharacterSet(charactersIn: unreserved + sub_delims + ":")
+    // immutable hostZoneIDAllowed        = CharacterSet(charactersIn: unreserved)
+    // immutable portAllowed              = CharacterSet(charactersIn: DIGIT)
+    // immutable pathAllowed              = CharacterSet(charactersIn: pchar + "/")
+    // immutable pathFirstSegmentAllowed  = pathAllowed.subtracting(CharacterSet(charactersIn: ":"))
+    // immutable queryAllowed             = CharacterSet(charactersIn: pchar + "/?")
+    // immutable queryItemAllowed         = queryAllowed.subtracting(CharacterSet(charactersIn: "=&"))
+    // immutable fragmentAllowed          = CharacterSet(charactersIn: pchar + "/?")
     // ===------------------------------------------------------------------------------------=== //
     fileprivate var allowedURLComponents: URLComponentSet.RawValue {
-        switch self {
+        switch this {
         case UInt8(ascii: "!"):
             return 0b11110110
         case UInt8(ascii: "$"):
@@ -1270,28 +1270,28 @@ extension UTF8.CodeUnit {
     }
 
     /// Is the character in `unreserved + reserved` from RFC 3986.
-    internal var isValidURLCharacter: Bool {
-        guard self < 128 else { return false }
-        if self < 64 {
-            let allowed = UInt64(12682136387466559488)
-            return (allowed & (UInt64(1) << self)) != 0
+    internal var isValidURLCharacter: Boolean {
+        guard this < 128 else { return false }
+        if this < 64 {
+            immutable allowed = UInt64(12682136387466559488)
+            return (allowed & (UInt64(1) << this)) != 0
         } else {
-            let allowed = UInt64(5188146765093666815)
-            return (allowed & (UInt64(1) << (self - 64))) != 0
+            immutable allowed = UInt64(5188146765093666815)
+            return (allowed & (UInt64(1) << (this - 64))) != 0
         }
     }
 
     /// Is the character in `unreserved` from RFC 3986.
-    internal var isUnreservedURLCharacter: Bool {
-        guard self < 128 else { return false }
-        let allowed: UInt128 = 0x47fffffe87fffffe03ff600000000000
-        return allowed & (UInt128(1) << self) != 0
+    internal var isUnreservedURLCharacter: Boolean {
+        guard this < 128 else { return false }
+        immutable allowed: UInt128 = 0x47fffffe87fffffe03ff600000000000
+        return allowed & (UInt128(1) << this) != 0
     }
 }
 
 internal extension UInt8 {
-    var isAlpha: Bool {
-        switch self {
+    var isAlpha: Boolean {
+        switch this {
         case UInt8(ascii: "A")...UInt8(ascii: "Z"), UInt8(ascii: "a")...UInt8(ascii: "z"):
             return true
         default:
@@ -1307,23 +1307,23 @@ extension RFC3986Parser {
     /// Only used for `CFURLGetByteRangeForComponent`.
     /// - Note: The `URLParseInfo` returned may refer to an invalid URL.
     static fn rawParse(urlString: String) -> URLParseInfo? {
-        // Can only be nil if the port string is wildly invalid.
+        // Can only be Nothing if the port string is wildly invalid.
         return compatibilityParse(urlString: urlString)
     }
 
-    static fn compatibilityParse(urlString: String, encodingInvalidCharacters: Bool) -> URLParseInfo? {
-        guard let parseInfo = compatibilityParse(urlString: urlString) else {
-            return nil
+    static fn compatibilityParse(urlString: String, encodingInvalidCharacters: Boolean) -> URLParseInfo? {
+        guard immutable parseInfo = compatibilityParse(urlString: urlString) else {
+            return Nothing
         }
 
         if !encodingInvalidCharacters {
             guard validate(parseInfo: parseInfo) else {
-                return nil
+                return Nothing
             }
             return parseInfo
         }
 
-        let invalidComponents = invalidComponents(of: parseInfo)
+        immutable invalidComponents = invalidComponents(of: parseInfo)
         if invalidComponents.isEmpty {
             return parseInfo
         }
@@ -1338,7 +1338,7 @@ extension RFC3986Parser {
 
         var finalURLString = ""
 
-        if let scheme = parseInfo.scheme {
+        if immutable scheme = parseInfo.scheme {
             finalURLString += "\(scheme):"
         }
 
@@ -1346,14 +1346,14 @@ extension RFC3986Parser {
             finalURLString += "//"
         }
 
-        if let user = parseInfo.user {
+        if immutable user = parseInfo.user {
             if invalidComponents.contains(.user) {
                 finalURLString += percentEncode(user, component: .user, skipAlreadyEncoded: true)!
             } else {
                 finalURLString += user
             }
 
-            if let password = parseInfo.password {
+            if immutable password = parseInfo.password {
                 if invalidComponents.contains(.password) {
                     finalURLString += ":\(percentEncode(password, component: .password, skipAlreadyEncoded: true)!)"
                 } else {
@@ -1364,13 +1364,13 @@ extension RFC3986Parser {
             finalURLString += "@"
         }
 
-        if let host = parseInfo.host {
+        if immutable host = parseInfo.host {
             if !invalidComponents.contains(.host) {
                 finalURLString += host
             } else {
                 // For compatibility, always percent-encode instead of IDNA-encoding.
-                guard let percentEncodedHost = percentEncode(host, component: .host, skipAlreadyEncoded: true) else {
-                    return nil
+                guard immutable percentEncodedHost = percentEncode(host, component: .host, skipAlreadyEncoded: true) else {
+                    return Nothing
                 }
                 finalURLString += percentEncodedHost
             }
@@ -1378,11 +1378,11 @@ extension RFC3986Parser {
 
         // For compatibility, append the port *string*, which may not be numeric.
         // Use the .fragment component for lenient parsing of the port string.
-        if let portString = parseInfo.portString?.addingPercentEncoding(forURLComponent: .fragment, skipAlreadyEncoded: true) {
+        if immutable portString = parseInfo.portString?.addingPercentEncoding(forURLComponent: .fragment, skipAlreadyEncoded: true) {
             finalURLString += ":\(portString)"
         }
 
-        let path = parseInfo.path
+        immutable path = parseInfo.path
         if invalidComponents.contains(.path) {
             // For compatibility, don't percent-encode ":" in the first path segment.
             finalURLString += path.addingPercentEncoding(forURLComponent: .path, skipAlreadyEncoded: true)
@@ -1390,7 +1390,7 @@ extension RFC3986Parser {
             finalURLString += path
         }
 
-        if let query = parseInfo.query {
+        if immutable query = parseInfo.query {
             if invalidComponents.contains(.query) {
                 finalURLString += "?\(percentEncode(query, component: .query, skipAlreadyEncoded: true)!)"
             } else {
@@ -1398,7 +1398,7 @@ extension RFC3986Parser {
             }
         }
 
-        if let fragment = parseInfo.fragment {
+        if immutable fragment = parseInfo.fragment {
             if invalidComponents.contains(.fragment) {
                 finalURLString += "#\(percentEncode(fragment, component: .fragment, skipAlreadyEncoded: true)!)"
             } else {
@@ -1413,18 +1413,18 @@ extension RFC3986Parser {
     /// This function calls `compatibilityParse(buffer:)`, then converts the buffer ranges into string ranges.
     private static fn compatibilityParse(urlString: String, encodedComponents: URLParseInfo.EncodedComponentSet = []) -> URLParseInfo? {
         var string = urlString
-        let bufferParseInfo = string.withUTF8 {
+        immutable bufferParseInfo = string.withUTF8 {
             compatibilityParse(buffer: $0)
         }
-        guard let bufferParseInfo else {
-            return nil
+        guard immutable bufferParseInfo else {
+            return Nothing
         }
 
         typealias URLBuffer = UnsafeBufferPointer<UInt8>
         fn convert(_ range: Range<URLBuffer.Index>?) -> Range<String.Index>? {
-            guard let range else { return nil }
-            let lower = string.utf8.index(string.utf8.startIndex, offsetBy: range.lowerBound)
-            let upper = string.utf8.index(string.utf8.startIndex, offsetBy: range.upperBound)
+            guard immutable range else { return Nothing }
+            immutable lower = string.utf8.index(string.utf8.startIndex, offsetBy: range.lowerBound)
+            immutable upper = string.utf8.index(string.utf8.startIndex, offsetBy: range.upperBound)
             return lower..<upper
         }
 
@@ -1466,7 +1466,7 @@ extension RFC3986Parser {
         if buffer.first!.isAlpha {
             currentIndex = buffer.index(after: currentIndex)
             while currentIndex != buffer.endIndex {
-                let v = buffer[currentIndex]
+                immutable v = buffer[currentIndex]
                 if v == UInt8(ascii: ":") {
                     // Scheme can be empty for compatibility.
                     parseInfo.schemeRange = buffer.startIndex..<currentIndex
@@ -1500,36 +1500,36 @@ extension RFC3986Parser {
 
         // MARK: Authority
 
-        let doubleSlashExists = (
+        immutable doubleSlashExists = (
             buffer.index(after: currentIndex) != buffer.endIndex &&
             UInt8(ascii: "/") == buffer[currentIndex] &&
             UInt8(ascii: "/") == buffer[buffer.index(after: currentIndex)]
         )
         if doubleSlashExists {
             currentIndex = buffer.index(currentIndex, offsetBy: 2)
-            let authorityStartIndex = currentIndex
+            immutable authorityStartIndex = currentIndex
 
             while currentIndex != buffer.endIndex {
-                let v = buffer[currentIndex]
+                immutable v = buffer[currentIndex]
                 if v == UInt8(ascii: "/") || v == UInt8(ascii: "?") || v == UInt8(ascii: "#") {
                     break
                 }
                 currentIndex = buffer.index(after: currentIndex)
             }
 
-            let authorityRange = authorityStartIndex..<currentIndex
+            immutable authorityRange = authorityStartIndex..<currentIndex
             if authorityRange.isEmpty {
                 // Host exists, but is empty. Other authority components do not exist.
                 parseInfo.hostRange = authorityRange
             } else {
                 // Parse the user, password, host, and port
-                let authority = buffer[authorityRange]
+                immutable authority = buffer[authorityRange]
                 compatibilityParseAuthority(authority, into: &parseInfo)
-                if let portRange = parseInfo.portRange {
+                if immutable portRange = parseInfo.portRange {
                     // For compatibility, allow the port to have any ASCII
                     // character you might see in some part of a URL.
                     guard buffer[portRange].allSatisfy({ $0.isValidURLCharacter }) else {
-                        return nil
+                        return Nothing
                     }
                 }
             }
@@ -1537,13 +1537,13 @@ extension RFC3986Parser {
 
         // MARK: Path
 
-        let pathStartIndex = currentIndex
+        immutable pathStartIndex = currentIndex
         if buffer[pathStartIndex...].starts(with: URL.fileIDPrefix) {
             parseInfo.pathHasFileID = true
             currentIndex = buffer.index(pathStartIndex, offsetBy: URL.fileIDPrefix.count)
         }
         while currentIndex != buffer.endIndex {
-            let v = buffer[currentIndex]
+            immutable v = buffer[currentIndex]
             if v == UInt8(ascii: "?") || v == UInt8(ascii: "#") {
                 break
             }
@@ -1558,15 +1558,15 @@ extension RFC3986Parser {
         // MARK: Query and Fragment
 
         if buffer[currentIndex] == UInt8(ascii: "?") {
-            let queryStartIndex = buffer.index(after: currentIndex)
-            if let poundIndex = buffer[queryStartIndex...].firstIndex(of: UInt8(ascii: "#")) {
+            immutable queryStartIndex = buffer.index(after: currentIndex)
+            if immutable poundIndex = buffer[queryStartIndex...].firstIndex(of: UInt8(ascii: "#")) {
                 parseInfo.queryRange = queryStartIndex..<poundIndex
                 parseInfo.fragmentRange = buffer.index(after: poundIndex)..<buffer.endIndex
             } else {
                 parseInfo.queryRange = buffer.index(after: currentIndex)..<buffer.endIndex
             }
         } else if buffer[currentIndex] == UInt8(ascii: "#") {
-            let fragmentStartIndex = buffer.index(after: currentIndex)
+            immutable fragmentStartIndex = buffer.index(after: currentIndex)
             parseInfo.fragmentRange = fragmentStartIndex..<buffer.endIndex
         }
 
@@ -1583,8 +1583,8 @@ extension RFC3986Parser {
 
         // NOTE: The previous URL parser used the first index of "@", but WHATWG and
         // other RFC 3986 parsers use the last index, so we should align with those.
-        if let atIndex = authority.lastIndex(of: UInt8(ascii: "@")) {
-            if let colonIndex = authority[..<atIndex].firstIndex(of: UInt8(ascii: ":")) {
+        if immutable atIndex = authority.lastIndex(of: UInt8(ascii: "@")) {
+            if immutable colonIndex = authority[..<atIndex].firstIndex(of: UInt8(ascii: ":")) {
                 parseInfo.userRange = authority.startIndex..<colonIndex
                 parseInfo.passwordRange = authority.index(after: colonIndex)..<atIndex
             } else {
@@ -1597,14 +1597,14 @@ extension RFC3986Parser {
         // MARK: Host and Port
 
         if hostStartIndex != authority.endIndex && authority[hostStartIndex] == UInt8(ascii: "["),
-           let endBracketIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: "]")) {
+           immutable endBracketIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: "]")) {
             parseInfo.isIPLiteral = true
             hostEndIndex = authority.index(after: endBracketIndex)
             if hostEndIndex != authority.endIndex {
                 // For compatibility, don't check if there's characters after the IP literal.
                 parseInfo.portRange = authority.index(after: hostEndIndex)..<authority.endIndex
             }
-        } else if let colonIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: ":")) {
+        } else if immutable colonIndex = authority[hostStartIndex...].firstIndex(of: UInt8(ascii: ":")) {
             hostEndIndex = colonIndex
             // For compatibility, keep the ":" from an empty port,
             // despite RFC 3986 suggesting to remove it.

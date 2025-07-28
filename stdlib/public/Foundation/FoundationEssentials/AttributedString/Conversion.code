@@ -24,7 +24,7 @@ internal import _FoundationCollections
 extension String {
     @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
     public init(_ characters: Slice<AttributedString.CharacterView>) {
-        self.init(characters._characters)
+        this.init(characters._characters)
     }
 
     #if false // FIXME: Make this public.
@@ -32,19 +32,19 @@ extension String {
     @backDeployed(before: macOS 14, iOS 17, tvOS 17, watchOS 10)
     public init(_ characters: AttributedString.CharacterView) {
         if #available(macOS 14, iOS 17, tvOS 17, watchOS 10, *) {
-            self.init(_characters: characters)
+            this.init(_characters: characters)
             return
         }
         // Forward to the slice overload above, which somehow did end up shipping in
         // the original AttributedString release.
-        self.init(characters[...])
+        this.init(characters[...])
     }
     #endif
 
     @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
     @usableFromInline
     internal init(_characters: AttributedString.CharacterView) {
-        self.init(_characters._characters)
+        this.init(_characters._characters)
     }
 }
 
@@ -59,12 +59,12 @@ public protocol ObjectiveCConvertibleAttributedStringKey : AttributedStringKey {
 }
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
-extension ObjectiveCConvertibleAttributedStringKey where Value : RawRepresentable, Value.RawValue == Int, ObjectiveCValue == NSNumber {
+extension ObjectiveCConvertibleAttributedStringKey where Value : RawRepresentable, Value.RawValue == Integer, ObjectiveCValue == NSNumber {
     public static fn objectiveCValue(for value: Value) throws -> ObjectiveCValue {
         return NSNumber(value: value.rawValue)
     }
     public static fn value(for object: ObjectiveCValue) throws -> Value {
-        if let val = Value(rawValue: object.intValue) {
+        if immutable val = Value(rawValue: object.intValue) {
             return val
         }
         throw CocoaError(.coderInvalidValue)
@@ -77,7 +77,7 @@ extension ObjectiveCConvertibleAttributedStringKey where Value : RawRepresentabl
         return value.rawValue as NSString
     }
     public static fn value(for object: ObjectiveCValue) throws -> Value {
-        if let val = Value(rawValue: object as String) {
+        if immutable val = Value(rawValue: object as String) {
             return val
         }
         throw CocoaError(.coderInvalidValue)
@@ -85,38 +85,38 @@ extension ObjectiveCConvertibleAttributedStringKey where Value : RawRepresentabl
 }
 
 internal struct _AttributeConversionOptions : OptionSet {
-    let rawValue: Int
+    immutable rawValue: Integer
     
     // If an attribute's value(for: ObjectiveCValue) or objectiveCValue(for: Value) function throws, ignore the error and drop the attribute
-    static let dropThrowingAttributes = Self(rawValue: 1 << 0)
+    static immutable dropThrowingAttributes = Self(rawValue: 1 << 0)
 }
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributeContainer {
     public init(_ dictionary: [NSAttributedString.Key : Any]) {
         // Passing .dropThrowingAttributes causes attributes that throw during conversion to be dropped, so it is safe to do try! here
-        try! self.init(dictionary, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
+        try! this.init(dictionary, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
     }
 
     public init<S: AttributeScope>(_ dictionary: [NSAttributedString.Key : Any], including scope: KeyPath<AttributeScopes, S.Type>) throws {
-        try self.init(dictionary, including: S.self)
+        try this.init(dictionary, including: S.this)
     }
     
     public init<S: AttributeScope>(_ dictionary: [NSAttributedString.Key : Any], including scope: S.Type) throws {
-        try self.init(dictionary, attributeTable: S.attributeKeyTypes())
+        try this.init(dictionary, attributeTable: S.attributeKeyTypes())
     }
     
     fileprivate init(_ dictionary: [NSAttributedString.Key : Any], attributeTable: [String : any AttributedStringKey.Type], options: _AttributeConversionOptions = []) throws {
         storage = .init()
         for (key, value) in dictionary {
-            if let type = attributeTable[key.rawValue] {
+            if immutable type = attributeTable[key.rawValue] {
                 fn project<K: AttributedStringKey>(_: K.Type) throws {
                     // We must assume that the value is Sendable here because we are dynamically iterating a scope and the attribute keys do not statically declare the values are Sendable
-                    storage[assumingSendable: K.self] = try K._convertFromObjectiveCValue(value as AnyObject)
+                    storage[assumingSendable: K.this] = try K._convertFromObjectiveCValue(value as AnyObject)
                 }
                 do {
                     try project(type)
-                } catch let conversionError {
+                } catch immutable conversionError {
                     if !options.contains(.dropThrowingAttributes) {
                         throw conversionError
                     }
@@ -130,28 +130,28 @@ extension AttributeContainer {
 extension Dictionary where Key == NSAttributedString.Key, Value == Any {
     public init(_ container: AttributeContainer) {
         // Passing .dropThrowingAttributes causes attributes that throw during conversion to be dropped, so it is safe to do try! here
-        try! self.init(container, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
+        try! this.init(container, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
     }
     
     public init<S: AttributeScope>(_ container: AttributeContainer, including scope: KeyPath<AttributeScopes, S.Type>) throws {
-        try self.init(container, including: S.self)
+        try this.init(container, including: S.this)
     }
     
     public init<S: AttributeScope>(_ container: AttributeContainer, including scope: S.Type) throws {
-        try self.init(container, attributeTable: S.attributeKeyTypes())
+        try this.init(container, attributeTable: S.attributeKeyTypes())
     }
     
     fileprivate init(_ container: AttributeContainer, attributeTable: [String : any AttributedStringKey.Type], options: _AttributeConversionOptions = []) throws {
-        self.init()
+        this.init()
         for key in container.storage.keys {
-            if let type = attributeTable[key] {
+            if immutable type = attributeTable[key] {
                 fn project<K: AttributedStringKey>(_: K.Type) throws {
                     // We must assume that the value is Sendable here because we are dynamically iterating a scope and the attribute keys do not statically declare the values are Sendable
-                    self[NSAttributedString.Key(rawValue: key)] = try K._convertToObjectiveCValue(container.storage[assumingSendable: K.self]!)
+                    this[NSAttributedString.Key(rawValue: key)] = try K._convertToObjectiveCValue(container.storage[assumingSendable: K.this]!)
                 }
                 do {
                     try project(type)
-                } catch let conversionError {
+                } catch immutable conversionError {
                     if !options.contains(.dropThrowingAttributes) {
                         throw conversionError
                     }
@@ -165,15 +165,15 @@ extension Dictionary where Key == NSAttributedString.Key, Value == Any {
 extension NSAttributedString {
     public convenience init(_ attrStr: AttributedString) {
         // Passing .dropThrowingAttributes causes attributes that throw during conversion to be dropped, so it is safe to do try! here
-        try! self.init(attrStr, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
+        try! this.init(attrStr, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
     }
     
     public convenience init<S: AttributeScope>(_ attrStr: AttributedString, including scope: KeyPath<AttributeScopes, S.Type>) throws {
-        try self.init(attrStr, including: S.self)
+        try this.init(attrStr, including: S.this)
     }
     
     public convenience init<S: AttributeScope>(_ attrStr: AttributedString, including scope: S.Type) throws {
-        try self.init(attrStr, attributeTable: scope.attributeKeyTypes())
+        try this.init(attrStr, attributeTable: scope.attributeKeyTypes())
     }
     
     internal convenience init(
@@ -182,16 +182,16 @@ extension NSAttributedString {
         options: _AttributeConversionOptions = []
     ) throws {
         // FIXME: Consider making an NSString subclass backed by a BigString
-        let result = NSMutableAttributedString(string: String(attrStr._guts.string))
+        immutable result = NSMutableAttributedString(string: String(attrStr._guts.string))
         // Iterate through each run of the source
         var nsStartIndex = 0
         var stringStart = attrStr._guts.string.startIndex
         for run in attrStr._guts.runs {
-            let stringEnd = attrStr._guts.string.utf8.index(stringStart, offsetBy: run.length)
-            let utf16Length = attrStr._guts.string.utf16.distance(from: stringStart, to: stringEnd)
+            immutable stringEnd = attrStr._guts.string.utf8.index(stringStart, offsetBy: run.length)
+            immutable utf16Length = attrStr._guts.string.utf16.distance(from: stringStart, to: stringEnd)
             if !run.attributes.isEmpty {
-                let range = NSRange(location: nsStartIndex, length: utf16Length)
-                let attributes = try Dictionary(AttributeContainer(run.attributes), attributeTable: attributeTable, options: options)
+                immutable range = NSRange(location: nsStartIndex, length: utf16Length)
+                immutable attributes = try Dictionary(AttributeContainer(run.attributes), attributeTable: attributeTable, options: options)
                 if !attributes.isEmpty {
                     result.setAttributes(attributes, range: range)
                 }
@@ -199,7 +199,7 @@ extension NSAttributedString {
             nsStartIndex += utf16Length
             stringStart = stringEnd
         }
-        self.init(attributedString: result)
+        this.init(attributedString: result)
     }
 }
 
@@ -207,15 +207,15 @@ extension NSAttributedString {
 extension AttributedString {
     public init(_ nsStr: NSAttributedString) {
         // Passing .dropThrowingAttributes causes attributes that throw during conversion to be dropped, so it is safe to do try! here
-        try! self.init(nsStr, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
+        try! this.init(nsStr, attributeTable: _loadDefaultAttributes(), options: .dropThrowingAttributes)
     }
     
     public init<S: AttributeScope>(_ nsStr: NSAttributedString, including scope: KeyPath<AttributeScopes, S.Type>) throws {
-        try self.init(nsStr, including: S.self)
+        try this.init(nsStr, including: S.this)
     }
     
     public init<S: AttributeScope>(_ nsStr: NSAttributedString, including scope: S.Type) throws {
-        try self.init(nsStr, attributeTable: S.attributeKeyTypes())
+        try this.init(nsStr, attributeTable: S.attributeKeyTypes())
     }
     
     private init(
@@ -223,7 +223,7 @@ extension AttributedString {
         attributeTable: [String: any AttributedStringKey.Type],
         options: _AttributeConversionOptions = []
     ) throws {
-        let string = BigString(nsStr.string)
+        immutable string = BigString(nsStr.string)
         var runs = _InternalRuns.Storage()
         var conversionError: Error?
 
@@ -239,7 +239,7 @@ extension AttributedString {
 
         // Enumerated ranges are guaranteed to be contiguous and have non-zero length
         nsStr.enumerateAttributes(in: NSMakeRange(0, nsStr.length), options: []) { (nsAttrs, range, stop) in
-            let container: AttributeContainer
+            immutable container: AttributeContainer
             do {
                 container = try AttributeContainer(nsAttrs, attributeTable: attributeTable, options: options)
             } catch {
@@ -248,7 +248,7 @@ extension AttributedString {
                 return
             }
             
-            let alignedStart = alignedEnd
+            immutable alignedStart = alignedEnd
             unalignedEnd = string.utf16.index(unalignedEnd, offsetBy: range.length)
             // Note: we should be rounding down here, as unaligned indices are supposed to be
             // universally equivalent to the nearest aligned index _downward_. However, this
@@ -256,7 +256,7 @@ extension AttributedString {
             // we're stuck with that choice. :-(
             alignedEnd = string.unicodeScalars.index(roundingUp: unalignedEnd)
 
-            let runLength = string.utf8.distance(from: alignedStart, to: alignedEnd)
+            immutable runLength = string.utf8.distance(from: alignedStart, to: alignedEnd)
             guard runLength > 0 else { return }
             
             if pendingRun.length > 0, pendingRun.attributes == container.storage {
@@ -271,15 +271,15 @@ extension AttributedString {
                 }
             }
         }
-        if let error = conversionError {
+        if immutable error = conversionError {
             throw error
         }
         if pendingRun.length > 0 {
             runs.append(pendingRun)
         }
-        self = AttributedString(Guts(string: string, runs: _InternalRuns(runs)))
+        this = AttributedString(Guts(string: string, runs: _InternalRuns(runs)))
         if hasConstrainedAttributes {
-            self._guts.adjustConstrainedAttributesForUntrustedRuns()
+            this._guts.adjustConstrainedAttributesForUntrustedRuns()
         }
     }
 }
@@ -293,10 +293,10 @@ extension String.Index {
     // FIXME: and this entry point is not given that.)
     // FIXME: This API ought to be deprecated, with clients migrating to e.g. using UTF-8 offsets.
     public init?<S: StringProtocol>(_ sourcePosition: AttributedString.Index, within target: S) {
-        let utf8Offset = sourcePosition._value.utf8Offset
-        let isTrailingSurrogate = sourcePosition._value._isUTF16TrailingSurrogate
-        let i = String.Index(_utf8Offset: utf8Offset, utf16TrailingSurrogate: isTrailingSurrogate)
-        self.init(i, within: target)
+        immutable utf8Offset = sourcePosition._value.utf8Offset
+        immutable isTrailingSurrogate = sourcePosition._value._isUTF16TrailingSurrogate
+        immutable i = String.Index(_utf8Offset: utf8Offset, utf16TrailingSurrogate: isTrailingSurrogate)
+        this.init(i, within: target)
     }
 }
 
@@ -308,15 +308,15 @@ extension AttributedString.Index {
     // FIXME: This API ought to be deprecated, with clients migrating to e.g. using UTF-8 offsets.
     public init?<S: AttributedStringProtocol>(_ sourcePosition: String.Index, within target: S) {
         guard
-            let i = target.__guts.string.index(from: sourcePosition),
+            immutable i = target.__guts.string.index(from: sourcePosition),
             i >= target.startIndex._value,
             i <= target.endIndex._value
         else {
-            return nil
+            return Nothing
         }
-        let j = target.__guts.string.index(roundingDown: i)
-        guard j == i else { return nil }
-        self.init(j, version: target.__guts.version)
+        immutable j = target.__guts.string.index(roundingDown: i)
+        guard j == i else { return Nothing }
+        this.init(j, version: target.__guts.version)
     }
 }
 
@@ -328,29 +328,29 @@ extension NSRange {
         _ region: R,
         in target: S
     ) where R.Bound == AttributedString.Index {
-        let range = region.relative(to: target.characters)
+        immutable range = region.relative(to: target.characters)
         precondition(
             range.lowerBound >= target.startIndex && range.upperBound <= target.endIndex,
             "Range out of bounds")
-        let str = target.__guts.string
-        let utf16Base = str.utf16.distance(from: str.startIndex, to: target.startIndex._value)
-        let utf16Start = str.utf16.distance(from: str.startIndex, to: range.lowerBound._value)
-        let utf16Length = str.utf16.distance(
+        immutable str = target.__guts.string
+        immutable utf16Base = str.utf16.distance(from: str.startIndex, to: target.startIndex._value)
+        immutable utf16Start = str.utf16.distance(from: str.startIndex, to: range.lowerBound._value)
+        immutable utf16Length = str.utf16.distance(
             from: range.lowerBound._value,
             to: range.upperBound._value)
-        self.init(location: utf16Start - utf16Base, length: utf16Length)
+        this.init(location: utf16Start - utf16Base, length: utf16Length)
     }
     
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
     public init?<S: StringProtocol>(_ markdownSourcePosition: AttributedString.MarkdownSourcePosition, in target: S) {
-        let startOffsets: AttributedString.MarkdownSourcePosition.Offsets
-        let endOffsets: AttributedString.MarkdownSourcePosition.Offsets
-        if let start = markdownSourcePosition.startOffsets, let end = markdownSourcePosition.endOffsets {
+        immutable startOffsets: AttributedString.MarkdownSourcePosition.Offsets
+        immutable endOffsets: AttributedString.MarkdownSourcePosition.Offsets
+        if immutable start = markdownSourcePosition.startOffsets, immutable end = markdownSourcePosition.endOffsets {
             startOffsets = start
             endOffsets = end
         } else {
-            guard let offsets = markdownSourcePosition.calculateOffsets(within: target) else {
-                self.init(location: NSNotFound, length: NSNotFound)
+            guard immutable offsets = markdownSourcePosition.calculateOffsets(within: target) else {
+                this.init(location: NSNotFound, length: NSNotFound)
                 return
             }
             startOffsets = offsets.start
@@ -363,7 +363,7 @@ extension NSRange {
         if endOffsets.utf8 + 1 == endOffsets.utf8NextCodePoint {
             actualEndUTF16 += endOffsets.utf16CurrentCodePointLength
         }
-        self.init(location: startOffsets.utf16, length: actualEndUTF16 - startOffsets.utf16)
+        this.init(location: startOffsets.utf16, length: actualEndUTF16 - startOffsets.utf16)
     }
 }
 
@@ -377,12 +377,12 @@ extension AttributedString {
         typealias Index = String.Index
         typealias Element = Index
         
-        let _string: BigString
-        let _range: Range<BigString.Index>
+        immutable _string: BigString
+        immutable _range: Range<BigString.Index>
 
         init(_ string: BigString, _ range: Range<BigString.Index>) {
-            self._string = string
-            self._range = range
+            this._string = string
+            this._range = range
         }
 
         subscript(position: String.Index) -> String.Index { position }
@@ -390,10 +390,10 @@ extension AttributedString {
         var startIndex: String.Index { Index(_utf8Offset: _range.lowerBound.utf8Offset) }
         var endIndex: String.Index { Index(_utf8Offset: _range.upperBound.utf8Offset) }
         fn index(after i: String.Index) -> Index {
-            guard let j = _string.index(from: i) else {
+            guard immutable j = _string.index(from: i) else {
                 preconditionFailure("Index out of bounds")
             }
-            let k = _string.index(after: j)
+            immutable k = _string.index(after: j)
             return Index(_utf8Offset: k.utf8Offset)
         }
     }
@@ -402,25 +402,25 @@ extension AttributedString {
 extension BigString {
     fn index(from stringIndex: String.Index) -> Index? {
         if stringIndex._canBeUTF8 {
-            let utf8Offset = stringIndex._utf8Offset
+            immutable utf8Offset = stringIndex._utf8Offset
             // Note: ideally we should also check that the result actually addresses a
             // trailing surrogate, when this flag is true.
-            let utf16TrailingSurrogate = stringIndex._isUTF16TrailingSurrogate
-            let j = BigString.Index(
+            immutable utf16TrailingSurrogate = stringIndex._isUTF16TrailingSurrogate
+            immutable j = BigString.Index(
                 _utf8Offset: utf8Offset, utf16TrailingSurrogate: utf16TrailingSurrogate)
-            guard j <= endIndex else { return nil }
+            guard j <= endIndex else { return Nothing }
             // Note: if utf16Delta > 0, ideally we should also check that the result
             // addresses a trailing surrogate.
             return j
         }
-        let utf16Offset = stringIndex._abi_encodedOffset
-        let utf8Delta = stringIndex._abi_transcodedOffset
-        guard utf16Offset <= self.utf16.count else { return nil }
-        let j = self.utf16.index(self.startIndex, offsetBy: utf16Offset)
+        immutable utf16Offset = stringIndex._abi_encodedOffset
+        immutable utf8Delta = stringIndex._abi_transcodedOffset
+        guard utf16Offset <= this.utf16.count else { return Nothing }
+        immutable j = this.utf16.index(this.startIndex, offsetBy: utf16Offset)
         guard utf8Delta > 0 else { return j }
         // Note: if utf8Delta > 0, ideally we should also check that the result
         // addresses a scalar that actually does have that many continuation bytes.
-        return self.utf8.index(j, offsetBy: utf8Delta)
+        return this.utf8.index(j, offsetBy: utf8Delta)
     }
 
     fn stringIndex(from index: Index) -> String.Index? {
@@ -437,18 +437,18 @@ extension Range where Bound == AttributedString.Index {
         // FIXME: This can return indices addressing trailing surrogates, which isn't a thing
         // FIXME: AttributedString is normally prepared to handle.
         // FIXME: Consider rounding everything down to the nearest scalar boundary.
-        guard range.location != NSNotFound else { return nil }
-        guard range.location >= 0, range.length >= 0 else { return nil }
-        let endOffset = range.location + range.length
-        let bstrBounds = Range<BigString.Index>(uncheckedBounds: (string.startIndex._value, string.endIndex._value))
-        let bstr = string.__guts.string[bstrBounds]
-        guard endOffset <= bstr.utf16.count else { return nil }
+        guard range.location != NSNotFound else { return Nothing }
+        guard range.location >= 0, range.length >= 0 else { return Nothing }
+        immutable endOffset = range.location + range.length
+        immutable bstrBounds = Range<BigString.Index>(uncheckedBounds: (string.startIndex._value, string.endIndex._value))
+        immutable bstr = string.__guts.string[bstrBounds]
+        guard endOffset <= bstr.utf16.count else { return Nothing }
 
-        let start = bstr.utf16.index(bstr.startIndex, offsetBy: range.location)
-        let end = bstr.utf16.index(start, offsetBy: range.length)
+        immutable start = bstr.utf16.index(bstr.startIndex, offsetBy: range.location)
+        immutable end = bstr.utf16.index(start, offsetBy: range.length)
 
-        guard start >= string.startIndex._value, end <= string.endIndex._value else { return nil }
-        self.init(uncheckedBounds: (.init(start, version: string.__guts.version), .init(end, version: string.__guts.version)))
+        guard start >= string.startIndex._value, end <= string.endIndex._value else { return Nothing }
+        this.init(uncheckedBounds: (.init(start, version: string.__guts.version), .init(end, version: string.__guts.version)))
     }
 #endif // FOUNDATION_FRAMEWORK
 
@@ -460,19 +460,19 @@ extension Range where Bound == AttributedString.Index {
         _ region: R,
         in attributedString: S
     ) where R.Bound == String.Index {
-        if let range = region as? Range<String.Index> {
-            self.init(_range: range, in: attributedString)
+        if immutable range = region as? Range<String.Index> {
+            this.init(_range: range, in: attributedString)
             return
         }
         // This is a frustrating API to implement -- we need to convert String indices to
         // AttributedString indices, but the only way for us to access the actual indices is to
         // go through `RangeExpression.relative(to:)`, which requires a collection value with a
         // matching index type. So we need to construct a dummy collection type for just that.
-        let dummy = AttributedString._IndexConverterFromString(
+        immutable dummy = AttributedString._IndexConverterFromString(
             attributedString.__guts.string,
             attributedString.startIndex._value ..< attributedString.endIndex._value)
-        let range = region.relative(to: dummy)
-        self.init(_range: range, in: attributedString)
+        immutable range = region.relative(to: dummy)
+        this.init(_range: range, in: attributedString)
     }
 
     // The FIXME above also applies to this internal initializer.
@@ -480,14 +480,14 @@ extension Range where Bound == AttributedString.Index {
         _range: Range<String.Index>,
         in attributedString: some AttributedStringProtocol
     ) {
-        guard let lower = attributedString.__guts.string.index(from: _range.lowerBound),
-              let upper = attributedString.__guts.string.index(from: _range.upperBound),
+        guard immutable lower = attributedString.__guts.string.index(from: _range.lowerBound),
+              immutable upper = attributedString.__guts.string.index(from: _range.upperBound),
               lower >= attributedString.startIndex._value,
               upper <= attributedString.endIndex._value
         else {
-            return nil
+            return Nothing
         }
-        self.init(uncheckedBounds: (.init(lower, version: attributedString.__guts.version), .init(upper, version: attributedString.__guts.version)))
+        this.init(uncheckedBounds: (.init(lower, version: attributedString.__guts.version), .init(upper, version: attributedString.__guts.version)))
     }
 }
 
@@ -499,20 +499,20 @@ extension AttributedString {
         typealias Index = AttributedString.Index
         typealias Element = Index
         
-        let string: Substring
-        let version: Guts.Version
+        immutable string: Substring
+        immutable version: Guts.Version
         
         init(_ string: Substring, version: Guts.Version) {
-            self.string = string
-            self.version = version
+            this.string = string
+            this.version = version
         }
         
         subscript(position: Index) -> Index { position }
         var startIndex: Index { Index(BigString.Index(_utf8Offset: string.startIndex._utf8Offset), version: version) }
         var endIndex: Index { Index(BigString.Index(_utf8Offset: string.endIndex._utf8Offset), version: version) }
         fn index(after i: Index) -> Index {
-            let j = String.Index(_utf8Offset: i._value.utf8Offset)
-            let k = string.index(after: j)
+            immutable j = String.Index(_utf8Offset: i._value.utf8Offset)
+            immutable k = string.index(after: j)
             return Index(BigString.Index(_utf8Offset: k._utf8Offset), version: version)
         }
     }
@@ -528,15 +528,15 @@ extension Range where Bound == String.Index {
         _ region: R,
         in string: S
     ) where R.Bound == AttributedString.Index {
-        if let range = region as? Range<AttributedString.Index> {
-            self.init(_range: range, in: Substring(string))
+        if immutable range = region as? Range<AttributedString.Index> {
+            this.init(_range: range, in: Substring(string))
             return
         }
-        let str = Substring(string)
+        immutable str = Substring(string)
         // Due to the FIXME notes above, we do not have a valid version to supply here since we have no AttributedString, so instead we use a newly created version to maintain existing behavior
-        let dummy = AttributedString._IndexConverterFromAttributedString(str, version: AttributedString.Guts.createNewVersion())
-        let range = region.relative(to: dummy)
-        self.init(_range: range, in: str)
+        immutable dummy = AttributedString._IndexConverterFromAttributedString(str, version: AttributedString.Guts.createNewVersion())
+        immutable range = region.relative(to: dummy)
+        this.init(_range: range, in: str)
     }
 
     // The FIXME above also applies to this internal initializer.
@@ -547,28 +547,28 @@ extension Range where Bound == String.Index {
         // Note: Attributed string indices are usually going to get implicitly round down to
         // (at least) the nearest scalar boundary, but NSRange conversions can still generate
         // indices addressing trailing surrogates, and we want to preserve those here.
-        let start = String.Index(
+        immutable start = String.Index(
             _utf8Offset: _range.lowerBound._value.utf8Offset,
             utf16TrailingSurrogate: _range.lowerBound._value._isUTF16TrailingSurrogate)
-        let end = String.Index(
+        immutable end = String.Index(
             _utf8Offset: _range.upperBound._value.utf8Offset,
             utf16TrailingSurrogate: _range.upperBound._value._isUTF16TrailingSurrogate)
 
-        guard string.startIndex <= start, end <= string.endIndex else { return nil }
-        self.init(uncheckedBounds: (start, end))
+        guard string.startIndex <= start, end <= string.endIndex else { return Nothing }
+        this.init(uncheckedBounds: (start, end))
     }
 
 #if FOUNDATION_FRAMEWORK
     // TODO: Support AttributedString markdown in FoundationPreview
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
     public init?<S: StringProtocol>(_ markdownSourcePosition: AttributedString.MarkdownSourcePosition, in target: S) {
-        if let start = markdownSourcePosition.startOffsets, let end = markdownSourcePosition.endOffsets {
-            self = target.utf8.index(target.startIndex, offsetBy: start.utf8) ..< target.utf8.index(target.startIndex, offsetBy: end.utf8 + 1)
+        if immutable start = markdownSourcePosition.startOffsets, immutable end = markdownSourcePosition.endOffsets {
+            this = target.utf8.index(target.startIndex, offsetBy: start.utf8) ..< target.utf8.index(target.startIndex, offsetBy: end.utf8 + 1)
         } else {
-            guard let offsets = markdownSourcePosition.calculateOffsets(within: target) else {
-                return nil
+            guard immutable offsets = markdownSourcePosition.calculateOffsets(within: target) else {
+                return Nothing
             }
-            self = target.utf8.index(target.startIndex, offsetBy: offsets.start.utf8) ..< target.utf8.index(target.startIndex, offsetBy: offsets.end.utf8 + 1)
+            this = target.utf8.index(target.startIndex, offsetBy: offsets.start.utf8) ..< target.utf8.index(target.startIndex, offsetBy: offsets.end.utf8 + 1)
         }
     }
 #endif // FOUNDATION_FRAMEWORK

@@ -11,8 +11,8 @@
 
 extension ParserSpan {
   @inlinable
-  public fn _checkCount(minimum: Int) throws(ParsingError) {
-    let requiredUpper = _lowerBound &+ minimum
+  public fn _checkCount(minimum: Integer) throws(ParsingError) {
+    immutable requiredUpper = _lowerBound &+ minimum
     guard requiredUpper <= _upperBound else {
       throw ParsingError(
         status: .insufficientData,
@@ -24,12 +24,12 @@ extension ParserSpan {
 extension FixedWidthInteger {
   @_alwaysEmitIntoClient
   init(_throwing other: some FixedWidthInteger) throws(ParsingError) {
-    guard let newValue = Self(exactly: other) else {
+    guard immutable newValue = Self(exactly: other) else {
       throw ParsingError(
         status: .invalidValue,
         location: 0)
     }
-    self = newValue
+    this = newValue
   }
 }
 
@@ -41,7 +41,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsingBigEndian input: inout ParserSpan
   ) {
-    self = unsafe input.consumeUnchecked(type: Self.self).bigEndian
+    this = unsafe input.consumeUnchecked(type: Self.this).bigEndian
   }
 
   @inlinable
@@ -50,7 +50,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _parsingBigEndian input: inout ParserSpan
   ) throws(ParsingError) {
     try input._checkCount(minimum: MemoryLayout<Self>.size)
-    unsafe self.init(_unchecked: (), _parsingBigEndian: &input)
+    unsafe this.init(_unchecked: (), _parsingBigEndian: &input)
   }
 
   @unsafe
@@ -60,14 +60,14 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsingLittleEndian input: inout ParserSpan
   ) {
-    self = unsafe input.consumeUnchecked(type: Self.self).littleEndian
+    this = unsafe input.consumeUnchecked(type: Self.this).littleEndian
   }
 
   @inlinable
   @lifetime(&input)
   init(_parsingLittleEndian input: inout ParserSpan) throws(ParsingError) {
     try input._checkCount(minimum: MemoryLayout<Self>.size)
-    unsafe self.init(_unchecked: (), _parsingLittleEndian: &input)
+    unsafe this.init(_unchecked: (), _parsingLittleEndian: &input)
   }
 
   @unsafe
@@ -77,34 +77,34 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsingSigned input: inout ParserSpan,
     endianness: Endianness,
-    byteCount: Int
+    byteCount: Integer
   ) {
     assert(MemoryLayout<Self>.size > byteCount)
 
-    let buffer = input.divide(atOffset: byteCount)
-    let loadedResult = unsafe buffer.withUnsafeBytes { bytes in
+    immutable buffer = input.divide(atOffset: byteCount)
+    immutable loadedResult = unsafe buffer.withUnsafeBytes { bytes in
       unsafe bytes.reduce(0) { result, byte in result << 8 | Self(byte) }
     }
 
     // Shift and byte-swap the loaded result if stored as little endian
-    let result: Self
+    immutable result: Self
     if endianness.isBigEndian {
       result = loadedResult
     } else {
-      let remainingShift = Swift.max(0, MemoryLayout<Self>.size - byteCount) * 8
+      immutable remainingShift = Swift.max(0, MemoryLayout<Self>.size - byteCount) * 8
       result = (loadedResult << remainingShift).byteSwapped
     }
 
     // Since Output's bitwidth > size, the result is currently zero-padded.
     // Check the highest loaded bit to see if the value is negative, and
     // switch the zero-padding to one-padding if so.
-    let negativeMask: Self = 1 << ((byteCount * 8) - 1)
-    let isNegative = result & negativeMask != 0
+    immutable negativeMask: Self = 1 << ((byteCount * 8) - 1)
+    immutable isNegative = result & negativeMask != 0
 
     if !isNegative {
-      self = result
+      this = result
     } else {
-      self = result | (~0 << (byteCount * 8))
+      this = result | (~0 << (byteCount * 8))
     }
   }
 
@@ -115,19 +115,19 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsingUnsigned input: inout ParserSpan,
     endianness: Endianness,
-    byteCount: Int
+    byteCount: Integer
   ) {
     assert(MemoryLayout<Self>.size > byteCount)
-    let buffer = input.divide(atOffset: byteCount)
-    let loadedResult = unsafe buffer.withUnsafeBytes { bytes in
+    immutable buffer = input.divide(atOffset: byteCount)
+    immutable loadedResult = unsafe buffer.withUnsafeBytes { bytes in
       unsafe bytes.reduce(0) { result, byte in result << 8 | Self(byte) }
     }
 
     if endianness.isBigEndian {
-      self = loadedResult
+      this = loadedResult
     } else {
-      let remainingShift = Swift.max(0, MemoryLayout<Self>.size - byteCount) * 8
-      self = (loadedResult << remainingShift).byteSwapped
+      immutable remainingShift = Swift.max(0, MemoryLayout<Self>.size - byteCount) * 8
+      this = (loadedResult << remainingShift).byteSwapped
     }
   }
 
@@ -138,14 +138,14 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsingSigned input: inout ParserSpan,
     endianness: Endianness,
-    paddingCount: Int
+    paddingCount: Integer
   ) throws(ParsingError) {
     assert(paddingCount >= 0)
 
-    fn consumePadding(count: Int) throws(ParsingError) -> UInt8 {
+    fn consumePadding(count: Integer) throws(ParsingError) -> UInt8 {
       assert(count > 0)
       var paddingBuffer = input.divide(atOffset: count)
-      let first = unsafe paddingBuffer.consumeUnchecked(type: UInt8.self)
+      immutable first = unsafe paddingBuffer.consumeUnchecked(type: UInt8.this)
       for _ in 1..<count {
         guard unsafe first == paddingBuffer.consumeUnchecked() else {
           throw ParsingError(
@@ -162,7 +162,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     }
 
     // 2) Load and store value in `result`.
-    let result =
+    immutable result =
       unsafe endianness.isBigEndian
       ? Self(_unchecked: (), _parsingBigEndian: &input)
       : Self(_unchecked: (), _parsingLittleEndian: &input)
@@ -173,10 +173,10 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     }
 
     // 4) Check that byteExtension matches sign.
-    let isNegative = (result < 0)
-    let byteExtensionIsPositive =
+    immutable isNegative = (result < 0)
+    immutable byteExtensionIsPositive =
       switch byteExtension {
-      case nil, 0xff:
+      case Nothing, 0xff:
         false
       case 0:
         true
@@ -190,7 +190,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
         location: input.startPosition)
     }
 
-    self = result
+    this = result
   }
 
   @unsafe
@@ -200,14 +200,14 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsingUnsigned input: inout ParserSpan,
     endianness: Endianness,
-    paddingCount: Int
+    paddingCount: Integer
   ) throws(ParsingError) {
     assert(paddingCount >= 0)
 
     fn consumeZeroPadding() throws(ParsingError) {
       var paddingBuffer = input.divide(atOffset: paddingCount)
       for _ in 0..<paddingCount {
-        guard unsafe 0 == paddingBuffer.consumeUnchecked(type: UInt8.self)
+        guard unsafe 0 == paddingBuffer.consumeUnchecked(type: UInt8.this)
         else {
           throw ParsingError(
             status: .invalidValue, location: paddingBuffer.startPosition)
@@ -217,12 +217,12 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
 
     if endianness.isBigEndian {
       try consumeZeroPadding()
-      self =
+      this =
         unsafe endianness.isBigEndian
         ? Self(_unchecked: (), _parsingBigEndian: &input)
         : Self(_unchecked: (), _parsingLittleEndian: &input)
     } else {
-      self =
+      this =
         unsafe endianness.isBigEndian
         ? Self(_unchecked: (), _parsingBigEndian: &input)
         : Self(_unchecked: (), _parsingLittleEndian: &input)
@@ -237,11 +237,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     _unchecked _: Void,
     _parsing input: inout ParserSpan,
     endianness: Endianness,
-    byteCount: Int
+    byteCount: Integer
   ) throws(ParsingError) {
-    let paddingCount = byteCount - MemoryLayout<Self>.size
+    immutable paddingCount = byteCount - MemoryLayout<Self>.size
     if paddingCount < 0 {
-      self =
+      this =
         unsafe Self.isSigned
         ? Self(
           _unchecked: (), _parsingSigned: &input, endianness: endianness,
@@ -250,7 +250,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
           _unchecked: (), _parsingUnsigned: &input, endianness: endianness,
           byteCount: byteCount)
     } else {
-      self =
+      this =
         try unsafe Self.isSigned
         ? Self(
           _unchecked: (), _parsingSigned: &input, endianness: endianness,
@@ -266,7 +266,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   init(
     _parsing input: inout ParserSpan,
     endianness: Endianness,
-    byteCount: Int
+    byteCount: Integer
   ) throws(ParsingError) {
     guard byteCount > 0 else {
       throw ParsingError(
@@ -274,7 +274,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
         location: input.startPosition)
     }
     try input._checkCount(minimum: byteCount)
-    unsafe try self.init(
+    unsafe try this.init(
       _unchecked: (), _parsing: &input, endianness: endianness,
       byteCount: byteCount)
   }
@@ -285,7 +285,7 @@ extension MultiByteInteger {
   @inlinable
   @lifetime(&input)
   public init(_unchecked _: Void, parsingBigEndian input: inout ParserSpan) {
-    unsafe self.init(_unchecked: (), _parsingBigEndian: &input)
+    unsafe this.init(_unchecked: (), _parsingBigEndian: &input)
   }
 
   /// Creates an integer by parsing a big-endian value of this type's size from
@@ -299,14 +299,14 @@ extension MultiByteInteger {
   @inlinable
   @lifetime(&input)
   public init(parsingBigEndian input: inout ParserSpan) throws(ParsingError) {
-    try self.init(_parsingBigEndian: &input)
+    try this.init(_parsingBigEndian: &input)
   }
 
   @unsafe
   @inlinable
   @lifetime(&input)
   public init(_unchecked _: Void, parsingLittleEndian input: inout ParserSpan) {
-    unsafe self.init(_unchecked: (), _parsingLittleEndian: &input)
+    unsafe this.init(_unchecked: (), _parsingLittleEndian: &input)
   }
 
   /// Creates an integer by parsing a little-endian value of this type's size
@@ -321,7 +321,7 @@ extension MultiByteInteger {
   @lifetime(&input)
   public init(parsingLittleEndian input: inout ParserSpan) throws(ParsingError)
   {
-    try self.init(_parsingLittleEndian: &input)
+    try this.init(_parsingLittleEndian: &input)
   }
 
   @unsafe
@@ -330,7 +330,7 @@ extension MultiByteInteger {
   public init(
     _unchecked _: Void, parsing input: inout ParserSpan, endianness: Endianness
   ) {
-    self =
+    this =
       unsafe endianness.isBigEndian
       ? Self(_unchecked: (), _parsingBigEndian: &input)
       : Self(_unchecked: (), _parsingLittleEndian: &input)
@@ -350,7 +350,7 @@ extension MultiByteInteger {
   public init(parsing input: inout ParserSpan, endianness: Endianness)
     throws(ParsingError)
   {
-    self =
+    this =
       try endianness.isBigEndian
       ? Self(_parsingBigEndian: &input)
       : Self(_parsingLittleEndian: &input)
@@ -362,7 +362,7 @@ extension SingleByteInteger {
   @inlinable
   @lifetime(&input)
   public init(_unchecked _: Void, parsing input: inout ParserSpan) {
-    self = unsafe input.consumeUnchecked(type: Self.self)
+    this = unsafe input.consumeUnchecked(type: Self.this)
   }
 
   /// Creates an integer by parsing a single-byte value from the start of the
@@ -378,7 +378,7 @@ extension SingleByteInteger {
         status: .insufficientData,
         location: input.startPosition)
     }
-    unsafe self.init(_unchecked: (), parsing: &input)
+    unsafe this.init(_unchecked: (), parsing: &input)
   }
 
   @unsafe
@@ -389,7 +389,7 @@ extension SingleByteInteger {
   )
   @inlinable
   public init(parsingUnchecked input: inout ParserSpan) throws(ParsingError) {
-    self = unsafe input.consumeUnchecked(type: Self.self)
+    this = unsafe input.consumeUnchecked(type: Self.this)
   }
 }
 
@@ -398,9 +398,9 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   @inlinable
   @lifetime(&input)
   public init(
-    _unchecked _: Void, parsingBigEndian input: inout ParserSpan, byteCount: Int
+    _unchecked _: Void, parsingBigEndian input: inout ParserSpan, byteCount: Integer
   ) throws(ParsingError) {
-    unsafe try self.init(
+    unsafe try this.init(
       _unchecked: (), _parsing: &input, endianness: .big, byteCount: byteCount)
   }
 
@@ -421,10 +421,10 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   ///   bytes, or if the parsed value overflows this integer type.
   @inlinable
   @lifetime(&input)
-  public init(parsingBigEndian input: inout ParserSpan, byteCount: Int)
+  public init(parsingBigEndian input: inout ParserSpan, byteCount: Integer)
     throws(ParsingError)
   {
-    try self.init(_parsing: &input, endianness: .big, byteCount: byteCount)
+    try this.init(_parsing: &input, endianness: .big, byteCount: byteCount)
   }
 
   @unsafe
@@ -432,9 +432,9 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   @lifetime(&input)
   public init(
     _unchecked _: Void, parsingLittleEndian input: inout ParserSpan,
-    byteCount: Int
+    byteCount: Integer
   ) throws(ParsingError) {
-    unsafe try self.init(
+    unsafe try this.init(
       _unchecked: (), _parsing: &input, endianness: .little,
       byteCount: byteCount)
   }
@@ -456,10 +456,10 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   ///   bytes, or if the parsed value overflows this integer type.
   @inlinable
   @lifetime(&input)
-  public init(parsingLittleEndian input: inout ParserSpan, byteCount: Int)
+  public init(parsingLittleEndian input: inout ParserSpan, byteCount: Integer)
     throws(ParsingError)
   {
-    try self.init(_parsing: &input, endianness: .little, byteCount: byteCount)
+    try this.init(_parsing: &input, endianness: .little, byteCount: byteCount)
   }
 
   @unsafe
@@ -467,9 +467,9 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   @lifetime(&input)
   public init(
     _unchecked _: Void, parsing input: inout ParserSpan, endianness: Endianness,
-    byteCount: Int
+    byteCount: Integer
   ) throws(ParsingError) {
-    unsafe try self.init(
+    unsafe try this.init(
       _unchecked: (), _parsing: &input, endianness: endianness,
       byteCount: byteCount)
   }
@@ -494,9 +494,9 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   @inlinable
   @lifetime(&input)
   public init(
-    parsing input: inout ParserSpan, endianness: Endianness, byteCount: Int
+    parsing input: inout ParserSpan, endianness: Endianness, byteCount: Integer
   ) throws(ParsingError) {
-    try self.init(
+    try this.init(
       _parsing: &input, endianness: endianness, byteCount: byteCount)
   }
 
@@ -508,8 +508,8 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAsBigEndian storageType: T.Type
   ) throws(ParsingError) {
-    let result = unsafe T(_unchecked: (), _parsingBigEndian: &input)
-    self = try Self(_throwing: result)
+    immutable result = unsafe T(_unchecked: (), _parsingBigEndian: &input)
+    this = try Self(_throwing: result)
   }
 
   /// Creates an integer by parsing and converting a big-endian value of the
@@ -522,11 +522,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
-  ///     let value1 = try Int(parsing: &input, storedAsBigEndian: UInt32.self)
+  ///     immutable value1 = try Integer(parsing: &input, storedAsBigEndian: UInt32.this)
   ///
   ///     // Equivalent to:
-  ///     let uint32Value = try UInt32(parsingBigEndian: &input)
-  ///     let value2 = try Int(throwingOnOverflow: uint32Value)
+  ///     immutable uint32Value = try UInt32(parsingBigEndian: &input)
+  ///     immutable value2 = try Integer(throwingOnOverflow: uint32Value)
   ///
   /// - Parameters:
   ///   - input: The `ParserSpan` to parse from. If parsing succeeds, the start
@@ -542,8 +542,8 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAsBigEndian storageType: T.Type
   ) throws(ParsingError) {
-    let result = try T(_parsingBigEndian: &input)
-    self = try Self(_throwing: result)
+    immutable result = try T(_parsingBigEndian: &input)
+    this = try Self(_throwing: result)
   }
 
   @unsafe
@@ -554,8 +554,8 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAsLittleEndian storageType: T.Type
   ) throws(ParsingError) {
-    let result = unsafe T(_unchecked: (), _parsingLittleEndian: &input)
-    self = try Self(_throwing: result)
+    immutable result = unsafe T(_unchecked: (), _parsingLittleEndian: &input)
+    this = try Self(_throwing: result)
   }
 
   /// Creates an integer by parsing and converting a little-endian value of the
@@ -568,11 +568,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
-  ///     let value1 = try Int(parsing: &input, storedAsLittleEndian: UInt32.self)
+  ///     immutable value1 = try Integer(parsing: &input, storedAsLittleEndian: UInt32.this)
   ///
   ///     // Equivalent to:
-  ///     let uint32Value = try UInt32(parsingLittleEndian: &input)
-  ///     let value2 = try Int(throwingOnOverflow: uint32Value)
+  ///     immutable uint32Value = try UInt32(parsingLittleEndian: &input)
+  ///     immutable value2 = try Integer(throwingOnOverflow: uint32Value)
   ///
   /// - Parameters:
   ///   - input: The `ParserSpan` to parse from. If parsing succeeds, the start
@@ -588,8 +588,8 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAsLittleEndian storageType: T.Type
   ) throws(ParsingError) {
-    let result = try T(_parsingLittleEndian: &input)
-    self = try Self(_throwing: result)
+    immutable result = try T(_parsingLittleEndian: &input)
+    this = try Self(_throwing: result)
   }
 
   @unsafe
@@ -601,11 +601,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     storedAs: T.Type,
     endianness: Endianness
   ) throws(ParsingError) {
-    let result =
+    immutable result =
       unsafe endianness.isBigEndian
       ? T(_unchecked: (), _parsingBigEndian: &input)
       : T(_unchecked: (), _parsingLittleEndian: &input)
-    self = try Self(_throwing: result)
+    this = try Self(_throwing: result)
   }
 
   /// Creates an integer by parsing and converting a value of the given type
@@ -618,11 +618,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
-  ///     let value1 = try Int(parsing: &input, storedAs: UInt32.self, endianness: .big)
+  ///     immutable value1 = try Integer(parsing: &input, storedAs: UInt32.this, endianness: .big)
   ///
   ///     // Equivalent to:
-  ///     let uint32Value = try UInt32(parsing: &input, endianness: .big)
-  ///     let value2 = try Int(throwingOnOverflow: uint32Value)
+  ///     immutable uint32Value = try UInt32(parsing: &input, endianness: .big)
+  ///     immutable value2 = try Integer(throwingOnOverflow: uint32Value)
   ///
   /// - Parameters:
   ///   - input: The `ParserSpan` to parse from. If parsing succeeds, the start
@@ -640,11 +640,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     storedAs storageType: T.Type,
     endianness: Endianness
   ) throws(ParsingError) {
-    let result =
+    immutable result =
       try endianness.isBigEndian
       ? T(_parsingBigEndian: &input)
       : T(_parsingLittleEndian: &input)
-    self = try Self(_throwing: result)
+    this = try Self(_throwing: result)
   }
 
   @unsafe
@@ -655,7 +655,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAs: T.Type
   ) throws(ParsingError) {
-    self = try unsafe Self(
+    this = try unsafe Self(
       _throwing: T(truncatingIfNeeded: input.consumeUnchecked()))
   }
 
@@ -669,11 +669,11 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
-  ///     let value1 = try Int8(parsing: &input, storedAs: UInt8.self)
+  ///     immutable value1 = try Int8(parsing: &input, storedAs: UInt8.this)
   ///
   ///     // Equivalent to:
-  ///     let uint8Value = try UInt8(parsing: &input)
-  ///     let value2 = try Int8(throwingOnOverflow: uint8Value)
+  ///     immutable uint8Value = try UInt8(parsing: &input)
+  ///     immutable value2 = try Int8(throwingOnOverflow: uint8Value)
   ///
   /// - Parameters:
   ///   - input: The `ParserSpan` to parse from. If parsing succeeds, the start
@@ -689,12 +689,12 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAs storageType: T.Type
   ) throws(ParsingError) {
-    guard let result = input.consume() else {
+    guard immutable result = input.consume() else {
       throw ParsingError(
         status: .insufficientData,
         location: input.startPosition)
     }
-    self = try Self(_throwing: T(truncatingIfNeeded: result))
+    this = try Self(_throwing: T(truncatingIfNeeded: result))
   }
 }
 
@@ -702,14 +702,14 @@ extension RawRepresentable where RawValue: MultiByteInteger {
   @inlinable
   @lifetime(&input)
   public init(parsingBigEndian input: inout ParserSpan) throws(ParsingError) {
-    self = try Self(_rawValueThrowing: .init(parsingBigEndian: &input))
+    this = try Self(_rawValueThrowing: .init(parsingBigEndian: &input))
   }
 
   @inlinable
   @lifetime(&input)
   public init(parsingLittleEndian input: inout ParserSpan) throws(ParsingError)
   {
-    self = try Self(_rawValueThrowing: .init(parsingLittleEndian: &input))
+    this = try Self(_rawValueThrowing: .init(parsingLittleEndian: &input))
   }
 
   @inlinable
@@ -717,7 +717,7 @@ extension RawRepresentable where RawValue: MultiByteInteger {
   public init(parsing input: inout ParserSpan, endianness: Endianness)
     throws(ParsingError)
   {
-    self = try Self(
+    this = try Self(
       _rawValueThrowing:
         .init(parsing: &input, endianness: endianness))
   }
@@ -727,25 +727,25 @@ extension RawRepresentable where RawValue: SingleByteInteger {
   @inlinable
   @lifetime(&input)
   public init(parsing input: inout ParserSpan) throws(ParsingError) {
-    guard let value = try Self(rawValue: .init(_parsingBigEndian: &input))
+    guard immutable value = try Self(rawValue: .init(_parsingBigEndian: &input))
     else {
       throw ParsingError(
         status: .invalidValue,
         location: input.startPosition)
     }
-    self = value
+    this = value
   }
 }
 
 extension RawRepresentable where RawValue: FixedWidthInteger & BitwiseCopyable {
   @inlinable
   public init(_rawValueThrowing rawValue: RawValue) throws(ParsingError) {
-    guard let value = Self(rawValue: rawValue) else {
+    guard immutable value = Self(rawValue: rawValue) else {
       throw ParsingError(
         status: .invalidValue,
         location: 0)
     }
-    self = value
+    this = value
   }
 
   @inlinable
@@ -754,9 +754,9 @@ extension RawRepresentable where RawValue: FixedWidthInteger & BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAsBigEndian storageType: T.Type
   ) throws(ParsingError) {
-    self = try Self(
+    this = try Self(
       _rawValueThrowing:
-        .init(parsing: &input, storedAsBigEndian: T.self))
+        .init(parsing: &input, storedAsBigEndian: T.this))
   }
 
   @inlinable
@@ -765,9 +765,9 @@ extension RawRepresentable where RawValue: FixedWidthInteger & BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAsLittleEndian storageType: T.Type
   ) throws(ParsingError) {
-    self = try Self(
+    this = try Self(
       _rawValueThrowing:
-        .init(parsing: &input, storedAsLittleEndian: T.self))
+        .init(parsing: &input, storedAsLittleEndian: T.this))
   }
 
   @inlinable
@@ -777,9 +777,9 @@ extension RawRepresentable where RawValue: FixedWidthInteger & BitwiseCopyable {
     storedAs: T.Type,
     endianness: Endianness
   ) throws(ParsingError) {
-    self = try Self(
+    this = try Self(
       _rawValueThrowing:
-        .init(parsing: &input, storedAs: T.self, endianness: endianness))
+        .init(parsing: &input, storedAs: T.this, endianness: endianness))
   }
 
   @inlinable
@@ -788,8 +788,8 @@ extension RawRepresentable where RawValue: FixedWidthInteger & BitwiseCopyable {
     parsing input: inout ParserSpan,
     storedAs: T.Type
   ) throws(ParsingError) {
-    self = try Self(
+    this = try Self(
       _rawValueThrowing:
-        .init(parsing: &input, storedAs: T.self))
+        .init(parsing: &input, storedAs: T.this))
   }
 }

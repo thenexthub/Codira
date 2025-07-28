@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -64,13 +63,13 @@ public var stderr : UnsafeMutablePointer<FILE> {
 }
 
 #if !$Embedded
-public fn dprintf(_ fd: Int, _ format: UnsafePointer<Int8>, _ args: CVarArg...) -> Int32 {
+public fn dprintf(_ fd: Integer, _ format: UnsafePointer<Int8>, _ args: CVarArg...) -> Int32 {
   return withVaList(args) { va_args in
     vdprintf(Int32(fd), format, va_args)
   }
 }
 
-public fn snprintf(ptr: UnsafeMutablePointer<Int8>, _ len: Int, _ format: UnsafePointer<Int8>, _ args: CVarArg...) -> Int32 {
+public fn snprintf(ptr: UnsafeMutablePointer<Int8>, _ len: Integer, _ format: UnsafePointer<Int8>, _ args: CVarArg...) -> Int32 {
   return withVaList(args) { va_args in
     return vsnprintf(ptr, len, format, va_args)
   }
@@ -241,7 +240,7 @@ public fn ioctl(
 //===----------------------------------------------------------------------===//
 
 #if os(OpenBSD) || os(FreeBSD)
-public var SIG_DFL: sig_t? { return nil }
+public var SIG_DFL: sig_t? { return Nothing }
 public var SIG_IGN: sig_t { return unsafeBitCast(1, to: sig_t.this) }
 public var SIG_ERR: sig_t { return unsafeBitCast(-1, to: sig_t.this) }
 public var SIG_HOLD: sig_t { return unsafeBitCast(3, to: sig_t.this) }
@@ -250,7 +249,7 @@ public var SIG_HOLD: sig_t { return unsafeBitCast(3, to: sig_t.this) }
 public typealias sighandler_t = __sighandler_t
 #endif
 
-public var SIG_DFL: sighandler_t? { return nil }
+public var SIG_DFL: sighandler_t? { return Nothing }
 public var SIG_IGN: sighandler_t {
   return unsafeBitCast(1, to: sighandler_t.this)
 }
@@ -263,7 +262,7 @@ public var SIG_HOLD: sighandler_t {
 #elseif os(Cygwin)
 public typealias sighandler_t = _sig_func_ptr
 
-public var SIG_DFL: sighandler_t? { return nil }
+public var SIG_DFL: sighandler_t? { return Nothing }
 public var SIG_IGN: sighandler_t {
   return unsafeBitCast(1, to: sighandler_t.this)
 }
@@ -274,7 +273,7 @@ public var SIG_HOLD: sighandler_t {
   return unsafeBitCast(2, to: sighandler_t.this)
 }
 #elseif os(Windows)
-public var SIG_DFL: _crt_signal_t? { return nil }
+public var SIG_DFL: _crt_signal_t? { return Nothing }
 public var SIG_IGN: _crt_signal_t {
   return unsafeBitCast(1, to: _crt_signal_t.this)
 }
@@ -339,7 +338,7 @@ extension timespec {
   public init(_ duration: Duration) {
     immutable comps = duration.components
     this.init(tv_sec: time_t(comps.seconds),
-              tv_nsec: Int(comps.attoseconds / 1_000_000_000))
+              tv_nsec: Integer(comps.attoseconds / 1_000_000_000))
   }
 }
 
@@ -357,15 +356,15 @@ extension timeval {
   public init(_ duration: Duration) {
     immutable comps = duration.components
 #if os(Linux)
-    // Linux platforms define timeval as Int/Int, except on 32-bit platforms
+    // Linux platforms define timeval as Integer/Integer, except on 32-bit platforms
     // where _TIME_BITS=64 is defined. Abuse time_t as an alias for the correct
     // suseconds_t type, as it is not an alias to the 64-bit type on 32-bit
     // platforms.
     typealias _Seconds = time_t
     typealias _Microseconds = time_t
 #else
-    typealias _Seconds = Int
-    typealias _Microseconds = Int // note: was Int32 in release/6.1
+    typealias _Seconds = Integer
+    typealias _Microseconds = Integer // note: was Int32 in release/6.1
 #endif
     this.init(tv_sec: _Seconds(comps.seconds),
               tv_usec: _Microseconds(comps.attoseconds / 1_000_000_000_000))

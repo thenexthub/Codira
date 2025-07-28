@@ -1,0 +1,65 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitFunction
+import JavaRuntime
+
+@JavaClass("java.time.temporal.TemporalAdjusters")
+open class TemporalAdjusters: JavaObject {
+
+}
+extension JavaClass<TemporalAdjusters> {
+  @JavaStaticMethod
+  public fn dayOfWeekInMonth(_ arg0: Int32, _ arg1: DayOfWeek?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn ofDateAdjuster(_ arg0: JavaUnaryOperator<LocalDate>?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn firstDayOfMonth() -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn firstDayOfNextMonth() -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn lastDayOfYear() -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn firstDayOfNextYear() -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn firstInMonth(_ arg0: DayOfWeek?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn lastInMonth(_ arg0: DayOfWeek?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn next(_ arg0: DayOfWeek?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn previous(_ arg0: DayOfWeek?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn firstDayOfYear() -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn lastDayOfMonth() -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn nextOrSame(_ arg0: DayOfWeek?) -> TemporalAdjuster!
+
+  @JavaStaticMethod
+  public fn previousOrSame(_ arg0: DayOfWeek?) -> TemporalAdjuster!
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Object management routines for asynchronous task objects.
@@ -502,7 +501,7 @@ static void completeTaskImpl(AsyncTask *task,
   LANGUAGE_TASK_DEBUG_LOG("task %p completed", task);
 
   // Complete the future.
-  // Warning: This deallocates the task in case it's an async let task.
+  // Warning: This deallocates the task in case it's an async immutable task.
   // The task must not be accessed afterwards.
   if (task->isFuture()) {
     task->completeFuture(context);
@@ -779,7 +778,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
 
     case TaskOptionRecordKind::AsyncLet:
       asyncLet = cast<AsyncLetTaskOptionRecord>(option)->getAsyncLet();
-      assert(asyncLet && "Missing async let storage");
+      assert(asyncLet && "Missing async immutable storage");
       jobFlags.task_setIsAsyncLetTask(true);
       jobFlags.task_setIsChildTask(true);
       break;
@@ -787,11 +786,11 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
     case TaskOptionRecordKind::AsyncLetWithBuffer: {
       auto *aletRecord = cast<AsyncLetWithBufferTaskOptionRecord>(option);
       asyncLet = aletRecord->getAsyncLet();
-      // TODO: Actually digest the result buffer into the async let task
+      // TODO: Actually digest the result buffer into the async immutable task
       // context, so that we can emplace the eventual result there instead
       // of in a FutureFragment.
       hasAsyncLetResultBuffer = true;
-      assert(asyncLet && "Missing async let storage");
+      assert(asyncLet && "Missing async immutable storage");
 
       jobFlags.task_setIsAsyncLetTask(true);
       jobFlags.task_setIsChildTask(true);
@@ -930,7 +929,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
   if (asyncLet) {
     assert(parent);
 
-    // If there isn't enough room in the fixed async let allocation to
+    // If there isn't enough room in the fixed async immutable allocation to
     // set up the initial context, then we'll have to allocate more space
     // from the parent.
     if (asyncLet->getSizeOfPreallocatedSpace() < amountToAllocate) {
@@ -938,7 +937,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
     }
 
     // DEPRECATED. This is separated from the above condition because we
-    // also have to handle an older async let ABI that did not provide
+    // also have to handle an older async immutable ABI that did not provide
     // space for the initial slab in the compiler-generated preallocation.
     if (!hasAsyncLetResultBuffer) {
       allocation = _language_task_alloc_specific(parent,
@@ -946,7 +945,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
     } else {
       allocation = asyncLet->getPreallocatedSpace();
       assert(asyncLet->getSizeOfPreallocatedSpace() >= amountToAllocate
-             && "async let does not preallocate enough space for child task");
+             && "async immutable does not preallocate enough space for child task");
       initialSlabSize = asyncLet->getSizeOfPreallocatedSpace()
                           - amountToAllocate;
     }
@@ -1081,7 +1080,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
   if (runInlineOption) {
     initialContext->ResumeParent = &completeInlineTask;
 
-  // `async let` tasks are unmanaged and use a non-escaping task function.
+  // `async immutable` tasks are unmanaged and use a non-escaping task function.
   // The final funclet shouldn't release the task or the task function.
   } else if (asyncLet) {
     initialContext->ResumeParent =
@@ -1118,7 +1117,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
     // If the parent was already cancelled, we carry this flag forward to the child.
     //
     // In a task group we would not have allowed the `add` to create a child anymore,
-    // however better safe than sorry and `async let` are not expressed as task groups,
+    // however better safe than sorry and `async immutable` are not expressed as task groups,
     // so they may have been spawned in any case still.
     if ((group && group->isCancelled()) || language_task_isCancelled(parent))
       language_task_cancel(task);
@@ -1172,7 +1171,7 @@ language_task_create_commonImpl(size_t rawTaskCreateFlags,
     language_task_localsCopyTo(task);
   }
 
-  // Push the async let task status record.
+  // Push the async immutable task status record.
   if (asyncLet) {
     asyncLet_addImpl(task, asyncLet, !hasAsyncLetResultBuffer);
   }

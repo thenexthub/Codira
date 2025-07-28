@@ -1,0 +1,1530 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+// Automatically Generated From UIDs.code.gyb.
+// Do Not Edit Directly! To regenerate run Utilities/generate-uids.py
+
+package import Csourcekitd
+
+package struct sourcekitd_api_keys {
+  /// `key.version_major`
+  package immutable versionMajor: sourcekitd_api_uid_t
+  /// `key.version_minor`
+  package immutable versionMinor: sourcekitd_api_uid_t
+  /// `key.version_patch`
+  package immutable versionPatch: sourcekitd_api_uid_t
+  /// `key.results`
+  package immutable results: sourcekitd_api_uid_t
+  /// `key.request`
+  package immutable request: sourcekitd_api_uid_t
+  /// `key.notification`
+  package immutable notification: sourcekitd_api_uid_t
+  /// `key.kind`
+  package immutable kind: sourcekitd_api_uid_t
+  /// `key.accessibility`
+  package immutable accessLevel: sourcekitd_api_uid_t
+  /// `key.setter_accessibility`
+  package immutable setterAccessLevel: sourcekitd_api_uid_t
+  /// `key.keyword`
+  package immutable keyword: sourcekitd_api_uid_t
+  /// `key.name`
+  package immutable name: sourcekitd_api_uid_t
+  /// `key.usr`
+  package immutable usr: sourcekitd_api_uid_t
+  /// `key.original_usr`
+  package immutable originalUSR: sourcekitd_api_uid_t
+  /// `key.default_implementation_of`
+  package immutable defaultImplementationOf: sourcekitd_api_uid_t
+  /// `key.interested_usr`
+  package immutable interestedUSR: sourcekitd_api_uid_t
+  /// `key.generic_params`
+  package immutable genericParams: sourcekitd_api_uid_t
+  /// `key.generic_requirements`
+  package immutable genericRequirements: sourcekitd_api_uid_t
+  /// `key.doc.full_as_xml`
+  package immutable docFullAsXML: sourcekitd_api_uid_t
+  /// `key.doc_comment`
+  package immutable docComment: sourcekitd_api_uid_t
+  /// `key.line`
+  package immutable line: sourcekitd_api_uid_t
+  /// `key.column`
+  package immutable column: sourcekitd_api_uid_t
+  /// `key.receiver_usr`
+  package immutable receiverUSR: sourcekitd_api_uid_t
+  /// `key.receivers`
+  package immutable receivers: sourcekitd_api_uid_t
+  /// `key.is_dynamic`
+  package immutable isDynamic: sourcekitd_api_uid_t
+  /// `key.is_implicit`
+  package immutable isImplicit: sourcekitd_api_uid_t
+  /// `key.filepath`
+  package immutable filePath: sourcekitd_api_uid_t
+  /// `key.module_interface_name`
+  package immutable moduleInterfaceName: sourcekitd_api_uid_t
+  /// `key.hash`
+  package immutable hash: sourcekitd_api_uid_t
+  /// `key.severity`
+  package immutable severity: sourcekitd_api_uid_t
+  /// `key.offset`
+  package immutable offset: sourcekitd_api_uid_t
+  /// `key.length`
+  package immutable length: sourcekitd_api_uid_t
+  /// `key.sourcefile`
+  package immutable sourceFile: sourcekitd_api_uid_t
+  /// `key.primary_file`
+  package immutable primaryFile: sourcekitd_api_uid_t
+  /// `key.enablesyntaxmap`
+  package immutable enableSyntaxMap: sourcekitd_api_uid_t
+  /// `key.enablesubstructure`
+  package immutable enableStructure: sourcekitd_api_uid_t
+  /// `key.id`
+  package immutable id: sourcekitd_api_uid_t
+  /// `key.description`
+  package immutable description: sourcekitd_api_uid_t
+  /// `key.typename`
+  package immutable typeName: sourcekitd_api_uid_t
+  /// `key.runtime_name`
+  package immutable runtimeName: sourcekitd_api_uid_t
+  /// `key.selector_name`
+  package immutable selectorName: sourcekitd_api_uid_t
+  /// `key.annotated_decl`
+  package immutable annotatedDecl: sourcekitd_api_uid_t
+  /// `key.fully_annotated_decl`
+  package immutable fullyAnnotatedDecl: sourcekitd_api_uid_t
+  /// `key.fully_annotated_generic_signature`
+  package immutable fullyAnnotatedGenericSignature: sourcekitd_api_uid_t
+  /// `key.doc.brief`
+  package immutable docBrief: sourcekitd_api_uid_t
+  /// `key.context`
+  package immutable context: sourcekitd_api_uid_t
+  /// `key.typerelation`
+  package immutable typeRelation: sourcekitd_api_uid_t
+  /// `key.moduleimportdepth`
+  package immutable moduleImportDepth: sourcekitd_api_uid_t
+  /// `key.num_bytes_to_erase`
+  package immutable numBytesToErase: sourcekitd_api_uid_t
+  /// `key.not_recommended`
+  package immutable notRecommended: sourcekitd_api_uid_t
+  /// `key.declarations`
+  package immutable declarations: sourcekitd_api_uid_t
+  /// `key.enabledeclarations`
+  package immutable enableDeclarations: sourcekitd_api_uid_t
+  /// `key.annotations`
+  package immutable annotations: sourcekitd_api_uid_t
+  /// `key.semantic_tokens`
+  package immutable semanticTokens: sourcekitd_api_uid_t
+  /// `key.diagnostic_stage`
+  package immutable diagnosticStage: sourcekitd_api_uid_t
+  /// `key.syntaxmap`
+  package immutable syntaxMap: sourcekitd_api_uid_t
+  /// `key.is_system`
+  package immutable isSystem: sourcekitd_api_uid_t
+  /// `key.related`
+  package immutable related: sourcekitd_api_uid_t
+  /// `key.inherits`
+  package immutable inherits: sourcekitd_api_uid_t
+  /// `key.conforms`
+  package immutable conforms: sourcekitd_api_uid_t
+  /// `key.extends`
+  package immutable extends: sourcekitd_api_uid_t
+  /// `key.dependencies`
+  package immutable dependencies: sourcekitd_api_uid_t
+  /// `key.entities`
+  package immutable entities: sourcekitd_api_uid_t
+  /// `key.nameoffset`
+  package immutable nameOffset: sourcekitd_api_uid_t
+  /// `key.namelength`
+  package immutable nameLength: sourcekitd_api_uid_t
+  /// `key.bodyoffset`
+  package immutable bodyOffset: sourcekitd_api_uid_t
+  /// `key.bodylength`
+  package immutable bodyLength: sourcekitd_api_uid_t
+  /// `key.docoffset`
+  package immutable docOffset: sourcekitd_api_uid_t
+  /// `key.doclength`
+  package immutable docLength: sourcekitd_api_uid_t
+  /// `key.is_active`
+  package immutable isActive: sourcekitd_api_uid_t
+  /// `key.is_local`
+  package immutable isLocal: sourcekitd_api_uid_t
+  /// `key.inheritedtypes`
+  package immutable inheritedTypes: sourcekitd_api_uid_t
+  /// `key.attributes`
+  package immutable attributes: sourcekitd_api_uid_t
+  /// `key.attribute`
+  package immutable attribute: sourcekitd_api_uid_t
+  /// `key.elements`
+  package immutable elements: sourcekitd_api_uid_t
+  /// `key.substructure`
+  package immutable subStructure: sourcekitd_api_uid_t
+  /// `key.ranges`
+  package immutable ranges: sourcekitd_api_uid_t
+  /// `key.fixits`
+  package immutable fixits: sourcekitd_api_uid_t
+  /// `key.generated_buffers`
+  package immutable generatedBuffers: sourcekitd_api_uid_t
+  /// `key.buffer_text`
+  package immutable bufferText: sourcekitd_api_uid_t
+  /// `key.original_location`
+  package immutable originalLocation: sourcekitd_api_uid_t
+  /// `key.diagnostics`
+  package immutable diagnostics: sourcekitd_api_uid_t
+  /// `key.educational_note_paths`
+  package immutable educationalNotePaths: sourcekitd_api_uid_t
+  /// `key.editor.format.options`
+  package immutable formatOptions: sourcekitd_api_uid_t
+  /// `key.codecomplete.options`
+  package immutable codeCompleteOptions: sourcekitd_api_uid_t
+  /// `key.typecontextinfo.options`
+  package immutable typeContextInfoOptions: sourcekitd_api_uid_t
+  /// `key.conformingmethods.options`
+  package immutable conformingMethodListOptions: sourcekitd_api_uid_t
+  /// `key.codecomplete.filterrules`
+  package immutable filterRules: sourcekitd_api_uid_t
+  /// `key.nextrequeststart`
+  package immutable nextRequestStart: sourcekitd_api_uid_t
+  /// `key.popular`
+  package immutable popular: sourcekitd_api_uid_t
+  /// `key.unpopular`
+  package immutable unpopular: sourcekitd_api_uid_t
+  /// `key.hide`
+  package immutable hide: sourcekitd_api_uid_t
+  /// `key.platform`
+  package immutable platform: sourcekitd_api_uid_t
+  /// `key.is_deprecated`
+  package immutable isDeprecated: sourcekitd_api_uid_t
+  /// `key.is_unavailable`
+  package immutable isUnavailable: sourcekitd_api_uid_t
+  /// `key.is_optional`
+  package immutable isOptional: sourcekitd_api_uid_t
+  /// `key.is_async`
+  package immutable isAsync: sourcekitd_api_uid_t
+  /// `key.message`
+  package immutable message: sourcekitd_api_uid_t
+  /// `key.introduced`
+  package immutable introduced: sourcekitd_api_uid_t
+  /// `key.deprecated`
+  package immutable deprecated: sourcekitd_api_uid_t
+  /// `key.obsoleted`
+  package immutable obsoleted: sourcekitd_api_uid_t
+  /// `key.cancel_builds`
+  package immutable cancelBuilds: sourcekitd_api_uid_t
+  /// `key.removecache`
+  package immutable removeCache: sourcekitd_api_uid_t
+  /// `key.typeusr`
+  package immutable typeUsr: sourcekitd_api_uid_t
+  /// `key.containertypeusr`
+  package immutable containerTypeUsr: sourcekitd_api_uid_t
+  /// `key.modulegroups`
+  package immutable moduleGroups: sourcekitd_api_uid_t
+  /// `key.basename`
+  package immutable baseName: sourcekitd_api_uid_t
+  /// `key.argnames`
+  package immutable argNames: sourcekitd_api_uid_t
+  /// `key.selectorpieces`
+  package immutable selectorPieces: sourcekitd_api_uid_t
+  /// `key.namekind`
+  package immutable nameKind: sourcekitd_api_uid_t
+  /// `key.localization_key`
+  package immutable localizationKey: sourcekitd_api_uid_t
+  /// `key.is_zero_arg_selector`
+  package immutable isZeroArgSelector: sourcekitd_api_uid_t
+  /// `key.code_version`
+  package immutable swiftVersion: sourcekitd_api_uid_t
+  /// `key.value`
+  package immutable value: sourcekitd_api_uid_t
+  /// `key.enablediagnostics`
+  package immutable enableDiagnostics: sourcekitd_api_uid_t
+  /// `key.groupname`
+  package immutable groupName: sourcekitd_api_uid_t
+  /// `key.actionname`
+  package immutable actionName: sourcekitd_api_uid_t
+  /// `key.synthesizedextensions`
+  package immutable synthesizedExtension: sourcekitd_api_uid_t
+  /// `key.usingswiftargs`
+  package immutable usingSwiftArgs: sourcekitd_api_uid_t
+  /// `key.names`
+  package immutable names: sourcekitd_api_uid_t
+  /// `key.uids`
+  package immutable uiDs: sourcekitd_api_uid_t
+  /// `key.syntactic_only`
+  package immutable syntacticOnly: sourcekitd_api_uid_t
+  /// `key.parent_loc`
+  package immutable parentLoc: sourcekitd_api_uid_t
+  /// `key.is_test_candidate`
+  package immutable isTestCandidate: sourcekitd_api_uid_t
+  /// `key.overrides`
+  package immutable overrides: sourcekitd_api_uid_t
+  /// `key.associated_usrs`
+  package immutable associatedUSRs: sourcekitd_api_uid_t
+  /// `key.modulename`
+  package immutable moduleName: sourcekitd_api_uid_t
+  /// `key.related_decls`
+  package immutable relatedDecls: sourcekitd_api_uid_t
+  /// `key.simplified`
+  package immutable simplified: sourcekitd_api_uid_t
+  /// `key.rangecontent`
+  package immutable rangeContent: sourcekitd_api_uid_t
+  /// `key.cancel_on_subsequent_request`
+  package immutable cancelOnSubsequentRequest: sourcekitd_api_uid_t
+  /// `key.include_non_editable_base_names`
+  package immutable includeNonEditableBaseNames: sourcekitd_api_uid_t
+  /// `key.renamelocations`
+  package immutable renameLocations: sourcekitd_api_uid_t
+  /// `key.locations`
+  package immutable locations: sourcekitd_api_uid_t
+  /// `key.nametype`
+  package immutable nameType: sourcekitd_api_uid_t
+  /// `key.newname`
+  package immutable newName: sourcekitd_api_uid_t
+  /// `key.categorizededits`
+  package immutable categorizedEdits: sourcekitd_api_uid_t
+  /// `key.categorizedranges`
+  package immutable categorizedRanges: sourcekitd_api_uid_t
+  /// `key.rangesworthnote`
+  package immutable rangesWorthNote: sourcekitd_api_uid_t
+  /// `key.edits`
+  package immutable edits: sourcekitd_api_uid_t
+  /// `key.endline`
+  package immutable endLine: sourcekitd_api_uid_t
+  /// `key.endcolumn`
+  package immutable endColumn: sourcekitd_api_uid_t
+  /// `key.argindex`
+  package immutable argIndex: sourcekitd_api_uid_t
+  /// `key.text`
+  package immutable text: sourcekitd_api_uid_t
+  /// `key.category`
+  package immutable category: sourcekitd_api_uid_t
+  /// `key.categories`
+  package immutable categories: sourcekitd_api_uid_t
+  /// `key.is_function_like`
+  package immutable isFunctionLike: sourcekitd_api_uid_t
+  /// `key.is_non_protocol_type`
+  package immutable isNonProtocolType: sourcekitd_api_uid_t
+  /// `key.refactor_actions`
+  package immutable refactorActions: sourcekitd_api_uid_t
+  /// `key.retrieve_refactor_actions`
+  package immutable retrieveRefactorActions: sourcekitd_api_uid_t
+  /// `key.symbol_graph`
+  package immutable symbolGraph: sourcekitd_api_uid_t
+  /// `key.retrieve_symbol_graph`
+  package immutable retrieveSymbolGraph: sourcekitd_api_uid_t
+  /// `key.parent_contexts`
+  package immutable parentContexts: sourcekitd_api_uid_t
+  /// `key.referenced_symbols`
+  package immutable referencedSymbols: sourcekitd_api_uid_t
+  /// `key.is_spi`
+  package immutable isSPI: sourcekitd_api_uid_t
+  /// `key.actionuid`
+  package immutable actionUID: sourcekitd_api_uid_t
+  /// `key.actionunavailablereason`
+  package immutable actionUnavailableReason: sourcekitd_api_uid_t
+  /// `key.compileid`
+  package immutable compileID: sourcekitd_api_uid_t
+  /// `key.compilerargs-string`
+  package immutable compilerArgsString: sourcekitd_api_uid_t
+  /// `key.implicitmembers`
+  package immutable implicitMembers: sourcekitd_api_uid_t
+  /// `key.expectedtypes`
+  package immutable expectedTypes: sourcekitd_api_uid_t
+  /// `key.members`
+  package immutable members: sourcekitd_api_uid_t
+  /// `key.printedtypebuffer`
+  package immutable typeBuffer: sourcekitd_api_uid_t
+  /// `key.expression_type_list`
+  package immutable expressionTypeList: sourcekitd_api_uid_t
+  /// `key.expression_offset`
+  package immutable expressionOffset: sourcekitd_api_uid_t
+  /// `key.expression_length`
+  package immutable expressionLength: sourcekitd_api_uid_t
+  /// `key.expression_type`
+  package immutable expressionType: sourcekitd_api_uid_t
+  /// `key.variable_type_list`
+  package immutable variableTypeList: sourcekitd_api_uid_t
+  /// `key.variable_offset`
+  package immutable variableOffset: sourcekitd_api_uid_t
+  /// `key.variable_length`
+  package immutable variableLength: sourcekitd_api_uid_t
+  /// `key.variable_type`
+  package immutable variableType: sourcekitd_api_uid_t
+  /// `key.variable_type_explicit`
+  package immutable variableTypeExplicit: sourcekitd_api_uid_t
+  /// `key.fully_qualified`
+  package immutable fullyQualified: sourcekitd_api_uid_t
+  /// `key.canonicalize_type`
+  package immutable canonicalizeType: sourcekitd_api_uid_t
+  /// `key.internal_diagnostic`
+  package immutable internalDiagnostic: sourcekitd_api_uid_t
+  /// `key.vfs.name`
+  package immutable vfsName: sourcekitd_api_uid_t
+  /// `key.vfs.options`
+  package immutable vfsOptions: sourcekitd_api_uid_t
+  /// `key.files`
+  package immutable files: sourcekitd_api_uid_t
+  /// `key.optimize_for_ide`
+  package immutable optimizeForIDE: sourcekitd_api_uid_t
+  /// `key.required_bystanders`
+  package immutable requiredBystanders: sourcekitd_api_uid_t
+  /// `key.reusingastcontext`
+  package immutable reusingASTContext: sourcekitd_api_uid_t
+  /// `key.completion_max_astcontext_reuse_count`
+  package immutable completionMaxASTContextReuseCount: sourcekitd_api_uid_t
+  /// `key.completion_check_dependency_interval`
+  package immutable completionCheckDependencyInterval: sourcekitd_api_uid_t
+  /// `key.annotated.typename`
+  package immutable annotatedTypename: sourcekitd_api_uid_t
+  /// `key.compile_operation`
+  package immutable compileOperation: sourcekitd_api_uid_t
+  /// `key.effective_access`
+  package immutable effectiveAccess: sourcekitd_api_uid_t
+  /// `key.decl_lang`
+  package immutable declarationLang: sourcekitd_api_uid_t
+  /// `key.secondary_symbols`
+  package immutable secondarySymbols: sourcekitd_api_uid_t
+  /// `key.simulate_long_request`
+  package immutable simulateLongRequest: sourcekitd_api_uid_t
+  /// `key.is_synthesized`
+  package immutable isSynthesized: sourcekitd_api_uid_t
+  /// `key.buffer_name`
+  package immutable bufferName: sourcekitd_api_uid_t
+  /// `key.barriers_enabled`
+  package immutable barriersEnabled: sourcekitd_api_uid_t
+  /// `key.expansions`
+  package immutable expansions: sourcekitd_api_uid_t
+  /// `key.macro_roles`
+  package immutable macroRoles: sourcekitd_api_uid_t
+  /// `key.expanded_macro_replacements`
+  package immutable expandedMacroReplacements: sourcekitd_api_uid_t
+  /// `key.index_store_path`
+  package immutable indexStorePath: sourcekitd_api_uid_t
+  /// `key.index_unit_output_path`
+  package immutable indexUnitOutputPath: sourcekitd_api_uid_t
+  /// `key.include_locals`
+  package immutable includeLocals: sourcekitd_api_uid_t
+  /// `key.ignore_clang_modules`
+  package immutable ignoreClangModules: sourcekitd_api_uid_t
+  /// `key.include_system_modules`
+  package immutable includeSystemModules: sourcekitd_api_uid_t
+  /// `key.ignore_stdlib`
+  package immutable ignoreStdlib: sourcekitd_api_uid_t
+  /// `key.disable_implicit_modules`
+  package immutable disableImplicitModules: sourcekitd_api_uid_t
+  /// `key.compilerargs`
+  package immutable compilerArgs: sourcekitd_api_uid_t
+  /// `key.sourcetext`
+  package immutable sourceText: sourcekitd_api_uid_t
+  /// `key.codecomplete.sort.byname`
+  package immutable sortByName: sourcekitd_api_uid_t
+  /// `key.codecomplete.sort.useimportdepth`
+  package immutable useImportDepth: sourcekitd_api_uid_t
+  /// `key.codecomplete.group.overloads`
+  package immutable groupOverloads: sourcekitd_api_uid_t
+  /// `key.codecomplete.group.stems`
+  package immutable groupStems: sourcekitd_api_uid_t
+  /// `key.codecomplete.filtertext`
+  package immutable filterText: sourcekitd_api_uid_t
+  /// `key.codecomplete.requestlimit`
+  package immutable requestLimit: sourcekitd_api_uid_t
+  /// `key.codecomplete.requeststart`
+  package immutable requestStart: sourcekitd_api_uid_t
+  /// `key.codecomplete.hideunderscores`
+  package immutable hideUnderscores: sourcekitd_api_uid_t
+  /// `key.codecomplete.hidelowpriority`
+  package immutable hideLowPriority: sourcekitd_api_uid_t
+  /// `key.codecomplete.hidebyname`
+  package immutable hideByName: sourcekitd_api_uid_t
+  /// `key.codecomplete.includeexactmatch`
+  package immutable includeExactMatch: sourcekitd_api_uid_t
+  /// `key.codecomplete.addinnerresults`
+  package immutable addInnerResults: sourcekitd_api_uid_t
+  /// `key.codecomplete.addinneroperators`
+  package immutable addInnerOperators: sourcekitd_api_uid_t
+  /// `key.codecomplete.addinitstotoplevel`
+  package immutable addInitsToTopLevel: sourcekitd_api_uid_t
+  /// `key.codecomplete.fuzzymatching`
+  package immutable fuzzyMatching: sourcekitd_api_uid_t
+  /// `key.codecomplete.showtopnonliteralresults`
+  package immutable topNonLiteral: sourcekitd_api_uid_t
+  /// `key.codecomplete.sort.contextweight`
+  package immutable contextWeight: sourcekitd_api_uid_t
+  /// `key.codecomplete.sort.fuzzyweight`
+  package immutable fuzzyWeight: sourcekitd_api_uid_t
+  /// `key.codecomplete.sort.popularitybonus`
+  package immutable popularityBonus: sourcekitd_api_uid_t
+  /// `key.codecomplete.annotateddescription`
+  package immutable annotatedDescription: sourcekitd_api_uid_t
+  /// `key.codecomplete.includeobjectliterals`
+  package immutable includeObjectLiterals: sourcekitd_api_uid_t
+  /// `key.codecomplete.use_new_api`
+  package immutable useNewAPI: sourcekitd_api_uid_t
+  /// `key.codecomplete.addcallwithnodefaultargs`
+  package immutable addCallWithNoDefaultArgs: sourcekitd_api_uid_t
+  /// `key.codecomplete.include_semantic_components`
+  package immutable includeSemanticComponents: sourcekitd_api_uid_t
+  /// `key.codecomplete.use_xpc_serialization`
+  package immutable useXPCSerialization: sourcekitd_api_uid_t
+  /// `key.codecomplete.maxresults`
+  package immutable maxResults: sourcekitd_api_uid_t
+  /// `key.annotated.typename`
+  package immutable annotatedTypeName: sourcekitd_api_uid_t
+  /// `key.priority_bucket`
+  package immutable priorityBucket: sourcekitd_api_uid_t
+  /// `key.identifier`
+  package immutable identifier: sourcekitd_api_uid_t
+  /// `key.text_match_score`
+  package immutable textMatchScore: sourcekitd_api_uid_t
+  /// `key.semantic_score`
+  package immutable semanticScore: sourcekitd_api_uid_t
+  /// `key.semantic_score_components`
+  package immutable semanticScoreComponents: sourcekitd_api_uid_t
+  /// `key.symbol_popularity`
+  package immutable symbolPopularity: sourcekitd_api_uid_t
+  /// `key.module_popularity`
+  package immutable modulePopularity: sourcekitd_api_uid_t
+  /// `key.popularity.key`
+  package immutable popularityKey: sourcekitd_api_uid_t
+  /// `key.popularity.value.int.billion`
+  package immutable popularityValueIntBillion: sourcekitd_api_uid_t
+  /// `key.recent_completions`
+  package immutable recentCompletions: sourcekitd_api_uid_t
+  /// `key.unfiltered_result_count`
+  package immutable unfilteredResultCount: sourcekitd_api_uid_t
+  /// `key.member_access_types`
+  package immutable memberAccessTypes: sourcekitd_api_uid_t
+  /// `key.has_diagnostic`
+  package immutable hasDiagnostic: sourcekitd_api_uid_t
+  /// `key.group_id`
+  package immutable groupId: sourcekitd_api_uid_t
+  /// `key.scoped_popularity_table_path`
+  package immutable scopedPopularityTablePath: sourcekitd_api_uid_t
+  /// `key.popular_modules`
+  package immutable popularModules: sourcekitd_api_uid_t
+  /// `key.notorious_modules`
+  package immutable notoriousModules: sourcekitd_api_uid_t
+  /// `key.codecomplete.setpopularapi_used_score_components`
+  package immutable usedScoreComponents: sourcekitd_api_uid_t
+  /// `key.editor.format.usetabs`
+  package immutable useTabs: sourcekitd_api_uid_t
+  /// `key.editor.format.indentwidth`
+  package immutable indentWidth: sourcekitd_api_uid_t
+  /// `key.editor.format.tabwidth`
+  package immutable tabWidth: sourcekitd_api_uid_t
+  /// `key.editor.format.indent_switch_case`
+  package immutable indentSwitchCase: sourcekitd_api_uid_t
+
+  package init(api: sourcekitd_api_functions_t) {
+    versionMajor = api.uid_get_from_cstr("key.version_major")!
+    versionMinor = api.uid_get_from_cstr("key.version_minor")!
+    versionPatch = api.uid_get_from_cstr("key.version_patch")!
+    results = api.uid_get_from_cstr("key.results")!
+    request = api.uid_get_from_cstr("key.request")!
+    notification = api.uid_get_from_cstr("key.notification")!
+    kind = api.uid_get_from_cstr("key.kind")!
+    accessLevel = api.uid_get_from_cstr("key.accessibility")!
+    setterAccessLevel = api.uid_get_from_cstr("key.setter_accessibility")!
+    keyword = api.uid_get_from_cstr("key.keyword")!
+    name = api.uid_get_from_cstr("key.name")!
+    usr = api.uid_get_from_cstr("key.usr")!
+    originalUSR = api.uid_get_from_cstr("key.original_usr")!
+    defaultImplementationOf = api.uid_get_from_cstr("key.default_implementation_of")!
+    interestedUSR = api.uid_get_from_cstr("key.interested_usr")!
+    genericParams = api.uid_get_from_cstr("key.generic_params")!
+    genericRequirements = api.uid_get_from_cstr("key.generic_requirements")!
+    docFullAsXML = api.uid_get_from_cstr("key.doc.full_as_xml")!
+    docComment = api.uid_get_from_cstr("key.doc_comment")!
+    line = api.uid_get_from_cstr("key.line")!
+    column = api.uid_get_from_cstr("key.column")!
+    receiverUSR = api.uid_get_from_cstr("key.receiver_usr")!
+    receivers = api.uid_get_from_cstr("key.receivers")!
+    isDynamic = api.uid_get_from_cstr("key.is_dynamic")!
+    isImplicit = api.uid_get_from_cstr("key.is_implicit")!
+    filePath = api.uid_get_from_cstr("key.filepath")!
+    moduleInterfaceName = api.uid_get_from_cstr("key.module_interface_name")!
+    hash = api.uid_get_from_cstr("key.hash")!
+    severity = api.uid_get_from_cstr("key.severity")!
+    offset = api.uid_get_from_cstr("key.offset")!
+    length = api.uid_get_from_cstr("key.length")!
+    sourceFile = api.uid_get_from_cstr("key.sourcefile")!
+    primaryFile = api.uid_get_from_cstr("key.primary_file")!
+    enableSyntaxMap = api.uid_get_from_cstr("key.enablesyntaxmap")!
+    enableStructure = api.uid_get_from_cstr("key.enablesubstructure")!
+    id = api.uid_get_from_cstr("key.id")!
+    description = api.uid_get_from_cstr("key.description")!
+    typeName = api.uid_get_from_cstr("key.typename")!
+    runtimeName = api.uid_get_from_cstr("key.runtime_name")!
+    selectorName = api.uid_get_from_cstr("key.selector_name")!
+    annotatedDecl = api.uid_get_from_cstr("key.annotated_decl")!
+    fullyAnnotatedDecl = api.uid_get_from_cstr("key.fully_annotated_decl")!
+    fullyAnnotatedGenericSignature = api.uid_get_from_cstr("key.fully_annotated_generic_signature")!
+    docBrief = api.uid_get_from_cstr("key.doc.brief")!
+    context = api.uid_get_from_cstr("key.context")!
+    typeRelation = api.uid_get_from_cstr("key.typerelation")!
+    moduleImportDepth = api.uid_get_from_cstr("key.moduleimportdepth")!
+    numBytesToErase = api.uid_get_from_cstr("key.num_bytes_to_erase")!
+    notRecommended = api.uid_get_from_cstr("key.not_recommended")!
+    declarations = api.uid_get_from_cstr("key.declarations")!
+    enableDeclarations = api.uid_get_from_cstr("key.enabledeclarations")!
+    annotations = api.uid_get_from_cstr("key.annotations")!
+    semanticTokens = api.uid_get_from_cstr("key.semantic_tokens")!
+    diagnosticStage = api.uid_get_from_cstr("key.diagnostic_stage")!
+    syntaxMap = api.uid_get_from_cstr("key.syntaxmap")!
+    isSystem = api.uid_get_from_cstr("key.is_system")!
+    related = api.uid_get_from_cstr("key.related")!
+    inherits = api.uid_get_from_cstr("key.inherits")!
+    conforms = api.uid_get_from_cstr("key.conforms")!
+    extends = api.uid_get_from_cstr("key.extends")!
+    dependencies = api.uid_get_from_cstr("key.dependencies")!
+    entities = api.uid_get_from_cstr("key.entities")!
+    nameOffset = api.uid_get_from_cstr("key.nameoffset")!
+    nameLength = api.uid_get_from_cstr("key.namelength")!
+    bodyOffset = api.uid_get_from_cstr("key.bodyoffset")!
+    bodyLength = api.uid_get_from_cstr("key.bodylength")!
+    docOffset = api.uid_get_from_cstr("key.docoffset")!
+    docLength = api.uid_get_from_cstr("key.doclength")!
+    isActive = api.uid_get_from_cstr("key.is_active")!
+    isLocal = api.uid_get_from_cstr("key.is_local")!
+    inheritedTypes = api.uid_get_from_cstr("key.inheritedtypes")!
+    attributes = api.uid_get_from_cstr("key.attributes")!
+    attribute = api.uid_get_from_cstr("key.attribute")!
+    elements = api.uid_get_from_cstr("key.elements")!
+    subStructure = api.uid_get_from_cstr("key.substructure")!
+    ranges = api.uid_get_from_cstr("key.ranges")!
+    fixits = api.uid_get_from_cstr("key.fixits")!
+    generatedBuffers = api.uid_get_from_cstr("key.generated_buffers")!
+    bufferText = api.uid_get_from_cstr("key.buffer_text")!
+    originalLocation = api.uid_get_from_cstr("key.original_location")!
+    diagnostics = api.uid_get_from_cstr("key.diagnostics")!
+    educationalNotePaths = api.uid_get_from_cstr("key.educational_note_paths")!
+    formatOptions = api.uid_get_from_cstr("key.editor.format.options")!
+    codeCompleteOptions = api.uid_get_from_cstr("key.codecomplete.options")!
+    typeContextInfoOptions = api.uid_get_from_cstr("key.typecontextinfo.options")!
+    conformingMethodListOptions = api.uid_get_from_cstr("key.conformingmethods.options")!
+    filterRules = api.uid_get_from_cstr("key.codecomplete.filterrules")!
+    nextRequestStart = api.uid_get_from_cstr("key.nextrequeststart")!
+    popular = api.uid_get_from_cstr("key.popular")!
+    unpopular = api.uid_get_from_cstr("key.unpopular")!
+    hide = api.uid_get_from_cstr("key.hide")!
+    platform = api.uid_get_from_cstr("key.platform")!
+    isDeprecated = api.uid_get_from_cstr("key.is_deprecated")!
+    isUnavailable = api.uid_get_from_cstr("key.is_unavailable")!
+    isOptional = api.uid_get_from_cstr("key.is_optional")!
+    isAsync = api.uid_get_from_cstr("key.is_async")!
+    message = api.uid_get_from_cstr("key.message")!
+    introduced = api.uid_get_from_cstr("key.introduced")!
+    deprecated = api.uid_get_from_cstr("key.deprecated")!
+    obsoleted = api.uid_get_from_cstr("key.obsoleted")!
+    cancelBuilds = api.uid_get_from_cstr("key.cancel_builds")!
+    removeCache = api.uid_get_from_cstr("key.removecache")!
+    typeUsr = api.uid_get_from_cstr("key.typeusr")!
+    containerTypeUsr = api.uid_get_from_cstr("key.containertypeusr")!
+    moduleGroups = api.uid_get_from_cstr("key.modulegroups")!
+    baseName = api.uid_get_from_cstr("key.basename")!
+    argNames = api.uid_get_from_cstr("key.argnames")!
+    selectorPieces = api.uid_get_from_cstr("key.selectorpieces")!
+    nameKind = api.uid_get_from_cstr("key.namekind")!
+    localizationKey = api.uid_get_from_cstr("key.localization_key")!
+    isZeroArgSelector = api.uid_get_from_cstr("key.is_zero_arg_selector")!
+    swiftVersion = api.uid_get_from_cstr("key.code_version")!
+    value = api.uid_get_from_cstr("key.value")!
+    enableDiagnostics = api.uid_get_from_cstr("key.enablediagnostics")!
+    groupName = api.uid_get_from_cstr("key.groupname")!
+    actionName = api.uid_get_from_cstr("key.actionname")!
+    synthesizedExtension = api.uid_get_from_cstr("key.synthesizedextensions")!
+    usingSwiftArgs = api.uid_get_from_cstr("key.usingswiftargs")!
+    names = api.uid_get_from_cstr("key.names")!
+    uiDs = api.uid_get_from_cstr("key.uids")!
+    syntacticOnly = api.uid_get_from_cstr("key.syntactic_only")!
+    parentLoc = api.uid_get_from_cstr("key.parent_loc")!
+    isTestCandidate = api.uid_get_from_cstr("key.is_test_candidate")!
+    overrides = api.uid_get_from_cstr("key.overrides")!
+    associatedUSRs = api.uid_get_from_cstr("key.associated_usrs")!
+    moduleName = api.uid_get_from_cstr("key.modulename")!
+    relatedDecls = api.uid_get_from_cstr("key.related_decls")!
+    simplified = api.uid_get_from_cstr("key.simplified")!
+    rangeContent = api.uid_get_from_cstr("key.rangecontent")!
+    cancelOnSubsequentRequest = api.uid_get_from_cstr("key.cancel_on_subsequent_request")!
+    includeNonEditableBaseNames = api.uid_get_from_cstr("key.include_non_editable_base_names")!
+    renameLocations = api.uid_get_from_cstr("key.renamelocations")!
+    locations = api.uid_get_from_cstr("key.locations")!
+    nameType = api.uid_get_from_cstr("key.nametype")!
+    newName = api.uid_get_from_cstr("key.newname")!
+    categorizedEdits = api.uid_get_from_cstr("key.categorizededits")!
+    categorizedRanges = api.uid_get_from_cstr("key.categorizedranges")!
+    rangesWorthNote = api.uid_get_from_cstr("key.rangesworthnote")!
+    edits = api.uid_get_from_cstr("key.edits")!
+    endLine = api.uid_get_from_cstr("key.endline")!
+    endColumn = api.uid_get_from_cstr("key.endcolumn")!
+    argIndex = api.uid_get_from_cstr("key.argindex")!
+    text = api.uid_get_from_cstr("key.text")!
+    category = api.uid_get_from_cstr("key.category")!
+    categories = api.uid_get_from_cstr("key.categories")!
+    isFunctionLike = api.uid_get_from_cstr("key.is_function_like")!
+    isNonProtocolType = api.uid_get_from_cstr("key.is_non_protocol_type")!
+    refactorActions = api.uid_get_from_cstr("key.refactor_actions")!
+    retrieveRefactorActions = api.uid_get_from_cstr("key.retrieve_refactor_actions")!
+    symbolGraph = api.uid_get_from_cstr("key.symbol_graph")!
+    retrieveSymbolGraph = api.uid_get_from_cstr("key.retrieve_symbol_graph")!
+    parentContexts = api.uid_get_from_cstr("key.parent_contexts")!
+    referencedSymbols = api.uid_get_from_cstr("key.referenced_symbols")!
+    isSPI = api.uid_get_from_cstr("key.is_spi")!
+    actionUID = api.uid_get_from_cstr("key.actionuid")!
+    actionUnavailableReason = api.uid_get_from_cstr("key.actionunavailablereason")!
+    compileID = api.uid_get_from_cstr("key.compileid")!
+    compilerArgsString = api.uid_get_from_cstr("key.compilerargs-string")!
+    implicitMembers = api.uid_get_from_cstr("key.implicitmembers")!
+    expectedTypes = api.uid_get_from_cstr("key.expectedtypes")!
+    members = api.uid_get_from_cstr("key.members")!
+    typeBuffer = api.uid_get_from_cstr("key.printedtypebuffer")!
+    expressionTypeList = api.uid_get_from_cstr("key.expression_type_list")!
+    expressionOffset = api.uid_get_from_cstr("key.expression_offset")!
+    expressionLength = api.uid_get_from_cstr("key.expression_length")!
+    expressionType = api.uid_get_from_cstr("key.expression_type")!
+    variableTypeList = api.uid_get_from_cstr("key.variable_type_list")!
+    variableOffset = api.uid_get_from_cstr("key.variable_offset")!
+    variableLength = api.uid_get_from_cstr("key.variable_length")!
+    variableType = api.uid_get_from_cstr("key.variable_type")!
+    variableTypeExplicit = api.uid_get_from_cstr("key.variable_type_explicit")!
+    fullyQualified = api.uid_get_from_cstr("key.fully_qualified")!
+    canonicalizeType = api.uid_get_from_cstr("key.canonicalize_type")!
+    internalDiagnostic = api.uid_get_from_cstr("key.internal_diagnostic")!
+    vfsName = api.uid_get_from_cstr("key.vfs.name")!
+    vfsOptions = api.uid_get_from_cstr("key.vfs.options")!
+    files = api.uid_get_from_cstr("key.files")!
+    optimizeForIDE = api.uid_get_from_cstr("key.optimize_for_ide")!
+    requiredBystanders = api.uid_get_from_cstr("key.required_bystanders")!
+    reusingASTContext = api.uid_get_from_cstr("key.reusingastcontext")!
+    completionMaxASTContextReuseCount = api.uid_get_from_cstr("key.completion_max_astcontext_reuse_count")!
+    completionCheckDependencyInterval = api.uid_get_from_cstr("key.completion_check_dependency_interval")!
+    annotatedTypename = api.uid_get_from_cstr("key.annotated.typename")!
+    compileOperation = api.uid_get_from_cstr("key.compile_operation")!
+    effectiveAccess = api.uid_get_from_cstr("key.effective_access")!
+    declarationLang = api.uid_get_from_cstr("key.decl_lang")!
+    secondarySymbols = api.uid_get_from_cstr("key.secondary_symbols")!
+    simulateLongRequest = api.uid_get_from_cstr("key.simulate_long_request")!
+    isSynthesized = api.uid_get_from_cstr("key.is_synthesized")!
+    bufferName = api.uid_get_from_cstr("key.buffer_name")!
+    barriersEnabled = api.uid_get_from_cstr("key.barriers_enabled")!
+    expansions = api.uid_get_from_cstr("key.expansions")!
+    macroRoles = api.uid_get_from_cstr("key.macro_roles")!
+    expandedMacroReplacements = api.uid_get_from_cstr("key.expanded_macro_replacements")!
+    indexStorePath = api.uid_get_from_cstr("key.index_store_path")!
+    indexUnitOutputPath = api.uid_get_from_cstr("key.index_unit_output_path")!
+    includeLocals = api.uid_get_from_cstr("key.include_locals")!
+    ignoreClangModules = api.uid_get_from_cstr("key.ignore_clang_modules")!
+    includeSystemModules = api.uid_get_from_cstr("key.include_system_modules")!
+    ignoreStdlib = api.uid_get_from_cstr("key.ignore_stdlib")!
+    disableImplicitModules = api.uid_get_from_cstr("key.disable_implicit_modules")!
+    compilerArgs = api.uid_get_from_cstr("key.compilerargs")!
+    sourceText = api.uid_get_from_cstr("key.sourcetext")!
+    sortByName = api.uid_get_from_cstr("key.codecomplete.sort.byname")!
+    useImportDepth = api.uid_get_from_cstr("key.codecomplete.sort.useimportdepth")!
+    groupOverloads = api.uid_get_from_cstr("key.codecomplete.group.overloads")!
+    groupStems = api.uid_get_from_cstr("key.codecomplete.group.stems")!
+    filterText = api.uid_get_from_cstr("key.codecomplete.filtertext")!
+    requestLimit = api.uid_get_from_cstr("key.codecomplete.requestlimit")!
+    requestStart = api.uid_get_from_cstr("key.codecomplete.requeststart")!
+    hideUnderscores = api.uid_get_from_cstr("key.codecomplete.hideunderscores")!
+    hideLowPriority = api.uid_get_from_cstr("key.codecomplete.hidelowpriority")!
+    hideByName = api.uid_get_from_cstr("key.codecomplete.hidebyname")!
+    includeExactMatch = api.uid_get_from_cstr("key.codecomplete.includeexactmatch")!
+    addInnerResults = api.uid_get_from_cstr("key.codecomplete.addinnerresults")!
+    addInnerOperators = api.uid_get_from_cstr("key.codecomplete.addinneroperators")!
+    addInitsToTopLevel = api.uid_get_from_cstr("key.codecomplete.addinitstotoplevel")!
+    fuzzyMatching = api.uid_get_from_cstr("key.codecomplete.fuzzymatching")!
+    topNonLiteral = api.uid_get_from_cstr("key.codecomplete.showtopnonliteralresults")!
+    contextWeight = api.uid_get_from_cstr("key.codecomplete.sort.contextweight")!
+    fuzzyWeight = api.uid_get_from_cstr("key.codecomplete.sort.fuzzyweight")!
+    popularityBonus = api.uid_get_from_cstr("key.codecomplete.sort.popularitybonus")!
+    annotatedDescription = api.uid_get_from_cstr("key.codecomplete.annotateddescription")!
+    includeObjectLiterals = api.uid_get_from_cstr("key.codecomplete.includeobjectliterals")!
+    useNewAPI = api.uid_get_from_cstr("key.codecomplete.use_new_api")!
+    addCallWithNoDefaultArgs = api.uid_get_from_cstr("key.codecomplete.addcallwithnodefaultargs")!
+    includeSemanticComponents = api.uid_get_from_cstr("key.codecomplete.include_semantic_components")!
+    useXPCSerialization = api.uid_get_from_cstr("key.codecomplete.use_xpc_serialization")!
+    maxResults = api.uid_get_from_cstr("key.codecomplete.maxresults")!
+    annotatedTypeName = api.uid_get_from_cstr("key.annotated.typename")!
+    priorityBucket = api.uid_get_from_cstr("key.priority_bucket")!
+    identifier = api.uid_get_from_cstr("key.identifier")!
+    textMatchScore = api.uid_get_from_cstr("key.text_match_score")!
+    semanticScore = api.uid_get_from_cstr("key.semantic_score")!
+    semanticScoreComponents = api.uid_get_from_cstr("key.semantic_score_components")!
+    symbolPopularity = api.uid_get_from_cstr("key.symbol_popularity")!
+    modulePopularity = api.uid_get_from_cstr("key.module_popularity")!
+    popularityKey = api.uid_get_from_cstr("key.popularity.key")!
+    popularityValueIntBillion = api.uid_get_from_cstr("key.popularity.value.int.billion")!
+    recentCompletions = api.uid_get_from_cstr("key.recent_completions")!
+    unfilteredResultCount = api.uid_get_from_cstr("key.unfiltered_result_count")!
+    memberAccessTypes = api.uid_get_from_cstr("key.member_access_types")!
+    hasDiagnostic = api.uid_get_from_cstr("key.has_diagnostic")!
+    groupId = api.uid_get_from_cstr("key.group_id")!
+    scopedPopularityTablePath = api.uid_get_from_cstr("key.scoped_popularity_table_path")!
+    popularModules = api.uid_get_from_cstr("key.popular_modules")!
+    notoriousModules = api.uid_get_from_cstr("key.notorious_modules")!
+    usedScoreComponents = api.uid_get_from_cstr("key.codecomplete.setpopularapi_used_score_components")!
+    useTabs = api.uid_get_from_cstr("key.editor.format.usetabs")!
+    indentWidth = api.uid_get_from_cstr("key.editor.format.indentwidth")!
+    tabWidth = api.uid_get_from_cstr("key.editor.format.tabwidth")!
+    indentSwitchCase = api.uid_get_from_cstr("key.editor.format.indent_switch_case")!
+  }
+}
+
+package struct sourcekitd_api_requests {
+  /// `source.request.protocol_version`
+  package immutable protocolVersion: sourcekitd_api_uid_t
+  /// `source.request.compiler_version`
+  package immutable compilerVersion: sourcekitd_api_uid_t
+  /// `source.request.crash_exit`
+  package immutable crashWithExit: sourcekitd_api_uid_t
+  /// `source.request.demangle`
+  package immutable demangle: sourcekitd_api_uid_t
+  /// `source.request.mangle_simple_class`
+  package immutable mangleSimpleClass: sourcekitd_api_uid_t
+  /// `source.request.indexsource`
+  package immutable index: sourcekitd_api_uid_t
+  /// `source.request.docinfo`
+  package immutable docInfo: sourcekitd_api_uid_t
+  /// `source.request.codecomplete`
+  package immutable codeComplete: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.open`
+  package immutable codeCompleteOpen: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.close`
+  package immutable codeCompleteClose: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.update`
+  package immutable codeCompleteUpdate: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.cache.ondisk`
+  package immutable codeCompleteCacheOnDisk: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.setpopularapi`
+  package immutable codeCompleteSetPopularAPI: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.setcustom`
+  package immutable codeCompleteSetCustom: sourcekitd_api_uid_t
+  /// `source.request.typecontextinfo`
+  package immutable typeContextInfo: sourcekitd_api_uid_t
+  /// `source.request.conformingmethods`
+  package immutable conformingMethodList: sourcekitd_api_uid_t
+  /// `source.request.activeregions`
+  package immutable activeRegions: sourcekitd_api_uid_t
+  /// `source.request.cursorinfo`
+  package immutable cursorInfo: sourcekitd_api_uid_t
+  /// `source.request.rangeinfo`
+  package immutable rangeInfo: sourcekitd_api_uid_t
+  /// `source.request.relatedidents`
+  package immutable relatedIdents: sourcekitd_api_uid_t
+  /// `source.request.editor.open`
+  package immutable editorOpen: sourcekitd_api_uid_t
+  /// `source.request.editor.open.interface`
+  package immutable editorOpenInterface: sourcekitd_api_uid_t
+  /// `source.request.editor.open.interface.header`
+  package immutable editorOpenHeaderInterface: sourcekitd_api_uid_t
+  /// `source.request.editor.open.interface.codesource`
+  package immutable editorOpenSwiftSourceInterface: sourcekitd_api_uid_t
+  /// `source.request.editor.open.interface.codetype`
+  package immutable editorOpenSwiftTypeInterface: sourcekitd_api_uid_t
+  /// `source.request.editor.extract.comment`
+  package immutable editorExtractTextFromComment: sourcekitd_api_uid_t
+  /// `source.request.editor.close`
+  package immutable editorClose: sourcekitd_api_uid_t
+  /// `source.request.editor.replacetext`
+  package immutable editorReplaceText: sourcekitd_api_uid_t
+  /// `source.request.editor.formattext`
+  package immutable editorFormatText: sourcekitd_api_uid_t
+  /// `source.request.editor.expand_placeholder`
+  package immutable editorExpandPlaceholder: sourcekitd_api_uid_t
+  /// `source.request.editor.find_usr`
+  package immutable editorFindUSR: sourcekitd_api_uid_t
+  /// `source.request.editor.find_interface_doc`
+  package immutable editorFindInterfaceDoc: sourcekitd_api_uid_t
+  /// `source.request.buildsettings.register`
+  package immutable buildSettingsRegister: sourcekitd_api_uid_t
+  /// `source.request.module.groups`
+  package immutable moduleGroups: sourcekitd_api_uid_t
+  /// `source.request.name.translation`
+  package immutable nameTranslation: sourcekitd_api_uid_t
+  /// `source.request.convert.markup.xml`
+  package immutable markupToXML: sourcekitd_api_uid_t
+  /// `source.request.statistics`
+  package immutable statistics: sourcekitd_api_uid_t
+  /// `source.request.find-syntactic-rename-ranges`
+  package immutable findRenameRanges: sourcekitd_api_uid_t
+  /// `source.request.find-local-rename-ranges`
+  package immutable findLocalRenameRanges: sourcekitd_api_uid_t
+  /// `source.request.semantic.refactoring`
+  package immutable semanticRefactoring: sourcekitd_api_uid_t
+  /// `source.request.enable-compile-notifications`
+  package immutable enableCompileNotifications: sourcekitd_api_uid_t
+  /// `source.request.test_notification`
+  package immutable testNotification: sourcekitd_api_uid_t
+  /// `source.request.expression.type`
+  package immutable collectExpressionType: sourcekitd_api_uid_t
+  /// `source.request.variable.type`
+  package immutable collectVariableType: sourcekitd_api_uid_t
+  /// `source.request.configuration.global`
+  package immutable globalConfiguration: sourcekitd_api_uid_t
+  /// `source.request.dependency_updated`
+  package immutable dependencyUpdated: sourcekitd_api_uid_t
+  /// `source.request.diagnostics`
+  package immutable diagnostics: sourcekitd_api_uid_t
+  /// `source.request.semantic_tokens`
+  package immutable semanticTokens: sourcekitd_api_uid_t
+  /// `source.request.compile`
+  package immutable compile: sourcekitd_api_uid_t
+  /// `source.request.compile.close`
+  package immutable compileClose: sourcekitd_api_uid_t
+  /// `source.request.enable_request_barriers`
+  package immutable enableRequestBarriers: sourcekitd_api_uid_t
+  /// `source.request.syntactic_macro_expansion`
+  package immutable syntacticMacroExpansion: sourcekitd_api_uid_t
+  /// `source.request.index_to_store`
+  package immutable indexToStore: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.documentation`
+  package immutable codeCompleteDocumentation: sourcekitd_api_uid_t
+  /// `source.request.codecomplete.diagnostic`
+  package immutable codeCompleteDiagnostic: sourcekitd_api_uid_t
+
+  package init(api: sourcekitd_api_functions_t) {
+    protocolVersion = api.uid_get_from_cstr("source.request.protocol_version")!
+    compilerVersion = api.uid_get_from_cstr("source.request.compiler_version")!
+    crashWithExit = api.uid_get_from_cstr("source.request.crash_exit")!
+    demangle = api.uid_get_from_cstr("source.request.demangle")!
+    mangleSimpleClass = api.uid_get_from_cstr("source.request.mangle_simple_class")!
+    index = api.uid_get_from_cstr("source.request.indexsource")!
+    docInfo = api.uid_get_from_cstr("source.request.docinfo")!
+    codeComplete = api.uid_get_from_cstr("source.request.codecomplete")!
+    codeCompleteOpen = api.uid_get_from_cstr("source.request.codecomplete.open")!
+    codeCompleteClose = api.uid_get_from_cstr("source.request.codecomplete.close")!
+    codeCompleteUpdate = api.uid_get_from_cstr("source.request.codecomplete.update")!
+    codeCompleteCacheOnDisk = api.uid_get_from_cstr("source.request.codecomplete.cache.ondisk")!
+    codeCompleteSetPopularAPI = api.uid_get_from_cstr("source.request.codecomplete.setpopularapi")!
+    codeCompleteSetCustom = api.uid_get_from_cstr("source.request.codecomplete.setcustom")!
+    typeContextInfo = api.uid_get_from_cstr("source.request.typecontextinfo")!
+    conformingMethodList = api.uid_get_from_cstr("source.request.conformingmethods")!
+    activeRegions = api.uid_get_from_cstr("source.request.activeregions")!
+    cursorInfo = api.uid_get_from_cstr("source.request.cursorinfo")!
+    rangeInfo = api.uid_get_from_cstr("source.request.rangeinfo")!
+    relatedIdents = api.uid_get_from_cstr("source.request.relatedidents")!
+    editorOpen = api.uid_get_from_cstr("source.request.editor.open")!
+    editorOpenInterface = api.uid_get_from_cstr("source.request.editor.open.interface")!
+    editorOpenHeaderInterface = api.uid_get_from_cstr("source.request.editor.open.interface.header")!
+    editorOpenSwiftSourceInterface = api.uid_get_from_cstr("source.request.editor.open.interface.codesource")!
+    editorOpenSwiftTypeInterface = api.uid_get_from_cstr("source.request.editor.open.interface.codetype")!
+    editorExtractTextFromComment = api.uid_get_from_cstr("source.request.editor.extract.comment")!
+    editorClose = api.uid_get_from_cstr("source.request.editor.close")!
+    editorReplaceText = api.uid_get_from_cstr("source.request.editor.replacetext")!
+    editorFormatText = api.uid_get_from_cstr("source.request.editor.formattext")!
+    editorExpandPlaceholder = api.uid_get_from_cstr("source.request.editor.expand_placeholder")!
+    editorFindUSR = api.uid_get_from_cstr("source.request.editor.find_usr")!
+    editorFindInterfaceDoc = api.uid_get_from_cstr("source.request.editor.find_interface_doc")!
+    buildSettingsRegister = api.uid_get_from_cstr("source.request.buildsettings.register")!
+    moduleGroups = api.uid_get_from_cstr("source.request.module.groups")!
+    nameTranslation = api.uid_get_from_cstr("source.request.name.translation")!
+    markupToXML = api.uid_get_from_cstr("source.request.convert.markup.xml")!
+    statistics = api.uid_get_from_cstr("source.request.statistics")!
+    findRenameRanges = api.uid_get_from_cstr("source.request.find-syntactic-rename-ranges")!
+    findLocalRenameRanges = api.uid_get_from_cstr("source.request.find-local-rename-ranges")!
+    semanticRefactoring = api.uid_get_from_cstr("source.request.semantic.refactoring")!
+    enableCompileNotifications = api.uid_get_from_cstr("source.request.enable-compile-notifications")!
+    testNotification = api.uid_get_from_cstr("source.request.test_notification")!
+    collectExpressionType = api.uid_get_from_cstr("source.request.expression.type")!
+    collectVariableType = api.uid_get_from_cstr("source.request.variable.type")!
+    globalConfiguration = api.uid_get_from_cstr("source.request.configuration.global")!
+    dependencyUpdated = api.uid_get_from_cstr("source.request.dependency_updated")!
+    diagnostics = api.uid_get_from_cstr("source.request.diagnostics")!
+    semanticTokens = api.uid_get_from_cstr("source.request.semantic_tokens")!
+    compile = api.uid_get_from_cstr("source.request.compile")!
+    compileClose = api.uid_get_from_cstr("source.request.compile.close")!
+    enableRequestBarriers = api.uid_get_from_cstr("source.request.enable_request_barriers")!
+    syntacticMacroExpansion = api.uid_get_from_cstr("source.request.syntactic_macro_expansion")!
+    indexToStore = api.uid_get_from_cstr("source.request.index_to_store")!
+    codeCompleteDocumentation = api.uid_get_from_cstr("source.request.codecomplete.documentation")!
+    codeCompleteDiagnostic = api.uid_get_from_cstr("source.request.codecomplete.diagnostic")!
+  }
+}
+
+package struct sourcekitd_api_values {
+  /// `source.lang.code.decl.function.free`
+  package immutable declFunctionFree: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.free`
+  package immutable refFunctionFree: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.method.instance`
+  package immutable declMethodInstance: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.method.instance`
+  package immutable refMethodInstance: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.method.static`
+  package immutable declMethodStatic: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.method.static`
+  package immutable refMethodStatic: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.method.class`
+  package immutable declMethodClass: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.method.class`
+  package immutable refMethodClass: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.getter`
+  package immutable declAccessorGetter: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.getter`
+  package immutable refAccessorGetter: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.setter`
+  package immutable declAccessorSetter: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.setter`
+  package immutable refAccessorSetter: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.willset`
+  package immutable declAccessorWillSet: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.willset`
+  package immutable refAccessorWillSet: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.didset`
+  package immutable declAccessorDidSet: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.didset`
+  package immutable refAccessorDidSet: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.address`
+  package immutable declAccessorAddress: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.address`
+  package immutable refAccessorAddress: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.mutableaddress`
+  package immutable declAccessorMutableAddress: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.mutableaddress`
+  package immutable refAccessorMutableAddress: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.read`
+  package immutable declAccessorRead: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.read`
+  package immutable refAccessorRead: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.modify`
+  package immutable declAccessorModify: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.modify`
+  package immutable refAccessorModify: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.accessor.init`
+  package immutable declAccessorInit: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.accessor.init`
+  package immutable refAccessorInit: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.constructor`
+  package immutable declConstructor: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.constructor`
+  package immutable refConstructor: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.destructor`
+  package immutable declDestructor: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.destructor`
+  package immutable refDestructor: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.operator.prefix`
+  package immutable declFunctionPrefixOperator: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.operator.postfix`
+  package immutable declFunctionPostfixOperator: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.operator.infix`
+  package immutable declFunctionInfixOperator: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.operator.prefix`
+  package immutable refFunctionPrefixOperator: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.operator.postfix`
+  package immutable refFunctionPostfixOperator: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.operator.infix`
+  package immutable refFunctionInfixOperator: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.precedencegroup`
+  package immutable declPrecedenceGroup: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.precedencegroup`
+  package immutable refPrecedenceGroup: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.function.subscript`
+  package immutable declSubscript: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.function.subscript`
+  package immutable refSubscript: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.var.global`
+  package immutable declVarGlobal: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.var.global`
+  package immutable refVarGlobal: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.var.instance`
+  package immutable declVarInstance: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.var.instance`
+  package immutable refVarInstance: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.var.static`
+  package immutable declVarStatic: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.var.static`
+  package immutable refVarStatic: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.var.class`
+  package immutable declVarClass: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.var.class`
+  package immutable refVarClass: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.var.local`
+  package immutable declVarLocal: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.var.local`
+  package immutable refVarLocal: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.var.parameter`
+  package immutable declVarParam: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.module`
+  package immutable declModule: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.class`
+  package immutable declClass: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.class`
+  package immutable refClass: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.actor`
+  package immutable declActor: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.actor`
+  package immutable refActor: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.struct`
+  package immutable declStruct: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.struct`
+  package immutable refStruct: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.enum`
+  package immutable declEnum: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.enum`
+  package immutable refEnum: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.enumcase`
+  package immutable declEnumCase: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.enumelement`
+  package immutable declEnumElement: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.enumelement`
+  package immutable refEnumElement: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.protocol`
+  package immutable declProtocol: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.protocol`
+  package immutable refProtocol: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.extension`
+  package immutable declExtension: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.extension.struct`
+  package immutable declExtensionStruct: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.extension.class`
+  package immutable declExtensionClass: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.extension.enum`
+  package immutable declExtensionEnum: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.extension.protocol`
+  package immutable declExtensionProtocol: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.associatedtype`
+  package immutable declAssociatedType: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.associatedtype`
+  package immutable refAssociatedType: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.opaquetype`
+  package immutable declOpaqueType: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.opaquetype`
+  package immutable refOpaqueType: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.typealias`
+  package immutable declTypeAlias: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.typealias`
+  package immutable refTypeAlias: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.generic_type_param`
+  package immutable declGenericTypeParam: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.generic_type_param`
+  package immutable refGenericTypeParam: sourcekitd_api_uid_t
+  /// `source.lang.code.decl.macro`
+  package immutable declMacro: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.macro`
+  package immutable refMacro: sourcekitd_api_uid_t
+  /// `source.lang.code.ref.module`
+  package immutable refModule: sourcekitd_api_uid_t
+  /// `source.lang.code.commenttag`
+  package immutable commentTag: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.foreach`
+  package immutable stmtForEach: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.for`
+  package immutable stmtFor: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.while`
+  package immutable stmtWhile: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.repeatwhile`
+  package immutable stmtRepeatWhile: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.if`
+  package immutable stmtIf: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.guard`
+  package immutable stmtGuard: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.switch`
+  package immutable stmtSwitch: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.case`
+  package immutable stmtCase: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt.brace`
+  package immutable stmtBrace: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.call`
+  package immutable exprCall: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.argument`
+  package immutable exprArg: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.array`
+  package immutable exprArray: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.dictionary`
+  package immutable exprDictionary: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.object_literal`
+  package immutable exprObjectLiteral: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.tuple`
+  package immutable exprTuple: sourcekitd_api_uid_t
+  /// `source.lang.code.expr.closure`
+  package immutable exprClosure: sourcekitd_api_uid_t
+  /// `source.lang.code.structure.elem.id`
+  package immutable structureElemId: sourcekitd_api_uid_t
+  /// `source.lang.code.structure.elem.expr`
+  package immutable structureElemExpr: sourcekitd_api_uid_t
+  /// `source.lang.code.structure.elem.init_expr`
+  package immutable structureElemInitExpr: sourcekitd_api_uid_t
+  /// `source.lang.code.structure.elem.condition_expr`
+  package immutable structureElemCondExpr: sourcekitd_api_uid_t
+  /// `source.lang.code.structure.elem.pattern`
+  package immutable structureElemPattern: sourcekitd_api_uid_t
+  /// `source.lang.code.structure.elem.typeref`
+  package immutable structureElemTypeRef: sourcekitd_api_uid_t
+  /// `source.lang.code.range.singlestatement`
+  package immutable rangeSingleStatement: sourcekitd_api_uid_t
+  /// `source.lang.code.range.singleexpression`
+  package immutable rangeSingleExpression: sourcekitd_api_uid_t
+  /// `source.lang.code.range.singledeclaration`
+  package immutable rangeSingleDeclaration: sourcekitd_api_uid_t
+  /// `source.lang.code.range.multistatement`
+  package immutable rangeMultiStatement: sourcekitd_api_uid_t
+  /// `source.lang.code.range.multitypememberdeclaration`
+  package immutable rangeMultiTypeMemberDeclaration: sourcekitd_api_uid_t
+  /// `source.lang.code.range.invalid`
+  package immutable rangeInvalid: sourcekitd_api_uid_t
+  /// `source.lang.name.kind.objc`
+  package immutable nameObjc: sourcekitd_api_uid_t
+  /// `source.lang.name.kind.code`
+  package immutable nameSwift: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.keyword`
+  package immutable keyword: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.identifier`
+  package immutable identifier: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.operator`
+  package immutable `operator`: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.typeidentifier`
+  package immutable typeIdentifier: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.buildconfig.keyword`
+  package immutable buildConfigKeyword: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.buildconfig.id`
+  package immutable buildConfigId: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.pounddirective.keyword`
+  package immutable poundDirectiveKeyword: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.attribute.id`
+  package immutable attributeId: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.attribute.builtin`
+  package immutable attributeBuiltin: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.number`
+  package immutable number: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.string`
+  package immutable string: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.string_interpolation_anchor`
+  package immutable stringInterpolation: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.comment`
+  package immutable comment: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.doccomment`
+  package immutable docComment: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.doccomment.field`
+  package immutable docCommentField: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.comment.mark`
+  package immutable commentMarker: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.comment.url`
+  package immutable commentURL: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.placeholder`
+  package immutable placeholder: sourcekitd_api_uid_t
+  /// `source.lang.code.syntaxtype.objectliteral`
+  package immutable objectLiteral: sourcekitd_api_uid_t
+  /// `source.lang.code.expr`
+  package immutable expr: sourcekitd_api_uid_t
+  /// `source.lang.code.stmt`
+  package immutable stmt: sourcekitd_api_uid_t
+  /// `source.lang.code.type`
+  package immutable type: sourcekitd_api_uid_t
+  /// `source.lang.code.foreach.sequence`
+  package immutable forEachSequence: sourcekitd_api_uid_t
+  /// `source.diagnostic.severity.note`
+  package immutable diagNote: sourcekitd_api_uid_t
+  /// `source.diagnostic.severity.warning`
+  package immutable diagWarning: sourcekitd_api_uid_t
+  /// `source.diagnostic.severity.error`
+  package immutable diagError: sourcekitd_api_uid_t
+  /// `source.diagnostic.category.deprecation`
+  package immutable diagDeprecation: sourcekitd_api_uid_t
+  /// `source.diagnostic.category.no_usage`
+  package immutable diagNoUsage: sourcekitd_api_uid_t
+  /// `source.codecompletion.everything`
+  package immutable codeCompletionEverything: sourcekitd_api_uid_t
+  /// `source.codecompletion.module`
+  package immutable codeCompletionModule: sourcekitd_api_uid_t
+  /// `source.codecompletion.keyword`
+  package immutable codeCompletionKeyword: sourcekitd_api_uid_t
+  /// `source.codecompletion.literal`
+  package immutable codeCompletionLiteral: sourcekitd_api_uid_t
+  /// `source.codecompletion.custom`
+  package immutable codeCompletionCustom: sourcekitd_api_uid_t
+  /// `source.codecompletion.identifier`
+  package immutable codeCompletionIdentifier: sourcekitd_api_uid_t
+  /// `source.codecompletion.description`
+  package immutable codeCompletionDescription: sourcekitd_api_uid_t
+  /// `source.edit.kind.active`
+  package immutable editActive: sourcekitd_api_uid_t
+  /// `source.edit.kind.inactive`
+  package immutable editInactive: sourcekitd_api_uid_t
+  /// `source.edit.kind.selector`
+  package immutable editSelector: sourcekitd_api_uid_t
+  /// `source.edit.kind.string`
+  package immutable editString: sourcekitd_api_uid_t
+  /// `source.edit.kind.comment`
+  package immutable editComment: sourcekitd_api_uid_t
+  /// `source.edit.kind.mismatch`
+  package immutable editMismatch: sourcekitd_api_uid_t
+  /// `source.edit.kind.unknown`
+  package immutable editUnknown: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.basename`
+  package immutable renameRangeBase: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.keyword-basename`
+  package immutable renameRangeKeywordBase: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.parameter-and-whitespace`
+  package immutable renameRangeParam: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.noncollapsible-parameter`
+  package immutable renameRangeNoncollapsibleParam: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.decl-argument-label`
+  package immutable renameRangeDeclArgLabel: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.call-argument-label`
+  package immutable renameRangeCallArgLabel: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.call-argument-colon`
+  package immutable renameRangeCallArgColon: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.call-argument-combined`
+  package immutable renameRangeCallArgCombined: sourcekitd_api_uid_t
+  /// `source.refactoring.range.kind.selector-argument-label`
+  package immutable renameRangeSelectorArgLabel: sourcekitd_api_uid_t
+  /// `source.syntacticrename.definition`
+  package immutable definition: sourcekitd_api_uid_t
+  /// `source.syntacticrename.reference`
+  package immutable reference: sourcekitd_api_uid_t
+  /// `source.syntacticrename.call`
+  package immutable call: sourcekitd_api_uid_t
+  /// `source.syntacticrename.unknown`
+  package immutable unknown: sourcekitd_api_uid_t
+  /// `source.statistic.num-requests`
+  package immutable statNumRequests: sourcekitd_api_uid_t
+  /// `source.statistic.num-semantic-requests`
+  package immutable statNumSemaRequests: sourcekitd_api_uid_t
+  /// `source.statistic.instruction-count`
+  package immutable statInstructionCount: sourcekitd_api_uid_t
+  /// `source.lang.code`
+  package immutable swift: sourcekitd_api_uid_t
+  /// `source.lang.objc`
+  package immutable objC: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.expression`
+  package immutable macroRoleExpression: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.declaration`
+  package immutable macroRoleDeclaration: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.codeitem`
+  package immutable macroRoleCodeItem: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.accessor`
+  package immutable macroRoleAccessor: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.member_attribute`
+  package immutable macroRoleMemberAttribute: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.member`
+  package immutable macroRoleMember: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.peer`
+  package immutable macroRolePeer: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.conformance`
+  package immutable macroRoleConformance: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.extension`
+  package immutable macroRoleExtension: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.preamble`
+  package immutable macroRolePreamble: sourcekitd_api_uid_t
+  /// `source.lang.code.macro_role.body`
+  package immutable macroRoleBody: sourcekitd_api_uid_t
+  /// `source.lang.code.keyword`
+  package immutable completionKindKeyword: sourcekitd_api_uid_t
+  /// `source.lang.code.pattern`
+  package immutable completionKindPattern: sourcekitd_api_uid_t
+  /// `source.diagnostic.stage.code.sema`
+  package immutable semaDiagStage: sourcekitd_api_uid_t
+  /// `source.diagnostic.stage.code.parse`
+  package immutable parseDiagStage: sourcekitd_api_uid_t
+  /// `source.notification.sema_disabled`
+  package immutable semaDisabledNotification: sourcekitd_api_uid_t
+  /// `source.notification.sema_enabled`
+  package immutable semaEnabledNotification: sourcekitd_api_uid_t
+  /// `source.notification.editor.documentupdate`
+  package immutable documentUpdateNotification: sourcekitd_api_uid_t
+  /// `source.diagnostic.severity.remark`
+  package immutable diagRemark: sourcekitd_api_uid_t
+
+  package init(api: sourcekitd_api_functions_t) {
+    declFunctionFree = api.uid_get_from_cstr("source.lang.code.decl.function.free")!
+    refFunctionFree = api.uid_get_from_cstr("source.lang.code.ref.function.free")!
+    declMethodInstance = api.uid_get_from_cstr("source.lang.code.decl.function.method.instance")!
+    refMethodInstance = api.uid_get_from_cstr("source.lang.code.ref.function.method.instance")!
+    declMethodStatic = api.uid_get_from_cstr("source.lang.code.decl.function.method.static")!
+    refMethodStatic = api.uid_get_from_cstr("source.lang.code.ref.function.method.static")!
+    declMethodClass = api.uid_get_from_cstr("source.lang.code.decl.function.method.class")!
+    refMethodClass = api.uid_get_from_cstr("source.lang.code.ref.function.method.class")!
+    declAccessorGetter = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.getter")!
+    refAccessorGetter = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.getter")!
+    declAccessorSetter = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.setter")!
+    refAccessorSetter = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.setter")!
+    declAccessorWillSet = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.willset")!
+    refAccessorWillSet = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.willset")!
+    declAccessorDidSet = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.didset")!
+    refAccessorDidSet = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.didset")!
+    declAccessorAddress = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.address")!
+    refAccessorAddress = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.address")!
+    declAccessorMutableAddress = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.mutableaddress")!
+    refAccessorMutableAddress = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.mutableaddress")!
+    declAccessorRead = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.read")!
+    refAccessorRead = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.read")!
+    declAccessorModify = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.modify")!
+    refAccessorModify = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.modify")!
+    declAccessorInit = api.uid_get_from_cstr("source.lang.code.decl.function.accessor.init")!
+    refAccessorInit = api.uid_get_from_cstr("source.lang.code.ref.function.accessor.init")!
+    declConstructor = api.uid_get_from_cstr("source.lang.code.decl.function.constructor")!
+    refConstructor = api.uid_get_from_cstr("source.lang.code.ref.function.constructor")!
+    declDestructor = api.uid_get_from_cstr("source.lang.code.decl.function.destructor")!
+    refDestructor = api.uid_get_from_cstr("source.lang.code.ref.function.destructor")!
+    declFunctionPrefixOperator = api.uid_get_from_cstr("source.lang.code.decl.function.operator.prefix")!
+    declFunctionPostfixOperator = api.uid_get_from_cstr("source.lang.code.decl.function.operator.postfix")!
+    declFunctionInfixOperator = api.uid_get_from_cstr("source.lang.code.decl.function.operator.infix")!
+    refFunctionPrefixOperator = api.uid_get_from_cstr("source.lang.code.ref.function.operator.prefix")!
+    refFunctionPostfixOperator = api.uid_get_from_cstr("source.lang.code.ref.function.operator.postfix")!
+    refFunctionInfixOperator = api.uid_get_from_cstr("source.lang.code.ref.function.operator.infix")!
+    declPrecedenceGroup = api.uid_get_from_cstr("source.lang.code.decl.precedencegroup")!
+    refPrecedenceGroup = api.uid_get_from_cstr("source.lang.code.ref.precedencegroup")!
+    declSubscript = api.uid_get_from_cstr("source.lang.code.decl.function.subscript")!
+    refSubscript = api.uid_get_from_cstr("source.lang.code.ref.function.subscript")!
+    declVarGlobal = api.uid_get_from_cstr("source.lang.code.decl.var.global")!
+    refVarGlobal = api.uid_get_from_cstr("source.lang.code.ref.var.global")!
+    declVarInstance = api.uid_get_from_cstr("source.lang.code.decl.var.instance")!
+    refVarInstance = api.uid_get_from_cstr("source.lang.code.ref.var.instance")!
+    declVarStatic = api.uid_get_from_cstr("source.lang.code.decl.var.static")!
+    refVarStatic = api.uid_get_from_cstr("source.lang.code.ref.var.static")!
+    declVarClass = api.uid_get_from_cstr("source.lang.code.decl.var.class")!
+    refVarClass = api.uid_get_from_cstr("source.lang.code.ref.var.class")!
+    declVarLocal = api.uid_get_from_cstr("source.lang.code.decl.var.local")!
+    refVarLocal = api.uid_get_from_cstr("source.lang.code.ref.var.local")!
+    declVarParam = api.uid_get_from_cstr("source.lang.code.decl.var.parameter")!
+    declModule = api.uid_get_from_cstr("source.lang.code.decl.module")!
+    declClass = api.uid_get_from_cstr("source.lang.code.decl.class")!
+    refClass = api.uid_get_from_cstr("source.lang.code.ref.class")!
+    declActor = api.uid_get_from_cstr("source.lang.code.decl.actor")!
+    refActor = api.uid_get_from_cstr("source.lang.code.ref.actor")!
+    declStruct = api.uid_get_from_cstr("source.lang.code.decl.struct")!
+    refStruct = api.uid_get_from_cstr("source.lang.code.ref.struct")!
+    declEnum = api.uid_get_from_cstr("source.lang.code.decl.enum")!
+    refEnum = api.uid_get_from_cstr("source.lang.code.ref.enum")!
+    declEnumCase = api.uid_get_from_cstr("source.lang.code.decl.enumcase")!
+    declEnumElement = api.uid_get_from_cstr("source.lang.code.decl.enumelement")!
+    refEnumElement = api.uid_get_from_cstr("source.lang.code.ref.enumelement")!
+    declProtocol = api.uid_get_from_cstr("source.lang.code.decl.protocol")!
+    refProtocol = api.uid_get_from_cstr("source.lang.code.ref.protocol")!
+    declExtension = api.uid_get_from_cstr("source.lang.code.decl.extension")!
+    declExtensionStruct = api.uid_get_from_cstr("source.lang.code.decl.extension.struct")!
+    declExtensionClass = api.uid_get_from_cstr("source.lang.code.decl.extension.class")!
+    declExtensionEnum = api.uid_get_from_cstr("source.lang.code.decl.extension.enum")!
+    declExtensionProtocol = api.uid_get_from_cstr("source.lang.code.decl.extension.protocol")!
+    declAssociatedType = api.uid_get_from_cstr("source.lang.code.decl.associatedtype")!
+    refAssociatedType = api.uid_get_from_cstr("source.lang.code.ref.associatedtype")!
+    declOpaqueType = api.uid_get_from_cstr("source.lang.code.decl.opaquetype")!
+    refOpaqueType = api.uid_get_from_cstr("source.lang.code.ref.opaquetype")!
+    declTypeAlias = api.uid_get_from_cstr("source.lang.code.decl.typealias")!
+    refTypeAlias = api.uid_get_from_cstr("source.lang.code.ref.typealias")!
+    declGenericTypeParam = api.uid_get_from_cstr("source.lang.code.decl.generic_type_param")!
+    refGenericTypeParam = api.uid_get_from_cstr("source.lang.code.ref.generic_type_param")!
+    declMacro = api.uid_get_from_cstr("source.lang.code.decl.macro")!
+    refMacro = api.uid_get_from_cstr("source.lang.code.ref.macro")!
+    refModule = api.uid_get_from_cstr("source.lang.code.ref.module")!
+    commentTag = api.uid_get_from_cstr("source.lang.code.commenttag")!
+    stmtForEach = api.uid_get_from_cstr("source.lang.code.stmt.foreach")!
+    stmtFor = api.uid_get_from_cstr("source.lang.code.stmt.for")!
+    stmtWhile = api.uid_get_from_cstr("source.lang.code.stmt.while")!
+    stmtRepeatWhile = api.uid_get_from_cstr("source.lang.code.stmt.repeatwhile")!
+    stmtIf = api.uid_get_from_cstr("source.lang.code.stmt.if")!
+    stmtGuard = api.uid_get_from_cstr("source.lang.code.stmt.guard")!
+    stmtSwitch = api.uid_get_from_cstr("source.lang.code.stmt.switch")!
+    stmtCase = api.uid_get_from_cstr("source.lang.code.stmt.case")!
+    stmtBrace = api.uid_get_from_cstr("source.lang.code.stmt.brace")!
+    exprCall = api.uid_get_from_cstr("source.lang.code.expr.call")!
+    exprArg = api.uid_get_from_cstr("source.lang.code.expr.argument")!
+    exprArray = api.uid_get_from_cstr("source.lang.code.expr.array")!
+    exprDictionary = api.uid_get_from_cstr("source.lang.code.expr.dictionary")!
+    exprObjectLiteral = api.uid_get_from_cstr("source.lang.code.expr.object_literal")!
+    exprTuple = api.uid_get_from_cstr("source.lang.code.expr.tuple")!
+    exprClosure = api.uid_get_from_cstr("source.lang.code.expr.closure")!
+    structureElemId = api.uid_get_from_cstr("source.lang.code.structure.elem.id")!
+    structureElemExpr = api.uid_get_from_cstr("source.lang.code.structure.elem.expr")!
+    structureElemInitExpr = api.uid_get_from_cstr("source.lang.code.structure.elem.init_expr")!
+    structureElemCondExpr = api.uid_get_from_cstr("source.lang.code.structure.elem.condition_expr")!
+    structureElemPattern = api.uid_get_from_cstr("source.lang.code.structure.elem.pattern")!
+    structureElemTypeRef = api.uid_get_from_cstr("source.lang.code.structure.elem.typeref")!
+    rangeSingleStatement = api.uid_get_from_cstr("source.lang.code.range.singlestatement")!
+    rangeSingleExpression = api.uid_get_from_cstr("source.lang.code.range.singleexpression")!
+    rangeSingleDeclaration = api.uid_get_from_cstr("source.lang.code.range.singledeclaration")!
+    rangeMultiStatement = api.uid_get_from_cstr("source.lang.code.range.multistatement")!
+    rangeMultiTypeMemberDeclaration = api.uid_get_from_cstr("source.lang.code.range.multitypememberdeclaration")!
+    rangeInvalid = api.uid_get_from_cstr("source.lang.code.range.invalid")!
+    nameObjc = api.uid_get_from_cstr("source.lang.name.kind.objc")!
+    nameSwift = api.uid_get_from_cstr("source.lang.name.kind.code")!
+    keyword = api.uid_get_from_cstr("source.lang.code.syntaxtype.keyword")!
+    identifier = api.uid_get_from_cstr("source.lang.code.syntaxtype.identifier")!
+    `operator` = api.uid_get_from_cstr("source.lang.code.syntaxtype.operator")!
+    typeIdentifier = api.uid_get_from_cstr("source.lang.code.syntaxtype.typeidentifier")!
+    buildConfigKeyword = api.uid_get_from_cstr("source.lang.code.syntaxtype.buildconfig.keyword")!
+    buildConfigId = api.uid_get_from_cstr("source.lang.code.syntaxtype.buildconfig.id")!
+    poundDirectiveKeyword = api.uid_get_from_cstr("source.lang.code.syntaxtype.pounddirective.keyword")!
+    attributeId = api.uid_get_from_cstr("source.lang.code.syntaxtype.attribute.id")!
+    attributeBuiltin = api.uid_get_from_cstr("source.lang.code.syntaxtype.attribute.builtin")!
+    number = api.uid_get_from_cstr("source.lang.code.syntaxtype.number")!
+    string = api.uid_get_from_cstr("source.lang.code.syntaxtype.string")!
+    stringInterpolation = api.uid_get_from_cstr("source.lang.code.syntaxtype.string_interpolation_anchor")!
+    comment = api.uid_get_from_cstr("source.lang.code.syntaxtype.comment")!
+    docComment = api.uid_get_from_cstr("source.lang.code.syntaxtype.doccomment")!
+    docCommentField = api.uid_get_from_cstr("source.lang.code.syntaxtype.doccomment.field")!
+    commentMarker = api.uid_get_from_cstr("source.lang.code.syntaxtype.comment.mark")!
+    commentURL = api.uid_get_from_cstr("source.lang.code.syntaxtype.comment.url")!
+    placeholder = api.uid_get_from_cstr("source.lang.code.syntaxtype.placeholder")!
+    objectLiteral = api.uid_get_from_cstr("source.lang.code.syntaxtype.objectliteral")!
+    expr = api.uid_get_from_cstr("source.lang.code.expr")!
+    stmt = api.uid_get_from_cstr("source.lang.code.stmt")!
+    type = api.uid_get_from_cstr("source.lang.code.type")!
+    forEachSequence = api.uid_get_from_cstr("source.lang.code.foreach.sequence")!
+    diagNote = api.uid_get_from_cstr("source.diagnostic.severity.note")!
+    diagWarning = api.uid_get_from_cstr("source.diagnostic.severity.warning")!
+    diagError = api.uid_get_from_cstr("source.diagnostic.severity.error")!
+    diagDeprecation = api.uid_get_from_cstr("source.diagnostic.category.deprecation")!
+    diagNoUsage = api.uid_get_from_cstr("source.diagnostic.category.no_usage")!
+    codeCompletionEverything = api.uid_get_from_cstr("source.codecompletion.everything")!
+    codeCompletionModule = api.uid_get_from_cstr("source.codecompletion.module")!
+    codeCompletionKeyword = api.uid_get_from_cstr("source.codecompletion.keyword")!
+    codeCompletionLiteral = api.uid_get_from_cstr("source.codecompletion.literal")!
+    codeCompletionCustom = api.uid_get_from_cstr("source.codecompletion.custom")!
+    codeCompletionIdentifier = api.uid_get_from_cstr("source.codecompletion.identifier")!
+    codeCompletionDescription = api.uid_get_from_cstr("source.codecompletion.description")!
+    editActive = api.uid_get_from_cstr("source.edit.kind.active")!
+    editInactive = api.uid_get_from_cstr("source.edit.kind.inactive")!
+    editSelector = api.uid_get_from_cstr("source.edit.kind.selector")!
+    editString = api.uid_get_from_cstr("source.edit.kind.string")!
+    editComment = api.uid_get_from_cstr("source.edit.kind.comment")!
+    editMismatch = api.uid_get_from_cstr("source.edit.kind.mismatch")!
+    editUnknown = api.uid_get_from_cstr("source.edit.kind.unknown")!
+    renameRangeBase = api.uid_get_from_cstr("source.refactoring.range.kind.basename")!
+    renameRangeKeywordBase = api.uid_get_from_cstr("source.refactoring.range.kind.keyword-basename")!
+    renameRangeParam = api.uid_get_from_cstr("source.refactoring.range.kind.parameter-and-whitespace")!
+    renameRangeNoncollapsibleParam = api.uid_get_from_cstr("source.refactoring.range.kind.noncollapsible-parameter")!
+    renameRangeDeclArgLabel = api.uid_get_from_cstr("source.refactoring.range.kind.decl-argument-label")!
+    renameRangeCallArgLabel = api.uid_get_from_cstr("source.refactoring.range.kind.call-argument-label")!
+    renameRangeCallArgColon = api.uid_get_from_cstr("source.refactoring.range.kind.call-argument-colon")!
+    renameRangeCallArgCombined = api.uid_get_from_cstr("source.refactoring.range.kind.call-argument-combined")!
+    renameRangeSelectorArgLabel = api.uid_get_from_cstr("source.refactoring.range.kind.selector-argument-label")!
+    definition = api.uid_get_from_cstr("source.syntacticrename.definition")!
+    reference = api.uid_get_from_cstr("source.syntacticrename.reference")!
+    call = api.uid_get_from_cstr("source.syntacticrename.call")!
+    unknown = api.uid_get_from_cstr("source.syntacticrename.unknown")!
+    statNumRequests = api.uid_get_from_cstr("source.statistic.num-requests")!
+    statNumSemaRequests = api.uid_get_from_cstr("source.statistic.num-semantic-requests")!
+    statInstructionCount = api.uid_get_from_cstr("source.statistic.instruction-count")!
+    swift = api.uid_get_from_cstr("source.lang.code")!
+    objC = api.uid_get_from_cstr("source.lang.objc")!
+    macroRoleExpression = api.uid_get_from_cstr("source.lang.code.macro_role.expression")!
+    macroRoleDeclaration = api.uid_get_from_cstr("source.lang.code.macro_role.declaration")!
+    macroRoleCodeItem = api.uid_get_from_cstr("source.lang.code.macro_role.codeitem")!
+    macroRoleAccessor = api.uid_get_from_cstr("source.lang.code.macro_role.accessor")!
+    macroRoleMemberAttribute = api.uid_get_from_cstr("source.lang.code.macro_role.member_attribute")!
+    macroRoleMember = api.uid_get_from_cstr("source.lang.code.macro_role.member")!
+    macroRolePeer = api.uid_get_from_cstr("source.lang.code.macro_role.peer")!
+    macroRoleConformance = api.uid_get_from_cstr("source.lang.code.macro_role.conformance")!
+    macroRoleExtension = api.uid_get_from_cstr("source.lang.code.macro_role.extension")!
+    macroRolePreamble = api.uid_get_from_cstr("source.lang.code.macro_role.preamble")!
+    macroRoleBody = api.uid_get_from_cstr("source.lang.code.macro_role.body")!
+    completionKindKeyword = api.uid_get_from_cstr("source.lang.code.keyword")!
+    completionKindPattern = api.uid_get_from_cstr("source.lang.code.pattern")!
+    semaDiagStage = api.uid_get_from_cstr("source.diagnostic.stage.code.sema")!
+    parseDiagStage = api.uid_get_from_cstr("source.diagnostic.stage.code.parse")!
+    semaDisabledNotification = api.uid_get_from_cstr("source.notification.sema_disabled")!
+    semaEnabledNotification = api.uid_get_from_cstr("source.notification.sema_enabled")!
+    documentUpdateNotification = api.uid_get_from_cstr("source.notification.editor.documentupdate")!
+    diagRemark = api.uid_get_from_cstr("source.diagnostic.severity.remark")!
+  }
+}

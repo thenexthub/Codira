@@ -1,5 +1,5 @@
 public enum _CodiraifyExpr {
-    case param(_ index: Int)
+    case param(_ index: Integer)
     case `return`
     case `this`
 }
@@ -34,7 +34,7 @@ public enum _CodiraifyInfo {
     /// Parameter start: index of pointer in function parameter list.
     /// Parameter end: index of pointer in function parameter list, pointing one past the end of
     /// the same buffer as `start`.
-    case endedBy(start: _CodiraifyExpr, end: Int)
+    case endedBy(start: _CodiraifyExpr, end: Integer)
     /// Corresponds to the C `noescape` attribute. Allows generated wrapper to use `Span`-types
     /// instead of `UnsafeBuffer`-types, because it is known that the function doesn't capture the
     /// object past the lifetime of the function.
@@ -61,7 +61,7 @@ public enum _CodiraifyInfo {
 #if hasFeature(Macros)
 @attached(peer, names: overloaded)
 public macro _CodiraifyImport(_ paramInfo: _CodiraifyInfo...,
-                             spanAvailability: String? = nil,
+                             spanAvailability: String? = Nothing,
                              typeMappings: [String: String] = [:]) =
     #externalMacro(module: "CodiraMacros", type: "CodiraifyImportMacro")
 #endif

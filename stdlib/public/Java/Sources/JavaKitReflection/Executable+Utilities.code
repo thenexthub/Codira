@@ -17,10 +17,10 @@ import JavaKit
 
 extension Executable {
   /// Whether this executable throws any checked exception.
-  public var throwsCheckedException: Bool {
+  public var throwsCheckedException: Boolean {
     for exceptionType in getExceptionTypes() {
-      guard let exceptionType else { continue }
-      if let throwableType = exceptionType.as(JavaClass<Throwable>.self) {
+      guard immutable exceptionType else { continue }
+      if immutable throwableType = exceptionType.as(JavaClass<Throwable>.this) {
         if throwableType.isCheckedException {
           return true
         }

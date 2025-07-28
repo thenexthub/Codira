@@ -1,0 +1,215 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaKitFunction
+import JavaRuntime
+
+@JavaClass("java.nio.file.Files")
+open class Files: JavaObject {
+
+}
+extension JavaClass<Files> {
+  @JavaStaticMethod
+  public fn size(_ arg0: Path?) throws -> Int64
+
+  @JavaStaticMethod
+  public fn isHidden(_ arg0: Path?) throws -> Boolean
+
+  @JavaStaticMethod
+  public fn copy(_ arg0: Path?, _ arg1: OutputStream?) throws -> Int64
+
+  @JavaStaticMethod
+  public fn copy(_ arg0: Path?, _ arg1: Path?, _ arg2: [CopyOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn copy(_ arg0: InputStream?, _ arg1: Path?, _ arg2: [CopyOption?]) throws -> Int64
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: Path?, _ arg1: Path?) throws -> Int64
+
+  @JavaStaticMethod
+  public fn readAllBytes(_ arg0: Path?) throws -> [Int8]
+
+  @JavaStaticMethod
+  public fn write(_ arg0: Path?, _ arg1: Iterable<CharSequence>?, _ arg2: Charset?, _ arg3: [OpenOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn write(_ arg0: Path?, _ arg1: Iterable<CharSequence>?, _ arg2: [OpenOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn write(_ arg0: Path?, _ arg1: [Int8], _ arg2: [OpenOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn delete(_ arg0: Path?) throws
+
+  @JavaStaticMethod
+  public fn exists(_ arg0: Path?, _ arg1: [LinkOption?]) -> Boolean
+
+  @JavaStaticMethod
+  public fn isDirectory(_ arg0: Path?, _ arg1: [LinkOption?]) -> Boolean
+
+  @JavaStaticMethod
+  public fn getOwner(_ arg0: Path?, _ arg1: [LinkOption?]) throws -> UserPrincipal!
+
+  @JavaStaticMethod
+  public fn isRegularFile(_ arg0: Path?, _ arg1: [LinkOption?]) -> Boolean
+
+  @JavaStaticMethod
+  public fn createDirectories(_ arg0: Path?, _ arg1: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn notExists(_ arg0: Path?, _ arg1: [LinkOption?]) -> Boolean
+
+  @JavaStaticMethod
+  public fn isWritable(_ arg0: Path?) -> Boolean
+
+  @JavaStaticMethod
+  public fn getLastModifiedTime(_ arg0: Path?, _ arg1: [LinkOption?]) throws -> FileTime!
+
+  @JavaStaticMethod
+  public fn createDirectory(_ arg0: Path?, _ arg1: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn setLastModifiedTime(_ arg0: Path?, _ arg1: FileTime?) throws -> Path!
+
+  @JavaStaticMethod
+  public fn createTempFile(_ arg0: String, _ arg1: String, _ arg2: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn createTempFile(_ arg0: Path?, _ arg1: String, _ arg2: String, _ arg3: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn readAttributes(_ arg0: Path?, _ arg1: JavaClass<BasicFileAttributes>?, _ arg2: [LinkOption?]) throws -> BasicFileAttributes!
+
+  @JavaStaticMethod
+  public fn newInputStream(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> InputStream!
+
+  @JavaStaticMethod
+  public fn newOutputStream(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> OutputStream!
+
+  @JavaStaticMethod
+  public fn newByteChannel(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> SeekableByteChannel!
+
+  @JavaStaticMethod
+  public fn newByteChannel(_ arg0: Path?, _ arg1: JavaSet<OpenOption>?, _ arg2: [FileAttribute<JavaObject>?]) throws -> SeekableByteChannel!
+
+  @JavaStaticMethod
+  public fn newDirectoryStream(_ arg0: Path?, _ arg1: String) throws -> DirectoryStream<Path>!
+
+  @JavaStaticMethod
+  public fn newDirectoryStream(_ arg0: Path?, _ arg1: DirectoryStream.Filter<JavaObject>?) throws -> DirectoryStream<Path>!
+
+  @JavaStaticMethod
+  public fn newDirectoryStream(_ arg0: Path?) throws -> DirectoryStream<Path>!
+
+  @JavaStaticMethod
+  public fn createTempDirectory(_ arg0: Path?, _ arg1: String, _ arg2: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn createTempDirectory(_ arg0: String, _ arg1: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn createSymbolicLink(_ arg0: Path?, _ arg1: Path?, _ arg2: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn createLink(_ arg0: Path?, _ arg1: Path?) throws -> Path!
+
+  @JavaStaticMethod
+  public fn deleteIfExists(_ arg0: Path?) throws -> Boolean
+
+  @JavaStaticMethod
+  public fn move(_ arg0: Path?, _ arg1: Path?, _ arg2: [CopyOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn readSymbolicLink(_ arg0: Path?) throws -> Path!
+
+  @JavaStaticMethod
+  public fn getFileStore(_ arg0: Path?) throws -> FileStore!
+
+  @JavaStaticMethod
+  public fn isSameFile(_ arg0: Path?, _ arg1: Path?) throws -> Boolean
+
+  @JavaStaticMethod
+  public fn probeContentType(_ arg0: Path?) throws -> String
+
+  @JavaStaticMethod
+  public fn getFileAttributeView(_ arg0: Path?, _ arg1: JavaClass<FileAttributeView>?, _ arg2: [LinkOption?]) -> FileAttributeView!
+
+  @JavaStaticMethod
+  public fn setAttribute(_ arg0: Path?, _ arg1: String, _ arg2: JavaObject?, _ arg3: [LinkOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn setOwner(_ arg0: Path?, _ arg1: UserPrincipal?) throws -> Path!
+
+  @JavaStaticMethod
+  public fn isSymbolicLink(_ arg0: Path?) -> Boolean
+
+  @JavaStaticMethod
+  public fn isReadable(_ arg0: Path?) -> Boolean
+
+  @JavaStaticMethod
+  public fn isExecutable(_ arg0: Path?) -> Boolean
+
+  @JavaStaticMethod
+  public fn walkFileTree(_ arg0: Path?, _ arg1: JavaSet<FileVisitOption>?, _ arg2: Int32, _ arg3: FileVisitor<JavaObject>?) throws -> Path!
+
+  @JavaStaticMethod
+  public fn walkFileTree(_ arg0: Path?, _ arg1: FileVisitor<JavaObject>?) throws -> Path!
+
+  @JavaStaticMethod
+  public fn newBufferedReader(_ arg0: Path?, _ arg1: Charset?) throws -> BufferedReader!
+
+  @JavaStaticMethod
+  public fn newBufferedReader(_ arg0: Path?) throws -> BufferedReader!
+
+  @JavaStaticMethod
+  public fn newBufferedWriter(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> BufferedWriter!
+
+  @JavaStaticMethod
+  public fn newBufferedWriter(_ arg0: Path?, _ arg1: Charset?, _ arg2: [OpenOption?]) throws -> BufferedWriter!
+
+  @JavaStaticMethod
+  public fn readString(_ arg0: Path?) throws -> String
+
+  @JavaStaticMethod
+  public fn readString(_ arg0: Path?, _ arg1: Charset?) throws -> String
+
+  @JavaStaticMethod
+  public fn readAllLines(_ arg0: Path?, _ arg1: Charset?) throws -> List<JavaString>!
+
+  @JavaStaticMethod
+  public fn readAllLines(_ arg0: Path?) throws -> List<JavaString>!
+
+  @JavaStaticMethod
+  public fn writeString(_ arg0: Path?, _ arg1: CharSequence?, _ arg2: Charset?, _ arg3: [OpenOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn writeString(_ arg0: Path?, _ arg1: CharSequence?, _ arg2: [OpenOption?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn createFile(_ arg0: Path?, _ arg1: [FileAttribute<JavaObject>?]) throws -> Path!
+
+  @JavaStaticMethod
+  public fn getAttribute(_ arg0: Path?, _ arg1: String, _ arg2: [LinkOption?]) throws -> JavaObject!
+
+  @JavaStaticMethod
+  public fn getPosixFilePermissions(_ arg0: Path?, _ arg1: [LinkOption?]) throws -> JavaSet<PosixFilePermission>!
+
+  @JavaStaticMethod
+  public fn setPosixFilePermissions(_ arg0: Path?, _ arg1: JavaSet<PosixFilePermission>?) throws -> Path!
+}

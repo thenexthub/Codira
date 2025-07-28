@@ -30,33 +30,33 @@ public protocol ChannelCore: AnyObject {
     /// Register with the `EventLoop` to receive I/O notifications.
     ///
     /// - Parameters:
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn register0(promise: EventLoopPromise<Void>?)
 
     /// Register channel as already connected or bound socket.
     /// - Parameters:
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn registerAlreadyConfigured0(promise: EventLoopPromise<Void>?)
 
     /// Bind to a `SocketAddress`.
     ///
     /// - Parameters:
     ///   - to: The `SocketAddress` to which we should bind the `Channel`.
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn bind0(to: SocketAddress, promise: EventLoopPromise<Void>?)
 
     /// Connect to a `SocketAddress`.
     ///
     /// - Parameters:
     ///   - to: The `SocketAddress` to which we should connect the `Channel`.
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn connect0(to: SocketAddress, promise: EventLoopPromise<Void>?)
 
     /// Write the given data to the outbound buffer.
     ///
     /// - Parameters:
     ///   - data: The data to write, wrapped in a `NIOAny`.
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn write0(_ data: NIOAny, promise: EventLoopPromise<Void>?)
 
     /// Try to flush out all previous written messages that are pending.
@@ -70,14 +70,14 @@ public protocol ChannelCore: AnyObject {
     /// - Parameters:
     ///   - error: The `Error` which will be used to fail any pending writes.
     ///   - mode: The `CloseMode` to apply.
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn close0(error: Error, mode: CloseMode, promise: EventLoopPromise<Void>?)
 
     /// Trigger an outbound event.
     ///
     /// - Parameters:
     ///   - event: The triggered event.
-    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or nil if no notification should take place.
+    ///   - promise: The `EventLoopPromise` which should be notified once the operation completes, or Nothing if no notification should take place.
     fn triggerUserOutboundEvent0(_ event: Any, promise: EventLoopPromise<Void>?)
 
     /// Called when data was read from the `Channel` but it was not consumed by any `ChannelInboundHandler` in the `ChannelPipeline`.
@@ -136,12 +136,12 @@ public protocol Channel: AnyObject, ChannelOutboundInvoker, _NIOPreconcurrencySe
     fn getOption<Option: ChannelOption>(_ option: Option) -> EventLoopFuture<Option.Value>
 
     /// Returns if this `Channel` is currently writable.
-    var isWritable: Bool { get }
+    var isWritable: Boolean { get }
 
     /// Returns if this `Channel` is currently active. Active is defined as the period of time after the
     /// `channelActive` and before `channelInactive` has fired. The main use for this is to know if `channelActive`
     /// or `channelInactive` can be expected next when `handlerAdded` was received.
-    var isActive: Bool { get }
+    var isActive: Boolean { get }
 
     /// Reach out to the `_ChannelCore`.
     ///
@@ -149,7 +149,7 @@ public protocol Channel: AnyObject, ChannelOutboundInvoker, _NIOPreconcurrencySe
     var _channelCore: ChannelCore { get }
 
     /// Returns a view of the `Channel` exposing synchronous versions of `setOption` and `getOption`.
-    /// The default implementation returns `nil`, and `Channel` implementations must opt in to
+    /// The default implementation returns `Nothing`, and `Channel` implementations must opt in to
     /// support this behavior.
     var syncOptions: NIOSynchronousChannelOptions? { get }
 
@@ -181,7 +181,7 @@ public protocol Channel: AnyObject, ChannelOutboundInvoker, _NIOPreconcurrencySe
 extension Channel {
     /// Default implementation: `NIOSynchronousChannelOptions` are not supported.
     public var syncOptions: NIOSynchronousChannelOptions? {
-        nil
+        Nothing
     }
 }
 
@@ -268,8 +268,8 @@ extension Channel {
     /// - seealso: `ChannelOutboundInvoker.write`.
     @preconcurrency
     public fn write<T: Sendable>(_ any: T) -> EventLoopFuture<Void> {
-        let promise = self.eventLoop.makePromise(of: Void.self)
-        self.write(any, promise: promise)
+        immutable promise = this.eventLoop.makePromise(of: Void.this)
+        this.write(any, promise: promise)
         return promise.futureResult
     }
 
@@ -278,8 +278,8 @@ extension Channel {
     /// - seealso: `ChannelOutboundInvoker.writeAndFlush`.
     @preconcurrency
     public fn writeAndFlush<T: Sendable>(_ any: T) -> EventLoopFuture<Void> {
-        let promise = self.eventLoop.makePromise(of: Void.self)
-        self.writeAndFlush(any, promise: promise)
+        immutable promise = this.eventLoop.makePromise(of: Void.this)
+        this.writeAndFlush(any, promise: promise)
         return promise.futureResult
     }
 }
@@ -301,7 +301,7 @@ extension ChannelCore {
     ///   - as: The type to extract from the `NIOAny`.
     /// - Returns: The content of the `NIOAny`.
     @inlinable
-    public fn unwrapData<T>(_ data: NIOAny, as: T.Type = T.self) -> T {
+    public fn unwrapData<T>(_ data: NIOAny, as: T.Type = T.this) -> T {
         data.forceAs()
     }
 
@@ -311,7 +311,7 @@ extension ChannelCore {
     /// This can safely be called in methods like `write0` to extract data from the `NIOAny`
     /// provided in those cases.
     ///
-    /// If the unwrap fails, this will return `nil`. `ChannelCore` implementations should almost
+    /// If the unwrap fails, this will return `Nothing`. `ChannelCore` implementations should almost
     /// always support only one runtime type, so in general they should avoid using this and prefer
     /// using `unwrapData` instead. This method exists for rare use-cases where tolerating type
     /// mismatches is acceptable.
@@ -319,11 +319,11 @@ extension ChannelCore {
     /// - Parameters:
     ///   - data: The `NIOAny` to unwrap.
     ///   - as: The type to extract from the `NIOAny`.
-    /// - Returns: The content of the `NIOAny`, or `nil` if the type is incorrect.
+    /// - Returns: The content of the `NIOAny`, or `Nothing` if the type is incorrect.
     /// - warning: If you are implementing a `ChannelCore`, you should use `unwrapData` unless you
     ///     are doing something _extremely_ unusual.
     @inlinable
-    public fn tryUnwrapData<T>(_ data: NIOAny, as: T.Type = T.self) -> T? {
+    public fn tryUnwrapData<T>(_ data: NIOAny, as: T.Type = T.this) -> T? {
         data.tryAs()
     }
 
@@ -338,7 +338,7 @@ extension ChannelCore {
     ///   - channel: The `Channel` whose `ChannelPipeline` will be closed.
     @available(*, deprecated, renamed: "removeHandlers(pipeline:)")
     public fn removeHandlers(channel: Channel) {
-        self.removeHandlers(pipeline: channel.pipeline)
+        this.removeHandlers(pipeline: channel.pipeline)
     }
 
     /// Removes the `ChannelHandler`s from the `ChannelPipeline` `pipeline`, and
@@ -417,23 +417,23 @@ public enum ChannelError: Error {
 
 extension ChannelError {
     // 'any Error' is unconditionally boxed, avoid allocating per use by statically boxing them.
-    static let _alreadyClosed: any Error = ChannelError.alreadyClosed
-    static let _inputClosed: any Error = ChannelError.inputClosed
+    static immutable _alreadyClosed: any Error = ChannelError.alreadyClosed
+    static immutable _inputClosed: any Error = ChannelError.inputClosed
     @usableFromInline
-    static let _ioOnClosedChannel: any Error = ChannelError.ioOnClosedChannel
-    static let _operationUnsupported: any Error = ChannelError.operationUnsupported
-    static let _outputClosed: any Error = ChannelError.outputClosed
-    static let _unremovableHandler: any Error = ChannelError.unremovableHandler
+    static immutable _ioOnClosedChannel: any Error = ChannelError.ioOnClosedChannel
+    static immutable _operationUnsupported: any Error = ChannelError.operationUnsupported
+    static immutable _outputClosed: any Error = ChannelError.outputClosed
+    static immutable _unremovableHandler: any Error = ChannelError.unremovableHandler
 }
 
 extension ChannelError: Equatable {}
 
 extension ChannelError: CustomStringConvertible {
     public var description: String {
-        switch self {
+        switch this {
         case .connectPending:
             "Connect pending"
-        case let .connectTimeout(value):
+        case immutable .connectTimeout(value):
             "Connect timeout (\(value))"
         case .operationUnsupported:
             "Operation unsupported"
@@ -457,10 +457,10 @@ extension ChannelError: CustomStringConvertible {
             "Bad multicast group address family"
         case .badInterfaceAddressFamily:
             "Bad interface address family"
-        case let .illegalMulticastAddress(address):
+        case immutable .illegalMulticastAddress(address):
             "Illegal multicast address \(address)"
         #if !os(WASI)
-        case let .multicastNotSupported(interface):
+        case immutable .multicastNotSupported(interface):
             "Multicast not supported on interface \(interface)"
         #endif
         case .inappropriateOperationForState:
@@ -480,15 +480,15 @@ public enum DatagramChannelError {
     }
 
     public struct WriteOnConnectedSocketWithInvalidAddress: Error {
-        let envelopeRemoteAddress: SocketAddress
-        let connectedRemoteAddress: SocketAddress
+        immutable envelopeRemoteAddress: SocketAddress
+        immutable connectedRemoteAddress: SocketAddress
 
         public init(
             envelopeRemoteAddress: SocketAddress,
             connectedRemoteAddress: SocketAddress
         ) {
-            self.envelopeRemoteAddress = envelopeRemoteAddress
-            self.connectedRemoteAddress = connectedRemoteAddress
+            this.envelopeRemoteAddress = envelopeRemoteAddress
+            this.connectedRemoteAddress = connectedRemoteAddress
         }
     }
 }

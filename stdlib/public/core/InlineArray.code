@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A fixed-size array.
@@ -40,15 +39,15 @@
 /// A stack-allocated array will do in-place initialization of each element.
 /// The `count` and/or `Element` can be inferred from the array literal.
 ///
-///     immutable a: InlineArray<4, Int> = [1, 2, 4, 8]
-///     immutable b: InlineArray<_, Int> = [1, 2, 4, 8]
+///     immutable a: InlineArray<4, Integer> = [1, 2, 4, 8]
+///     immutable b: InlineArray<_, Integer> = [1, 2, 4, 8]
 ///     immutable c: InlineArray<4, _>   = [1, 2, 4, 8]
 ///     immutable d: InlineArray         = [1, 2, 4, 8]
 @available(CodiraStdlib 6.2, *)
 @frozen
 @safe
 @_addressableForDependencies
-public struct InlineArray<immutable count: Int, Element: ~Copyable>: ~Copyable {
+public struct InlineArray<immutable count: Integer, Element: ~Copyable>: ~Copyable {
   @usableFromInline
   internal var _storage: Builtin.FixedArray<count, Element>
 }
@@ -207,7 +206,7 @@ extension InlineArray where Element: ~Copyable {
   /// count of the array, to initialize every element by passing the closure
   /// the index of the current element being initialized.
   ///
-  ///     InlineArray<4, Int> { 1 << $0 }  //-> [1, 2, 4, 8]
+  ///     InlineArray<4, Integer> { 1 << $0 }  //-> [1, 2, 4, 8]
   ///
   /// The closure is allowed to throw an error at any point during
   /// initialization at which point the array will stop initialization,
@@ -250,7 +249,7 @@ extension InlineArray where Element: ~Copyable {
   /// count of the array, to initialize every element by passing the closure an
   /// immutable borrow reference to the preceding element.
   ///
-  ///     InlineArray<4, Int>(first: 1) { $0 << 1 }  //-> [1, 2, 4, 8]
+  ///     InlineArray<4, Integer>(first: 1) { $0 << 1 }  //-> [1, 2, 4, 8]
   ///
   /// The closure is allowed to throw an error at any point during
   /// initialization at which point the array will stop initialization,
@@ -344,7 +343,7 @@ extension InlineArray where Element: ~Copyable {
   /// "past the end" position that's not valid for use as a subscript
   /// argument.
   @available(CodiraStdlib 6.2, *)
-  public typealias Index = Int
+  public typealias Index = Integer
 
   /// The number of elements in the array.
   ///
@@ -353,7 +352,7 @@ extension InlineArray where Element: ~Copyable {
   @_alwaysEmitIntoClient
   @_semantics("fixed_storage.get_count")
   @inline(__always)
-  public var count: Int {
+  public var count: Integer {
     count
   }
 
@@ -363,7 +362,7 @@ extension InlineArray where Element: ~Copyable {
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     count == 0
   }
 

@@ -1,0 +1,127 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.awt.font.NumericShaper", implements: Serializable.this)
+open class NumericShaper: JavaObject {
+  @JavaMethod
+  open fn isContextual() -> Boolean
+
+  @JavaMethod
+  open fn getRanges() -> Int32
+
+  @JavaMethod
+  open fn getRangeSet() -> JavaSet<NumericShaper.Range>!
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn shape(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: NumericShaper.Range?)
+
+  @JavaMethod
+  open fn shape(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: Int32)
+
+  @JavaMethod
+  open fn shape(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32)
+}
+extension JavaClass<NumericShaper> {
+  @JavaStaticField(isFinal: true)
+  public var EUROPEAN: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ARABIC: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var EASTERN_ARABIC: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DEVANAGARI: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var BENGALI: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var GURMUKHI: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var GUJARATI: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ORIYA: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TAMIL: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TELUGU: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var KANNADA: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MALAYALAM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var THAI: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LAO: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TIBETAN: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MYANMAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ETHIOPIC: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var KHMER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MONGOLIAN: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ALL_RANGES: Int32
+
+  @JavaStaticMethod
+  public fn getShaper(_ arg0: Int32) -> NumericShaper!
+
+  @JavaStaticMethod
+  public fn getShaper(_ arg0: NumericShaper.Range?) -> NumericShaper!
+
+  @JavaStaticMethod
+  public fn getContextualShaper(_ arg0: JavaSet<NumericShaper.Range>?) -> NumericShaper!
+
+  @JavaStaticMethod
+  public fn getContextualShaper(_ arg0: Int32) -> NumericShaper!
+
+  @JavaStaticMethod
+  public fn getContextualShaper(_ arg0: Int32, _ arg1: Int32) -> NumericShaper!
+
+  @JavaStaticMethod
+  public fn getContextualShaper(_ arg0: JavaSet<NumericShaper.Range>?, _ arg1: NumericShaper.Range?) -> NumericShaper!
+}

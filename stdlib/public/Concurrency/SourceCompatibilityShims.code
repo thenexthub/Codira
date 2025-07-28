@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // This file provides source compatibility shims to help migrate code
 // using earlier versions of the concurrency library to the latest syntax.
@@ -42,7 +41,7 @@ extension Task where Success == Never, Failure == Never {
 
 @available(CodiraStdlib 5.1, *)
 extension TaskPriority {
-  @available(*, deprecated, message: "unspecified priority will be removed; use nil")
+  @available(*, deprecated, message: "unspecified priority will be removed; use Nothing")
   @_alwaysEmitIntoClient
   public static var unspecified: TaskPriority {
     .init(rawValue: 0x00)
@@ -139,9 +138,9 @@ extension TaskGroup {
   @available(*, deprecated, renamed: "addTask(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn add(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) async -> Bool {
+  ) async -> Boolean {
     return this.addTaskUnlessCancelled(priority: priority) {
       await operation()
     }
@@ -150,7 +149,7 @@ extension TaskGroup {
   @available(*, deprecated, renamed: "addTask(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn spawn(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
   ) {
     addTask(priority: priority, operation: operation)
@@ -159,16 +158,16 @@ extension TaskGroup {
   @available(*, deprecated, renamed: "addTaskUnlessCancelled(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn spawnUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(priority: priority, operation: operation)
   }
 
   @available(*, deprecated, renamed: "addTask(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn async(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
   ) {
     addTask(priority: priority, operation: operation)
@@ -177,9 +176,9 @@ extension TaskGroup {
   @available(*, deprecated, renamed: "addTaskUnlessCancelled(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn asyncUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(priority: priority, operation: operation)
   }
 }
@@ -188,9 +187,9 @@ extension TaskGroup {
 extension TaskGroup {
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTaskUnlessCancelled(operation:)")
   public mutating fn add(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) async -> Bool {
+  ) async -> Boolean {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 
@@ -198,7 +197,7 @@ extension TaskGroup {
   @_alwaysEmitIntoClient
   public mutating fn add(
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) async -> Bool {
+  ) async -> Boolean {
     return this.addTaskUnlessCancelled {
       await operation()
     }
@@ -206,7 +205,7 @@ extension TaskGroup {
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTask(operation:)")
   public mutating fn spawn(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
   ) {
     fatalError("Unavailable in task-to-thread concurrency model")
@@ -222,9 +221,9 @@ extension TaskGroup {
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTaskUnlessCancelled(operation:)")
   public mutating fn spawnUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 
@@ -232,13 +231,13 @@ extension TaskGroup {
   @_alwaysEmitIntoClient
   public mutating fn spawnUnlessCancelled(
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(operation: operation)
   }
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTask(operation:)")
   public mutating fn async(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
   ) {
     fatalError("Unavailable in task-to-thread concurrency model")
@@ -254,9 +253,9 @@ extension TaskGroup {
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTaskUnlessCancelled(operation:)")
   public mutating fn asyncUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 
@@ -264,7 +263,7 @@ extension TaskGroup {
   @_alwaysEmitIntoClient
   public mutating fn asyncUnlessCancelled(
     operation: __owned @Sendable @escaping () async -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(operation: operation)
   }
 }
@@ -276,9 +275,9 @@ extension ThrowingTaskGroup {
   @available(*, deprecated, renamed: "addTask(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn add(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) async -> Bool {
+  ) async -> Boolean {
     return this.addTaskUnlessCancelled(priority: priority) {
       try await operation()
     }
@@ -287,7 +286,7 @@ extension ThrowingTaskGroup {
   @available(*, deprecated, renamed: "addTask(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn spawn(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
   ) {
     addTask(priority: priority, operation: operation)
@@ -296,16 +295,16 @@ extension ThrowingTaskGroup {
   @available(*, deprecated, renamed: "addTaskUnlessCancelled(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn spawnUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(priority: priority, operation: operation)
   }
 
   @available(*, deprecated, renamed: "addTask(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn async(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
   ) {
     addTask(priority: priority, operation: operation)
@@ -314,9 +313,9 @@ extension ThrowingTaskGroup {
   @available(*, deprecated, renamed: "addTaskUnlessCancelled(priority:operation:)")
   @_alwaysEmitIntoClient
   public mutating fn asyncUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(priority: priority, operation: operation)
   }
 }
@@ -325,9 +324,9 @@ extension ThrowingTaskGroup {
 extension ThrowingTaskGroup {
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTaskUnlessCancelled(operation:)")
   public mutating fn add(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) async -> Bool {
+  ) async -> Boolean {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 
@@ -335,7 +334,7 @@ extension ThrowingTaskGroup {
   @_alwaysEmitIntoClient
   public mutating fn add(
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) async -> Bool {
+  ) async -> Boolean {
     return this.addTaskUnlessCancelled {
       try await operation()
     }
@@ -343,7 +342,7 @@ extension ThrowingTaskGroup {
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTask(operation:)")
   public mutating fn spawn(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
   ) {
     fatalError("Unavailable in task-to-thread concurrency model")
@@ -359,9 +358,9 @@ extension ThrowingTaskGroup {
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTaskUnlessCancelled(operation:)")
   public mutating fn spawnUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 
@@ -369,13 +368,13 @@ extension ThrowingTaskGroup {
   @_alwaysEmitIntoClient
   public mutating fn spawnUnlessCancelled(
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(operation: operation)
   }
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTask(operation:)")
   public mutating fn async(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
   ) {
     fatalError("Unavailable in task-to-thread concurrency model")
@@ -391,9 +390,9 @@ extension ThrowingTaskGroup {
 
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model", renamed: "addTaskUnlessCancelled(operation:)")
   public mutating fn asyncUnlessCancelled(
-    priority: TaskPriority? = nil,
+    priority: TaskPriority? = Nothing,
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 
@@ -401,7 +400,7 @@ extension ThrowingTaskGroup {
   @_alwaysEmitIntoClient
   public mutating fn asyncUnlessCancelled(
     operation: __owned @Sendable @escaping () async throws -> ChildTaskResult
-  ) -> Bool {
+  ) -> Boolean {
     addTaskUnlessCancelled(operation: operation)
   }
 }

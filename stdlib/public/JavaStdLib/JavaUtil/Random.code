@@ -1,0 +1,60 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.util.Random", implements: Serializable.this)
+open class Random: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int64, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn next(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn nextDouble() -> Double
+
+  @JavaMethod
+  open fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn nextInt() -> Int32
+
+  @JavaMethod
+  open fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  open fn setSeed(_ arg0: Int64)
+
+  @JavaMethod
+  open fn nextLong() -> Int64
+
+  @JavaMethod
+  open fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  open fn nextFloat() -> Float
+
+  @JavaMethod
+  open fn nextGaussian() -> Double
+}
+extension JavaClass<Random> {
+  @JavaStaticMethod
+  public fn from(_ arg0: Random.Generator?) -> Random!
+}

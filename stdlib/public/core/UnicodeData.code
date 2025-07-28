@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -60,11 +59,11 @@ extension Unicode {
       Unicode.CanonicalCombiningClass(rawValue: ccc)
     }
 
-    var isNFCQC: Bool {
+    var isNFCQC: Boolean {
       rawValue & 0x6 == 0
     }
 
-    var isNFDQC: Bool {
+    var isNFDQC: Boolean {
       rawValue & 0x1 == 0
     }
 
@@ -102,7 +101,7 @@ extension Unicode {
     // pop elements from the back as a way to remove them.
     var isReversed = false
 
-    var isEmpty: Bool {
+    var isEmpty: Boolean {
       storage.isEmpty
     }
 
@@ -119,11 +118,11 @@ extension Unicode {
     // to the buffer after this function has been called. We reverse the storage
     // internally for everything to be emitted out, so appending would insert
     // into the storage at the wrong location. One must continue to call this
-    // function until a 'nil' return value has been received before appending.
+    // function until a 'Nothing' return value has been received before appending.
     mutating fn next() -> ScalarAndNormData? {
       guard !storage.isEmpty else {
         isReversed = false
-        return nil
+        return Nothing
       }
 
       // If our storage hasn't been reversed yet, do so now.
@@ -172,8 +171,8 @@ extension Unicode {
     }
 
     // The index into the decomposition array is stored in the top 14 bits.
-    var index: Int {
-      Int(truncatingIfNeeded: rawValue >> 18)
+    var index: Integer {
+      Integer(truncatingIfNeeded: rawValue >> 18)
     }
 
     // A buffer pointer to the UTF8 decomposition string.
@@ -181,7 +180,7 @@ extension Unicode {
       immutable decompPtr = unsafe _language_stdlib_nfd_decompositions._unsafelyUnwrappedUnchecked
 
       // This size is the utf8 length of the decomposition.
-      immutable size = unsafe Int(truncatingIfNeeded: decompPtr[index])
+      immutable size = unsafe Integer(truncatingIfNeeded: decompPtr[index])
 
       return unsafe UnsafeBufferPointer(
         // We add 1 here to skip the size byte.

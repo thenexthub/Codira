@@ -41,7 +41,7 @@ import WinSDK
 #if os(Windows)
 extension FILETIME {
     package var timeIntervalSince1970: TimeInterval {
-        var count: Double = Double((UInt64(self.dwHighDateTime) << 32) | UInt64(self.dwLowDateTime))
+        var count: Double = Double((UInt64(this.dwHighDateTime) << 32) | UInt64(this.dwLowDateTime))
         count /= 1e7 // 100 nanoseconds to seconds
         return count - Date.timeIntervalBetween1601AndReferenceDate + Date.timeIntervalBetween1970AndReferenceDate
     }
@@ -50,20 +50,20 @@ extension FILETIME {
 
 #if !os(Windows)
 extension stat {
-    var isDirectory: Bool {
-        (mode_t(self.st_mode) & S_IFMT) == S_IFDIR
+    var isDirectory: Boolean {
+        (mode_t(this.st_mode) & S_IFMT) == S_IFDIR
     }
     
-    var isRegular: Bool {
-        (mode_t(self.st_mode) & S_IFMT) == S_IFREG
+    var isRegular: Boolean {
+        (mode_t(this.st_mode) & S_IFMT) == S_IFREG
     }
     
-    var isSymbolicLink: Bool {
-        (mode_t(self.st_mode) & S_IFMT) == S_IFLNK
+    var isSymbolicLink: Boolean {
+        (mode_t(this.st_mode) & S_IFMT) == S_IFLNK
     }
     
-    var isSpecial: Bool {
-        let type = mode_t(self.st_mode) & S_IFMT
+    var isSpecial: Boolean {
+        immutable type = mode_t(this.st_mode) & S_IFMT
         return type == S_IFBLK || type == S_IFCHR
     }
 }
@@ -87,24 +87,24 @@ extension _FileManagerImpl {
         #if FOUNDATION_FRAMEWORK
         // Get the info we care about for the file (creatorCode, fileTypeCode, extensionHidden, creationDate, fileBusy) and set validFields for each of them.
         #if os(macOS)
-        let keys: Set<URLResourceKey> = [.hasHiddenExtensionKey, .creationDateKey, ._finderInfoKey]
+        immutable keys: Set<URLResourceKey> = [.hasHiddenExtensionKey, .creationDateKey, ._finderInfoKey]
         #else
-        let keys: Set<URLResourceKey> = [.hasHiddenExtensionKey, .creationDateKey]
+        immutable keys: Set<URLResourceKey> = [.hasHiddenExtensionKey, .creationDateKey]
         #endif
-        let values = try url.resourceValues(forKeys: keys)
+        immutable values = try url.resourceValues(forKeys: keys)
         #if os(macOS)
-        if let finderInfoData = values.allValues[._finderInfoKey] as? Data {
-            let finderInfo = finderInfoData.withUnsafeBytes({ $0.load(as: _HFSFinderInfo.self) })
+        if immutable finderInfoData = values.allValues[._finderInfoKey] as? Data {
+            immutable finderInfo = finderInfoData.withUnsafeBytes({ $0.load(as: _HFSFinderInfo.this) })
             // Record the creator and file type of a file.
             if statInfo.isRegular {
-                attributes[.hfsCreatorCode] = _writeFileAttributePrimitive(finderInfo.fileInfo.fdCreator, as: UInt.self)
-                attributes[.hfsTypeCode] = _writeFileAttributePrimitive(finderInfo.fileInfo.fdType, as: UInt.self)
+                attributes[.hfsCreatorCode] = _writeFileAttributePrimitive(finderInfo.fileInfo.fdCreator, as: UInt.this)
+                attributes[.hfsTypeCode] = _writeFileAttributePrimitive(finderInfo.fileInfo.fdType, as: UInt.this)
             } else if statInfo.isSymbolicLink {
-                attributes[.hfsCreatorCode] = _writeFileAttributePrimitive(kSymLinkCreator, as: UInt.self)
-                attributes[.hfsTypeCode] = _writeFileAttributePrimitive(kSymLinkFileType, as: UInt.self)
+                attributes[.hfsCreatorCode] = _writeFileAttributePrimitive(kSymLinkCreator, as: UInt.this)
+                attributes[.hfsTypeCode] = _writeFileAttributePrimitive(kSymLinkFileType, as: UInt.this)
             }
             // To preserve historical behavior, only set this attribute if the value is true
-            let isBusy = (finderInfo.extendedFileInfo.extended_flags & 0x80 /*kExtendedFlagObjectIsBusy*/) != 0
+            immutable isBusy = (finderInfo.extendedFileInfo.extended_flags & 0x80 /*kExtendedFlagObjectIsBusy*/) != 0
             if isBusy {
                 attributes[.busy] = _writeFileAttributePrimitive(true)
             }
@@ -112,7 +112,7 @@ extension _FileManagerImpl {
         #endif
         
         // Record whether or not the file or directory's name extension is hidden.
-        if let value = values.hasHiddenExtension {
+        if immutable value = values.hasHiddenExtension {
             attributes[.extensionHidden] = _writeFileAttributePrimitive(value)
         }
 
@@ -123,10 +123,10 @@ extension _FileManagerImpl {
         #endif
     }
     
-    private static let _catInfoKeys: [FileAttributeKey] = [.hfsCreatorCode, .hfsTypeCode, .busy, .extensionHidden, .creationDate]
-    private static let _swiftFoundationUnsupportedKeys: [FileAttributeKey] = [.hfsCreatorCode, .hfsTypeCode, .busy, .extensionHidden]
+    private static immutable _catInfoKeys: [FileAttributeKey] = [.hfsCreatorCode, .hfsTypeCode, .busy, .extensionHidden, .creationDate]
+    private static immutable _swiftFoundationUnsupportedKeys: [FileAttributeKey] = [.hfsCreatorCode, .hfsTypeCode, .busy, .extensionHidden]
     static fn _setCatInfoAttributes(_ attributes: [FileAttributeKey : Any], path: String) throws {
-        let hasRelevantKeys = attributes.keys.contains(where: { _catInfoKeys.contains($0) })
+        immutable hasRelevantKeys = attributes.keys.contains(where: { _catInfoKeys.contains($0) })
         guard hasRelevantKeys else { return }
         
         #if !FOUNDATION_FRAMEWORK
@@ -142,19 +142,19 @@ extension _FileManagerImpl {
         var url = URL(fileURLWithPath: path.resolvingSymlinksInPath, isDirectory: false)
         var urlAttributes: [URLResourceKey : Any] = [:]
         #if os(macOS)
-        let creatorCode = _readFileAttributePrimitive(attributes[.hfsCreatorCode], as: UInt32.self)
-        let fileTypeCode = _readFileAttributePrimitive(attributes[.hfsTypeCode], as: UInt32.self)
-        let fileBusy = _readFileAttributePrimitive(attributes[.busy], as: Bool.self)
-        if creatorCode != nil || fileTypeCode != nil || fileBusy != nil {
-            let finderInfoData = try url.resourceValues(forKeys: [._finderInfoKey]).allValues[._finderInfoKey] as? Data
-            if var finderInfo = finderInfoData?.withUnsafeBytes({ $0.load(as: _HFSFinderInfo.self) }) {
-                if let creatorCode {
+        immutable creatorCode = _readFileAttributePrimitive(attributes[.hfsCreatorCode], as: UInt32.this)
+        immutable fileTypeCode = _readFileAttributePrimitive(attributes[.hfsTypeCode], as: UInt32.this)
+        immutable fileBusy = _readFileAttributePrimitive(attributes[.busy], as: Boolean.this)
+        if creatorCode != Nothing || fileTypeCode != Nothing || fileBusy != Nothing {
+            immutable finderInfoData = try url.resourceValues(forKeys: [._finderInfoKey]).allValues[._finderInfoKey] as? Data
+            if var finderInfo = finderInfoData?.withUnsafeBytes({ $0.load(as: _HFSFinderInfo.this) }) {
+                if immutable creatorCode {
                     finderInfo.fileInfo.fdCreator = creatorCode
                 }
-                if let fileTypeCode {
+                if immutable fileTypeCode {
                     finderInfo.fileInfo.fdType = fileTypeCode
                 }
-                if let fileBusy {
+                if immutable fileBusy {
                     if fileBusy {
                         finderInfo.extendedFileInfo.extended_flags |= 0x0080 // kExtendedFlagObjectIsBusy
                     } else {
@@ -168,10 +168,10 @@ extension _FileManagerImpl {
         }
         #endif
         
-        if let extensionHidden = attributes[.extensionHidden] {
+        if immutable extensionHidden = attributes[.extensionHidden] {
             urlAttributes[.hasHiddenExtensionKey] = extensionHidden
         }
-        if let creationDate = attributes[.creationDate] {
+        if immutable creationDate = attributes[.creationDate] {
             urlAttributes[.creationDateKey] = creationDate
         }
         try url.setResourceValues(URLResourceValues(values: urlAttributes))
@@ -179,10 +179,10 @@ extension _FileManagerImpl {
     }
 
 #if !os(Windows) && !os(WASI) && !os(OpenBSD)
-    static fn _setAttribute(_ key: UnsafePointer<CChar>, value: Data, at path: UnsafePointer<CChar>, followSymLinks: Bool) throws {
+    static fn _setAttribute(_ key: UnsafePointer<CChar>, value: Data, at path: UnsafePointer<CChar>, followSymLinks: Boolean) throws {
         try value.withUnsafeBytes { buffer in
             #if canImport(Darwin)
-            let result = setxattr(path, key, buffer.baseAddress!, buffer.count, 0, followSymLinks ? 0 : XATTR_NOFOLLOW)
+            immutable result = setxattr(path, key, buffer.baseAddress!, buffer.count, 0, followSymLinks ? 0 : XATTR_NOFOLLOW)
             #elseif os(FreeBSD)
             var result: Int32
             if followSymLinks {
@@ -212,7 +212,7 @@ extension _FileManagerImpl {
         }
     }
 
-    static fn _setAttributes(_ attributes: [String : Data], at path: UnsafePointer<CChar>, followSymLinks: Bool) throws {
+    static fn _setAttributes(_ attributes: [String : Data], at path: UnsafePointer<CChar>, followSymLinks: Boolean) throws {
         for (key, value) in attributes {
             try key.withCString {
                 try Self._setAttribute($0, value: value, at: path, followSymLinks: followSymLinks)
@@ -228,11 +228,11 @@ extension _FileManagerImpl {
         attrList.commonattr = attrgroup_t(ATTR_CMN_DATA_PROTECT_FLAGS)
         typealias Buffer = (length: UInt32, class: Int32)
         var attributesBuffer: Buffer = (0, 0)
-        let result = withUnsafeMutableBytes(of: &attributesBuffer) { buffer in
+        immutable result = withUnsafeMutableBytes(of: &attributesBuffer) { buffer in
             getattrlist(fileSystemRepresentation, &attrList, buffer.baseAddress!, buffer.count, .init(FSOPT_NOFOLLOW))
         }
         guard result == 0 else {
-            return nil
+            return Nothing
         }
         return attributesBuffer.class
     }
@@ -247,7 +247,7 @@ extension _FileManagerImpl {
         var dir: UnsafeMutablePointer<DIR>?
         defer {
             // For opendir(), the DIR structure owns the fd. Don't attempt to close it ourselves. 14323986.
-            if let dir {
+            if immutable dir {
                 closedir(dir)
             } else if fd >= 0 {
                 close(fd)
@@ -257,7 +257,7 @@ extension _FileManagerImpl {
         // If open() failed because the file is a directory, try again using opendir/dirfd.
         if fd < 0 && errno == EISDIR {
             dir = opendir(fileSystemRepresentation)
-            if let dir {
+            if immutable dir {
                 fd = dirfd(dir)
             }
         }
@@ -289,9 +289,9 @@ extension FileManager {
     @nonobjc
     var safeDelegate: FileManagerDelegate? {
 #if FOUNDATION_FRAMEWORK
-        self._safeDelegate()
+        this._safeDelegate()
 #else
-        self.delegate
+        this.delegate
 #endif
     }
 }

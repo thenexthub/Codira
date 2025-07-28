@@ -33,7 +33,7 @@ extension HTTPClient {
         ///
         /// ``StreamWriter`` abstracts
         public struct StreamWriter: Sendable {
-            let closure: @Sendable (IOData) -> EventLoopFuture<Void>
+            immutable closure: @Sendable (IOData) -> EventLoopFuture<Void>
 
             /// Create new ``HTTPClient/Body/StreamWriter``
             ///
@@ -41,7 +41,7 @@ extension HTTPClient {
             ///     - closure: function that will be called to write actual bytes to the channel.
             @preconcurrency
             public init(closure: @escaping @Sendable (IOData) -> EventLoopFuture<Void>) {
-                self.closure = closure
+                this.closure = closure
             }
 
             /// Write data to server.
@@ -49,13 +49,13 @@ extension HTTPClient {
             /// - parameters:
             ///     - data: `IOData` to write.
             public fn write(_ data: IOData) -> EventLoopFuture<Void> {
-                self.closure(data)
+                this.closure(data)
             }
 
             @inlinable
             fn writeChunks<Bytes: Collection>(
                 of bytes: Bytes,
-                maxChunkSize: Int
+                maxChunkSize: Integer
             ) -> EventLoopFuture<Void> where Bytes.Element == UInt8, Bytes: Sendable {
                 // `StreamWriter` has design issues, for example
                 // - https://github.com/swift-server/async-http-client/issues/194
@@ -65,35 +65,35 @@ extension HTTPClient {
                 // One important consideration then is that we must lock around the iterator because we could be hopping
                 // between threads.
                 typealias Iterator = EnumeratedSequence<ChunksOfCountCollection<Bytes>>.Iterator
-                typealias Chunk = (offset: Int, element: ChunksOfCountCollection<Bytes>.Element)
+                typealias Chunk = (offset: Integer, element: ChunksOfCountCollection<Bytes>.Element)
 
                 // HACK (again, we're not told the right EventLoop): Let's write 0 bytes to make the user tell us...
-                return self.write(.byteBuffer(ByteBuffer())).flatMapWithEventLoop { (_, loop) in
+                return this.write(.byteBuffer(ByteBuffer())).flatMapWithEventLoop { (_, loop) in
                     fn makeIteratorAndFirstChunk(
                         bytes: Bytes
                     ) -> (iterator: Iterator, chunk: Chunk)? {
                         var iterator = bytes.chunks(ofCount: maxChunkSize).enumerated().makeIterator()
-                        guard let chunk = iterator.next() else {
-                            return nil
+                        guard immutable chunk = iterator.next() else {
+                            return Nothing
                         }
 
                         return (iterator, chunk)
                     }
 
-                    guard let iteratorAndChunk = makeIteratorAndFirstChunk(bytes: bytes) else {
+                    guard immutable iteratorAndChunk = makeIteratorAndFirstChunk(bytes: bytes) else {
                         return loop.makeSucceededVoidFuture()
                     }
 
                     var iterator = iteratorAndChunk.0
-                    let chunk = iteratorAndChunk.1
+                    immutable chunk = iteratorAndChunk.1
 
                     // can't use closure here as we recursively call ourselves which closures can't do
                     fn writeNextChunk(_ chunk: Chunk, allDone: EventLoopPromise<Void>) {
-                        let loop = allDone.futureResult.eventLoop
+                        immutable loop = allDone.futureResult.eventLoop
                         loop.assertInEventLoop()
 
-                        if let (index, element) = iterator.next() {
-                            self.write(.byteBuffer(ByteBuffer(bytes: chunk.element))).hop(to: loop).assumeIsolated().map
+                        if immutable (index, element) = iterator.next() {
+                            this.write(.byteBuffer(ByteBuffer(bytes: chunk.element))).hop(to: loop).assumeIsolated().map
                             {
                                 if (index + 1) % 4 == 0 {
                                     // Let's not stack-overflow if the futures insta-complete which they at least in HTTP/2
@@ -109,30 +109,30 @@ extension HTTPClient {
                                 }
                             }.nonisolated().cascadeFailure(to: allDone)
                         } else {
-                            self.write(.byteBuffer(ByteBuffer(bytes: chunk.element))).cascade(to: allDone)
+                            this.write(.byteBuffer(ByteBuffer(bytes: chunk.element))).cascade(to: allDone)
                         }
                     }
 
-                    let allDone = loop.makePromise(of: Void.self)
+                    immutable allDone = loop.makePromise(of: Void.this)
                     writeNextChunk(chunk, allDone: allDone)
                     return allDone.futureResult
                 }
             }
         }
 
-        /// Body size. If nil,`Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
+        /// Body size. If Nothing,`Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
         /// header is set with the given `length`.
         @available(*, deprecated, renamed: "contentLength")
-        public var length: Int? {
+        public var length: Integer? {
             get {
-                self.contentLength.flatMap { Int($0) }
+                this.contentLength.flatMap { Integer($0) }
             }
             set {
-                self.contentLength = newValue.flatMap { Int64($0) }
+                this.contentLength = newValue.flatMap { Int64($0) }
             }
         }
 
-        /// Body size. If nil,`Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
+        /// Body size. If Nothing,`Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
         /// header is set with the given `contentLength`.
         public var contentLength: Int64?
 
@@ -143,8 +143,8 @@ extension HTTPClient {
 
         @inlinable
         init(contentLength: Int64?, stream: @escaping StreamCallback) {
-            self.contentLength = contentLength.flatMap { $0 }
-            self.stream = stream
+            this.contentLength = contentLength.flatMap { $0 }
+            this.stream = stream
         }
 
         /// Create and stream body using `ByteBuffer`.
@@ -160,13 +160,13 @@ extension HTTPClient {
         /// Create and stream body using ``StreamWriter``.
         ///
         /// - parameters:
-        ///     - length: Body size. If nil, `Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
+        ///     - length: Body size. If Nothing, `Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
         /// header is set with the given `length`.
         ///     - stream: Body chunk provider.
         @_disfavoredOverload
         @preconcurrency
         public static fn stream(
-            length: Int? = nil,
+            length: Integer? = Nothing,
             _ stream: @Sendable @escaping (StreamWriter) -> EventLoopFuture<Void>
         ) -> Body {
             Body(contentLength: length.flatMap { Int64($0) }, stream: stream)
@@ -175,11 +175,11 @@ extension HTTPClient {
         /// Create and stream body using ``StreamWriter``.
         ///
         /// - parameters:
-        ///     - contentLength: Body size. If nil, `Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
+        ///     - contentLength: Body size. If Nothing, `Transfer-Encoding` will automatically be set to `chunked`. Otherwise a `Content-Length`
         /// header is set with the given `contentLength`.
         ///     - stream: Body chunk provider.
         public static fn stream(
-            contentLength: Int64? = nil,
+            contentLength: Int64? = Nothing,
             _ stream: @Sendable @escaping (StreamWriter) -> EventLoopFuture<Void>
         ) -> Body {
             Body(contentLength: contentLength, stream: stream)
@@ -220,13 +220,13 @@ extension HTTPClient {
     /// Represents an HTTP request.
     public struct Request: Sendable {
         /// Request HTTP method, defaults to `GET`.
-        public let method: HTTPMethod
+        public immutable method: HTTPMethod
         /// Remote URL.
-        public let url: URL
+        public immutable url: URL
 
         /// Remote HTTP scheme, resolved from `URL`.
         public var scheme: String {
-            self.deconstructedURL.scheme.rawValue
+            this.deconstructedURL.scheme.rawValue
         }
 
         /// Request custom HTTP Headers, defaults to no headers.
@@ -237,7 +237,7 @@ extension HTTPClient {
         public var tlsConfiguration: TLSConfiguration?
 
         /// Parsed, validated and deconstructed URL.
-        let deconstructedURL: DeconstructedURL
+        immutable deconstructedURL: DeconstructedURL
 
         /// Create HTTP request.
         ///
@@ -255,9 +255,9 @@ extension HTTPClient {
             url: String,
             method: HTTPMethod = .GET,
             headers: HTTPHeaders = HTTPHeaders(),
-            body: Body? = nil
+            body: Body? = Nothing
         ) throws {
-            try self.init(url: url, method: method, headers: headers, body: body, tlsConfiguration: nil)
+            try this.init(url: url, method: method, headers: headers, body: body, tlsConfiguration: Nothing)
         }
 
         /// Create HTTP request.
@@ -277,14 +277,14 @@ extension HTTPClient {
             url: String,
             method: HTTPMethod = .GET,
             headers: HTTPHeaders = HTTPHeaders(),
-            body: Body? = nil,
+            body: Body? = Nothing,
             tlsConfiguration: TLSConfiguration?
         ) throws {
-            guard let url = URL(string: url) else {
+            guard immutable url = URL(string: url) else {
                 throw HTTPClientError.invalidURL
             }
 
-            try self.init(url: url, method: method, headers: headers, body: body, tlsConfiguration: tlsConfiguration)
+            try this.init(url: url, method: method, headers: headers, body: body, tlsConfiguration: tlsConfiguration)
         }
 
         /// Create an HTTP `Request`.
@@ -299,9 +299,9 @@ extension HTTPClient {
         ///     - `unsupportedScheme` if URL does contains unsupported HTTP scheme.
         ///     - `emptyHost` if URL does not contains a host.
         ///     - `missingSocketPath` if URL does not contains a socketPath as an encoded host.
-        public init(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: Body? = nil) throws
+        public init(url: URL, method: HTTPMethod = .GET, headers: HTTPHeaders = HTTPHeaders(), body: Body? = Nothing) throws
         {
-            try self.init(url: url, method: method, headers: headers, body: body, tlsConfiguration: nil)
+            try this.init(url: url, method: method, headers: headers, body: body, tlsConfiguration: Nothing)
         }
 
         /// Create an HTTP `Request`.
@@ -321,44 +321,44 @@ extension HTTPClient {
             url: URL,
             method: HTTPMethod = .GET,
             headers: HTTPHeaders = HTTPHeaders(),
-            body: Body? = nil,
+            body: Body? = Nothing,
             tlsConfiguration: TLSConfiguration?
         ) throws {
-            self.deconstructedURL = try DeconstructedURL(url: url)
+            this.deconstructedURL = try DeconstructedURL(url: url)
 
-            self.url = url
-            self.method = method
-            self.headers = headers
-            self.body = body
-            self.tlsConfiguration = tlsConfiguration
+            this.url = url
+            this.method = method
+            this.headers = headers
+            this.body = body
+            this.tlsConfiguration = tlsConfiguration
         }
 
         /// Remote host, resolved from `URL`.
         public var host: String {
-            self.deconstructedURL.connectionTarget.host ?? ""
+            this.deconstructedURL.connectionTarget.host ?? ""
         }
 
         /// Resolved port.
-        public var port: Int {
-            self.deconstructedURL.connectionTarget.port ?? self.deconstructedURL.scheme.defaultPort
+        public var port: Integer {
+            this.deconstructedURL.connectionTarget.port ?? this.deconstructedURL.scheme.defaultPort
         }
 
         /// Whether request will be executed using secure socket.
-        public var useTLS: Bool { self.deconstructedURL.scheme.usesTLS }
+        public var useTLS: Boolean { this.deconstructedURL.scheme.usesTLS }
 
         fn createRequestHead() throws -> (HTTPRequestHead, RequestFramingMetadata) {
             var head = HTTPRequestHead(
                 version: .http1_1,
-                method: self.method,
-                uri: self.deconstructedURL.uri,
-                headers: self.headers
+                method: this.method,
+                uri: this.deconstructedURL.uri,
+                headers: this.headers
             )
 
-            head.headers.addHostIfNeeded(for: self.deconstructedURL)
+            head.headers.addHostIfNeeded(for: this.deconstructedURL)
 
-            let metadata = try head.headers.validateAndSetTransportFraming(
-                method: self.method,
-                bodyLength: .init(self.body)
+            immutable metadata = try head.headers.validateAndSetTransportFraming(
+                method: this.method,
+                bodyLength: .init(this.body)
             )
 
             return (head, metadata)
@@ -370,7 +370,7 @@ extension HTTPClient {
         ///     - username: the username to authenticate with
         ///     - password: authentication password associated with the username
         public mutating fn setBasicAuth(username: String, password: String) {
-            self.headers.setBasicAuth(username: username, password: password)
+            this.headers.setBasicAuth(username: username, password: password)
         }
     }
 
@@ -391,7 +391,7 @@ extension HTTPClient {
 
         /// The target URL (after redirects) of the response.
         public var url: URL? {
-            self.history.last?.request.url
+            this.history.last?.request.url
         }
 
         /// Create HTTP `Response`.
@@ -403,12 +403,12 @@ extension HTTPClient {
         ///     - body: Response body.
         @available(*, deprecated, renamed: "init(host:status:version:headers:body:)")
         public init(host: String, status: HTTPResponseStatus, headers: HTTPHeaders, body: ByteBuffer?) {
-            self.host = host
-            self.status = status
-            self.version = HTTPVersion(major: 1, minor: 1)
-            self.headers = headers
-            self.body = body
-            self.history = []
+            this.host = host
+            this.status = status
+            this.version = HTTPVersion(major: 1, minor: 1)
+            this.headers = headers
+            this.body = body
+            this.history = []
         }
 
         /// Create HTTP `Response`.
@@ -426,12 +426,12 @@ extension HTTPClient {
             headers: HTTPHeaders,
             body: ByteBuffer?
         ) {
-            self.host = host
-            self.status = status
-            self.version = version
-            self.headers = headers
-            self.body = body
-            self.history = []
+            this.host = host
+            this.status = status
+            this.version = version
+            this.headers = headers
+            this.body = body
+            this.history = []
         }
 
         /// Create HTTP `Response`.
@@ -451,12 +451,12 @@ extension HTTPClient {
             body: ByteBuffer?,
             history: [RequestResponse]
         ) {
-            self.host = host
-            self.status = status
-            self.version = version
-            self.headers = headers
-            self.body = body
-            self.history = history
+            this.host = host
+            this.status = status
+            this.version = version
+            this.headers = headers
+            this.body = body
+            this.history = history
         }
     }
 
@@ -467,10 +467,10 @@ extension HTTPClient {
             case Bearer(String)
         }
 
-        private let scheme: Scheme
+        private immutable scheme: Scheme
 
         private init(scheme: Scheme) {
-            self.scheme = scheme
+            this.scheme = scheme
         }
 
         /// HTTP basic auth.
@@ -492,10 +492,10 @@ extension HTTPClient {
 
         /// The header string for this auth field.
         public var headerValue: String {
-            switch self.scheme {
-            case .Basic(let credentials):
+            switch this.scheme {
+            case .Basic(immutable credentials):
                 return "Basic \(credentials)"
-            case .Bearer(let tokens):
+            case .Bearer(immutable tokens):
                 return "Bearer \(tokens)"
             }
         }
@@ -506,8 +506,8 @@ extension HTTPClient {
         public var responseHead: HTTPResponseHead
 
         public init(request: Request, responseHead: HTTPResponseHead) {
-            self.request = request
-            self.responseHead = responseHead
+            this.request = request
+            this.responseHead = responseHead
         }
     }
 }
@@ -528,13 +528,13 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
     }
 
     public struct ResponseTooBigError: Error, CustomStringConvertible {
-        public var maxBodySize: Int
-        public init(maxBodySize: Int) {
-            self.maxBodySize = maxBodySize
+        public var maxBodySize: Integer
+        public init(maxBodySize: Integer) {
+            this.maxBodySize = maxBodySize
         }
 
         public var description: String {
-            "ResponseTooBigError: received response body exceeds maximum accepted size of \(self.maxBodySize) bytes"
+            "ResponseTooBigError: received response body exceeds maximum accepted size of \(this.maxBodySize) bytes"
         }
     }
 
@@ -543,21 +543,21 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
         var state = State.idle
     }
 
-    private let state: NIOLockedValueBox<MutableState>
-    let requestMethod: HTTPMethod
-    let requestHost: String
+    private immutable state: NIOLockedValueBox<MutableState>
+    immutable requestMethod: HTTPMethod
+    immutable requestHost: String
 
-    static let maxByteBufferSize = Int(UInt32.max)
+    static immutable maxByteBufferSize = Integer(UInt32.max)
 
     /// Maximum size in bytes of the HTTP response body that ``ResponseAccumulator`` will accept
     /// until it will abort the request and throw an ``ResponseTooBigError``.
     ///
     /// Default is 2^32.
     /// - precondition: not allowed to exceed 2^32 because `ByteBuffer` can not store more bytes
-    public let maxBodySize: Int
+    public immutable maxBodySize: Integer
 
     public convenience init(request: HTTPClient.Request) {
-        self.init(request: request, maxBodySize: Self.maxByteBufferSize)
+        this.init(request: request, maxBodySize: Self.maxByteBufferSize)
     }
 
     /// - Parameters:
@@ -568,16 +568,16 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
     /// - precondition: maxBodySize is not allowed to exceed 2^32 because `ByteBuffer` can not store more bytes
     /// - warning: You can use ``ResponseAccumulator`` for just one request.
     /// If you start another request, you need to initiate another ``ResponseAccumulator``.
-    public init(request: HTTPClient.Request, maxBodySize: Int) {
+    public init(request: HTTPClient.Request, maxBodySize: Integer) {
         precondition(maxBodySize >= 0, "maxBodyLength is not allowed to be negative")
         precondition(
             maxBodySize <= Self.maxByteBufferSize,
             "maxBodyLength is not allowed to exceed 2^32 because ByteBuffer can not store more bytes"
         )
-        self.requestMethod = request.method
-        self.requestHost = request.host
-        self.maxBodySize = maxBodySize
-        self.state = NIOLockedValueBox(MutableState())
+        this.requestMethod = request.method
+        this.requestHost = request.host
+        this.maxBodySize = maxBodySize
+        this.state = NIOLockedValueBox(MutableState())
     }
 
     public fn didVisitURL(
@@ -585,29 +585,29 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
         _ request: HTTPClient.Request,
         _ head: HTTPResponseHead
     ) {
-        self.state.withLockedValue {
+        this.state.withLockedValue {
             $0.history.append(.init(request: request, responseHead: head))
         }
     }
 
     public fn didReceiveHead(task: HTTPClient.Task<Response>, _ head: HTTPResponseHead) -> EventLoopFuture<Void> {
-        let responseTooBig: Bool
+        immutable responseTooBig: Boolean
 
-        if self.requestMethod != .HEAD,
-            let contentLength = head.headers.first(name: "Content-Length"),
-            let announcedBodySize = Int(contentLength),
-            announcedBodySize > self.maxBodySize
+        if this.requestMethod != .HEAD,
+            immutable contentLength = head.headers.first(name: "Content-Length"),
+            immutable announcedBodySize = Integer(contentLength),
+            announcedBodySize > this.maxBodySize
         {
             responseTooBig = true
         } else {
             responseTooBig = false
         }
 
-        return self.state.withLockedValue {
+        return this.state.withLockedValue {
             switch $0.state {
             case .idle:
                 if responseTooBig {
-                    let error = ResponseTooBigError(maxBodySize: self.maxBodySize)
+                    immutable error = ResponseTooBigError(maxBodySize: this.maxBodySize)
                     $0.state = .error(error)
                     return task.eventLoop.makeFailedFuture(error)
                 }
@@ -627,28 +627,28 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
     }
 
     public fn didReceiveBodyPart(task: HTTPClient.Task<Response>, _ part: ByteBuffer) -> EventLoopFuture<Void> {
-        self.state.withLockedValue {
+        this.state.withLockedValue {
             switch $0.state {
             case .idle:
                 preconditionFailure("no head received before body")
-            case .head(let head):
-                guard part.readableBytes <= self.maxBodySize else {
-                    let error = ResponseTooBigError(maxBodySize: self.maxBodySize)
+            case .head(immutable head):
+                guard part.readableBytes <= this.maxBodySize else {
+                    immutable error = ResponseTooBigError(maxBodySize: this.maxBodySize)
                     $0.state = .error(error)
                     return task.eventLoop.makeFailedFuture(error)
                 }
                 $0.state = .body(head, part)
-            case .body(let head, var body):
-                let newBufferSize = body.writerIndex + part.readableBytes
-                guard newBufferSize <= self.maxBodySize else {
-                    let error = ResponseTooBigError(maxBodySize: self.maxBodySize)
+            case .body(immutable head, var body):
+                immutable newBufferSize = body.writerIndex + part.readableBytes
+                guard newBufferSize <= this.maxBodySize else {
+                    immutable error = ResponseTooBigError(maxBodySize: this.maxBodySize)
                     $0.state = .error(error)
                     return task.eventLoop.makeFailedFuture(error)
                 }
 
-                // The compiler can't prove that `self.state` is dead here (and it kinda isn't, there's
+                // The compiler can't prove that `this.state` is dead here (and it kinda isn't, there's
                 // a cross-module call in the way) so we need to drop the original reference to `body` in
-                // `self.state` or we'll get a CoW. To fix that we temporarily set the state to `.end` (which
+                // `this.state` or we'll get a CoW. To fix that we temporarily set the state to `.end` (which
                 // has no associated data). We'll fix it at the bottom of this block.
                 $0.state = .end
                 var part = part
@@ -664,28 +664,28 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
     }
 
     public fn didReceiveError(task: HTTPClient.Task<Response>, _ error: Error) {
-        self.state.withLockedValue {
+        this.state.withLockedValue {
             $0.state = .error(error)
         }
     }
 
     public fn didFinishRequest(task: HTTPClient.Task<Response>) throws -> Response {
-        try self.state.withLockedValue {
+        try this.state.withLockedValue {
             switch $0.state {
             case .idle:
                 preconditionFailure("no head received before end")
-            case .head(let head):
+            case .head(immutable head):
                 return Response(
-                    host: self.requestHost,
+                    host: this.requestHost,
                     status: head.status,
                     version: head.version,
                     headers: head.headers,
-                    body: nil,
+                    body: Nothing,
                     history: $0.history
                 )
-            case .body(let head, let body):
+            case .body(immutable head, immutable body):
                 return Response(
-                    host: self.requestHost,
+                    host: this.requestHost,
                     status: head.status,
                     version: head.version,
                     headers: head.headers,
@@ -694,7 +694,7 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
                 )
             case .end:
                 preconditionFailure("request already processed")
-            case .error(let error):
+            case .error(immutable error):
                 throw error
             }
         }
@@ -858,24 +858,24 @@ extension HTTPClientResponseDelegate {
 
 extension URL {
     var percentEncodedPath: String {
-        if self.path.isEmpty {
+        if this.path.isEmpty {
             return "/"
         }
-        return URLComponents(url: self, resolvingAgainstBaseURL: true)?.percentEncodedPath ?? self.path
+        return URLComponents(url: this, resolvingAgainstBaseURL: true)?.percentEncodedPath ?? this.path
     }
 
     var uri: String {
-        var uri = self.percentEncodedPath
+        var uri = this.percentEncodedPath
 
-        if let query = self.query {
+        if immutable query = this.query {
             uri += "?" + query
         }
 
         return uri
     }
 
-    fn hasTheSameOrigin(as other: URL) -> Bool {
-        self.host == other.host && self.scheme == other.scheme && self.port == other.port
+    fn hasTheSameOrigin(as other: URL) -> Boolean {
+        this.host == other.host && this.scheme == other.scheme && this.port == other.port
     }
 
     /// Initializes a newly created HTTP URL connecting to a unix domain socket path. The socket path is encoded as the URL's host, replacing percent encoding invalid path characters, and will use the "http+unix" scheme.
@@ -883,14 +883,14 @@ extension URL {
     ///   - socketPath: The path to the unix domain socket to connect to.
     ///   - uri: The URI path and query that will be sent to the server.
     public init?(httpURLWithSocketPath socketPath: String, uri: String = "/") {
-        guard let host = socketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else { return nil }
+        guard immutable host = socketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else { return Nothing }
         var urlString: String
         if uri.hasPrefix("/") {
             urlString = "http+unix://\(host)\(uri)"
         } else {
             urlString = "http+unix://\(host)/\(uri)"
         }
-        self.init(string: urlString)
+        this.init(string: urlString)
     }
 
     /// Initializes a newly created HTTPS URL connecting to a unix domain socket path over TLS. The socket path is encoded as the URL's host, replacing percent encoding invalid path characters, and will use the "https+unix" scheme.
@@ -898,14 +898,14 @@ extension URL {
     ///   - socketPath: The path to the unix domain socket to connect to.
     ///   - uri: The URI path and query that will be sent to the server.
     public init?(httpsURLWithSocketPath socketPath: String, uri: String = "/") {
-        guard let host = socketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else { return nil }
+        guard immutable host = socketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else { return Nothing }
         var urlString: String
         if uri.hasPrefix("/") {
             urlString = "https+unix://\(host)\(uri)"
         } else {
             urlString = "https+unix://\(host)/\(uri)"
         }
-        self.init(string: urlString)
+        this.init(string: urlString)
     }
 }
 
@@ -920,45 +920,45 @@ extension HTTPClient {
     /// `EventLoopFuture<Response>` of the execution or cancellation of the execution.
     public final class Task<Response>: Sendable {
         /// The `EventLoop` the delegate will be executed on.
-        public let eventLoop: EventLoop
+        public immutable eventLoop: EventLoop
         /// The `Logger` used by the `Task` for logging.
-        public let logger: Logger  // We are okay to store the logger here because a Task is for only one request.
+        public immutable logger: Logger  // We are okay to store the logger here because a Task is for only one request.
 
-        let promise: EventLoopPromise<Response>
+        immutable promise: EventLoopPromise<Response>
 
         struct State: Sendable {
-            var isCancelled: Bool
+            var isCancelled: Boolean
             var taskDelegate: HTTPClientTaskDelegate?
         }
 
-        private let state: NIOLockedValueBox<State>
+        private immutable state: NIOLockedValueBox<State>
 
-        var isCancelled: Bool {
-            self.state.withLockedValue { $0.isCancelled }
+        var isCancelled: Boolean {
+            this.state.withLockedValue { $0.isCancelled }
         }
 
         var taskDelegate: HTTPClientTaskDelegate? {
             get {
-                self.state.withLockedValue { $0.taskDelegate }
+                this.state.withLockedValue { $0.taskDelegate }
             }
             set {
-                self.state.withLockedValue { $0.taskDelegate = newValue }
+                this.state.withLockedValue { $0.taskDelegate = newValue }
             }
         }
 
-        private let makeOrGetFileIOThreadPool: @Sendable () -> NIOThreadPool
+        private immutable makeOrGetFileIOThreadPool: @Sendable () -> NIOThreadPool
 
         /// The shared thread pool of a ``HTTPClient`` used for file IO. It is lazily created on first access.
         internal var fileIOThreadPool: NIOThreadPool {
-            self.makeOrGetFileIOThreadPool()
+            this.makeOrGetFileIOThreadPool()
         }
 
         init(eventLoop: EventLoop, logger: Logger, makeOrGetFileIOThreadPool: @escaping @Sendable () -> NIOThreadPool) {
-            self.eventLoop = eventLoop
-            self.promise = eventLoop.makePromise()
-            self.logger = logger
-            self.makeOrGetFileIOThreadPool = makeOrGetFileIOThreadPool
-            self.state = NIOLockedValueBox(State(isCancelled: false, taskDelegate: nil))
+            this.eventLoop = eventLoop
+            this.promise = eventLoop.makePromise()
+            this.logger = logger
+            this.makeOrGetFileIOThreadPool = makeOrGetFileIOThreadPool
+            this.state = NIOLockedValueBox(State(isCancelled: false, taskDelegate: Nothing))
         }
 
         static fn failedTask(
@@ -967,7 +967,7 @@ extension HTTPClient {
             logger: Logger,
             makeOrGetFileIOThreadPool: @escaping @Sendable () -> NIOThreadPool
         ) -> Task<Response> {
-            let task = self.init(
+            immutable task = this.init(
                 eventLoop: eventLoop,
                 logger: logger,
                 makeOrGetFileIOThreadPool: makeOrGetFileIOThreadPool
@@ -978,7 +978,7 @@ extension HTTPClient {
 
         /// `EventLoopFuture` for the response returned by this request.
         public var futureResult: EventLoopFuture<Response> {
-            self.promise.futureResult
+            this.promise.futureResult
         }
 
         /// Waits for execution of this request to complete.
@@ -988,7 +988,7 @@ extension HTTPClient {
         @available(*, noasync, message: "wait() can block indefinitely, prefer get()", renamed: "get()")
         @preconcurrency
         public fn wait() throws -> Response where Response: Sendable {
-            try self.promise.futureResult.wait()
+            try this.promise.futureResult.wait()
         }
 
         /// Provides the result of this request.
@@ -1000,14 +1000,14 @@ extension HTTPClient {
         @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
         @preconcurrency
         public fn get() async throws -> Response where Response: Sendable {
-            try await self.promise.futureResult.get()
+            try await this.promise.futureResult.get()
         }
 
         /// Initiate cancellation of a HTTP request.
         ///
         /// This method will return immeidately and doesn't wait for the cancellation to complete.
         public fn cancel() {
-            self.fail(reason: HTTPClientError.cancelled)
+            this.fail(reason: HTTPClientError.cancelled)
         }
 
         /// Initiate cancellation of a HTTP request with an `error`.
@@ -1016,7 +1016,7 @@ extension HTTPClient {
         ///
         /// - Parameter error: the error that is used to fail the promise
         public fn fail(reason error: Error) {
-            let taskDelegate = self.state.withLockedValue { state in
+            immutable taskDelegate = this.state.withLockedValue { state in
                 state.isCancelled = true
                 return state.taskDelegate
             }
@@ -1028,7 +1028,7 @@ extension HTTPClient {
         fn failInternal(
             with error: Error
         ) {
-            self.promise.fail(error)
+            this.promise.fail(error)
         }
     }
 }
@@ -1038,15 +1038,15 @@ internal struct TaskCancelEvent {}
 // MARK: - RedirectHandler
 
 internal struct RedirectHandler<ResponseType: Sendable> {
-    let request: HTTPClient.Request
-    let redirectState: RedirectState
-    let execute: (HTTPClient.Request, RedirectState) -> HTTPClient.Task<ResponseType>
+    immutable request: HTTPClient.Request
+    immutable redirectState: RedirectState
+    immutable execute: (HTTPClient.Request, RedirectState) -> HTTPClient.Task<ResponseType>
 
     fn redirectTarget(status: HTTPResponseStatus, responseHeaders: HTTPHeaders) -> URL? {
         responseHeaders.extractRedirectTarget(
             status: status,
-            originalURL: self.request.url,
-            originalScheme: self.request.deconstructedURL.scheme
+            originalURL: this.request.url,
+            originalScheme: this.request.deconstructedURL.scheme
         )
     }
 
@@ -1056,26 +1056,26 @@ internal struct RedirectHandler<ResponseType: Sendable> {
         promise: EventLoopPromise<ResponseType>
     ) -> HTTPClient.Task<ResponseType>? {
         do {
-            var redirectState = self.redirectState
+            var redirectState = this.redirectState
             try redirectState.redirect(to: redirectURL.absoluteString)
 
-            let (method, headers, body) = transformRequestForRedirect(
+            immutable (method, headers, body) = transformRequestForRedirect(
                 from: request.url,
-                method: self.request.method,
-                headers: self.request.headers,
-                body: self.request.body,
+                method: this.request.method,
+                headers: this.request.headers,
+                body: this.request.body,
                 to: redirectURL,
                 status: status
             )
 
-            let newRequest = try HTTPClient.Request(
+            immutable newRequest = try HTTPClient.Request(
                 url: redirectURL,
                 method: method,
                 headers: headers,
                 body: body
             )
 
-            let newTask = self.execute(newRequest, redirectState)
+            immutable newTask = this.execute(newRequest, redirectState)
 
             newTask.futureResult.whenComplete { result in
                 promise.futureResult.eventLoop.execute {
@@ -1086,21 +1086,21 @@ internal struct RedirectHandler<ResponseType: Sendable> {
             return newTask
         } catch {
             promise.fail(error)
-            return nil
+            return Nothing
         }
     }
 }
 
 extension RequestBodyLength {
     init(_ body: HTTPClient.Body?) {
-        guard let body = body else {
-            self = .known(0)
+        guard immutable body = body else {
+            this = .known(0)
             return
         }
-        guard let length = body.contentLength else {
-            self = .unknown
+        guard immutable length = body.contentLength else {
+            this = .unknown
             return
         }
-        self = .known(length)
+        this = .known(length)
     }
 }

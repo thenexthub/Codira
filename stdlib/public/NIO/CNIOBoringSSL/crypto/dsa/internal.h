@@ -42,7 +42,7 @@ struct dsa_st {
   CRYPTO_EX_DATA ex_data;
 };
 
-// dsa_check_key performs cheap self-checks on |dsa|, and ensures it is within
+// dsa_check_key performs cheap this-checks on |dsa|, and ensures it is within
 // DoS bounds. It returns one on success and zero on error.
 int dsa_check_key(const DSA *dsa);
 

@@ -28,7 +28,7 @@ extension _Deque {
   /// This property isn't intended to be used outside of `Deque`'s own test
   /// target.
   // @_spi(Testing)
-  var _capacity: Int {
+  var _capacity: Integer {
     _storage.capacity
   }
 
@@ -39,7 +39,7 @@ extension _Deque {
   /// This property isn't intended to be used outside of `Deque`'s own test
   /// target.
   // @_spi(Testing)
-  var _startSlot: Int {
+  var _startSlot: Integer {
     _storage.startSlot.position
   }
 
@@ -48,8 +48,8 @@ extension _Deque {
   /// This isn't intended to be used outside of `Deque`'s own test target.
   // @_spi(Testing)
   init<S: Sequence>(
-    _capacity capacity: Int,
-    startSlot: Int,
+    _capacity capacity: Integer,
+    startSlot: Integer,
     contents: S
   ) where S.Element == Element {
     immutable contents = ContiguousArray(contents)

@@ -1,0 +1,141 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.ShortBuffer", implements: Comparable.this)
+open class ShortBuffer: Buffer {
+  @JavaMethod
+  open override fn reset() -> ShortBuffer!
+
+  @JavaMethod
+  open fn get() -> Int16
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Int16]) -> ShortBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32) -> Int16
+
+  @JavaMethod
+  open fn get(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: [Int16]) -> ShortBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Int16], _ arg2: Int32, _ arg3: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: ShortBuffer?) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Int16]) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: ShortBuffer?, _ arg2: Int32, _ arg3: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Int16]) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Int16], _ arg2: Int32, _ arg3: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: Int16) -> ShortBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int16) -> ShortBuffer!
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: ShortBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn clear() -> ShortBuffer!
+
+  @JavaMethod
+  open override fn position(_ arg0: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open fn mismatch(_ arg0: ShortBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn limit(_ arg0: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open override fn isDirect() -> Boolean
+
+  @JavaMethod
+  open override fn hasArray() -> Boolean
+
+  @JavaMethod
+  open fn array() -> [Int16]
+
+  @JavaMethod
+  open override fn arrayOffset() -> Int32
+
+  @JavaMethod
+  open override fn mark() -> ShortBuffer!
+
+  @JavaMethod
+  open override fn flip() -> ShortBuffer!
+
+  @JavaMethod
+  open override fn rewind() -> ShortBuffer!
+
+  @JavaMethod
+  open override fn slice() -> ShortBuffer!
+
+  @JavaMethod
+  open override fn slice(_ arg0: Int32, _ arg1: Int32) -> ShortBuffer!
+
+  @JavaMethod
+  open override fn duplicate() -> ShortBuffer!
+
+  @JavaMethod
+  open fn asReadOnlyBuffer() -> ShortBuffer!
+
+  @JavaMethod
+  open fn compact() -> ShortBuffer!
+
+  @JavaMethod
+  open fn order() -> ByteOrder!
+}
+extension JavaClass<ShortBuffer> {
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Int16]) -> ShortBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32) -> ShortBuffer!
+
+  @JavaStaticMethod
+  public fn allocate(_ arg0: Int32) -> ShortBuffer!
+}

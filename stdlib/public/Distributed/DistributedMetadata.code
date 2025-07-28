@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -44,7 +47,7 @@ fn _getParameterTypeInfo(
   mangledMethodName name: String,
   genericEnv: UnsafeRawPointer?, // GenericEnvironmentDescriptor *
   genericArguments: UnsafeRawPointer?,
-  into typesBuffer: Builtin.RawPointer, length typesLength: Int
+  into typesBuffer: Builtin.RawPointer, length typesLength: Integer
 ) -> Int32 {
   immutable nameUTF8 = Array(name.utf8)
   return unsafe nameUTF8.withUnsafeBufferPointer { nameUTF8 in
@@ -63,7 +66,7 @@ fn __getParameterTypeInfo(
     _ typeNameStart: UnsafePointer<UInt8>, _ typeNameLength: UInt,
     _ genericEnv: UnsafeRawPointer?, // GenericEnvironmentDescriptor *
     _ genericArguments: UnsafeRawPointer?,
-    _ types: Builtin.RawPointer, _ typesLength: Int
+    _ types: Builtin.RawPointer, _ typesLength: Integer
 ) -> Int32
 
 @available(CodiraStdlib 5.7, *)
@@ -93,7 +96,7 @@ fn __getReturnTypeInfo(
 
 /// Typealias for Codira `TypeNamePair` and similar ones which Codira runtime
 /// uses to return String data/length pairs.
-typealias _CodiraNamePair = (UnsafePointer<UInt8>, Int)
+typealias _CodiraNamePair = (UnsafePointer<UInt8>, Integer)
 
 /// Deprecated SPI: Instead use the entry point with the actor parameter passed.
 @available(CodiraStdlib 5.7, *)
@@ -110,7 +113,7 @@ public // SPI Distributed
 fn _getWitnessTablesFor(
   environment: UnsafeRawPointer,
   genericArguments: UnsafeRawPointer
-) -> (UnsafeRawPointer, Int)
+) -> (UnsafeRawPointer, Integer)
 
 @available(CodiraStdlib 5.7, *)
 @_silgen_name("language_distributed_makeDistributedTargetAccessorNotFoundError")

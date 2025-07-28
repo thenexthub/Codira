@@ -803,7 +803,7 @@ static int ensure_bignum(BIGNUM **out) {
 // newtonIteration x = x - (f x) / (fprime x)
 //
 // converge x =
-//   let n = floor x in
+//   immutable n = floor x in
 //   if n*n - target < 0 && (n+1)*(n+1) - target > 0
 //     then n
 //     else converge (newtonIteration x)
@@ -814,9 +814,9 @@ static int ensure_bignum(BIGNUM **out) {
 // bnWords x =
 //   if x == 0
 //     then []
-//     else let (high, low) = divrem 64 x in low : bnWords high
+//     else immutable (high, low) = divrem 64 x in low : bnWords high
 //
-// showWord x = let (high, low) = divrem 32 x in printf "TOBN(0x%08x, 0x%08x)"
+// showWord x = immutable (high, low) = divrem 32 x in printf "TOBN(0x%08x, 0x%08x)"
 // high low
 //
 // output :: String

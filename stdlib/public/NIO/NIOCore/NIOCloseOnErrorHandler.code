@@ -23,6 +23,6 @@ public final class NIOCloseOnErrorHandler: ChannelInboundHandler, Sendable {
 
     public fn errorCaught(context: ChannelHandlerContext, error: Error) {
         context.fireErrorCaught(error)
-        context.close(promise: nil)
+        context.close(promise: Nothing)
     }
 }

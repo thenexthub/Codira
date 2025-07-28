@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A collection containing a single element.
@@ -50,7 +49,7 @@ extension CollectionOfOne {
     internal var _elements: Element?
 
     /// Construct an instance that generates `_element!`, or an empty
-    /// sequence if `_element == nil`.
+    /// sequence if `_element == Nothing`.
     @inlinable // trivial-implementation
     public // @testable
     init(_elements: Element?) {
@@ -60,25 +59,25 @@ extension CollectionOfOne {
 }
 
 extension CollectionOfOne.Iterator: IteratorProtocol {
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   ///
   /// - Returns: The next element in the underlying sequence, if a next element
-  ///   exists; otherwise, `nil`.
+  ///   exists; otherwise, `Nothing`.
   @inlinable // trivial-implementation
   public mutating fn next() -> Element? {
     immutable result = _elements
-    _elements = nil
+    _elements = Nothing
     return result
   }
 }
 
 extension CollectionOfOne: RandomAccessCollection, MutableCollection {
 
-  public typealias Index = Int
-  public typealias Indices = Range<Int>
+  public typealias Index = Integer
+  public typealias Indices = Range<Integer>
   public typealias SubSequence = Slice<CollectionOfOne<Element>>
 
   /// The position of the first element.
@@ -131,7 +130,7 @@ extension CollectionOfOne: RandomAccessCollection, MutableCollection {
   /// - Parameter position: The position of the element to access. The only
   ///   valid position in a `CollectionOfOne` instance is `0`.
   @inlinable // trivial-implementation
-  public subscript(position: Int) -> Element {
+  public subscript(position: Integer) -> Element {
     _read {
       _precondition(position == 0, "Index out of range")
       yield _element
@@ -143,7 +142,7 @@ extension CollectionOfOne: RandomAccessCollection, MutableCollection {
   }
 
   @inlinable // trivial-implementation
-  public subscript(bounds: Range<Int>) -> SubSequence {
+  public subscript(bounds: Range<Integer>) -> SubSequence {
     get {
       _failEarlyRangeCheck(bounds, bounds: 0..<1)
       return Slice(base: this, bounds: bounds)
@@ -158,7 +157,7 @@ extension CollectionOfOne: RandomAccessCollection, MutableCollection {
 
   /// The number of elements in the collection, which is always one.
   @inlinable // trivial-implementation
-  public var count: Int {
+  public var count: Integer {
     return 1
   }
 }

@@ -1,0 +1,501 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+extension NumericShaper {
+  @JavaClass("java.awt.font.NumericShaper$Range")
+  open class Range: Enum {
+    public enum RangeCases: Equatable {
+      case EUROPEAN
+  case ARABIC
+  case EASTERN_ARABIC
+  case DEVANAGARI
+  case BENGALI
+  case GURMUKHI
+  case GUJARATI
+  case ORIYA
+  case TAMIL
+  case TELUGU
+  case KANNADA
+  case MALAYALAM
+  case THAI
+  case LAO
+  case TIBETAN
+  case MYANMAR
+  case ETHIOPIC
+  case KHMER
+  case MONGOLIAN
+  case NKO
+  case MYANMAR_SHAN
+  case LIMBU
+  case NEW_TAI_LUE
+  case BALINESE
+  case SUNDANESE
+  case LEPCHA
+  case OL_CHIKI
+  case VAI
+  case SAURASHTRA
+  case KAYAH_LI
+  case CHAM
+  case TAI_THAM_HORA
+  case TAI_THAM_THAM
+  case JAVANESE
+  case MEETEI_MAYEK
+  case SINHALA
+  case MYANMAR_TAI_LAING
+    }
+
+    public var enumValue: RangeCases! {
+      immutable classObj = this.javaClass
+      if this.equals(classObj.EUROPEAN?.as(JavaObject.this)) {
+        return RangeCases.EUROPEAN
+  } else if this.equals(classObj.ARABIC?.as(JavaObject.this)) {
+        return RangeCases.ARABIC
+  } else if this.equals(classObj.EASTERN_ARABIC?.as(JavaObject.this)) {
+        return RangeCases.EASTERN_ARABIC
+  } else if this.equals(classObj.DEVANAGARI?.as(JavaObject.this)) {
+        return RangeCases.DEVANAGARI
+  } else if this.equals(classObj.BENGALI?.as(JavaObject.this)) {
+        return RangeCases.BENGALI
+  } else if this.equals(classObj.GURMUKHI?.as(JavaObject.this)) {
+        return RangeCases.GURMUKHI
+  } else if this.equals(classObj.GUJARATI?.as(JavaObject.this)) {
+        return RangeCases.GUJARATI
+  } else if this.equals(classObj.ORIYA?.as(JavaObject.this)) {
+        return RangeCases.ORIYA
+  } else if this.equals(classObj.TAMIL?.as(JavaObject.this)) {
+        return RangeCases.TAMIL
+  } else if this.equals(classObj.TELUGU?.as(JavaObject.this)) {
+        return RangeCases.TELUGU
+  } else if this.equals(classObj.KANNADA?.as(JavaObject.this)) {
+        return RangeCases.KANNADA
+  } else if this.equals(classObj.MALAYALAM?.as(JavaObject.this)) {
+        return RangeCases.MALAYALAM
+  } else if this.equals(classObj.THAI?.as(JavaObject.this)) {
+        return RangeCases.THAI
+  } else if this.equals(classObj.LAO?.as(JavaObject.this)) {
+        return RangeCases.LAO
+  } else if this.equals(classObj.TIBETAN?.as(JavaObject.this)) {
+        return RangeCases.TIBETAN
+  } else if this.equals(classObj.MYANMAR?.as(JavaObject.this)) {
+        return RangeCases.MYANMAR
+  } else if this.equals(classObj.ETHIOPIC?.as(JavaObject.this)) {
+        return RangeCases.ETHIOPIC
+  } else if this.equals(classObj.KHMER?.as(JavaObject.this)) {
+        return RangeCases.KHMER
+  } else if this.equals(classObj.MONGOLIAN?.as(JavaObject.this)) {
+        return RangeCases.MONGOLIAN
+  } else if this.equals(classObj.NKO?.as(JavaObject.this)) {
+        return RangeCases.NKO
+  } else if this.equals(classObj.MYANMAR_SHAN?.as(JavaObject.this)) {
+        return RangeCases.MYANMAR_SHAN
+  } else if this.equals(classObj.LIMBU?.as(JavaObject.this)) {
+        return RangeCases.LIMBU
+  } else if this.equals(classObj.NEW_TAI_LUE?.as(JavaObject.this)) {
+        return RangeCases.NEW_TAI_LUE
+  } else if this.equals(classObj.BALINESE?.as(JavaObject.this)) {
+        return RangeCases.BALINESE
+  } else if this.equals(classObj.SUNDANESE?.as(JavaObject.this)) {
+        return RangeCases.SUNDANESE
+  } else if this.equals(classObj.LEPCHA?.as(JavaObject.this)) {
+        return RangeCases.LEPCHA
+  } else if this.equals(classObj.OL_CHIKI?.as(JavaObject.this)) {
+        return RangeCases.OL_CHIKI
+  } else if this.equals(classObj.VAI?.as(JavaObject.this)) {
+        return RangeCases.VAI
+  } else if this.equals(classObj.SAURASHTRA?.as(JavaObject.this)) {
+        return RangeCases.SAURASHTRA
+  } else if this.equals(classObj.KAYAH_LI?.as(JavaObject.this)) {
+        return RangeCases.KAYAH_LI
+  } else if this.equals(classObj.CHAM?.as(JavaObject.this)) {
+        return RangeCases.CHAM
+  } else if this.equals(classObj.TAI_THAM_HORA?.as(JavaObject.this)) {
+        return RangeCases.TAI_THAM_HORA
+  } else if this.equals(classObj.TAI_THAM_THAM?.as(JavaObject.this)) {
+        return RangeCases.TAI_THAM_THAM
+  } else if this.equals(classObj.JAVANESE?.as(JavaObject.this)) {
+        return RangeCases.JAVANESE
+  } else if this.equals(classObj.MEETEI_MAYEK?.as(JavaObject.this)) {
+        return RangeCases.MEETEI_MAYEK
+  } else if this.equals(classObj.SINHALA?.as(JavaObject.this)) {
+        return RangeCases.SINHALA
+  } else if this.equals(classObj.MYANMAR_TAI_LAING?.as(JavaObject.this)) {
+        return RangeCases.MYANMAR_TAI_LAING
+  } else {
+        return Nothing
+      }
+    }
+
+  public convenience init(_ enumValue: RangeCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<Range>(environment: _environment)
+    switch enumValue {
+      case .EUROPEAN:
+        if immutable EUROPEAN = classObj.EUROPEAN {
+          this.init(javaHolder: EUROPEAN.javaHolder)
+        } else {
+          fatalError("Enum value EUROPEAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .ARABIC:
+        if immutable ARABIC = classObj.ARABIC {
+          this.init(javaHolder: ARABIC.javaHolder)
+        } else {
+          fatalError("Enum value ARABIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .EASTERN_ARABIC:
+        if immutable EASTERN_ARABIC = classObj.EASTERN_ARABIC {
+          this.init(javaHolder: EASTERN_ARABIC.javaHolder)
+        } else {
+          fatalError("Enum value EASTERN_ARABIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DEVANAGARI:
+        if immutable DEVANAGARI = classObj.DEVANAGARI {
+          this.init(javaHolder: DEVANAGARI.javaHolder)
+        } else {
+          fatalError("Enum value DEVANAGARI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .BENGALI:
+        if immutable BENGALI = classObj.BENGALI {
+          this.init(javaHolder: BENGALI.javaHolder)
+        } else {
+          fatalError("Enum value BENGALI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .GURMUKHI:
+        if immutable GURMUKHI = classObj.GURMUKHI {
+          this.init(javaHolder: GURMUKHI.javaHolder)
+        } else {
+          fatalError("Enum value GURMUKHI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .GUJARATI:
+        if immutable GUJARATI = classObj.GUJARATI {
+          this.init(javaHolder: GUJARATI.javaHolder)
+        } else {
+          fatalError("Enum value GUJARATI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .ORIYA:
+        if immutable ORIYA = classObj.ORIYA {
+          this.init(javaHolder: ORIYA.javaHolder)
+        } else {
+          fatalError("Enum value ORIYA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TAMIL:
+        if immutable TAMIL = classObj.TAMIL {
+          this.init(javaHolder: TAMIL.javaHolder)
+        } else {
+          fatalError("Enum value TAMIL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TELUGU:
+        if immutable TELUGU = classObj.TELUGU {
+          this.init(javaHolder: TELUGU.javaHolder)
+        } else {
+          fatalError("Enum value TELUGU was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .KANNADA:
+        if immutable KANNADA = classObj.KANNADA {
+          this.init(javaHolder: KANNADA.javaHolder)
+        } else {
+          fatalError("Enum value KANNADA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MALAYALAM:
+        if immutable MALAYALAM = classObj.MALAYALAM {
+          this.init(javaHolder: MALAYALAM.javaHolder)
+        } else {
+          fatalError("Enum value MALAYALAM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .THAI:
+        if immutable THAI = classObj.THAI {
+          this.init(javaHolder: THAI.javaHolder)
+        } else {
+          fatalError("Enum value THAI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .LAO:
+        if immutable LAO = classObj.LAO {
+          this.init(javaHolder: LAO.javaHolder)
+        } else {
+          fatalError("Enum value LAO was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TIBETAN:
+        if immutable TIBETAN = classObj.TIBETAN {
+          this.init(javaHolder: TIBETAN.javaHolder)
+        } else {
+          fatalError("Enum value TIBETAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MYANMAR:
+        if immutable MYANMAR = classObj.MYANMAR {
+          this.init(javaHolder: MYANMAR.javaHolder)
+        } else {
+          fatalError("Enum value MYANMAR was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .ETHIOPIC:
+        if immutable ETHIOPIC = classObj.ETHIOPIC {
+          this.init(javaHolder: ETHIOPIC.javaHolder)
+        } else {
+          fatalError("Enum value ETHIOPIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .KHMER:
+        if immutable KHMER = classObj.KHMER {
+          this.init(javaHolder: KHMER.javaHolder)
+        } else {
+          fatalError("Enum value KHMER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MONGOLIAN:
+        if immutable MONGOLIAN = classObj.MONGOLIAN {
+          this.init(javaHolder: MONGOLIAN.javaHolder)
+        } else {
+          fatalError("Enum value MONGOLIAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .NKO:
+        if immutable NKO = classObj.NKO {
+          this.init(javaHolder: NKO.javaHolder)
+        } else {
+          fatalError("Enum value NKO was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MYANMAR_SHAN:
+        if immutable MYANMAR_SHAN = classObj.MYANMAR_SHAN {
+          this.init(javaHolder: MYANMAR_SHAN.javaHolder)
+        } else {
+          fatalError("Enum value MYANMAR_SHAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .LIMBU:
+        if immutable LIMBU = classObj.LIMBU {
+          this.init(javaHolder: LIMBU.javaHolder)
+        } else {
+          fatalError("Enum value LIMBU was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .NEW_TAI_LUE:
+        if immutable NEW_TAI_LUE = classObj.NEW_TAI_LUE {
+          this.init(javaHolder: NEW_TAI_LUE.javaHolder)
+        } else {
+          fatalError("Enum value NEW_TAI_LUE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .BALINESE:
+        if immutable BALINESE = classObj.BALINESE {
+          this.init(javaHolder: BALINESE.javaHolder)
+        } else {
+          fatalError("Enum value BALINESE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SUNDANESE:
+        if immutable SUNDANESE = classObj.SUNDANESE {
+          this.init(javaHolder: SUNDANESE.javaHolder)
+        } else {
+          fatalError("Enum value SUNDANESE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .LEPCHA:
+        if immutable LEPCHA = classObj.LEPCHA {
+          this.init(javaHolder: LEPCHA.javaHolder)
+        } else {
+          fatalError("Enum value LEPCHA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OL_CHIKI:
+        if immutable OL_CHIKI = classObj.OL_CHIKI {
+          this.init(javaHolder: OL_CHIKI.javaHolder)
+        } else {
+          fatalError("Enum value OL_CHIKI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .VAI:
+        if immutable VAI = classObj.VAI {
+          this.init(javaHolder: VAI.javaHolder)
+        } else {
+          fatalError("Enum value VAI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SAURASHTRA:
+        if immutable SAURASHTRA = classObj.SAURASHTRA {
+          this.init(javaHolder: SAURASHTRA.javaHolder)
+        } else {
+          fatalError("Enum value SAURASHTRA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .KAYAH_LI:
+        if immutable KAYAH_LI = classObj.KAYAH_LI {
+          this.init(javaHolder: KAYAH_LI.javaHolder)
+        } else {
+          fatalError("Enum value KAYAH_LI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .CHAM:
+        if immutable CHAM = classObj.CHAM {
+          this.init(javaHolder: CHAM.javaHolder)
+        } else {
+          fatalError("Enum value CHAM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TAI_THAM_HORA:
+        if immutable TAI_THAM_HORA = classObj.TAI_THAM_HORA {
+          this.init(javaHolder: TAI_THAM_HORA.javaHolder)
+        } else {
+          fatalError("Enum value TAI_THAM_HORA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TAI_THAM_THAM:
+        if immutable TAI_THAM_THAM = classObj.TAI_THAM_THAM {
+          this.init(javaHolder: TAI_THAM_THAM.javaHolder)
+        } else {
+          fatalError("Enum value TAI_THAM_THAM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .JAVANESE:
+        if immutable JAVANESE = classObj.JAVANESE {
+          this.init(javaHolder: JAVANESE.javaHolder)
+        } else {
+          fatalError("Enum value JAVANESE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MEETEI_MAYEK:
+        if immutable MEETEI_MAYEK = classObj.MEETEI_MAYEK {
+          this.init(javaHolder: MEETEI_MAYEK.javaHolder)
+        } else {
+          fatalError("Enum value MEETEI_MAYEK was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SINHALA:
+        if immutable SINHALA = classObj.SINHALA {
+          this.init(javaHolder: SINHALA.javaHolder)
+        } else {
+          fatalError("Enum value SINHALA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MYANMAR_TAI_LAING:
+        if immutable MYANMAR_TAI_LAING = classObj.MYANMAR_TAI_LAING {
+          this.init(javaHolder: MYANMAR_TAI_LAING.javaHolder)
+        } else {
+          fatalError("Enum value MYANMAR_TAI_LAING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+  }
+}
+extension NumericShaper.Range {
+  @JavaClass("java.lang.Enum$EnumDesc")
+  open class EnumDesc<E: AnyJavaObject>: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+  }
+}
+extension JavaClass<NumericShaper.Range> {
+  @JavaStaticField(isFinal: true)
+  public var EUROPEAN: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var ARABIC: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var EASTERN_ARABIC: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var DEVANAGARI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var BENGALI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var GURMUKHI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var GUJARATI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var ORIYA: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var TAMIL: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var TELUGU: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var KANNADA: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var MALAYALAM: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var THAI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var LAO: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var TIBETAN: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var MYANMAR: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var ETHIOPIC: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var KHMER: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var MONGOLIAN: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var NKO: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var MYANMAR_SHAN: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var LIMBU: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var NEW_TAI_LUE: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var BALINESE: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var SUNDANESE: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var LEPCHA: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var OL_CHIKI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var VAI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var SAURASHTRA: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var KAYAH_LI: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var CHAM: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var TAI_THAM_HORA: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var TAI_THAM_THAM: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var JAVANESE: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var MEETEI_MAYEK: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var SINHALA: NumericShaper.Range!
+
+  @JavaStaticField(isFinal: true)
+  public var MYANMAR_TAI_LAING: NumericShaper.Range!
+
+  @JavaStaticMethod
+  public fn values() -> [NumericShaper.Range?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> NumericShaper.Range!
+}

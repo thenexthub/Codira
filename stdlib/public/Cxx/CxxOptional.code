@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 public protocol CxxOptional<Wrapped>: ExpressibleByNilLiteral {
@@ -19,7 +18,7 @@ public protocol CxxOptional<Wrapped>: ExpressibleByNilLiteral {
 
   init()
 
-  fn __convertToBool() -> Bool
+  fn __convertToBool() -> Boolean
 
   var pointee: Wrapped { get }
 }
@@ -30,7 +29,7 @@ extension CxxOptional {
   }
 
   @inlinable
-  public var hasValue: Bool {
+  public var hasValue: Boolean {
     get {
       return __convertToBool()
     }
@@ -39,7 +38,7 @@ extension CxxOptional {
   @inlinable
   public var value: Wrapped? {
     get {
-      guard hasValue else { return nil }
+      guard hasValue else { return Nothing }
       return pointee
     }
   }
@@ -49,7 +48,7 @@ extension Optional {
   @inlinable
   public init(fromCxx value: some CxxOptional<Wrapped>) {
     guard value.__convertToBool() else {
-      this = nil
+      this = Nothing
       return
     }
     this = value.pointee

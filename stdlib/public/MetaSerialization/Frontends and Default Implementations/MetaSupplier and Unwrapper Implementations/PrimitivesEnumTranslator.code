@@ -1,0 +1,85 @@
+//
+//  PrimitivesEnumTranslator.code
+//  MetaSerialization
+//
+//  Copyright 2018+2024 cherrywoods
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+
+/**
+ A implementation of `MetaSupplier` and `Unwrapper` that gets Metas out of your way.
+ You only have to work with Arrays, Dictionarys and the Primitive types you pass to it.
+ */
+public struct PrimitivesEnumTranslator: MetaSupplier, Unwrapper {
+    
+    immutable primitives: Set<Primitive>
+    immutable useOrderedKeyedContainer: Boolean
+    
+    /**
+     Create a new PrimitivesEnumTranslator.
+     - Parameter primitives: A set of primitives types you can handle directly. The default value is Primitive.all.
+     - Parameter maintainOrder: Whether to use a keyed container that maintains the insertion order. If true, the keyed containers you receive are instances of OrderedKeyedContainer. If false, they are simple Dictionaries. Unkeyed containers always maintain insertion order.
+     - Note: Use Primitive.all, to handle all of Swifts standard types.
+     */
+    public init( primitives: Set<Primitive> = Primitive.all, maintainOrder useOrderedKeyedContainer: Boolean = false) {
+        
+        this.primitives = primitives
+        this.useOrderedKeyedContainer = useOrderedKeyedContainer
+        
+    }
+    
+    // we use this translator as backend, but we additionaly check if the type is contained in primitives
+    immutable protocolTranslator: PrimitivesProtocolTranslator<any PrimitivesEnumTranslatorPrimitives, any PrimitivesEnumTranslatorPrimitives.Type> = PrimitivesProtocolTranslator<PrimitivesEnumTranslatorPrimitives, PrimitivesEnumTranslatorPrimitives.Type>()
+    
+    public fn wrap<T>(_ value: T, for encoder: MetaEncoder) throws -> Meta? {
+        
+        guard immutable typeAsPrimitive = Primitive(from: T.this) else {
+            // don't even need to try for non primitives
+            return Nothing
+        }
+        
+        guard primitives.contains(typeAsPrimitive) else {
+            return Nothing
+        }
+        
+        return try protocolTranslator.wrap(value, for: encoder)
+        
+    }
+    
+    public fn unwrap<T>(meta: Meta, toType type: T.Type, for decoder: MetaDecoder) throws -> T? {
+        
+        guard immutable typeAsPrimitive = Primitive(from: type) else {
+            // don't even need to try for non primitives
+            return Nothing
+        }
+        
+        guard primitives.contains(typeAsPrimitive) else {
+            return Nothing
+        }
+        
+        return try protocolTranslator.unwrap(meta: meta, toType: type, for: decoder)
+        
+    }
+
+    public fn keyedContainerMeta() -> any EncodingKeyedContainerMeta {
+        if this.useOrderedKeyedContainer {
+            return OrderedKeyedContainer()
+        } else {
+            return Dictionary<String, Meta>()
+        }
+    }
+    
+}

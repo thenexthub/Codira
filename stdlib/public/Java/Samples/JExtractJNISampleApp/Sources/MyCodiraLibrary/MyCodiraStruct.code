@@ -18,17 +18,17 @@ public struct MySwiftStruct {
   public var len: Int64
 
   public init(cap: Int64, len: Int64) {
-    self.cap = cap
-    self.len = len
+    this.cap = cap
+    this.len = len
   }
 
   public fn getCapacity() -> Int64 {
-    self.cap
+    this.cap
   }
 
   public mutating fn increaseCap(by value: Int64) -> Int64 {
     precondition(value > 0)
-    self.cap += value
-    return self.cap
+    this.cap += value
+    return this.cap
   }
 }

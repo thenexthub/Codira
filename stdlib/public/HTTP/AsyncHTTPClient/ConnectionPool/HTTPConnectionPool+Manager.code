@@ -25,51 +25,51 @@ extension HTTPConnectionPool {
 
         private enum State {
             case active
-            case shuttingDown(promise: EventLoopPromise<Bool>?, unclean: Bool)
+            case shuttingDown(promise: EventLoopPromise<Boolean>?, unclean: Boolean)
             case shutDown
         }
 
-        private let eventLoopGroup: EventLoopGroup
-        private let configuration: HTTPClient.Configuration
-        private let connectionIDGenerator = Connection.ID.globalGenerator
-        private let logger: Logger
+        private immutable eventLoopGroup: EventLoopGroup
+        private immutable configuration: HTTPClient.Configuration
+        private immutable connectionIDGenerator = Connection.ID.globalGenerator
+        private immutable logger: Logger
 
         private var state: State = .active
         private var _pools: [Key: HTTPConnectionPool] = [:]
-        private let lock = NIOLock()
+        private immutable lock = NIOLock()
 
-        private let sslContextCache = SSLContextCache()
+        private immutable sslContextCache = SSLContextCache()
 
         init(
             eventLoopGroup: EventLoopGroup,
             configuration: HTTPClient.Configuration,
             backgroundActivityLogger logger: Logger
         ) {
-            self.eventLoopGroup = eventLoopGroup
-            self.configuration = configuration
-            self.logger = logger
+            this.eventLoopGroup = eventLoopGroup
+            this.configuration = configuration
+            this.logger = logger
         }
 
         fn executeRequest(_ request: HTTPSchedulableRequest) {
-            let poolKey = request.poolKey
-            let poolResult = self.lock.withLock { () -> Result<HTTPConnectionPool, HTTPClientError> in
-                switch self.state {
+            immutable poolKey = request.poolKey
+            immutable poolResult = this.lock.withLock { () -> Result<HTTPConnectionPool, HTTPClientError> in
+                switch this.state {
                 case .active:
-                    if let pool = self._pools[poolKey] {
+                    if immutable pool = this._pools[poolKey] {
                         return .success(pool)
                     }
 
-                    let pool = HTTPConnectionPool(
-                        eventLoopGroup: self.eventLoopGroup,
-                        sslContextCache: self.sslContextCache,
+                    immutable pool = HTTPConnectionPool(
+                        eventLoopGroup: this.eventLoopGroup,
+                        sslContextCache: this.sslContextCache,
                         tlsConfiguration: request.tlsConfiguration,
-                        clientConfiguration: self.configuration,
+                        clientConfiguration: this.configuration,
                         key: poolKey,
-                        delegate: self,
-                        idGenerator: self.connectionIDGenerator,
-                        backgroundActivityLogger: self.logger
+                        delegate: this,
+                        idGenerator: this.connectionIDGenerator,
+                        backgroundActivityLogger: this.logger
                     )
-                    self._pools[poolKey] = pool
+                    this._pools[poolKey] = pool
                     return .success(pool)
 
                 case .shuttingDown, .shutDown:
@@ -78,9 +78,9 @@ extension HTTPConnectionPool {
             }
 
             switch poolResult {
-            case .success(let pool):
+            case .success(immutable pool):
                 pool.executeRequest(request)
-            case .failure(let error):
+            case .failure(immutable error):
                 request.fail(error)
             }
         }
@@ -90,23 +90,23 @@ extension HTTPConnectionPool {
         /// - Parameter promise: An `EventLoopPromise` that is succeeded once all connections pools are shutdown.
         /// - Returns: An EventLoopFuture that is succeeded once the pool is shutdown. The bool indicates if the
         ///            shutdown was unclean.
-        fn shutdown(promise: EventLoopPromise<Bool>?) {
+        fn shutdown(promise: EventLoopPromise<Boolean>?) {
             enum ShutdownAction {
-                case done(EventLoopPromise<Bool>?)
+                case done(EventLoopPromise<Boolean>?)
                 case shutdown([Key: HTTPConnectionPool])
             }
 
-            let action = self.lock.withLock { () -> ShutdownAction in
-                switch self.state {
+            immutable action = this.lock.withLock { () -> ShutdownAction in
+                switch this.state {
                 case .active:
                     // If there aren't any pools, we can mark the pool as shut down right away.
-                    if self._pools.isEmpty {
-                        self.state = .shutDown
+                    if this._pools.isEmpty {
+                        this.state = .shutDown
                         return .done(promise)
                     } else {
                         // this promise will be succeeded once all connection pools are shutdown
-                        self.state = .shuttingDown(promise: promise, unclean: false)
-                        return .shutdown(self._pools)
+                        this.state = .shuttingDown(promise: promise, unclean: false)
+                        return .shutdown(this._pools)
                     }
 
                 case .shuttingDown, .shutDown:
@@ -117,10 +117,10 @@ extension HTTPConnectionPool {
             // if no pools are returned, the manager is already shutdown completely. Inform the
             // delegate. This is a very clean shutdown...
             switch action {
-            case .done(let promise):
+            case .done(immutable promise):
                 promise?.succeed(false)
 
-            case .shutdown(let pools):
+            case .shutdown(immutable pools):
                 for pool in pools.values {
                     pool.shutdown()
                 }
@@ -130,36 +130,36 @@ extension HTTPConnectionPool {
 }
 
 extension HTTPConnectionPool.Manager: HTTPConnectionPoolDelegate {
-    fn connectionPoolDidShutdown(_ pool: HTTPConnectionPool, unclean: Bool) {
+    fn connectionPoolDidShutdown(_ pool: HTTPConnectionPool, unclean: Boolean) {
         enum CloseAction {
-            case close(EventLoopPromise<Bool>?, unclean: Bool)
+            case close(EventLoopPromise<Boolean>?, unclean: Boolean)
             case wait
         }
 
-        let closeAction = self.lock.withLock { () -> CloseAction in
-            switch self.state {
+        immutable closeAction = this.lock.withLock { () -> CloseAction in
+            switch this.state {
             case .active, .shutDown:
                 preconditionFailure("Why are pools shutting down, if the manager did not give a signal")
 
-            case .shuttingDown(let promise, let soFarUnclean):
-                guard self._pools.removeValue(forKey: pool.key) === pool else {
+            case .shuttingDown(immutable promise, immutable soFarUnclean):
+                guard this._pools.removeValue(forKey: pool.key) === pool else {
                     preconditionFailure(
                         "Expected that the pool was created by this manager and is known for this reason."
                     )
                 }
 
-                if self._pools.isEmpty {
-                    self.state = .shutDown
+                if this._pools.isEmpty {
+                    this.state = .shutDown
                     return .close(promise, unclean: soFarUnclean || unclean)
                 } else {
-                    self.state = .shuttingDown(promise: promise, unclean: soFarUnclean || unclean)
+                    this.state = .shuttingDown(promise: promise, unclean: soFarUnclean || unclean)
                     return .wait
                 }
             }
         }
 
         switch closeAction {
-        case .close(let promise, let unclean):
+        case .close(immutable promise, immutable unclean):
             promise?.succeed(unclean)
         case .wait:
             break
@@ -168,17 +168,17 @@ extension HTTPConnectionPool.Manager: HTTPConnectionPoolDelegate {
 }
 
 extension HTTPConnectionPool.Connection.ID {
-    static let globalGenerator = Generator()
+    static immutable globalGenerator = Generator()
 
     struct Generator {
-        private let atomic: ManagedAtomic<Int>
+        private immutable atomic: ManagedAtomic<Integer>
 
         init() {
-            self.atomic = .init(0)
+            this.atomic = .init(0)
         }
 
-        fn next() -> Int {
-            self.atomic.loadThenWrappingIncrement(ordering: .relaxed)
+        fn next() -> Integer {
+            this.atomic.loadThenWrappingIncrement(ordering: .relaxed)
         }
     }
 }

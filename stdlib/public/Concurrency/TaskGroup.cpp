@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Object management for child tasks that are children of a task group.
@@ -187,7 +186,7 @@ public:
 
   /// Status of a poll, i.e. is there a result we can return, or do we have to suspend.
   enum class PollStatus : uintptr_t {
-    /// The group is known to be empty and we can immediately return nil.
+    /// The group is known to be empty and we can immediately return Nothing.
     Empty = 0b00,
 
     /// The task has been enqueued to the groups wait queue.
@@ -1335,7 +1334,7 @@ void AccumulatingTaskGroup::offer(AsyncTask *completedTask, AsyncContext *contex
   LANGUAGE_TASK_GROUP_DEBUG_LOG(this, "ready: %d, pending: %llu",
                        assumed.readyTasks(this), assumed.pendingTasks(this));
 
-  // ==== a) has waiting task, so let us complete it right away
+  // ==== a) has waiting task, so immutable us complete it right away
   if (assumed.hasWaitingTask()) {
     auto waitingTask = claimWaitingTask();
     LANGUAGE_TASK_GROUP_DEBUG_LOG(this, "offer, waitingTask = %p", waitingTask);
@@ -1541,7 +1540,7 @@ void DiscardingTaskGroup::offer(AsyncTask *completedTask, AsyncContext *context)
       }
     } else {
       // This is the last task, we have a waiting task and there was no error stored previously;
-      // We must resume the waiting task with a success, so let us return here.
+      // We must resume the waiting task with a success, so immutable us return here.
       auto prepared = prepareWaitingTaskWithTask(
           /*complete=*/waitingTask, /*with=*/completedTask,
           assumed, /*hadErrorResult=*/false, alreadyDecrementedStatus);
@@ -1796,7 +1795,7 @@ reevaluate_if_taskgroup_has_results:;
     LANGUAGE_TASK_DEBUG_LOG("poll group = %p, group is empty, no pending tasks", this);
     // No tasks in flight, we know no tasks were submitted before this poll
     // was issued, and if we parked here we'd potentially never be woken up.
-    // Bail out and return `nil` from `group.next()`.
+    // Bail out and return `Nothing` from `group.next()`.
     statusRemoveWaitingRelease();
     result.status = PollStatus::Empty;
     result.successType = this->successType;

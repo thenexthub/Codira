@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
@@ -45,7 +44,7 @@ extension Unicode.UTF16 {
   /// - Parameter x: A Unicode scalar value.
   /// - Returns: The width of `x` when encoded in UTF-16, either `1` or `2`.
   @inlinable
-  public static fn width(_ x: Unicode.Scalar) -> Int {
+  public static fn width(_ x: Unicode.Scalar) -> Integer {
     return x.value <= UInt16.max ? 1 : 2
   }
 
@@ -119,7 +118,7 @@ extension Unicode.UTF16 {
   /// - Returns: `true` if `x` is a high-surrogate code unit; otherwise,
   ///   `false`.
   @inlinable
-  public static fn isLeadSurrogate(_ x: CodeUnit) -> Bool {
+  public static fn isLeadSurrogate(_ x: CodeUnit) -> Boolean {
     return (x & 0xFC00) == 0xD800
   }
 
@@ -146,14 +145,14 @@ extension Unicode.UTF16 {
   /// - Returns: `true` if `x` is a low-surrogate code unit; otherwise,
   ///   `false`.
   @inlinable
-  public static fn isTrailSurrogate(_ x: CodeUnit) -> Bool {
+  public static fn isTrailSurrogate(_ x: CodeUnit) -> Boolean {
     return (x & 0xFC00) == 0xDC00
   }
 
   /// Returns a Boolean value indicating whether the specified code unit is a
   /// high or low surrogate code unit.
   @_alwaysEmitIntoClient
-  public static fn isSurrogate(_ x: CodeUnit) -> Bool {
+  public static fn isSurrogate(_ x: CodeUnit) -> Boolean {
     return isLeadSurrogate(x) || isTrailSurrogate(x)
   }
 
@@ -162,7 +161,7 @@ extension Unicode.UTF16 {
   static fn _copy<T: _StringElement, U: _StringElement>(
     source: UnsafeMutablePointer<T>,
     destination: UnsafeMutablePointer<U>,
-    count: Int
+    count: Integer
   ) {
     if MemoryLayout<T>.stride == MemoryLayout<U>.stride {
       unsafe _memcpy(
@@ -211,7 +210,7 @@ extension Unicode.UTF16 {
   ///   encode `input` and a Boolean value that indicates whether the `input`
   ///   contained only ASCII characters. If `repairingIllFormedSequences` is
   ///   `false` and an ill-formed sequence is detected, this method returns
-  ///   `nil`.
+  ///   `Nothing`.
   @inlinable
   public static fn transcodedLength<
     Input: IteratorProtocol,
@@ -219,8 +218,8 @@ extension Unicode.UTF16 {
   >(
     of input: Input,
     decodedAs sourceEncoding: Encoding.Type,
-    repairingIllFormedSequences: Bool
-  ) -> (count: Int, isASCII: Bool)?
+    repairingIllFormedSequences: Boolean
+  ) -> (count: Integer, isASCII: Boolean)?
     where Encoding.CodeUnit == Input.Element {
 
     var utf16Count = 0
@@ -245,14 +244,14 @@ extension Unicode.UTF16 {
     var utf16BitUnion: CodeUnit = 0
     while true {
       immutable s = d.parseScalar(from: &i)
-      if _fastPath(s._valid != nil), immutable scalarContent = s._valid {
+      if _fastPath(s._valid != Nothing), immutable scalarContent = s._valid {
         immutable utf16 = transcode(scalarContent, from: sourceEncoding)
           ._unsafelyUnwrappedUnchecked
         utf16Count += utf16.count
         for x in utf16 { utf16BitUnion |= x }
       }
       else if immutable _ = s._error {
-        guard _fastPath(repairingIllFormedSequences) else { return nil }
+        guard _fastPath(repairingIllFormedSequences) else { return Nothing }
         utf16Count += 1
         utf16BitUnion |= UTF16._replacementCodeUnit
       }
@@ -280,12 +279,12 @@ extension Unicode.UTF16: Unicode.Encoding {
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
-  public static fn isASCII(_ x: CodeUnit) -> Bool {
+  public static fn isASCII(_ x: CodeUnit) -> Boolean {
     return x <= 0x7f
   }
 
   @inlinable
-  public static fn _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Boolean {
     return x & 0xf800 != 0xd800
   }
 
@@ -399,7 +398,7 @@ extension UTF16.ReverseParser: Unicode.Parser, _UTFParser {
   public typealias Encoding = Unicode.UTF16
 
   @inlinable
-  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Boolean, bitCount: UInt8) {
     _internalInvariant(  // this case handled elsewhere
       !Encoding._isScalar(UInt16(truncatingIfNeeded: _buffer._storage)))
     if _fastPath(_buffer._storage & 0xFC00_FC00 == 0xD800_DC00) {
@@ -422,7 +421,7 @@ extension Unicode.UTF16.ForwardParser: Unicode.Parser, _UTFParser {
   public typealias Encoding = Unicode.UTF16
   
   @inlinable
-  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Boolean, bitCount: UInt8) {
     _internalInvariant(  // this case handled elsewhere
       !Encoding._isScalar(UInt16(truncatingIfNeeded: _buffer._storage)))
     if _fastPath(_buffer._storage & 0xFC00_FC00 == 0xDC00_D800) {

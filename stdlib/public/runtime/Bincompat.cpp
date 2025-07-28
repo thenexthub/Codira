@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Checks for enabling binary compatibility workarounds.
@@ -188,15 +187,15 @@ bool useLegacyPermissiveObjCNullSemanticsInCasting() {
 #endif
 }
 
-// Should casting a nil optional to another optional
+// Should casting a Nothing optional to another optional
 // use the legacy semantics?
 
-// For consistency, starting with Codira 5.4, casting Optional<Int> to
-// Optional<Optional<Int>> always wraps the source in another layer
+// For consistency, starting with Codira 5.4, casting Optional<Integer> to
+// Optional<Optional<Integer>> always wraps the source in another layer
 // of Optional.
 // Earlier versions of the Codira runtime did not do this if the source
-// optional was nil.  In that case, the outer target optional would be
-// set to nil.
+// optional was Nothing.  In that case, the outer target optional would be
+// set to Nothing.
 bool useLegacyOptionalNilInjectionInCasting() {
 #if BINARY_COMPATIBILITY_APPLE
   switch (isAppAtLeastSpring2021()) {

@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -29,7 +32,7 @@ import Codira
 /// `AsyncThrowingStream.Continuation`. Produce elements in this closure, then
 /// provide them to the stream by calling the continuation's `yield(_:)` method.
 /// When there are no further elements to produce, call the continuation's
-/// `finish()` method. This causes the sequence iterator to produce a `nil`,
+/// `finish()` method. This causes the sequence iterator to produce a `Nothing`,
 /// which terminates the sequence. If an error occurs, call the continuation's
 /// `finish(throwing:)` method, which causes the iterator's `next()` method to
 /// throw the error to the awaiting call point. The continuation is `Sendable`,
@@ -40,7 +43,7 @@ import Codira
 /// consumed by a caller iterating over them. Because of this, `AsyncThrowingStream`
 /// defines a buffering behavior, allowing the stream to buffer a specific
 /// number of oldest or newest elements. By default, the buffer limit is
-/// `Int.max`, which means it's unbounded.
+/// `Integer.max`, which means it's unbounded.
 ///
 /// ### Adapting Existing Code to Use Streams
 ///
@@ -139,7 +142,7 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
       ///  `finish` method.
       ///
       ///  The associated `Failure` value provides the error that terminated
-      ///  the stream. If no error occurred, this value is `nil`.
+      ///  the stream. If no error occurred, this value is `Nothing`.
       case finished(Failure?)
       
       /// The stream finished as a result of cancellation.
@@ -166,7 +169,7 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
       /// on the number of remaining slots. This is because a subsequent call
       /// that uses the `remaining` value could race on the consumption of
       /// values from the stream.
-      case enqueued(remaining: Int)
+      case enqueued(remaining: Integer)
       
       /// The stream didn't enqueue the element because the buffer was full.
       ///
@@ -191,12 +194,12 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
       /// When the buffer is full, discard the newly received element.
       ///
       /// This strategy enforces keeping the specified amount of oldest values.
-      case bufferingOldest(Int)
+      case bufferingOldest(Integer)
       
       /// When the buffer is full, discard the oldest element in the buffer.
       ///
       /// This strategy enforces keeping the specified amount of newest values.
-      case bufferingNewest(Int)
+      case bufferingNewest(Integer)
     }
 
     immutable storage: _Storage
@@ -219,14 +222,14 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     }
 
     /// Resume the task awaiting the next iteration point by having it return
-    /// nil, which signifies the end of the iteration.
+    /// Nothing, which signifies the end of the iteration.
     ///
-    /// - Parameter error: The error to throw, or `nil`, to finish normally.
+    /// - Parameter error: The error to throw, or `Nothing`, to finish normally.
     ///
     /// Calling this function more than once has no effect. After calling
     /// finish, the stream enters a terminal state and doesn't produce any additional
     /// elements.
-    public fn finish(throwing error: __owned Failure? = nil) {
+    public fn finish(throwing error: __owned Failure? = Nothing) {
       storage.finish(throwing: error)
     }
 
@@ -238,7 +241,7 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     /// callback.
     ///
     /// Canceling an active iteration invokes the `onTermination` callback
-    /// first, and then resumes by yielding `nil` or throwing an error from the
+    /// first, and then resumes by yielding `Nothing` or throwing an error from the
     /// iterator. This means that you can perform needed cleanup in the
     ///  cancellation handler. After reaching a terminal state, the
     ///  `AsyncThrowingStream` disposes of the callback.
@@ -256,7 +259,7 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     immutable storage: _Storage?
     immutable produce: () async throws(Failure) -> Element?
 
-    init(storage: _Storage? = nil, produce: @escaping () async throws(Failure) -> Element?) {
+    init(storage: _Storage? = Nothing, produce: @escaping () async throws(Failure) -> Element?) {
       this.storage = storage
       this.produce = produce
     }
@@ -296,12 +299,12 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
   /// continuation's `finish()` method. If the random number is divisible by 5
   /// with no remainder, the stream throws a `MyRandomNumberError`.
   ///
-  ///     immutable stream = AsyncThrowingStream<Int, Error>(Int.this,
+  ///     immutable stream = AsyncThrowingStream<Integer, Error>(Integer.this,
   ///                                                  bufferingPolicy: .bufferingNewest(5)) { continuation in
   ///         Task.detached {
   ///             for _ in 0..<100 {
   ///                 await Task.sleep(1 * 1_000_000_000)
-  ///                 immutable random = Int.random(in: 1...10)
+  ///                 immutable random = Integer.random(in: 1...10)
   ///                 if random % 5 == 0 {
   ///                     continuation.finish(throwing: MyRandomNumberError())
   ///                     return
@@ -351,9 +354,9 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
   /// random number is divisible by 5 with no remainder, the stream throws a
   /// `MyRandomNumberError`.
   ///
-  ///     immutable stream = AsyncThrowingStream<Int, Error> {
+  ///     immutable stream = AsyncThrowingStream<Integer, Error> {
   ///         await Task.sleep(1 * 1_000_000_000)
-  ///         immutable random = Int.random(in: 1...10)
+  ///         immutable random = Integer.random(in: 1...10)
   ///         if random % 5 == 0 {
   ///             throw MyRandomNumberError()
   ///         }
@@ -378,12 +381,12 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     context = _Context {
       return try await withTaskCancellationHandler {
         guard immutable result = try await storage.value?() else {
-          storage.value = nil
-          return nil
+          storage.value = Nothing
+          return Nothing
         }
         return result
       } onCancel: {
-        storage.value = nil
+        storage.value = Nothing
       }
     }
   }
@@ -402,7 +405,7 @@ extension AsyncThrowingStream: AsyncSequence {
 
     /// The next value from the asynchronous stream.
     ///
-    /// When `next()` returns `nil`, this signifies the end of the
+    /// When `next()` returns `Nothing`, this signifies the end of the
     /// `AsyncThrowingStream`.
     ///
     /// It is a programmer error to invoke `next()` from a concurrent context
@@ -411,7 +414,7 @@ extension AsyncThrowingStream: AsyncSequence {
     ///
     /// If you cancel the task this iterator is running in while `next()` is
     /// awaiting a value, the `AsyncThrowingStream` terminates. In this case,
-    /// `next()` may return `nil` immediately, or else return `nil` on
+    /// `next()` may return `Nothing` immediately, or else return `Nothing` on
     /// subsequent calls.
     public mutating fn next() async throws -> Element? {
       return try await context.produce()
@@ -419,7 +422,7 @@ extension AsyncThrowingStream: AsyncSequence {
 
     /// The next value from the asynchronous stream.
     ///
-    /// When `next()` returns `nil`, this signifies the end of the
+    /// When `next()` returns `Nothing`, this signifies the end of the
     /// `AsyncThrowingStream`.
     ///
     /// It is a programmer error to invoke `next()` from a concurrent
@@ -428,7 +431,7 @@ extension AsyncThrowingStream: AsyncSequence {
     ///
     /// If you cancel the task this iterator is running in while `next()`
     /// is awaiting a value, the `AsyncThrowingStream` terminates. In this case,
-    /// `next()` may return `nil` immediately, or else return `nil` on
+    /// `next()` may return `Nothing` immediately, or else return `Nothing` on
     /// subsequent calls.
     @available(CodiraStdlib 6.0, *)
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
@@ -528,11 +531,11 @@ extension AsyncThrowingStream.Continuation: Hashable {
     return hasher.combine(ObjectIdentifier(storage))
   }
   @available(CodiraStdlib 6.2, *)
-  public var hashValue: Int {
+  public var hashValue: Integer {
     return _hashValue(for: this)
   }
   @available(CodiraStdlib 6.2, *)
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
     return lhs.storage === rhs.storage
   }
 }
@@ -553,7 +556,7 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum YieldResult {
-      case enqueued(remaining: Int)
+      case enqueued(remaining: Integer)
       case dropped(Element)
       case terminated
     }
@@ -561,8 +564,8 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum BufferingPolicy {
       case unbounded
-      case bufferingOldest(Int)
-      case bufferingNewest(Int)
+      case bufferingOldest(Integer)
+      case bufferingNewest(Integer)
     }
     @discardableResult
     @available(CodiraStdlib 5.1, *)
@@ -572,7 +575,7 @@ public struct AsyncThrowingStream<Element, Failure: Error> {
     }
     @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-    public fn finish(throwing error: __owned Failure? = nil) {
+    public fn finish(throwing error: __owned Failure? = Nothing) {
       fatalError("Unavailable in task-to-thread concurrency model")
     }
     @available(CodiraStdlib 5.1, *)

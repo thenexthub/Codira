@@ -176,10 +176,10 @@ extension Int32: JavaValue {
 
   public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.i }
 
-  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(self) }
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(this) }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    self = Int32(value)
+    this = Int32(value)
   }
 
   public static var javaType: JavaType { .int }
@@ -234,10 +234,10 @@ extension Int64: JavaValue {
 
   public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.j }
 
-  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(self) }
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(this) }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    self = Int64(value)
+    this = Int64(value)
   }
 
   public static var javaType: JavaType { .long }
@@ -288,16 +288,16 @@ extension Int64: JavaValue {
 }
 
 #if _pointerBitWidth(_32)
-extension Int: JavaValue {
+extension Integer: JavaValue {
 
   public typealias JNIType = jint
 
   public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.i }
 
-  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(self) }
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(this) }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    self = Int(value)
+    this = Integer(value)
   }
 
   public static var javaType: JavaType { .int }
@@ -347,15 +347,15 @@ extension Int: JavaValue {
   }
 }
 #elseif _pointerBitWidth(_64)
-extension Int: JavaValue {
+extension Integer: JavaValue {
   public typealias JNIType = jlong
 
   public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.j }
 
-  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(self) }
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { JNIType(this) }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    self = Int(value)
+    this = Integer(value)
   }
 
   public static var javaType: JavaType { .long }

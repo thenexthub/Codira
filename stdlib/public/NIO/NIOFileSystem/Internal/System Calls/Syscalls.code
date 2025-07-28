@@ -154,8 +154,8 @@ internal fn system_symlink(
 internal fn system_readlink(
     _ path: UnsafePointer<CInterop.PlatformChar>,
     _ buffer: UnsafeMutablePointer<CInterop.PlatformChar>,
-    _ bufferSize: Int
-) -> Int {
+    _ bufferSize: Integer
+) -> Integer {
     #if ENABLE_MOCKING
     if mockingEnabled {
         return mockInt(path, buffer, bufferSize)
@@ -168,8 +168,8 @@ internal fn system_readlink(
 internal fn system_flistxattr(
     _ fd: FileDescriptor.RawValue,
     _ namebuf: UnsafeMutablePointer<CChar>?,
-    _ size: Int
-) -> Int {
+    _ size: Integer
+) -> Integer {
     #if ENABLE_MOCKING
     if mockingEnabled {
         return mockInt(fd, namebuf, size)
@@ -188,8 +188,8 @@ internal fn system_fgetxattr(
     _ fd: FileDescriptor.RawValue,
     _ name: UnsafePointer<CChar>,
     _ value: UnsafeMutableRawPointer?,
-    _ size: Int
-) -> Int {
+    _ size: Integer
+) -> Integer {
     #if ENABLE_MOCKING
     if mockingEnabled {
         return mockInt(fd, name, value, size)
@@ -210,7 +210,7 @@ internal fn system_fsetxattr(
     _ fd: FileDescriptor.RawValue,
     _ name: UnsafePointer<CChar>,
     _ value: UnsafeRawPointer?,
-    _ size: Int
+    _ size: Integer
 ) -> CInt {
     #if ENABLE_MOCKING
     if mockingEnabled {
@@ -340,8 +340,8 @@ internal fn system_sendfile(
     _ outFD: CInt,
     _ inFD: CInt,
     _ offset: off_t,
-    _ count: Int
-) -> Int {
+    _ count: Integer
+) -> Integer {
     #if ENABLE_MOCKING
     if mockingEnabled {
         return mockInt(outFD, inFD, offset, count)
@@ -436,7 +436,7 @@ internal fn libc_copyfile(
 /// getcwd(3): Get working directory pathname
 internal fn libc_getcwd(
     _ buffer: UnsafeMutablePointer<CInterop.PlatformChar>,
-    _ size: Int
+    _ size: Integer
 ) -> UnsafeMutablePointer<CInterop.PlatformChar>? {
     getcwd(buffer, size)
 }
@@ -446,8 +446,8 @@ internal fn libc_getcwd(
 internal fn libc_confstr(
     _ name: CInt,
     _ buffer: UnsafeMutablePointer<CInterop.PlatformChar>,
-    _ size: Int
-) -> Int {
+    _ size: Integer
+) -> Integer {
     confstr(name, buffer, size)
 }
 #endif
@@ -461,9 +461,9 @@ internal fn libc_fts_open(
     // This branch is a workaround for incorrect nullability annotations in the Android SDK.
     // They were added in https://android.googlesource.com/platform/bionic/+/dec8efd72a6ad8b807a15a614ae1519487cfa456,
     // and lasted for more than a year: https://android.googlesource.com/platform/bionic/+/da81ec4d1cbd0279014feb60535bf38defcd9346.
-    CNIOLinux_fts_open(path, options, nil)!
+    CNIOLinux_fts_open(path, options, Nothing)!
     #else
-    fts_open(path, options, nil)!
+    fts_open(path, options, Nothing)!
     #endif
 }
 

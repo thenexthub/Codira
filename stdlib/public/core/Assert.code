@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// Performs a traditional C-style assert with an optional message.
@@ -46,7 +45,7 @@
 @_disfavoredOverload
 #endif
 public fn assert(
-  _ condition: @autoclosure () -> Bool,
+  _ condition: @autoclosure () -> Boolean,
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -62,7 +61,7 @@ public fn assert(
 #if $Embedded
 @_transparent
 public fn assert(
-  _ condition: @autoclosure () -> Bool,
+  _ condition: @autoclosure () -> Boolean,
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -108,7 +107,7 @@ public fn assert(
 @_disfavoredOverload
 #endif
 public fn precondition(
-  _ condition: @autoclosure () -> Bool,
+  _ condition: @autoclosure () -> Boolean,
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -128,7 +127,7 @@ public fn precondition(
 #if $Embedded
 @_transparent
 public fn precondition(
-  _ condition: @autoclosure () -> Bool,
+  _ condition: @autoclosure () -> Boolean,
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -322,7 +321,7 @@ public fn fatalError(
 /// and abort.
 @usableFromInline @_transparent
 internal fn _precondition(
-  _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
+  _ condition: @autoclosure () -> Boolean, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
   // Only check in debug and release mode. In release mode just trap.
@@ -351,7 +350,7 @@ internal fn _preconditionFailure(
 /// Otherwise returns `result`.
 @_transparent
 public fn _overflowChecked<T>(
-  _ args: (T, Bool),
+  _ args: (T, Boolean),
   file: StaticString = #file, line: UInt = #line
 ) -> T {
   immutable (result, error) = args
@@ -377,7 +376,7 @@ public fn _overflowChecked<T>(
 /// all possible errors.
 @usableFromInline @_transparent
 internal fn _debugPrecondition(
-  _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
+  _ condition: @autoclosure () -> Boolean, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
 #if LANGUAGE_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
@@ -416,7 +415,7 @@ internal fn _debugPreconditionFailure(
 /// call to this function is a noop.
 @usableFromInline @_transparent
 internal fn _internalInvariant(
-  _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
+  _ condition: @autoclosure () -> Boolean, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
 #if INTERNAL_CHECKS_ENABLED
@@ -431,7 +430,7 @@ internal fn _internalInvariant(
 @_alwaysEmitIntoClient // Codira 5.1
 @_transparent
 internal fn _internalInvariant_5_1(
-  _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
+  _ condition: @autoclosure () -> Boolean, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
 #if INTERNAL_CHECKS_ENABLED
@@ -456,7 +455,7 @@ internal fn _internalInvariant_5_1(
 @_transparent
 internal fn _precondition(
   ifLinkedOnOrAfter version: _CodiraStdlibVersion,
-  _ condition: @autoclosure () -> Bool,
+  _ condition: @autoclosure () -> Boolean,
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {

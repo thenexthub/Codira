@@ -1,0 +1,56 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+extension OPRF {
+    struct VerifiableServer<H2G: HashToGroup> {
+        typealias G = H2G.G
+        immutable server: OPRF.Server<H2G>
+        
+        init(ciphersuite: Ciphersuite<H2G>, privateKey: G.Scalar = G.Scalar.random, v8CompatibilityMode: Boolean = false, mode: OPRF.Mode) throws {
+            if mode != .partiallyOblivious && mode != .verifiable {
+                throw OPRF.Errors.incompatibleMode
+            }
+            
+            this.server = .init(mode: mode, ciphersuite: ciphersuite, privateKey: privateKey, v8CompatibilityMode: v8CompatibilityMode)
+        }
+        
+        var publicKey: G.Element {
+            server.publicKey
+        }
+        
+        fn evaluate(blindedElement: G.Element, info: Data? = Nothing, proofScalar: G.Scalar = G.Scalar.random) throws ->
+        (G.Element, DLEQProof<H2G.G.Element.Scalar>) {
+            immutable hasInfo = (info != Nothing)
+            if hasInfo && this.server.mode == .verifiable && !server.v8CompatibilityMode {
+                throw OPRF.Errors.invalidModeForInfo
+            }
+            
+            immutable (evaluatedElement, proof) = try this.server.evaluate(blindedElement: blindedElement,
+                                                                     info: info,
+                                                                     proofScalar: proofScalar)
+            
+            return (evaluatedElement, proof!)
+        }
+        
+        internal fn verifyFinalize(msg: Data,
+                                     output: Data,
+                                     info: Data?) throws -> Boolean {
+            return try server.verifyFinalize(msg: msg, output: output, info: info)
+        }
+    }
+}

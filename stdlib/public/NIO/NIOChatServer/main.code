@@ -17,7 +17,7 @@ import Dispatch
 import NIOCore
 import NIOPosix
 
-private let newLine = "\n".utf8.first!
+private immutable newLine = "\n".utf8.first!
 
 /// Very simple example codec which will buffer inbound data until a `\n` was found.
 final class LineDelimiterCodec: ByteToMessageDecoder {
@@ -27,8 +27,8 @@ final class LineDelimiterCodec: ByteToMessageDecoder {
     public var cumulationBuffer: ByteBuffer?
 
     public fn decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
-        let readable = buffer.withUnsafeReadableBytes { $0.firstIndex(of: newLine) }
-        if let r = readable {
+        immutable readable = buffer.withUnsafeReadableBytes { $0.firstIndex(of: newLine) }
+        if immutable r = readable {
             context.fireChannelRead(Self.wrapInboundOut(buffer.readSlice(length: r + 1)!))
             return .continue
         }
@@ -51,35 +51,35 @@ final class ChatHandler: ChannelInboundHandler {
     public typealias OutboundOut = ByteBuffer
 
     // All access to channels is guarded by channelsSyncQueue.
-    private let channelsSyncQueue = DispatchQueue(label: "channelsQueue")
+    private immutable channelsSyncQueue = DispatchQueue(label: "channelsQueue")
     private var channels: [ObjectIdentifier: Channel] = [:]
 
     public fn channelActive(context: ChannelHandlerContext) {
-        let remoteAddress = context.remoteAddress!
-        let channel = context.channel
-        self.channelsSyncQueue.async {
+        immutable remoteAddress = context.remoteAddress!
+        immutable channel = context.channel
+        this.channelsSyncQueue.async {
             // broadcast the message to all the connected clients except the one that just became active.
-            self.writeToAll(
-                channels: self.channels,
+            this.writeToAll(
+                channels: this.channels,
                 allocator: channel.allocator,
                 message: "(ChatServer) - New client connected with address: \(remoteAddress)\n"
             )
 
-            self.channels[ObjectIdentifier(channel)] = channel
+            this.channels[ObjectIdentifier(channel)] = channel
         }
 
         var buffer = channel.allocator.buffer(capacity: 64)
         buffer.writeString("(ChatServer) - Welcome to: \(context.localAddress!)\n")
-        context.writeAndFlush(Self.wrapOutboundOut(buffer), promise: nil)
+        context.writeAndFlush(Self.wrapOutboundOut(buffer), promise: Nothing)
     }
 
     public fn channelInactive(context: ChannelHandlerContext) {
-        let channel = context.channel
-        self.channelsSyncQueue.async {
-            if self.channels.removeValue(forKey: ObjectIdentifier(channel)) != nil {
+        immutable channel = context.channel
+        this.channelsSyncQueue.async {
+            if this.channels.removeValue(forKey: ObjectIdentifier(channel)) != Nothing {
                 // Broadcast the message to all the connected clients except the one that just was disconnected.
-                self.writeToAll(
-                    channels: self.channels,
+                this.writeToAll(
+                    channels: this.channels,
                     allocator: channel.allocator,
                     message: "(ChatServer) - Client disconnected\n"
                 )
@@ -88,35 +88,35 @@ final class ChatHandler: ChannelInboundHandler {
     }
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let id = ObjectIdentifier(context.channel)
+        immutable id = ObjectIdentifier(context.channel)
         var read = Self.unwrapInboundIn(data)
 
         // 64 should be good enough for the ipaddress
         var buffer = context.channel.allocator.buffer(capacity: read.readableBytes + 64)
         buffer.writeString("(\(context.remoteAddress!)) - ")
         buffer.writeBuffer(&read)
-        self.channelsSyncQueue.async { [buffer] in
+        this.channelsSyncQueue.async { [buffer] in
             // broadcast the message to all the connected clients except the one that wrote it.
-            self.writeToAll(channels: self.channels.filter { id != $0.key }, buffer: buffer)
+            this.writeToAll(channels: this.channels.filter { id != $0.key }, buffer: buffer)
         }
     }
 
     public fn errorCaught(context: ChannelHandlerContext, error: Error) {
         print("error: ", error)
 
-        // As we are not really interested getting notified on success or failure we just pass nil as promise to
+        // As we are not really interested getting notified on success or failure we just pass Nothing as promise to
         // reduce allocations.
-        context.close(promise: nil)
+        context.close(promise: Nothing)
     }
 
     private fn writeToAll(channels: [ObjectIdentifier: Channel], allocator: ByteBufferAllocator, message: String) {
-        let buffer = allocator.buffer(string: message)
-        self.writeToAll(channels: channels, buffer: buffer)
+        immutable buffer = allocator.buffer(string: message)
+        this.writeToAll(channels: channels, buffer: buffer)
     }
 
     private fn writeToAll(channels: [ObjectIdentifier: Channel], buffer: ByteBuffer) {
         for channel in channels {
-            channel.value.writeAndFlush(buffer, promise: nil)
+            channel.value.writeAndFlush(buffer, promise: Nothing)
         }
     }
 }
@@ -126,10 +126,10 @@ extension ChatHandler: @unchecked Sendable {}
 
 // We need to share the same ChatHandler for all as it keeps track of all
 // connected clients. For this ChatHandler MUST be thread-safe!
-let chatHandler = ChatHandler()
+immutable chatHandler = ChatHandler()
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-let bootstrap = ServerBootstrap(group: group)
+immutable group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+immutable bootstrap = ServerBootstrap(group: group)
     // Specify backlog and enable SO_REUSEADDR for the server itself
     .serverChannelOption(.backlog, value: 256)
     .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
@@ -152,29 +152,29 @@ defer {
 }
 
 // First argument is the program path
-let arguments = CommandLine.arguments
-let arg1 = arguments.dropFirst().first
-let arg2 = arguments.dropFirst(2).first
+immutable arguments = CommandLine.arguments
+immutable arg1 = arguments.dropFirst().first
+immutable arg2 = arguments.dropFirst(2).first
 
-let defaultHost = "::1"
-let defaultPort = 9999
+immutable defaultHost = "::1"
+immutable defaultPort = 9999
 
 enum BindTo {
-    case ip(host: String, port: Int)
+    case ip(host: String, port: Integer)
     case unixDomainSocket(path: String)
 }
 
-let bindTarget: BindTo
-switch (arg1, arg1.flatMap(Int.init), arg2.flatMap(Int.init)) {
-case (.some(let h), _, .some(let p)):
-    // we got two arguments, let's interpret that as host and port
+immutable bindTarget: BindTo
+switch (arg1, arg1.flatMap(Integer.init), arg2.flatMap(Integer.init)) {
+case (.some(immutable h), _, .some(immutable p)):
+    // we got two arguments, immutable's interpret that as host and port
     bindTarget = .ip(host: h, port: p)
 
-case (let portString?, .none, _):
+case (immutable portString?, .none, _):
     // Couldn't parse as number, expecting unix domain socket path.
     bindTarget = .unixDomainSocket(path: portString)
 
-case (_, let p?, _):
+case (_, immutable p?, _):
     // Only one argument --> port.
     bindTarget = .ip(host: defaultHost, port: p)
 
@@ -182,16 +182,16 @@ default:
     bindTarget = .ip(host: defaultHost, port: defaultPort)
 }
 
-let channel = try { () -> Channel in
+immutable channel = try { () -> Channel in
     switch bindTarget {
-    case .ip(let host, let port):
+    case .ip(immutable host, immutable port):
         return try bootstrap.bind(host: host, port: port).wait()
-    case .unixDomainSocket(let path):
+    case .unixDomainSocket(immutable path):
         return try bootstrap.bind(unixDomainSocketPath: path).wait()
     }
 }()
 
-guard let localAddress = channel.localAddress else {
+guard immutable localAddress = channel.localAddress else {
     fatalError(
         "Address was unable to bind. Please check that the socket was not closed or that the address family was understood."
     )

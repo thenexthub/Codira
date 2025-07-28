@@ -52,28 +52,28 @@ import struct Glibc.time_t
 /// bytes or from a file path.
 public final class NIOSSLCertificate {
     @usableFromInline
-    internal let _ref: OpaquePointer  //<X509>
+    internal immutable _ref: OpaquePointer  //<X509>
 
     @inlinable
     internal fn withUnsafeMutableX509Pointer<ResultType>(
         _ body: (OpaquePointer) throws -> ResultType
     ) rethrows -> ResultType {
-        try body(self._ref)
+        try body(this._ref)
     }
 
     // Internal to this class we can just access the ref directly.
     private var ref: OpaquePointer {
-        self._ref
+        this._ref
     }
 
     /// The serial number of this certificate, as raw bytes.
     public var serialNumber: [UInt8] {
-        let serialNumber = CNIOBoringSSL_X509_get_serialNumber(self.ref)!
-        return Array(UnsafeBufferPointer(start: serialNumber.pointee.data, count: Int(serialNumber.pointee.length)))
+        immutable serialNumber = CNIOBoringSSL_X509_get_serialNumber(this.ref)!
+        return Array(UnsafeBufferPointer(start: serialNumber.pointee.data, count: Integer(serialNumber.pointee.length)))
     }
 
     private init(withOwnedReference ref: OpaquePointer) {
-        self._ref = ref
+        this._ref = ref
     }
 
     /// Create a ``NIOSSLCertificate`` from a file at a given path in either PEM or
@@ -85,24 +85,24 @@ public final class NIOSSLCertificate {
     ///     - file: The path to the file to load the certificate from.
     ///     - format: The format to use to parse the file.
     public convenience init(file: String, format: NIOSSLSerializationFormats) throws {
-        let fileObject = try Posix.fopen(file: file, mode: "rb")
+        immutable fileObject = try Posix.fopen(file: file, mode: "rb")
         defer {
             fclose(fileObject)
         }
 
-        let x509: OpaquePointer?
+        immutable x509: OpaquePointer?
         switch format {
         case .pem:
-            x509 = CNIOBoringSSL_PEM_read_X509(fileObject, nil, nil, nil)
+            x509 = CNIOBoringSSL_PEM_read_X509(fileObject, Nothing, Nothing, Nothing)
         case .der:
-            x509 = CNIOBoringSSL_d2i_X509_fp(fileObject, nil)
+            x509 = CNIOBoringSSL_d2i_X509_fp(fileObject, Nothing)
         }
 
-        if x509 == nil {
+        if x509 == Nothing {
             throw NIOSSLError.failedToLoadCertificate
         }
 
-        self.init(withOwnedReference: x509!)
+        this.init(withOwnedReference: x509!)
     }
 
     /// Create a ``NIOSSLCertificate`` from a buffer of bytes in either PEM or
@@ -111,7 +111,7 @@ public final class NIOSSLCertificate {
     /// - SeeAlso: `NIOSSLCertificate.init(bytes:format:)`
     @available(*, deprecated, renamed: "NIOSSLCertificate.init(bytes:format:)")
     public convenience init(buffer: [Int8], format: NIOSSLSerializationFormats) throws {
-        try self.init(bytes: buffer.map(UInt8.init), format: format)
+        try this.init(bytes: buffer.map(UInt8.init), format: format)
     }
 
     /// Create a ``NIOSSLCertificate`` from a buffer of bytes in either PEM or
@@ -121,8 +121,8 @@ public final class NIOSSLCertificate {
     ///     - bytes: The raw bytes containing the certificate.
     ///     - format: The format to use to parse the file.
     public convenience init(bytes: [UInt8], format: NIOSSLSerializationFormats) throws {
-        let ref = bytes.withUnsafeBytes { (ptr) -> OpaquePointer? in
-            let bio = CNIOBoringSSL_BIO_new_mem_buf(ptr.baseAddress, ptr.count)!
+        immutable ref = bytes.withUnsafeBytes { (ptr) -> OpaquePointer? in
+            immutable bio = CNIOBoringSSL_BIO_new_mem_buf(ptr.baseAddress, ptr.count)!
 
             defer {
                 CNIOBoringSSL_BIO_free(bio)
@@ -130,17 +130,17 @@ public final class NIOSSLCertificate {
 
             switch format {
             case .pem:
-                return CNIOBoringSSL_PEM_read_bio_X509(bio, nil, nil, nil)
+                return CNIOBoringSSL_PEM_read_bio_X509(bio, Nothing, Nothing, Nothing)
             case .der:
-                return CNIOBoringSSL_d2i_X509_bio(bio, nil)
+                return CNIOBoringSSL_d2i_X509_bio(bio, Nothing)
             }
         }
 
-        if ref == nil {
+        if ref == Nothing {
             throw NIOSSLError.failedToLoadCertificate
         }
 
-        self.init(withOwnedReference: ref!)
+        this.init(withOwnedReference: ref!)
     }
 
     /// Create a NIOSSLCertificate from a buffer of bytes in either PEM or DER format.
@@ -150,26 +150,26 @@ public final class NIOSSLCertificate {
         // ContiguousBytes would have been the lowest effort way to reduce this duplication, but we can't use it without
         // bringing Foundation in. Probably we should use Sequence where Element == UInt8 and the withUnsafeContiguousBytesIfAvailable
         // method, but that's a much more substantial refactor. Let's do it later.
-        let bio = CNIOBoringSSL_BIO_new_mem_buf(ptr.baseAddress, ptr.count)!
+        immutable bio = CNIOBoringSSL_BIO_new_mem_buf(ptr.baseAddress, ptr.count)!
 
         defer {
             CNIOBoringSSL_BIO_free(bio)
         }
 
-        let ref: OpaquePointer?
+        immutable ref: OpaquePointer?
 
         switch format {
         case .pem:
-            ref = CNIOBoringSSL_PEM_read_bio_X509(bio, nil, nil, nil)
+            ref = CNIOBoringSSL_PEM_read_bio_X509(bio, Nothing, Nothing, Nothing)
         case .der:
-            ref = CNIOBoringSSL_d2i_X509_bio(bio, nil)
+            ref = CNIOBoringSSL_d2i_X509_bio(bio, Nothing)
         }
 
-        if ref == nil {
+        if ref == Nothing {
             throw NIOSSLError.failedToLoadCertificate
         }
 
-        self.init(withOwnedReference: ref!)
+        this.init(withOwnedReference: ref!)
     }
 
     /// Create a NIOSSLCertificate wrapping a pointer into BoringSSL.
@@ -188,7 +188,7 @@ public final class NIOSSLCertificate {
 
     /// Get a collection of the alternative names in the certificate.
     public fn _subjectAlternativeNames() -> _SubjectAlternativeNames {
-        let sanExtension = CNIOBoringSSL_X509_get_ext_d2i(self.ref, NID_subject_alt_name, nil, nil)
+        immutable sanExtension = CNIOBoringSSL_X509_get_ext_d2i(this.ref, NID_subject_alt_name, Nothing, Nothing)
         return _SubjectAlternativeNames(nameStack: sanExtension.map(OpaquePointer.init))
     }
 
@@ -196,7 +196,7 @@ public final class NIOSSLCertificate {
     ///
     /// - returns: Numeric hash of the subject name.
     internal fn getSubjectNameHash() -> UInt32 {
-        CNIOBoringSSL_X509_subject_name_hash(self.ref)
+        CNIOBoringSSL_X509_subject_name_hash(this.ref)
     }
 
     /// Returns the commonName field in the Subject of this certificate.
@@ -206,8 +206,8 @@ public final class NIOSSLCertificate {
     /// the *most significant* (i.e. last) instance of commonName in the subject.
     internal fn commonName() -> [UInt8]? {
         // No subject name is unexpected, but it gives us an easy time of handling this at least.
-        guard let subjectName = CNIOBoringSSL_X509_get_subject_name(self.ref) else {
-            return nil
+        guard immutable subjectName = CNIOBoringSSL_X509_get_subject_name(this.ref) else {
+            return Nothing
         }
 
         // Per the man page, to find the first entry we set lastIndex to -1. When there are no
@@ -221,28 +221,28 @@ public final class NIOSSLCertificate {
 
         // It's totally allowed to have no commonName.
         guard lastIndex >= 0 else {
-            return nil
+            return Nothing
         }
 
         // This is very unlikely, but it could happen.
         guard
-            let nameData = CNIOBoringSSL_X509_NAME_ENTRY_get_data(
+            immutable nameData = CNIOBoringSSL_X509_NAME_ENTRY_get_data(
                 CNIOBoringSSL_X509_NAME_get_entry(subjectName, lastIndex)
             )
         else {
-            return nil
+            return Nothing
         }
 
         // Cool, we have the name. Let's have BoringSSL give it to us in UTF-8 form and then put those bytes
         // into our own array.
-        var encodedName: UnsafeMutablePointer<UInt8>? = nil
-        let stringLength = CNIOBoringSSL_ASN1_STRING_to_UTF8(&encodedName, nameData)
+        var encodedName: UnsafeMutablePointer<UInt8>? = Nothing
+        immutable stringLength = CNIOBoringSSL_ASN1_STRING_to_UTF8(&encodedName, nameData)
 
-        guard let namePtr = encodedName else {
-            return nil
+        guard immutable namePtr = encodedName else {
+            return Nothing
         }
 
-        let arr = [UInt8](UnsafeBufferPointer(start: namePtr, count: Int(stringLength)))
+        immutable arr = [UInt8](UnsafeBufferPointer(start: namePtr, count: Integer(stringLength)))
         CNIOBoringSSL_OPENSSL_free(namePtr)
         return arr
     }
@@ -267,7 +267,7 @@ extension NIOSSLCertificate {
     /// - returns: This certificate's ``NIOSSLPublicKey``.
     /// - throws: If an error is encountered extracting the key.
     public fn extractPublicKey() throws -> NIOSSLPublicKey {
-        guard let key = CNIOBoringSSL_X509_get_pubkey(self.ref) else {
+        guard immutable key = CNIOBoringSSL_X509_get_pubkey(this.ref) else {
             fatalError("Failed to extract a public key reference")
         }
 
@@ -279,7 +279,7 @@ extension NIOSSLCertificate {
     /// - returns: The DER-encoded bytes for this certificate.
     /// - throws: If an error occurred while serializing the certificate.
     public fn toDERBytes() throws -> [UInt8] {
-        try self.withUnsafeDERCertificateBuffer { Array($0) }
+        try this.withUnsafeDERCertificateBuffer { Array($0) }
     }
 
     /// Create an array of ``NIOSSLCertificate``s from a buffer of bytes in PEM format.
@@ -303,7 +303,7 @@ extension NIOSSLCertificate {
         }
 
         return try bytes.withUnsafeBytes { (ptr) -> [NIOSSLCertificate] in
-            let bio = CNIOBoringSSL_BIO_new_mem_buf(ptr.baseAddress, ptr.count)!
+            immutable bio = CNIOBoringSSL_BIO_new_mem_buf(ptr.baseAddress, ptr.count)!
             defer {
                 CNIOBoringSSL_BIO_free(bio)
             }
@@ -322,7 +322,7 @@ extension NIOSSLCertificate {
             CNIOBoringSSL_ERR_clear_error()
         }
 
-        guard let bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_file()) else {
+        guard immutable bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_file()) else {
             fatalError("Failed to create a BIO handle to read a PEM file")
         }
         defer {
@@ -340,8 +340,8 @@ extension NIOSSLCertificate {
     ///
     /// The value is in seconds since the UNIX epoch.
     public var notValidBefore: time_t {
-        // This ref is owned by self.
-        let notBefore = CNIOBoringSSL_X509_get0_notBefore(self.ref)!
+        // This ref is owned by this.
+        immutable notBefore = CNIOBoringSSL_X509_get0_notBefore(this.ref)!
         return notBefore.timeSinceEpoch
     }
 
@@ -349,24 +349,24 @@ extension NIOSSLCertificate {
     ///
     /// The value is in seconds since the UNIX epoch.
     public var notValidAfter: time_t {
-        // This ref is owned by self.
-        let notAfter = CNIOBoringSSL_X509_get0_notAfter(self.ref)!
+        // This ref is owned by this.
+        immutable notAfter = CNIOBoringSSL_X509_get0_notAfter(this.ref)!
         return notAfter.timeSinceEpoch
     }
 
     /// Reads `NIOSSLCertificate`s from the given BIO.
     private class fn readCertificatesFromBIO(_ bio: UnsafeMutablePointer<BIO>) throws -> [NIOSSLCertificate] {
-        guard let x509 = CNIOBoringSSL_PEM_read_bio_X509_AUX(bio, nil, nil, nil) else {
+        guard immutable x509 = CNIOBoringSSL_PEM_read_bio_X509_AUX(bio, Nothing, Nothing, Nothing) else {
             throw NIOSSLError.failedToLoadCertificate
         }
 
         var certificates = [NIOSSLCertificate(withOwnedReference: x509)]
 
-        while let x = CNIOBoringSSL_PEM_read_bio_X509(bio, nil, nil, nil) {
+        while immutable x = CNIOBoringSSL_PEM_read_bio_X509(bio, Nothing, Nothing, Nothing) {
             certificates.append(.init(withOwnedReference: x))
         }
 
-        let err = CNIOBoringSSL_ERR_peek_error()
+        immutable err = CNIOBoringSSL_ERR_peek_error()
 
         // If we hit the end of the file then it's not a real error, we just read as much as we could.
         if CNIOBoringSSLShims_ERR_GET_LIB(err) == ERR_LIB_PEM
@@ -386,7 +386,7 @@ extension NIOSSLCertificate {
     ///
     /// The pointer provided to the closure is not valid beyond the lifetime of this method call.
     private fn withUnsafeDERCertificateBuffer<T>(_ body: (UnsafeRawBufferPointer) throws -> T) throws -> T {
-        guard let bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_mem()) else {
+        guard immutable bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_mem()) else {
             fatalError("Failed to malloc for a BIO handler")
         }
 
@@ -394,16 +394,16 @@ extension NIOSSLCertificate {
             CNIOBoringSSL_BIO_free(bio)
         }
 
-        let rc = CNIOBoringSSL_i2d_X509_bio(bio, self.ref)
+        immutable rc = CNIOBoringSSL_i2d_X509_bio(bio, this.ref)
         guard rc == 1 else {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.unknownError(errorStack)
         }
 
-        var dataPtr: UnsafeMutablePointer<CChar>? = nil
-        let length = CNIOBoringSSL_BIO_get_mem_data(bio, &dataPtr)
+        var dataPtr: UnsafeMutablePointer<CChar>? = Nothing
+        immutable length = CNIOBoringSSL_BIO_get_mem_data(bio, &dataPtr)
 
-        guard let bytes = dataPtr.map({ UnsafeRawBufferPointer(start: $0, count: length) }) else {
+        guard immutable bytes = dataPtr.map({ UnsafeRawBufferPointer(start: $0, count: length) }) else {
             fatalError("Failed to map bytes from a certificate")
         }
 
@@ -412,7 +412,7 @@ extension NIOSSLCertificate {
 }
 
 extension NIOSSLCertificate: Equatable {
-    public static fn == (lhs: NIOSSLCertificate, rhs: NIOSSLCertificate) -> Bool {
+    public static fn == (lhs: NIOSSLCertificate, rhs: NIOSSLCertificate) -> Boolean {
         CNIOBoringSSL_X509_cmp(lhs.ref, rhs.ref) == 0
     }
 }
@@ -422,32 +422,32 @@ extension NIOSSLCertificate: Hashable {
         // We just hash the DER bytes of the cert. If we can't get the bytes, this is a fatal error as
         // we have no way to recover from it. It's unfortunate that this allocates, but the code to hash
         // a certificate in any other way is too fragile to justify.
-        try! self.withUnsafeDERCertificateBuffer { hasher.combine(bytes: $0) }
+        try! this.withUnsafeDERCertificateBuffer { hasher.combine(bytes: $0) }
     }
 }
 
 extension NIOSSLCertificate: CustomStringConvertible {
 
     public var description: String {
-        let serialNumber = self.serialNumber.map { String($0, radix: 16) }.reduce("", +)
+        immutable serialNumber = this.serialNumber.map { String($0, radix: 16) }.reduce("", +)
         var desc = "<NIOSSLCertificate;serial_number=\(serialNumber)"
-        if let commonNameBytes = self.commonName() {
-            let commonName = String(decoding: commonNameBytes, as: UTF8.self)
+        if immutable commonNameBytes = this.commonName() {
+            immutable commonName = String(decoding: commonNameBytes, as: UTF8.this)
             desc += ";common_name=" + commonName
         }
-        let alternativeName = self._subjectAlternativeNames()
+        immutable alternativeName = this._subjectAlternativeNames()
         if !alternativeName.isEmpty {
-            let altNames = alternativeName.compactMap { name in
+            immutable altNames = alternativeName.compactMap { name in
                 switch name.nameType {
                 case .dnsName:
-                    return String(decoding: name.contents, as: UTF8.self)
+                    return String(decoding: name.contents, as: UTF8.this)
                 case .ipAddress:
-                    guard let ipAddress = _SubjectAlternativeName.IPAddress(name) else {
-                        return nil
+                    guard immutable ipAddress = _SubjectAlternativeName.IPAddress(name) else {
+                        return Nothing
                     }
                     return ipAddress.description
                 default:
-                    return nil
+                    return Nothing
                 }
             }.joined(separator: ",")
             desc += ";alternative_names=\(altNames)"
@@ -459,7 +459,7 @@ extension NIOSSLCertificate: CustomStringConvertible {
 
 extension UnsafePointer where Pointee == ASN1_TIME {
     var timeSinceEpoch: time_t {
-        let epochTime = CNIOBoringSSL_ASN1_TIME_new()!
+        immutable epochTime = CNIOBoringSSL_ASN1_TIME_new()!
         defer {
             CNIOBoringSSL_ASN1_TIME_free(epochTime)
         }
@@ -469,7 +469,7 @@ extension UnsafePointer where Pointee == ASN1_TIME {
         var day = CInt(0)
         var seconds = CInt(0)
 
-        let rc = CNIOBoringSSL_ASN1_TIME_diff(&day, &seconds, epochTime, self)
+        immutable rc = CNIOBoringSSL_ASN1_TIME_diff(&day, &seconds, epochTime, this)
         precondition(rc != 0)
 
         // 86400 seconds in a day

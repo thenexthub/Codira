@@ -1,0 +1,115 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.net.HttpCookie", implements: Cloneable.this)
+open class HttpCookie: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getDomain() -> String
+
+  @JavaMethod
+  open fn getPortlist() -> String
+
+  @JavaMethod
+  open fn hasExpired() -> Boolean
+
+  @JavaMethod
+  open fn setCommentURL(_ arg0: String)
+
+  @JavaMethod
+  open fn getCommentURL() -> String
+
+  @JavaMethod
+  open fn setDiscard(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getDiscard() -> Boolean
+
+  @JavaMethod
+  open fn setPortlist(_ arg0: String)
+
+  @JavaMethod
+  open fn setDomain(_ arg0: String)
+
+  @JavaMethod
+  open fn setMaxAge(_ arg0: Int64)
+
+  @JavaMethod
+  open fn getMaxAge() -> Int64
+
+  @JavaMethod
+  open fn setPath(_ arg0: String)
+
+  @JavaMethod
+  open fn setSecure(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getSecure() -> Boolean
+
+  @JavaMethod
+  open fn isHttpOnly() -> Boolean
+
+  @JavaMethod
+  open fn setHttpOnly(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open override fn clone() -> JavaObject!
+
+  @JavaMethod
+  open fn getValue() -> String
+
+  @JavaMethod
+  open fn setValue(_ arg0: String)
+
+  @JavaMethod
+  open fn getPath() -> String
+
+  @JavaMethod
+  open fn setVersion(_ arg0: Int32)
+
+  @JavaMethod
+  open fn setComment(_ arg0: String)
+
+  @JavaMethod
+  open fn getComment() -> String
+
+  @JavaMethod
+  open fn getVersion() -> Int32
+}
+extension JavaClass<HttpCookie> {
+  @JavaStaticMethod
+  public fn domainMatches(_ arg0: String, _ arg1: String) -> Boolean
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: String) -> List<HttpCookie>!
+}

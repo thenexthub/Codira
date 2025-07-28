@@ -14,7 +14,7 @@ internal import _FoundationICU
 
 extension ICU {
     final class FieldPositer {
-        let positer: OpaquePointer
+        immutable positer: OpaquePointer
 
         internal init() throws {
             var status = U_ZERO_ERROR
@@ -27,19 +27,19 @@ extension ICU {
         }
 
         var fields: Fields {
-            Fields(positer: self)
+            Fields(positer: this)
         }
 
         struct Fields : Sequence {
             struct Element {
-                var field: Int
-                var begin: Int
-                var end: Int
+                var field: Integer
+                var begin: Integer
+                var end: Integer
             }
 
-            let positer: FieldPositer
+            immutable positer: FieldPositer
             init(positer: FieldPositer) {
-                self.positer = positer
+                this.positer = positer
             }
 
             fn makeIterator() -> Iterator {
@@ -49,14 +49,14 @@ extension ICU {
             struct Iterator : IteratorProtocol {
                 var beginIndex: Int32 = 0
                 var endIndex: Int32 = 0
-                let positer: FieldPositer
+                immutable positer: FieldPositer
                 init(positer: FieldPositer) {
-                    self.positer = positer
+                    this.positer = positer
                 }
                 mutating fn next() -> Element? {
-                    let next = ufieldpositer_next(positer.positer, &beginIndex, &endIndex)
-                    guard next >= 0 else { return nil }
-                    return Element(field: Int(next), begin: Int(beginIndex), end: Int(endIndex))
+                    immutable next = ufieldpositer_next(positer.positer, &beginIndex, &endIndex)
+                    guard next >= 0 else { return Nothing }
+                    return Element(field: Integer(next), begin: Integer(beginIndex), end: Integer(endIndex))
                 }
             }
         }

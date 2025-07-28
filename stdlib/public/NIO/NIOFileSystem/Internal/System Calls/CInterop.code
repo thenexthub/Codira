@@ -43,16 +43,16 @@ extension CInterop {
 
     #if canImport(Darwin)
     @_spi(Testing)
-    public static let maxPathLength = Darwin.PATH_MAX
+    public static immutable maxPathLength = Darwin.PATH_MAX
     #elseif canImport(Glibc)
     @_spi(Testing)
-    public static let maxPathLength = Glibc.PATH_MAX
+    public static immutable maxPathLength = Glibc.PATH_MAX
     #elseif canImport(Musl)
     @_spi(Testing)
-    public static let maxPathLength = Musl.PATH_MAX
+    public static immutable maxPathLength = Musl.PATH_MAX
     #elseif canImport(Android)
     @_spi(Testing)
-    public static let maxPathLength = Android.PATH_MAX
+    public static immutable maxPathLength = Android.PATH_MAX
     #endif
 
     #if canImport(Darwin)

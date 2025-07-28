@@ -1,0 +1,78 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitIO
+import JavaRuntime
+
+@JavaClass("java.lang.Process")
+open class Process: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn destroyForcibly() -> Process!
+
+  @JavaMethod
+  open fn supportsNormalTermination() -> Boolean
+
+  @JavaMethod
+  open fn inputReader(_ arg0: Charset?) -> BufferedReader!
+
+  @JavaMethod
+  open fn inputReader() -> BufferedReader!
+
+  @JavaMethod
+  open fn errorReader() -> BufferedReader!
+
+  @JavaMethod
+  open fn errorReader(_ arg0: Charset?) -> BufferedReader!
+
+  @JavaMethod
+  open fn outputWriter(_ arg0: Charset?) -> BufferedWriter!
+
+  @JavaMethod
+  open fn outputWriter() -> BufferedWriter!
+
+  @JavaMethod
+  open fn getOutputStream() -> JavaIO.OutputStream!
+
+  @JavaMethod
+  open fn exitValue() -> Int32
+
+  @JavaMethod
+  open fn toHandle() -> ProcessHandle!
+
+  @JavaMethod
+  open fn info() -> ProcessHandle.Info!
+
+  @JavaMethod
+  open fn isAlive() -> Boolean
+
+  @JavaMethod
+  open fn destroy()
+
+  @JavaMethod
+  open fn getInputStream() -> JavaIO.InputStream!
+
+  @JavaMethod
+  open fn pid() -> Int64
+
+  @JavaMethod
+  open fn getErrorStream() -> JavaIO.InputStream!
+
+  @JavaMethod
+  open fn waitFor() throws -> Int32
+}

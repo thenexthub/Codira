@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CxxStdlibShim
@@ -117,12 +116,12 @@ extension std.u32string: ExpressibleByStringLiteral,
 
 extension std.string: Equatable, Comparable {
   @_alwaysEmitIntoClient
-  public static fn ==(lhs: std.string, rhs: std.string) -> Bool {
+  public static fn ==(lhs: std.string, rhs: std.string) -> Boolean {
     return lhs.compare(rhs) == 0
   }
 
   @_alwaysEmitIntoClient
-  public static fn <(lhs: std.string, rhs: std.string) -> Bool {
+  public static fn <(lhs: std.string, rhs: std.string) -> Boolean {
     return lhs.compare(rhs) < 0
   }
 
@@ -146,12 +145,12 @@ extension std.string: Equatable, Comparable {
 
 extension std.u16string: Equatable, Comparable {
   @_alwaysEmitIntoClient
-  public static fn ==(lhs: std.u16string, rhs: std.u16string) -> Bool {
+  public static fn ==(lhs: std.u16string, rhs: std.u16string) -> Boolean {
     return lhs.compare(rhs) == 0
   }
 
   @_alwaysEmitIntoClient
-  public static fn <(lhs: std.u16string, rhs: std.u16string) -> Bool {
+  public static fn <(lhs: std.u16string, rhs: std.u16string) -> Boolean {
     return lhs.compare(rhs) < 0
   }
 
@@ -175,12 +174,12 @@ extension std.u16string: Equatable, Comparable {
 
 extension std.u32string: Equatable, Comparable {
   @_alwaysEmitIntoClient
-  public static fn ==(lhs: std.u32string, rhs: std.u32string) -> Bool {
+  public static fn ==(lhs: std.u32string, rhs: std.u32string) -> Boolean {
     return lhs.compare(rhs) == 0
   }
 
   @_alwaysEmitIntoClient
-  public static fn <(lhs: std.u32string, rhs: std.u32string) -> Bool {
+  public static fn <(lhs: std.u32string, rhs: std.u32string) -> Boolean {
     return lhs.compare(rhs) < 0
   }
 

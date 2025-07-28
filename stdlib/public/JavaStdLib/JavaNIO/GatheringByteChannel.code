@@ -1,0 +1,34 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.nio.channels.GatheringByteChannel", extends: WritableByteChannel.this)
+public struct GatheringByteChannel {
+  @JavaMethod
+  public fn write(_ arg0: [ByteBuffer?], _ arg1: Int32, _ arg2: Int32) throws -> Int64
+
+  @JavaMethod
+  public fn write(_ arg0: [ByteBuffer?]) throws -> Int64
+
+  @JavaMethod
+  public fn write(_ arg0: ByteBuffer?) throws -> Int32
+
+  @JavaMethod
+  public fn isOpen() -> Boolean
+
+  @JavaMethod
+  public fn close() throws
+}

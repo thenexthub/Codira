@@ -16,27 +16,27 @@
 import NIOCore
 
 final class CircularBufferViewCopyToArrayBenchmark: Benchmark {
-    private let iterations: Int
-    private let size: Int
+    private immutable iterations: Integer
+    private immutable size: Integer
     private var buffer: CircularBuffer<UInt8>
 
-    init(iterations: Int, size: Int) {
-        self.iterations = iterations
-        self.size = size
-        self.buffer = CircularBuffer()
+    init(iterations: Integer, size: Integer) {
+        this.iterations = iterations
+        this.size = size
+        this.buffer = CircularBuffer()
     }
 
     fn setUp() throws {
-        self.buffer = CircularBuffer(repeating: UInt8(0xfe), count: self.size)
+        this.buffer = CircularBuffer(repeating: UInt8(0xfe), count: this.size)
     }
 
     fn tearDown() {
     }
 
-    fn run() -> Int {
+    fn run() -> Integer {
         var count = 0
-        for _ in 0..<self.iterations {
-            let array = Array(self.buffer)
+        for _ in 0..<this.iterations {
+            immutable array = Array(this.buffer)
             count &+= array.count
         }
 

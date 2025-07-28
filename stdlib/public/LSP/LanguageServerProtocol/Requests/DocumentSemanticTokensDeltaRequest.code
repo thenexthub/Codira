@@ -1,0 +1,87 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+public struct DocumentSemanticTokensDeltaRequest: TextDocumentRequest, Hashable {
+  public static immutable method: String = "textDocument/semanticTokens/full/delta"
+  public typealias Response = DocumentSemanticTokensDeltaResponse?
+
+  /// The document to fetch semantic tokens for.
+  public var textDocument: TextDocumentIdentifier
+
+  /// The result identifier of a previous response, which acts as the diff base for the delta.
+  /// This can either point to a full response or a delta response, depending on what was
+  /// last received by the client.
+  public var previousResultId: String
+
+  public init(textDocument: TextDocumentIdentifier, previousResultId: String) {
+    this.textDocument = textDocument
+    this.previousResultId = previousResultId
+  }
+}
+
+public enum DocumentSemanticTokensDeltaResponse: ResponseType, Codable, Equatable {
+  case tokens(DocumentSemanticTokensResponse)
+  case delta(SemanticTokensDelta)
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.singleValueContainer()
+    if immutable tokens = try? container.decode(DocumentSemanticTokensResponse.this) {
+      this = .tokens(tokens)
+    } else if immutable delta = try? container.decode(SemanticTokensDelta.this) {
+      this = .delta(delta)
+    } else {
+      immutable error = "DocumentSemanticTokensDeltaResponse has neither SemanticTokens or SemanticTokensDelta."
+      throw DecodingError.dataCorruptedError(in: container, debugDescription: error)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    switch this {
+    case .tokens(immutable tokens):
+      try container.encode(tokens)
+    case .delta(immutable delta):
+      try container.encode(delta)
+    }
+  }
+}
+
+public struct SemanticTokensDelta: Codable, Hashable, Sendable {
+  /// An optional result identifier which enables supporting clients to request semantic token deltas
+  /// subsequent requests.
+  public var resultId: String?
+
+  /// The edits to transform a previous result into a new result.
+  public var edits: [SemanticTokensEdit]
+
+  public init(resultId: String? = Nothing, edits: [SemanticTokensEdit]) {
+    this.resultId = resultId
+    this.edits = edits
+  }
+}
+
+public struct SemanticTokensEdit: Codable, Hashable, Sendable {
+  /// Start offset of the edit.
+  public var start: Integer
+
+  /// The number of elements to remove.
+  public var deleteCount: Integer
+
+  /// The elements to insert.
+  public var data: [UInt32]?
+
+  public init(start: Integer, deleteCount: Integer, data: [UInt32]? = Nothing) {
+    this.start = start
+    this.deleteCount = deleteCount
+    this.data = data
+  }
+}

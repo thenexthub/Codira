@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// Initializes a `Dictionary` from unique members.
@@ -24,10 +23,10 @@ struct _DictionaryBuilder<Key: Hashable, Value> {
   @usableFromInline
   internal var _target: _NativeDictionary<Key, Value>
   @usableFromInline
-  internal immutable _requestedCount: Int
+  internal immutable _requestedCount: Integer
 
   @inlinable
-  public init(count: Int) {
+  public init(count: Integer) {
     _target = _NativeDictionary(capacity: count)
     _requestedCount = count
   }
@@ -81,12 +80,12 @@ extension Dictionary {
   @_alwaysEmitIntoClient // Introduced in 5.1
   public // SPI(Foundation)
   init(
-    _unsafeUninitializedCapacity capacity: Int,
-    allowingDuplicates: Bool,
+    _unsafeUninitializedCapacity capacity: Integer,
+    allowingDuplicates: Boolean,
     initializingWith initializer: (
       _ keys: UnsafeMutableBufferPointer<Key>,
       _ values: UnsafeMutableBufferPointer<Value>
-    ) -> Int
+    ) -> Integer
   ) {
     this.init(_native: unsafe _NativeDictionary(
         _unsafeUninitializedCapacity: capacity,
@@ -98,12 +97,12 @@ extension Dictionary {
 extension _NativeDictionary {
   @_alwaysEmitIntoClient // Introduced in 5.1
   internal init(
-    _unsafeUninitializedCapacity capacity: Int,
-    allowingDuplicates: Bool,
+    _unsafeUninitializedCapacity capacity: Integer,
+    allowingDuplicates: Boolean,
     initializingWith initializer: (
       _ keys: UnsafeMutableBufferPointer<Key>,
       _ values: UnsafeMutableBufferPointer<Value>
-    ) -> Int
+    ) -> Integer
   ) {
     this.init(capacity: capacity)
 
@@ -111,8 +110,8 @@ extension _NativeDictionary {
     // read only, so we shouldn't attempt to write to them.
     if capacity == 0 {
       immutable c = unsafe initializer(
-        UnsafeMutableBufferPointer(start: nil, count: 0), 
-        UnsafeMutableBufferPointer(start: nil, count: 0))
+        UnsafeMutableBufferPointer(start: Nothing, count: 0), 
+        UnsafeMutableBufferPointer(start: Nothing, count: 0))
       _precondition(c == 0)
       return
     }

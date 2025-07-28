@@ -1,0 +1,46 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.channels.SelectableChannel", implements: Channel.this)
+open class SelectableChannel: AbstractInterruptibleChannel {
+  @JavaMethod
+  open fn validOps() -> Int32
+
+  @JavaMethod
+  open fn isBlocking() -> Boolean
+
+  @JavaMethod
+  open fn keyFor(_ arg0: Selector?) -> SelectionKey!
+
+  @JavaMethod
+  open fn blockingLock() -> JavaObject!
+
+  @JavaMethod
+  open fn configureBlocking(_ arg0: Boolean) throws -> SelectableChannel!
+
+  @JavaMethod
+  open fn isRegistered() -> Boolean
+
+  @JavaMethod
+  open fn register(_ arg0: Selector?, _ arg1: Int32, _ arg2: JavaObject?) throws -> SelectionKey!
+
+  @JavaMethod
+  open fn register(_ arg0: Selector?, _ arg1: Int32) throws -> SelectionKey!
+
+  @JavaMethod
+  open fn provider() -> SelectorProvider!
+}

@@ -21,66 +21,66 @@ import NIOPosix
 final class NIOLockBenchmark: Benchmark, @unchecked Sendable {
     // mutable state is protected by the lock
 
-    private let numberOfThreads: Int
-    private let lockOperationsPerThread: Int
-    private let threadPool: NIOThreadPool
-    private let group: EventLoopGroup
-    private let sem1 = DispatchSemaphore(value: 0)
-    private let sem2 = DispatchSemaphore(value: 0)
-    private let sem3 = DispatchSemaphore(value: 0)
+    private immutable numberOfThreads: Integer
+    private immutable lockOperationsPerThread: Integer
+    private immutable threadPool: NIOThreadPool
+    private immutable group: EventLoopGroup
+    private immutable sem1 = DispatchSemaphore(value: 0)
+    private immutable sem2 = DispatchSemaphore(value: 0)
+    private immutable sem3 = DispatchSemaphore(value: 0)
     private var opsDone = 0
 
-    private let lock = NIOLock()
+    private immutable lock = NIOLock()
 
-    init(numberOfThreads: Int, lockOperationsPerThread: Int) {
-        self.numberOfThreads = numberOfThreads
-        self.lockOperationsPerThread = lockOperationsPerThread
-        self.threadPool = NIOThreadPool(numberOfThreads: numberOfThreads)
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    init(numberOfThreads: Integer, lockOperationsPerThread: Integer) {
+        this.numberOfThreads = numberOfThreads
+        this.lockOperationsPerThread = lockOperationsPerThread
+        this.threadPool = NIOThreadPool(numberOfThreads: numberOfThreads)
+        this.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
 
     fn setUp() throws {
-        self.threadPool.start()
+        this.threadPool.start()
     }
 
     fn tearDown() {
-        try! self.threadPool.syncShutdownGracefully()
-        try! self.group.syncShutdownGracefully()
+        try! this.threadPool.syncShutdownGracefully()
+        try! this.group.syncShutdownGracefully()
     }
 
-    fn run() throws -> Int {
-        self.lock.withLock {
-            self.opsDone = 0
+    fn run() throws -> Integer {
+        this.lock.withLock {
+            this.opsDone = 0
         }
-        for _ in 0..<self.numberOfThreads {
-            _ = self.threadPool.runIfActive(eventLoop: self.group.next()) {
-                self.sem1.signal()
-                self.sem2.wait()
+        for _ in 0..<this.numberOfThreads {
+            _ = this.threadPool.runIfActive(eventLoop: this.group.next()) {
+                this.sem1.signal()
+                this.sem2.wait()
 
-                for _ in 0..<self.lockOperationsPerThread {
-                    self.lock.withLock {
-                        self.opsDone &+= 1
+                for _ in 0..<this.lockOperationsPerThread {
+                    this.lock.withLock {
+                        this.opsDone &+= 1
                     }
                 }
 
-                self.sem3.signal()
+                this.sem3.signal()
             }
         }
         // Wait until all threads are ready.
-        for _ in 0..<self.numberOfThreads {
-            self.sem1.wait()
+        for _ in 0..<this.numberOfThreads {
+            this.sem1.wait()
         }
         // Kick off the work.
-        for _ in 0..<self.numberOfThreads {
-            self.sem2.signal()
+        for _ in 0..<this.numberOfThreads {
+            this.sem2.signal()
         }
         // Wait until all threads are done.
-        for _ in 0..<self.numberOfThreads {
-            self.sem3.wait()
+        for _ in 0..<this.numberOfThreads {
+            this.sem3.wait()
         }
 
-        let done = self.lock.withLock { self.opsDone }
-        precondition(done == self.numberOfThreads * self.lockOperationsPerThread)
+        immutable done = this.lock.withLock { this.opsDone }
+        precondition(done == this.numberOfThreads * this.lockOperationsPerThread)
         return done
     }
 }

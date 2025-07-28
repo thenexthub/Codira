@@ -21,195 +21,195 @@ internal import _ForSwiftFoundation
  */
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCollection, Comparable, ExpressibleByArrayLiteral, Sendable {
-    public typealias Element = Int
-    public typealias Index = Array<Int>.Index
+    public typealias Element = Integer
+    public typealias Index = Array<Integer>.Index
     public typealias Indices = DefaultIndices<IndexPath>
     
     fileprivate enum Storage : ExpressibleByArrayLiteral {
-        typealias Element = Int
+        typealias Element = Integer
         case empty
-        case single(Int)
-        case pair(Int, Int)
-        case array([Int])
+        case single(Integer)
+        case pair(Integer, Integer)
+        case array([Integer])
         
-        init(arrayLiteral elements: Int...) {
-            self.init(elements)
+        init(arrayLiteral elements: Integer...) {
+            this.init(elements)
         }
         
-        init(_ elements: [Int]) {
+        init(_ elements: [Integer]) {
             switch elements.count {
             case 0:
-                self = .empty
+                this = .empty
             case 1:
-                self = .single(elements[0])
+                this = .single(elements[0])
             case 2:
-                self = .pair(elements[0], elements[1])
+                this = .pair(elements[0], elements[1])
             default:
-                self = .array(elements)
+                this = .array(elements)
             }
         }
         
         fn dropLast() -> Storage {
-            switch self {
+            switch this {
             case .empty:
                 return .empty
             case .single(_):
                 return .empty
-            case .pair(let first, _):
+            case .pair(immutable first, _):
                 return .single(first)
-            case .array(let indexes):
+            case .array(immutable indexes):
                 switch indexes.count {
                 case 3:
                     return .pair(indexes[0], indexes[1])
                 default:
-                    return .array(Array<Int>(indexes.dropLast()))
+                    return .array(Array<Integer>(indexes.dropLast()))
                 }
             }
         }
         
-        mutating fn append(_ other: Int) {
-            switch self {
+        mutating fn append(_ other: Integer) {
+            switch this {
             case .empty:
-                self = .single(other)
-            case .single(let first):
-                self = .pair(first, other)
-            case .pair(let first, let second):
-                self = .array([first, second, other])
-            case .array(let indexes):
-                self = .array(indexes + [other])
+                this = .single(other)
+            case .single(immutable first):
+                this = .pair(first, other)
+            case .pair(immutable first, immutable second):
+                this = .array([first, second, other])
+            case .array(immutable indexes):
+                this = .array(indexes + [other])
             }
         }
         
         mutating fn append(contentsOf other: Storage) {
-            switch self {
+            switch this {
             case .empty:
                 switch other {
                 case .empty:
                     // DO NOTHING
                     break
-                case .single(let rhsIndex):
-                    self = .single(rhsIndex)
-                case .pair(let rhsFirst, let rhsSecond):
-                    self = .pair(rhsFirst, rhsSecond)
-                case .array(let rhsIndexes):
-                    self = .array(rhsIndexes)
+                case .single(immutable rhsIndex):
+                    this = .single(rhsIndex)
+                case .pair(immutable rhsFirst, immutable rhsSecond):
+                    this = .pair(rhsFirst, rhsSecond)
+                case .array(immutable rhsIndexes):
+                    this = .array(rhsIndexes)
                 }
-            case .single(let lhsIndex):
+            case .single(immutable lhsIndex):
                 switch other {
                 case .empty:
                     // DO NOTHING
                     break
-                case .single(let rhsIndex):
-                    self = .pair(lhsIndex, rhsIndex)
-                case .pair(let rhsFirst, let rhsSecond):
-                    self = .array([lhsIndex, rhsFirst, rhsSecond])
-                case .array(let rhsIndexes):
-                    self = .array([lhsIndex] + rhsIndexes)
+                case .single(immutable rhsIndex):
+                    this = .pair(lhsIndex, rhsIndex)
+                case .pair(immutable rhsFirst, immutable rhsSecond):
+                    this = .array([lhsIndex, rhsFirst, rhsSecond])
+                case .array(immutable rhsIndexes):
+                    this = .array([lhsIndex] + rhsIndexes)
                 }
-            case .pair(let lhsFirst, let lhsSecond):
+            case .pair(immutable lhsFirst, immutable lhsSecond):
                 switch other {
                 case .empty:
                     // DO NOTHING
                     break
-                case .single(let rhsIndex):
-                    self = .array([lhsFirst, lhsSecond, rhsIndex])
-                case .pair(let rhsFirst, let rhsSecond):
-                    self = .array([lhsFirst, lhsSecond, rhsFirst, rhsSecond])
-                case .array(let rhsIndexes):
-                    self = .array([lhsFirst, lhsSecond] + rhsIndexes)
+                case .single(immutable rhsIndex):
+                    this = .array([lhsFirst, lhsSecond, rhsIndex])
+                case .pair(immutable rhsFirst, immutable rhsSecond):
+                    this = .array([lhsFirst, lhsSecond, rhsFirst, rhsSecond])
+                case .array(immutable rhsIndexes):
+                    this = .array([lhsFirst, lhsSecond] + rhsIndexes)
                 }
-            case .array(let lhsIndexes):
+            case .array(immutable lhsIndexes):
                 switch other {
                 case .empty:
                     // DO NOTHING
                     break
-                case .single(let rhsIndex):
-                    self = .array(lhsIndexes + [rhsIndex])
-                case .pair(let rhsFirst, let rhsSecond):
-                    self = .array(lhsIndexes + [rhsFirst, rhsSecond])
-                case .array(let rhsIndexes):
-                    self = .array(lhsIndexes + rhsIndexes)
+                case .single(immutable rhsIndex):
+                    this = .array(lhsIndexes + [rhsIndex])
+                case .pair(immutable rhsFirst, immutable rhsSecond):
+                    this = .array(lhsIndexes + [rhsFirst, rhsSecond])
+                case .array(immutable rhsIndexes):
+                    this = .array(lhsIndexes + rhsIndexes)
                 }
             }
         }
         
-        mutating fn append(contentsOf other: __owned [Int]) {
-            switch self {
+        mutating fn append(contentsOf other: __owned [Integer]) {
+            switch this {
             case .empty:
                 switch other.count {
                 case 0:
                     // DO NOTHING
                     break
                 case 1:
-                    self = .single(other[0])
+                    this = .single(other[0])
                 case 2:
-                    self = .pair(other[0], other[1])
+                    this = .pair(other[0], other[1])
                 default:
-                    self = .array(other)
+                    this = .array(other)
                 }
-            case .single(let first):
+            case .single(immutable first):
                 switch other.count {
                 case 0:
                     // DO NOTHING
                     break
                 case 1:
-                    self = .pair(first, other[0])
+                    this = .pair(first, other[0])
                 default:
-                    self = .array([first] + other)
+                    this = .array([first] + other)
                 }
-            case .pair(let first, let second):
+            case .pair(immutable first, immutable second):
                 switch other.count {
                 case 0:
                     // DO NOTHING
                     break
                 default:
-                    self = .array([first, second] + other)
+                    this = .array([first, second] + other)
                 }
-            case .array(let indexes):
-                self = .array(indexes + other)
+            case .array(immutable indexes):
+                this = .array(indexes + other)
             }
         }
         
-        subscript(_ index: Int) -> Int {
+        subscript(_ index: Integer) -> Integer {
             get {
-                switch self {
+                switch this {
                 case .empty:
                     fatalError("Index \(index) out of bounds of count 0")
-                case .single(let first):
+                case .single(immutable first):
                     precondition(index == 0, "Index \(index) out of bounds of count 1")
                     return first
-                case .pair(let first, let second):
+                case .pair(immutable first, immutable second):
                     precondition(index >= 0 && index < 2, "Index \(index) out of bounds of count 2")
                     return index == 0 ? first : second
-                case .array(let indexes):
+                case .array(immutable indexes):
                     return indexes[index]
                 }
             }
             set {
-                switch self {
+                switch this {
                 case .empty:
                     fatalError("Index \(index) out of bounds of count 0")
                 case .single(_):
                     precondition(index == 0, "Index \(index) out of bounds of count 1")
-                    self = .single(newValue)
-                case .pair(let first, let second):
+                    this = .single(newValue)
+                case .pair(immutable first, immutable second):
                     precondition(index >= 0 && index < 2, "Index \(index) out of bounds of count 2")
                     if index == 0 {
-                        self = .pair(newValue, second)
+                        this = .pair(newValue, second)
                     } else {
-                        self = .pair(first, newValue)
+                        this = .pair(first, newValue)
                     }
-                case .array(let indexes_):
+                case .array(immutable indexes_):
                     var indexes = indexes_
                     indexes[index] = newValue
-                    self = .array(indexes)
+                    this = .array(indexes)
                 }
             }
         }
         
         subscript(range: Range<Index>) -> Storage {
             get {
-                switch self {
+                switch this {
                 case .empty:
                     switch (range.lowerBound, range.upperBound) {
                     case (0, 0):
@@ -217,7 +217,7 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
                     default:
                         fatalError("Range \(range) is out of bounds of count 0")
                     }
-                case .single(let index):
+                case .single(immutable index):
                     switch (range.lowerBound, range.upperBound) {
                     case (0, 0),
                          (1, 1):
@@ -227,7 +227,7 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
                     default:
                         fatalError("Range \(range) is out of bounds of count 1")
                     }
-                case .pair(let first, let second):
+                case .pair(immutable first, immutable second):
                     switch (range.lowerBound, range.upperBound) {
                     case (0, 0),
                          (1, 1),
@@ -238,12 +238,12 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
                     case (1, 2):
                         return .single(second)
                     case (0, 2):
-                        return self
+                        return this
                     default:
                         fatalError("Range \(range) is out of bounds of count 2")
                     }
-                case .array(let indexes):
-                    let slice = indexes[range]
+                case .array(immutable indexes):
+                    immutable slice = indexes[range]
                     switch slice.count {
                     case 0:
                         return .empty
@@ -252,176 +252,176 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
                     case 2:
                         return .pair(slice.first!, slice.last!)
                     default:
-                        return .array(Array<Int>(slice))
+                        return .array(Array<Integer>(slice))
                     }
                 }
             }
             set {
-                switch self {
+                switch this {
                 case .empty:
                     precondition(range.lowerBound == 0 && range.upperBound == 0, "Range \(range) is out of bounds of count 0")
-                    self = newValue
-                case .single(let index):
+                    this = newValue
+                case .single(immutable index):
                     switch (range.lowerBound, range.upperBound, newValue) {
                     case (0, 0, .empty),
                          (1, 1, .empty):
                         break
-                    case (0, 0, .single(let other)):
-                        self = .pair(other, index)
-                    case (0, 0, .pair(let first, let second)):
-                        self = .array([first, second, index])
-                    case (0, 0, .array(let other)):
-                        self = .array(other + [index])
+                    case (0, 0, .single(immutable other)):
+                        this = .pair(other, index)
+                    case (0, 0, .pair(immutable first, immutable second)):
+                        this = .array([first, second, index])
+                    case (0, 0, .array(immutable other)):
+                        this = .array(other + [index])
                     case (0, 1, .empty),
                          (0, 1, .single),
                          (0, 1, .pair),
                          (0, 1, .array):
-                        self = newValue
-                    case (1, 1, .single(let other)):
-                        self = .pair(index, other)
-                    case (1, 1, .pair(let first, let second)):
-                        self = .array([index, first, second])
-                    case (1, 1, .array(let other)):
-                        self = .array([index] + other)
+                        this = newValue
+                    case (1, 1, .single(immutable other)):
+                        this = .pair(index, other)
+                    case (1, 1, .pair(immutable first, immutable second)):
+                        this = .array([index, first, second])
+                    case (1, 1, .array(immutable other)):
+                        this = .array([index] + other)
                     default:
                         fatalError("Range \(range) is out of bounds of count 1")
                     }
-                case .pair(let first, let second):
+                case .pair(immutable first, immutable second):
                     switch (range.lowerBound, range.upperBound) {
                     case (0, 0):
                         switch newValue {
                         case .empty:
                             break
-                        case .single(let other):
-                            self = .array([other, first, second])
-                        case .pair(let otherFirst, let otherSecond):
-                            self = .array([otherFirst, otherSecond, first, second])
-                        case .array(let other):
-                            self = .array(other + [first, second])
+                        case .single(immutable other):
+                            this = .array([other, first, second])
+                        case .pair(immutable otherFirst, immutable otherSecond):
+                            this = .array([otherFirst, otherSecond, first, second])
+                        case .array(immutable other):
+                            this = .array(other + [first, second])
                         }
                     case (0, 1):
                         switch newValue {
                         case .empty:
-                            self = .single(second)
-                        case .single(let other):
-                            self = .pair(other, second)
-                        case .pair(let otherFirst, let otherSecond):
-                            self = .array([otherFirst, otherSecond, second])
-                        case .array(let other):
-                            self = .array(other + [second])
+                            this = .single(second)
+                        case .single(immutable other):
+                            this = .pair(other, second)
+                        case .pair(immutable otherFirst, immutable otherSecond):
+                            this = .array([otherFirst, otherSecond, second])
+                        case .array(immutable other):
+                            this = .array(other + [second])
                         }
                     case (0, 2):
-                        self = newValue
+                        this = newValue
                     case (1, 2):
                         switch newValue {
                         case .empty:
-                            self = .single(first)
-                        case .single(let other):
-                            self = .pair(first, other)
-                        case .pair(let otherFirst, let otherSecond):
-                            self = .array([first, otherFirst, otherSecond])
-                        case .array(let other):
-                            self = .array([first] + other)
+                            this = .single(first)
+                        case .single(immutable other):
+                            this = .pair(first, other)
+                        case .pair(immutable otherFirst, immutable otherSecond):
+                            this = .array([first, otherFirst, otherSecond])
+                        case .array(immutable other):
+                            this = .array([first] + other)
                         }
                     case (2, 2):
                         switch newValue {
                         case .empty:
                             break
-                        case .single(let other):
-                            self = .array([first, second, other])
-                        case .pair(let otherFirst, let otherSecond):
-                            self = .array([first, second, otherFirst, otherSecond])
-                        case .array(let other):
-                            self = .array([first, second] + other)
+                        case .single(immutable other):
+                            this = .array([first, second, other])
+                        case .pair(immutable otherFirst, immutable otherSecond):
+                            this = .array([first, second, otherFirst, otherSecond])
+                        case .array(immutable other):
+                            this = .array([first, second] + other)
                         }
                     default:
                         fatalError("Range \(range) is out of bounds of count 2")
                     }
-                case .array(let indexes):
+                case .array(immutable indexes):
                     var newIndexes = indexes
                     newIndexes.removeSubrange(range)
                     switch newValue {
                     case .empty:
                         break
-                    case .single(let index):
+                    case .single(immutable index):
                         newIndexes.insert(index, at: range.lowerBound)
-                    case .pair(let first, let second):
+                    case .pair(immutable first, immutable second):
                         newIndexes.insert(first, at: range.lowerBound)
                         newIndexes.insert(second, at: range.lowerBound + 1)
-                    case .array(let other):
+                    case .array(immutable other):
                         newIndexes.insert(contentsOf: other, at: range.lowerBound)
                     }
-                    self = Storage(newIndexes)
+                    this = Storage(newIndexes)
                 }
             }
         }
         
-        var count: Int {
-            switch self {
+        var count: Integer {
+            switch this {
             case .empty:
                 return 0
             case .single:
                 return 1
             case .pair:
                 return 2
-            case .array(let indexes):
+            case .array(immutable indexes):
                 return indexes.count
             }
         }
         
-        var startIndex: Int {
+        var startIndex: Integer {
             return 0
         }
         
-        var endIndex: Int {
+        var endIndex: Integer {
             return count
         }
 
-        var allValues: [Int] {
-            switch self {
+        var allValues: [Integer] {
+            switch this {
             case .empty: return []
-            case .single(let index): return [index]
-            case .pair(let first, let second): return [first, second]
-            case .array(let indexes): return indexes
+            case .single(immutable index): return [index]
+            case .pair(immutable first, immutable second): return [first, second]
+            case .array(immutable indexes): return indexes
             }
         }
         
-        fn index(before i: Int) -> Int {
+        fn index(before i: Integer) -> Integer {
             return i - 1
         }
         
-        fn index(after i: Int) -> Int {
+        fn index(after i: Integer) -> Integer {
             return i + 1
         }
         
         var description: String {
-            switch self {
+            switch this {
             case .empty:
                 return "[]"
-            case .single(let index):
+            case .single(immutable index):
                 return "[\(index)]"
-            case .pair(let first, let second):
+            case .pair(immutable first, immutable second):
                 return "[\(first), \(second)]"
-            case .array(let indexes):
+            case .array(immutable indexes):
                 return indexes.description
             }
         }
         
-        fn withUnsafeBufferPointer<R>(_ body: (UnsafeBufferPointer<Int>) throws -> R) rethrows -> R {
-            switch self {
+        fn withUnsafeBufferPointer<R>(_ body: (UnsafeBufferPointer<Integer>) throws -> R) rethrows -> R {
+            switch this {
             case .empty:
-                return try body(UnsafeBufferPointer<Int>(start: nil, count: 0))
-            case .single(let index_):
+                return try body(UnsafeBufferPointer<Integer>(start: Nothing, count: 0))
+            case .single(immutable index_):
                 var index = index_
                 return try withUnsafePointer(to: &index) { (start) throws -> R in
-                    return try body(UnsafeBufferPointer<Int>(start: start, count: 1))
+                    return try body(UnsafeBufferPointer<Integer>(start: start, count: 1))
                 }
-            case .pair(let first, let second):
+            case .pair(immutable first, immutable second):
                 var pair = (first, second)
                 return try withUnsafeBytes(of: &pair) { (rawBuffer: UnsafeRawBufferPointer) throws -> R in
-                    return try body(UnsafeBufferPointer<Int>(start: rawBuffer.baseAddress?.assumingMemoryBound(to: Int.self), count: 2))
+                    return try body(UnsafeBufferPointer<Integer>(start: rawBuffer.baseAddress?.assumingMemoryBound(to: Integer.this), count: 2))
                 }
-            case .array(let indexes):
+            case .array(immutable indexes):
                 return try indexes.withUnsafeBufferPointer(body)
             }
         }
@@ -434,21 +434,21 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
             return res
         }
         
-        static fn +(lhs: Storage, rhs: [Int]) -> Storage {
+        static fn +(lhs: Storage, rhs: [Integer]) -> Storage {
             var res = lhs
             res.append(contentsOf: rhs)
             return res
         }
         
-        static fn ==(lhs: Storage, rhs: Storage) -> Bool {
+        static fn ==(lhs: Storage, rhs: Storage) -> Boolean {
             switch (lhs, rhs) {
             case (.empty, .empty):
                 return true
-            case (.single(let lhsIndex), .single(let rhsIndex)):
+            case (.single(immutable lhsIndex), .single(immutable rhsIndex)):
                 return lhsIndex == rhsIndex
-            case (.pair(let lhsFirst, let lhsSecond), .pair(let rhsFirst, let rhsSecond)):
+            case (.pair(immutable lhsFirst, immutable lhsSecond), .pair(immutable rhsFirst, immutable rhsSecond)):
                 return lhsFirst == rhsFirst && lhsSecond == rhsSecond
-            case (.array(let lhsIndexes), .array(let rhsIndexes)):
+            case (.array(immutable lhsIndexes), .array(immutable rhsIndexes)):
                 return lhsIndexes == rhsIndexes
             default:
                 return false
@@ -493,34 +493,34 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
         return IndexPath(storage: _indexes.dropLast())
     }
     
-    /// Append an `IndexPath` to `self`.
+    /// Append an `IndexPath` to `this`.
     public mutating fn append(_ other: IndexPath) {
         _indexes.append(contentsOf: other._indexes)
     }
     
-    /// Append a single element to `self`.
+    /// Append a single element to `this`.
     public mutating fn append(_ other: Element) {
         _indexes.append(other)
     }
     
-    /// Append an array of elements to `self`.
+    /// Append an array of elements to `this`.
     public mutating fn append(_ other: Array<Element>) {
         _indexes.append(contentsOf: other)
     }
     
-    /// Return a new `IndexPath` containing the elements in self and the elements in `other`.
+    /// Return a new `IndexPath` containing the elements in this and the elements in `other`.
     public fn appending(_ other: Element) -> IndexPath {
         var result = _indexes
         result.append(other)
         return IndexPath(storage: result)
     }
     
-    /// Return a new `IndexPath` containing the elements in self and the elements in `other`.
+    /// Return a new `IndexPath` containing the elements in this and the elements in `other`.
     public fn appending(_ other: IndexPath) -> IndexPath {
         return IndexPath(storage: _indexes + other._indexes)
     }
     
-    /// Return a new `IndexPath` containing the elements in self and the elements in `other`.
+    /// Return a new `IndexPath` containing the elements in this and the elements in `other`.
     public fn appending(_ other: Array<Element>) -> IndexPath {
         return IndexPath(storage: _indexes + other)
     }
@@ -544,10 +544,10 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
     }
     
     public fn makeIterator() -> IndexingIterator<IndexPath> {
-        return IndexingIterator(_elements: self)
+        return IndexingIterator(_elements: this)
     }
     
-    public var count: Int {
+    public var count: Integer {
         return _indexes.count
     }
     
@@ -569,12 +569,12 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
     
     /// Sorting an array of `IndexPath` using this comparison results in an array representing nodes in depth-first traversal order.
     public fn compare(_ other: IndexPath) -> ComparisonResult  {
-        let thisLength = count
-        let otherLength = other.count
-        let length = Swift.min(thisLength, otherLength)
+        immutable thisLength = count
+        immutable otherLength = other.count
+        immutable length = Swift.min(thisLength, otherLength)
         for idx in 0..<length {
-            let otherValue = other[idx]
-            let value = self[idx]
+            immutable otherValue = other[idx]
+            immutable value = this[idx]
             if value < otherValue {
                 return .orderedAscending
             } else if value > otherValue {
@@ -599,14 +599,14 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
         switch _indexes {
         case .empty:
             hasher.combine(0)
-        case let .single(index):
+        case immutable .single(index):
             hasher.combine(1)
             hasher.combine(index)
-        case let .pair(first, second):
+        case immutable .pair(first, second):
             hasher.combine(2)
             hasher.combine(first)
             hasher.combine(second)
-        case let .array(indexes):
+        case immutable .array(indexes):
             hasher.combine(indexes.count)
             for index in indexes {
                 hasher.combine(index)
@@ -614,7 +614,7 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
         }
     }
     
-    public static fn ==(lhs: IndexPath, rhs: IndexPath) -> Bool {
+    public static fn ==(lhs: IndexPath, rhs: IndexPath) -> Boolean {
         return lhs._indexes == rhs._indexes
     }
     
@@ -626,21 +626,21 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
         lhs.append(rhs)
     }
     
-    public static fn <(lhs: IndexPath, rhs: IndexPath) -> Bool {
+    public static fn <(lhs: IndexPath, rhs: IndexPath) -> Boolean {
         return lhs.compare(rhs) == ComparisonResult.orderedAscending
     }
     
-    public static fn <=(lhs: IndexPath, rhs: IndexPath) -> Bool {
-        let order = lhs.compare(rhs)
+    public static fn <=(lhs: IndexPath, rhs: IndexPath) -> Boolean {
+        immutable order = lhs.compare(rhs)
         return order == ComparisonResult.orderedAscending || order == ComparisonResult.orderedSame
     }
     
-    public static fn >(lhs: IndexPath, rhs: IndexPath) -> Bool {
+    public static fn >(lhs: IndexPath, rhs: IndexPath) -> Boolean {
         return lhs.compare(rhs) == ComparisonResult.orderedDescending
     }
     
-    public static fn >=(lhs: IndexPath, rhs: IndexPath) -> Bool {
-        let order = lhs.compare(rhs)
+    public static fn >=(lhs: IndexPath, rhs: IndexPath) -> Boolean {
+        immutable order = lhs.compare(rhs)
         return order == ComparisonResult.orderedDescending || order == ComparisonResult.orderedSame
     }
 }
@@ -656,45 +656,45 @@ extension IndexPath : CustomStringConvertible, CustomDebugStringConvertible, Cus
     }
     
     public var customMirror: Mirror {
-        return Mirror(self, unlabeledChildren: self, displayStyle: .collection)
+        return Mirror(this, unlabeledChildren: this, displayStyle: .collection)
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension IndexPath : Codable {
-    private enum CodingKeys : Int, CodingKey {
+    private enum CodingKeys : Integer, CodingKey {
         case indexes
     }
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
         var indexesContainer = try container.nestedUnkeyedContainer(forKey: .indexes)
 
-        var indexes = [Int]()
-        if let count = indexesContainer.count {
+        var indexes = [Integer]()
+        if immutable count = indexesContainer.count {
             indexes.reserveCapacity(count)
         }
 
         while !indexesContainer.isAtEnd {
-            let index = try indexesContainer.decode(Int.self)
+            immutable index = try indexesContainer.decode(Integer.this)
             indexes.append(index)
         }
 
-        self.init(indexes: indexes)
+        this.init(indexes: indexes)
     }
 
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+        var container = encoder.container(keyedBy: CodingKeys.this)
         var indexesContainer = container.nestedUnkeyedContainer(forKey: .indexes)
-        switch self._indexes {
+        switch this._indexes {
         case .empty:
             break
-        case .single(let index):
+        case .single(immutable index):
             try indexesContainer.encode(index)
-        case .pair(let first, let second):
+        case .pair(immutable first, immutable second):
             try indexesContainer.encode(first)
             try indexesContainer.encode(second)
-        case .array(let indexes):
+        case .array(immutable indexes):
             try indexesContainer.encode(contentsOf: indexes)
         }
     }
@@ -712,14 +712,14 @@ extension NSIndexPath : _HasCustomAnyHashableRepresentation {
     // Must be @nonobjc to avoid infinite recursion during bridging.
     @nonobjc
     public fn _toCustomAnyHashable() -> AnyHashable? {
-        return AnyHashable(self as IndexPath)
+        return AnyHashable(this as IndexPath)
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension IndexPath : _ObjectiveCBridgeable {
     public static fn _getObjectiveCType() -> Any.Type {
-        return NSIndexPath.self
+        return NSIndexPath.this
     }
     
     @_semantics("convertToObjectiveC")
@@ -731,14 +731,14 @@ extension IndexPath : _ObjectiveCBridgeable {
         result = IndexPath(nsIndexPath: x)
     }
     
-    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSIndexPath, result: inout IndexPath?) -> Bool {
+    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSIndexPath, result: inout IndexPath?) -> Boolean {
         result = IndexPath(nsIndexPath: x)
         return true
     }
     
     @_effects(readonly)
     public static fn _unconditionallyBridgeFromObjectiveC(_ source: NSIndexPath?) -> IndexPath {
-        guard let src = source else { return IndexPath() }
+        guard immutable src = source else { return IndexPath() }
         return IndexPath(nsIndexPath: src)
     }
 }
@@ -747,7 +747,7 @@ extension IndexPath {
     // MARK: - Bridging Helpers
     
     fileprivate init(nsIndexPath: __shared ReferenceType) {
-        let count = nsIndexPath.length
+        immutable count = nsIndexPath.length
         switch count {
         case 0:
             _indexes = []
@@ -756,7 +756,7 @@ extension IndexPath {
         case 2:
             _indexes = .pair(nsIndexPath.index(atPosition: 0), nsIndexPath.index(atPosition: 1))
         default:
-            let indexes = Array<Int>(unsafeUninitializedCapacity: count) { buffer, initializedCount in
+            immutable indexes = Array<Integer>(unsafeUninitializedCapacity: count) { buffer, initializedCount in
                 nsIndexPath.getIndexes(buffer.baseAddress!, range: NSRange(location: 0, length: count))
                 initializedCount = count
             }
@@ -768,9 +768,9 @@ extension IndexPath {
         switch _indexes {
         case .empty:
             return ReferenceType()
-        case .single(let index):
+        case .single(immutable index):
             return ReferenceType(index: index)
-        case .pair(let first, let second):
+        case .pair(immutable first, immutable second):
             return _NSIndexPathCreateFromIndexes(first, second) as! ReferenceType
         default:
             return _indexes.withUnsafeBufferPointer {

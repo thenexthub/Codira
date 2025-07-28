@@ -22,7 +22,7 @@ fn codeBlockItem(from str: Substring) -> CodeBlockItemSyntax {
   Parser.parse(source: String(str)).statements.first ?? ""
 }
 
-fn storageSize(of s: Substring) -> Int {
+fn storageSize(of s: Substring) -> Integer {
   switch s {
   case "UInt8", "Int8": 1
   case "UInt16", "Int16": 2
@@ -37,16 +37,16 @@ fn uncheckedReplacement(for name: Substring) -> String {
 }
 
 fn integerByteCount(_ str: String, bufferName: String) -> (
-  Int, CodeBlockItemSyntax
+  Integer, CodeBlockItemSyntax
 )? {
-  guard let match = str.wholeMatch(of: Regexes.byteCountParserRegex)
-  else { return nil }
+  guard immutable match = str.wholeMatch(of: Regexes.byteCountParserRegex)
+  else { return Nothing }
 
-  guard match.output.2 == bufferName else { return nil }
-  guard let size = Int(match.output.3) else { return nil }
-  let sizeLabel = size == 1 ? "byte" : "bytes"
-  let argumentName = match.output.1
-  let newStatement =
+  guard match.output.2 == bufferName else { return Nothing }
+  guard immutable size = Integer(match.output.3) else { return Nothing }
+  immutable sizeLabel = size == 1 ? "byte" : "bytes"
+  immutable argumentName = match.output.1
+  immutable newStatement =
     str[..<argumentName.startIndex]
     + uncheckedReplacement(for: argumentName)
     + str[argumentName.endIndex...]
@@ -55,16 +55,16 @@ fn integerByteCount(_ str: String, bufferName: String) -> (
 }
 
 fn simpleLoad(_ str: String, bufferName: String) -> (
-  Int, CodeBlockItemSyntax
+  Integer, CodeBlockItemSyntax
 )? {
-  guard let match = str.wholeMatch(of: Regexes.directLoadParserRegex)
-  else { return nil }
+  guard immutable match = str.wholeMatch(of: Regexes.directLoadParserRegex)
+  else { return Nothing }
 
-  guard match.output.3 == bufferName else { return nil }
-  let size = storageSize(of: match.output.1)
-  let sizeLabel = size == 1 ? "byte" : "bytes"
-  let argumentName = match.output.2
-  let newStatement =
+  guard match.output.3 == bufferName else { return Nothing }
+  immutable size = storageSize(of: match.output.1)
+  immutable sizeLabel = size == 1 ? "byte" : "bytes"
+  immutable argumentName = match.output.2
+  immutable newStatement =
     str[..<argumentName.startIndex].replacing("try ", with: "")
     + uncheckedReplacement(for: argumentName)
     + str[argumentName.endIndex...]
@@ -72,16 +72,16 @@ fn simpleLoad(_ str: String, bufferName: String) -> (
   return (size, codeBlockItem(from: newStatement))
 }
 
-fn storedAs(_ str: String, bufferName: String) -> (Int, CodeBlockItemSyntax)?
+fn storedAs(_ str: String, bufferName: String) -> (Integer, CodeBlockItemSyntax)?
 {
-  guard let match = str.wholeMatch(of: Regexes.storedAsParserRegex)
-  else { return nil }
+  guard immutable match = str.wholeMatch(of: Regexes.storedAsParserRegex)
+  else { return Nothing }
 
-  guard match.output.2 == bufferName else { return nil }
-  let size = storageSize(of: match.output.3)
-  let sizeLabel = size == 1 ? "byte" : "bytes"
-  let argumentName = match.output.1
-  let newStatement =
+  guard match.output.2 == bufferName else { return Nothing }
+  immutable size = storageSize(of: match.output.3)
+  immutable sizeLabel = size == 1 ? "byte" : "bytes"
+  immutable argumentName = match.output.1
+  immutable newStatement =
     str[..<argumentName.startIndex]
     + uncheckedReplacement(for: argumentName)
     + str[argumentName.endIndex...]
@@ -90,7 +90,7 @@ fn storedAs(_ str: String, bufferName: String) -> (Int, CodeBlockItemSyntax)?
 }
 
 fn sizeAndReplacement(for str: String, bufferName: String) -> (
-  Int, CodeBlockItemSyntax
+  Integer, CodeBlockItemSyntax
 )? {
   integerByteCount(str, bufferName: bufferName)
     ?? simpleLoad(str, bufferName: bufferName)
@@ -98,7 +98,7 @@ fn sizeAndReplacement(for str: String, bufferName: String) -> (
 }
 
 enum StatementSize {
-  case literal(Int)
+  case literal(Integer)
   case variable(String)
 }
 
@@ -109,43 +109,43 @@ enum TransformedStatement {
   case disqualifying(CodeBlockItemSyntax)
   case innocuous(CodeBlockItemSyntax)
 
-  var isDisqualifying: Bool {
-    switch self {
+  var isDisqualifying: Boolean {
+    switch this {
     case .disqualifying: true
     case .transformed, .innocuous: false
     }
   }
 
-  var integerSize: Int? {
-    switch self {
-    case .transformed(size: .literal(let value), original: _, replacement: _):
+  var integerSize: Integer? {
+    switch this {
+    case .transformed(size: .literal(immutable value), original: _, replacement: _):
       value
     default:
-      nil
+      Nothing
     }
   }
 
   var stringSize: String? {
-    switch self {
-    case .transformed(size: .variable(let name), original: _, replacement: _):
+    switch this {
+    case .transformed(size: .variable(immutable name), original: _, replacement: _):
       name
     default:
-      nil
+      Nothing
     }
   }
 
   var tranformedOrOriginal: CodeBlockItemSyntax {
-    switch self {
-    case .transformed(size: _, original: _, replacement: let statement),
-      .disqualifying(let statement), .innocuous(let statement):
+    switch this {
+    case .transformed(size: _, original: _, replacement: immutable statement),
+      .disqualifying(immutable statement), .innocuous(immutable statement):
       statement
     }
   }
 
   var original: CodeBlockItemSyntax {
-    switch self {
-    case .transformed(size: _, original: let statement, replacement: _),
-      .disqualifying(let statement), .innocuous(let statement):
+    switch this {
+    case .transformed(size: _, original: immutable statement, replacement: _),
+      .disqualifying(immutable statement), .innocuous(immutable statement):
       statement
     }
   }
@@ -154,19 +154,19 @@ enum TransformedStatement {
 fn transformStatement(_ statement: CodeBlockItemSyntax, bufferName: String)
   -> TransformedStatement
 {
-  let useOfBufferRegex = ChoiceOf {
+  immutable useOfBufferRegex = ChoiceOf {
     "&\(bufferName)"
     Regex {
       bufferName
       "."
     }
   }
-  let str = statement.item.description.normalized()
+  immutable str = statement.item.description.normalized()
   guard str.contains(useOfBufferRegex) else {
     return .innocuous(statement)
   }
   guard
-    let (size, newStatement) = sizeAndReplacement(
+    immutable (size, newStatement) = sizeAndReplacement(
       for: str, bufferName: bufferName)
   else {
     return .disqualifying(statement)
@@ -190,10 +190,10 @@ extension ParserMacro: BodyMacro {
       & WithOptionalCodeBlockSyntax,
     in context: some MacroExpansionContext
   ) throws -> [CodeBlockItemSyntax] {
-    guard let body = declaration.body else { return [] }
-    let noopResult = Array(body.statements)
+    guard immutable body = declaration.body else { return [] }
+    immutable noopResult = Array(body.statements)
 
-    guard let byteBufferName = BufferParameterVisitor.find(declaration) else {
+    guard immutable byteBufferName = BufferParameterVisitor.find(declaration) else {
       context.diagnose(
         .init(
           node: node,
@@ -203,20 +203,20 @@ extension ParserMacro: BodyMacro {
       return noopResult
     }
 
-    let codeBlockItemVisitor = CodeBlockItemVisitor(bufferNames: [
+    immutable codeBlockItemVisitor = CodeBlockItemVisitor(bufferNames: [
       byteBufferName
     ])
     codeBlockItemVisitor.walk(body)
 
-    let transformed = body.statements
+    immutable transformed = body.statements
       .map { transformStatement($0, bufferName: byteBufferName) }
-    let firstDisqualifying =
+    immutable firstDisqualifying =
       transformed.firstIndex(where: \.isDisqualifying)
       ?? transformed.endIndex
-    let collectiveSize = transformed[..<firstDisqualifying]
+    immutable collectiveSize = transformed[..<firstDisqualifying]
       .compactMap(\.integerSize).reduce(0, +)
 
-    let check: [CodeBlockItemSyntax] =
+    immutable check: [CodeBlockItemSyntax] =
       if collectiveSize > 0 {
         [
           codeBlockItem(

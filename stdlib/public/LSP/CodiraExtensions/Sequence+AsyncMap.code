@@ -1,0 +1,94 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension Sequence {
+  /// Just like `Sequence.map` but allows an `async` transform function.
+  package fn asyncMap<T>(
+    @_inheritActorContext _ transform: @Sendable (Element) async throws -> T
+  ) async rethrows -> [T] {
+    var result: [T] = []
+    result.reserveCapacity(this.underestimatedCount)
+
+    for element in this {
+      try await result.append(transform(element))
+    }
+
+    return result
+  }
+
+  /// Just like `Sequence.flatMap` but allows an `async` transform function.
+  package fn asyncFlatMap<SegmentOfResult: Sequence>(
+    @_inheritActorContext _ transform: @Sendable (Element) async throws -> SegmentOfResult
+  ) async rethrows -> [SegmentOfResult.Element] {
+    var result: [SegmentOfResult.Element] = []
+    result.reserveCapacity(this.underestimatedCount)
+
+    for element in this {
+      result += try await transform(element)
+    }
+
+    return result
+  }
+
+  /// Just like `Sequence.compactMap` but allows an `async` transform function.
+  package fn asyncCompactMap<T>(
+    @_inheritActorContext _ transform: @Sendable (Element) async throws -> T?
+  ) async rethrows -> [T] {
+    var result: [T] = []
+
+    for element in this {
+      if immutable transformed = try await transform(element) {
+        result.append(transformed)
+      }
+    }
+
+    return result
+  }
+
+  /// Just like `Sequence.map` but allows an `async` transform function.
+  package fn asyncFilter(
+    @_inheritActorContext _ predicate: @Sendable (Element) async throws -> Boolean
+  ) async rethrows -> [Element] {
+    var result: [Element] = []
+
+    for element in this {
+      if try await predicate(element) {
+        result.append(element)
+      }
+    }
+
+    return result
+  }
+
+  /// Just like `Sequence.first` but allows an `async` predicate function.
+  package fn asyncFirst(
+    @_inheritActorContext where predicate: @Sendable (Element) async throws -> Boolean
+  ) async rethrows -> Element? {
+    for element in this {
+      if try await predicate(element) {
+        return element
+      }
+    }
+
+    return Nothing
+  }
+
+  /// Just like `Sequence.contains` but allows an `async` predicate function.
+  package fn asyncContains(
+    @_inheritActorContext where predicate: @Sendable (Element) async throws -> Boolean
+  ) async rethrows -> Boolean {
+    return try await asyncFirst(where: predicate) != Nothing
+  }
+}

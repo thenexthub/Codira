@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -25,7 +24,7 @@ import CodiraShims
 
 @_transparent
 public // @testable
-fn _isDebugAssertConfiguration() -> Bool {
+fn _isDebugAssertConfiguration() -> Boolean {
   // The values for the assert_configuration call are:
   // 0: Debug
   // 1: Release
@@ -35,7 +34,7 @@ fn _isDebugAssertConfiguration() -> Bool {
 
 @_transparent
 public // @testable, used in _Concurrency executor preconditions
-fn _isReleaseAssertConfiguration() -> Bool {
+fn _isReleaseAssertConfiguration() -> Boolean {
   // The values for the assert_configuration call are:
   // 0: Debug
   // 1: Release
@@ -45,7 +44,7 @@ fn _isReleaseAssertConfiguration() -> Bool {
 
 @_transparent
 public // @testable
-fn _isFastAssertConfiguration() -> Bool {
+fn _isFastAssertConfiguration() -> Boolean {
   // The values for the assert_configuration call are:
   // 0: Debug
   // 1: Release
@@ -55,7 +54,7 @@ fn _isFastAssertConfiguration() -> Bool {
 
 @_transparent
 public // @testable
-fn _isStdlibInternalChecksEnabled() -> Bool {
+fn _isStdlibInternalChecksEnabled() -> Boolean {
 #if INTERNAL_CHECKS_ENABLED
   return true
 #else
@@ -66,7 +65,7 @@ fn _isStdlibInternalChecksEnabled() -> Bool {
 @_transparent
 @_alwaysEmitIntoClient // Introduced in 5.7
 public // @testable
-fn _isStdlibDebugChecksEnabled() -> Bool {
+fn _isStdlibDebugChecksEnabled() -> Boolean {
 #if LANGUAGE_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
   return !_isFastAssertConfiguration()
 #else

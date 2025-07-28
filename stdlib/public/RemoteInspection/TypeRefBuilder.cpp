@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implements utilities for constructing TypeRefs and looking up field and
@@ -546,7 +545,7 @@ bool TypeRefBuilder::getFieldTypeRefs(
 
     // We need this for enums; an enum case "is generic" if any generic type
     // parameter substitutions occurred on the payload.  E.g.,
-    // `case a([T?])` is generic, but `case a([Int?])` is not.
+    // `case a([T?])` is generic, but `case a([Integer?])` is not.
     bool IsGeneric = !Unsubstituted->isConcrete();
     auto Substituted = (IsGeneric ? Unsubstituted->subst(*this, *Subs)
                                   : Unsubstituted);

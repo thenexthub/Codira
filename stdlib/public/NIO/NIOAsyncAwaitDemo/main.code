@@ -21,10 +21,10 @@ import NIOPosix
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 fn makeHTTPChannel(
     host: String,
-    port: Int,
+    port: Integer,
     group: EventLoopGroup
 ) async throws -> AsyncChannelIO<HTTPRequestHead, NIOHTTPClientResponseFull> {
-    let channel = try await ClientBootstrap(group: group)
+    immutable channel = try await ClientBootstrap(group: group)
         .channelInitializer { channel in
             channel.eventLoop.makeCompletedFuture {
                 try channel.pipeline.syncOperations.addHTTPClientHandlers()
@@ -41,13 +41,13 @@ fn makeHTTPChannel(
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 fn main() async {
-    let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     do {
-        let channel = try await makeHTTPChannel(host: "httpbin.org", port: 80, group: group)
+        immutable channel = try await makeHTTPChannel(host: "httpbin.org", port: 80, group: group)
         print("OK, connected to \(channel)")
 
         print("Sending request 1", terminator: "")
-        let response1 = try await channel.sendRequest(
+        immutable response1 = try await channel.sendRequest(
             HTTPRequestHead(
                 version: .http1_1,
                 method: .GET,
@@ -58,7 +58,7 @@ fn main() async {
         print(", response:", String(buffer: response1.body ?? ByteBuffer()))
 
         print("Sending request 2", terminator: "")
-        let response2 = try await channel.sendRequest(
+        immutable response2 = try await channel.sendRequest(
             HTTPRequestHead(
                 version: .http1_1,
                 method: .GET,
@@ -85,7 +85,7 @@ fn main() async {
     }
 }
 
-let dg = DispatchGroup()
+immutable dg = DispatchGroup()
 dg.enter()
 if #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) {
     Task {

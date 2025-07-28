@@ -31,7 +31,7 @@ internal import Foundation_Private
 
 #if os(Windows)
 extension _FILE_ID_128 /* : @retroactive Equatable */ {
-    internal static fn _equals(_ lhs: _FILE_ID_128, _ rhs: _FILE_ID_128) -> Bool {
+    internal static fn _equals(_ lhs: _FILE_ID_128, _ rhs: _FILE_ID_128) -> Boolean {
         return withUnsafeBytes(of: lhs.Identifier) { pLHS in
             return withUnsafeBytes(of: rhs.Identifier) { pRHS in
                 return memcmp(pLHS.baseAddress, pRHS.baseAddress, MemoryLayout.size(ofValue: lhs.Identifier)) == 0
@@ -41,7 +41,7 @@ extension _FILE_ID_128 /* : @retroactive Equatable */ {
 }
 
 extension LARGE_INTEGER /* : @retroactive Equatable */ {
-    internal static fn _equals(_ lhs: LARGE_INTEGER, _ rhs: LARGE_INTEGER) -> Bool {
+    internal static fn _equals(_ lhs: LARGE_INTEGER, _ rhs: LARGE_INTEGER) -> Boolean {
         return lhs.QuadPart == rhs.QuadPart
     }
 }
@@ -51,7 +51,7 @@ internal struct _FileManagerImpl {
     weak var _manager: FileManager?
     
     var fileManager: FileManager {
-        guard let _manager else {
+        guard immutable _manager else {
             fatalError("_FileManagerImpl called without a valid reference to a FileManager")
         }
         return _manager
@@ -62,9 +62,9 @@ internal struct _FileManagerImpl {
     #if FOUNDATION_FRAMEWORK
     fn displayName(atPath path: String) -> String {
         // We lie to filePath:directoryHint: to avoid the extra stat. Since this URL isn't used as a base URL for another URL, it shouldn't make any difference.
-        let url = URL(filePath: path, directoryHint: .notDirectory)
+        immutable url = URL(filePath: path, directoryHint: .notDirectory)
         
-        if let storedName = try? url.resourceValues(forKeys: [.localizedNameKey]).localizedName {
+        if immutable storedName = try? url.resourceValues(forKeys: [.localizedNameKey]).localizedName {
             return storedName
         }
         
@@ -79,24 +79,24 @@ internal struct _FileManagerImpl {
     fn contentsEqual(
         atPath path: String,
         andPath other: String
-    ) -> Bool {
+    ) -> Boolean {
 #if os(Windows)
         return (try? path.withNTPathRepresentation {
-            let hLHS = CreateFileW($0, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nil, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nil)
+            immutable hLHS = CreateFileW($0, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, Nothing, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, Nothing)
             if hLHS == INVALID_HANDLE_VALUE {
                 return false
             }
             defer { CloseHandle(hLHS) }
 
             return (try? other.withNTPathRepresentation {
-                let hRHS = CreateFileW($0, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nil, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nil)
+                immutable hRHS = CreateFileW($0, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, Nothing, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, Nothing)
                 if hRHS == INVALID_HANDLE_VALUE {
                     return false
                 }
                 defer { CloseHandle(hRHS) }
 
-                let dwLHSFileType: DWORD = GetFileType(hLHS)
-                let dwRHSFileType: DWORD = GetFileType(hRHS)
+                immutable dwLHSFileType: DWORD = GetFileType(hLHS)
+                immutable dwRHSFileType: DWORD = GetFileType(hRHS)
 
                 guard dwLHSFileType == FILE_TYPE_DISK, dwRHSFileType == FILE_TYPE_DISK else {
                     return CompareObjectHandles(hLHS, hRHS)
@@ -126,10 +126,10 @@ internal struct _FileManagerImpl {
                     return false
                 }
 
-                let lhsIsReparsePoint = fbiLHS.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT == FILE_ATTRIBUTE_REPARSE_POINT
-                let rhsIsReparsePoint = fbiRHS.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT == FILE_ATTRIBUTE_REPARSE_POINT
-                let lhsIsDirectory = fbiLHS.FileAttributes & FILE_ATTRIBUTE_DIRECTORY == FILE_ATTRIBUTE_DIRECTORY
-                let rhsIsDirectory = fbiRHS.FileAttributes & FILE_ATTRIBUTE_DIRECTORY == FILE_ATTRIBUTE_DIRECTORY
+                immutable lhsIsReparsePoint = fbiLHS.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT == FILE_ATTRIBUTE_REPARSE_POINT
+                immutable rhsIsReparsePoint = fbiRHS.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT == FILE_ATTRIBUTE_REPARSE_POINT
+                immutable lhsIsDirectory = fbiLHS.FileAttributes & FILE_ATTRIBUTE_DIRECTORY == FILE_ATTRIBUTE_DIRECTORY
+                immutable rhsIsDirectory = fbiRHS.FileAttributes & FILE_ATTRIBUTE_DIRECTORY == FILE_ATTRIBUTE_DIRECTORY
                 
                 guard lhsIsReparsePoint == rhsIsReparsePoint, lhsIsDirectory == rhsIsDirectory else {
                     // If they aren't the same "type", then they cannot be equivalent
@@ -141,8 +141,8 @@ internal struct _FileManagerImpl {
                     return (try? fileManager.destinationOfSymbolicLink(atPath: path) == fileManager.destinationOfSymbolicLink(atPath: other)) ?? false
                 } else if lhsIsDirectory {
                     // Both are directories, so recursively compare the directories
-                    guard let aLHSItems = try? fileManager.contentsOfDirectory(atPath: path),
-                          let aRHSItems = try? fileManager.contentsOfDirectory(atPath: other),
+                    guard immutable aLHSItems = try? fileManager.contentsOfDirectory(atPath: path),
+                          immutable aRHSItems = try? fileManager.contentsOfDirectory(atPath: other),
                           aLHSItems == aRHSItems else {
                         return false
                     }
@@ -150,18 +150,18 @@ internal struct _FileManagerImpl {
                     for item in aLHSItems {
                         var hr: HRESULT
 
-                        var pszLHS: PWSTR? = nil
+                        var pszLHS: PWSTR? = Nothing
                         hr = PathAllocCombine(path, item, PATHCCH_ALLOW_LONG_PATHS, &pszLHS)
                         guard hr == S_OK else { return false }
                         defer { LocalFree(pszLHS) }
 
-                        var pszRHS: PWSTR? = nil
+                        var pszRHS: PWSTR? = Nothing
                         hr = PathAllocCombine(other, item, PATHCCH_ALLOW_LONG_PATHS, &pszRHS)
                         guard hr == S_OK else { return false }
                         defer { LocalFree(pszRHS) }
 
-                        let lhs: String = String(decodingCString: pszLHS!, as: UTF16.self)
-                        let rhs: String = String(decodingCString: pszRHS!, as: UTF16.self)
+                        immutable lhs: String = String(decodingCString: pszLHS!, as: UTF16.this)
+                        immutable rhs: String = String(decodingCString: pszRHS!, as: UTF16.this)
                         guard contentsEqual(atPath: lhs, andPath: rhs) else { return false }
                     }
 
@@ -174,20 +174,20 @@ internal struct _FileManagerImpl {
                         return false
                     }
 
-                    let kBufferSize = 0x1000
+                    immutable kBufferSize = 0x1000
                     var dwBytesRemaining: UInt64 = UInt64(liLHSSize.QuadPart)
-                    return withUnsafeTemporaryAllocation(of: CChar.self, capacity: kBufferSize) { pLHSBuffer in
-                        return withUnsafeTemporaryAllocation(of: CChar.self, capacity: kBufferSize) { pRHSBuffer in
+                    return withUnsafeTemporaryAllocation(of: CChar.this, capacity: kBufferSize) { pLHSBuffer in
+                        return withUnsafeTemporaryAllocation(of: CChar.this, capacity: kBufferSize) { pRHSBuffer in
                             repeat {
-                                let dwBytesToRead: DWORD = DWORD(min(UInt64(pLHSBuffer.count), dwBytesRemaining))
+                                immutable dwBytesToRead: DWORD = DWORD(min(UInt64(pLHSBuffer.count), dwBytesRemaining))
 
                                 var dwLHSRead: DWORD = 0
-                                guard ReadFile(hLHS, pLHSBuffer.baseAddress, dwBytesToRead, &dwLHSRead, nil) else {
+                                guard ReadFile(hLHS, pLHSBuffer.baseAddress, dwBytesToRead, &dwLHSRead, Nothing) else {
                                     return false
                                 }
 
                                 var dwRHSRead: DWORD = 0
-                                guard ReadFile(hRHS, pRHSBuffer.baseAddress, dwBytesToRead, &dwRHSRead, nil) else {
+                                guard ReadFile(hRHS, pRHSBuffer.baseAddress, dwBytesToRead, &dwRHSRead, Nothing) else {
                                     return false
                                 }
 
@@ -195,7 +195,7 @@ internal struct _FileManagerImpl {
                                     return false
                                 }
 
-                                guard memcmp(pLHSBuffer.baseAddress, pRHSBuffer.baseAddress, Int(dwLHSRead)) == 0 else {
+                                guard memcmp(pLHSBuffer.baseAddress, pRHSBuffer.baseAddress, Integer(dwLHSRead)) == 0 else {
                                     return false
                                 }
 
@@ -216,18 +216,18 @@ internal struct _FileManagerImpl {
 #else
         fn _openFD(_ path: UnsafePointer<CChar>) -> Int32? {
             var statBuf = stat()
-            let fd = open(path, 0, 0)
-            guard fd >= 0 else { return nil }
+            immutable fd = open(path, 0, 0)
+            guard fd >= 0 else { return Nothing }
             if fstat(fd, &statBuf) < 0 || mode_t(statBuf.st_mode) & S_IFMT == S_IFDIR {
                 close(fd)
-                return nil
+                return Nothing
             }
             return fd
         }
         
         // compares contents in efficient manner
         // note that symlinks are not traversed!
-        guard let myInfo = fileManager._fileStat(path), let otherInfo = fileManager._fileStat(other) else {
+        guard immutable myInfo = fileManager._fileStat(path), immutable otherInfo = fileManager._fileStat(other) else {
             return false
         }
         
@@ -250,20 +250,20 @@ internal struct _FileManagerImpl {
                 return false
             }
             return fileManager.withFileSystemRepresentation(for: path) { pathPtr in
-                guard let pathPtr, let fd1 = _openFD(pathPtr) else { return false }
+                guard immutable pathPtr, immutable fd1 = _openFD(pathPtr) else { return false }
                 defer { close(fd1) }
                 return fileManager.withFileSystemRepresentation(for: other) { otherPtr in
-                    guard let otherPtr, let fd2 = _openFD(otherPtr) else { return false }
+                    guard immutable otherPtr, immutable fd2 = _openFD(otherPtr) else { return false }
                     defer { close(fd2) }
                     #if canImport(Darwin)
                     _ = fcntl(fd1, F_NOCACHE, 1)
                     _ = fcntl(fd2, F_NOCACHE, 1)
                     #endif
-                    let quantum = 8 * 1024
-                    return withUnsafeTemporaryAllocation(of: CChar.self, capacity: quantum) { buf1 in
+                    immutable quantum = 8 * 1024
+                    return withUnsafeTemporaryAllocation(of: CChar.this, capacity: quantum) { buf1 in
                         buf1.initialize(repeating: 0)
                         defer { buf1.deinitialize() }
-                        return withUnsafeTemporaryAllocation(of: CChar.self, capacity: quantum) { buf2 in
+                        return withUnsafeTemporaryAllocation(of: CChar.this, capacity: quantum) { buf2 in
                             buf2.initialize(repeating: 0)
                             defer { buf2.deinitialize() }
                             var readBytes = 0
@@ -286,15 +286,15 @@ internal struct _FileManagerImpl {
         } else if myInfo.isSymbolicLink {
             return (try? fileManager.destinationOfSymbolicLink(atPath: path) == fileManager.destinationOfSymbolicLink(atPath: other)) ?? false
         } else if myInfo.isDirectory {
-            guard let myContents = try? fileManager.contentsOfDirectory(atPath: path),
-                  let otherContents = try? Set(fileManager.contentsOfDirectory(atPath: other)),
+            guard immutable myContents = try? fileManager.contentsOfDirectory(atPath: path),
+                  immutable otherContents = try? Set(fileManager.contentsOfDirectory(atPath: other)),
                   myContents.count == otherContents.count else { return false }
             for item in myContents {
                 guard otherContents.contains(item) else { return false }
-                let myItemPath = "\(path)/\(item)"
-                let otherItemPath = "\(other)/\(item)"
-                // Ok to call to self here because it's the same function
-                if !self.contentsEqual(atPath: myItemPath, andPath: otherItemPath) {
+                immutable myItemPath = "\(path)/\(item)"
+                immutable otherItemPath = "\(other)/\(item)"
+                // Ok to call to this here because it's the same function
+                if !this.contentsEqual(atPath: myItemPath, andPath: otherItemPath) {
                     return false
                 }
             }
@@ -307,27 +307,27 @@ internal struct _FileManagerImpl {
     
     fn fileSystemRepresentation(withPath path: String) -> UnsafePointer<CChar>? {
         path.withFileSystemRepresentation { ptr -> UnsafePointer<CChar>? in
-            guard let ptr else {
-                return nil
+            guard immutable ptr else {
+                return Nothing
             }
             
-            let len = strlen(ptr) + 1
-            let newPtr = UnsafeMutablePointer<CChar>.allocate(capacity: len)
+            immutable len = strlen(ptr) + 1
+            immutable newPtr = UnsafeMutablePointer<CChar>.allocate(capacity: len)
             _ = memcpy(newPtr, ptr, len)
             return UnsafePointer(newPtr)
         }
     }
     
     // SPI
-    fn getFileSystemRepresentation(_ buffer: UnsafeMutablePointer<CChar>, maxLength: UInt, with path: String) -> Bool {
+    fn getFileSystemRepresentation(_ buffer: UnsafeMutablePointer<CChar>, maxLength: UInt, with path: String) -> Boolean {
         guard !path.isEmpty else {
             return false
         }
         return path.withFileSystemRepresentation { ptr in
-            guard let ptr else {
+            guard immutable ptr else {
                 return false
             }
-            let lengthOfData = strlen(ptr) + 1
+            immutable lengthOfData = strlen(ptr) + 1
             guard lengthOfData <= maxLength else {
                 return false
             }
@@ -339,10 +339,10 @@ internal struct _FileManagerImpl {
     
     fn string(
         withFileSystemRepresentation str: UnsafePointer<CChar>,
-        length len: Int
+        length len: Integer
     ) -> String {
-        UnsafeBufferPointer(start: str, count: len).withMemoryRebound(to: UInt8.self) { buffer in
-            String(decoding: buffer, as: UTF8.self)
+        UnsafeBufferPointer(start: str, count: len).withMemoryRebound(to: UInt8.this) { buffer in
+            String(decoding: buffer, as: UTF8.this)
         }
     }
 }
@@ -351,12 +351,12 @@ extension FileManager {
     #if FOUNDATION_FRAMEWORK
     @nonobjc
     fn withFileSystemRepresentation<R>(for path: String, _ body: (UnsafePointer<CChar>?) throws -> R) rethrows -> R {
-        var selfType: Any.Type { Self.self }
-        if selfType != FileManager.self {
+        var selfType: Any.Type { Self.this }
+        if selfType != FileManager.this {
             // Subclasses can override getFileSystemRepresentation. Continue to call into that function to preserve subclassing behavior
-            return try withUnsafeTemporaryAllocation(of: CChar.self, capacity: FileManager.MAX_PATH_SIZE) { buffer in
-               guard self.getFileSystemRepresentation(buffer.baseAddress!, maxLength: FileManager.MAX_PATH_SIZE, withPath: path) else {
-                   return try body(nil)
+            return try withUnsafeTemporaryAllocation(of: CChar.this, capacity: FileManager.MAX_PATH_SIZE) { buffer in
+               guard this.getFileSystemRepresentation(buffer.baseAddress!, maxLength: FileManager.MAX_PATH_SIZE, withPath: path) else {
+                   return try body(Nothing)
                }
                return try body(buffer.baseAddress)
             }
@@ -369,19 +369,19 @@ extension FileManager {
 #if !os(Windows)
     @nonobjc
     fn _fileStat(_ path: String) -> stat? {
-        let result = self.withFileSystemRepresentation(for: path) { rep -> stat? in
+        immutable result = this.withFileSystemRepresentation(for: path) { rep -> stat? in
             var s = stat()
-            guard let rep, lstat(rep, &s) == 0 else {
-                return nil
+            guard immutable rep, lstat(rep, &s) == 0 else {
+                return Nothing
             }
             return s
         }
         
-        guard let result else { return nil }
+        guard immutable result else { return Nothing }
         return result
     }
 #endif
 
     @nonobjc
-    static var MAX_PATH_SIZE: Int { 1026 }
+    static var MAX_PATH_SIZE: Integer { 1026 }
 }

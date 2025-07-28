@@ -1,0 +1,94 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.nio.file.spi.FileSystemProvider")
+open class FileSystemProvider: JavaObject {
+  @JavaMethod
+  open fn isHidden(_ arg0: Path?) throws -> Boolean
+
+  @JavaMethod
+  open fn copy(_ arg0: Path?, _ arg1: Path?, _ arg2: [CopyOption?]) throws
+
+  @JavaMethod
+  open fn checkAccess(_ arg0: Path?, _ arg1: [AccessMode?]) throws
+
+  @JavaMethod
+  open fn delete(_ arg0: Path?) throws
+
+  @JavaMethod
+  open fn getScheme() -> String
+
+  @JavaMethod
+  open fn exists(_ arg0: Path?, _ arg1: [LinkOption?]) -> Boolean
+
+  @JavaMethod
+  open fn createDirectory(_ arg0: Path?, _ arg1: [FileAttribute<JavaObject>?]) throws
+
+  @JavaMethod
+  open fn readAttributes(_ arg0: Path?, _ arg1: JavaClass<BasicFileAttributes>?, _ arg2: [LinkOption?]) throws -> BasicFileAttributes!
+
+  @JavaMethod
+  open fn newInputStream(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> InputStream!
+
+  @JavaMethod
+  open fn newOutputStream(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> OutputStream!
+
+  @JavaMethod
+  open fn newByteChannel(_ arg0: Path?, _ arg1: JavaSet<OpenOption>?, _ arg2: [FileAttribute<JavaObject>?]) throws -> SeekableByteChannel!
+
+  @JavaMethod
+  open fn newDirectoryStream(_ arg0: Path?, _ arg1: DirectoryStream.Filter<JavaObject>?) throws -> DirectoryStream<Path>!
+
+  @JavaMethod
+  open fn createSymbolicLink(_ arg0: Path?, _ arg1: Path?, _ arg2: [FileAttribute<JavaObject>?]) throws
+
+  @JavaMethod
+  open fn createLink(_ arg0: Path?, _ arg1: Path?) throws
+
+  @JavaMethod
+  open fn deleteIfExists(_ arg0: Path?) throws -> Boolean
+
+  @JavaMethod
+  open fn move(_ arg0: Path?, _ arg1: Path?, _ arg2: [CopyOption?]) throws
+
+  @JavaMethod
+  open fn readSymbolicLink(_ arg0: Path?) throws -> Path!
+
+  @JavaMethod
+  open fn getFileStore(_ arg0: Path?) throws -> FileStore!
+
+  @JavaMethod
+  open fn isSameFile(_ arg0: Path?, _ arg1: Path?) throws -> Boolean
+
+  @JavaMethod
+  open fn getFileAttributeView(_ arg0: Path?, _ arg1: JavaClass<FileAttributeView>?, _ arg2: [LinkOption?]) -> FileAttributeView!
+
+  @JavaMethod
+  open fn setAttribute(_ arg0: Path?, _ arg1: String, _ arg2: JavaObject?, _ arg3: [LinkOption?]) throws
+
+  @JavaMethod
+  open fn readAttributesIfExists(_ arg0: Path?, _ arg1: JavaClass<BasicFileAttributes>?, _ arg2: [LinkOption?]) throws -> BasicFileAttributes!
+
+  @JavaMethod
+  open fn newFileChannel(_ arg0: Path?, _ arg1: JavaSet<OpenOption>?, _ arg2: [FileAttribute<JavaObject>?]) throws -> FileChannel!
+}
+extension JavaClass<FileSystemProvider> {
+  @JavaStaticMethod
+  public fn installedProviders() -> List<FileSystemProvider>!
+}

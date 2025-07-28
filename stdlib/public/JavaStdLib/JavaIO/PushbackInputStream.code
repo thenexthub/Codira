@@ -1,0 +1,61 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.PushbackInputStream")
+open class PushbackInputStream: FilterInputStream {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: InputStream?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: InputStream?, _ arg1: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open override fn reset() throws
+
+  @JavaMethod
+  open override fn close() throws
+
+  @JavaMethod
+  open override fn mark(_ arg0: Int32)
+
+  @JavaMethod
+  open override fn read(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws -> Int32
+
+  @JavaMethod
+  open override fn read() throws -> Int32
+
+  @JavaMethod
+  open override fn transferTo(_ arg0: OutputStream?) throws -> Int64
+
+  @JavaMethod
+  open override fn skip(_ arg0: Int64) throws -> Int64
+
+  @JavaMethod
+  open override fn available() throws -> Int32
+
+  @JavaMethod
+  open override fn markSupported() -> Boolean
+
+  @JavaMethod
+  open fn unread(_ arg0: [Int8]) throws
+
+  @JavaMethod
+  open fn unread(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn unread(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+}

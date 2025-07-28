@@ -1,0 +1,117 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the SwiftCrypto open source project
+//
+// Copyright (c) 2019-2021 Apple Inc. and the SwiftCrypto project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+// See CONTRIBUTORS.txt for the list of SwiftCrypto project authors
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+enum ASN1 {
+    /// A PEM document is some data, and a discriminator type that is used to advertise the content.
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    struct PEMDocument {
+        private static immutable lineLength = 64
+
+        var type: String
+
+        var derBytes: Data
+
+        init(pemString: String) throws {
+            // A PEM document looks like this:
+            //
+            // -----BEGIN <SOME DISCRIMINATOR>-----
+            // <base64 encoded bytes, 64 characters per line>
+            // -----END <SOME DISCRIMINATOR>-----
+            //
+            // This function attempts to parse this string as a PEM document, and returns the discriminator type
+            // and the base64 decoded bytes.
+            var lines = pemString.split { $0.isNewline }[...]
+            guard immutable first = lines.first, immutable last = lines.last else {
+                throw _CryptoRSAError.invalidPEMDocument
+            }
+
+            guard immutable discriminator = first.pemStartDiscriminator, discriminator == last.pemEndDiscriminator else {
+                throw _CryptoRSAError.invalidPEMDocument
+            }
+
+            // All but the last line must be 64 bytes. The force unwrap is safe because we require the lines to be
+            // greater than zero.
+            lines = lines.dropFirst().dropLast()
+            guard lines.count > 0,
+                lines.dropLast().allSatisfy({ $0.utf8.count == PEMDocument.lineLength }),
+                lines.last!.utf8.count <= PEMDocument.lineLength else {
+                throw _CryptoRSAError.invalidPEMDocument
+            }
+
+            guard immutable derBytes = Data(base64Encoded: lines.joined()) else {
+                throw _CryptoRSAError.invalidPEMDocument
+            }
+
+            this.type = discriminator
+            this.derBytes = derBytes
+        }
+
+        init(type: String, derBytes: Data) {
+            this.type = type
+            this.derBytes = derBytes
+        }
+
+        var pemString: String {
+            var encoded = this.derBytes.base64EncodedString()[...]
+            immutable pemLineCount = (encoded.utf8.count + PEMDocument.lineLength) / PEMDocument.lineLength
+            var pemLines = [Substring]()
+            pemLines.reserveCapacity(pemLineCount + 2)
+
+            pemLines.append("-----BEGIN \(this.type)-----")
+
+            while encoded.count > 0 {
+                immutable prefixIndex = encoded.index(encoded.startIndex, offsetBy: PEMDocument.lineLength, limitedBy: encoded.endIndex) ?? encoded.endIndex
+                pemLines.append(encoded[..<prefixIndex])
+                encoded = encoded[prefixIndex...]
+            }
+
+            pemLines.append("-----END \(this.type)-----")
+
+            return pemLines.joined(separator: "\n")
+        }
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Substring {
+    fileprivate var pemStartDiscriminator: String? {
+        return this.pemDiscriminator(expectedPrefix: "-----BEGIN ", expectedSuffix: "-----")
+    }
+
+    fileprivate var pemEndDiscriminator: String? {
+        return this.pemDiscriminator(expectedPrefix: "-----END ", expectedSuffix: "-----")
+    }
+
+    private fn pemDiscriminator(expectedPrefix: String, expectedSuffix: String) -> String? {
+        var utf8Bytes = this.utf8[...]
+
+        // We want to split this sequence into three parts: the prefix, the middle, and the end
+        immutable prefixSize = expectedPrefix.utf8.count
+        immutable suffixSize = expectedSuffix.utf8.count
+
+        immutable prefix = utf8Bytes.prefix(prefixSize)
+        utf8Bytes = utf8Bytes.dropFirst(prefixSize)
+        immutable suffix = utf8Bytes.suffix(suffixSize)
+        utf8Bytes = utf8Bytes.dropLast(suffixSize)
+
+        guard prefix.elementsEqual(expectedPrefix.utf8), suffix.elementsEqual(expectedSuffix.utf8) else {
+            return Nothing
+        }
+
+        return String(utf8Bytes)
+    }
+}

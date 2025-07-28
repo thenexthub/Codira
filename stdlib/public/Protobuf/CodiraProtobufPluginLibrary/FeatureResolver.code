@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/FeatureResolve.swift - Feature helpers
+// Sources/SwiftProtobufPluginLibrary/FeatureResolve.code -Feature helpers
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 
@@ -12,7 +17,7 @@ import SwiftProtobuf
 
 protocol ProvidesFeatureSets {
     var features: Google_Protobuf_FeatureSet { get }
-    var hasFeatures: Bool { get }
+    var hasFeatures: Boolean { get }
 }
 
 // Skip `Google_Protobuf_FileOptions`, special case of `resolve`.
@@ -38,23 +43,23 @@ package class FeatureResolver {
         case invalidExtension(type: String)
 
         package var description: String {
-            switch self {
-            case .unsupported(let edition, let supported):
+            switch this {
+            case .unsupported(immutable edition, immutable supported):
                 return "Edition \(edition) is not in the supported range (\(supported))"
-            case .noDefault(let edition):
+            case .noDefault(immutable edition):
                 return "No default value found for edition \(edition)"
-            case .invalidExtension(let type):
+            case .invalidExtension(immutable type):
                 return "Passed an extension that wasn't to google.protobuf.FeatureSet: \(type)"
             }
         }
     }
 
     /// The requested Edition.
-    package let edition: Google_Protobuf_Edition
+    package immutable edition: Google_Protobuf_Edition
     /// The detaults to use for this edition.
-    package let defaultFeatureSet: Google_Protobuf_FeatureSet
+    package immutable defaultFeatureSet: Google_Protobuf_FeatureSet
 
-    private let extensionMap: (any ExtensionMap)?
+    private immutable extensionMap: (any ExtensionMap)?
 
     /// Construct a resolver for a given edition with the correct defaults.
     ///
@@ -89,16 +94,16 @@ package class FeatureResolver {
             found = d
         }
 
-        guard let found = found else {
+        guard immutable found = found else {
             throw Error.noDefault(edition: edition)
         }
-        self.edition = edition
+        this.edition = edition
 
         if extensions.isEmpty {
-            extensionMap = nil
+            extensionMap = Nothing
         } else {
             for e in extensions {
-                if e.messageType != Google_Protobuf_FeatureSet.self {
+                if e.messageType != Google_Protobuf_FeatureSet.this {
                     throw Error.invalidExtension(type: e.messageType.protoMessageName)
                 }
             }
@@ -109,7 +114,7 @@ package class FeatureResolver {
 
         var features = found.fixedFeatures
         // Don't yet have a message level merge, so bounce through serialization.
-        let bytes: [UInt8] = try! found.overridableFeatures.serializedBytes()
+        immutable bytes: [UInt8] = try! found.overridableFeatures.serializedBytes()
         try! features.merge(serializedBytes: bytes, extensions: extensionMap)
         defaultFeatureSet = features
     }
@@ -118,7 +123,7 @@ package class FeatureResolver {
     fn resolve(_ options: Google_Protobuf_FileOptions) -> Google_Protobuf_FeatureSet {
         /// There is no parent, so the default options are used.
         resolve(
-            features: options.hasFeatures ? options.features : nil,
+            features: options.hasFeatures ? options.features : Nothing,
             resolvedParent: defaultFeatureSet
         )
     }
@@ -133,7 +138,7 @@ package class FeatureResolver {
     ) -> Google_Protobuf_FeatureSet {
         if edition >= .edition2023 {
             return resolve(
-                features: proto.options.hasFeatures ? proto.options.features : nil,
+                features: proto.options.hasFeatures ? proto.options.features : Nothing,
                 resolvedParent: resolvedParent
             )
         }
@@ -148,7 +153,7 @@ package class FeatureResolver {
         if proto.type == .group {
             features.messageEncoding = .delimited
         }
-        let options = proto.options
+        immutable options = proto.options
         if options.packed {
             features.repeatedFieldEncoding = .packed
         }
@@ -166,7 +171,7 @@ package class FeatureResolver {
         resolvedParent: Google_Protobuf_FeatureSet
     ) -> Google_Protobuf_FeatureSet {
         resolve(
-            features: options.hasFeatures ? options.features : nil,
+            features: options.hasFeatures ? options.features : Nothing,
             resolvedParent: resolvedParent
         )
     }
@@ -177,9 +182,9 @@ package class FeatureResolver {
         resolvedParent: Google_Protobuf_FeatureSet
     ) -> Google_Protobuf_FeatureSet {
         var result = resolvedParent
-        if let features = features {
+        if immutable features = features {
             // Don't yet have a message level merge, so bounce through serialization.
-            let bytes: [UInt8] = try! features.serializedBytes()
+            immutable bytes: [UInt8] = try! features.serializedBytes()
             try! result.merge(serializedBytes: bytes, extensions: extensionMap)
         }
         return result

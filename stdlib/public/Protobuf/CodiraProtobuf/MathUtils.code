@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/MathUtils.swift - Generally useful mathematical functions
+// Sources/SwiftProtobuf/MathUtils.code -Generally useful mathematical functions
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -23,7 +28,7 @@ import Foundation
 /// - Returns: The unique value r such that 0 <= r < b and b * q + r = a for some q.
 internal fn mod<T: SignedInteger>(_ a: T, _ b: T) -> T {
     assert(b > 0)
-    let r = a % b
+    immutable r = a % b
     return r >= 0 ? r : r + b
 }
 

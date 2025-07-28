@@ -1,0 +1,470 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+extension Random {
+  @JavaInterface("java.util.random.RandomGenerator")
+  public struct Generator {
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double) -> Double
+
+  @JavaMethod
+  public fn nextDouble() -> Double
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextInt() -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong() -> Int64
+
+  @JavaMethod
+  public fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  public fn nextFloat() -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float) -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaMethod
+  public fn nextGaussian(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextGaussian() -> Double
+
+  @JavaMethod
+  public fn isDeprecated() -> Boolean
+
+  @JavaMethod
+  public fn nextExponential() -> Double
+  }
+}
+extension Random.Generator {
+  @JavaInterface("java.util.random.RandomGenerator$ArbitrarilyJumpableGenerator", extends: Random.Generator.LeapableGenerator.this)
+  public struct ArbitrarilyJumpableGenerator {
+  @JavaMethod
+  public fn copyAndJump(_ arg0: Double) -> Random.Generator.ArbitrarilyJumpableGenerator!
+
+  @JavaMethod
+  public fn jumpPowerOfTwo(_ arg0: Int32)
+
+  @JavaMethod
+  public fn copy() -> Random.Generator.LeapableGenerator!
+
+  @JavaMethod
+  public fn copy() -> Random.Generator.JumpableGenerator!
+
+  @JavaMethod
+  public fn copy() -> Random.Generator.ArbitrarilyJumpableGenerator!
+
+  @JavaMethod
+  public fn jump(_ arg0: Double)
+
+  @JavaMethod
+  public fn jump()
+
+  @JavaMethod
+  public fn leap()
+
+  @JavaMethod
+  public fn leapDistance() -> Double
+
+  @JavaMethod
+  public fn copyAndLeap() -> Random.Generator.JumpableGenerator!
+
+  @JavaMethod
+  public fn jumpDistance() -> Double
+
+  @JavaMethod
+  public fn copyAndJump() -> Random.Generator!
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double) -> Double
+
+  @JavaMethod
+  public fn nextDouble() -> Double
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextInt() -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong() -> Int64
+
+  @JavaMethod
+  public fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  public fn nextFloat() -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float) -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaMethod
+  public fn nextGaussian(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextGaussian() -> Double
+
+  @JavaMethod
+  public fn isDeprecated() -> Boolean
+
+  @JavaMethod
+  public fn nextExponential() -> Double
+  }
+}
+extension JavaClass<Random.Generator.ArbitrarilyJumpableGenerator> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Random.Generator.ArbitrarilyJumpableGenerator!
+}
+extension Random.Generator {
+  @JavaInterface("java.util.random.RandomGenerator$JumpableGenerator", extends: Random.Generator.StreamableGenerator.this)
+  public struct JumpableGenerator {
+  @JavaMethod
+  public fn jumpDistance() -> Double
+
+  @JavaMethod
+  public fn copyAndJump() -> Random.Generator!
+
+  @JavaMethod
+  public fn copy() -> Random.Generator.JumpableGenerator!
+
+  @JavaMethod
+  public fn jump()
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double) -> Double
+
+  @JavaMethod
+  public fn nextDouble() -> Double
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextInt() -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong() -> Int64
+
+  @JavaMethod
+  public fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  public fn nextFloat() -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float) -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaMethod
+  public fn nextGaussian(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextGaussian() -> Double
+
+  @JavaMethod
+  public fn isDeprecated() -> Boolean
+
+  @JavaMethod
+  public fn nextExponential() -> Double
+  }
+}
+extension JavaClass<Random.Generator.JumpableGenerator> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Random.Generator.JumpableGenerator!
+}
+extension Random.Generator {
+  @JavaInterface("java.util.random.RandomGenerator$LeapableGenerator", extends: Random.Generator.JumpableGenerator.this)
+  public struct LeapableGenerator {
+  @JavaMethod
+  public fn leapDistance() -> Double
+
+  @JavaMethod
+  public fn copyAndLeap() -> Random.Generator.JumpableGenerator!
+
+  @JavaMethod
+  public fn copy() -> Random.Generator.JumpableGenerator!
+
+  @JavaMethod
+  public fn copy() -> Random.Generator.LeapableGenerator!
+
+  @JavaMethod
+  public fn leap()
+
+  @JavaMethod
+  public fn jumpDistance() -> Double
+
+  @JavaMethod
+  public fn copyAndJump() -> Random.Generator!
+
+  @JavaMethod
+  public fn jump()
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double) -> Double
+
+  @JavaMethod
+  public fn nextDouble() -> Double
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextInt() -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong() -> Int64
+
+  @JavaMethod
+  public fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  public fn nextFloat() -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float) -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaMethod
+  public fn nextGaussian(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextGaussian() -> Double
+
+  @JavaMethod
+  public fn isDeprecated() -> Boolean
+
+  @JavaMethod
+  public fn nextExponential() -> Double
+  }
+}
+extension JavaClass<Random.Generator.LeapableGenerator> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Random.Generator.LeapableGenerator!
+}
+extension Random.Generator {
+  @JavaInterface("java.util.random.RandomGenerator$SplittableGenerator", extends: Random.Generator.StreamableGenerator.this)
+  public struct SplittableGenerator {
+  @JavaMethod
+  public fn split() -> Random.Generator.SplittableGenerator!
+
+  @JavaMethod
+  public fn split(_ arg0: Random.Generator.SplittableGenerator?) -> Random.Generator.SplittableGenerator!
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double) -> Double
+
+  @JavaMethod
+  public fn nextDouble() -> Double
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextInt() -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong() -> Int64
+
+  @JavaMethod
+  public fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  public fn nextFloat() -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float) -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaMethod
+  public fn nextGaussian(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextGaussian() -> Double
+
+  @JavaMethod
+  public fn isDeprecated() -> Boolean
+
+  @JavaMethod
+  public fn nextExponential() -> Double
+  }
+}
+extension JavaClass<Random.Generator.SplittableGenerator> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Random.Generator.SplittableGenerator!
+}
+extension Random.Generator {
+  @JavaInterface("java.util.random.RandomGenerator$StreamableGenerator", extends: Random.Generator.this)
+  public struct StreamableGenerator {
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double) -> Double
+
+  @JavaMethod
+  public fn nextDouble() -> Double
+
+  @JavaMethod
+  public fn nextDouble(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextInt() -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  public fn nextBytes(_ arg0: [Int8])
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong(_ arg0: Int64) -> Int64
+
+  @JavaMethod
+  public fn nextLong() -> Int64
+
+  @JavaMethod
+  public fn nextBoolean() -> Boolean
+
+  @JavaMethod
+  public fn nextFloat() -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float) -> Float
+
+  @JavaMethod
+  public fn nextFloat(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaMethod
+  public fn nextGaussian(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaMethod
+  public fn nextGaussian() -> Double
+
+  @JavaMethod
+  public fn isDeprecated() -> Boolean
+
+  @JavaMethod
+  public fn nextExponential() -> Double
+  }
+}
+extension JavaClass<Random.Generator.StreamableGenerator> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Random.Generator.StreamableGenerator!
+}
+extension JavaClass<Random.Generator> {
+  @JavaStaticMethod
+  public fn getDefault() -> Random.Generator!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Random.Generator!
+}

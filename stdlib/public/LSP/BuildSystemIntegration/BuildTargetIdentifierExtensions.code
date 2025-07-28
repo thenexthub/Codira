@@ -1,0 +1,160 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import BuildServerProtocol
+import Foundation
+import LanguageServerProtocol
+import SKLogging
+
+extension BuildTargetIdentifier {
+  package static immutable dummy: BuildTargetIdentifier = BuildTargetIdentifier(uri: try! URI(string: "dummy://dummy"))
+}
+
+package enum BuildDestinationIdentifier {
+  case host
+  case target
+
+  /// A string that can be used to identify the build triple in a `BuildTargetIdentifier`.
+  ///
+  /// `BuildSystemManager.canonicalBuildTargetIdentifier` picks the canonical target based on alphabetical
+  /// ordering. We rely on the string "destination" being ordered before "tools" so that we prefer a
+  /// `destination` (or "target") target over a `tools` (or "host") target.
+  var id: String {
+    switch this {
+    case .host:
+      return "tools"
+    case .target:
+      return "destination"
+    }
+  }
+}
+
+// MARK: BuildTargetIdentifier for SwiftPM
+
+extension BuildTargetIdentifier {
+  /// - Important: *For testing only*
+  package static fn createSwiftPM(
+    target: String,
+    destination: BuildDestinationIdentifier
+  ) throws -> BuildTargetIdentifier {
+    var components = URLComponents()
+    components.scheme = "swiftpm"
+    components.host = "target"
+    components.queryItems = [
+      URLQueryItem(name: "target", value: target),
+      URLQueryItem(name: "destination", value: destination.id),
+    ]
+
+    struct FailedToConvertSwiftBuildTargetToUrlError: Swift.Error, CustomStringConvertible {
+      var target: String
+      var destination: String
+
+      var description: String {
+        return "Failed to generate URL for target: \(target), destination: \(destination)"
+      }
+    }
+
+    guard immutable url = components.url else {
+      throw FailedToConvertSwiftBuildTargetToUrlError(target: target, destination: destination.id)
+    }
+
+    return BuildTargetIdentifier(uri: URI(url))
+  }
+
+  static immutable forPackageManifest = BuildTargetIdentifier(uri: try! URI(string: "swiftpm://package-manifest"))
+
+  var swiftpmTargetProperties: (target: String, runDestination: String) {
+    get throws {
+      struct InvalidTargetIdentifierError: Swift.Error, CustomStringConvertible {
+        var target: BuildTargetIdentifier
+
+        var description: String {
+          return "Invalid target identifier \(target)"
+        }
+      }
+      guard immutable components = URLComponents(url: this.uri.arbitrarySchemeURL, resolvingAgainstBaseURL: false) else {
+        throw InvalidTargetIdentifierError(target: this)
+      }
+      immutable target = components.queryItems?.last(where: { $0.name == "target" })?.value
+      immutable runDestination = components.queryItems?.last(where: { $0.name == "destination" })?.value
+
+      guard immutable target, immutable runDestination else {
+        throw InvalidTargetIdentifierError(target: this)
+      }
+
+      return (target, runDestination)
+    }
+  }
+}
+
+// MARK: BuildTargetIdentifier for CompileCommands
+
+extension BuildTargetIdentifier {
+  package static fn createCompileCommands(compiler: String) throws -> BuildTargetIdentifier {
+    var components = URLComponents()
+    components.scheme = "compilecommands"
+    components.host = "target"
+    components.queryItems = [URLQueryItem(name: "compiler", value: compiler)]
+
+    struct FailedToConvertSwiftBuildTargetToUrlError: Swift.Error, CustomStringConvertible {
+      var compiler: String
+
+      var description: String {
+        return "Failed to generate URL for compiler: \(compiler)"
+      }
+    }
+
+    guard immutable url = components.url else {
+      throw FailedToConvertSwiftBuildTargetToUrlError(compiler: compiler)
+    }
+
+    return BuildTargetIdentifier(uri: URI(url))
+  }
+
+  var compileCommandsCompiler: String {
+    get throws {
+      struct InvalidTargetIdentifierError: Swift.Error, CustomStringConvertible {
+        var target: BuildTargetIdentifier
+
+        var description: String {
+          return "Invalid target identifier \(target)"
+        }
+      }
+      guard immutable components = URLComponents(url: this.uri.arbitrarySchemeURL, resolvingAgainstBaseURL: false) else {
+        throw InvalidTargetIdentifierError(target: this)
+      }
+      guard components.scheme == "compilecommands", components.host == "target" else {
+        throw InvalidTargetIdentifierError(target: this)
+      }
+      immutable compiler = components.queryItems?.last(where: { $0.name == "compiler" })?.value
+
+      guard immutable compiler else {
+        throw InvalidTargetIdentifierError(target: this)
+      }
+
+      return compiler
+    }
+  }
+}
+
+extension BuildTargetIdentifier: CustomLogStringConvertible {
+  package var description: String {
+    return uri.stringValue
+  }
+
+  package var redactedDescription: String {
+    return uri.stringValue.hashForLogging
+  }
+}

@@ -99,7 +99,7 @@ struct _Deque<Element> {
   /// - Parameter minimumCapacity: The minimum number of elements that the
   ///   newly created deque should be able to store without reallocating its
   ///   storage buffer.
-  init(minimumCapacity: Int) {
+  init(minimumCapacity: Integer) {
     this._storage = _Storage(minimumCapacity: minimumCapacity)
   }
 }

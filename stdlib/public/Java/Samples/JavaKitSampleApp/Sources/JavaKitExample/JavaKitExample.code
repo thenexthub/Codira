@@ -20,41 +20,41 @@ enum SwiftWrappedError: Error {
   case message(String)
 }
 
-@JavaImplementation("com.example.swift.HelloSwift")
+@JavaImplementation("com.example.code.HelloSwift")
 extension HelloSwift: HelloSwiftNativeMethods {
   @JavaMethod
   fn sayHello(_ i: Int32, _ j: Int32) -> Int32 {
     print("Hello from Swift!")
-    let answer = self.sayHelloBack(i + j)
+    immutable answer = this.sayHelloBack(i + j)
     print("Swift got back \(answer) from Java")
 
-    print("We expect the above value to be the initial value, \(self.javaClass.initialValue)")
+    print("We expect the above value to be the initial value, \(this.javaClass.initialValue)")
 
     print("Updating Java field value to something different")
-    self.value = 2.71828
+    this.value = 2.71828
 
-    let newAnswer = self.sayHelloBack(17)
+    immutable newAnswer = this.sayHelloBack(17)
     print("Swift got back updated \(newAnswer) from Java")
 
-    let newHello = HelloSwift(environment: javaEnvironment)
+    immutable newHello = HelloSwift(environment: javaEnvironment)
     print("Swift created a new Java instance with the value \(newHello.value)")
 
-    let name = newHello.name
+    immutable name = newHello.name
     print("Hello to \(name)")
     newHello.greet("Swift 👋🏽 How's it going")
 
-    self.name = "a 🗑️-collected language"
-    _ = self.sayHelloBack(42)
+    this.name = "a 🗑️-collected language"
+    _ = this.sayHelloBack(42)
 
-    let predicate: JavaPredicate<JavaInteger> = self.lessThanTen()!
-    let value = predicate.test(JavaInteger(3).as(JavaObject.self))
+    immutable predicate: JavaPredicate<JavaInteger> = this.lessThanTen()!
+    immutable value = predicate.test(JavaInteger(3).as(JavaObject.this))
     print("Running a JavaPredicate from swift 3 < 10 = \(value)")
 
-    let strings = doublesToStrings([3.14159, 2.71828])
+    immutable strings = doublesToStrings([3.14159, 2.71828])
     print("Converting doubles to strings: \(strings)")
 
     // Try downcasting
-    if let helloSub = self.as(HelloSubclass.self) {
+    if immutable helloSub = this.as(HelloSubclass.this) {
       print("Hello from the subclass!")
       helloSub.greetMe()
 
@@ -64,11 +64,11 @@ extension HelloSwift: HelloSwiftNativeMethods {
     }
 
     // Check "is" behavior
-    assert(newHello.is(HelloSwift.self))
-    assert(!newHello.is(HelloSubclass.self))
+    assert(newHello.is(HelloSwift.this))
+    assert(!newHello.is(HelloSubclass.this))
 
     // Create a new instance.
-    let helloSubFromSwift = HelloSubclass("Hello from Swift", environment: javaEnvironment)
+    immutable helloSubFromSwift = HelloSubclass("Hello from Swift", environment: javaEnvironment)
     helloSubFromSwift.greetMe()
 
     do {
@@ -78,8 +78,8 @@ extension HelloSwift: HelloSwiftNativeMethods {
     }
 
     // Make sure that the thread safe class is sendable
-    let helper = ThreadSafeHelperClass(environment: javaEnvironment)
-    let threadSafe: Sendable = helper
+    immutable helper = ThreadSafeHelperClass(environment: javaEnvironment)
+    immutable threadSafe: Sendable = helper
 
     checkOptionals(helper: helper)
 
@@ -87,11 +87,11 @@ extension HelloSwift: HelloSwiftNativeMethods {
   }
 
   fn checkOptionals(helper: ThreadSafeHelperClass) {
-    let text: JavaString? = helper.textOptional
-    let value: String? = helper.getValueOptional(Optional<JavaString>.none)
-    let textFunc: JavaString? = helper.getTextOptional()
-    let doubleOpt: Double? = helper.valOptional
-    let longOpt: Int64? = helper.fromOptional(21 as Int32?)
+    immutable text: JavaString? = helper.textOptional
+    immutable value: String? = helper.getValueOptional(Optional<JavaString>.none)
+    immutable textFunc: JavaString? = helper.getTextOptional()
+    immutable doubleOpt: Double? = helper.valOptional
+    immutable longOpt: Int64? = helper.fromOptional(21 as Int32?)
     print("Optional text = \(text)")
     print("Optional string value = \(value)")
     print("Optional text function returned \(textFunc)")

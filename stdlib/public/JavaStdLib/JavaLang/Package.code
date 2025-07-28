@@ -1,0 +1,81 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitReflection
+import JavaRuntime
+
+@JavaClass("java.lang.Package")
+open class Package: JavaObject {
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn isSealed() -> Boolean
+
+  @JavaMethod
+  open fn isAnnotationPresent(_ arg0: JavaClass<Annotation>?) -> Boolean
+
+  @JavaMethod
+  open fn getAnnotation(_ arg0: JavaClass<Annotation>?) -> Annotation!
+
+  @JavaMethod
+  open fn getAnnotationsByType(_ arg0: JavaClass<Annotation>?) -> [Annotation?]
+
+  @JavaMethod
+  open fn getAnnotations() -> [Annotation?]
+
+  @JavaMethod
+  open fn getDeclaredAnnotation(_ arg0: JavaClass<Annotation>?) -> Annotation!
+
+  @JavaMethod
+  open fn getDeclaredAnnotationsByType(_ arg0: JavaClass<Annotation>?) -> [Annotation?]
+
+  @JavaMethod
+  open fn getDeclaredAnnotations() -> [Annotation?]
+
+  @JavaMethod
+  open fn getSpecificationTitle() -> String
+
+  @JavaMethod
+  open fn getSpecificationVersion() -> String
+
+  @JavaMethod
+  open fn getSpecificationVendor() -> String
+
+  @JavaMethod
+  open fn getImplementationTitle() -> String
+
+  @JavaMethod
+  open fn getImplementationVersion() -> String
+
+  @JavaMethod
+  open fn getImplementationVendor() -> String
+
+  @JavaMethod
+  open fn isCompatibleWith(_ arg0: String) throws -> Boolean
+}
+extension JavaClass<Package> {
+  @JavaStaticMethod
+  public fn getPackage(_ arg0: String) -> Package!
+
+  @JavaStaticMethod
+  public fn getPackages() -> [Package?]
+}

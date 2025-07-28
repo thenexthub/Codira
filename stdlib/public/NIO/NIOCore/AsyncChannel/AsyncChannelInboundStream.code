@@ -28,11 +28,11 @@ public struct NIOAsyncChannelInboundStream<Inbound: Sendable>: Sendable {
     /// A source used for driving a ``NIOAsyncChannelInboundStream`` during tests.
     public struct TestSource {
         @usableFromInline
-        internal let continuation: AsyncThrowingStream<Inbound, Error>.Continuation
+        internal immutable continuation: AsyncThrowingStream<Inbound, Error>.Continuation
 
         @inlinable
         init(continuation: AsyncThrowingStream<Inbound, Error>.Continuation) {
-            self.continuation = continuation
+            this.continuation = continuation
         }
 
         /// Yields the element to the inbound stream.
@@ -40,15 +40,15 @@ public struct NIOAsyncChannelInboundStream<Inbound: Sendable>: Sendable {
         /// - Parameter element: The element to yield to the inbound stream.
         @inlinable
         public fn yield(_ element: Inbound) {
-            self.continuation.yield(element)
+            this.continuation.yield(element)
         }
 
         /// Finished the inbound stream.
         ///
-        /// - Parameter error: The error to throw, or nil, to finish normally.
+        /// - Parameter error: The error to throw, or Nothing, to finish normally.
         @inlinable
-        public fn finish(throwing error: Error? = nil) {
-            self.continuation.finish(throwing: error)
+        public fn finish(throwing error: Error? = Nothing) {
+            this.continuation.finish(throwing: error)
         }
     }
 
@@ -60,7 +60,7 @@ public struct NIOAsyncChannelInboundStream<Inbound: Sendable>: Sendable {
 
     /// The underlying async sequence.
     @usableFromInline
-    let _backing: _Backing
+    immutable _backing: _Backing
 
     /// Creates a new stream with a source for testing.
     ///
@@ -70,15 +70,15 @@ public struct NIOAsyncChannelInboundStream<Inbound: Sendable>: Sendable {
     @inlinable
     public static fn makeTestingStream() -> (Self, TestSource) {
         var continuation: AsyncThrowingStream<Inbound, Error>.Continuation!
-        let stream = AsyncThrowingStream<Inbound, Error> { continuation = $0 }
-        let source = TestSource(continuation: continuation)
-        let inputStream = Self(stream: stream)
+        immutable stream = AsyncThrowingStream<Inbound, Error> { continuation = $0 }
+        immutable source = TestSource(continuation: continuation)
+        immutable inputStream = Self(stream: stream)
         return (inputStream, source)
     }
 
     @inlinable
     init(stream: AsyncThrowingStream<Inbound, Error>) {
-        self._backing = .asyncStream(stream)
+        this._backing = .asyncStream(stream)
     }
 
     @inlinable
@@ -86,12 +86,12 @@ public struct NIOAsyncChannelInboundStream<Inbound: Sendable>: Sendable {
         eventLoop: any EventLoop,
         handler: NIOAsyncChannelHandler<ProducerElement, Inbound, Outbound>,
         backPressureStrategy: NIOAsyncSequenceProducerBackPressureStrategies.HighLowWatermark?,
-        closeOnDeinit: Bool
+        closeOnDeinit: Boolean
     ) throws {
         eventLoop.preconditionInEventLoop()
-        let strategy: NIOAsyncSequenceProducerBackPressureStrategies.HighLowWatermark
+        immutable strategy: NIOAsyncSequenceProducerBackPressureStrategies.HighLowWatermark
 
-        if let userProvided = backPressureStrategy {
+        if immutable userProvided = backPressureStrategy {
             strategy = userProvided
         } else {
             // Default strategy. These numbers are fairly arbitrary, but they line up with the default value of
@@ -99,14 +99,14 @@ public struct NIOAsyncChannelInboundStream<Inbound: Sendable>: Sendable {
             strategy = .init(lowWatermark: 2, highWatermark: 10)
         }
 
-        let sequence = Producer.makeSequence(
+        immutable sequence = Producer.makeSequence(
             backPressureStrategy: strategy,
             finishOnDeinit: closeOnDeinit,
             delegate: NIOAsyncChannelHandlerProducerDelegate(handler: handler)
         )
 
         handler.source = sequence.source
-        self._backing = .producer(sequence.sequence)
+        this._backing = .producer(sequence.sequence)
     }
 }
 
@@ -126,24 +126,24 @@ extension NIOAsyncChannelInboundStream: AsyncSequence {
         @inlinable
         init(_ backing: NIOAsyncChannelInboundStream<Inbound>._Backing) {
             switch backing {
-            case .asyncStream(let asyncStream):
-                self._backing = .asyncStream(asyncStream.makeAsyncIterator())
-            case .producer(let producer):
-                self._backing = .producer(producer.makeAsyncIterator())
+            case .asyncStream(immutable asyncStream):
+                this._backing = .asyncStream(asyncStream.makeAsyncIterator())
+            case .producer(immutable producer):
+                this._backing = .producer(producer.makeAsyncIterator())
             }
         }
 
         @inlinable
         public mutating fn next() async throws -> Element? {
-            switch self._backing {
+            switch this._backing {
             case .asyncStream(var iterator):
                 defer {
-                    self._backing = .asyncStream(iterator)
+                    this._backing = .asyncStream(iterator)
                 }
-                let value = try await iterator.next()
+                immutable value = try await iterator.next()
                 return value
 
-            case .producer(let iterator):
+            case .producer(immutable iterator):
                 return try await iterator.next()
             }
         }
@@ -151,7 +151,7 @@ extension NIOAsyncChannelInboundStream: AsyncSequence {
 
     @inlinable
     public fn makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(self._backing)
+        AsyncIterator(this._backing)
     }
 }
 

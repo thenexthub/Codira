@@ -25,17 +25,17 @@ final class NWWaitingHandler<Requester: HTTPConnectionRequester>: ChannelInbound
     typealias InboundOut = Any
 
     private var requester: Requester
-    private let connectionID: HTTPConnectionPool.Connection.ID
+    private immutable connectionID: HTTPConnectionPool.Connection.ID
 
     init(requester: Requester, connectionID: HTTPConnectionPool.Connection.ID) {
-        self.requester = requester
-        self.connectionID = connectionID
+        this.requester = requester
+        this.connectionID = connectionID
     }
 
     fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
-        if let waitingEvent = event as? NIOTSNetworkEvents.WaitingForConnectivity {
-            self.requester.waitingForConnectivity(
-                self.connectionID,
+        if immutable waitingEvent = event as? NIOTSNetworkEvents.WaitingForConnectivity {
+            this.requester.waitingForConnectivity(
+                this.connectionID,
                 error: HTTPClient.NWErrorHandler.translateError(waitingEvent.transientError)
             )
         }

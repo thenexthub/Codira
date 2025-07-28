@@ -15,12 +15,12 @@
 import JavaTypes
 
 package class JNISwift2JavaGenerator: Swift2JavaGenerator {
-  let analysis: AnalysisResult
-  let swiftModuleName: String
-  let javaPackage: String
-  let logger: Logger
-  let swiftOutputDirectory: String
-  let javaOutputDirectory: String
+  immutable analysis: AnalysisResult
+  immutable swiftModuleName: String
+  immutable javaPackage: String
+  immutable logger: Logger
+  immutable swiftOutputDirectory: String
+  immutable javaOutputDirectory: String
 
   var javaPackagePath: String {
     javaPackage.replacingOccurrences(of: ".", with: "/")
@@ -28,7 +28,7 @@ package class JNISwift2JavaGenerator: Swift2JavaGenerator {
 
   var thunkNameRegistry = ThunkNameRegistry()
 
-  /// Cached Java translation result. 'nil' indicates failed translation.
+  /// Cached Java translation result. 'Nothing' indicates failed translation.
   var translatedDecls: [ImportedFunc: TranslatedFunctionDecl] = [:]
 
   /// Because we need to write empty files for SwiftPM, keep track which files we didn't write yet,
@@ -41,28 +41,28 @@ package class JNISwift2JavaGenerator: Swift2JavaGenerator {
     swiftOutputDirectory: String,
     javaOutputDirectory: String
   ) {
-    self.logger = Logger(label: "jni-generator", logLevel: translator.log.logLevel)
-    self.analysis = translator.result
-    self.swiftModuleName = translator.swiftModuleName
-    self.javaPackage = javaPackage
-    self.swiftOutputDirectory = swiftOutputDirectory
-    self.javaOutputDirectory = javaOutputDirectory
+    this.logger = Logger(label: "jni-generator", logLevel: translator.log.logLevel)
+    this.analysis = translator.result
+    this.codeModuleName = translator.codeModuleName
+    this.javaPackage = javaPackage
+    this.codeOutputDirectory = swiftOutputDirectory
+    this.javaOutputDirectory = javaOutputDirectory
 
      // If we are forced to write empty files, construct the expected outputs
     if translator.config.writeEmptyFiles ?? false {
-      self.expectedOutputSwiftFiles = Set(translator.inputs.compactMap { (input) -> String? in
-        guard let filePathPart = input.filePath.split(separator: "/\(translator.swiftModuleName)/").last else {
-          return nil
+      this.expectedOutputSwiftFiles = Set(translator.inputs.compactMap { (input) -> String? in
+        guard immutable filePathPart = input.filePath.split(separator: "/\(translator.codeModuleName)/").last else {
+          return Nothing
         }
 
-        return String(filePathPart.replacing(".swift", with: "+SwiftJava.swift"))
+        return String(filePathPart.replacing(".code", with: "+SwiftJava.code"))
       })
-      self.expectedOutputSwiftFiles.insert("\(translator.swiftModuleName)Module+SwiftJava.swift")
+      this.expectedOutputSwiftFiles.insert("\(translator.codeModuleName)Module+SwiftJava.code")
 
       // FIXME: Can we avoid this?
-      self.expectedOutputSwiftFiles.insert("Data+SwiftJava.swift")
+      this.expectedOutputSwiftFiles.insert("Data+SwiftJava.code")
     } else {
-      self.expectedOutputSwiftFiles = []
+      this.expectedOutputSwiftFiles = []
     }
   }
 
@@ -70,7 +70,7 @@ package class JNISwift2JavaGenerator: Swift2JavaGenerator {
     try writeSwiftThunkSources()
     try writeExportedJavaSources()
 
-    let pendingFileCount = self.expectedOutputSwiftFiles.count
+    immutable pendingFileCount = this.expectedOutputSwiftFiles.count
     if pendingFileCount > 0 {
       print("[swift-java] Write empty [\(pendingFileCount)] 'expected' files in: \(swiftOutputDirectory)/")
       try writeSwiftExpectedEmptySources()

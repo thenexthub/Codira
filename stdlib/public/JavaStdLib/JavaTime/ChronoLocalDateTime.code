@@ -1,0 +1,125 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.time.chrono.ChronoLocalDateTime", extends: Temporal.this, TemporalAdjuster.this, Comparable.this)
+public struct ChronoLocalDateTime {
+  @JavaMethod
+  public fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn toString() -> String
+
+  @JavaMethod
+  public fn hashCode() -> Int32
+
+  @JavaMethod
+  public fn compareTo(_ arg0: ChronoLocalDateTime?) -> Int32
+
+  @JavaMethod
+  public fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  public fn format(_ arg0: DateTimeFormatter?) -> String
+
+  @JavaMethod
+  public fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  public fn isSupported(_ arg0: TemporalUnit?) -> Boolean
+
+  @JavaMethod
+  public fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  public fn with(_ arg0: TemporalField?, _ arg1: Int64) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  public fn with(_ arg0: TemporalAdjuster?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn isEqual(_ arg0: ChronoLocalDateTime?) -> Boolean
+
+  @JavaMethod
+  public fn toInstant(_ arg0: ZoneOffset?) -> Instant!
+
+  @JavaMethod
+  public fn minus(_ arg0: TemporalAmount?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  public fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  public fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn plus(_ arg0: TemporalAmount?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  public fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  public fn adjustInto(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  public fn atZone(_ arg0: ZoneId?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  public fn isAfter(_ arg0: ChronoLocalDateTime?) -> Boolean
+
+  @JavaMethod
+  public fn isBefore(_ arg0: ChronoLocalDateTime?) -> Boolean
+
+  @JavaMethod
+  public fn toLocalTime() -> LocalTime!
+
+  @JavaMethod
+  public fn getChronology() -> Chronology!
+
+  @JavaMethod
+  public fn toEpochSecond(_ arg0: ZoneOffset?) -> Int64
+
+  @JavaMethod
+  public fn toLocalDate() -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  public fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  public fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  public fn range(_ arg0: TemporalField?) -> ValueRange!
+}

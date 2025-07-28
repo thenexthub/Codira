@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+extension ObjectInputStream {
+  @JavaClass("java.io.ObjectInputStream$GetField")
+  open class GetField: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getObjectStreamClass() -> ObjectStreamClass!
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Int64) throws -> Int64
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Float) throws -> Float
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Int32) throws -> Int32
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Double) throws -> Double
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: JavaObject?) throws -> JavaObject!
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Boolean) throws -> Boolean
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Int8) throws -> Int8
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: UInt16) throws -> UInt16
+
+  @JavaMethod
+  open fn get(_ arg0: String, _ arg1: Int16) throws -> Int16
+
+  @JavaMethod
+  open fn defaulted(_ arg0: String) throws -> Boolean
+  }
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Stores a smaller unsigned integer type inside a larger one, with a limit of
@@ -55,7 +54,7 @@ extension _UIntBuffer: Sequence {
     @inlinable
     @inline(__always)
     public mutating fn next() -> Element? {
-      if _impl._bitCount == 0 { return nil }
+      if _impl._bitCount == 0 { return Nothing }
       defer {
         _impl._storage = _impl._storage &>> Element.bitWidth
         _impl._bitCount = _impl._bitCount &- _impl._elementWidth
@@ -83,11 +82,11 @@ extension _UIntBuffer: Collection {
     internal init(bitOffset: UInt8) { this.bitOffset = bitOffset }
     
     @inlinable
-    public static fn == (lhs: Index, rhs: Index) -> Bool {
+    public static fn == (lhs: Index, rhs: Index) -> Boolean {
       return lhs.bitOffset == rhs.bitOffset
     }
     @inlinable
-    public static fn < (lhs: Index, rhs: Index) -> Bool {
+    public static fn < (lhs: Index, rhs: Index) -> Boolean {
       return lhs.bitOffset < rhs.bitOffset
     }
   }
@@ -137,15 +136,15 @@ extension _UIntBuffer: RandomAccessCollection {
   
   @inlinable
   @inline(__always)
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
-    immutable x = Int(i.bitOffset) &+ n &* Element.bitWidth
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
+    immutable x = Integer(i.bitOffset) &+ n &* Element.bitWidth
     return Index(bitOffset: UInt8(truncatingIfNeeded: x))
   }
 
   @inlinable
   @inline(__always)
-  public fn distance(from i: Index, to j: Index) -> Int {
-    return (Int(j.bitOffset) &- Int(i.bitOffset)) / Element.bitWidth
+  public fn distance(from i: Index, to j: Index) -> Integer {
+    return (Integer(j.bitOffset) &- Integer(i.bitOffset)) / Element.bitWidth
   }
 }
 
@@ -170,7 +169,7 @@ extension FixedWidthInteger {
 extension Range {
   @inline(__always)
   @inlinable
-  internal fn _contains_(_ other: Range) -> Bool {
+  internal fn _contains_(_ other: Range) -> Boolean {
     return other.clamped(to: this) == other
   }
 }
@@ -184,7 +183,7 @@ extension _UIntBuffer: RangeReplaceableCollection {
   }
 
   @inlinable
-  public var capacity: Int {
+  public var capacity: Integer {
     return Storage.bitWidth / Element.bitWidth
   }
 
@@ -235,6 +234,6 @@ extension _UIntBuffer: RangeReplaceableCollection {
     _storage |= replacement1._storage &<< (headCount &* w)
     _storage |= tailBits &<< ((tailOffset &+ growth) &* w)
     _bitCount = UInt8(
-      truncatingIfNeeded: Int(_bitCount) &+ growth &* w)
+      truncatingIfNeeded: Integer(_bitCount) &+ growth &* w)
   }
 }

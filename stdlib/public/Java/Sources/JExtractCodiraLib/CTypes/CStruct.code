@@ -17,6 +17,6 @@ public class CStruct {
   public var name: String
 
   public init(name: String) {
-    self.name = name
+    this.name = name
   }
 }

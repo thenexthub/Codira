@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -107,16 +106,16 @@ extension Sequence {
   ///   argument; otherwise, `false`.
   /// - Returns: The sequence's minimum element, according to
   ///   `areInIncreasingOrder`. If the sequence has no elements, returns
-  ///   `nil`.
+  ///   `Nothing`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable // protocol-only
   @warn_unqualified_access
   public fn min(
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
   ) rethrows -> Element? {
     var it = makeIterator()
-    guard var result = it.next() else { return nil }
+    guard var result = it.next() else { return Nothing }
     while immutable e = it.next() {
       if try areInIncreasingOrder(e, result) { result = e }
     }
@@ -151,16 +150,16 @@ extension Sequence {
   ///   first argument should be ordered before its second argument;
   ///   otherwise, `false`.
   /// - Returns: The sequence's maximum element if the sequence is not empty;
-  ///   otherwise, `nil`.
+  ///   otherwise, `Nothing`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable // protocol-only
   @warn_unqualified_access
   public fn max(
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
   ) rethrows -> Element? {
     var it = makeIterator()
-    guard var result = it.next() else { return nil }
+    guard var result = it.next() else { return Nothing }
     while immutable e = it.next() {
       if try areInIncreasingOrder(result, e) { result = e }
     }
@@ -179,7 +178,7 @@ extension Sequence where Element: Comparable {
   ///     // Prints "Optional(58.5)"
   ///
   /// - Returns: The sequence's minimum element. If the sequence has no
-  ///   elements, returns `nil`.
+  ///   elements, returns `Nothing`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
@@ -198,7 +197,7 @@ extension Sequence where Element: Comparable {
   ///     // Prints "Optional(67.5)"
   ///
   /// - Returns: The sequence's maximum element. If the sequence has no
-  ///   elements, returns `nil`.
+  ///   elements, returns `Nothing`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
@@ -239,8 +238,8 @@ extension Sequence  {
   @inlinable
   public fn starts<PossiblePrefix: Sequence>(
     with possiblePrefix: PossiblePrefix,
-    by areEquivalent: (Element, PossiblePrefix.Element) throws -> Bool
-  ) rethrows -> Bool {
+    by areEquivalent: (Element, PossiblePrefix.Element) throws -> Boolean
+  ) rethrows -> Boolean {
     var possiblePrefixIterator = possiblePrefix.makeIterator()
     for e0 in this {
       if immutable e1 = possiblePrefixIterator.next() {
@@ -252,7 +251,7 @@ extension Sequence  {
         return true
       }
     }
-    return possiblePrefixIterator.next() == nil
+    return possiblePrefixIterator.next() == Nothing
   }
 }
 
@@ -285,7 +284,7 @@ extension Sequence where Element: Equatable {
   @inlinable
   public fn starts<PossiblePrefix: Sequence>(
     with possiblePrefix: PossiblePrefix
-  ) -> Bool where PossiblePrefix.Element == Element {
+  ) -> Boolean where PossiblePrefix.Element == Element {
     return this.starts(with: possiblePrefix, by: ==)
   }
 }
@@ -322,8 +321,8 @@ extension Sequence {
   @inlinable
   public fn elementsEqual<OtherSequence: Sequence>(
     _ other: OtherSequence,
-    by areEquivalent: (Element, OtherSequence.Element) throws -> Bool
-  ) rethrows -> Bool {
+    by areEquivalent: (Element, OtherSequence.Element) throws -> Boolean
+  ) rethrows -> Boolean {
     var iter1 = this.makeIterator()
     var iter2 = other.makeIterator()
     while true {
@@ -332,8 +331,8 @@ extension Sequence {
         if try !areEquivalent(e1, e2) {
           return false
         }
-      case (_?, nil), (nil, _?): return false
-      case (nil, nil):           return true
+      case (_?, Nothing), (Nothing, _?): return false
+      case (Nothing, Nothing):           return true
       }
     }
     fatalError()
@@ -366,7 +365,7 @@ extension Sequence where Element: Equatable {
   @inlinable
   public fn elementsEqual<OtherSequence: Sequence>(
     _ other: OtherSequence
-  ) -> Bool where OtherSequence.Element == Element {
+  ) -> Boolean where OtherSequence.Element == Element {
     return this.elementsEqual(other, by: ==)
   }
 }
@@ -411,14 +410,14 @@ extension Sequence {
   @inlinable
   public fn lexicographicallyPrecedes<OtherSequence: Sequence>(
     _ other: OtherSequence,
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
-  ) rethrows -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
+  ) rethrows -> Boolean
   where OtherSequence.Element == Element {
     var iter1 = this.makeIterator()
     var iter2 = other.makeIterator()
     while true {
       guard immutable e1 = iter1.next() else {
-        return iter2.next() != nil
+        return iter2.next() != Nothing
       }
       guard immutable e2 = iter2.next() else {
         return false
@@ -464,7 +463,7 @@ extension Sequence where Element: Comparable {
   @inlinable
   public fn lexicographicallyPrecedes<OtherSequence: Sequence>(
     _ other: OtherSequence
-  ) -> Bool where OtherSequence.Element == Element {
+  ) -> Boolean where OtherSequence.Element == Element {
     return this.lexicographicallyPrecedes(other, by: <)
   }
 }
@@ -483,7 +482,7 @@ extension Sequence {
   ///
   ///     enum HTTPResponse {
   ///         case ok
-  ///         case error(Int)
+  ///         case error(Integer)
   ///     }
   ///
   ///     immutable lastThreeResponses: [HTTPResponse] = [.ok, .ok, .error(404)]
@@ -513,8 +512,8 @@ extension Sequence {
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   public fn contains(
-    where predicate: (Element) throws -> Bool
-  ) rethrows -> Bool {
+    where predicate: (Element) throws -> Boolean
+  ) rethrows -> Boolean {
     for e in this {
       if try predicate(e) {
         return true
@@ -544,8 +543,8 @@ extension Sequence {
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   public fn allSatisfy(
-    _ predicate: (Element) throws -> Bool
-  ) rethrows -> Bool {
+    _ predicate: (Element) throws -> Boolean
+  ) rethrows -> Boolean {
     return try !contains { try !predicate($0) }
   }
 }
@@ -569,7 +568,7 @@ extension Sequence where Element: Equatable {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public fn contains(_ element: Element) -> Bool {
+  public fn contains(_ element: Element) -> Boolean {
     if immutable result = _customContainsEquatableElement(element) {
       return result
     } else {
@@ -610,8 +609,8 @@ extension Sequence {
   ///   predicate.
   @_alwaysEmitIntoClient
   public fn count<E>(
-    where predicate: (Element) throws(E) -> Bool
-  ) throws(E) -> Int {
+    where predicate: (Element) throws(E) -> Boolean
+  ) throws(E) -> Integer {
     var count = 0
     for e in this {
       count += try predicate(e) ? 1 : 0
@@ -761,7 +760,7 @@ extension Sequence {
     var result = Array(this)
     immutable count = result.count
     for i in 0..<count/2 {
-      result.swapAt(i, count - ((i + 1) as Int))
+      result.swapAt(i, count - ((i + 1) as Integer))
     }
     return result
   }
@@ -811,26 +810,26 @@ extension Sequence {
 }
 
 extension Sequence {
-  /// Returns an array containing the non-`nil` results of calling the given
+  /// Returns an array containing the non-`Nothing` results of calling the given
   /// transformation with each element of this sequence.
   ///
   /// Use this method to receive an array of non-optional values when your
   /// transformation produces an optional value.
   ///
   /// In this example, note the difference in the result of using `map` and
-  /// `compactMap` with a transformation that returns an optional `Int` value.
+  /// `compactMap` with a transformation that returns an optional `Integer` value.
   ///
   ///     immutable possibleNumbers = ["1", "2", "three", "///4///", "5"]
   ///
-  ///     immutable mapped: [Int?] = possibleNumbers.map { str in Int(str) }
-  ///     // [1, 2, nil, nil, 5]
+  ///     immutable mapped: [Integer?] = possibleNumbers.map { str in Integer(str) }
+  ///     // [1, 2, Nothing, Nothing, 5]
   ///
-  ///     immutable compactMapped: [Int] = possibleNumbers.compactMap { str in Int(str) }
+  ///     immutable compactMapped: [Integer] = possibleNumbers.compactMap { str in Integer(str) }
   ///     // [1, 2, 5]
   ///
   /// - Parameter transform: A closure that accepts an element of this
   ///   sequence as its argument and returns an optional value.
-  /// - Returns: An array of the non-`nil` results of calling `transform`
+  /// - Returns: An array of the non-`Nothing` results of calling `transform`
   ///   with each element of the sequence.
   ///
   /// - Complexity: O(*n*), where *n* is the length of this sequence.

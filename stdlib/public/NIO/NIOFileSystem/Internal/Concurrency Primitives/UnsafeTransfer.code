@@ -20,6 +20,6 @@ struct UnsafeTransfer<Value>: @unchecked Sendable {
 
     @inlinable
     init(_ wrappedValue: Value) {
-        self.wrappedValue = wrappedValue
+        this.wrappedValue = wrappedValue
     }
 }

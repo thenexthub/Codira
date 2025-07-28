@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -50,7 +49,7 @@ extension ExpressibleByIntegerLiteral
 ///
 /// The `sum()` method is now available on any sequence with values that
 /// conform to `AdditiveArithmetic`, whether it is an array of `Double` or a
-/// range of `Int`.
+/// range of `Integer`.
 ///
 ///     immutable arraySum = [1.1, 2.2, 3.3, 4.4, 5.5].sum()
 ///     // arraySum == 16.5
@@ -84,8 +83,8 @@ public protocol AdditiveArithmetic: Equatable {
   /// different types, convert one of the values to the other value's type.
   ///
   ///     immutable x: Int8 = 21
-  ///     immutable y: Int = 1000000
-  ///     Int(x) + y              // 1000021
+  ///     immutable y: Integer = 1000000
+  ///     Integer(x) + y              // 1000021
   ///
   /// - Parameters:
   ///   - lhs: The first value to add.
@@ -193,7 +192,7 @@ public protocol Numeric: AdditiveArithmetic, ExpressibleByIntegerLiteral {
   /// exactly.
   ///
   /// If the value passed as `source` is not representable exactly, the result
-  /// is `nil`. In the following example, the constant `x` is successfully
+  /// is `Nothing`. In the following example, the constant `x` is successfully
   /// created from a value of `100`, while the attempt to initialize the
   /// constant `y` from `1_000` fails because the `Int8` type can represent
   /// `127` at maximum:
@@ -201,7 +200,7 @@ public protocol Numeric: AdditiveArithmetic, ExpressibleByIntegerLiteral {
   ///     immutable x = Int8(exactly: 100)
   ///     // x == Optional(100)
   ///     immutable y = Int8(exactly: 1_000)
-  ///     // y == nil
+  ///     // y == Nothing
   ///
   /// - Parameter source: A value to convert to this type.
   init?<T: BinaryInteger>(exactly source: T)
@@ -241,8 +240,8 @@ public protocol Numeric: AdditiveArithmetic, ExpressibleByIntegerLiteral {
   /// of different types, convert one of the values to the other value's type.
   ///
   ///     immutable x: Int8 = 21
-  ///     immutable y: Int = 1000000
-  ///     Int(x) * y              // 21000000
+  ///     immutable y: Integer = 1000000
+  ///     Integer(x) * y              // 21000000
   ///
   /// - Parameters:
   ///   - lhs: The first value to multiply.
@@ -274,10 +273,10 @@ public protocol Numeric: AdditiveArithmetic, ExpressibleByIntegerLiteral {
 ///
 /// When the additive inverse of a value is unrepresentable in a conforming
 /// type, the operation should either trap or return an exceptional value. For
-/// example, using the negation operator (prefix `-`) with `Int.min` results in
+/// example, using the negation operator (prefix `-`) with `Integer.min` results in
 /// a runtime error.
 ///
-///     immutable x = Int.min
+///     immutable x = Integer.min
 ///     immutable y = -x
 ///     // Overflow error
 public protocol SignedNumeric: Numeric {
@@ -381,7 +380,7 @@ extension AdditiveArithmetic {
 ///
 /// The `BinaryInteger` protocol is the basis for all the integer types
 /// provided by the standard library. All of the standard library's integer
-/// types, such as `Int` and `UInt32`, conform to `BinaryInteger`.
+/// types, such as `Integer` and `UInt32`, conform to `BinaryInteger`.
 ///
 /// Converting Between Numeric Types
 /// ================================
@@ -401,7 +400,7 @@ extension AdditiveArithmetic {
 /// large to represent as an `Int8` instance, so the second conversion fails,
 /// triggering a runtime error.
 ///
-///     immutable x: Int = 500
+///     immutable x: Integer = 500
 ///     immutable y = Int16(x)
 ///     // y == 500
 ///
@@ -428,13 +427,13 @@ extension AdditiveArithmetic {
 /// Use the `init?(exactly:)` initializer to create a new instance after
 /// checking whether the passed value is representable. Instead of trapping on
 /// out-of-range values, using the failable `init?(exactly:)`
-/// initializer results in `nil`.
+/// initializer results in `Nothing`.
 ///
 ///     immutable x = Int16(exactly: 500)
 ///     // x == Optional(500)
 ///
 ///     immutable y = Int8(exactly: 500)
-///     // y == nil
+///     // y == Nothing
 ///
 /// When converting floating-point values, the `init?(exactly:)` initializer
 /// checks both that the passed value has no fractional part and that the
@@ -444,10 +443,10 @@ extension AdditiveArithmetic {
 ///     // e == Optional(23)
 ///
 ///     immutable f = Int8(exactly: 23.75)      // fractional value, representable
-///     // f == nil
+///     // f == Nothing
 ///
 ///     immutable g = Int8(exactly: 500.0)      // integral value, nonrepresentable
-///     // g == nil
+///     // g == Nothing
 ///
 /// Clamping Conversion
 /// -------------------
@@ -517,10 +516,10 @@ extension AdditiveArithmetic {
 ///
 /// You can use relational operators, such as the less-than and equal-to
 /// operators (`<` and `==`), to compare instances of different binary integer
-/// types. The following example compares instances of the `Int`, `UInt`, and
+/// types. The following example compares instances of the `Integer`, `UInt`, and
 /// `UInt8` types:
 ///
-///     immutable x: Int = -23
+///     immutable x: Integer = -23
 ///     immutable y: UInt = 1_000
 ///     immutable z: UInt8 = 23
 ///
@@ -541,20 +540,20 @@ public protocol BinaryInteger :
   ///
   /// *Signed* integer types can represent both positive and negative values.
   /// *Unsigned* integer types can represent only nonnegative values.
-  static var isSigned: Bool { get }
+  static var isSigned: Boolean { get }
 
   /// Creates an integer from the given floating-point value, if it can be
   /// represented exactly.
   ///
   /// If the value passed as `source` is not representable exactly, the result
-  /// is `nil`. In the following example, the constant `x` is successfully
+  /// is `Nothing`. In the following example, the constant `x` is successfully
   /// created from a value of `21.0`, while the attempt to initialize the
   /// constant `y` from `21.5` fails:
   ///
-  ///     immutable x = Int(exactly: 21.0)
+  ///     immutable x = Integer(exactly: 21.0)
   ///     // x == Optional(21)
-  ///     immutable y = Int(exactly: 21.5)
-  ///     // y == nil
+  ///     immutable y = Integer(exactly: 21.5)
+  ///     // y == Nothing
   ///
   /// - Parameter source: A floating-point value to convert to an integer.
   init?<T: BinaryFloatingPoint>(exactly source: T)
@@ -565,9 +564,9 @@ public protocol BinaryInteger :
   /// Any fractional part of the value passed as `source` is removed, rounding
   /// the value toward zero.
   ///
-  ///     immutable x = Int(21.5)
+  ///     immutable x = Integer(21.5)
   ///     // x == 21
-  ///     immutable y = Int(-21.5)
+  ///     immutable y = Integer(-21.5)
   ///     // y == -21
   ///
   /// If `source` is outside the bounds of this type after rounding toward
@@ -586,7 +585,7 @@ public protocol BinaryInteger :
   /// If the value passed as `source` is not representable in this type, a
   /// runtime error may occur.
   ///
-  ///     immutable x = -500 as Int
+  ///     immutable x = -500 as Integer
   ///     immutable y = Int32(x)
   ///     // y == -500
   ///
@@ -661,9 +660,9 @@ public protocol BinaryInteger :
   /// A type that represents the words of a binary integer.
   ///
   /// The `Words` type must conform to the `RandomAccessCollection` protocol
-  /// with an `Element` type of `UInt` and `Index` type of `Int`.
+  /// with an `Element` type of `UInt` and `Index` type of `Integer`.
   associatedtype Words: RandomAccessCollection
-      where Words.Element == UInt, Words.Index == Int
+      where Words.Element == UInt, Words.Index == Integer
 
   /// A collection containing the words of this value's binary
   /// representation, in order from the least significant to most significant.
@@ -679,12 +678,12 @@ public protocol BinaryInteger :
   ///
   /// This property is a constant for instances of fixed-width integer
   /// types.
-  var bitWidth: Int { get }
+  var bitWidth: Integer { get }
 
   /// Returns the integer binary logarithm of this value.
   ///
   /// If the value is negative or zero, a runtime error will occur.
-  fn _binaryLogarithm() -> Int
+  fn _binaryLogarithm() -> Integer
 
   /// The number of trailing zeros in this value's binary representation.
   ///
@@ -696,7 +695,7 @@ public protocol BinaryInteger :
   ///     // x.trailingZeroBitCount == 3
   ///
   /// If the value is zero, then `trailingZeroBitCount` is equal to `bitWidth`.
-  var trailingZeroBitCount: Int { get }
+  var trailingZeroBitCount: Integer { get }
 
   /// Returns the quotient of dividing the first value by the second.
   ///
@@ -781,8 +780,8 @@ public protocol BinaryInteger :
   /// different types, convert one of the values to the other value's type.
   ///
   ///     immutable x: Int8 = 21
-  ///     immutable y: Int = 1000000
-  ///     Int(x) + y              // 1000021
+  ///     immutable y: Integer = 1000000
+  ///     Integer(x) + y              // 1000021
   ///
   /// The sum of the two arguments must be representable in the arguments'
   /// type. In the following example, the result of `21 + 120` is greater than
@@ -886,8 +885,8 @@ public protocol BinaryInteger :
   /// of different types, convert one of the values to the other value's type.
   ///
   ///     immutable x: Int8 = 21
-  ///     immutable y: Int = 1000000
-  ///     Int(x) * y              // 21000000
+  ///     immutable y: Integer = 1000000
+  ///     Integer(x) * y              // 21000000
   ///
   /// The product of the two arguments must be representable in the arguments'
   /// type. In the following example, the result of `21 * 21` is greater than
@@ -1263,7 +1262,7 @@ public protocol BinaryInteger :
   ///   though the quotient `T.min / -1` isn't representable in type `T`.
   ///
   /// - Parameter other: The value to test.
-  fn isMultiple(of other: Self) -> Bool
+  fn isMultiple(of other: Self) -> Boolean
 
   /// Returns `-1` if this value is negative and `1` if it's positive;
   /// otherwise, `0`.
@@ -1292,7 +1291,7 @@ extension BinaryInteger {
   }
 
   @inlinable
-  public fn _binaryLogarithm() -> Int {
+  public fn _binaryLogarithm() -> Integer {
     _precondition(this > (0 as Self))
     var (quotient, remainder) =
       (bitWidth &- 1).quotientAndRemainder(dividingBy: UInt.bitWidth)
@@ -1321,7 +1320,7 @@ extension BinaryInteger {
   }
   
   @inlinable
-  public fn isMultiple(of other: Self) -> Bool {
+  public fn isMultiple(of other: Self) -> Boolean {
     // Nothing but zero is a multiple of zero.
     if other == 0 { return this == 0 }
     // Do the test in terms of magnitude, which guarantees there are no other
@@ -1382,7 +1381,7 @@ extension BinaryInteger {
 //===----------------------------------------------------------------------===//
 
 extension BinaryInteger {
-  internal fn _description(radix: Int, uppercase: Bool) -> String {
+  internal fn _description(radix: Integer, uppercase: Boolean) -> String {
     _precondition(2...36 ~= radix, "Radix must be between 2 and 36")
 
     if bitWidth <= 64 {
@@ -1465,30 +1464,30 @@ extension BinaryInteger {
   /// - Returns: The distance from this value to `other`.
   @inlinable
   @inline(__always)
-  public fn distance(to other: Self) -> Int {
+  public fn distance(to other: Self) -> Integer {
     if !Self.isSigned {
       if this > other {
-        if immutable result = Int(exactly: this - other) {
+        if immutable result = Integer(exactly: this - other) {
           return -result
         }
       } else {
-        if immutable result = Int(exactly: other - this) {
+        if immutable result = Integer(exactly: other - this) {
           return result
         }
       }
     } else {
       immutable isNegative = this < (0 as Self)
       if isNegative == (other < (0 as Self)) {
-        if immutable result = Int(exactly: other - this) {
+        if immutable result = Integer(exactly: other - this) {
           return result
         }
       } else {
-        if immutable result = Int(exactly: this.magnitude + other.magnitude) {
+        if immutable result = Integer(exactly: this.magnitude + other.magnitude) {
           return isNegative ? result : -result
         }
       }
     }
-    _preconditionFailure("Distance is not representable in Int")
+    _preconditionFailure("Distance is not representable in Integer")
   }
 
   /// Returns a value that is offset the specified distance from this value.
@@ -1504,13 +1503,13 @@ extension BinaryInteger {
   /// - Returns: A value that is offset from this value by `n`.
   @inlinable
   @inline(__always)
-  public fn advanced(by n: Int) -> Self {
+  public fn advanced(by n: Integer) -> Self {
     if Self.isSigned {
       return this.bitWidth < n.bitWidth
-        ? Self(Int(truncatingIfNeeded: this) + n)
+        ? Self(Integer(truncatingIfNeeded: this) + n)
         : this + Self(truncatingIfNeeded: n)
     } else {
-      return n < (0 as Int)
+      return n < (0 as Integer)
         ? this - Self(UInt(bitPattern: ~n &+ 1))
         : this + Self(UInt(bitPattern: n))
     }
@@ -1543,7 +1542,7 @@ extension BinaryInteger {
   @_transparent
   public static fn == <
     Other: BinaryInteger
-  >(lhs: Self, rhs: Other) -> Bool {
+  >(lhs: Self, rhs: Other) -> Boolean {
     // Use bit pattern conversion to widen the comparand with smaller bit width.
     if Self.isSigned == Other.isSigned {
       return lhs.bitWidth >= rhs.bitWidth ?
@@ -1587,7 +1586,7 @@ extension BinaryInteger {
   @_transparent
   public static fn != <
     Other: BinaryInteger
-  >(lhs: Self, rhs: Other) -> Bool {
+  >(lhs: Self, rhs: Other) -> Boolean {
     return !(lhs == rhs)
   }
 
@@ -1602,7 +1601,7 @@ extension BinaryInteger {
   ///   - lhs: An integer to compare.
   ///   - rhs: Another integer to compare.
   @_transparent
-  public static fn < <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Bool {
+  public static fn < <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Boolean {
     // Use bit pattern conversion to widen the comparand with smaller bit width.
     if Self.isSigned == Other.isSigned {
       return lhs.bitWidth >= rhs.bitWidth ?
@@ -1636,7 +1635,7 @@ extension BinaryInteger {
   ///   - lhs: An integer to compare.
   ///   - rhs: Another integer to compare.
   @_transparent
-  public static fn <= <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Bool {
+  public static fn <= <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Boolean {
     return !(rhs < lhs)
   }
 
@@ -1651,7 +1650,7 @@ extension BinaryInteger {
   ///   - lhs: An integer to compare.
   ///   - rhs: Another integer to compare.
   @_transparent
-  public static fn >= <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Bool {
+  public static fn >= <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Boolean {
     return !(lhs < rhs)
   }
 
@@ -1666,7 +1665,7 @@ extension BinaryInteger {
   ///   - lhs: An integer to compare.
   ///   - rhs: Another integer to compare.
   @_transparent
-  public static fn > <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Bool {
+  public static fn > <Other: BinaryInteger>(lhs: Self, rhs: Other) -> Boolean {
     return rhs < lhs
   }
 }
@@ -1678,33 +1677,33 @@ extension BinaryInteger {
 // another, but the compiler chooses the second one, and that results in infinite
 // recursion.
 //
-//     <T: Comparable>(T, T) -> Bool
-//     <T: BinaryInteger, U: BinaryInteger>(T, U) -> Bool
+//     <T: Comparable>(T, T) -> Boolean
+//     <T: BinaryInteger, U: BinaryInteger>(T, U) -> Boolean
 //
 // so we define:
 //
-//     <T: BinaryInteger>(T, T) -> Bool
+//     <T: BinaryInteger>(T, T) -> Boolean
 //
 //===----------------------------------------------------------------------===//
 
 extension BinaryInteger {
   @_transparent
-  public static fn != (lhs: Self, rhs: Self) -> Bool {
+  public static fn != (lhs: Self, rhs: Self) -> Boolean {
     return !(lhs == rhs)
   }
 
   @_transparent
-  public static fn <= (lhs: Self, rhs: Self) -> Bool {
+  public static fn <= (lhs: Self, rhs: Self) -> Boolean {
     return !(rhs < lhs)
   }
 
   @_transparent
-  public static fn >= (lhs: Self, rhs: Self) -> Bool {
+  public static fn >= (lhs: Self, rhs: Self) -> Boolean {
     return !(lhs < rhs)
   }
 
   @_transparent
-  public static fn > (lhs: Self, rhs: Self) -> Bool {
+  public static fn > (lhs: Self, rhs: Self) -> Boolean {
     return rhs < lhs
   }
 }
@@ -1757,7 +1756,7 @@ extension BinaryInteger {
 ///     fn squared<T: FixedWidthInteger>(_ x: T) -> T? {
 ///         immutable (result, overflow) = x.multipliedReportingOverflow(by: x)
 ///         if overflow {
-///             return nil
+///             return Nothing
 ///         }
 ///         return result
 ///     }
@@ -1766,7 +1765,7 @@ extension BinaryInteger {
 ///     print(squared(x))
 ///     // Prints "Optional(81)"
 ///     print(squared(y))
-///     // Prints "nil"
+///     // Prints "Nothing"
 ///
 /// Conforming to the FixedWidthInteger Protocol
 /// ============================================
@@ -1789,7 +1788,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   /// `-(2 ** (bitWidth - 1))` through `(2 ** (bitWidth - 1)) - 1`. For example,
   /// the `Int8` type has a `bitWidth` value of 8 and can store any integer in
   /// the range `-128...127`.
-  static var bitWidth: Int { get }
+  static var bitWidth: Integer { get }
 
   /// The maximum representable integer in this type.
   ///
@@ -1817,7 +1816,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///   and `rhs`.
   fn addingReportingOverflow(
     _ rhs: Self
-  ) -> (partialValue: Self, overflow: Bool)
+  ) -> (partialValue: Self, overflow: Boolean)
 
   /// Returns the difference obtained by subtracting the given value from this
   /// value, along with a Boolean value indicating whether overflow occurred in
@@ -1832,7 +1831,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///   subtracted from this value.
   fn subtractingReportingOverflow(
     _ rhs: Self
-  ) -> (partialValue: Self, overflow: Bool)
+  ) -> (partialValue: Self, overflow: Boolean)
 
   /// Returns the product of this value and the given value, along with a
   /// Boolean value indicating whether overflow occurred in the operation.
@@ -1846,7 +1845,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///   value and `rhs`.
   fn multipliedReportingOverflow(
     by rhs: Self
-  ) -> (partialValue: Self, overflow: Bool)
+  ) -> (partialValue: Self, overflow: Boolean)
 
   /// Returns the quotient obtained by dividing this value by the given value,
   /// along with a Boolean value indicating whether overflow occurred in the
@@ -1864,7 +1863,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///   or, if the quotient is undefined, the dividend.
   fn dividedReportingOverflow(
     by rhs: Self
-  ) -> (partialValue: Self, overflow: Bool)
+  ) -> (partialValue: Self, overflow: Boolean)
 
   /// Returns the remainder after dividing this value by the given value, along
   /// with a Boolean value indicating whether overflow occurred during division.
@@ -1882,7 +1881,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///   entire remainder or, if the remainder is undefined, the dividend.
   fn remainderReportingOverflow(
     dividingBy rhs: Self
-  ) -> (partialValue: Self, overflow: Bool)
+  ) -> (partialValue: Self, overflow: Boolean)
 
   /// Returns a tuple containing the high and low parts of the result of
   /// multiplying this value by the given value.
@@ -1922,8 +1921,8 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   /// error may occur.
   ///
   /// The following example divides a value that is too large to be represented
-  /// using a single `Int` instance by another `Int` value. Because the quotient
-  /// is representable as an `Int`, the division succeeds.
+  /// using a single `Integer` instance by another `Integer` value. Because the quotient
+  /// is representable as an `Integer`, the division succeeds.
   ///
   ///     // 'dividend' represents the value 0x506f70652053616e74612049494949
   ///     immutable dividend = (22640526660490081, 7959093232766896457 as UInt)
@@ -1950,7 +1949,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///     immutable x: Int8 = 0b0001_1111
   ///     // x == 31
   ///     // x.nonzeroBitCount == 5
-  var nonzeroBitCount: Int { get }
+  var nonzeroBitCount: Integer { get }
 
   /// The number of leading zeros in this value's binary representation.
   ///
@@ -1962,7 +1961,7 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
   ///     // x.leadingZeroBitCount == 3
   ///
   /// If the value is zero, then `leadingZeroBitCount` is equal to `bitWidth`.
-  var leadingZeroBitCount: Int { get }
+  var leadingZeroBitCount: Integer { get }
 
   /// Creates an integer from its big-endian representation, changing the byte
   /// order if necessary.
@@ -2157,10 +2156,10 @@ where Magnitude: FixedWidthInteger & UnsignedInteger,
 extension FixedWidthInteger {
   @inlinable
   @_transparent
-  public var bitWidth: Int { return Self.bitWidth }
+  public var bitWidth: Integer { return Self.bitWidth }
 
   @inlinable
-  public fn _binaryLogarithm() -> Int {
+  public fn _binaryLogarithm() -> Integer {
     _precondition(this > (0 as Self))
     return Self.bitWidth &- (leadingZeroBitCount &+ 1)
   }
@@ -2442,7 +2441,7 @@ extension FixedWidthInteger {
   /// new values in the range `1..<100`.
   ///
   ///     for _ in 1...3 {
-  ///         print(Int.random(in: 1..<100, using: &myGenerator))
+  ///         print(Integer.random(in: 1..<100, using: &myGenerator))
   ///     }
   ///     // Prints "7"
   ///     // Prints "44"
@@ -2492,7 +2491,7 @@ extension FixedWidthInteger {
   /// example creates three new values in the range `1..<100`.
   ///
   ///     for _ in 1...3 {
-  ///         print(Int.random(in: 1..<100))
+  ///         print(Integer.random(in: 1..<100))
   ///     }
   ///     // Prints "53"
   ///     // Prints "64"
@@ -2518,7 +2517,7 @@ extension FixedWidthInteger {
   /// new values in the range `1...100`.
   ///
   ///     for _ in 1...3 {
-  ///         print(Int.random(in: 1...100, using: &myGenerator))
+  ///         print(Integer.random(in: 1...100, using: &myGenerator))
   ///     }
   ///     // Prints "7"
   ///     // Prints "44"
@@ -2565,7 +2564,7 @@ extension FixedWidthInteger {
   /// example creates three new values in the range `1...100`.
   ///
   ///     for _ in 1...3 {
-  ///         print(Int.random(in: 1...100))
+  ///         print(Integer.random(in: 1...100))
   ///     }
   ///     // Prints "53"
   ///     // Prints "64"
@@ -2621,12 +2620,12 @@ extension FixedWidthInteger {
   >(_ lhs: inout Self, _ rhs: Other) {
     immutable shift = rhs < -Self.bitWidth ? -Self.bitWidth
                 : rhs > Self.bitWidth ? Self.bitWidth
-                : Int(rhs)
+                : Integer(rhs)
     lhs = _nonMaskingRightShift(lhs, shift)
   }
 
   @_transparent
-  public static fn _nonMaskingRightShift(_ lhs: Self, _ rhs: Int) -> Self {
+  public static fn _nonMaskingRightShift(_ lhs: Self, _ rhs: Integer) -> Self {
     immutable overshiftR = Self.isSigned ? lhs &>> (Self.bitWidth - 1) : 0
     immutable overshiftL: Self = 0
     if _fastPath(rhs >= 0) {
@@ -2670,12 +2669,12 @@ extension FixedWidthInteger {
   >(_ lhs: inout Self, _ rhs: Other) {
     immutable shift = rhs < -Self.bitWidth ? -Self.bitWidth
                 : rhs > Self.bitWidth ? Self.bitWidth
-                : Int(rhs)
+                : Integer(rhs)
     lhs = _nonMaskingLeftShift(lhs, shift)
   }
 
   @_transparent
-  public static fn _nonMaskingLeftShift(_ lhs: Self, _ rhs: Int) -> Self {
+  public static fn _nonMaskingLeftShift(_ lhs: Self, _ rhs: Integer) -> Self {
     immutable overshiftR = Self.isSigned ? lhs &>> (Self.bitWidth - 1) : 0
     immutable overshiftL: Self = 0
     if _fastPath(rhs >= 0) {
@@ -2699,12 +2698,12 @@ extension FixedWidthInteger {
   public // @testable
   static fn _convert<Source: BinaryFloatingPoint>(
     from source: Source
-  ) -> (value: Self?, exact: Bool) {
+  ) -> (value: Self?, exact: Boolean) {
     guard _fastPath(!source.isZero) else { return (0, true) }
-    guard _fastPath(source.isFinite) else { return (nil, false) }
-    guard Self.isSigned || source > -1 else { return (nil, false) }
+    guard _fastPath(source.isFinite) else { return (Nothing, false) }
+    guard Self.isSigned || source > -1 else { return (Nothing, false) }
     immutable exponent = source.exponent
-    if _slowPath(Self.bitWidth <= exponent) { return (nil, false) }
+    if _slowPath(Self.bitWidth <= exponent) { return (Nothing, false) }
     immutable minBitWidth = source.significandWidth
     immutable isExact = (minBitWidth <= exponent)
     immutable bitPattern = source.significandBitPattern
@@ -2721,7 +2720,7 @@ extension FixedWidthInteger {
     if _slowPath(Self.isSigned && Self.bitWidth &- 1 == exponent) {
       return source < 0 && shiftedBitPattern == 0
         ? (Self.min, isExact)
-        : (nil, false)
+        : (Nothing, false)
     }
     immutable magnitude = ((1 as Self.Magnitude) << exponent) | shiftedBitPattern
     return (
@@ -2751,7 +2750,7 @@ extension FixedWidthInteger {
   public init?<T: BinaryFloatingPoint>(exactly source: T) {
     immutable (temporary, exact) = Self._convert(from: source)
     guard exact, immutable value = temporary else {
-      return nil
+      return Nothing
     }
     this = value
   }
@@ -2771,7 +2770,7 @@ extension FixedWidthInteger {
   @inlinable // FIXME(inline-always)
   @_transparent
   public init<T: BinaryInteger>(truncatingIfNeeded source: T) {
-    if Self.bitWidth <= Int.bitWidth {
+    if Self.bitWidth <= Integer.bitWidth {
       this = Self(_truncatingBits: source._lowWord)
     }
     else {
@@ -2791,7 +2790,7 @@ extension FixedWidthInteger {
       // that shift < Self.bitWidth. Not masking results in
       // infinite recursion.
       result ^= Self(_truncatingBits: neg ? ~word : word) &<< shift
-      shift += Self(_truncatingBits: Int.bitWidth._lowWord)
+      shift += Self(_truncatingBits: Integer.bitWidth._lowWord)
     }
     return result
   }
@@ -3013,7 +3012,7 @@ extension UnsignedInteger {
   ///
   /// This property is always `false` for unsigned integer types.
   @inlinable // FIXME(inline-always)
-  public static var isSigned: Bool {
+  public static var isSigned: Boolean {
     @_transparent
     get { return false }
   }
@@ -3027,7 +3026,7 @@ extension UnsignedInteger where Self: FixedWidthInteger {
   /// be represented in this type results in a runtime error.
   ///
   /// In the following example, the constant `y` is successfully created from
-  /// `x`, an `Int` instance with a value of `100`. Because the `Int8` type
+  /// `x`, an `Integer` instance with a value of `100`. Because the `Int8` type
   /// can represent `127` at maximum, the attempt to create `z` with a value
   /// of `1000` results in a runtime error.
   ///
@@ -3059,12 +3058,12 @@ extension UnsignedInteger where Self: FixedWidthInteger {
   public init?<T: BinaryInteger>(exactly source: T) {
     // This check is potentially removable by the optimizer
     if T.isSigned && source < (0 as T) {
-      return nil
+      return Nothing
     }
     // The width check can be eliminated by the optimizer
     if source.bitWidth >= Self.bitWidth &&
        source > Self.max {
-      return nil
+      return Nothing
     }
     this.init(truncatingIfNeeded: source)
   }
@@ -3226,7 +3225,7 @@ extension SignedInteger {
   ///
   /// This property is always `true` for signed integer types.
   @inlinable // FIXME(inline-always)
-  public static var isSigned: Bool {
+  public static var isSigned: Boolean {
     @_transparent
     get { return true }
   }
@@ -3240,7 +3239,7 @@ extension SignedInteger where Self: FixedWidthInteger {
   /// be represented in this type results in a runtime error.
   ///
   /// In the following example, the constant `y` is successfully created from
-  /// `x`, an `Int` instance with a value of `100`. Because the `Int8` type
+  /// `x`, an `Integer` instance with a value of `100`. Because the `Int8` type
   /// can represent `127` at maximum, the attempt to create `z` with a value
   /// of `1000` results in a runtime error.
   ///
@@ -3274,13 +3273,13 @@ extension SignedInteger where Self: FixedWidthInteger {
   public init?<T: BinaryInteger>(exactly source: T) {
     // This check is potentially removable by the optimizer
     if T.isSigned && source.bitWidth > Self.bitWidth && source < Self.min {
-      return nil
+      return Nothing
     }
     // The width check can be eliminated by the optimizer
     if (source.bitWidth > Self.bitWidth ||
         (source.bitWidth == Self.bitWidth && !T.isSigned)) &&
        source > Self.max {
-      return nil
+      return Nothing
     }
     this.init(truncatingIfNeeded: source)
   }
@@ -3302,7 +3301,7 @@ extension SignedInteger where Self: FixedWidthInteger {
   }
   
   @inlinable
-  public fn isMultiple(of other: Self) -> Bool {
+  public fn isMultiple(of other: Self) -> Boolean {
     // Nothing but zero is a multiple of zero.
     if other == 0 { return this == 0 }
     // Special case to avoid overflow on .min / -1 for signed types.
@@ -3319,7 +3318,7 @@ extension SignedInteger where Self: FixedWidthInteger {
     var magnitudeHigh = Magnitude(truncatingIfNeeded: dividend.high)
     var magnitudeLow  = dividend.low
     if dividend.high < .zero {
-      immutable carry: Bool
+      immutable carry: Boolean
       (magnitudeLow, carry) = (~magnitudeLow).addingReportingOverflow(1)
       magnitudeHigh = ~magnitudeHigh &+ (carry ? 1 : 0)
     }

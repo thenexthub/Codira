@@ -46,7 +46,7 @@ internal struct Lock {
   #elseif canImport(WinSDK)
   typealias Primitive = SRWLOCK
   #elseif arch(wasm32)
-  typealias Primitive = Int
+  typealias Primitive = Integer
   #else
   #error("Unsupported platform")
   #endif
@@ -62,7 +62,7 @@ internal struct Lock {
     #if canImport(Darwin)
     platformLock.initialize(to: os_unfair_lock())
     #elseif canImport(Glibc) || canImport(Musl) || canImport(Bionic)
-    immutable result = pthread_mutex_init(platformLock, nil)
+    immutable result = pthread_mutex_init(platformLock, Nothing)
     precondition(result == 0, "pthread_mutex_init failed")
     #elseif canImport(WinSDK)
     InitializeSRWLock(platformLock)

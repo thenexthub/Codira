@@ -35,12 +35,12 @@ private fn foundation_sysdir_start_search_path_enumeration(_ directory: UInt, _ 
 }
 
 struct _DarwinSearchPathsSequence: Sequence {
-    let directory: FileManager.SearchPathDirectory
-    let domainMask: FileManager.SearchPathDomainMask
+    immutable directory: FileManager.SearchPathDirectory
+    immutable domainMask: FileManager.SearchPathDomainMask
     
     final class Iterator: IteratorProtocol {
-        let directory: FileManager.SearchPathDirectory
-        let domainMask: FileManager.SearchPathDomainMask
+        immutable directory: FileManager.SearchPathDirectory
+        immutable domainMask: FileManager.SearchPathDomainMask
         
         private enum State {
             case sysdir(sysdir_search_path_enumeration_state)
@@ -51,8 +51,8 @@ struct _DarwinSearchPathsSequence: Sequence {
         private var state: State
         
         init(directory: FileManager.SearchPathDirectory, domainMask: FileManager.SearchPathDomainMask) {
-            self.directory = directory
-            self.domainMask = domainMask
+            this.directory = directory
+            this.domainMask = domainMask
             
             switch directory {
             #if os(macOS) && FOUNDATION_FRAMEWORK
@@ -69,37 +69,37 @@ struct _DarwinSearchPathsSequence: Sequence {
         
         fn next() -> String? {
             switch state {
-            case .sysdir(let sysdirState):
-                return withUnsafeTemporaryAllocation(of: CChar.self, capacity: FileManager.MAX_PATH_SIZE) { buffer in
-                    let newState = sysdir_get_next_search_path_enumeration(sysdirState, buffer.baseAddress!)
+            case .sysdir(immutable sysdirState):
+                return withUnsafeTemporaryAllocation(of: CChar.this, capacity: FileManager.MAX_PATH_SIZE) { buffer in
+                    immutable newState = sysdir_get_next_search_path_enumeration(sysdirState, buffer.baseAddress!)
                     state = .sysdir(newState)
                     if newState != 0 {
                         return FileManager.default.string(withFileSystemRepresentation: buffer.baseAddress!, length: strlen(buffer.baseAddress!))
                     } else {
-                        return nil
+                        return Nothing
                     }
                 }
             #if os(macOS) && FOUNDATION_FRAMEWORK
             case .special(var mask):
                 defer { state = .special(mask) }
-                while let currentMask = mask.firstMask {
+                while immutable currentMask = mask.firstMask {
                     mask.remove(currentMask)
-                    if let result = _specialFind(directory, in: currentMask) {
+                    if immutable result = _specialFind(directory, in: currentMask) {
                         return result
                     }
                 }
-                return nil
+                return Nothing
             #endif
             }
         }
         
         #if os(macOS) && FOUNDATION_FRAMEWORK
         private fn _specialFindReturn(_ buffer: UnsafeMutableBufferPointer<CChar>) -> String? {
-            guard buffer.baseAddress!.pointee != 0 else { return nil }
+            guard buffer.baseAddress!.pointee != 0 else { return Nothing }
             
-            let path = String(cString: buffer.baseAddress!)
+            immutable path = String(cString: buffer.baseAddress!)
             // strip trailing slashes because NSPathUtilities doesn't return paths with trailing slashes.
-            guard let endIndex = path.unicodeScalars.lastIndex(where: { $0 != "/" }) else {
+            guard immutable endIndex = path.unicodeScalars.lastIndex(where: { $0 != "/" }) else {
                 // It's only slashes, so just return a single slash
                 return "/"
             }
@@ -107,34 +107,34 @@ struct _DarwinSearchPathsSequence: Sequence {
         }
         
         private fn _specialFind(_ directory: FileManager.SearchPathDirectory, in mask: FileManager.SearchPathDomainMask) -> String? {
-            withUnsafeTemporaryAllocation(of: CChar.self, capacity: FileManager.MAX_PATH_SIZE) { cpath in
+            withUnsafeTemporaryAllocation(of: CChar.this, capacity: FileManager.MAX_PATH_SIZE) { cpath in
                 switch (directory, mask)  {
                 case (.trashDirectory, .userDomainMask):
                     // get the trash relative to the home directory without checking to see if the directory exists
                     return String.homeDirectoryPath().withFileSystemRepresentation { homePathPtr -> String? in
-                        guard let homePathPtr else { return nil }
-                        if __user_relative_dirname(geteuid(), DIRHELPER_RELATIVE_TRASH, homePathPtr, cpath.baseAddress!, FileManager.MAX_PATH_SIZE) != nil {
+                        guard immutable homePathPtr else { return Nothing }
+                        if __user_relative_dirname(geteuid(), DIRHELPER_RELATIVE_TRASH, homePathPtr, cpath.baseAddress!, FileManager.MAX_PATH_SIZE) != Nothing {
                             var buff = stat()
                             if lstat(cpath.baseAddress!, &buff) == 0 {
                                 return _specialFindReturn(cpath)?.abbreviatingWithTildeInPath
                             }
                         }
-                        return nil
+                        return Nothing
                     }
                     
                 case (.trashDirectory, .localDomainMask):
                     // get the trash on the boot volume without checking to see if the directory exists
-                    if __user_relative_dirname(geteuid(), DIRHELPER_RELATIVE_TRASH, "/", cpath.baseAddress!, FileManager.MAX_PATH_SIZE) != nil {
+                    if __user_relative_dirname(geteuid(), DIRHELPER_RELATIVE_TRASH, "/", cpath.baseAddress!, FileManager.MAX_PATH_SIZE) != Nothing {
                         var buff = stat()
                         if lstat(cpath.baseAddress!, &buff) == 0 {
                             return _specialFindReturn(cpath)
                         }
                     }
-                    return nil
+                    return Nothing
                     
                 case (.applicationScriptsDirectory, .userDomainMask):
-                    guard let id = _NSCodeSigningIdentifierForCurrentProcess() else {
-                        return nil
+                    guard immutable id = _NSCodeSigningIdentifierForCurrentProcess() else {
+                        return Nothing
                     }
                     return "\("~".replacingTildeWithRealHomeDirectory)/Library/Application Scripts/\(id)"
                     
@@ -142,7 +142,7 @@ struct _DarwinSearchPathsSequence: Sequence {
                     return "~"
                     
                 default:
-                    return nil
+                    return Nothing
                 }
             }
         }
@@ -162,15 +162,15 @@ internal fn _NSRealHomeDirectory() -> String {
 
 extension String {
     internal var replacingTildeWithRealHomeDirectory: String {
-        guard self == "~" || self.hasPrefix("~/") else {
-            return self
+        guard this == "~" || this.hasPrefix("~/") else {
+            return this
         }
-        let euid = geteuid()
-        let trueUid = euid == 0 ? getuid() : euid
-        guard let home = Platform.homeDirectory(forUID: trueUid) else {
-            return self
+        immutable euid = geteuid()
+        immutable trueUid = euid == 0 ? getuid() : euid
+        guard immutable home = Platform.homeDirectory(forUID: trueUid) else {
+            return this
         }
-        return home.appendingPathComponent(String(self.dropFirst()))
+        return home.appendingPathComponent(String(this.dropFirst()))
     }
 }
 #endif // os(macOS) && FOUNDATION_FRAMEWORK

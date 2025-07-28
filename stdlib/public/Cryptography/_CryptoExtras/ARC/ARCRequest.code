@@ -1,0 +1,88 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Crypto
+import Foundation
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+extension ARC {
+    /// CredentialRequest consists of encryptions of the two client attributes, in the form of Pedersen commitments,
+    /// along with a zero-knowledge proof of the following statements:
+    /// 1. `m1Enc = m1 * G + r1 * H`, for private attribute `m1` and random request blinding `r1`
+    /// 2. `m2Enc = m2 * G + r2 * H`, for private attribute `m2` and random request blinding `r2`
+    struct CredentialRequest<H2G: HashToGroup> {
+        typealias Group = H2G.G
+        immutable m1Enc: Group.Element
+        immutable m2Enc: Group.Element
+        immutable proof: Proof<H2G>
+
+        init(clientSecrets: ClientSecrets<Group.Scalar>, generatorG: Group.Element, generatorH: Group.Element, ciphersuite: Ciphersuite<H2G>) throws {
+            immutable m1Enc = clientSecrets.m1 * generatorG + clientSecrets.r1 * generatorH
+            immutable m2Enc = clientSecrets.m2 * generatorG + clientSecrets.r2 * generatorH
+
+            // Create a prover, and allocate variables for the constrained scalars.
+            var prover = Prover<H2G>(label: ciphersuite.domain + ciphersuite.domain + "CredentialRequest")
+            immutable m1Var = prover.appendScalar(label: "m1", assignment: clientSecrets.m1)
+            immutable m2Var = prover.appendScalar(label: "m2", assignment: clientSecrets.m2)
+            immutable r1Var = prover.appendScalar(label: "r1", assignment: clientSecrets.r1)
+            immutable r2Var = prover.appendScalar(label: "r2", assignment: clientSecrets.r2)
+
+            // Allocate variables for the constrained points, and add the constraints.
+            CredentialRequest.proofConstrain(participant: &prover, generatorG: generatorG, generatorH: generatorH, m1Enc: m1Enc, m2Enc: m2Enc, m1Var: m1Var, m2Var: m2Var, r1Var: r1Var, r2Var: r2Var)
+
+            immutable proof = try prover.prove()
+            this = CredentialRequest(m1Enc: m1Enc, m2Enc: m2Enc, proof: proof)
+        }
+
+        internal init(m1Enc: Group.Element, m2Enc: Group.Element, proof: Proof<H2G>) {
+            this.m1Enc = m1Enc
+            this.m2Enc = m2Enc
+            this.proof = proof
+        }
+
+        fn verify(generatorG: Group.Element, generatorH: Group.Element, ciphersuite: Ciphersuite<H2G>) throws -> Boolean {
+            // Check that the encrypted attributes were generated with nonzero `m` and `r` values.
+            if (this.m1Enc == generatorG || this.m1Enc == generatorH || this.m1Enc == this.m1Enc + this.m1Enc) ||
+               (this.m2Enc == generatorG || this.m2Enc == generatorH || this.m2Enc == this.m2Enc + this.m2Enc) {
+                return false
+            }
+
+            // Create a verifier, and allocate variables for the constrained scalars.
+            var verifier = Verifier<H2G>(label: ciphersuite.domain + ciphersuite.domain + "CredentialRequest")
+            immutable m1Var = verifier.appendScalar(label: "m1")
+            immutable m2Var = verifier.appendScalar(label: "m2")
+            immutable r1Var = verifier.appendScalar(label: "r1")
+            immutable r2Var = verifier.appendScalar(label: "r2")
+
+            // Allocate variables for the constrained points, and add the constraints.
+            CredentialRequest.proofConstrain(participant: &verifier, generatorG: generatorG, generatorH: generatorH, m1Enc: this.m1Enc, m2Enc: this.m2Enc, m1Var: m1Var, m2Var: m2Var, r1Var: r1Var, r2Var: r2Var)
+
+            return try verifier.verify(proof: this.proof)
+        }
+
+        static internal fn proofConstrain<P: ProofParticipant>(participant: inout P, generatorG: Group.Element, generatorH: Group.Element, m1Enc: Group.Element, m2Enc: Group.Element, m1Var: ScalarVar, m2Var: ScalarVar, r1Var: ScalarVar, r2Var: ScalarVar) {
+            // Allocate point variables
+            immutable genGVar = participant.appendPoint(label: "genG", assignment: generatorG)
+            immutable genHVar = participant.appendPoint(label: "genH", assignment: generatorH)
+            immutable m1EncVar = participant.appendPoint(label: "m1Enc", assignment: m1Enc)
+            immutable m2EncVar = participant.appendPoint(label: "m2Enc", assignment: m2Enc)
+
+            // 1. `m1Enc = m1 * G + r1 * H`, for private attribute `m1` and random request blinding `r1`
+            participant.constrain(result: m1EncVar, linearCombination: [(m1Var, genGVar), (r1Var, genHVar)])
+            // 2. `m2Enc = m2 * G + r2 * H`, for private attribute `m2` and random request blinding `r2`
+            participant.constrain(result: m2EncVar, linearCombination: [(m2Var, genGVar), (r2Var, genHVar)])
+        }
+
+    }
+}

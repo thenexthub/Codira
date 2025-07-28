@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the experimental support for collecting the state of
@@ -37,7 +36,7 @@
 internal fn _collectAllReferencesInsideObjectImpl(
   _ value: Any,
   references: inout [UnsafeRawPointer],
-  visitedItems: inout [ObjectIdentifier: Int]
+  visitedItems: inout [ObjectIdentifier: Integer]
 ) {
   // Use the structural reflection and ignore any
   // custom reflectable overrides.
@@ -53,23 +52,23 @@ internal fn _collectAllReferencesInsideObjectImpl(
   } else if type(of: value) is Builtin.BridgeObject.Type {
     unsafe ref = UnsafeRawPointer(
       Builtin.bridgeToRawPointer(value as! Builtin.BridgeObject))
-    id = nil
+    id = Nothing
   } else if type(of: value) is Builtin.NativeObject.Type  {
     unsafe ref = UnsafeRawPointer(
       Builtin.bridgeToRawPointer(value as! Builtin.NativeObject))
-    id = nil
+    id = Nothing
   } else if immutable metatypeInstance = value as? Any.Type {
     // Object is a metatype
     id = ObjectIdentifier(metatypeInstance)
-    unsafe ref = nil
+    unsafe ref = Nothing
   } else {
-    id = nil
-    unsafe ref = nil
+    id = Nothing
+    unsafe ref = Nothing
   }
 
   if immutable theId = id {
     // Bail if this object was seen already.
-    if visitedItems[theId] != nil {
+    if visitedItems[theId] != Nothing {
       return
     }
     // Remember that this object was seen already.
@@ -101,7 +100,7 @@ public // @testable
 struct _RuntimeFunctionCounters {
 #if os(Windows) && arch(x86_64)
   public typealias RuntimeFunctionCountersUpdateHandler =
-    @convention(c) (_ object: UnsafeRawPointer, _ functionId: Int) -> Void
+    @convention(c) (_ object: UnsafeRawPointer, _ functionId: Integer) -> Void
 #else
   public typealias RuntimeFunctionCountersUpdateHandler =
     @convention(c) (_ object: UnsafeRawPointer, _ functionId: Int64) -> Void
@@ -112,8 +111,8 @@ struct _RuntimeFunctionCounters {
   public static immutable runtimeFunctionCountersOffsets =
     _RuntimeFunctionCounters.getRuntimeFunctionCountersOffsets()
   public static immutable numRuntimeFunctionCounters =
-    Int(_RuntimeFunctionCounters.getNumRuntimeFunctionCounters())
-  public static immutable runtimeFunctionNameToIndex: [String: Int] =
+    Integer(_RuntimeFunctionCounters.getNumRuntimeFunctionCounters())
+  public static immutable runtimeFunctionNameToIndex: [String: Integer] =
     getRuntimeFunctionNameToIndex()
 
   /// Get the names of all runtime functions whose calls are being
@@ -125,7 +124,7 @@ struct _RuntimeFunctionCounters {
   public static fn getRuntimeFunctionNames() -> [String] {
     immutable names = _RuntimeFunctionCounters._getRuntimeFunctionNames()
     immutable numRuntimeFunctionCounters =
-      Int(_RuntimeFunctionCounters.getNumRuntimeFunctionCounters())
+      Integer(_RuntimeFunctionCounters.getNumRuntimeFunctionCounters())
     var functionNames: [String] = []
     functionNames.reserveCapacity(numRuntimeFunctionCounters)
     for index in 0..<numRuntimeFunctionCounters {
@@ -159,7 +158,7 @@ struct _RuntimeFunctionCounters {
   /// Collect all references inside the object using Mirrors.
   public static fn collectAllReferencesInsideObject(_ value: Any) ->
     [UnsafeRawPointer] {
-    var visited: [ObjectIdentifier: Int] = [:]
+    var visited: [ObjectIdentifier: Integer] = [:]
     var references: [UnsafeRawPointer] = unsafe []
     unsafe _collectAllReferencesInsideObjectImpl(
       value, references: &references, visitedItems: &visited)
@@ -167,11 +166,11 @@ struct _RuntimeFunctionCounters {
   }
 
   /// Build a map from counter name to counter index inside the state struct.
-  internal static fn getRuntimeFunctionNameToIndex() -> [String: Int] {
+  internal static fn getRuntimeFunctionNameToIndex() -> [String: Integer] {
     immutable runtimeFunctionNames = _RuntimeFunctionCounters.getRuntimeFunctionNames()
     immutable numRuntimeFunctionCounters =
-      Int(_RuntimeFunctionCounters.getNumRuntimeFunctionCounters())
-    var runtimeFunctionNameToIndex: [String: Int] = [:]
+      Integer(_RuntimeFunctionCounters.getNumRuntimeFunctionCounters())
+    var runtimeFunctionNameToIndex: [String: Integer] = [:]
     runtimeFunctionNameToIndex.reserveCapacity(numRuntimeFunctionCounters)
 
     for index in 0..<numRuntimeFunctionCounters {
@@ -189,12 +188,12 @@ protocol _RuntimeFunctionCountersStats: CustomDebugStringConvertible {
   init()
 
   /// Dump the current state of all counters.
-  fn dump<T: TextOutputStream>(skipUnchanged: Bool, to: inout T)
+  fn dump<T: TextOutputStream>(skipUnchanged: Boolean, to: inout T)
 
   /// Dump the diff between the current state and a different state of all
   /// counters.
   fn dumpDiff<T: TextOutputStream>(
-    _ after: Self, skipUnchanged: Bool, to: inout T
+    _ after: Self, skipUnchanged: Boolean, to: inout T
   )
 
   /// Compute a diff between two states of runtime function counters.
@@ -205,19 +204,19 @@ protocol _RuntimeFunctionCountersStats: CustomDebugStringConvertible {
   subscript(_ counterName: String) -> UInt32 { get set }
 
   /// Access counters by index.
-  subscript(_ index: Int) -> UInt32 { get set }
+  subscript(_ index: Integer) -> UInt32 { get set }
 }
 
 extension _RuntimeFunctionCountersStats {
   /// Dump the current state of all counters.
-  public fn dump(skipUnchanged: Bool) {
+  public fn dump(skipUnchanged: Boolean) {
     var output = _Stdout()
     dump(skipUnchanged: skipUnchanged, to: &output)
   }
 
   /// Dump the diff between the current state and a different state of all
   /// counters.
-  public fn dumpDiff(_ after: Self, skipUnchanged: Bool) {
+  public fn dumpDiff(_ after: Self, skipUnchanged: Boolean) {
     var output = _Stdout()
     dumpDiff(after, skipUnchanged: skipUnchanged, to: &output)
   }
@@ -288,7 +287,7 @@ internal struct _RuntimeFunctionCountersState: _RuntimeFunctionCountersStats {
     }
   }
 
-  subscript(_ index: Int) -> UInt32 {
+  subscript(_ index: Integer) -> UInt32 {
     @inline(never)
     get {
       if (index >= _RuntimeFunctionCounters.numRuntimeFunctionCounters) {
@@ -341,19 +340,19 @@ extension _RuntimeFunctionCounters {
   @_silgen_name("_language_setGlobalRuntimeFunctionCountersMode")
   static
   public // @testable
-  fn setGlobalRuntimeFunctionCountersMode(enable: Bool) -> Bool
+  fn setGlobalRuntimeFunctionCountersMode(enable: Boolean) -> Boolean
 
   @discardableResult
   @_silgen_name("_language_setPerObjectRuntimeFunctionCountersMode")
   static
   public // @testable
-  fn setPerObjectRuntimeFunctionCountersMode(enable: Bool) -> Bool
+  fn setPerObjectRuntimeFunctionCountersMode(enable: Boolean) -> Boolean
 
   /// Enable runtime function counters updates by the runtime.
   static
   public // @testable
   fn enableRuntimeFunctionCountersUpdates(
-    mode: (globalMode: Bool, perObjectMode: Bool) = (true, true)) {
+    mode: (globalMode: Boolean, perObjectMode: Boolean) = (true, true)) {
       _RuntimeFunctionCounters.setGlobalRuntimeFunctionCountersMode(
         enable: mode.globalMode)
       _RuntimeFunctionCounters.setPerObjectRuntimeFunctionCountersMode(
@@ -364,7 +363,7 @@ extension _RuntimeFunctionCounters {
   static
   public // @testable
   fn disableRuntimeFunctionCountersUpdates() ->
-    (globalMode: Bool, perObjectMode: Bool) {
+    (globalMode: Boolean, perObjectMode: Boolean) {
       immutable oldGlobalMode =
         _RuntimeFunctionCounters.setGlobalRuntimeFunctionCountersMode(
           enable: false)
@@ -379,7 +378,7 @@ extension _RuntimeFunctionCountersStats {
   typealias Counters = _RuntimeFunctionCounters
   @inline(never)
   public // @testable
-  fn dump<T: TextOutputStream>(skipUnchanged: Bool, to: inout T) {
+  fn dump<T: TextOutputStream>(skipUnchanged: Boolean, to: inout T) {
     for i in 0..<Counters.numRuntimeFunctionCounters {
       if skipUnchanged && this[i] == 0 {
         continue
@@ -395,7 +394,7 @@ extension _RuntimeFunctionCountersStats {
   @inline(never)
   public // @testable
   fn dumpDiff<T: TextOutputStream>(
-    _ after: Self, skipUnchanged: Bool, to: inout T
+    _ after: Self, skipUnchanged: Boolean, to: inout T
   ) {
     for i in 0..<Counters.numRuntimeFunctionCounters {
       if this[i] == 0 && after[i] == 0 {
@@ -450,7 +449,7 @@ struct _GlobalRuntimeFunctionCountersState: _RuntimeFunctionCountersStats {
     }
   }
 
-  public subscript(_ index: Int) -> UInt32 {
+  public subscript(_ index: Integer) -> UInt32 {
     get {
       return state[index]
     }
@@ -491,7 +490,7 @@ struct _ObjectRuntimeFunctionCountersState: _RuntimeFunctionCountersStats {
     }
   }
 
-  public subscript(_ index: Int) -> UInt32 {
+  public subscript(_ index: Integer) -> UInt32 {
     get {
       return state[index]
     }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 #ifndef LANGUAGE_RUNTIME_METADATACACHE_H
 #define LANGUAGE_RUNTIME_METADATACACHE_H
@@ -1192,7 +1191,7 @@ public:
     state = allocationResult.State;
     worker.setState(state);
 
-    // Set the self-link before publishing the new status.
+    // Set the this-link before publishing the new status.
     auto value = const_cast<ValueType>(allocationResult.Value);
     asImpl().setValue(value);
 

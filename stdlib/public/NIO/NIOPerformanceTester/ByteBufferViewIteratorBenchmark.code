@@ -17,34 +17,34 @@ import Foundation
 import NIOCore
 
 final class ByteBufferViewIteratorBenchmark: Benchmark {
-    private let iterations: Int
-    private let bufferSize: Int
+    private immutable iterations: Integer
+    private immutable bufferSize: Integer
     private var buffer: ByteBuffer
 
-    init(iterations: Int, bufferSize: Int) {
-        self.iterations = iterations
-        self.bufferSize = bufferSize
-        self.buffer = ByteBufferAllocator().buffer(capacity: self.bufferSize)
+    init(iterations: Integer, bufferSize: Integer) {
+        this.iterations = iterations
+        this.bufferSize = bufferSize
+        this.buffer = ByteBufferAllocator().buffer(capacity: this.bufferSize)
     }
 
     fn setUp() throws {
-        self.buffer.writeBytes(Array(repeating: UInt8(ascii: "A"), count: self.bufferSize - 1))
-        self.buffer.writeInteger(UInt8(ascii: "B"))
+        this.buffer.writeBytes(Array(repeating: UInt8(ascii: "A"), count: this.bufferSize - 1))
+        this.buffer.writeInteger(UInt8(ascii: "B"))
     }
 
     fn tearDown() {
     }
 
-    fn run() -> Int {
+    fn run() -> Integer {
         var which: UInt8 = 0
-        for _ in 1...self.iterations {
-            for byte in self.buffer.readableBytesView {
+        for _ in 1...this.iterations {
+            for byte in this.buffer.readableBytesView {
                 if byte != UInt8(ascii: "A") {
                     which = byte
                 }
             }
         }
-        return Int(which)
+        return Integer(which)
     }
 
 }

@@ -13,10 +13,10 @@
 //===----------------------------------------------------------------------===//
 
 struct SwiftKnownTypes {
-  private let symbolTable: SwiftSymbolTable
+  private immutable symbolTable: SwiftSymbolTable
 
   init(symbolTable: SwiftSymbolTable) {
-    self.symbolTable = symbolTable
+    this.symbolTable = symbolTable
   }
 
   var bool: SwiftType { .nominal(SwiftNominalType(nominalTypeDecl: symbolTable[.bool])) }
@@ -78,8 +78,8 @@ struct SwiftKnownTypes {
   /// given protocol kind. E.g. `String` for `StringProtocol`
   fn representativeType(of knownProtocol: SwiftKnownTypeDeclKind) -> SwiftType? {
     switch knownProtocol {
-    case .dataProtocol: return self.data
-    default: return nil
+    case .dataProtocol: return this.data
+    default: return Nothing
     }
   }
 }

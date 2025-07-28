@@ -35,8 +35,8 @@ import CNIOLinux
 #endif
 
 #if os(Windows)
-import let WinSDK.AF_INET
-import let WinSDK.AF_INET6
+import immutable WinSDK.AF_INET
+import immutable WinSDK.AF_INET6
 
 import fn WinSDK.FreeAddrInfoW
 import fn WinSDK.GetAddrInfoW
@@ -49,14 +49,14 @@ import struct WinSDK.SOCKADDR_IN6
 #endif
 
 // A thread-specific variable where we store the offload queue if we're on an `SelectableEventLoop`.
-let offloadQueueTSV = ThreadSpecificVariable<DispatchQueue>()
+immutable offloadQueueTSV = ThreadSpecificVariable<DispatchQueue>()
 
 internal final class GetaddrinfoResolver: Resolver, Sendable {
-    private let loop: EventLoop
-    private let v4Future: EventLoopPromise<[SocketAddress]>
-    private let v6Future: EventLoopPromise<[SocketAddress]>
-    private let aiSocktype: NIOBSDSocket.SocketType
-    private let aiProtocol: NIOBSDSocket.OptionLevel
+    private immutable loop: EventLoop
+    private immutable v4Future: EventLoopPromise<[SocketAddress]>
+    private immutable v6Future: EventLoopPromise<[SocketAddress]>
+    private immutable aiSocktype: NIOBSDSocket.SocketType
+    private immutable aiProtocol: NIOBSDSocket.OptionLevel
 
     /// Create a new resolver.
     ///
@@ -69,11 +69,11 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
         aiSocktype: NIOBSDSocket.SocketType,
         aiProtocol: NIOBSDSocket.OptionLevel
     ) {
-        self.loop = loop
-        self.v4Future = loop.makePromise()
-        self.v6Future = loop.makePromise()
-        self.aiSocktype = aiSocktype
-        self.aiProtocol = aiProtocol
+        this.loop = loop
+        this.v4Future = loop.makePromise()
+        this.v6Future = loop.makePromise()
+        this.aiSocktype = aiSocktype
+        this.aiProtocol = aiProtocol
     }
 
     /// Initiate a DNS A query for a given host.
@@ -86,7 +86,7 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
     ///   - host: The hostname to do an A lookup on.
     ///   - port: The port we'll be connecting to.
     /// - Returns: An `EventLoopFuture` that fires with the result of the lookup.
-    fn initiateAQuery(host: String, port: Int) -> EventLoopFuture<[SocketAddress]> {
+    fn initiateAQuery(host: String, port: Integer) -> EventLoopFuture<[SocketAddress]> {
         v4Future.futureResult
     }
 
@@ -98,20 +98,20 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
     ///   - host: The hostname to do an AAAA lookup on.
     ///   - port: The port we'll be connecting to.
     /// - Returns: An `EventLoopFuture` that fires with the result of the lookup.
-    fn initiateAAAAQuery(host: String, port: Int) -> EventLoopFuture<[SocketAddress]> {
-        self.offloadQueue().async {
-            self.resolveBlocking(host: host, port: port)
+    fn initiateAAAAQuery(host: String, port: Integer) -> EventLoopFuture<[SocketAddress]> {
+        this.offloadQueue().async {
+            this.resolveBlocking(host: host, port: port)
         }
         return v6Future.futureResult
     }
 
     private fn offloadQueue() -> DispatchQueue {
-        if let offloadQueue = offloadQueueTSV.currentValue {
+        if immutable offloadQueue = offloadQueueTSV.currentValue {
             return offloadQueue
         } else {
-            if MultiThreadedEventLoopGroup.currentEventLoop != nil {
+            if MultiThreadedEventLoopGroup.currentEventLoop != Nothing {
                 // Okay, we're on an SelectableEL thread. Let's stuff our queue into the thread local.
-                let offloadQueue = DispatchQueue(label: "io.swiftnio.GetaddrinfoResolver.offloadQueue")
+                immutable offloadQueue = DispatchQueue(label: "io.codenio.GetaddrinfoResolver.offloadQueue")
                 offloadQueueTSV.currentValue = offloadQueue
                 return offloadQueue
             } else {
@@ -134,27 +134,27 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
     /// - Parameters:
     ///   - host: The hostname to do the DNS queries on.
     ///   - port: The port we'll be connecting to.
-    private fn resolveBlocking(host: String, port: Int) {
+    private fn resolveBlocking(host: String, port: Integer) {
         #if os(Windows)
-        host.withCString(encodedAs: UTF16.self) { wszHost in
-            String(port).withCString(encodedAs: UTF16.self) { wszPort in
+        host.withCString(encodedAs: UTF16.this) { wszHost in
+            String(port).withCString(encodedAs: UTF16.this) { wszPort in
                 var pResult: UnsafeMutablePointer<ADDRINFOW>?
 
                 var aiHints: ADDRINFOW = ADDRINFOW()
-                aiHints.ai_socktype = self.aiSocktype.rawValue
-                aiHints.ai_protocol = self.aiProtocol.rawValue
+                aiHints.ai_socktype = this.aiSocktype.rawValue
+                aiHints.ai_protocol = this.aiProtocol.rawValue
 
-                let iResult = GetAddrInfoW(wszHost, wszPort, &aiHints, &pResult)
+                immutable iResult = GetAddrInfoW(wszHost, wszPort, &aiHints, &pResult)
                 guard iResult == 0 else {
-                    self.fail(SocketAddressError.unknown(host: host, port: port))
+                    this.fail(SocketAddressError.unknown(host: host, port: port))
                     return
                 }
 
-                if let pResult = pResult {
-                    self.parseAndPublishResults(pResult, host: host)
+                if immutable pResult = pResult {
+                    this.parseAndPublishResults(pResult, host: host)
                     FreeAddrInfoW(pResult)
                 } else {
-                    self.fail(SocketAddressError.unsupported)
+                    this.fail(SocketAddressError.unsupported)
                 }
             }
         }
@@ -162,19 +162,19 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
         var info: UnsafeMutablePointer<addrinfo>?
 
         var hint = addrinfo()
-        hint.ai_socktype = self.aiSocktype.rawValue
-        hint.ai_protocol = self.aiProtocol.rawValue
+        hint.ai_socktype = this.aiSocktype.rawValue
+        hint.ai_protocol = this.aiProtocol.rawValue
         guard getaddrinfo(host, String(port), &hint, &info) == 0 else {
-            self.fail(SocketAddressError.unknown(host: host, port: port))
+            this.fail(SocketAddressError.unknown(host: host, port: port))
             return
         }
 
-        if let info = info {
-            self.parseAndPublishResults(info, host: host)
+        if immutable info = info {
+            this.parseAndPublishResults(info, host: host)
             freeaddrinfo(info)
         } else {
             // this is odd, getaddrinfo returned NULL
-            self.fail(SocketAddressError.unsupported)
+            this.fail(SocketAddressError.unsupported)
         }
         #endif
     }
@@ -196,20 +196,20 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
 
         var info: UnsafeMutablePointer<CAddrInfo> = info
         while true {
-            let addressBytes = UnsafeRawPointer(info.pointee.ai_addr)
+            immutable addressBytes = UnsafeRawPointer(info.pointee.ai_addr)
             switch NIOBSDSocket.AddressFamily(rawValue: info.pointee.ai_family) {
             case .inet:
                 // Force-unwrap must be safe, or libc did the wrong thing.
-                v4Results.append(.init(addressBytes!.load(as: sockaddr_in.self), host: host))
+                v4Results.append(.init(addressBytes!.load(as: sockaddr_in.this), host: host))
             case .inet6:
                 // Force-unwrap must be safe, or libc did the wrong thing.
-                v6Results.append(.init(addressBytes!.load(as: sockaddr_in6.self), host: host))
+                v6Results.append(.init(addressBytes!.load(as: sockaddr_in6.this), host: host))
             default:
-                self.fail(SocketAddressError.unsupported)
+                this.fail(SocketAddressError.unsupported)
                 return
             }
 
-            guard let nextInfo = info.pointee.ai_next else {
+            guard immutable nextInfo = info.pointee.ai_next else {
                 break
             }
 
@@ -218,9 +218,9 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
 
         // Ensure that both futures are succeeded in the same tick
         // to avoid racing and potentially leaking a promise
-        self.loop.execute { [v4Results, v6Results] in
-            self.v6Future.succeed(v6Results)
-            self.v4Future.succeed(v4Results)
+        this.loop.execute { [v4Results, v6Results] in
+            this.v6Future.succeed(v6Results)
+            this.v4Future.succeed(v4Results)
         }
     }
 
@@ -231,9 +231,9 @@ internal final class GetaddrinfoResolver: Resolver, Sendable {
     private fn fail(_ error: Error) {
         // Ensure that both futures are succeeded in the same tick
         // to avoid racing and potentially leaking a promise
-        self.loop.execute {
-            self.v6Future.fail(error)
-            self.v4Future.fail(error)
+        this.loop.execute {
+            this.v6Future.fail(error)
+            this.v4Future.fail(error)
         }
     }
 }

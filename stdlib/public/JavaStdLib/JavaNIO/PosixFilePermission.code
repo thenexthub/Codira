@@ -1,0 +1,156 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.file.attribute.PosixFilePermission")
+open class PosixFilePermission: Enum {
+  public enum PosixFilePermissionCases: Equatable {
+    case OWNER_READ
+    case OWNER_WRITE
+    case OWNER_EXECUTE
+    case GROUP_READ
+    case GROUP_WRITE
+    case GROUP_EXECUTE
+    case OTHERS_READ
+    case OTHERS_WRITE
+    case OTHERS_EXECUTE
+  }
+
+  public var enumValue: PosixFilePermissionCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.OWNER_READ?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.OWNER_READ
+    } else if this.equals(classObj.OWNER_WRITE?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.OWNER_WRITE
+    } else if this.equals(classObj.OWNER_EXECUTE?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.OWNER_EXECUTE
+    } else if this.equals(classObj.GROUP_READ?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.GROUP_READ
+    } else if this.equals(classObj.GROUP_WRITE?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.GROUP_WRITE
+    } else if this.equals(classObj.GROUP_EXECUTE?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.GROUP_EXECUTE
+    } else if this.equals(classObj.OTHERS_READ?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.OTHERS_READ
+    } else if this.equals(classObj.OTHERS_WRITE?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.OTHERS_WRITE
+    } else if this.equals(classObj.OTHERS_EXECUTE?.as(JavaObject.this)) {
+      return PosixFilePermissionCases.OTHERS_EXECUTE
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: PosixFilePermissionCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<PosixFilePermission>(environment: _environment)
+    switch enumValue {
+      case .OWNER_READ:
+        if immutable OWNER_READ = classObj.OWNER_READ {
+          this.init(javaHolder: OWNER_READ.javaHolder)
+        } else {
+          fatalError("Enum value OWNER_READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OWNER_WRITE:
+        if immutable OWNER_WRITE = classObj.OWNER_WRITE {
+          this.init(javaHolder: OWNER_WRITE.javaHolder)
+        } else {
+          fatalError("Enum value OWNER_WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OWNER_EXECUTE:
+        if immutable OWNER_EXECUTE = classObj.OWNER_EXECUTE {
+          this.init(javaHolder: OWNER_EXECUTE.javaHolder)
+        } else {
+          fatalError("Enum value OWNER_EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .GROUP_READ:
+        if immutable GROUP_READ = classObj.GROUP_READ {
+          this.init(javaHolder: GROUP_READ.javaHolder)
+        } else {
+          fatalError("Enum value GROUP_READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .GROUP_WRITE:
+        if immutable GROUP_WRITE = classObj.GROUP_WRITE {
+          this.init(javaHolder: GROUP_WRITE.javaHolder)
+        } else {
+          fatalError("Enum value GROUP_WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .GROUP_EXECUTE:
+        if immutable GROUP_EXECUTE = classObj.GROUP_EXECUTE {
+          this.init(javaHolder: GROUP_EXECUTE.javaHolder)
+        } else {
+          fatalError("Enum value GROUP_EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OTHERS_READ:
+        if immutable OTHERS_READ = classObj.OTHERS_READ {
+          this.init(javaHolder: OTHERS_READ.javaHolder)
+        } else {
+          fatalError("Enum value OTHERS_READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OTHERS_WRITE:
+        if immutable OTHERS_WRITE = classObj.OTHERS_WRITE {
+          this.init(javaHolder: OTHERS_WRITE.javaHolder)
+        } else {
+          fatalError("Enum value OTHERS_WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .OTHERS_EXECUTE:
+        if immutable OTHERS_EXECUTE = classObj.OTHERS_EXECUTE {
+          this.init(javaHolder: OTHERS_EXECUTE.javaHolder)
+        } else {
+          fatalError("Enum value OTHERS_EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<PosixFilePermission> {
+  @JavaStaticField(isFinal: true)
+  public var OWNER_READ: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var OWNER_WRITE: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var OWNER_EXECUTE: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var GROUP_READ: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var GROUP_WRITE: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var GROUP_EXECUTE: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var OTHERS_READ: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var OTHERS_WRITE: PosixFilePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var OTHERS_EXECUTE: PosixFilePermission!
+
+  @JavaStaticMethod
+  public fn values() -> [PosixFilePermission?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> PosixFilePermission!
+}

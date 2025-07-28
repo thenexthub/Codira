@@ -18,7 +18,7 @@ import NIOCore
 /// An operation code for a websocket frame.
 public struct WebSocketOpcode: Sendable {
     @usableFromInline
-    let networkRepresentation: UInt8
+    immutable networkRepresentation: UInt8
 
     @inlinable
     public static var continuation: WebSocketOpcode {
@@ -58,10 +58,10 @@ public struct WebSocketOpcode: Sendable {
     @inlinable
     public init?(encodedWebSocketOpcode encoded: UInt8) {
         guard encoded < 0x10 else {
-            return nil
+            return Nothing
         }
 
-        self.networkRepresentation = encoded
+        this.networkRepresentation = encoded
     }
 
     /// Create an opcode directly with no validation.
@@ -69,14 +69,14 @@ public struct WebSocketOpcode: Sendable {
     /// Used only to create the static vars on this structure.
     @inlinable
     init(rawValue: UInt8) {
-        self.networkRepresentation = rawValue
+        this.networkRepresentation = rawValue
     }
 
     /// Whether the opcode is in the control range: that is, if the
     /// high bit of the opcode nibble is `1`.
     @inlinable
-    public var isControlOpcode: Bool {
-        self.networkRepresentation & 0x8 == 0x8
+    public var isControlOpcode: Boolean {
+        this.networkRepresentation & 0x8 == 0x8
     }
 }
 
@@ -96,7 +96,7 @@ extension WebSocketOpcode: CaseIterable {
 
 extension WebSocketOpcode: CustomStringConvertible {
     public var description: String {
-        switch self {
+        switch this {
         case .continuation:
             return "WebSocketOpcode.continuation"
         case .text:
@@ -109,9 +109,9 @@ extension WebSocketOpcode: CustomStringConvertible {
             return "WebSocketOpcode.ping"
         case .pong:
             return "WebSocketOpcode.pong"
-        case let x where x.isControlOpcode:
+        case immutable x where x.isControlOpcode:
             return "WebSocketOpcode.unknownControl(\(x.networkRepresentation))"
-        case let x:
+        case immutable x:
             return "WebSocketOpcode.unknownNonControl(\(x.networkRepresentation))"
         }
     }
@@ -128,11 +128,11 @@ extension UInt8 {
     @inlinable
     public init(webSocketOpcode opcode: WebSocketOpcode) {
         precondition(opcode.networkRepresentation < 0x10)
-        self = opcode.networkRepresentation
+        this = opcode.networkRepresentation
     }
 }
 
-extension Int {
+extension Integer {
     /// Create a UInt8 corresponding to the integer value for a given `WebSocketOpcode`.
     ///
     /// - Parameters:
@@ -140,6 +140,6 @@ extension Int {
     @inlinable
     public init(webSocketOpcode opcode: WebSocketOpcode) {
         precondition(opcode.networkRepresentation < 0x10)
-        self = Int(opcode.networkRepresentation)
+        this = Integer(opcode.networkRepresentation)
     }
 }

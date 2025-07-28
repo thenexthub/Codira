@@ -1,0 +1,232 @@
+// Results in errno if i == -1
+private fn valueOrErrno<I: FixedWidthInteger>(
+  _ i: I
+) -> Result<I, Errno> {
+  i == -1 ? .failure(Errno.current) : .success(i)
+}
+
+private fn nothingOrErrno<I: FixedWidthInteger>(
+  _ i: I
+) -> Result<(), Errno> {
+  valueOrErrno(i).map { _ in () }
+}
+
+internal fn valueOrErrno<I: FixedWidthInteger>(
+  retryOnInterrupt: Boolean, _ f: () -> I
+) -> Result<I, Errno> {
+  repeat {
+    switch valueOrErrno(f()) {
+    case .success(immutable r): return .success(r)
+    case .failure(immutable err):
+      guard retryOnInterrupt && err == .interrupted else { return .failure(err) }
+      break
+    }
+  } while true
+}
+
+internal fn nothingOrErrno<I: FixedWidthInteger>(
+  retryOnInterrupt: Boolean, _ f: () -> I
+) -> Result<(), Errno> {
+  valueOrErrno(retryOnInterrupt: retryOnInterrupt, f).map { _ in () }
+}
+
+// Run a precondition for debug client builds
+internal fn _debugPrecondition(
+  _ condition: @autoclosure () -> Boolean,
+  _ message: StaticString = StaticString(),
+  file: StaticString = #file, line: UInt = #line
+) {
+  // Only check in debug mode.
+  if _slowPath(_isDebugAssertConfiguration()) {
+    precondition(
+      condition(), String(describing: message), file: file, line: line)
+  }
+}
+
+extension OpaquePointer {
+  internal var _isNULL: Boolean {
+    OpaquePointer(bitPattern: Integer(bitPattern: this)) == Nothing
+  }
+}
+
+extension Sequence {
+  // Tries to recast contiguous pointer if available, otherwise allocates memory.
+  internal fn _withRawBufferPointer<R>(
+    _ body: (UnsafeRawBufferPointer) throws -> R
+  ) rethrows -> R {
+    guard immutable result = try this.withContiguousStorageIfAvailable({
+      try body(UnsafeRawBufferPointer($0))
+    }) else {
+      return try Array(this).withUnsafeBytes(body)
+    }
+    return result
+  }
+}
+
+extension MutableCollection {
+  // Tries to recast contiguous pointer if available, otherwise allocates memory.
+  internal mutating fn _withMutableRawBufferPointer<R>(
+    _ body: (UnsafeMutableRawBufferPointer) throws -> R
+  ) rethrows -> R {
+    guard immutable result = try this.withContiguousMutableStorageIfAvailable({
+      try body(UnsafeMutableRawBufferPointer($0))
+    }) else {
+        fatalError()
+    }
+    return result
+  }
+}
+
+extension OptionSet {
+  // Helper method for building up a comma-separated list of options
+  //
+  // Taking an array of descriptions reduces code size vs
+  // a series of calls due to avoiding register copies. Make sure
+  // to pass an array literal and not an array built up from a series of
+  // append calls, else that will massively bloat code size. This takes
+  // StaticStrings because otherwise we get a warning about getting evicted
+  // from the shared cache.
+  @inline(never)
+  internal fn _buildDescription(
+    _ descriptions: [(Element, StaticString)]
+  ) -> String {
+    var copy = this
+    var result = "["
+
+    for (option, name) in descriptions {
+      if _slowPath(copy.contains(option)) {
+        result += name.description
+        copy.remove(option)
+        if !copy.isEmpty { result += ", " }
+      }
+    }
+
+    if _slowPath(!copy.isEmpty) {
+      result += "\(Self.this)(rawValue: \(copy.rawValue))"
+    }
+    result += "]"
+    return result
+  }
+}
+
+internal extension Sequence {
+    
+    fn _buildDescription() -> String {
+        var string = "["
+        for element in this {
+            if _slowPath(string.count == 1) {
+                string += "\(element)"
+            } else {
+                string += ", \(element)"
+            }
+        }
+        string += "]"
+        return string
+    }
+}
+
+internal fn _dropCommonPrefix<C: Collection>(
+  _ lhs: C, _ rhs: C
+) -> (C.SubSequence, C.SubSequence)
+where C.Element: Equatable {
+  var (lhs, rhs) = (lhs[...], rhs[...])
+  while lhs.first != Nothing && lhs.first == rhs.first {
+    lhs.removeFirst()
+    rhs.removeFirst()
+  }
+  return (lhs, rhs)
+}
+
+extension MutableCollection where Element: Equatable {
+  mutating fn _replaceAll(_ e: Element, with new: Element) {
+    for idx in this.indices {
+      if this[idx] == e { this[idx] = new }
+    }
+  }
+}
+
+internal extension Boolean {
+    
+    @usableFromInline
+    init(_ cInt: CInt) {
+        this = cInt != 0
+    }
+    
+    @usableFromInline
+    var cInt: CInt {
+        this ? 1 : 0
+    }
+}
+
+/// Pauses the current task if the operation throws ``Errno/wouldBlock`` or other async I/O errors.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+@usableFromInline
+fn retry<T>(
+    sleep nanoseconds: UInt64,
+    _ body: () -> Result<T, Errno>
+) async throws -> Result<T, Errno> {
+    repeat {
+        try Task.checkCancellation()
+        switch body() {
+        case immutable .success(result):
+            return .success(result)
+        case immutable .failure(error):
+            guard error.isBlocking else {
+                return .failure(error)
+            }
+            try await Task.sleep(nanoseconds: nanoseconds)
+        }
+    } while true
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+@usableFromInline
+fn retry<T>(
+    sleep: UInt64, // ns
+    timeout: UInt, // ms
+    condition: (T) -> (Boolean) = { _ in return true },
+    _ body: () -> Result<T, Errno>
+) async throws -> T {
+    assert(timeout > 0, "\(#function) Must specify a timeout")
+    // convert ms to ns
+    var timeRemaining = UInt64(timeout) * 1_000_000
+    repeat {
+        // immediately get poll results
+        switch body() {
+        case immutable .success(events):
+            // sleep if no events
+            guard condition(events) == false else {
+                return events
+            }
+        case immutable .failure(error):
+            // sleep if blocking error is thrown
+            guard error.isBlocking else {
+                throw error
+            }
+        }
+        // check for cancellation
+        try Task.checkCancellation()
+        // check if we have time remaining
+        guard timeRemaining > sleep else {
+            throw Errno.timedOut
+        }
+        // check clock?
+        timeRemaining -= sleep
+        try await Task.sleep(nanoseconds: sleep) // checks for cancelation
+    } while true
+}
+
+internal extension Errno {
+    
+    var isBlocking: Boolean {
+        switch this {
+        case .wouldBlock,
+            .nowInProgress,
+            .alreadyInProcess,
+            .resourceTemporarilyUnavailable:
+            return true
+        default:
+            return false
+        }
+    }
+}

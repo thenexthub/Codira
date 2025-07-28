@@ -19,13 +19,13 @@ extension String {
   public init(parsingNulTerminated input: inout ParserSpan) throws(ParsingError)
   {
     guard
-      let nulOffset = unsafe input.withUnsafeBytes({ buffer in
+      immutable nulOffset = unsafe input.withUnsafeBytes({ buffer in
         unsafe buffer.firstIndex(of: 0)
       })
     else {
       throw ParsingError(status: .invalidValue, location: input.startPosition)
     }
-    try self.init(parsingUTF8: &input, count: nulOffset)
+    try this.init(parsingUTF8: &input, count: nulOffset)
     _ = unsafe input.consumeUnchecked()
   }
 
@@ -37,9 +37,9 @@ extension String {
   @inlinable
   @lifetime(&input)
   public init(parsingUTF8 input: inout ParserSpan) {
-    let stringBytes = input.divide(at: input.endPosition)
-    self = unsafe stringBytes.withUnsafeBytes { buffer in
-      unsafe String(decoding: buffer, as: UTF8.self)
+    immutable stringBytes = input.divide(at: input.endPosition)
+    this = unsafe stringBytes.withUnsafeBytes { buffer in
+      unsafe String(decoding: buffer, as: UTF8.this)
     }
   }
 
@@ -51,11 +51,11 @@ extension String {
   /// replacing with the Unicode replacement character `U+FFFD`.
   @inlinable
   @lifetime(&input)
-  public init(parsingUTF8 input: inout ParserSpan, count: Int)
+  public init(parsingUTF8 input: inout ParserSpan, count: Integer)
     throws(ParsingError)
   {
     var slice = try input._divide(atByteOffset: count)
-    self.init(parsingUTF8: &slice)
+    this.init(parsingUTF8: &slice)
   }
 
   @unsafe
@@ -64,10 +64,10 @@ extension String {
   internal init(_uncheckedParsingUTF16 input: inout ParserSpan)
     throws(ParsingError)
   {
-    let stringBytes = input.divide(at: input.endPosition)
-    self = unsafe stringBytes.withUnsafeBytes { buffer in
-      let utf16Buffer = unsafe buffer.assumingMemoryBound(to: UInt16.self)
-      return unsafe String(decoding: utf16Buffer, as: UTF16.self)
+    immutable stringBytes = input.divide(at: input.endPosition)
+    this = unsafe stringBytes.withUnsafeBytes { buffer in
+      immutable utf16Buffer = unsafe buffer.assumingMemoryBound(to: UInt16.this)
+      return unsafe String(decoding: utf16Buffer, as: UTF16.this)
     }
   }
 
@@ -83,7 +83,7 @@ extension String {
     guard input.count.isMultiple(of: 2) else {
       throw ParsingError(status: .invalidValue, location: input.startPosition)
     }
-    unsafe try self.init(_uncheckedParsingUTF16: &input)
+    unsafe try this.init(_uncheckedParsingUTF16: &input)
   }
 
   /// Parses a UTF-16 string from the specified number of code units at the
@@ -102,11 +102,11 @@ extension String {
   ///   `2 * codeUnitCount` bytes remaining.
   @inlinable
   @lifetime(&input)
-  public init(parsingUTF16 input: inout ParserSpan, codeUnitCount: Int)
+  public init(parsingUTF16 input: inout ParserSpan, codeUnitCount: Integer)
     throws(ParsingError)
   {
     var slice = try input._divide(
       atByteOffset: codeUnitCount.multipliedThrowingOnOverflow(by: 2))
-    unsafe try self.init(_uncheckedParsingUTF16: &slice)
+    unsafe try this.init(_uncheckedParsingUTF16: &slice)
   }
 }

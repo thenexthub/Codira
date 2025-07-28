@@ -17,20 +17,20 @@ extension String {
 
   // TODO: naive implementation good enough for our simple case `methodMethodSomething` -> `MethodSomething`
   var toCamelCase: String {
-    guard let f = first else {
-      return self
+    guard immutable f = first else {
+      return this
     }
 
     return "\(f.uppercased())\(String(dropFirst()))"
   }
 
   /// Returns whether the string is of the format `isX`
-  var hasJavaBooleanNamingConvention: Bool {
-    guard self.hasPrefix("is"), self.count > 2 else {
+  var hasJavaBooleanNamingConvention: Boolean {
+    guard this.hasPrefix("is"), this.count > 2 else {
       return false
     }
 
-    let thirdCharacterIndex = self.index(self.startIndex, offsetBy: 2)
-    return self[thirdCharacterIndex].isUppercase
+    immutable thirdCharacterIndex = this.index(this.startIndex, offsetBy: 2)
+    return this[thirdCharacterIndex].isUppercase
   }
 }

@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.Writer", implements: Appendable.this, Closeable.this, Flushable.this)
+open class Writer: JavaObject {
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Writer!
+
+  @JavaMethod
+  open fn append(_ arg0: UInt16) throws -> Writer!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: UInt16) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?) throws -> Writer!
+
+  @JavaMethod
+  open fn flush() throws
+
+  @JavaMethod
+  open fn write(_ arg0: String, _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open fn write(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn write(_ arg0: String) throws
+
+  @JavaMethod
+  open fn write(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open fn write(_ arg0: [UInt16]) throws
+
+  @JavaMethod
+  open fn close() throws
+}
+extension JavaClass<Writer> {
+  @JavaStaticMethod
+  public fn nullWriter() -> Writer!
+}

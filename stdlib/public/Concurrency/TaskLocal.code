@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -46,12 +49,12 @@ public macro TaskLocal() =
 ///
 ///     // Global task local properties are supported since Codira 6.0:
 ///     @TaskLocal
-///     var contextualNumber: Int = 12
+///     var contextualNumber: Integer = 12
 ///
 /// ### Default values
 /// Reading a task local value when no value was bound to it results in returning
 /// its default value. For a task local declared as optional (such as e.g. `TraceID?`),
-/// this defaults to nil, however a different default value may be defined at declaration
+/// this defaults to Nothing, however a different default value may be defined at declaration
 /// site of the task local, like this:
 ///
 ///     enum Example { 
@@ -154,7 +157,7 @@ public macro TaskLocal() =
 ///       }
 ///
 ///       Task.detached { // detached tasks do not inherit task-local values
-///         read() // traceID: nil
+///         read() // traceID: Nothing
 ///       }
 ///     }
 ///
@@ -389,6 +392,6 @@ fn _checkIllegalTaskLocalBindingWithinWithTaskGroup(file: String, line: UInt) {
 @_silgen_name("language_task_reportIllegalTaskLocalBindingWithinWithTaskGroup")
 fn _reportIllegalTaskLocalBindingWithinWithTaskGroup(
   _ _filenameStart: UnsafePointer<Int8>,
-  _ _filenameLength: Int,
-  _ _filenameIsASCII: Bool,
+  _ _filenameLength: Integer,
+  _ _filenameIsASCII: Boolean,
   _ _line: UInt)

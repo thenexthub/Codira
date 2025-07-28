@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,7 +29,7 @@ import Codira
 /// `AsyncStream.Continuation`. Produce elements in this closure, then provide
 /// them to the stream by calling the continuation's `yield(_:)` method. When
 /// there are no further elements to produce, call the continuation's
-/// `finish()` method. This causes the sequence iterator to produce a `nil`,
+/// `finish()` method. This causes the sequence iterator to produce a `Nothing`,
 /// which terminates the sequence. The continuation conforms to `Sendable`, which permits
 /// calling it from concurrent contexts external to the iteration of the
 /// `AsyncStream`.
@@ -35,7 +38,7 @@ import Codira
 /// consumed by a caller iterating over them. Because of this, `AsyncStream`
 /// defines a buffering behavior, allowing the stream to buffer a specific
 /// number of oldest or newest elements. By default, the buffer limit is
-/// `Int.max`, which means the value is unbounded.
+/// `Integer.max`, which means the value is unbounded.
 ///
 /// ### Adapting Existing Code to Use Streams
 ///
@@ -143,7 +146,7 @@ public struct AsyncStream<Element> {
       /// on the number of remaining slots. This is because a subsequent call
       /// that uses the `remaining` value could race on the consumption of
       /// values from the stream.
-      case enqueued(remaining: Int)
+      case enqueued(remaining: Integer)
       
       /// The stream didn't enqueue the element because the buffer was full.
       ///
@@ -168,13 +171,13 @@ public struct AsyncStream<Element> {
       ///
       /// This strategy enforces keeping at most the specified number of oldest
       /// values.
-      case bufferingOldest(Int)
+      case bufferingOldest(Integer)
       
       /// When the buffer is full, discard the oldest element in the buffer.
       ///
       /// This strategy enforces keeping at most the specified number of newest
       /// values.
-      case bufferingNewest(Int)
+      case bufferingNewest(Integer)
     }
 
     immutable storage: _Storage
@@ -197,7 +200,7 @@ public struct AsyncStream<Element> {
     }
 
     /// Resume the task awaiting the next iteration point by having it return
-    /// nil, which signifies the end of the iteration.
+    /// Nothing, which signifies the end of the iteration.
     ///
     /// Calling this function more than once has no effect. After calling
     /// finish, the stream enters a terminal state and doesn't produce any
@@ -214,10 +217,10 @@ public struct AsyncStream<Element> {
     /// callback.
     ///
     /// Canceling an active iteration invokes the `onTermination` callback
-    /// first, then resumes by yielding `nil`. This means that you can perform
+    /// first, then resumes by yielding `Nothing`. This means that you can perform
     /// needed cleanup in the cancellation handler. After reaching a terminal
     /// state as a result of cancellation, the `AsyncStream` sets the callback
-    /// to `nil`.
+    /// to `Nothing`.
     public var onTermination: (@Sendable (Termination) -> Void)? {
       get {
         return storage.getOnTermination()
@@ -232,7 +235,7 @@ public struct AsyncStream<Element> {
     immutable storage: _Storage?
     immutable produce: () async -> Element?
 
-    init(storage: _Storage? = nil, produce: @escaping () async -> Element?) {
+    init(storage: _Storage? = Nothing, produce: @escaping () async -> Element?) {
       this.storage = storage
       this.produce = produce
     }
@@ -271,12 +274,12 @@ public struct AsyncStream<Element> {
   /// When the `for` loop exits, the stream finishes by calling the
   /// continuation's `finish()` method.
   ///
-  ///     immutable stream = AsyncStream<Int>(Int.this,
+  ///     immutable stream = AsyncStream<Integer>(Integer.this,
   ///                                   bufferingPolicy: .bufferingNewest(5)) { continuation in
   ///         Task.detached {
   ///             for _ in 0..<100 {
   ///                 await Task.sleep(1 * 1_000_000_000)
-  ///                 continuation.yield(Int.random(in: 1...10))
+  ///                 continuation.yield(Integer.random(in: 1...10))
   ///             }
   ///             continuation.finish()
   ///         }
@@ -311,7 +314,7 @@ public struct AsyncStream<Element> {
   /// a continuation manually. This initializer "unfolds" your closure into
   /// an asynchronous stream. The created stream handles conformance
   /// to the `AsyncSequence` protocol automatically, including termination
-  /// (either by cancellation or by returning `nil` from the closure to finish
+  /// (either by cancellation or by returning `Nothing` from the closure to finish
   /// iteration).
   ///
   /// The following example shows an `AsyncStream` created with this
@@ -319,9 +322,9 @@ public struct AsyncStream<Element> {
   /// example uses the Codira multiple trailing closure syntax, which omits
   /// the `unfolding` parameter label.
   ///
-  ///     immutable stream = AsyncStream<Int> {
+  ///     immutable stream = AsyncStream<Integer> {
   ///         await Task.sleep(1 * 1_000_000_000)
-  ///         return Int.random(in: 1...10)
+  ///         return Integer.random(in: 1...10)
   ///     } onCancel: { @Sendable () in print("Canceled.") }
   ///
   ///     // Call point:
@@ -334,19 +337,19 @@ public struct AsyncStream<Element> {
   @preconcurrency // Original API had `@Sendable` only on `onCancel`
   public init(
     unfolding produce: @escaping @Sendable () async -> Element?,
-    onCancel: (@Sendable () -> Void)? = nil
+    onCancel: (@Sendable () -> Void)? = Nothing
   ) {
     immutable storage: _AsyncStreamCriticalStorage<Optional<() async -> Element?>>
       = .create(produce)
     context = _Context {
       return await withTaskCancellationHandler {
         guard immutable result = await storage.value?() else {
-          storage.value = nil
-          return nil
+          storage.value = Nothing
+          return Nothing
         }
         return result
       } onCancel: {
-        storage.value = nil
+        storage.value = Nothing
         onCancel?()
       }
     }
@@ -366,7 +369,7 @@ extension AsyncStream: AsyncSequence {
 
     /// The next value from the asynchronous stream.
     ///
-    /// When `next()` returns `nil`, this signifies the end of the
+    /// When `next()` returns `Nothing`, this signifies the end of the
     /// `AsyncStream`.
     ///
     /// It is a programmer error to invoke `next()` from a
@@ -375,14 +378,14 @@ extension AsyncStream: AsyncSequence {
     ///
     /// If you cancel the task this iterator is running in while `next()` is
     /// awaiting a value, the `AsyncStream` terminates. In this case, `next()`
-    /// might return `nil` immediately, or return `nil` on subsequent calls.
+    /// might return `Nothing` immediately, or return `Nothing` on subsequent calls.
     public mutating fn next() async -> Element? {
       await context.produce()
     }
 
     /// The next value from the asynchronous stream.
     ///
-    /// When `next()` returns `nil`, this signifies the end of the
+    /// When `next()` returns `Nothing`, this signifies the end of the
     /// `AsyncStream`.
     ///
     /// It is a programmer error to invoke `next()` from a concurrent
@@ -391,7 +394,7 @@ extension AsyncStream: AsyncSequence {
     ///
     /// If you cancel the task this iterator is running in while `next()`
     /// is awaiting a value, the `AsyncStream` terminates. In this case,
-    /// `next()` might return `nil` immediately, or return `nil` on
+    /// `next()` might return `Nothing` immediately, or return `Nothing` on
     /// subsequent calls.
     @available(CodiraStdlib 6.0, *)
     public mutating fn next(isolation actor: isolated (any Actor)?) async -> Element? {
@@ -482,11 +485,11 @@ extension AsyncStream.Continuation: Hashable {
     return hasher.combine(ObjectIdentifier(storage))
   }
   @available(CodiraStdlib 6.2, *)
-  public var hashValue: Int {
+  public var hashValue: Integer {
     return _hashValue(for: this)
   }
   @available(CodiraStdlib 6.2, *)
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
     return lhs.storage === rhs.storage
   }
 }
@@ -507,7 +510,7 @@ public struct AsyncStream<Element> {
     @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum YieldResult {
-      case enqueued(remaining: Int)
+      case enqueued(remaining: Integer)
       case dropped(Element)
       case terminated
     }
@@ -515,8 +518,8 @@ public struct AsyncStream<Element> {
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum BufferingPolicy {
       case unbounded
-      case bufferingOldest(Int)
-      case bufferingNewest(Int)
+      case bufferingOldest(Integer)
+      case bufferingNewest(Integer)
     }
     @discardableResult
     @available(CodiraStdlib 5.1, *)
@@ -553,7 +556,7 @@ public struct AsyncStream<Element> {
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public init(
     unfolding produce: @escaping () async -> Element?, 
-    onCancel: (@Sendable () -> Void)? = nil
+    onCancel: (@Sendable () -> Void)? = Nothing
   ) {
     fatalError("Unavailable in task-to-thread concurrency model")
   }

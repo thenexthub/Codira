@@ -11,18 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implementations of the array runtime functions.
 //
-// arrayInitWithCopy(T *dest, T *src, size_t count, M* self)
+// arrayInitWithCopy(T *dest, T *src, size_t count, M* this)
 // arrayInitWithTake(NoAlias|FrontToBack|BackToFront)(T *dest, T *src,
-//                                                    size_t count, M* self)
+//                                                    size_t count, M* this)
 // arrayAssignWithCopy(NoAlias|FrontToBack|BackToFront)(T *dest, T *src,
-//                                                      size_t count, M* self)
-// arrayAssignWithTake(T *dest, T *src, size_t count, M* self)
-// arrayDestroy(T *dst, size_t count, M* self)
+//                                                      size_t count, M* this)
+// arrayAssignWithTake(T *dest, T *src, size_t count, M* this)
+// arrayDestroy(T *dst, size_t count, M* this)
 //
 //===----------------------------------------------------------------------===//
 
@@ -89,11 +88,11 @@ static WitnessFunction get_witness_function(const ValueWitnessTable *wtable) {
 }
 template <ArrayDest destOp, ArraySource srcOp, ArrayCopy copyKind>
 static void array_copy_operation(OpaqueValue *dest, OpaqueValue *src,
-                                 size_t count, const Metadata *self) {
+                                 size_t count, const Metadata *this) {
   if (count == 0)
     return;
 
-  auto wtable = self->getValueWitnesses();
+  auto wtable = this->getValueWitnesses();
   auto stride = wtable->getStride();
 
   // If we are doing a copy we need PODness for a memcpy.
@@ -115,14 +114,14 @@ static void array_copy_operation(OpaqueValue *dest, OpaqueValue *src,
 
   // Call the witness to do the copy.
   if (copyKind == ArrayCopy::NoAlias || copyKind == ArrayCopy::FrontToBack) {
-    if (self->hasLayoutString() && destOp == ArrayDest::Init &&
+    if (this->hasLayoutString() && destOp == ArrayDest::Init &&
         srcOp == ArraySource::Copy) {
-      return language_cvw_arrayInitWithCopy(dest, src, count, stride, self);
+      return language_cvw_arrayInitWithCopy(dest, src, count, stride, this);
     }
 
-    if (self->hasLayoutString() && destOp == ArrayDest::Assign &&
+    if (this->hasLayoutString() && destOp == ArrayDest::Assign &&
         srcOp == ArraySource::Copy) {
-      return language_cvw_arrayAssignWithCopy(dest, src, count, stride, self);
+      return language_cvw_arrayAssignWithCopy(dest, src, count, stride, this);
     }
 
     auto copy = get_witness_function<destOp, srcOp>(wtable);
@@ -130,7 +129,7 @@ static void array_copy_operation(OpaqueValue *dest, OpaqueValue *src,
       auto offset = i * stride;
       auto *from = reinterpret_cast<OpaqueValue *>((char *)src + offset);
       auto *to = reinterpret_cast<OpaqueValue *>((char *)dest + offset);
-      copy(to, from, self);
+      copy(to, from, this);
     }
     return;
   }
@@ -145,85 +144,85 @@ static void array_copy_operation(OpaqueValue *dest, OpaqueValue *src,
     auto offset = --i * stride;
     auto *from = reinterpret_cast<OpaqueValue *>((char *)src + offset);
     auto *to = reinterpret_cast<OpaqueValue *>((char *)dest + offset);
-    copy(to, from, self);
+    copy(to, from, this);
   } while (i != 0);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayInitWithCopy(OpaqueValue *dest, OpaqueValue *src, size_t count,
-                             const Metadata *self) {
+                             const Metadata *this) {
   array_copy_operation<ArrayDest::Init, ArraySource::Copy, ArrayCopy::NoAlias>(
-      dest, src, count, self);
+      dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayInitWithTakeNoAlias(OpaqueValue *dest, OpaqueValue *src,
-                                    size_t count, const Metadata *self) {
+                                    size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Init, ArraySource::Take, ArrayCopy::NoAlias>(
-      dest, src, count, self);
+      dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayInitWithTakeFrontToBack(OpaqueValue *dest, OpaqueValue *src,
-                                        size_t count, const Metadata *self) {
+                                        size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Init, ArraySource::Take,
-                       ArrayCopy::FrontToBack>(dest, src, count, self);
+                       ArrayCopy::FrontToBack>(dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayInitWithTakeBackToFront(OpaqueValue *dest, OpaqueValue *src,
-                                        size_t count, const Metadata *self) {
+                                        size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Init, ArraySource::Take,
-                       ArrayCopy::BackToFront>(dest, src, count, self);
+                       ArrayCopy::BackToFront>(dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayAssignWithCopyNoAlias(OpaqueValue *dest, OpaqueValue *src,
-                                      size_t count, const Metadata *self) {
+                                      size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Copy,
-                       ArrayCopy::NoAlias>(dest, src, count, self);
+                       ArrayCopy::NoAlias>(dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayAssignWithCopyFrontToBack(OpaqueValue *dest, OpaqueValue *src,
-                                          size_t count, const Metadata *self) {
+                                          size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Copy,
-                       ArrayCopy::FrontToBack>(dest, src, count, self);
+                       ArrayCopy::FrontToBack>(dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayAssignWithCopyBackToFront(OpaqueValue *dest, OpaqueValue *src,
-                                          size_t count, const Metadata *self) {
+                                          size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Copy,
-                       ArrayCopy::BackToFront>(dest, src, count, self);
+                       ArrayCopy::BackToFront>(dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
 void language_arrayAssignWithTake(OpaqueValue *dest, OpaqueValue *src,
-                               size_t count, const Metadata *self) {
+                               size_t count, const Metadata *this) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Take,
-                       ArrayCopy::NoAlias>(dest, src, count, self);
+                       ArrayCopy::NoAlias>(dest, src, count, this);
 }
 
 LANGUAGE_RUNTIME_EXPORT
-void language_arrayDestroy(OpaqueValue *begin, size_t count, const Metadata *self) {
+void language_arrayDestroy(OpaqueValue *begin, size_t count, const Metadata *this) {
   if (count == 0)
     return;
 
-  auto wtable = self->getValueWitnesses();
+  auto wtable = this->getValueWitnesses();
 
   // Nothing to do if the type is POD.
   if (wtable->isPOD())
     return;
 
   auto stride = wtable->getStride();
-  if (self->hasLayoutString()) {
-    return language_cvw_arrayDestroy(begin, count, stride, self);
+  if (this->hasLayoutString()) {
+    return language_cvw_arrayDestroy(begin, count, stride, this);
   }
 
   for (size_t i = 0; i < count; ++i) {
     auto offset = i * stride;
     auto *obj = reinterpret_cast<OpaqueValue *>((char *)begin + offset);
-    wtable->destroy(obj, self);
+    wtable->destroy(obj, this);
   }
 }

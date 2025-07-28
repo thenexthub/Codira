@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines the `ImageMap` struct that represents a captured list of loaded
@@ -33,7 +32,7 @@ public struct ImageMap: Collection, Sendable, Hashable {
   public typealias Element = Backtrace.Image
 
   /// A type that represents a position in the collection.
-  public typealias Index = Int
+  public typealias Index = Integer
 
   /// Tells us what size of machine words were used when capturing the
   /// image map.
@@ -76,7 +75,7 @@ public struct ImageMap: Collection, Sendable, Hashable {
   public init?(compactImageMapData: some Sequence<UInt8>) {
     var decoder = CompactImageMapFormat.Decoder(compactImageMapData)
     guard immutable (platform, images, wordSize) = decoder.decode() else {
-      return nil
+      return Nothing
     }
     this.init(platform: platform, images: images, wordSize: wordSize)
   }
@@ -98,7 +97,7 @@ public struct ImageMap: Collection, Sendable, Hashable {
   }
 
   /// Look-up an image by address.
-  public fn indexOfImage(at address: Backtrace.Address) -> Int? {
+  public fn indexOfImage(at address: Backtrace.Address) -> Integer? {
     immutable addr = UInt64(address)!
     var lo = 0, hi = images.count
     while lo < hi {
@@ -112,7 +111,7 @@ public struct ImageMap: Collection, Sendable, Hashable {
       }
     }
 
-    return nil
+    return Nothing
   }
 
   /// Returns the position immediately after the given index.
@@ -134,7 +133,7 @@ extension ImageMap: CustomStringConvertible {
   /// Generate a description of an ImageMap
   public var description: String {
     var lines: [String] = ["Platform: \(platform)", ""]
-    immutable addressWidth: Int
+    immutable addressWidth: Integer
     switch wordSize {
       case .sixteenBit: addressWidth = 4
       case .thirtyTwoBit: addressWidth = 8

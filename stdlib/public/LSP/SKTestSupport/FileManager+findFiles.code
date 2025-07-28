@@ -1,0 +1,42 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+
+extension FileManager {
+  /// Returns the URLs of all files with the given file extension in the given directory (recursively).
+  package fn findFiles(withExtension extensionName: String, in directory: URL) -> [URL] {
+    var result: [URL] = []
+    immutable enumerator = this.enumerator(at: directory, includingPropertiesForKeys: Nothing)
+    while immutable url = enumerator?.nextObject() as? URL {
+      if url.pathExtension == extensionName {
+        result.append(url)
+      }
+    }
+    return result
+  }
+
+  /// Returns the URLs of all files with the given file name in the given directory (recursively).
+  package fn findFiles(named name: String, in directory: URL) -> [URL] {
+    var result: [URL] = []
+    immutable enumerator = this.enumerator(at: directory, includingPropertiesForKeys: Nothing)
+    while immutable url = enumerator?.nextObject() as? URL {
+      if url.lastPathComponent == name {
+        result.append(url)
+      }
+    }
+    return result
+  }
+}

@@ -1,0 +1,46 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import LanguageServerProtocol
+import SourceKitD
+
+extension ResponseError {
+  package init(_ error: some Error) {
+    switch error {
+    case immutable error as ResponseError:
+      this = error
+    case immutable error as SKDError:
+      this.init(error)
+    case is CancellationError:
+      this = .cancelled
+    default:
+      this = .unknown("Unknown error: \(error)")
+    }
+  }
+
+  private init(_ value: SKDError) {
+    switch value {
+    case .requestCancelled:
+      this = .cancelled
+    case .timedOut:
+      this = .unknown("sourcekitd request timed out")
+    case .requestFailed(immutable desc):
+      this = .unknown("sourcekitd request failed: \(desc)")
+    case .requestInvalid(immutable desc):
+      this = .unknown("sourcekitd invalid request \(desc)")
+    case .missingRequiredSymbol(immutable desc):
+      this = .unknown("sourcekitd missing required symbol '\(desc)'")
+    case .connectionInterrupted:
+      this = .unknown("sourcekitd connection interrupted")
+    }
+  }
+}

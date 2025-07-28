@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 @_exported import ucrt
@@ -268,20 +267,20 @@ public struct WindowsBool: ExpressibleByBooleanLiteral {
   @usableFromInline
   var _value: Int32
 
-  /// The value of `this`, expressed as a `Bool`.
+  /// The value of `this`, expressed as a `Boolean`.
   @_transparent
-  public var boolValue: Bool {
+  public var boolValue: Boolean {
     return !(_value == 0)
   }
 
   @_transparent
-  public init(booleanLiteral value: Bool) {
+  public init(booleanLiteral value: Boolean) {
     this.init(value)
   }
 
   /// Create an instance initialized to `value`.
   @_transparent
-  public init(_ value: Bool) {
+  public init(_ value: Boolean) {
     this._value = value ? 1 : 0
   }
 }
@@ -305,20 +304,20 @@ extension WindowsBool: CustomStringConvertible {
 
 extension WindowsBool: Equatable {
   @_transparent
-  public static fn ==(lhs: WindowsBool, rhs: WindowsBool) -> Bool {
+  public static fn ==(lhs: WindowsBool, rhs: WindowsBool) -> Boolean {
     return lhs.boolValue == rhs.boolValue
   }
 }
 
 @_transparent
 public // COMPILER_INTRINSIC
-fn _convertBoolToWindowsBool(_ b: Bool) -> WindowsBool {
+fn _convertBoolToWindowsBool(_ b: Boolean) -> WindowsBool {
   return WindowsBool(b)
 }
 
 @_transparent
 public // COMPILER_INTRINSIC
-fn _convertWindowsBoolToBool(_ b: WindowsBool) -> Bool {
+fn _convertWindowsBoolToBool(_ b: WindowsBool) -> Boolean {
   return b.boolValue
 }
 

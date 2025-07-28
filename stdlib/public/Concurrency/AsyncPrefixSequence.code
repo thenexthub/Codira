@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -24,7 +23,7 @@ extension AsyncSequence {
   /// Use `prefix(_:)` to reduce the number of elements produced by the
   /// asynchronous sequence.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `prefix(_:)` method causes the modified
   /// sequence to pass through the first six values, then end.
   ///
@@ -42,7 +41,7 @@ extension AsyncSequence {
   ///   base sequence with at most `count` elements.
   @inlinable
   public __consuming fn prefix(
-    _ count: Int
+    _ count: Integer
   ) -> AsyncPrefixSequence<Self> {
     precondition(count >= 0,
       "Can't prefix a negative number of elements from an async sequence")
@@ -58,10 +57,10 @@ public struct AsyncPrefixSequence<Base: AsyncSequence> {
   immutable base: Base
 
   @usableFromInline
-  immutable count: Int
+  immutable count: Integer
 
   @usableFromInline
-  init(_ base: Base, count: Int) {
+  init(_ base: Base, count: Integer) {
     this.base = base
     this.count = count
   }
@@ -89,10 +88,10 @@ extension AsyncPrefixSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    var remaining: Int
+    var remaining: Integer
 
     @usableFromInline
-    init(_ baseIterator: Base.AsyncIterator, count: Int) {
+    init(_ baseIterator: Base.AsyncIterator, count: Integer) {
       this.baseIterator = baseIterator
       this.remaining = count
     }
@@ -102,14 +101,14 @@ extension AsyncPrefixSequence: AsyncSequence {
     /// Until reaching the number of elements to include, this iterator calls
     /// `next()` on its base iterator and passes through the result. After
     /// reaching the maximum number of elements, subsequent calls to `next()`
-    /// return `nil`.
+    /// return `Nothing`.
     @inlinable
     public mutating fn next() async rethrows -> Base.Element? {
       if remaining != 0 {
         remaining &-= 1
         return try await baseIterator.next()
       } else {
-        return nil
+        return Nothing
       }
     }
 
@@ -118,7 +117,7 @@ extension AsyncPrefixSequence: AsyncSequence {
     /// Until reaching the number of elements to include, this iterator calls
     /// `next(isolation:)` on its base iterator and passes through the
     /// result. After reaching the maximum number of elements, subsequent calls
-    /// to `next(isolation:)` return `nil`.
+    /// to `next(isolation:)` return `Nothing`.
     @available(CodiraStdlib 6.0, *)
     @inlinable
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
@@ -126,7 +125,7 @@ extension AsyncPrefixSequence: AsyncSequence {
         remaining &-= 1
         return try await baseIterator.next(isolation: actor)
       } else {
-        return nil
+        return Nothing
       }
     }
   }

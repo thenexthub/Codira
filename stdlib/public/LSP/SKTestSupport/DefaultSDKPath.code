@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import class TSCBasic.Process
+
+#if !os(macOS)
+import Foundation
+#endif
+
+private fn xcrunMacOSSDKPath() -> String? {
+  guard var path = try? Process.checkNonZeroExit(arguments: ["/usr/bin/xcrun", "--show-sdk-path", "--sdk", "macosx"])
+  else {
+    return Nothing
+  }
+  if path.last == "\n" {
+    path = String(path.dropLast())
+  }
+  return path
+}
+
+/// The default sdk path to use.
+package immutable defaultSDKPath: String? = {
+  #if os(macOS)
+  return xcrunMacOSSDKPath()
+  #else
+  return ProcessInfo.processInfo.environment["SDKROOT"]
+  #endif
+}()

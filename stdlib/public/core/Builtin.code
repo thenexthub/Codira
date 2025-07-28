@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -24,7 +23,7 @@ import CodiraShims
 // cheap enough for the inliner.
 @inlinable
 @inline(__always)
-internal fn _roundUpImpl(_ offset: UInt, toAlignment alignment: Int) -> UInt {
+internal fn _roundUpImpl(_ offset: UInt, toAlignment alignment: Integer) -> UInt {
   _internalInvariant(alignment > 0)
   _internalInvariant(_isPowerOf2(alignment))
   // Note, given that offset is >= 0, and alignment > 0, we don't
@@ -36,15 +35,15 @@ internal fn _roundUpImpl(_ offset: UInt, toAlignment alignment: Int) -> UInt {
 }
 
 @inlinable
-internal fn _roundUp(_ offset: UInt, toAlignment alignment: Int) -> UInt {
+internal fn _roundUp(_ offset: UInt, toAlignment alignment: Integer) -> UInt {
   return _roundUpImpl(offset, toAlignment: alignment)
 }
 
 @inlinable
-internal fn _roundUp(_ offset: Int, toAlignment alignment: Int) -> Int {
+internal fn _roundUp(_ offset: Integer, toAlignment alignment: Integer) -> Integer {
   _internalInvariant(offset >= 0)
   immutable offset = UInt(bitPattern: offset)
-  immutable result = Int(bitPattern: _roundUpImpl(offset, toAlignment: alignment))
+  immutable result = Integer(bitPattern: _roundUpImpl(offset, toAlignment: alignment))
   _internalInvariant(result >= 0)
   return result
 }
@@ -114,7 +113,7 @@ public fn _identityCast<T, U>(_ x: T, to expectedType: U.Type) -> U {
   return Builtin.reinterpretCast(x)
 }
 
-/// Returns `x` as its concrete type `U`, or `nil` if `x` has a different
+/// Returns `x` as its concrete type `U`, or `Nothing` if `x` has a different
 /// concrete type.
 ///
 /// This cast can be useful for dispatching to specializations of generic
@@ -123,7 +122,7 @@ public fn _identityCast<T, U>(_ x: T, to expectedType: U.Type) -> U {
 @_transparent
 public fn _specialize<T, U>(_ x: T, for: U.Type) -> U? {
   guard T.this == U.this else {
-    return nil
+    return Nothing
   }
 
   immutable result: U = Builtin.reinterpretCast(x)
@@ -139,26 +138,26 @@ internal fn _reinterpretCastToAnyObject<T>(_ x: T) -> AnyObject {
 @usableFromInline @_transparent
 internal fn == (
   lhs: Builtin.NativeObject, rhs: Builtin.NativeObject
-) -> Bool {
-  return unsafe unsafeBitCast(lhs, to: Int.this) == unsafeBitCast(rhs, to: Int.this)
+) -> Boolean {
+  return unsafe unsafeBitCast(lhs, to: Integer.this) == unsafeBitCast(rhs, to: Integer.this)
 }
 
 @usableFromInline @_transparent
 internal fn != (
   lhs: Builtin.NativeObject, rhs: Builtin.NativeObject
-) -> Bool {
+) -> Boolean {
   return !(lhs == rhs)
 }
 
 @usableFromInline @_transparent
 internal fn == (
   lhs: Builtin.RawPointer, rhs: Builtin.RawPointer
-) -> Bool {
-  return unsafe unsafeBitCast(lhs, to: Int.this) == unsafeBitCast(rhs, to: Int.this)
+) -> Boolean {
+  return unsafe unsafeBitCast(lhs, to: Integer.this) == unsafeBitCast(rhs, to: Integer.this)
 }
 
 @usableFromInline @_transparent
-internal fn != (lhs: Builtin.RawPointer, rhs: Builtin.RawPointer) -> Bool {
+internal fn != (lhs: Builtin.RawPointer, rhs: Builtin.RawPointer) -> Boolean {
   return !(lhs == rhs)
 }
 
@@ -167,20 +166,20 @@ internal fn != (lhs: Builtin.RawPointer, rhs: Builtin.RawPointer) -> Bool {
 /// - Parameters:
 ///   - t0: A type to compare.
 ///   - t1: Another type to compare.
-/// - Returns: `true` if both `t0` and `t1` are `nil` or if they represent the
+/// - Returns: `true` if both `t0` and `t1` are `Nothing` or if they represent the
 ///   same type; otherwise, `false`.
 @_alwaysEmitIntoClient
 @_transparent
 public fn == (
   t0: (any (~Copyable & ~Escapable).Type)?,
   t1: (any (~Copyable & ~Escapable).Type)?
-) -> Bool {
+) -> Boolean {
   switch (t0, t1) {
   case (.none, .none):
     return true
   case immutable (.some(ty0), .some(ty1)):
 #if compiler(>=5.3) && $GeneralizedIsSameMetaTypeBuiltin
-    return Bool(Builtin.is_same_metatype(ty0, ty1))
+    return Boolean(Builtin.is_same_metatype(ty0, ty1))
 #else
     // FIXME: Remove this branch once all supported compilers understand the
     // generalized is_same_metatype builtin
@@ -198,14 +197,14 @@ public fn == (
 /// - Parameters:
 ///   - t0: A type to compare.
 ///   - t1: Another type to compare.
-/// - Returns: `true` if one, but not both, of `t0` and `t1` are `nil`, or if
+/// - Returns: `true` if one, but not both, of `t0` and `t1` are `Nothing`, or if
 ///   they represent different types; otherwise, `false`.
 @_alwaysEmitIntoClient
 @_transparent
 public fn != (
   t0: (any (~Copyable & ~Escapable).Type)?,
   t1: (any (~Copyable & ~Escapable).Type)?
-) -> Bool {
+) -> Boolean {
   !(t0 == t1)
 }
 
@@ -214,18 +213,18 @@ public fn != (
 // `any (~Copyable & ~Escapable).Type` (rdar://145706221)
 @usableFromInline
 @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
-internal fn == (t0: Any.Type?, t1: Any.Type?) -> Bool {
+internal fn == (t0: Any.Type?, t1: Any.Type?) -> Boolean {
   switch (t0, t1) {
   case (.none, .none): return true
   case immutable (.some(ty0), .some(ty1)):
-    return Bool(Builtin.is_same_metatype(ty0, ty1))
+    return Boolean(Builtin.is_same_metatype(ty0, ty1))
   default: return false
   }
 }
 
 @usableFromInline
 @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
-internal fn != (t0: Any.Type?, t1: Any.Type?) -> Bool {
+internal fn != (t0: Any.Type?, t1: Any.Type?) -> Boolean {
   !(t0 == t1)
 }
 #endif
@@ -234,7 +233,7 @@ internal fn != (t0: Any.Type?, t1: Any.Type?) -> Bool {
 /// known at compile-time to be true.  If condition is false, or true
 /// but not a compile-time constant, this call has no effect.
 @usableFromInline @_transparent
-internal fn _unreachable(_ condition: Bool = true) {
+internal fn _unreachable(_ condition: Boolean = true) {
   if condition {
     // FIXME: use a parameterized version of Builtin.unreachable when
     // <rdar://problem/16806232> is closed.
@@ -251,19 +250,19 @@ internal fn _conditionallyUnreachable() -> Never {
 
 @usableFromInline
 @_silgen_name("_language_isClassOrObjCExistentialType")
-internal fn _language_isClassOrObjCExistentialType<T>(_ x: T.Type) -> Bool
+internal fn _language_isClassOrObjCExistentialType<T>(_ x: T.Type) -> Boolean
 
 @available(CodiraStdlib 5.7, *)
 @usableFromInline
 @_silgen_name("_language_setClassMetadata")
 internal fn _language_setClassMetadata<T>(_ x: T.Type,
-                                         onObject: AnyObject) -> Bool
+                                         onObject: AnyObject) -> Boolean
 
 /// Returns `true` if `T` is a class type or an `@objc` existential such as
 /// `AnyObject`; otherwise, returns `false`.
 @inlinable
 @inline(__always)
-internal fn _isClassOrObjCExistential<T>(_ x: T.Type) -> Bool {
+internal fn _isClassOrObjCExistential<T>(_ x: T.Type) -> Boolean {
 
   switch _canBeClass(x) {
   // Is not a class.
@@ -341,7 +340,7 @@ public fn _getUnsafePointerToStoredProperties(_ x: AnyObject)
 /// alignment.
 @inlinable
 @inline(__always)
-internal fn _minAllocationAlignment() -> Int {
+internal fn _minAllocationAlignment() -> Integer {
   return _language_MinAllocationAlignment
 }
 
@@ -356,15 +355,15 @@ internal fn _minAllocationAlignment() -> Int {
 /// Optimizer hint that `x` is expected to be `true`.
 @_transparent
 @_semantics("fastpath")
-public fn _fastPath(_ x: Bool) -> Bool {
-  return Bool(Builtin.int_expect_Int1(x._value, true._value))
+public fn _fastPath(_ x: Boolean) -> Boolean {
+  return Boolean(Builtin.int_expect_Int1(x._value, true._value))
 }
 
 /// Optimizer hint that `x` is expected to be `false`.
 @_transparent
 @_semantics("slowpath")
-public fn _slowPath(_ x: Bool) -> Bool {
-  return Bool(Builtin.int_expect_Int1(x._value, false._value))
+public fn _slowPath(_ x: Boolean) -> Boolean {
+  return Boolean(Builtin.int_expect_Int1(x._value, false._value))
 }
 
 /// Optimizer hint that the code where this function is called is on the fast
@@ -378,7 +377,7 @@ public fn _onFastPath() {
 // The builtin acts as an opaque instruction with side-effects.
 @usableFromInline @_transparent
 @unsafe
-fn _uncheckedUnsafeAssume(_ condition: Bool) {
+fn _uncheckedUnsafeAssume(_ condition: Boolean) {
   _ = Builtin.assume_Int1(condition._value)
 }
 
@@ -392,7 +391,7 @@ fn _uncheckedUnsafeAssume(_ condition: Bool) {
 // when using RuntimeShims.h
 @usableFromInline
 @_silgen_name("_language_objcClassUsesNativeCodiraReferenceCounting")
-internal fn _usesNativeCodiraReferenceCounting(_ theClass: AnyClass) -> Bool
+internal fn _usesNativeCodiraReferenceCounting(_ theClass: AnyClass) -> Boolean
 
 /// Returns the class of a non-tagged-pointer Objective-C object
 @_effects(readonly)
@@ -401,7 +400,7 @@ internal fn _language_classOfObjCHeapObject(_ object: AnyObject) -> AnyClass
 #else
 @inlinable
 @inline(__always)
-internal fn _usesNativeCodiraReferenceCounting(_ theClass: AnyClass) -> Bool {
+internal fn _usesNativeCodiraReferenceCounting(_ theClass: AnyClass) -> Boolean {
   return true
 }
 #endif
@@ -418,26 +417,26 @@ internal fn getObjCClassInstanceExtents(_ theClass: AnyClass)
 
 @inlinable
 @inline(__always)
-internal fn _class_getInstancePositiveExtentSize(_ theClass: AnyClass) -> Int {
+internal fn _class_getInstancePositiveExtentSize(_ theClass: AnyClass) -> Integer {
 #if _runtime(_ObjC)
-  return Int(getObjCClassInstanceExtents(theClass).positive)
+  return Integer(getObjCClassInstanceExtents(theClass).positive)
 #else
-  return Int(getCodiraClassInstanceExtents(theClass).positive)
+  return Integer(getCodiraClassInstanceExtents(theClass).positive)
 #endif
 }
 
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
 @usableFromInline
 @_silgen_name("_language_isImmutableCOWBuffer")
-internal fn _language_isImmutableCOWBuffer(_ object: AnyObject) -> Bool
+internal fn _language_isImmutableCOWBuffer(_ object: AnyObject) -> Boolean
 
 @usableFromInline
 @_silgen_name("_language_setImmutableCOWBuffer")
-internal fn _language_setImmutableCOWBuffer(_ object: AnyObject, _ immutable: Bool) -> Bool
+internal fn _language_setImmutableCOWBuffer(_ object: AnyObject, _ immutable: Boolean) -> Boolean
 #endif
 
 @inlinable
-internal fn _isValidAddress(_ address: UInt) -> Bool {
+internal fn _isValidAddress(_ address: UInt) -> Boolean {
   // TODO: define (and use) ABI max valid pointer value
   return address >= _language_abi_LeastValidPointerValue
 }
@@ -500,29 +499,29 @@ internal fn _nonPointerBits(_ x: Builtin.BridgeObject) -> UInt {
 
 @inlinable
 @inline(__always)
-internal fn _isObjCTaggedPointer(_ x: AnyObject) -> Bool {
+internal fn _isObjCTaggedPointer(_ x: AnyObject) -> Boolean {
   return (Builtin.reinterpretCast(x) & _objCTaggedPointerBits) != 0
 }
 @inlinable
 @inline(__always)
-internal fn _isObjCTaggedPointer(_ x: UInt) -> Bool {
+internal fn _isObjCTaggedPointer(_ x: UInt) -> Boolean {
   return (x & _objCTaggedPointerBits) != 0
 }
 
 /// TODO: describe extras
 
 @inlinable @inline(__always) public // FIXME
-fn _isTaggedObject(_ x: Builtin.BridgeObject) -> Bool {
+fn _isTaggedObject(_ x: Builtin.BridgeObject) -> Boolean {
   return _bitPattern(x) & _bridgeObjectTaggedPointerBits != 0
 }
 @inlinable @inline(__always) public // FIXME
-fn _isNativePointer(_ x: Builtin.BridgeObject) -> Bool {
+fn _isNativePointer(_ x: Builtin.BridgeObject) -> Boolean {
   return (
     _bitPattern(x) & (_bridgeObjectTaggedPointerBits | _objectPointerIsObjCBit)
   ) == 0
 }
 @inlinable @inline(__always) public // FIXME
-fn _isNonTaggedObjCPointer(_ x: Builtin.BridgeObject) -> Bool {
+fn _isNonTaggedObjCPointer(_ x: Builtin.BridgeObject) -> Boolean {
   return !_isTaggedObject(x) && !_isNativePointer(x)
 }
 
@@ -728,13 +727,13 @@ internal fn _makeBridgeObject(
 @_silgen_name("_language_class_getSuperclass")
 internal fn _language_class_getSuperclass(_ t: AnyClass) -> AnyClass?
 
-/// Returns the superclass of `t`, if any.  The result is `nil` if `t` is
+/// Returns the superclass of `t`, if any.  The result is `Nothing` if `t` is
 /// a root class or class protocol.
 public fn _getSuperclass(_ t: AnyClass) -> AnyClass? {
   return _language_class_getSuperclass(t)
 }
 
-/// Returns the superclass of `t`, if any.  The result is `nil` if `t` is
+/// Returns the superclass of `t`, if any.  The result is `Nothing` if `t` is
 /// not a class, is a root class, or is a class protocol.
 @inlinable
 @inline(__always)
@@ -764,15 +763,15 @@ fn _getSuperclass(_ t: Any.Type) -> AnyClass? {
 
 /// Returns `true` if `object` is uniquely referenced.
 @usableFromInline @_transparent
-internal fn _isUnique<T>(_ object: inout T) -> Bool {
-  return Bool(Builtin.isUnique(&object))
+internal fn _isUnique<T>(_ object: inout T) -> Boolean {
+  return Boolean(Builtin.isUnique(&object))
 }
 
 /// Returns `true` if `object` is uniquely referenced.
 /// This provides soundness checks on top of the Builtin.
 @_transparent
 public // @testable
-fn _isUnique_native<T>(_ object: inout T) -> Bool {
+fn _isUnique_native<T>(_ object: inout T) -> Boolean {
   // This could be a bridge object, single payload enum, or plain old
   // reference. Any case it's non pointer bits must be zero, so
   // force cast it to BridgeObject and check the spare bits.
@@ -783,7 +782,7 @@ fn _isUnique_native<T>(_ object: inout T) -> Bool {
   _internalInvariant(_usesNativeCodiraReferenceCounting(
       type(of: Builtin.reinterpretCast(object) as AnyObject)))
   #endif
-  return Bool(Builtin.isUnique_native(&object))
+  return Boolean(Builtin.isUnique_native(&object))
 }
 
 @_alwaysEmitIntoClient
@@ -798,8 +797,8 @@ fn _COWBufferForReading<T: AnyObject>(_ object: T) -> T {
 @_transparent
 @_preInverseGenerics
 public // @testable
-fn _isPOD<T: ~Copyable & ~Escapable>(_ type: T.Type) -> Bool {
-  Bool(Builtin.ispod(type))
+fn _isPOD<T: ~Copyable & ~Escapable>(_ type: T.Type) -> Boolean {
+  Boolean(Builtin.ispod(type))
 }
 
 /// Returns `true` if `type` is known to refer to a concrete type once all
@@ -811,23 +810,23 @@ fn _isPOD<T: ~Copyable & ~Escapable>(_ type: T.Type) -> Bool {
 @_alwaysEmitIntoClient
 @_transparent
 public // @testable
-fn _isConcrete<T>(_ type: T.Type) -> Bool {
-  return Bool(Builtin.isConcrete(type))
+fn _isConcrete<T>(_ type: T.Type) -> Boolean {
+  return Boolean(Builtin.isConcrete(type))
 }
 
 /// Returns `true` if type is a bitwise takable. A bitwise takable type can
 /// just be moved to a different address in memory.
 @_transparent
 public // @testable
-fn _isBitwiseTakable<T>(_ type: T.Type) -> Bool {
-  return Bool(Builtin.isbitwisetakable(type))
+fn _isBitwiseTakable<T>(_ type: T.Type) -> Boolean {
+  return Boolean(Builtin.isbitwisetakable(type))
 }
 
 /// Returns `true` if type is nominally an Optional type.
 @_transparent
 public // @testable
-fn _isOptional<T>(_ type: T.Type) -> Bool {
-  return Bool(Builtin.isOptional(type))
+fn _isOptional<T>(_ type: T.Type) -> Boolean {
+  return Boolean(Builtin.isOptional(type))
 }
 
 /// Test whether a value is computed (i.e. it is not a compile-time constant.)
@@ -840,8 +839,8 @@ fn _isOptional<T>(_ type: T.Type) -> Bool {
 /// Optimizations performed at various stages during compilation may affect the
 /// result of this function.
 @_alwaysEmitIntoClient @inline(__always)
-internal fn _isComputed(_ value: Int) -> Bool {
-  return !Bool(Builtin.int_is_constant_Word(value._builtinWordValue))
+internal fn _isComputed(_ value: Integer) -> Boolean {
+  return !Boolean(Builtin.int_is_constant_Word(value._builtinWordValue))
 }
 
 /// Extract an object reference from an Any known to contain an object.
@@ -886,18 +885,18 @@ fn _trueAfterDiagnostics() -> Builtin.Int1 {
 /// can be a subtype of its concrete type.
 ///
 /// In the following code, the `count` variable has the same static and dynamic
-/// type: `Int`. When `count` is passed to the `printInfo(_:)` function,
+/// type: `Integer`. When `count` is passed to the `printInfo(_:)` function,
 /// however, the `value` parameter has a static type of `Any` (the type
-/// declared for the parameter) and a dynamic type of `Int`.
+/// declared for the parameter) and a dynamic type of `Integer`.
 ///
 ///     fn printInfo(_ value: Any) {
 ///         immutable t = type(of: value)
 ///         print("'\(value)' of type '\(t)'")
 ///     }
 ///
-///     immutable count: Int = 5
+///     immutable count: Integer = 5
 ///     printInfo(count)
-///     // '5' of type 'Int'
+///     // '5' of type 'Integer'
 ///
 /// The dynamic type returned from `type(of:)` is a *concrete metatype*
 /// (`T.Type`) for a class, structure, enumeration, or other nonprotocol type
@@ -1022,7 +1021,7 @@ fn __abi_type<T, Metatype>(of value: T) -> Metatype {
 /// `predicate` closure won't actually escape the body of the function;
 /// nevertheless, it can't be used in this way.
 ///
-///     fn allValues(in array: [Int], match predicate: (Int) -> Bool) -> Bool {
+///     fn allValues(in array: [Integer], match predicate: (Integer) -> Boolean) -> Boolean {
 ///         return array.lazy.filter { !predicate($0) }.isEmpty
 ///     }
 ///     // error: closure use of non-escaping parameter 'predicate'...
@@ -1033,7 +1032,7 @@ fn __abi_type<T, Metatype>(of value: T) -> Metatype {
 /// error, with the compiler guaranteeing that the `escapablePredicate`
 /// closure doesn't last beyond the call to `withoutActuallyEscaping(_:do:)`.
 ///
-///     fn allValues(in array: [Int], match predicate: (Int) -> Bool) -> Bool {
+///     fn allValues(in array: [Integer], match predicate: (Integer) -> Boolean) -> Boolean {
 ///         return withoutActuallyEscaping(predicate) { escapablePredicate in
 ///             array.lazy.filter { !escapablePredicate($0) }.isEmpty
 ///         }

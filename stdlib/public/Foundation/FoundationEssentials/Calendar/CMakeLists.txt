@@ -13,14 +13,14 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    Calendar.swift
-    Calendar_Autoupdating.swift
-    Calendar_Cache.swift
-    Calendar_Enumerate.swift
-    Calendar_Gregorian.swift
-    Calendar_Protocol.swift
-    Calendar_Recurrence.swift
-    Date+FormatStyle.swift
-    Date+Locale.swift
-    DateComponents.swift
-    RecurrenceRule.swift)
+    Calendar.code
+    Calendar_Autoupdating.code
+    Calendar_Cache.code
+    Calendar_Enumerate.code
+    Calendar_Gregorian.code
+    Calendar_Protocol.code
+    Calendar_Recurrence.code
+    Date+FormatStyle.code
+    Date+Locale.code
+    DateComponents.code
+    RecurrenceRule.code)

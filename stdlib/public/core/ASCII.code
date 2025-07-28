@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
@@ -29,11 +28,11 @@ extension Unicode.ASCII: Unicode.Encoding {
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
-  public static fn isASCII(_ x: CodeUnit) -> Bool { return UTF8.isASCII(x) }
+  public static fn isASCII(_ x: CodeUnit) -> Boolean { return UTF8.isASCII(x) }
 
   @inline(__always)
   @inlinable
-  public static fn _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Boolean {
     return true
   }
 
@@ -49,7 +48,7 @@ extension Unicode.ASCII: Unicode.Encoding {
   public static fn encode(
     _ source: Unicode.Scalar
   ) -> EncodedScalar? {
-    guard source.value < (1&<<7) else { return nil }
+    guard source.value < (1&<<7) else { return Nothing }
     return EncodedScalar(UInt8(truncatingIfNeeded: source.value))
   }
 
@@ -60,13 +59,13 @@ extension Unicode.ASCII: Unicode.Encoding {
   ) -> EncodedScalar? {
     if _fastPath(FromEncoding.this == UTF16.this) {
       immutable c = _identityCast(content, to: UTF16.EncodedScalar.this)
-      guard (c._storage & 0xFF80 == 0) else { return nil }
+      guard (c._storage & 0xFF80 == 0) else { return Nothing }
       return EncodedScalar(CodeUnit(c._storage & 0x7f))
     }
     else if _fastPath(FromEncoding.this == UTF8.this) {
       immutable c = _identityCast(content, to: UTF8.EncodedScalar.this)
       immutable first = unsafe c.first.unsafelyUnwrapped
-      guard (first < 0x80) else { return nil }
+      guard (first < 0x80) else { return Nothing }
       return EncodedScalar(CodeUnit(first))
     }
     return encode(FromEncoding.decode(content))
@@ -92,7 +91,7 @@ extension Unicode.ASCII.Parser: Unicode.Parser {
   ) -> Unicode.ParseResult<Encoding.EncodedScalar>
   where I.Element == Encoding.CodeUnit {
     immutable n = input.next()
-    if _fastPath(n != nil), immutable x = n {
+    if _fastPath(n != Nothing), immutable x = n {
       guard _fastPath(Int8(truncatingIfNeeded: x) >= 0)
       else { return .error(length: 1) }
       return .valid(Unicode.ASCII.EncodedScalar(x))

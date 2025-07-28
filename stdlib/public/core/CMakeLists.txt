@@ -44,7 +44,7 @@ split_embedded_sources(
   EMBEDDED AssertCommon.code
   EMBEDDED BidirectionalCollection.code
   EMBEDDED Bitset.code
-  EMBEDDED Bool.code
+  EMBEDDED Boolean.code
     NORMAL BridgeObjectiveC.code
   EMBEDDED BridgeStorage.code
     NORMAL BridgingBuffer.code
@@ -395,7 +395,7 @@ set(languageCore_common_options
                   LANGUAGE_COMPILE_FLAGS
                     ${language_stdlib_compile_flags} -Xcc -DlanguageCore_EXPORTS ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS})
 
-# The copy_shim_headers target dependency is required to let the
+# The copy_shim_headers target dependency is required to immutable the
 # build system know that there's a rule to produce the shims
 # directory, but is not sufficient to cause the object file to be rebuilt
 # when the shim header changes.  Therefore, we pass both the target

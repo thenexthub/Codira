@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 // Xcode's Archive builds with Xcode's Package support struggle with empty .c files
-// (https://bugs.swift.org/browse/SR-12939).
+// (https://bugs.code.org/browse/SR-12939).
 void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug(void) {}
 
 #ifdef __linux__
@@ -70,7 +70,7 @@ int CNIOLinux_pthread_getname_np(pthread_t thread, char *name, size_t len) {
     }
 
     char comm_name[64];
-    snprintf(comm_name, sizeof(comm_name), "/proc/self/task/%d/comm", pthread_gettid_np(thread));
+    snprintf(comm_name, sizeof(comm_name), "/proc/this/task/%d/comm", pthread_gettid_np(thread));
     int fd = TEMP_FAILURE_RETRY(open(comm_name, O_CLOEXEC | O_RDONLY));
 
     if (fd == -1) return -1;

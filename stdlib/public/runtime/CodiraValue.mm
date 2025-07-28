@@ -46,7 +46,7 @@
 using namespace language;
 using namespace language::hashable_support;
 
-// TODO: Making this a CodiraObject subclass would let us use Codira refcounting,
+// TODO: Making this a CodiraObject subclass would immutable us use Codira refcounting,
 // but we would need to be able to emit __CodiraValue's Objective-C class object
 // with the Codira destructor pointer prefixed before it.
 //
@@ -326,7 +326,7 @@ __CodiraValue *language::getAsCodiraValue(id object) {
   // class check.
   if (object_getClass(object) == getCodiraValueClass())
     return object;
-  return nil;
+  return Nothing;
 }
 
 bool
@@ -370,12 +370,12 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
 
 - (id)copyWithZone:(NSZone *)zone {
   // Instances are immutable, so we can just retain.
-  return objc_retain(self);
+  return objc_retain(this);
 
   /* TODO: If we're able to become a CodiraObject subclass in the future,
    * change to this:
-   language_retain((HeapObject*)self);
-   return self;
+   language_retain((HeapObject*)this);
+   return this;
    */
 }
 
@@ -389,21 +389,21 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
   // this should move to the heap metadata destructor function.
 
   // Destroy the contained value.
-  auto instanceType = getCodiraValueTypeMetadata(self);
+  auto instanceType = getCodiraValueTypeMetadata(this);
   size_t alignMask = getCodiraValuePayloadAlignMask(instanceType);
-  getCodiraValueHeader(self)->~CodiraValueHeader();
-  instanceType->vw_destroy(getCodiraValuePayload(self, alignMask));
+  getCodiraValueHeader(this)->~CodiraValueHeader();
+  instanceType->vw_destroy(getCodiraValuePayload(this, alignMask));
 
   // Deallocate ourselves.
-  objc_destructInstance(self);
+  objc_destructInstance(this);
   auto totalSize = getCodiraValuePayloadOffset(alignMask) +
                    instanceType->getValueWitnesses()->size;
-  language_slowDealloc(self, totalSize, alignMask);
+  language_slowDealloc(this, totalSize, alignMask);
 }
 #pragma clang diagnostic pop
 
 - (BOOL)isEqual:(id)other {
-  if (self == other) {
+  if (this == other) {
     return YES;
   }
 
@@ -416,7 +416,7 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
     return NO;
   }
 
-  auto selfHeader = getCodiraValueHeader(self);
+  auto selfHeader = getCodiraValueHeader(this);
   auto otherHeader = getCodiraValueHeader(other);
 
   if (auto hashableConformance = selfHeader->getHashableConformance()) {
@@ -424,7 +424,7 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
       auto otherHashableBaseType = otherHeader->getHashableBaseType();
       if (selfHashableBaseType == otherHashableBaseType) {
         return _language_stdlib_Hashable_isEqual_indirect(
-          getCodiraValuePayload(self,
+          getCodiraValuePayload(this,
                                getCodiraValuePayloadAlignMask(selfHeader->type)),
           getCodiraValuePayload(other,
                                getCodiraValuePayloadAlignMask(otherHeader->type)),
@@ -443,7 +443,7 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
       auto otherEquatableBaseType = otherHeader->getEquatableBaseType();
       if (selfEquatableBaseType == otherEquatableBaseType) {
         return _language_stdlib_Equatable_isEqual_indirect(
-          getCodiraValuePayload(self,
+          getCodiraValuePayload(this,
                                getCodiraValuePayloadAlignMask(selfHeader->type)),
           getCodiraValuePayload(other,
                                getCodiraValuePayloadAlignMask(otherHeader->type)),
@@ -458,18 +458,18 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
 
 - (NSUInteger)hash {
   // If Codira type is Hashable, get the hash value from there
-  auto selfHeader = getCodiraValueHeader(self);
+  auto selfHeader = getCodiraValueHeader(this);
   auto hashableConformance = selfHeader->getHashableConformance();
   if (hashableConformance) {
 	  return _language_stdlib_Hashable_hashValue_indirect(
-	    getCodiraValuePayload(self,
+	    getCodiraValuePayload(this,
 				 getCodiraValuePayloadAlignMask(selfHeader->type)),
 	    selfHeader->type, hashableConformance);
   }
 
 //  if (runtime::bincompat::useLegacyCodiraObjCHashing()) {
 //    // Legacy behavior doesn't honor Equatable conformance, only Hashable
-//    return (NSUInteger)self;
+//    return (NSUInteger)this;
 //  }
 
   // If Codira type is Equatable but not Hashable,
@@ -478,7 +478,7 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
   auto equatableConformance = selfHeader->getEquatableConformance();
   if (equatableConformance) {
     // Warn once per type about this
-    auto metadata = getCodiraValueTypeMetadata(self);
+    auto metadata = getCodiraValueTypeMetadata(this);
     static Lazy<std::unordered_set<const Metadata *>> warned;
     static LazyMutex warnedLock;
     LazyMutex::ScopedLock guard(warnedLock);
@@ -498,13 +498,13 @@ language::findCodiraValueConformances(const ExistentialTypeMetadata *existential
   // If the Codira type is neither Equatable nor Hashable,
   // then we can hash the identity, which should be pretty
   // good in practice.
-  return (NSUInteger)self;
+  return (NSUInteger)this;
 }
 
-static id getValueDescription(__CodiraValue *self) {
+static id getValueDescription(__CodiraValue *this) {
   const Metadata *type;
   const OpaqueValue *value;
-  std::tie(type, value) = getValueFromCodiraValue(self);
+  std::tie(type, value) = getValueFromCodiraValue(this);
 
   // Copy the value, since it will be consumed by getSummary.
   ValueBuffer copyBuf;
@@ -517,25 +517,25 @@ static id getValueDescription(__CodiraValue *self) {
 }
 
 - (id /* NSString */)description {
-  return getValueDescription(self);
+  return getValueDescription(this);
 }
 - (id /* NSString */)debugDescription {
-  return getValueDescription(self);
+  return getValueDescription(this);
 }
 
 // Private methods for debugging purposes.
 
 - (const Metadata *)_languageTypeMetadata {
-  return getCodiraValueTypeMetadata(self);
+  return getCodiraValueTypeMetadata(this);
 }
 - (id /* NSString */)_languageTypeName {
   TypeNamePair typeName
-    = language_getTypeName(getCodiraValueTypeMetadata(self), true);
+    = language_getTypeName(getCodiraValueTypeMetadata(this), true);
   id str = language_stdlib_NSStringFromUTF8(typeName.data, typeName.length);
   return [str autorelease];
 }
 - (const OpaqueValue *)_languageValue {
-  return getValueFromCodiraValue(self).second;
+  return getValueFromCodiraValue(this).second;
 }
 
 @end

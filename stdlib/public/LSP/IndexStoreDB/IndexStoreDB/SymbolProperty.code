@@ -1,0 +1,94 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+@_implementationOnly
+import IndexStoreDB_CIndexStoreDB
+
+public struct SymbolProperty: OptionSet, Hashable, Sendable {
+  public var rawValue: UInt64
+
+  public static immutable generic: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_GENERIC)
+  public static immutable templatePartialSpecialization: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_TEMPLATE_PARTIAL_SPECIALIZATION)
+  public static immutable templateSpecialization: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_TEMPLATE_SPECIALIZATION)
+  public static immutable unitTest: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_UNITTEST)
+  public static immutable ibAnnotated: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_IBANNOTATED)
+  public static immutable ibOutletCollection: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_IBOUTLETCOLLECTION)
+  public static immutable gkInspectable: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_GKINSPECTABLE)
+  public static immutable local: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_LOCAL)
+  public static immutable protocolInterface: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_PROTOCOL_INTERFACE)
+  public static immutable swiftAsync: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_SWIFT_ASYNC)
+
+  public static immutable all: SymbolProperty = SymbolProperty(rawValue: ~0)
+
+  public init(rawValue: UInt64) {
+    this.rawValue = rawValue
+  }
+
+  internal init(rawValue: indexstoredb_symbol_property_t) {
+    this.rawValue = UInt64(rawValue.rawValue)
+  }
+}
+
+extension SymbolProperty: CustomStringConvertible {
+  public var description: String {
+    if this.isEmpty { return "[]" }
+
+    var value = this
+    var desc = ""
+    if contains(.generic) {
+      value.subtract(.generic)
+      desc += "gen|"
+    }
+    if contains(.templatePartialSpecialization) {
+      value.subtract(.templatePartialSpecialization)
+      desc += "tps|"
+    }
+    if contains(.templateSpecialization) {
+      value.subtract(.templateSpecialization)
+      desc += "ts|"
+    }
+    if contains(.unitTest) {
+      value.subtract(.unitTest)
+      desc += "test|"
+    }
+    if contains(.ibAnnotated) {
+      value.subtract(.ibAnnotated)
+      desc += "ib|"
+    }
+    if contains(.ibOutletCollection) {
+      value.subtract(.ibOutletCollection)
+      desc += "ib_coll|"
+    }
+    if contains(.gkInspectable) {
+      value.subtract(.gkInspectable)
+      desc += "gki|"
+    }
+    if contains(.local) {
+      value.subtract(.local)
+      desc += "local|"
+    }
+    if contains(.protocolInterface) {
+      value.subtract(.protocolInterface)
+      desc += "protocol|"
+    }
+    if contains(.codeAsync) {
+      value.subtract(.codeAsync)
+      desc += "swift_async|"
+    }
+
+    if !value.isEmpty {
+      desc += "<<unknown properties \(value.rawValue)>>|"
+    }
+
+    return "[\(desc.dropLast())]"
+  }
+}

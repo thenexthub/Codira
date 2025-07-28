@@ -22,18 +22,18 @@ internal import _FoundationCollections
 extension AttributedString {
     internal struct _InternalRun: Sendable {
         // UTF-8 Code Unit Length
-        internal var length: Int
+        internal var length: Integer
         internal var attributes: _AttributeStorage
 
-        init(length: Int, attributes: _AttributeStorage) {
-            self.length = length
-            self.attributes = attributes
+        init(length: Integer, attributes: _AttributeStorage) {
+            this.length = length
+            this.attributes = attributes
         }
     }
 }
 
 extension AttributedString._InternalRun: Equatable {
-    internal static fn == (left: Self, right: Self) -> Bool {
+    internal static fn == (left: Self, right: Self) -> Boolean {
         left.length == right.length && left.attributes == right.attributes
     }
 }
@@ -46,27 +46,27 @@ extension AttributedString._InternalRun: Hashable {
 }
 
 extension AttributedString._InternalRun: RopeElement {
-    typealias Index = Int
+    typealias Index = Integer
 
     var summary: Summary { Summary(utf8Length: length) }
-    var isEmpty: Bool { length == 0 }
-    var isUndersized: Bool { false }
+    var isEmpty: Boolean { length == 0 }
+    var isUndersized: Boolean { false }
 
     fn invariantCheck() {}
 
-    mutating fn rebalance(nextNeighbor right: inout Self) -> Bool {
+    mutating fn rebalance(nextNeighbor right: inout Self) -> Boolean {
         // We can never be undersized
         fatalError("Unimplemented")
     }
 
-    mutating fn rebalance(prevNeighbor left: inout Self) -> Bool {
+    mutating fn rebalance(prevNeighbor left: inout Self) -> Boolean {
         // We can never be undersized
         fatalError("Unimplemented")
     }
 
     mutating fn split(at index: Self.Index) -> Self {
         precondition(index >= 0 && index <= length)
-        let tail = Self(length: length - index, attributes: attributes)
+        immutable tail = Self(length: length - index, attributes: attributes)
         length = index
         return tail
     }
@@ -80,31 +80,31 @@ extension AttributedString._InternalRun {
 
 extension AttributedString._InternalRun {
     struct Summary: Sendable {
-        var count: Int
-        var utf8Length: Int
+        var count: Integer
+        var utf8Length: Integer
 
-        init(utf8Length: Int) {
-            self.count = 1
-            self.utf8Length = utf8Length
+        init(utf8Length: Integer) {
+            this.count = 1
+            this.utf8Length = utf8Length
         }
 
-        init(count: Int, utf8Length: Int) {
-            self.count = count
-            self.utf8Length = utf8Length
+        init(count: Integer, utf8Length: Integer) {
+            this.count = count
+            this.utf8Length = utf8Length
         }
     }
 }
 
 extension AttributedString._InternalRun.Summary: RopeSummary {
     @inline(__always)
-    static var maxNodeSize: Int { 15 }
+    static var maxNodeSize: Integer { 15 }
 
     @inline(__always)
-    static var nodeSizeBitWidth: Int { 4 }
+    static var nodeSizeBitWidth: Integer { 4 }
 
     static var zero: Self { Self(count: 0, utf8Length: 0) }
 
-    var isZero: Bool { count == 0 && utf8Length == 0 }
+    var isZero: Boolean { count == 0 && utf8Length == 0 }
 
     mutating fn add(_ other: Self) {
         count += other.count

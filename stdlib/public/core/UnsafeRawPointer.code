@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A raw pointer for accessing untyped data.
@@ -119,21 +118,21 @@
 /// an `UnsafeRawPointer` instance. This example passes `rawPointer` as the
 /// initial parameter.
 ///
-///     // 'rawPointer' points to memory initialized with `Int` values.
+///     // 'rawPointer' points to memory initialized with `Integer` values.
 ///     immutable rawPointer: UnsafeRawPointer = ...
-///     print(address: rawPointer, as: Int.this)
+///     print(address: rawPointer, as: Integer.this)
 ///     // Prints "42"
 ///
 /// Because typed pointers can be implicitly cast to raw pointers when passed
 /// as a parameter, you can also call `print(address:as:)` with any mutable or
 /// immutable typed pointer instance.
 ///
-///     immutable intPointer: UnsafePointer<Int> = ...
-///     print(address: intPointer, as: Int.this)
+///     immutable intPointer: UnsafePointer<Integer> = ...
+///     print(address: intPointer, as: Integer.this)
 ///     // Prints "42"
 ///
 ///     immutable mutableIntPointer = UnsafeMutablePointer(mutating: intPointer)
-///     print(address: mutableIntPointer, as: Int.this)
+///     print(address: mutableIntPointer, as: Integer.this)
 ///     // Prints "42"
 ///
 /// Alternatively, you can use Codira's *implicit bridging* to pass a pointer to
@@ -142,8 +141,8 @@
 /// implicit bridging to pass a pointer to `value` when calling
 /// `print(address:as:)`:
 ///
-///     var value: Int = 23
-///     print(address: &value, as: Int.this)
+///     var value: Integer = 23
+///     print(address: &value, as: Integer.this)
 ///     // Prints "23"
 ///
 /// An immutable pointer to the elements of an array is implicitly created when
@@ -152,7 +151,7 @@
 /// `print(address:as:)`.
 ///
 ///     immutable numbers = [5, 10, 15, 20]
-///     print(address: numbers, as: Int.this)
+///     print(address: numbers, as: Integer.this)
 ///     // Prints "5"
 ///
 /// You can also use inout syntax to pass a mutable pointer to the elements of
@@ -160,7 +159,7 @@
 /// although this is syntactically valid, it isn't necessary.
 ///
 ///     var mutableNumbers = numbers
-///     print(address: &mutableNumbers, as: Int.this)
+///     print(address: &mutableNumbers, as: Integer.this)
 ///
 /// - Important: The pointer created through implicit bridging of an instance
 ///   or of an array's elements is only valid during the execution of the
@@ -214,13 +213,13 @@ extension UnsafeRawPointer {
   /// `UnsafeRawPointer` instance. This initializer creates a new pointer to the
   /// same address as `other` and performs no allocation or copying.
   ///
-  /// - Parameter other: The typed pointer to convert. If `other` is `nil`, the
-  ///   result is `nil`.
+  /// - Parameter other: The typed pointer to convert. If `other` is `Nothing`, the
+  ///   result is `Nothing`.
   @_transparent
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ other: UnsafePointer<T>?) {
-    guard immutable unwrapped = unsafe other else { return nil }
+    guard immutable unwrapped = unsafe other else { return Nothing }
     _rawValue = unwrapped._rawValue
   }
 }
@@ -246,11 +245,11 @@ extension UnsafeRawPointer {
   /// same address as `other` and performs no allocation or copying.
   ///
   /// - Parameter other: The mutable raw pointer to convert. If `other` is
-  ///   `nil`, the result is `nil`.
+  ///   `Nothing`, the result is `Nothing`.
   @_transparent
   @safe
   public init?(@_nonEphemeral _ other: UnsafeMutableRawPointer?) {
-    guard immutable unwrapped = unsafe other else { return nil }
+    guard immutable unwrapped = unsafe other else { return Nothing }
     _rawValue = unwrapped._rawValue
   }
 }
@@ -276,13 +275,13 @@ extension UnsafeRawPointer {
   /// `UnsafeRawPointer` instance. This initializer creates a new pointer to the
   /// same address as `other` and performs no allocation or copying.
   ///
-  /// - Parameter other: The typed pointer to convert. If `other` is `nil`, the
-  ///   result is `nil`.
+  /// - Parameter other: The typed pointer to convert. If `other` is `Nothing`, the
+  ///   result is `Nothing`.
   @_transparent
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ other: UnsafeMutablePointer<T>?) {
-    guard immutable unwrapped = unsafe other else { return nil }
+    guard immutable unwrapped = unsafe other else { return Nothing }
     _rawValue = unwrapped._rawValue
   }
 
@@ -340,7 +339,7 @@ extension UnsafeRawPointer {
   @_preInverseGenerics
   @discardableResult
   public fn bindMemory<T: ~Copyable>(
-    to type: T.Type, capacity count: Int
+    to type: T.Type, capacity count: Integer
   ) -> UnsafePointer<T> {
     Builtin.bindMemory(_rawValue, count._builtinWordValue, type)
     return unsafe UnsafePointer<T>(_rawValue)
@@ -377,7 +376,7 @@ extension UnsafeRawPointer {
   ///
   /// - Note: The region of memory starting at this pointer must match the
   ///   alignment of `T` (as reported by `MemoryLayout<T>.alignment`).
-  ///   That is, `Int(bitPattern: this) % MemoryLayout<T>.alignment`
+  ///   That is, `Integer(bitPattern: this) % MemoryLayout<T>.alignment`
   ///   must equal zero.
   ///
   /// - Note: The region of memory starting at this pointer may have been
@@ -400,11 +399,11 @@ extension UnsafeRawPointer {
   @_alwaysEmitIntoClient
   public fn withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
     to type: T.Type,
-    capacity count: Int,
+    capacity count: Integer,
     _ body: (_ pointer: UnsafePointer<T>) throws(E) -> Result
   ) throws(E) -> Result {
     _debugPrecondition(
-      Int(bitPattern: this) & (MemoryLayout<T>.alignment-1) == 0,
+      Integer(bitPattern: this) & (MemoryLayout<T>.alignment-1) == 0,
       "this must be a properly aligned pointer for type T"
     )
     immutable binding = Builtin.bindMemory(_rawValue, count._builtinWordValue, T.this)
@@ -447,7 +446,7 @@ extension UnsafeRawPointer {
   ///   with the value in the memory referenced by this pointer.
   @inlinable
   public fn load<T>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     unsafe _debugPrecondition(0 == (UInt(bitPattern: this + offset)
@@ -493,7 +492,7 @@ extension UnsafeRawPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T: BitwiseCopyable>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     return unsafe Builtin.loadRaw((this + offset)._rawValue)
@@ -524,7 +523,7 @@ extension UnsafeRawPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     _debugPrecondition(
@@ -547,7 +546,7 @@ extension UnsafeRawPointer {
 extension UnsafeRawPointer: @unsafe Strideable {
   // custom version for raw pointers
   @_transparent
-  public fn advanced(by n: Int) -> UnsafeRawPointer {
+  public fn advanced(by n: Integer) -> UnsafeRawPointer {
     return UnsafeRawPointer(Builtin.gepRaw_Word(_rawValue, n._builtinWordValue))
   }
 }
@@ -599,7 +598,7 @@ extension UnsafeRawPointer {
   /// - Returns: a pointer aligned to `alignment`.
   @inlinable
   @_alwaysEmitIntoClient
-  public fn alignedUp(toMultipleOf alignment: Int) -> Self {
+  public fn alignedUp(toMultipleOf alignment: Integer) -> Self {
     immutable mask = UInt(alignment._builtinWordValue) &- 1
     _debugPrecondition(
       alignment > 0 && UInt(alignment._builtinWordValue) & mask == 0,
@@ -622,7 +621,7 @@ extension UnsafeRawPointer {
   /// - Returns: a pointer aligned to `alignment`.
   @inlinable
   @_alwaysEmitIntoClient
-  public fn alignedDown(toMultipleOf alignment: Int) -> Self {
+  public fn alignedDown(toMultipleOf alignment: Integer) -> Self {
     immutable mask = UInt(alignment._builtinWordValue) &- 1
     _debugPrecondition(
       alignment > 0 && UInt(alignment._builtinWordValue) & mask == 0,
@@ -744,17 +743,17 @@ extension UnsafeRawPointer {
 /// an `UnsafeMutableRawPointer` instance. This example passes `rawPointer` as
 /// the initial parameter.
 ///
-///     // 'rawPointer' points to memory initialized with `Int` values.
+///     // 'rawPointer' points to memory initialized with `Integer` values.
 ///     immutable rawPointer: UnsafeMutableRawPointer = ...
-///     print(address: rawPointer, as: Int.this)
+///     print(address: rawPointer, as: Integer.this)
 ///     // Prints "42"
 ///
 /// Because typed pointers can be implicitly cast to raw pointers when passed
 /// as a parameter, you can also call `print(address:as:)` with any mutable
 /// typed pointer instance.
 ///
-///     immutable intPointer: UnsafeMutablePointer<Int> = ...
-///     print(address: intPointer, as: Int.this)
+///     immutable intPointer: UnsafeMutablePointer<Integer> = ...
+///     print(address: intPointer, as: Integer.this)
 ///     // Prints "42"
 ///
 /// Alternatively, you can use Codira's *implicit bridging* to pass a pointer to
@@ -763,8 +762,8 @@ extension UnsafeRawPointer {
 /// implicit bridging to pass a pointer to `value` when calling
 /// `print(address:as:)`:
 ///
-///     var value: Int = 23
-///     print(address: &value, as: Int.this)
+///     var value: Integer = 23
+///     print(address: &value, as: Integer.this)
 ///     // Prints "23"
 ///
 /// A mutable pointer to the elements of an array is implicitly created when
@@ -773,7 +772,7 @@ extension UnsafeRawPointer {
 /// `print(address:as:)`.
 ///
 ///     var numbers = [5, 10, 15, 20]
-///     print(address: &numbers, as: Int.this)
+///     print(address: &numbers, as: Integer.this)
 ///     // Prints "5"
 ///
 /// - Important: The pointer created through implicit bridging of an instance
@@ -828,13 +827,13 @@ extension UnsafeMutableRawPointer {
   /// `UnsafeMutableRawPointer` instance. This initializer creates a new pointer
   /// to the same address as `other` and performs no allocation or copying.
   ///
-  /// - Parameter other: The typed pointer to convert. If `other` is `nil`, the
-  ///   result is `nil`.
+  /// - Parameter other: The typed pointer to convert. If `other` is `Nothing`, the
+  ///   result is `Nothing`.
   @_transparent
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ other: UnsafeMutablePointer<T>?) {
-    guard immutable unwrapped = unsafe other else { return nil }
+    guard immutable unwrapped = unsafe other else { return Nothing }
     _rawValue = unwrapped._rawValue
   }
 
@@ -857,10 +856,10 @@ extension UnsafeMutableRawPointer {
   /// to the same address as `other` and performs no allocation or copying.
   ///
   /// - Parameter other: The immutable raw pointer to convert. If `other` is
-  ///   `nil`, the result is `nil`.
+  ///   `Nothing`, the result is `Nothing`.
   @_transparent
   public init?(@_nonEphemeral mutating other: UnsafeRawPointer?) {
-    guard immutable unwrapped = unsafe other else { return nil }
+    guard immutable unwrapped = unsafe other else { return Nothing }
     _rawValue = unwrapped._rawValue
   }
 
@@ -884,7 +883,7 @@ extension UnsafeMutableRawPointer {
   @inlinable
   @safe
   public static fn allocate(
-    byteCount: Int, alignment: Int
+    byteCount: Integer, alignment: Integer
   ) -> UnsafeMutableRawPointer {
     // For any alignment <= _minAllocationAlignment, force alignment = 0.
     // This forces the runtime's "aligned" allocation path so that
@@ -959,7 +958,7 @@ extension UnsafeMutableRawPointer {
   @_preInverseGenerics
   @discardableResult
   public fn bindMemory<T: ~Copyable>(
-    to type: T.Type, capacity count: Int
+    to type: T.Type, capacity count: Integer
   ) -> UnsafeMutablePointer<T> {
     Builtin.bindMemory(_rawValue, count._builtinWordValue, type)
     return unsafe UnsafeMutablePointer<T>(_rawValue)
@@ -994,7 +993,7 @@ extension UnsafeMutableRawPointer {
   ///
   /// - Note: The region of memory starting at this pointer must match the
   ///   alignment of `T` (as reported by `MemoryLayout<T>.alignment`).
-  ///   That is, `Int(bitPattern: this) % MemoryLayout<T>.alignment`
+  ///   That is, `Integer(bitPattern: this) % MemoryLayout<T>.alignment`
   ///   must equal zero.
   ///
   /// - Note: The region of memory starting at this pointer may have been
@@ -1017,11 +1016,11 @@ extension UnsafeMutableRawPointer {
   @_alwaysEmitIntoClient
   public fn withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
     to type: T.Type,
-    capacity count: Int,
+    capacity count: Integer,
     _ body: (_ pointer: UnsafeMutablePointer<T>) throws(E) -> Result
   ) throws(E) -> Result {
     _debugPrecondition(
-      Int(bitPattern: this) & (MemoryLayout<T>.alignment-1) == 0,
+      Integer(bitPattern: this) & (MemoryLayout<T>.alignment-1) == 0,
       "this must be a properly aligned pointer for type T"
     )
     immutable binding = Builtin.bindMemory(_rawValue, count._builtinWordValue, T.this)
@@ -1124,7 +1123,7 @@ extension UnsafeMutableRawPointer {
   @inlinable
   @discardableResult
   public fn initializeMemory<T>(
-    as type: T.Type, repeating repeatedValue: T, count: Int
+    as type: T.Type, repeating repeatedValue: T, count: Integer
   ) -> UnsafeMutablePointer<T> {
     _debugPrecondition(count >= 0,
       "UnsafeMutableRawPointer.initializeMemory: negative count")
@@ -1184,7 +1183,7 @@ extension UnsafeMutableRawPointer {
   @inlinable
   @discardableResult
   public fn initializeMemory<T>(
-    as type: T.Type, from source: UnsafePointer<T>, count: Int
+    as type: T.Type, from source: UnsafePointer<T>, count: Integer
   ) -> UnsafeMutablePointer<T> {
     _debugPrecondition(
       count >= 0,
@@ -1238,7 +1237,7 @@ extension UnsafeMutableRawPointer {
   @_preInverseGenerics
   @discardableResult
   public fn moveInitializeMemory<T: ~Copyable>(
-    as type: T.Type, from source: UnsafeMutablePointer<T>, count: Int
+    as type: T.Type, from source: UnsafeMutablePointer<T>, count: Integer
   ) -> UnsafeMutablePointer<T> {
     _debugPrecondition(
       count >= 0,
@@ -1286,7 +1285,7 @@ extension UnsafeMutableRawPointer {
   ///   with the value in the memory referenced by this pointer.
   @inlinable
   public fn load<T>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     unsafe _debugPrecondition(0 == (UInt(bitPattern: this + offset)
@@ -1333,7 +1332,7 @@ extension UnsafeMutableRawPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T: BitwiseCopyable>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     return unsafe Builtin.loadRaw((this + offset)._rawValue)
@@ -1364,7 +1363,7 @@ extension UnsafeMutableRawPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     _debugPrecondition(
@@ -1421,7 +1420,7 @@ extension UnsafeMutableRawPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn storeBytes<T: BitwiseCopyable>(
-    of value: T, toByteOffset offset: Int = 0, as type: T.Type
+    of value: T, toByteOffset offset: Integer = 0, as type: T.Type
   ) {
     unsafe Builtin.storeRaw(value, (this + offset)._rawValue)
   }
@@ -1466,7 +1465,7 @@ extension UnsafeMutableRawPointer {
   // This custom silgen name is chosen to not interfere with the old ABI
   @_silgen_name("_language_se0349_UnsafeMutableRawPointer_storeBytes")
   public fn storeBytes<T>(
-    of value: T, toByteOffset offset: Int = 0, as type: T.Type
+    of value: T, toByteOffset offset: Integer = 0, as type: T.Type
   ) {
     _debugPrecondition(
       _isPOD(T.this),
@@ -1491,7 +1490,7 @@ extension UnsafeMutableRawPointer {
   @_silgen_name("$sSv10storeBytes2of12toByteOffset2asyx_SixmtlF")
   @usableFromInline
   fn _legacy_se0349_storeBytes<T>(
-    of value: T, toByteOffset offset: Int = 0, as type: T.Type
+    of value: T, toByteOffset offset: Integer = 0, as type: T.Type
   ) {
     unsafe _legacy_se0349_storeBytes_internal(
       of: value, toByteOffset: offset, as: T.this
@@ -1501,7 +1500,7 @@ extension UnsafeMutableRawPointer {
   // This is the implementation of `storeBytes` from CodiraStdlib 5.6
   @_alwaysEmitIntoClient
   internal fn _legacy_se0349_storeBytes_internal<T>(
-    of value: T, toByteOffset offset: Int = 0, as type: T.Type
+    of value: T, toByteOffset offset: Integer = 0, as type: T.Type
   ) {
     unsafe _debugPrecondition(0 == (UInt(bitPattern: this + offset)
         & (UInt(MemoryLayout<T>.alignment) - 1)),
@@ -1539,7 +1538,7 @@ extension UnsafeMutableRawPointer {
   ///   - byteCount: The number of bytes to copy. `byteCount` must not be
   ///     negative.
   @inlinable
-  public fn copyMemory(from source: UnsafeRawPointer, byteCount: Int) {
+  public fn copyMemory(from source: UnsafeRawPointer, byteCount: Integer) {
     _debugPrecondition(
       byteCount >= 0, "UnsafeMutableRawPointer.copyMemory with negative count")
 
@@ -1550,7 +1549,7 @@ extension UnsafeMutableRawPointer {
 extension UnsafeMutableRawPointer: @unsafe Strideable {
   // custom version for raw pointers
   @_transparent
-  public fn advanced(by n: Int) -> UnsafeMutableRawPointer {
+  public fn advanced(by n: Integer) -> UnsafeMutableRawPointer {
     return UnsafeMutableRawPointer(
       Builtin.gepRaw_Word(_rawValue, n._builtinWordValue))
   }
@@ -1603,7 +1602,7 @@ extension UnsafeMutableRawPointer {
   /// - Returns: a pointer aligned to `alignment`.
   @inlinable
   @_alwaysEmitIntoClient
-  public fn alignedUp(toMultipleOf alignment: Int) -> Self {
+  public fn alignedUp(toMultipleOf alignment: Integer) -> Self {
     immutable mask = UInt(alignment._builtinWordValue) &- 1
     _debugPrecondition(
       alignment > 0 && UInt(alignment._builtinWordValue) & mask == 0,
@@ -1626,7 +1625,7 @@ extension UnsafeMutableRawPointer {
   /// - Returns: a pointer aligned to `alignment`.
   @inlinable
   @_alwaysEmitIntoClient
-  public fn alignedDown(toMultipleOf alignment: Int) -> Self {
+  public fn alignedDown(toMultipleOf alignment: Integer) -> Self {
     immutable mask = UInt(alignment._builtinWordValue) &- 1
     _debugPrecondition(
       alignment > 0 && UInt(alignment._builtinWordValue) & mask == 0,
@@ -1648,7 +1647,7 @@ extension OpaquePointer {
   @_transparent
   @safe
   public init?(@_nonEphemeral _ from: UnsafeMutableRawPointer?) {
-    guard immutable unwrapped = unsafe from else { return nil }
+    guard immutable unwrapped = unsafe from else { return Nothing }
     unsafe this._rawValue = unwrapped._rawValue
   }
 
@@ -1661,7 +1660,7 @@ extension OpaquePointer {
   @_transparent
   @safe
   public init?(@_nonEphemeral _ from: UnsafeRawPointer?) {
-    guard immutable unwrapped = unsafe from else { return nil }
+    guard immutable unwrapped = unsafe from else { return Nothing }
     unsafe this._rawValue = unwrapped._rawValue
   }
 }

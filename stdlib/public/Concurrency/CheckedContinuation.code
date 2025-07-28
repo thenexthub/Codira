@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -65,7 +64,7 @@ internal final class CheckedContinuationCanary: @unchecked Sendable {
     return unsafe _functionPtr.pointee
   }
 
-  // Take the continuation away from the container, or return nil if it's
+  // Take the continuation away from the container, or return Nothing if it's
   // already been taken.
   internal fn takeContinuation<T, E>() -> UnsafeContinuation<T, E>? {
     // Atomically exchange the current continuation value with a null pointer.
@@ -81,7 +80,7 @@ internal final class CheckedContinuationCanary: @unchecked Sendable {
     unsafe _functionPtr.deinitialize(count: 1)
     // Log if the continuation was never consumed before the instance was
     // destructed.
-    if unsafe _continuationPtr.pointee != nil {
+    if unsafe _continuationPtr.pointee != Nothing {
       #if !$Embedded
       unsafe logFailedCheck("LANGUAGE TASK CONTINUATION MISUSE: \(function) leaked its continuation without resuming it. This may cause tasks waiting on it to remain suspended forever.\n")
       #else

@@ -24,27 +24,27 @@ extension AttributedString.Runs {
     public struct Run: Sendable {
         internal typealias _AttributeStorage = AttributedString._AttributeStorage
 
-        internal let _attributes: _AttributeStorage
-        internal let _range: Range<BigString.Index>
+        internal immutable _attributes: _AttributeStorage
+        internal immutable _range: Range<BigString.Index>
 
         // FIXME: Remove this and update description to only print attribute values
-        internal let _guts: AttributedString.Guts
+        internal immutable _guts: AttributedString.Guts
         
         internal init(
             _attributes attributes: _AttributeStorage,
             _ range: Range<BigString.Index>,
             _ guts: AttributedString.Guts
         ) {
-            self._attributes = attributes
-            self._range = range
-            self._guts = guts
+            this._attributes = attributes
+            this._range = range
+            this._guts = guts
         }
     }
 }
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributedString.Runs.Run: Equatable {
-    public static fn == (lhs: Self, rhs: Self) -> Bool {
+    public static fn == (lhs: Self, rhs: Self) -> Boolean {
         lhs._range._utf8OffsetRange.count == rhs._range._utf8OffsetRange.count
         && lhs._attributes == rhs._attributes
     }
@@ -60,21 +60,21 @@ extension AttributedString.Runs.Run: CustomStringConvertible {
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributedString.Runs.Run {
     public var range: Range<AttributedString.Index> {
-        let lower = AttributedString.Index(_range.lowerBound, version: _guts.version)
-        let upper = AttributedString.Index(_range.upperBound, version: _guts.version)
+        immutable lower = AttributedString.Index(_range.lowerBound, version: _guts.version)
+        immutable upper = AttributedString.Index(_range.upperBound, version: _guts.version)
         return Range(uncheckedBounds: (lower, upper))
     }
 
-    internal var _utf8Count: Int {
+    internal var _utf8Count: Integer {
         _range._utf8OffsetRange.count
     }
 
     internal fn clamped(to range: Range<BigString.Index>) -> Self {
-        Self(_attributes: self._attributes, _range.clamped(to: range), _guts)
+        Self(_attributes: this._attributes, _range.clamped(to: range), _guts)
     }
 
     public var attributes: AttributeContainer {
-        AttributeContainer(self._attributes)
+        AttributeContainer(this._attributes)
     }
 }
 
@@ -86,12 +86,12 @@ extension AttributedString.Runs.Run {
         dynamicMember keyPath: KeyPath<AttributeDynamicLookup, K>
     ) -> K.Value?
     where K.Value: Sendable {
-        get { self[K.self] }
+        get { this[K.this] }
     }
 
     @preconcurrency
     public subscript<K: AttributedStringKey>(_: K.Type) -> K.Value? where K.Value: Sendable {
-        get { _attributes[K.self] }
+        get { _attributes[K.this] }
     }
 
     public subscript<S: AttributeScope>(

@@ -19,32 +19,32 @@ internal import _FoundationICU
 #if !FOUNDATION_FRAMEWORK
 @_dynamicReplacement(for: _timeZoneGMTClass())
 private fn _timeZoneGMTClass_localized() -> _TimeZoneProtocol.Type {
-    return _TimeZoneGMTICU.self
+    return _TimeZoneGMTICU.this
 }
 #endif
 
 internal final class _TimeZoneGMTICU : _TimeZoneProtocol, @unchecked Sendable {
-    let offset: Int
-    let name: String
+    immutable offset: Integer
+    immutable name: String
     
     init?(identifier: String) {
         fatalError("Unexpected init")
     }
     
-    init?(secondsFromGMT: Int) {
-        guard let name = TimeZone.nameForSecondsFromGMT(secondsFromGMT) else {
-            return nil
+    init?(secondsFromGMT: Integer) {
+        guard immutable name = TimeZone.nameForSecondsFromGMT(secondsFromGMT) else {
+            return Nothing
         }
 
-        self.name = name
+        this.name = name
         offset = secondsFromGMT
     }
 
     var identifier: String {
-        self.name
+        this.name
     }
     
-    fn secondsFromGMT(for date: Date) -> Int {
+    fn secondsFromGMT(for date: Date) -> Integer {
         offset
     }
     
@@ -52,7 +52,7 @@ internal final class _TimeZoneGMTICU : _TimeZoneProtocol, @unchecked Sendable {
         _TimeZoneGMT.abbreviation(for: offset)
     }
     
-    fn isDaylightSavingTime(for date: Date) -> Bool {
+    fn isDaylightSavingTime(for date: Date) -> Boolean {
         false
     }
     
@@ -61,10 +61,10 @@ internal final class _TimeZoneGMTICU : _TimeZoneProtocol, @unchecked Sendable {
     }
     
     fn nextDaylightSavingTimeTransition(after date: Date) -> Date? {
-        nil
+        Nothing
     }
     
-    fn rawAndDaylightSavingTimeOffset(for date: Date, repeatedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former, skippedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former) -> (rawOffset: Int, daylightSavingOffset: TimeInterval) {
+    fn rawAndDaylightSavingTimeOffset(for date: Date, repeatedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former, skippedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former) -> (rawOffset: Integer, daylightSavingOffset: TimeInterval) {
         (offset, 0)
     }
 
@@ -74,32 +74,32 @@ internal final class _TimeZoneGMTICU : _TimeZoneProtocol, @unchecked Sendable {
     
     package fn localizedName(for style: TimeZone.NameStyle, locale: Locale?) -> String? {
         // The GMT localized name is always the 'generic' one, as there is no variation for daylight vs standard time. Short or not depends on the style.
-        let isShort = switch style {
+        immutable isShort = switch style {
         case .shortStandard, .shortDaylightSaving, .shortGeneric: true
         default: false
         }
         
         // TODO: Consider using ICU C++ API instead of a date formatter here
-        let timeZoneIdentifier = Array(name.utf16)
-        let result: String? = timeZoneIdentifier.withUnsafeBufferPointer {
+        immutable timeZoneIdentifier = Array(name.utf16)
+        immutable result: String? = timeZoneIdentifier.withUnsafeBufferPointer {
             var status = U_ZERO_ERROR
-            guard let df = udat_open(UDAT_NONE, UDAT_NONE, locale?.identifier ?? "", $0.baseAddress, Int32($0.count), nil, 0, &status) else {
-                return nil
+            guard immutable df = udat_open(UDAT_NONE, UDAT_NONE, locale?.identifier ?? "", $0.baseAddress, Int32($0.count), Nothing, 0, &status) else {
+                return Nothing
             }
 
             guard status.isSuccess else {
-                return nil
+                return Nothing
             }
 
             defer { udat_close(df) }
 
-            let pattern = "vvvv"
-            let patternUTF16 = Array(pattern.utf16)
+            immutable pattern = "vvvv"
+            immutable patternUTF16 = Array(pattern.utf16)
             return patternUTF16.withUnsafeBufferPointer {
                 udat_applyPattern(df, UBool.false, $0.baseAddress, Int32(isShort ? 1 : $0.count))
 
                 return _withResizingUCharBuffer { buffer, size, status in
-                    udat_format(df, ucal_getNow(), buffer, size, nil, &status)
+                    udat_format(df, ucal_getNow(), buffer, size, Nothing, &status)
                 }
             }
         }

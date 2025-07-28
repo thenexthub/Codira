@@ -1,0 +1,52 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.file.FileStore")
+open class FileStore: JavaObject {
+  @JavaMethod
+  open fn getUnallocatedSpace() throws -> Int64
+
+  @JavaMethod
+  open fn getBlockSize() throws -> Int64
+
+  @JavaMethod
+  open fn supportsFileAttributeView(_ arg0: JavaClass<FileAttributeView>?) -> Boolean
+
+  @JavaMethod
+  open fn supportsFileAttributeView(_ arg0: String) -> Boolean
+
+  @JavaMethod
+  open fn getFileStoreAttributeView(_ arg0: JavaClass<FileStoreAttributeView>?) -> FileStoreAttributeView!
+
+  @JavaMethod
+  open fn name() -> String
+
+  @JavaMethod
+  open fn type() -> String
+
+  @JavaMethod
+  open fn isReadOnly() -> Boolean
+
+  @JavaMethod
+  open fn getTotalSpace() throws -> Int64
+
+  @JavaMethod
+  open fn getUsableSpace() throws -> Int64
+
+  @JavaMethod
+  open fn getAttribute(_ arg0: String) throws -> JavaObject!
+}

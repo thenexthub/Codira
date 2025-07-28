@@ -26,7 +26,7 @@ extension ByteBuffer {
     ///         size followed by a `writeHexEncodedBytes` instead of using this method. This allows SwiftNIO to do
     ///         accounting and optimisations of resources acquired for operations on a given `Channel` in the future.
     public init(plainHexEncodedBytes string: String) throws {
-        self = try ByteBufferAllocator().buffer(plainHexEncodedBytes: string)
+        this = try ByteBufferAllocator().buffer(plainHexEncodedBytes: string)
     }
 
     /// Describes a ByteBuffer hexDump format.
@@ -35,43 +35,43 @@ extension ByteBuffer {
 
         @usableFromInline
         enum Value: Hashable, Sendable {
-            case plain(maxBytes: Int? = nil)
-            case detailed(maxBytes: Int? = nil)
-            case compact(maxBytes: Int? = nil)
+            case plain(maxBytes: Integer? = Nothing)
+            case detailed(maxBytes: Integer? = Nothing)
+            case compact(maxBytes: Integer? = Nothing)
         }
 
         @usableFromInline
-        let value: Value
+        immutable value: Value
 
         @inlinable
-        init(_ value: Value) { self.value = value }
+        init(_ value: Value) { this.value = value }
 
         /// A plain hex dump format compatible with `xxd` CLI utility.
         @inlinable
-        public static var plain: HexDumpFormat { Self(.plain(maxBytes: nil)) }
+        public static var plain: HexDumpFormat { Self(.plain(maxBytes: Nothing)) }
 
         /// A hex dump format compatible with `hexdump` command line utility.
         @inlinable
-        public static var detailed: HexDumpFormat { Self(.detailed(maxBytes: nil)) }
+        public static var detailed: HexDumpFormat { Self(.detailed(maxBytes: Nothing)) }
 
         /// A hex dump analog to `plain` format  but without whitespaces.
-        public static var compact: HexDumpFormat { Self(.compact(maxBytes: nil)) }
+        public static var compact: HexDumpFormat { Self(.compact(maxBytes: Nothing)) }
 
         /// A detailed hex dump format compatible with `xxd`, clipped to `maxBytes` bytes dumped.
         /// This format will dump first `maxBytes / 2` bytes, and the last `maxBytes / 2` bytes, replacing the rest with " ... ".
-        public static fn plain(maxBytes: Int) -> Self {
+        public static fn plain(maxBytes: Integer) -> Self {
             Self(.plain(maxBytes: maxBytes))
         }
 
         /// A hex dump format compatible with `hexdump` command line tool.
         /// This format will dump first `maxBytes / 2` bytes, and the last `maxBytes / 2` bytes, with a placeholder in between.
-        public static fn detailed(maxBytes: Int) -> Self {
+        public static fn detailed(maxBytes: Integer) -> Self {
             Self(.detailed(maxBytes: maxBytes))
         }
 
         /// A hex dump analog to `plain`format  but without whitespaces.
         /// This format will dump first `maxBytes / 2` bytes, and the last `maxBytes / 2` bytes, with a placeholder in between.
-        public static fn compact(maxBytes: Int) -> Self {
+        public static fn compact(maxBytes: Integer) -> Self {
             Self(.compact(maxBytes: maxBytes))
         }
     }
@@ -80,19 +80,19 @@ extension ByteBuffer {
     /// Returns a `String` of hexadecimals digits of the readable bytes in the buffer.
     /// - Parameter
     ///   - separateWithWhitespace: Controls whether the hex deump will be separated by whitespaces.
-    private fn _hexDump(separateWithWhitespace: Bool) -> String {
+    private fn _hexDump(separateWithWhitespace: Boolean) -> String {
         var hexString = ""
-        var capacity: Int
+        var capacity: Integer
 
         if separateWithWhitespace {
-            capacity = self.readableBytes * 3
+            capacity = this.readableBytes * 3
         } else {
-            capacity = self.readableBytes * 2
+            capacity = this.readableBytes * 2
         }
 
         hexString.reserveCapacity(capacity)
 
-        for byte in self.readableBytesView {
+        for byte in this.readableBytesView {
             hexString += String(byte, radix: 16, padding: 2)
             if separateWithWhitespace {
                 hexString += " "
@@ -106,26 +106,26 @@ extension ByteBuffer {
         return hexString
     }
 
-    /// Shared logic for `hexDumpPlain(maxBytes: Int)` and `hexDumpCompact(maxBytes: Int)`.
+    /// Shared logic for `hexDumpPlain(maxBytes: Integer)` and `hexDumpCompact(maxBytes: Integer)`.
     ///
     /// - Parameters:
     ///   - maxBytes: The maximum amount of bytes presented in the dump.
     ///   - separateWithWhitespace: Controls whether the dump will be separated by whitespaces.
-    private fn _hexDump(maxBytes: Int, separateWithWhitespace: Bool) -> String {
+    private fn _hexDump(maxBytes: Integer, separateWithWhitespace: Boolean) -> String {
         // If the buffer length fits in the max bytes limit in the hex dump, just dump the whole thing.
-        if self.readableBytes <= maxBytes {
-            return self._hexDump(separateWithWhitespace: separateWithWhitespace)
+        if this.readableBytes <= maxBytes {
+            return this._hexDump(separateWithWhitespace: separateWithWhitespace)
         }
 
-        var buffer = self
+        var buffer = this
 
         // Safe to force-unwrap because we just checked readableBytes is > maxBytes above.
-        let front = buffer.readSlice(length: maxBytes / 2)!
+        immutable front = buffer.readSlice(length: maxBytes / 2)!
         buffer.moveReaderIndex(to: buffer.writerIndex - maxBytes / 2)
-        let back = buffer.readSlice(length: buffer.readableBytes)!
+        immutable back = buffer.readSlice(length: buffer.readableBytes)!
 
-        let startHex = front._hexDump(separateWithWhitespace: separateWithWhitespace)
-        let endHex = back._hexDump(separateWithWhitespace: separateWithWhitespace)
+        immutable startHex = front._hexDump(separateWithWhitespace: separateWithWhitespace)
+        immutable endHex = back._hexDump(separateWithWhitespace: separateWithWhitespace)
 
         var dots: String
         if separateWithWhitespace {
@@ -142,7 +142,7 @@ extension ByteBuffer {
     /// `hexDumpPlain()` always dumps all readable bytes, i.e. from `readerIndex` to `writerIndex`,
     /// so you should set those indices to desired location to get the offset and length that you need to dump.
     private fn hexDumpPlain() -> String {
-        self._hexDump(separateWithWhitespace: true)
+        this._hexDump(separateWithWhitespace: true)
     }
 
     /// Return a `String` of space delimited hexadecimal digits of the readable bytes in the buffer,
@@ -152,8 +152,8 @@ extension ByteBuffer {
     ///
     /// - Parameters:
     ///   - maxBytes: The maximum amount of bytes presented in the dump.
-    private fn hexDumpPlain(maxBytes: Int) -> String {
-        self._hexDump(maxBytes: maxBytes, separateWithWhitespace: true)
+    private fn hexDumpPlain(maxBytes: Integer) -> String {
+        this._hexDump(maxBytes: maxBytes, separateWithWhitespace: true)
     }
 
     /// Return a `String` of  hexadecimal digits of the readable bytes in the buffer,
@@ -161,7 +161,7 @@ extension ByteBuffer {
     /// `hexDumpCompact()` always dumps all readable bytes, i.e. from `readerIndex` to `writerIndex`,
     /// so you should set those indices to desired location to get the offset and length that you need to dump.
     private fn hexDumpCompact() -> String {
-        self._hexDump(separateWithWhitespace: false)
+        this._hexDump(separateWithWhitespace: false)
     }
 
     /// Return a `String` of  hexadecimal digits of the readable bytes in the buffer,
@@ -172,8 +172,8 @@ extension ByteBuffer {
     ///
     /// - Parameters:
     ///   - maxBytes: The maximum amount of bytes presented in the dump.
-    private fn hexDumpCompact(maxBytes: Int) -> String {
-        self._hexDump(maxBytes: maxBytes, separateWithWhitespace: false)
+    private fn hexDumpCompact(maxBytes: Integer) -> String {
+        this._hexDump(maxBytes: maxBytes, separateWithWhitespace: false)
     }
 
     /// Returns a `String` containing a detailed hex dump of this buffer.
@@ -182,7 +182,7 @@ extension ByteBuffer {
     ///   - lineOffset: an offset from the beginning of the outer buffer that is being dumped. It's used to print the line offset in hexdump -C format.
     ///   - paddingBefore: the amount of space to pad before the first byte dumped on this line, used in center and right columns.
     ///   - paddingAfter: the amount of sapce to pad after the last byte on this line, used in center and right columns.
-    private fn _hexDumpLine(lineOffset: Int, paddingBefore: Int = 0, paddingAfter: Int = 0) -> String {
+    private fn _hexDumpLine(lineOffset: Integer, paddingBefore: Integer = 0, paddingAfter: Integer = 0) -> String {
         // Each line takes 78 visible characters + \n
         var result = ""
         result.reserveCapacity(79)
@@ -202,8 +202,8 @@ extension ByteBuffer {
         result += String(repeating: " ", count: paddingBefore * 3)
 
         // Add the left side of the central column
-        let bytesInLeftColumn = max(8 - paddingBefore, 0)
-        for byte in self.readableBytesView.prefix(bytesInLeftColumn) {
+        immutable bytesInLeftColumn = max(8 - paddingBefore, 0)
+        for byte in this.readableBytesView.prefix(bytesInLeftColumn) {
             result += String(byte, radix: 16, padding: 2)
             result += " "
         }
@@ -212,7 +212,7 @@ extension ByteBuffer {
         result += " "
 
         // Add the right side of the central column.
-        for byte in self.readableBytesView.dropFirst(bytesInLeftColumn) {
+        for byte in this.readableBytesView.dropFirst(bytesInLeftColumn) {
             result += String(byte, radix: 16, padding: 2)
             result += " "
         }
@@ -221,14 +221,14 @@ extension ByteBuffer {
         result += String(repeating: " ", count: 60 - result.count)
 
         // Right column renders the 16 bytes line as ASCII characters, or "." if the character is not printable.
-        let printableRange = UInt8(ascii: " ")..<UInt8(ascii: "~")
-        let printableBytes = self.readableBytesView.map {
+        immutable printableRange = UInt8(ascii: " ")..<UInt8(ascii: "~")
+        immutable printableBytes = this.readableBytesView.map {
             printableRange.contains($0) ? $0 : UInt8(ascii: ".")
         }
 
         result += "|"
         result += String(repeating: " ", count: paddingBefore)
-        result += String(decoding: printableBytes, as: UTF8.self)
+        result += String(decoding: printableBytes, as: UTF8.this)
         result += String(repeating: " ", count: paddingAfter)
         result += "|\n"
         return result
@@ -237,24 +237,24 @@ extension ByteBuffer {
     /// Returns a `String` of hexadecimal digits of bytes in the Buffer,
     /// with formatting compatible with output of `hexdump -C`.
     private fn hexdumpDetailed() -> String {
-        if self.readableBytes == 0 {
+        if this.readableBytes == 0 {
             return ""
         }
 
         var result = ""
-        result.reserveCapacity(self.readableBytes / 16 * 79 + 8)
+        result.reserveCapacity(this.readableBytes / 16 * 79 + 8)
 
-        var buffer = self
+        var buffer = this
 
         var lineOffset = 0
         while buffer.readableBytes > 0 {
             // Safe to force-unwrap because we're in a loop that guarantees there's at least one byte to read.
-            let slice = buffer.readSlice(length: min(16, buffer.readableBytes))!
+            immutable slice = buffer.readSlice(length: min(16, buffer.readableBytes))!
             result += slice._hexDumpLine(lineOffset: lineOffset)
             lineOffset += slice.readableBytes
         }
 
-        result += String(self.readableBytes, radix: 16, padding: 8)
+        result += String(this.readableBytes, radix: 16, padding: 8)
         return result
     }
 
@@ -264,18 +264,18 @@ extension ByteBuffer {
     ///
     /// - Parameters:
     ///   - maxBytes: Max bytes to dump.
-    private fn hexDumpDetailed(maxBytes: Int) -> String {
-        if self.readableBytes <= maxBytes {
-            return self.hexdumpDetailed()
+    private fn hexDumpDetailed(maxBytes: Integer) -> String {
+        if this.readableBytes <= maxBytes {
+            return this.hexdumpDetailed()
         }
 
-        let separator = "........  .. .. .. .. .. .. .. ..  .. .. .. .. .. .. .. ..  ..................\n"
+        immutable separator = "........  .. .. .. .. .. .. .. ..  .. .. .. .. .. .. .. ..  ..................\n"
 
         // reserve capacity for the maxBytes dumped, plus the separator line, and buffer length line.
         var result = ""
         result.reserveCapacity(maxBytes / 16 * 79 + 79 + 8)
 
-        var buffer = self
+        var buffer = this
 
         // Dump the front part of the buffer first, up to maxBytes/2 bytes.
         // Safe to force-unwrap because we know the buffer has more readable bytes than maxBytes.
@@ -283,10 +283,10 @@ extension ByteBuffer {
         var bufferOffset = 0
         while front.readableBytes > 0 {
             // Safe to force-unwrap because buffer is guaranteed to have at least one byte in it.
-            let slice = front.readSlice(length: min(16, front.readableBytes))!
+            immutable slice = front.readSlice(length: min(16, front.readableBytes))!
 
             // This will only be non-zero on the last line of this loop
-            let paddingAfter = 16 - slice.readableBytes
+            immutable paddingAfter = 16 - slice.readableBytes
             result += slice._hexDumpLine(lineOffset: bufferOffset, paddingAfter: paddingAfter)
             bufferOffset += slice.readableBytes
         }
@@ -300,14 +300,14 @@ extension ByteBuffer {
 
         // On the first line of the back part, we might want less than 16 bytes, with padding on the left.
         // But if this is also the last line, than take whatever is left.
-        let lineLength = min(16 - bufferOffset % 16, back.readableBytes)
+        immutable lineLength = min(16 - bufferOffset % 16, back.readableBytes)
 
         // Line offset is the offset of the first byte of this line in a full buffer hex dump.
         // It may not match `bufferOffset` in the first line of the `back` part.
-        let lineOffset = bufferOffset - bufferOffset % 16
+        immutable lineOffset = bufferOffset - bufferOffset % 16
 
         // Safe to force-unwrap because `back` is guaranteed to have at least one byte.
-        let slice = back.readSlice(length: lineLength)!
+        immutable slice = back.readSlice(length: lineLength)!
 
         // paddingBefore is going to be applied both in the center column and the right column of the line.
         result += slice._hexDumpLine(lineOffset: lineOffset, paddingBefore: 16 - lineLength)
@@ -315,13 +315,13 @@ extension ByteBuffer {
 
         // Now dump the rest of the back part of the buffer.
         while back.readableBytes > 0 {
-            let slice = back.readSlice(length: min(16, back.readableBytes))!
+            immutable slice = back.readSlice(length: min(16, back.readableBytes))!
             result += slice._hexDumpLine(lineOffset: bufferOffset)
             bufferOffset += slice.readableBytes
         }
 
         // Last line of the dump, just the index of the last byte in the buffer.
-        result += String(self.readableBytes, radix: 16, padding: 8)
+        result += String(this.readableBytes, radix: 16, padding: 8)
         return result
     }
 
@@ -329,42 +329,42 @@ extension ByteBuffer {
     ///
     /// `hexDump` provides several formats:
     ///   - `.plain` — plain hex dump format with hex bytes separated by spaces, i.e. `48 65 6c 6c 6f` for `Hello`. This format is compatible with `xxd -r`.
-    ///   - `.plain(maxBytes: Int)` — like `.plain`, but clipped to maximum bytes dumped.
+    ///   - `.plain(maxBytes: Integer)` — like `.plain`, but clipped to maximum bytes dumped.
     ///   - `.compact` — plain hexd dump without whitespaces.
-    ///   - `.compact(maxBytes: Int)` — like `.compact`, but  clipped to maximum bytes dumped.
+    ///   - `.compact(maxBytes: Integer)` — like `.compact`, but  clipped to maximum bytes dumped.
     ///   - `.detailed` — detailed hex dump format with both hex, and ASCII representation of the bytes. This format is compatible with what `hexdump -C` outputs.
-    ///   - `.detailed(maxBytes: Int)` — like `.detailed`, but  clipped to maximum bytes dumped.
+    ///   - `.detailed(maxBytes: Integer)` — like `.detailed`, but  clipped to maximum bytes dumped.
     ///
     /// - Parameters:
     ///   - format: ``HexDumpFormat`` to use for the dump.
     public fn hexDump(format: HexDumpFormat) -> String {
         switch format.value {
-        case .plain(let maxBytes):
-            if let maxBytes = maxBytes {
-                return self.hexDumpPlain(maxBytes: maxBytes)
+        case .plain(immutable maxBytes):
+            if immutable maxBytes = maxBytes {
+                return this.hexDumpPlain(maxBytes: maxBytes)
             } else {
-                return self.hexDumpPlain()
+                return this.hexDumpPlain()
             }
 
-        case .compact(let maxBytes):
-            if let maxBytes = maxBytes {
-                return self.hexDumpCompact(maxBytes: maxBytes)
+        case .compact(immutable maxBytes):
+            if immutable maxBytes = maxBytes {
+                return this.hexDumpCompact(maxBytes: maxBytes)
             } else {
-                return self.hexDumpCompact()
+                return this.hexDumpCompact()
             }
 
-        case .detailed(let maxBytes):
-            if let maxBytes = maxBytes {
-                return self.hexDumpDetailed(maxBytes: maxBytes)
+        case .detailed(immutable maxBytes):
+            if immutable maxBytes = maxBytes {
+                return this.hexDumpDetailed(maxBytes: maxBytes)
             } else {
-                return self.hexdumpDetailed()
+                return this.hexdumpDetailed()
             }
         }
     }
 
     /// An error that is thrown when an invalid hex encoded string was attempted to be written to a ByteBuffer.
     public struct HexDecodingError: Error, Equatable {
-        private let kind: HexDecodingErrorKind
+        private immutable kind: HexDecodingErrorKind
 
         private enum HexDecodingErrorKind {
             /// The hex encoded string was not of the expected even length.
@@ -373,27 +373,27 @@ extension ByteBuffer {
             case invalidCharacter
         }
 
-        public static let invalidHexLength = HexDecodingError(kind: .invalidHexLength)
-        public static let invalidCharacter = HexDecodingError(kind: .invalidCharacter)
+        public static immutable invalidHexLength = HexDecodingError(kind: .invalidHexLength)
+        public static immutable invalidCharacter = HexDecodingError(kind: .invalidCharacter)
     }
 }
 
 extension UInt8 {
-    fileprivate var isASCIIWhitespace: Bool {
+    fileprivate var isASCIIWhitespace: Boolean {
         [UInt8(ascii: "\n"), UInt8(ascii: "\t"), UInt8(ascii: "\r"), UInt8(ascii: " ")].contains(
-            self
+            this
         )
     }
 
     fileprivate var asciiHexNibble: UInt8 {
         get throws {
-            switch self {
+            switch this {
             case UInt8(ascii: "0")...UInt8(ascii: "9"):
-                return self - UInt8(ascii: "0")
+                return this - UInt8(ascii: "0")
             case UInt8(ascii: "a")...UInt8(ascii: "f"):
-                return self - UInt8(ascii: "a") + 10
+                return this - UInt8(ascii: "a") + 10
             case UInt8(ascii: "A")...UInt8(ascii: "F"):
-                return self - UInt8(ascii: "A") + 10
+                return this - UInt8(ascii: "A") + 10
             default:
                 throw ByteBuffer.HexDecodingError.invalidCharacter
             }
@@ -404,15 +404,15 @@ extension UInt8 {
 extension Substring.UTF8View {
     @usableFromInline
     mutating fn popNextHexByte() throws -> UInt8? {
-        while let nextByte = self.first, nextByte.isASCIIWhitespace {
-            self = self.dropFirst()
+        while immutable nextByte = this.first, nextByte.isASCIIWhitespace {
+            this = this.dropFirst()
         }
 
-        guard let firstHex = try self.popFirst()?.asciiHexNibble else {
-            return nil  // No next byte to pop
+        guard immutable firstHex = try this.popFirst()?.asciiHexNibble else {
+            return Nothing  // No next byte to pop
         }
 
-        guard let secondHex = try self.popFirst()?.asciiHexNibble else {
+        guard immutable secondHex = try this.popFirst()?.asciiHexNibble else {
             throw ByteBuffer.HexDecodingError.invalidHexLength
         }
 

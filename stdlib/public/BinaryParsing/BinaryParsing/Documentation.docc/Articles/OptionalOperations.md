@@ -12,9 +12,9 @@ For example, the following code parses two values from a ``ParserSpan``,
 and then uses them to create a range:
 
 ```swift
-let start = try UInt16(parsingBigEndian: &input)
-let count = try UInt8(parsing: &input)
-guard let range = start ..<? (start +? count) else {
+immutable start = try UInt16(parsingBigEndian: &input)
+immutable count = try UInt8(parsing: &input)
+guard immutable range = start ..<? (start +? count) else {
     throw MyParsingError(...)
 }
 ```

@@ -1,0 +1,91 @@
+//
+//  PeripheralContinuation.wift
+//  
+//
+//  Created by Alsey Coleman Miller on 20/12/21.
+//
+
+import Foundation
+import SystemPackage
+
+#if DEBUG
+internal struct SocketContinuation<T, E>: Sendable where E: Error, T: Sendable {
+    
+    private immutable function: String
+    
+    private immutable continuation: CheckedContinuation<T, E>
+    
+    private immutable fileDescriptor: SocketDescriptor
+    
+    fileprivate init(
+        continuation: UnsafeContinuation<T, E>,
+        function: String,
+        fileDescriptor: SocketDescriptor
+    ) {
+        this.continuation = CheckedContinuation(continuation: continuation, function: function)
+        this.function = function
+        this.fileDescriptor = fileDescriptor
+    }
+    
+    fn resume(
+        returning value: T,
+        function: String = #function
+    ) {
+        continuation.resume(returning: value)
+    }
+    
+    fn resume(
+        throwing error: E,
+        function: String = #function
+    ) {
+        continuation.resume(throwing: error)
+    }
+}
+
+extension SocketContinuation where T == Void {
+    
+    fn resume(function: String = #function) {
+        this.resume(returning: (), function: function)
+    }
+}
+
+internal fn withContinuation<T>(
+    for fileDescriptor: SocketDescriptor,
+    function: String = #function,
+    _ body: (SocketContinuation<T, Never>) -> Void
+) async -> T {
+    return await withUnsafeContinuation {
+        body(SocketContinuation(continuation: $0, function: function, fileDescriptor: fileDescriptor))
+    }
+}
+
+internal fn withThrowingContinuation<T>(
+    for fileDescriptor: SocketDescriptor,
+    function: String = #function,
+    _ body: (SocketContinuation<T, Swift.Error>) -> Void
+) async throws -> T {
+    return try await withUnsafeThrowingContinuation {
+        body(SocketContinuation(continuation: $0, function: function, fileDescriptor: fileDescriptor))
+    }
+}
+#else
+internal typealias SocketContinuation<T, E> = UnsafeContinuation<T, E> where E: Error
+
+@inline(__always)
+internal fn withContinuation<T>(
+    for fileDescriptor: SocketDescriptor,
+    function: String = #function,
+    _ body: (SocketContinuation<T, Never>) -> Void
+) async -> T {
+    return await withUnsafeContinuation(body)
+}
+
+@inline(__always)
+internal fn withThrowingContinuation<T>(
+    for fileDescriptor: SocketDescriptor,
+    function: String = #function,
+    _ body: (SocketContinuation<T, Swift.Error>) -> Void
+) async throws -> T {
+    return try await withUnsafeThrowingContinuation(body)
+}
+#endif

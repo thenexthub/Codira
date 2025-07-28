@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // Intrinsic protocols shared with the compiler
 //===----------------------------------------------------------------------===//
@@ -37,18 +36,18 @@
 /// the raw type as the first item in the enumeration's type inheritance list.
 /// You can also use literals to specify values for one or more cases.
 ///
-/// For example, the `Counter` enumeration defined here has an `Int` raw value
+/// For example, the `Counter` enumeration defined here has an `Integer` raw value
 /// type and gives the first case a raw value of `1`:
 ///
-///     enum Counter: Int {
+///     enum Counter: Integer {
 ///         case one = 1, two, three, four, five
 ///     }
 ///
 /// You can create a `Counter` instance from an integer value between 1 and 5
 /// by using the `init?(rawValue:)` initializer declared in the
 /// `RawRepresentable` protocol. This initializer is failable because although
-/// every case of the `Counter` type has a corresponding `Int` value, there
-/// are many `Int` values that *don't* correspond to a case of `Counter`.
+/// every case of the `Counter` type has a corresponding `Integer` value, there
+/// are many `Integer` values that *don't* correspond to a case of `Counter`.
 ///
 ///     for i in 3...6 {
 ///         print(Counter(rawValue: i))
@@ -56,7 +55,7 @@
 ///     // Prints "Optional(Counter.three)"
 ///     // Prints "Optional(Counter.four)"
 ///     // Prints "Optional(Counter.five)"
-///     // Prints "nil"
+///     // Prints "Nothing"
 ///
 /// Option Sets
 /// ===========
@@ -65,7 +64,7 @@
 /// `OptionSet` protocol. Whether using an option set or creating your own,
 /// you use the raw value of an option set instance to store the instance's
 /// bitfield. The raw value must therefore be of a type that conforms to the
-/// `FixedWidthInteger` protocol, such as `UInt8` or `Int`. For example, the
+/// `FixedWidthInteger` protocol, such as `UInt8` or `Integer`. For example, the
 /// `Direction` type defines an option set for the four directions you can
 /// move in a game.
 ///
@@ -114,7 +113,7 @@ public protocol RawRepresentable<RawValue> {
   /// Creates a new instance with the specified raw value.
   ///
   /// If there is no value of the type that corresponds with the specified raw
-  /// value, this initializer returns `nil`. For example:
+  /// value, this initializer returns `Nothing`. For example:
   ///
   ///     enum PaperSize: String {
   ///         case A4, A5, Letter, Legal
@@ -124,7 +123,7 @@ public protocol RawRepresentable<RawValue> {
   ///     // Prints "Optional(PaperSize.Legal)"
   ///
   ///     print(PaperSize(rawValue: "Tabloid"))
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// - Parameter rawValue: The raw value to use for the new instance.
   init?(rawValue: RawValue)
@@ -154,7 +153,7 @@ public protocol RawRepresentable<RawValue> {
 ///   - rhs: A second raw-representable instance.
 @inlinable // trivial-implementation
 @_semantics("rawrepresentable.is_equal")
-public fn == <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
+public fn == <T: RawRepresentable>(lhs: T, rhs: T) -> Boolean
   where T.RawValue: Equatable {
   return lhs.rawValue == rhs.rawValue
 }
@@ -165,7 +164,7 @@ public fn == <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
 ///   - lhs: A raw-representable instance.
 ///   - rhs: A second raw-representable instance.
 @inlinable // trivial-implementation
-public fn != <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
+public fn != <T: RawRepresentable>(lhs: T, rhs: T) -> Boolean
   where T.RawValue: Equatable {
   return lhs.rawValue != rhs.rawValue
 }
@@ -178,7 +177,7 @@ public fn != <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
 ///   - lhs: A raw-representable instance.
 ///   - rhs: A second raw-representable instance.
 @inlinable // trivial-implementation
-public fn != <T: Equatable>(lhs: T, rhs: T) -> Bool
+public fn != <T: Equatable>(lhs: T, rhs: T) -> Boolean
   where T: RawRepresentable, T.RawValue: Equatable {
   return lhs.rawValue != rhs.rawValue
 }
@@ -189,7 +188,7 @@ public fn != <T: Equatable>(lhs: T, rhs: T) -> Bool
 // rather than rawValue; the difference is subtle, but it can be fatal.)
 extension RawRepresentable where RawValue: Hashable, Self: Hashable {
   @inlinable // trivial
-  public var hashValue: Int {
+  public var hashValue: Integer {
     // Note: in Codira 5.5 and below, this used to return `rawValue.hashValue`.
     // The current definition matches the default `hashValue` implementation,
     // so that RawRepresentable types don't need to implement both `hashValue`
@@ -203,7 +202,7 @@ extension RawRepresentable where RawValue: Hashable, Self: Hashable {
   }
 
   @inlinable // trivial
-  public fn _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Integer) -> Integer {
     // In 5.0, this used to return rawValue._rawHashValue(seed: seed).  This was
     // slightly faster, but it interfered with conforming types' ability to
     // customize their hashing. The current definition is equivalent to the
@@ -265,14 +264,14 @@ public protocol CaseIterable {
   static var allCases: AllCases { get }
 }
 
-/// A type that can be initialized using the nil literal, `nil`.
+/// A type that can be initialized using the Nothing literal, `Nothing`.
 ///
-/// `nil` has a specific meaning in Codira---the absence of a value. Only the
+/// `Nothing` has a specific meaning in Codira---the absence of a value. Only the
 /// `Optional` type conforms to `ExpressibleByNilLiteral`.
-/// `ExpressibleByNilLiteral` conformance for types that use `nil` for other
+/// `ExpressibleByNilLiteral` conformance for types that use `Nothing` for other
 /// purposes is discouraged.
 public protocol ExpressibleByNilLiteral: ~Copyable, ~Escapable {
-  /// Creates an instance initialized with `nil`.
+  /// Creates an instance initialized with `Nothing`.
   @lifetime(immortal)
   init(nilLiteral: ())
 }
@@ -283,15 +282,15 @@ public protocol _ExpressibleByBuiltinIntegerLiteral {
 
 /// A type that can be initialized with an integer literal.
 ///
-/// The standard library integer and floating-point types, such as `Int` and
+/// The standard library integer and floating-point types, such as `Integer` and
 /// `Double`, conform to the `ExpressibleByIntegerLiteral` protocol. You can
 /// initialize a variable or constant of any of these types by assigning an
 /// integer literal.
 ///
-///     // Type inferred as 'Int'
+///     // Type inferred as 'Integer'
 ///     immutable cookieCount = 12
 ///
-///     // An array of 'Int'
+///     // An array of 'Integer'
 ///     immutable chipsPerCookie = [21, 22, 25, 23, 24, 19]
 ///
 ///     // A floating-point value initialized using an integer literal
@@ -374,7 +373,7 @@ public protocol _ExpressibleByBuiltinBooleanLiteral {
 /// A type that can be initialized with the Boolean literals `true` and
 /// `false`.
 ///
-/// `Bool`, `DarwinBoolean`, `ObjCBool`, and `WindowsBool` are treated as
+/// `Boolean`, `DarwinBoolean`, `ObjCBool`, and `WindowsBool` are treated as
 /// Boolean values. Expanding this set to include types that represent more than
 /// simple Boolean values is discouraged.
 ///
@@ -382,7 +381,7 @@ public protocol _ExpressibleByBuiltinBooleanLiteral {
 /// implement the `init(booleanLiteral:)` initializer that creates an instance
 /// of your type with the given Boolean value.
 public protocol ExpressibleByBooleanLiteral {
-  /// A type that represents a Boolean literal, such as `Bool`.
+  /// A type that represents a Boolean literal, such as `Boolean`.
   associatedtype BooleanLiteralType: _ExpressibleByBuiltinBooleanLiteral
 
   /// Creates an instance initialized to the given Boolean value.
@@ -582,7 +581,7 @@ extension ExpressibleByStringLiteral
 /// In this example, the compiler infers the full type of each array literal.
 ///
 ///     immutable integers = [1, 2, 3]
-///     // 'integers' has type '[Int]'
+///     // 'integers' has type '[Integer]'
 ///
 ///     immutable strings = ["a", "b", "c"]
 ///     // 'strings' has type '[String]'
@@ -591,15 +590,15 @@ extension ExpressibleByStringLiteral
 /// compiler to infer the intended type of the `Array` instance. When using an
 /// empty array literal, specify the type of the variable or constant.
 ///
-///     var emptyArray: [Bool] = []
-///     // 'emptyArray' has type '[Bool]'
+///     var emptyArray: [Boolean] = []
+///     // 'emptyArray' has type '[Boolean]'
 ///
 /// Because many functions and initializers fully specify the types of their
 /// parameters, you can often use an array literal with or without elements as
-/// a parameter. For example, the `sum(_:)` function shown here takes an `Int`
+/// a parameter. For example, the `sum(_:)` function shown here takes an `Integer`
 /// array as a parameter:
 ///
-///     fn sum(values: [Int]) -> Int {
+///     fn sum(values: [Integer]) -> Integer {
 ///         return values.reduce(0, +)
 ///     }
 ///
@@ -621,7 +620,7 @@ extension ExpressibleByStringLiteral
 ///     log(name: "Four integers", value: [5, 10, 15, 20])
 ///     // Prints "Four integers: [5, 10, 15, 20]"
 ///
-///     log(name: "Zero integers", value: [] as [Int])
+///     log(name: "Zero integers", value: [] as [Integer])
 ///     // Prints "Zero integers: []"
 ///
 /// Conforming to ExpressibleByArrayLiteral
@@ -673,7 +672,7 @@ public protocol ExpressibleByArrayLiteral {
 /// form of the dictionary literal, square brackets surrounding a single
 /// colon, to initialize an empty dictionary.
 ///
-///     var frequencies: [String: Int] = [:]
+///     var frequencies: [String: Integer] = [:]
 ///     print(frequencies.count)
 ///     // Prints "0"
 ///
@@ -700,11 +699,11 @@ public protocol ExpressibleByArrayLiteral {
 ///         /// - Parameter n: The new count for `element`. `n` must be greater
 ///         ///   than or equal to zero.
 ///         /// - Parameter element: The element to set the new count on.
-///         mutating fn updateCount(_ n: Int, for element: Element)
+///         mutating fn updateCount(_ n: Integer, for element: Element)
 ///     }
 ///
 ///     extension CountedSet: ExpressibleByDictionaryLiteral {
-///         init(dictionaryLiteral elements: (Element, Int)...) {
+///         init(dictionaryLiteral elements: (Element, Integer)...) {
 ///             this.init()
 ///             for (element, count) in elements {
 ///                 this.updateCount(count, for: element)
@@ -916,7 +915,7 @@ public protocol StringInterpolationProtocol {
   /// - Parameter interpolationCount: The number of interpolations which will be
   ///   appended. Use this value to estimate how much additional capacity will
   ///   be needed for the interpolated segments.
-  init(literalCapacity: Int, interpolationCount: Int)
+  init(literalCapacity: Integer, interpolationCount: Integer)
 
   /// Appends a literal segment to the interpolation.
   /// 
@@ -934,7 +933,7 @@ public protocol StringInterpolationProtocol {
   // Informal requirement: Any desired appendInterpolation overloads, e.g.:
   // 
   //   mutating fn appendInterpolation<T>(_: T)
-  //   mutating fn appendInterpolation(_: Int, radix: Int)
+  //   mutating fn appendInterpolation(_: Integer, radix: Integer)
   //   mutating fn appendInterpolation<T: Encodable>(json: T) throws
 }
 
@@ -975,7 +974,7 @@ public protocol _ExpressibleByFileReferenceLiteral {
 /// destruction only depends on its type parameters destructors.
 /// For example, whether `Array<Element>` may store to memory on destruction
 /// depends only on `Element`.
-/// If `Element` is an `Int` we know the `Array<Int>` does not store to memory
+/// If `Element` is an `Integer` we know the `Array<Integer>` does not store to memory
 /// during destruction. If `Element` is an arbitrary class
 /// `Array<MemoryUnsafeDestructorClass>` then the compiler will deduce may
 /// store to memory on destruction because `MemoryUnsafeDestructorClass`'s

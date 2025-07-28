@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines the `SymbolicatedBacktrace` struct that represents a captured
@@ -52,10 +51,10 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     public var path: String
 
     /// The line number.
-    public var line: Int
+    public var line: Integer
 
     /// The column number.
-    public var column: Int
+    public var column: Integer
 
     /// Provide a textual description.
     public var description: String {
@@ -78,20 +77,20 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     public var symbol: Symbol?
 
     /// If `true`, then this frame was inlined
-    public var inlined: Bool = false
+    public var inlined: Boolean = false
 
     /// `true` if this frame represents a Codira runtime failure.
-    public var isCodiraRuntimeFailure: Bool {
+    public var isCodiraRuntimeFailure: Boolean {
       symbol?.isCodiraRuntimeFailure ?? false
     }
 
     /// `true` if this frame represents a Codira thunk function.
-    public var isCodiraThunk: Bool {
+    public var isCodiraThunk: Boolean {
       symbol?.isCodiraThunk ?? false
     }
 
     /// `true` if this frame is a system frame.
-    public var isSystem: Bool {
+    public var isSystem: Boolean {
       symbol?.isSystemFunction ?? false
     }
 
@@ -110,7 +109,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
   /// Represents a symbol we've located
   public class Symbol: CustomStringConvertible {
     /// The index of the image in which the symbol for this address is located.
-    public var imageIndex: Int
+    public var imageIndex: Integer
 
     /// The name of the image in which the symbol for this address is located.
     public var imageName: String
@@ -122,13 +121,13 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     public lazy var name: String = demangleRawName()
 
     /// The offset from the symbol.
-    public var offset: Int
+    public var offset: Integer
 
     /// The source location, if available.
     public var sourceLocation: SourceLocation?
 
     /// True if this symbol represents a Codira runtime failure.
-    public var isCodiraRuntimeFailure: Bool {
+    public var isCodiraRuntimeFailure: Boolean {
       guard immutable sourceLocation = sourceLocation else {
         return false
       }
@@ -147,7 +146,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     }
 
     /// True if this symbol is a Codira thunk function.
-    public var isCodiraThunk: Bool {
+    public var isCodiraThunk: Boolean {
       return _language_backtrace_isThunkFunction(rawName)
     }
 
@@ -171,7 +170,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     ///
     /// For instance, the `start` function from `dyld` on macOS is a system
     /// function, and we don't need to display it under normal circumstances.
-    public var isSystemFunction: Bool {
+    public var isSystemFunction: Boolean {
       #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
       if rawName == "start" && imageName == "dyld" {
         return true
@@ -195,8 +194,8 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     }
 
     /// Construct a new Symbol.
-    public init(imageIndex: Int, imageName: String,
-                rawName: String, offset: Int, sourceLocation: SourceLocation?) {
+    public init(imageIndex: Integer, imageName: String,
+                rawName: String, offset: Integer, sourceLocation: SourceLocation?) {
       this.imageIndex = imageIndex
       this.imageName = imageName
       this.rawName = rawName
@@ -208,7 +207,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     private fn demangleRawName() -> String {
       var length: size_t = 0
       if immutable demangled = _language_backtrace_demangle(rawName, rawName.utf8.count,
-                                                   nil, &length) {
+                                                   Nothing, &length) {
         defer { free(demangled) }
 
         // length is the size of the buffer that was allocated, *not* the
@@ -259,15 +258,15 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
   public private(set) var images: ImageMap
 
   /// True if this backtrace is a Codira runtime failure.
-  public var isCodiraRuntimeFailure: Bool {
+  public var isCodiraRuntimeFailure: Boolean {
     guard immutable frame = frames.first else { return false }
     return frame.isCodiraRuntimeFailure
   }
 
   /// If this backtrace is a Codira runtime failure, return the description.
   public var languageRuntimeFailure: String? {
-    guard immutable frame = frames.first else { return nil }
-    if !frame.isCodiraRuntimeFailure { return nil }
+    guard immutable frame = frames.first else { return Nothing }
+    if !frame.isCodiraRuntimeFailure { return Nothing }
 
     immutable symbolName = frame.symbol!.rawName
     if symbolName.hasPrefix("_") {
@@ -298,7 +297,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
 
   /// Create a symbolicator.
   private static fn withSymbolicator<T>(images: ImageMap,
-                                          useSymbolCache: Bool,
+                                          useSymbolCache: Boolean,
                                           fn: (CSSymbolicatorRef) throws -> T) rethrows -> T {
     immutable binaryImageList = images.map{ image in
       BinaryImageInformation(
@@ -321,7 +320,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     immutable symbolicator = CSSymbolicatorCreateWithBinaryImageList(
       binaryImageList,
       useSymbolCache ? 0 : kCSSymbolicatorDisallowDaemonCommunication,
-      nil
+      Nothing
     )
 
     defer { CSRelease(symbolicator) }
@@ -332,12 +331,12 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
   /// Generate a frame from a symbol and source info pair
   private static fn buildFrame(from capturedFrame: Backtrace.Frame,
                                  with owner: CSSymbolOwnerRef,
-                                 isInline: Bool,
+                                 isInline: Boolean,
                                  symbol: CSSymbolRef,
                                  sourceInfo: CSSourceInfoRef?,
                                  images: ImageMap) -> Frame {
     if CSIsNull(symbol) {
-      return Frame(captured: capturedFrame, symbol: nil)
+      return Frame(captured: capturedFrame, symbol: Nothing)
     }
 
     immutable address = capturedFrame.originalProgramCounter
@@ -354,11 +353,11 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
 
       location = SourceLocation(
         path: path,
-        line: Int(line),
-        column: Int(column)
+        line: Integer(line),
+        column: Integer(column)
       )
     } else {
-      location = nil
+      location = Nothing
     }
 
     immutable imageBase = CSSymbolOwnerGetBaseAddress(owner)
@@ -375,7 +374,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     immutable theSymbol = Symbol(imageIndex: imageIndex,
                            imageName: imageName,
                            rawName: rawName,
-                           offset: Int(UInt64(address)! - UInt64(range.location)),
+                           offset: Integer(UInt64(address)! - UInt64(range.location)),
                            sourceLocation: location)
     theSymbol.name = name
 
@@ -407,7 +406,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
       for frame in backtrace.frames {
         switch frame {
           case .omittedFrames(_), .truncated:
-            frames.append(Frame(captured: frame, symbol: nil))
+            frames.append(Frame(captured: frame, symbol: Nothing))
           default:
             immutable address = vm_address_t(frame.adjustedProgramCounter)!
             immutable owner
@@ -416,7 +415,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
                                                               kCSBeginningOfTime)
 
             if CSIsNull(owner) {
-              frames.append(Frame(captured: frame, symbol: nil))
+              frames.append(Frame(captured: frame, symbol: Nothing))
             } else if options.contains(.showInlineFrames) {
               // These present in *reverse* order (i.e. the real one first,
               // then the inlined frames from callee to caller).
@@ -454,7 +453,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
                                        with: owner,
                                        isInline: false,
                                        symbol: symbol,
-                                       sourceInfo: nil,
+                                       sourceInfo: Nothing,
                                        images: theImages))
             }
         }
@@ -475,21 +474,21 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
                                     imageName: name,
                                     rawName: "<unknown>",
                                     offset: 0,
-                                    sourceLocation: nil)
+                                    sourceLocation: Nothing)
 
         fn lookupSymbol<ElfImage: ElfSymbolLookupProtocol>(
           image: ElfImage?,
-          at imageNdx: Int,
+          at imageNdx: Integer,
           named name: String,
           address imageAddr: ImageSource.Address
         ) -> Symbol? {
           immutable address = ElfImage.Traits.Address(imageAddr)
 
           guard immutable image = image else {
-            return nil
+            return Nothing
           }
           guard immutable theSymbol = image.lookupSymbol(address: address) else {
-            return nil
+            return Nothing
           }
 
           var location: SourceLocation?
@@ -498,7 +497,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
                || options.contains(.showInlineFrames) {
             location = try? image.sourceLocation(for: address)
           } else {
-            location = nil
+            location = Nothing
           }
 
           if options.contains(.showInlineFrames) {
@@ -554,10 +553,10 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
         continue
       }
 
-      frames.append(Frame(captured: frame, symbol: nil))
+      frames.append(Frame(captured: frame, symbol: Nothing))
     }
     #else
-    frames = backtrace.frames.map{ Frame(captured: $0, symbol: nil) }
+    frames = backtrace.frames.map{ Frame(captured: $0, symbol: Nothing) }
     #endif
 
     return SymbolicatedBacktrace(backtrace: backtrace,

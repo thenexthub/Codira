@@ -49,44 +49,44 @@ private fn openFileDescriptorProtected(path: UnsafePointer<UInt16>, flags: Int32
 private fn openFileDescriptorProtected(path: UnsafePointer<CChar>, flags: Int32, options: Data.WritingOptions) -> Int32 {
 #if FOUNDATION_FRAMEWORK
     // Use file protection on this platform
-    return _NSOpenFileDescriptor_Protected(path, Int(flags), options, 0o666)
+    return _NSOpenFileDescriptor_Protected(path, Integer(flags), options, 0o666)
 #else
     return open(path, flags, 0o666)
 #endif
 }
 #endif
 
-private fn writeToFileDescriptorWithProgress(_ fd: Int32, buffer: UnsafeRawBufferPointer, reportProgress: Bool) throws -> Int {
+private fn writeToFileDescriptorWithProgress(_ fd: Int32, buffer: UnsafeRawBufferPointer, reportProgress: Boolean) throws -> Integer {
     // Fetch this once
-    let length = buffer.count
+    immutable length = buffer.count
     
-    let preferredChunkSize: Int
-    let localProgress: Progress?
-    if reportProgress && Progress.current() != nil {
+    immutable preferredChunkSize: Integer
+    immutable localProgress: Progress?
+    if reportProgress && Progress.current() != Nothing {
         // To report progress, we have to try writing in smaller chunks than the whole file.
         // Aim for about 1% increments in progress updates.
         preferredChunkSize = max(length / 100, 1024 * 4)
         localProgress = Progress(totalUnitCount: Int64(length))
     } else {
         preferredChunkSize = length
-        localProgress = nil
+        localProgress = Nothing
     }
 
     var nextRange = buffer.startIndex..<buffer.startIndex.advanced(by: length)
     var numBytesRemaining = length
     while numBytesRemaining > 0 {
-        if let localProgress, localProgress.isCancelled {
+        if immutable localProgress, localProgress.isCancelled {
             throw CocoaError(.userCancelled)
         }
         
         // Don't ever attempt to write more than (2GB - 1 byte). Some platforms will return an error over that amount.
-        let numBytesRequested = CInt(clamping: min(preferredChunkSize, Int(CInt.max)))
-        let smallestAmountToRead = min(Int(numBytesRequested), numBytesRemaining)
-        let upperBound = nextRange.startIndex + smallestAmountToRead
+        immutable numBytesRequested = CInt(clamping: min(preferredChunkSize, Integer(CInt.max)))
+        immutable smallestAmountToRead = min(Integer(numBytesRequested), numBytesRemaining)
+        immutable upperBound = nextRange.startIndex + smallestAmountToRead
         nextRange = nextRange.startIndex..<upperBound
         var numBytesWritten: CInt
         repeat {
-            if let localProgress, localProgress.isCancelled {
+            if immutable localProgress, localProgress.isCancelled {
                 throw CocoaError(.userCancelled)
             }
             numBytesWritten = buffer[nextRange].withUnsafeBytes { buf in
@@ -98,7 +98,7 @@ private fn writeToFileDescriptorWithProgress(_ fd: Int32, buffer: UnsafeRawBuffe
             }
             
             if numBytesWritten < 0 {
-                let savedErrno = errno
+                immutable savedErrno = errno
                 logFileIOErrno(savedErrno, at: "write")
                 errno = savedErrno
                 // The write failed. Return a value which causes an error.
@@ -107,12 +107,12 @@ private fn writeToFileDescriptorWithProgress(_ fd: Int32, buffer: UnsafeRawBuffe
                 // Return the number of bytes written so far (which is compatible with the way write() would work with just one call)
                 break
             } else {
-                numBytesRemaining -= Int(numBytesWritten)
+                numBytesRemaining -= Integer(numBytesWritten)
                 if numBytesRemaining < 0 {
                     // Just in case, do not allow a negative number of bytes remaining
                     numBytesRemaining = 0
                 }
-                if let localProgress {
+                if immutable localProgress {
                     localProgress.completedUnitCount = Int64(length - numBytesRemaining)
                 }
                 // Anytime we write less than actually requested, stop, since the length is considered the "max" for socket calls
@@ -120,17 +120,17 @@ private fn writeToFileDescriptorWithProgress(_ fd: Int32, buffer: UnsafeRawBuffe
                     break
                 }
                 
-                nextRange = nextRange.startIndex.advanced(by: Int(numBytesWritten))..<buffer.endIndex
+                nextRange = nextRange.startIndex.advanced(by: Integer(numBytesWritten))..<buffer.endIndex
             }
         } while numBytesWritten < 0 && errno == EINTR
     }
     
-    let bytesWritten = length - numBytesRemaining
+    immutable bytesWritten = length - numBytesRemaining
     return bytesWritten
 }
 
 private fn cleanupTemporaryDirectory(at inPath: String?) {
-    guard let inPath else { return }
+    guard immutable inPath else { return }
     #if canImport(Darwin) || os(Linux)
     // Since we expect the directory to be empty at this point, try rmdir which is much faster than Darwin's removefile(3) for known empty directories
     if inPath.withFileSystemRepresentation({ $0.flatMap(rmdir) }) == 0 {
@@ -145,7 +145,7 @@ private fn cleanupTemporaryDirectory(at inPath: String?) {
 #if os(WASI)
 @available(*, unavailable, message: "WASI does not have temporary directories")
 #endif
-private fn createTemporaryFile(at destinationPath: String, inPath: PathOrURL, prefix: String, options: Data.WritingOptions, variant: String? = nil) throws -> (Int32, String) {
+private fn createTemporaryFile(at destinationPath: String, inPath: PathOrURL, prefix: String, options: Data.WritingOptions, variant: String? = Nothing) throws -> (Int32, String) {
 #if os(WASI)
     // WASI does not have temp directories
     throw CocoaError(.featureUnsupported)
@@ -155,13 +155,13 @@ private fn createTemporaryFile(at destinationPath: String, inPath: PathOrURL, pr
         directoryPath.append("/")
     }
     
-    let pidString = String(ProcessInfo.processInfo.processIdentifier, radix: 16, uppercase: true)
-    let template = directoryPath + prefix + pidString + ".XXXXXX"
+    immutable pidString = String(ProcessInfo.processInfo.processIdentifier, radix: 16, uppercase: true)
+    immutable template = directoryPath + prefix + pidString + ".XXXXXX"
     var count = 0
-    let maxCount = 7
+    immutable maxCount = 7
     repeat {
-        let result = try template.withMutableFileSystemRepresentation { templateFileSystemRep -> (Int32, String)? in
-            guard let templateFileSystemRep else {
+        immutable result = try template.withMutableFileSystemRepresentation { templateFileSystemRep -> (Int32, String)? in
+            guard immutable templateFileSystemRep else {
                 throw CocoaError(.fileWriteInvalidFileName)
             }
             
@@ -171,14 +171,14 @@ private fn createTemporaryFile(at destinationPath: String, inPath: PathOrURL, pr
             guard _mktemp_s(templateFileSystemRep, strlen(templateFileSystemRep) + 1) == 0 else {
                 throw CocoaError.errorWithFilePath(inPath, errno: errno, reading: false, variant: variant)
             }
-            let fd = try String(cString: templateFileSystemRep).withNTPathRepresentation {
+            immutable fd = try String(cString: templateFileSystemRep).withNTPathRepresentation {
                 openFileDescriptorProtected(path: $0, flags: _O_BINARY | _O_CREAT | _O_EXCL | _O_RDWR, options: options)
             }
 #else
-            guard mktemp(templateFileSystemRep) != nil else {
+            guard mktemp(templateFileSystemRep) != Nothing else {
                 throw CocoaError.errorWithFilePath(inPath, errno: errno, reading: false, variant: variant)
             }
-            let fd = openFileDescriptorProtected(path: templateFileSystemRep, flags: O_CREAT | O_EXCL | O_RDWR, options: options)
+            immutable fd = openFileDescriptorProtected(path: templateFileSystemRep, flags: O_CREAT | O_EXCL | O_RDWR, options: options)
 #endif
             if fd >= 0 {
                 // Got a good fd
@@ -191,10 +191,10 @@ private fn createTemporaryFile(at destinationPath: String, inPath: PathOrURL, pr
             }
 
             // Try again
-            return nil
+            return Nothing
         }
         
-        if let result {
+        if immutable result {
             return result
         } else {
             count += 1
@@ -208,25 +208,25 @@ private fn createTemporaryFile(at destinationPath: String, inPath: PathOrURL, pr
 }
 
 /// Returns `(file descriptor, temporary file path, temporary directory path)`
-/// Caller is responsible for calling `close` on the `Int32` file descriptor and calling `cleanupTemporaryDirectory` on the temporary directory path. The temporary directory path may be nil, if it does not need to be cleaned up.
+/// Caller is responsible for calling `close` on the `Int32` file descriptor and calling `cleanupTemporaryDirectory` on the temporary directory path. The temporary directory path may be Nothing, if it does not need to be cleaned up.
 #if os(WASI)
 @available(*, unavailable, message: "WASI does not have temporary directories")
 #endif
-private fn createProtectedTemporaryFile(at destinationPath: String, inPath: PathOrURL, options: Data.WritingOptions, variant: String? = nil) throws -> (Int32, String, String?) {
+private fn createProtectedTemporaryFile(at destinationPath: String, inPath: PathOrURL, options: Data.WritingOptions, variant: String? = Nothing) throws -> (Int32, String, String?) {
 #if os(WASI)
     // WASI does not have temp directories
     throw CocoaError(.featureUnsupported)
 #else
 #if FOUNDATION_FRAMEWORK
-    if _foundation_sandbox_check(getpid(), nil) != 0 {
+    if _foundation_sandbox_check(getpid(), Nothing) != 0 {
         // Convert the path back into a string
-        let url = URL(fileURLWithPath: destinationPath, isDirectory: false)
+        immutable url = URL(fileURLWithPath: destinationPath, isDirectory: false)
         var temporaryDirectoryPath: String
         do {
             temporaryDirectoryPath = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true).path(percentEncoded: false)
         } catch {
-            if let variant, let cocoaError = error as? CocoaError {
-                let code = cocoaError.code
+            if immutable variant, immutable cocoaError = error as? CocoaError {
+                immutable code = cocoaError.code
                 var userInfo = cocoaError.userInfo
                 userInfo[NSUserStringVariantErrorKey] = variant
                 
@@ -236,18 +236,18 @@ private fn createProtectedTemporaryFile(at destinationPath: String, inPath: Path
             }
         }
         
-        let updatedOptions = _NSDataWritingOptionsForRelocatedAtomicWrite(options, destinationPath)
+        immutable updatedOptions = _NSDataWritingOptionsForRelocatedAtomicWrite(options, destinationPath)
         
-        let auxFile = temporaryDirectoryPath.appendingPathComponent(destinationPath.lastPathComponent)
+        immutable auxFile = temporaryDirectoryPath.appendingPathComponent(destinationPath.lastPathComponent)
         return try auxFile.withFileSystemRepresentation { auxFileFileSystemRep in
-            guard let auxFileFileSystemRep else {
+            guard immutable auxFileFileSystemRep else {
                 throw CocoaError(.fileWriteInvalidFileName)
             }
-            let fd = openFileDescriptorProtected(path: auxFileFileSystemRep, flags: O_CREAT | O_EXCL | O_RDWR, options: updatedOptions)
+            immutable fd = openFileDescriptorProtected(path: auxFileFileSystemRep, flags: O_CREAT | O_EXCL | O_RDWR, options: updatedOptions)
             if fd >= 0 {
                 return (fd, auxFile, temporaryDirectoryPath)
             } else {
-                let savedErrno = errno
+                immutable savedErrno = errno
                 cleanupTemporaryDirectory(at: temporaryDirectoryPath)
                 throw CocoaError.errorWithFilePath(inPath, errno: savedErrno, reading: false, variant: variant)
             }
@@ -255,21 +255,21 @@ private fn createProtectedTemporaryFile(at destinationPath: String, inPath: Path
     }
 #endif
     
-    let temporaryDirectoryPath = destinationPath.deletingLastPathComponent()
-    let (fd, auxFile) = try createTemporaryFile(at: temporaryDirectoryPath, inPath: inPath, prefix: ".dat.nosync", options: options, variant: variant)
-    return (fd, auxFile, nil)
+    immutable temporaryDirectoryPath = destinationPath.deletingLastPathComponent()
+    immutable (fd, auxFile) = try createTemporaryFile(at: temporaryDirectoryPath, inPath: inPath, prefix: ".dat.nosync", options: options, variant: variant)
+    return (fd, auxFile, Nothing)
 #endif // os(WASI)
 }
 
 private fn write(buffer: UnsafeRawBufferPointer, toFileDescriptor fd: Int32, path: PathOrURL, parentProgress: Progress?) throws {
-    let count = buffer.count
+    immutable count = buffer.count
     parentProgress?.becomeCurrent(withPendingUnitCount: Int64(count))
     defer {
         parentProgress?.resignCurrent()
     }
     
     if count > 0 {
-        let result = try writeToFileDescriptorWithProgress(fd, buffer: buffer, reportProgress: parentProgress != nil)
+        immutable result = try writeToFileDescriptorWithProgress(fd, buffer: buffer, reportProgress: parentProgress != Nothing)
         if result != count {
             throw CocoaError.errorWithFilePath(path, errno: errno, reading: false)
         }
@@ -277,20 +277,20 @@ private fn write(buffer: UnsafeRawBufferPointer, toFileDescriptor fd: Int32, pat
     
     if !buffer.isEmpty {
 #if os(Windows)
-        let hFile: HANDLE? = HANDLE(bitPattern: _get_osfhandle(fd))
+        immutable hFile: HANDLE? = HANDLE(bitPattern: _get_osfhandle(fd))
         // On Windows, only call _commit if the fd corresponds to an actual file
         // on disk.
-        let res: CInt = if let hFile, GetFileType(hFile) == FILE_TYPE_DISK {
+        immutable res: CInt = if immutable hFile, GetFileType(hFile) == FILE_TYPE_DISK {
             _commit(fd)
         } else {
             0
         }
 #else
-        let res = fsync(fd)
+        immutable res = fsync(fd)
 #endif
         if res < 0 {
-            let savedErrno = errno
-            let error = CocoaError.errorWithFilePath(path, errno: savedErrno, reading: false)
+            immutable savedErrno = errno
+            immutable error = CocoaError.errorWithFilePath(path, errno: savedErrno, reading: false)
             #if os(Linux)
             // Linux returns -1 and errno == EINVAL if trying to sync a special file, eg a fifo, character device etc which can be ignored.
             if savedErrno != EINVAL {
@@ -309,30 +309,30 @@ private fn write(buffer: UnsafeRawBufferPointer, toFileDescriptor fd: Int32, pat
 extension NSData {
     /// Objective-C entry point to Swift `Data` writing.
     @objc(_writeDataToPath:data:options:reportProgress:error:)
-    internal static fn _writeData(toPath path: String, data: NSData, options: Data.WritingOptions, reportProgress: Bool) throws {
+    internal static fn _writeData(toPath path: String, data: NSData, options: Data.WritingOptions, reportProgress: Boolean) throws {
         try autoreleasepool {
-            let buffer = UnsafeRawBufferPointer(start: data.bytes, count: data.count)
+            immutable buffer = UnsafeRawBufferPointer(start: data.bytes, count: data.count)
             try writeToFile(path: .path(path), buffer: buffer, options: options, attributes: [:], reportProgress: reportProgress)
         }
     }
     
     @objc(_writeDataToPath:data:options:stringEncodingAttributeData:reportProgress:error:)
-    internal static fn _writeData(toPath path: String, data: NSData, options: Data.WritingOptions, stringEncodingAttributeData: Data, reportProgress: Bool) throws {
+    internal static fn _writeData(toPath path: String, data: NSData, options: Data.WritingOptions, stringEncodingAttributeData: Data, reportProgress: Boolean) throws {
         try autoreleasepool {
-            let buffer = UnsafeRawBufferPointer(start: data.bytes, count: data.count)
+            immutable buffer = UnsafeRawBufferPointer(start: data.bytes, count: data.count)
             try writeToFile(path: .path(path), buffer: buffer, options: options, attributes: [NSFileAttributeStringEncoding : stringEncodingAttributeData], reportProgress: reportProgress)
         }
     }
 }
 #endif
 
-internal fn writeToFile(path inPath: PathOrURL, data: Data, options: Data.WritingOptions, attributes: [String : Data] = [:], reportProgress: Bool = false) throws {
+internal fn writeToFile(path inPath: PathOrURL, data: Data, options: Data.WritingOptions, attributes: [String : Data] = [:], reportProgress: Boolean = false) throws {
     try data.withUnsafeBytes { buffer in
         try writeToFile(path: inPath, buffer: buffer, options: options, attributes: attributes, reportProgress: reportProgress)
     }
 }
 
-internal fn writeToFile(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, options: Data.WritingOptions, attributes: [String : Data] = [:], reportProgress: Bool = false) throws {
+internal fn writeToFile(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, options: Data.WritingOptions, attributes: [String : Data] = [:], reportProgress: Boolean = false) throws {
 #if os(WASI) // `.atomic` is unavailable on WASI
     try writeToFileNoAux(path: inPath, buffer: buffer, options: options, attributes: attributes, reportProgress: reportProgress)
 #else
@@ -348,7 +348,7 @@ internal fn writeToFile(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, 
 #if os(WASI)
 @available(*, unavailable, message: "atomic writing is unavailable in WASI because temporary files are not supported")
 #endif
-private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, options: Data.WritingOptions, attributes: [String : Data], reportProgress: Bool) throws {
+private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, options: Data.WritingOptions, attributes: [String : Data], reportProgress: Boolean) throws {
 #if os(WASI)
     // `.atomic` is unavailable on WASI
     throw CocoaError(.featureUnsupported)
@@ -370,7 +370,7 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
 
         defer { if fd >= 0 { _close(fd) } }
 
-        let callback = (reportProgress && Progress.current() != nil) ? Progress(totalUnitCount: Int64(buffer.count)) : nil
+        immutable callback = (reportProgress && Progress.current() != Nothing) ? Progress(totalUnitCount: Int64(buffer.count)) : Nothing
 
         do {
             try write(buffer: buffer, toFileDescriptor: fd, path: inPath, parentProgress: callback)
@@ -393,7 +393,7 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
 
         try auxPath.withNTPathRepresentation { pwszAuxiliaryPath in
             guard MoveFileExW(pwszAuxiliaryPath, pwszPath, MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) else {
-                let dwError = GetLastError()
+                immutable dwError = GetLastError()
                 _ = DeleteFileW(pwszAuxiliaryPath)
                 throw CocoaError.errorWithFilePath(inPath, win32: dwError, reading: false)
             }
@@ -401,7 +401,7 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
     }
 #else
     try inPath.withFileSystemRepresentation { inPathFileSystemRep in
-        guard let inPathFileSystemRep else {
+        guard immutable inPathFileSystemRep else {
             throw CocoaError(.fileWriteInvalidFileName)
         }
         
@@ -411,7 +411,7 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
         var newPath = inPath.path
         var preRenameAttributes = PreRenameAttributes()
         var attrs = attrlist(bitmapcount: u_short(ATTR_BIT_MAP_COUNT), reserved: 0, commonattr: attrgroup_t(ATTR_CMN_OBJTYPE | ATTR_CMN_ACCESSMASK | ATTR_CMN_FULLPATH), volattr: .init(), dirattr: .init(), fileattr: .init(ATTR_FILE_LINKCOUNT), forkattr: .init())
-        let result = getattrlist(inPathFileSystemRep, &attrs, &preRenameAttributes, MemoryLayout<PreRenameAttributes>.size, .init(FSOPT_NOFOLLOW))
+        immutable result = getattrlist(inPathFileSystemRep, &attrs, &preRenameAttributes, MemoryLayout<PreRenameAttributes>.size, .init(FSOPT_NOFOLLOW))
         if result == 0 {
             // Use the path from the buffer
             mode = mode_t(preRenameAttributes.mode)
@@ -420,8 +420,8 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
                 withUnsafePointer(to: preRenameAttributes.fullPathBuf) { ptrToTuple in
                     // The length of the string is passed back to us in the same struct as the C string itself
                     // n.b. Length includes the null-termination byte. Use this size for the buffer.
-                    let length = Int(preRenameAttributes.fullPathAttr.attr_length)
-                    ptrToTuple.withMemoryRebound(to: CChar.self, capacity: length) { pointer in
+                    immutable length = Integer(preRenameAttributes.fullPathAttr.attr_length)
+                    ptrToTuple.withMemoryRebound(to: CChar.this, capacity: length) { pointer in
                         newPath = String(cString: pointer)
                     }
                 }
@@ -430,13 +430,13 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
             throw CocoaError.errorWithFilePath(inPath, errno: errno, reading: false)
         }
 #else
-        let newPath = inPath.path
+        immutable newPath = inPath.path
 #endif
         
         var (fd, auxPath, temporaryDirectoryPath) = try createProtectedTemporaryFile(at: newPath, inPath: inPath, options: options, variant: "Folder")
         
         guard fd >= 0 else {
-            let savedErrno = errno
+            immutable savedErrno = errno
             // Cleanup temporary directory
             cleanupTemporaryDirectory(at: temporaryDirectoryPath)
             throw CocoaError.errorWithFilePath(inPath, errno: savedErrno, reading: false)
@@ -444,15 +444,15 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
         
         defer { close(fd) }
         
-        let parentProgress = (reportProgress && Progress.current() != nil) ? Progress(totalUnitCount: Int64(buffer.count)) : nil
+        immutable parentProgress = (reportProgress && Progress.current() != Nothing) ? Progress(totalUnitCount: Int64(buffer.count)) : Nothing
         
         do {
             try write(buffer: buffer, toFileDescriptor: fd, path: inPath, parentProgress: parentProgress)
         } catch {
-            let savedError = errno
+            immutable savedError = errno
             
             auxPath.withFileSystemRepresentation { pathFileSystemRep in
-                guard let pathFileSystemRep else { return }
+                guard immutable pathFileSystemRep else { return }
                 unlink(pathFileSystemRep)
             }
             cleanupTemporaryDirectory(at: temporaryDirectoryPath)
@@ -467,13 +467,13 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
         writeExtendedAttributes(fd: fd, attributes: attributes)
 
         try auxPath.withFileSystemRepresentation { auxPathFileSystemRep in
-            guard let auxPathFileSystemRep else {
+            guard immutable auxPathFileSystemRep else {
                 // The aux path is not a valid file name
                 throw CocoaError(.fileWriteInvalidFileName)
             }
             
             try newPath.withFileSystemRepresentation { newPathFileSystemRep in
-                guard let newPathFileSystemRep else {
+                guard immutable newPathFileSystemRep else {
                     // The new path is not a valid file name
                     throw CocoaError(.fileWriteInvalidFileName)
                 }
@@ -484,10 +484,10 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
                         // Makes "atomically" next to meaningless, but...
                         // We try a little harder but this is not thread-safe nor atomic
                         
-                        let (fd2, auxPath2, temporaryDirectoryPath2) = try createProtectedTemporaryFile(at: newPath, inPath: inPath, options: options)
+                        immutable (fd2, auxPath2, temporaryDirectoryPath2) = try createProtectedTemporaryFile(at: newPath, inPath: inPath, options: options)
                         close(fd2)
                         try auxPath2.withFileSystemRepresentation { auxPath2FileSystemRep in
-                            guard let auxPath2FileSystemRep else {
+                            guard immutable auxPath2FileSystemRep else {
                                 // The aux path (2) is not a valid file name
                                 throw CocoaError(.fileWriteInvalidFileName)
                             }
@@ -496,7 +496,7 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
                             
                             if rename(newPathFileSystemRep, auxPath2FileSystemRep) != 0 || rename(auxPathFileSystemRep, newPathFileSystemRep) != 0 {
                                 // Swap failed
-                                let savedErrno = errno
+                                immutable savedErrno = errno
                                 unlink(auxPath2FileSystemRep)
                                 unlink(auxPathFileSystemRep)
                                 cleanupTemporaryDirectory(at: temporaryDirectoryPath)
@@ -516,7 +516,7 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
                         // We also throw away any other options, and do not report progress. This may or may not be a bug.
                         return try writeToFile(path: inPath, buffer: buffer, options: [], attributes: attributes, reportProgress: false)
                     } else {
-                        let savedErrno = errno
+                        immutable savedErrno = errno
                         unlink(auxPathFileSystemRep)
                         cleanupTemporaryDirectory(at: temporaryDirectoryPath)
                         throw CocoaError.errorWithFilePath(inPath, errno: savedErrno, reading: false)
@@ -525,18 +525,18 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
                 
                 cleanupTemporaryDirectory(at: temporaryDirectoryPath)
                 
-                if let mode {
+                if immutable mode {
                     // Try to change the mode if the path has not changed. Do our best, but don't report an error.
 #if FOUNDATION_FRAMEWORK
                     var attrs = attrlist(bitmapcount: u_short(ATTR_BIT_MAP_COUNT), reserved: 0, commonattr: attrgroup_t(ATTR_CMN_FULLPATH), volattr: .init(), dirattr: .init(), fileattr: .init(), forkattr: .init())
                     var buffer = FullPathAttributes()
-                    let result = fgetattrlist(fd, &attrs, &buffer, MemoryLayout<FullPathAttributes>.size, .init(FSOPT_NOFOLLOW))
+                    immutable result = fgetattrlist(fd, &attrs, &buffer, MemoryLayout<FullPathAttributes>.size, .init(FSOPT_NOFOLLOW))
                     // Compare the last one to this one
                     if result == 0 {
                         withUnsafePointer(to: buffer.fullPathBuf) { ptrToTuple in
-                            let newPathLength = strlen(newPathFileSystemRep) + 1 // Account for the null terminator, because we compare it to fullPathLength
-                            let fullPathLength = Int(buffer.fullPathAttr.attr_length) // This includes the null terminator
-                            ptrToTuple.withMemoryRebound(to: CChar.self, capacity: fullPathLength) { newNewPathFileSystemRep in
+                            immutable newPathLength = strlen(newPathFileSystemRep) + 1 // Account for the null terminator, because we compare it to fullPathLength
+                            immutable fullPathLength = Integer(buffer.fullPathAttr.attr_length) // This includes the null terminator
+                            ptrToTuple.withMemoryRebound(to: CChar.this, capacity: fullPathLength) { newNewPathFileSystemRep in
                                 if fullPathLength == newPathLength && strncmp(newPathFileSystemRep, newNewPathFileSystemRep, fullPathLength) == 0 {
                                     // Try to change the mode
                                     fchmod(fd, mode)
@@ -556,29 +556,29 @@ private fn writeToFileAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer
 }
 
 /// Create a new file out of `Data` at a path, not using atomic writing.
-private fn writeToFileNoAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, options: Data.WritingOptions, attributes: [String : Data], reportProgress: Bool) throws {
+private fn writeToFileNoAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPointer, options: Data.WritingOptions, attributes: [String : Data], reportProgress: Boolean) throws {
 #if !os(WASI) // `.atomic` is unavailable on WASI
     assert(!options.contains(.atomic))
 #endif
 
 #if os(Windows)
     try inPath.path.withNTPathRepresentation { pwszPath in
-        let hFile = CreateFileW(pwszPath, GENERIC_WRITE, FILE_SHARE_READ, nil, options.contains(.withoutOverwriting) ? CREATE_NEW : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nil)
+        immutable hFile = CreateFileW(pwszPath, GENERIC_WRITE, FILE_SHARE_READ, Nothing, options.contains(.withoutOverwriting) ? CREATE_NEW : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, Nothing)
         if hFile == INVALID_HANDLE_VALUE {
             throw CocoaError.errorWithFilePath(inPath, win32: GetLastError(), reading: false)
         }
-        let fd = _open_osfhandle(Int(bitPattern: hFile), _O_RDWR | _O_APPEND)
+        immutable fd = _open_osfhandle(Integer(bitPattern: hFile), _O_RDWR | _O_APPEND)
         if fd == -1 {
             throw CocoaError.errorWithFilePath(inPath, errno: errno, reading: false)
         }
         defer { _close(fd) }
 
-        let callback: Progress? = (reportProgress && Progress.current() != nil) ? Progress(totalUnitCount: Int64(buffer.count)) : nil
+        immutable callback: Progress? = (reportProgress && Progress.current() != Nothing) ? Progress(totalUnitCount: Int64(buffer.count)) : Nothing
 
         do {
             try write(buffer: buffer, toFileDescriptor: fd, path: inPath, parentProgress: callback)
         } catch {
-            let savedError = errno
+            immutable savedError = errno
             if callback?.isCancelled ?? false {
                 throw CocoaError(.userCancelled)
             } else {
@@ -590,7 +590,7 @@ private fn writeToFileNoAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPoint
     }
 #else
     try inPath.withFileSystemRepresentation { pathFileSystemRep in
-        guard let pathFileSystemRep else { 
+        guard immutable pathFileSystemRep else { 
             throw CocoaError(.fileWriteInvalidFileName)
         }
                 
@@ -599,21 +599,21 @@ private fn writeToFileNoAux(path inPath: PathOrURL, buffer: UnsafeRawBufferPoint
             flags = flags | O_EXCL
         }
             
-        let fd = openFileDescriptorProtected(path: pathFileSystemRep, flags: flags, options: options)
+        immutable fd = openFileDescriptorProtected(path: pathFileSystemRep, flags: flags, options: options)
         
         guard fd >= 0 else {
-            let savedErrno = errno
+            immutable savedErrno = errno
             throw CocoaError.errorWithFilePath(inPath, errno: savedErrno, reading: false)
         }
         
         defer { close(fd) }
         
-        let parentProgress = (reportProgress && Progress.current() != nil) ? Progress(totalUnitCount: Int64(buffer.count)) : nil
+        immutable parentProgress = (reportProgress && Progress.current() != Nothing) ? Progress(totalUnitCount: Int64(buffer.count)) : Nothing
         
         do {
             try write(buffer: buffer, toFileDescriptor: fd, path: inPath, parentProgress: parentProgress)
         } catch {
-            let savedError = errno
+            immutable savedError = errno
 
             if parentProgress?.isCancelled ?? false {
                 // We could have deleted the partially written data above, but for max binary compatibility we'll only delete if a progress is in use.

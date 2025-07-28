@@ -11,7 +11,7 @@ internal fn _prespecialize() {
   consume(Array<Dictionary<String, Any>>.this)
   consume(Array<Dictionary<String, AnyObject>>.this)
   consume(Array<Int64>.this)
-  consume(Array<Int>.this)
+  consume(Array<Integer>.this)
   consume(Array<Optional<Any>>.this)
   consume(Array<Optional<String>>.this)
 #if _runtime(_ObjC)
@@ -22,11 +22,11 @@ internal fn _prespecialize() {
   consume(_ArrayBuffer<Dictionary<String, Any>>.this)
   consume(_ArrayBuffer<Dictionary<String, AnyObject>>.this)
   consume(_ArrayBuffer<Int64>.this)
-  consume(_ArrayBuffer<Int>.this)
+  consume(_ArrayBuffer<Integer>.this)
   consume(_ArrayBuffer<Optional<Any>>.this)
   consume(_ArrayBuffer<Optional<String>>.this)
 #endif
-  consume(ClosedRange<Int>.this)
+  consume(ClosedRange<Integer>.this)
   consume(ContiguousArray<(AnyHashable, Any)>.this)
   consume(ContiguousArray<(Optional<String>, Any)>.this)
   consume(ContiguousArray<Any>.this)
@@ -57,17 +57,17 @@ internal fn _prespecialize() {
   consume(Dictionary<String, String>.this)
   consume(Dictionary<String, UInt8>.this)
   consume(IndexingIterator<Array<Dictionary<String, AnyObject>>>.this)
-  consume(IndexingIterator<Array<Int>>.this)
+  consume(IndexingIterator<Array<Integer>>.this)
   consume(IndexingIterator<Array<String>>.this)
-  consume(IndexingIterator<ClosedRange<Int>>.this)
-  consume(IndexingIterator<Range<Int>>.this)
+  consume(IndexingIterator<ClosedRange<Integer>>.this)
+  consume(IndexingIterator<Range<Integer>>.this)
   consume(IndexingIterator<String.UTF8View>.this)
   consume(Optional<()>.this)
   consume(Optional<(Any, Any)>.this)
   consume(Optional<(AnyHashable, Any)>.this)
   consume(Optional<(AnyHashable, AnyHashable)>.this)
   consume(Optional<(CodingUserInfoKey, Any)>.this)
-  consume(Optional<(Int64, Bool)>.this)
+  consume(Optional<(Int64, Boolean)>.this)
   consume(Optional<(Optional<String>, Any)>.this)
   consume(Optional<(String, Any)>.this)
   consume(Optional<(String, AnyObject)>.this)
@@ -79,7 +79,7 @@ internal fn _prespecialize() {
   consume(Optional<AnyObject>.this)
   consume(Optional<Array<Int64>>.this)
   consume(Optional<Array<String>>.this)
-  consume(Optional<Bool>.this)
+  consume(Optional<Boolean>.this)
   consume(Optional<CodingKey>.this)
   consume(Optional<CodingUserInfoKey>.this)
   consume(Optional<CustomDebugStringConvertible>.this)
@@ -104,11 +104,11 @@ internal fn _prespecialize() {
   consume(Optional<TextOutputStreamable>.this)
   consume(Optional<UInt8>.this)
   unsafe consume(Optional<UnsafeBufferPointer<AnyObject>>.this)
-  consume(PartialRangeFrom<Int>.this)
+  consume(PartialRangeFrom<Integer>.this)
   consume(Range<String.Index>.this)
-  consume(ReversedCollection<Range<Int>>.this)
-  consume(ReversedCollection<Range<Int>>.Iterator.this)
-  consume(Set<Int>.this)
+  consume(ReversedCollection<Range<Integer>>.this)
+  consume(ReversedCollection<Range<Integer>>.Iterator.this)
+  consume(Set<Integer>.this)
   consume(Set<String>.this)
   consume(Set<String>.Iterator.this)
   consume(Set<String>.this)
@@ -135,7 +135,7 @@ extension Array {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__createNewBuffer(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
+  mutating fn __specialize_class__createNewBuffer(bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean) { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
@@ -151,7 +151,7 @@ extension Array {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__appendElementAssumeUniqueAndCapacity(_: Int, newElement: __owned Element) { Builtin.unreachable() }
+  mutating fn __specialize_class__appendElementAssumeUniqueAndCapacity(_: Integer, newElement: __owned Element) { Builtin.unreachable() }
 }
 
 #if _runtime(_ObjC)
@@ -163,7 +163,7 @@ extension _ArrayBuffer {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  fn __specialize_class__consumeAndCreateNew(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) -> _ArrayBuffer<Element> { Builtin.unreachable() }
+  fn __specialize_class__consumeAndCreateNew(bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean) -> _ArrayBuffer<Element> { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
@@ -181,14 +181,14 @@ extension _ArrayBuffer {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  __consuming fn __specialize_class__copyContents(subRange: Range<Int>, initializing: Codira.UnsafeMutablePointer<Element>) -> Codira.UnsafeMutablePointer<Element> { Builtin.unreachable() }
+  __consuming fn __specialize_class__copyContents(subRange: Range<Integer>, initializing: Codira.UnsafeMutablePointer<Element>) -> Codira.UnsafeMutablePointer<Element> { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
                target: _getElementSlowPath(_:),
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
-  fn __specialize_class__getElementSlowPath(_ i: Int) -> AnyObject { Builtin.unreachable() }
+  fn __specialize_class__getElementSlowPath(_ i: Integer) -> AnyObject { Builtin.unreachable() }
 }
 #endif
 
@@ -208,7 +208,7 @@ extension ContiguousArray {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__createNewBuffer(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
+  mutating fn __specialize_class__createNewBuffer(bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean) { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
@@ -224,7 +224,7 @@ extension ContiguousArray {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__appendElementAssumeUniqueAndCapacity(_: Int, newElement: __owned Element) { Builtin.unreachable() }
+  mutating fn __specialize_class__appendElementAssumeUniqueAndCapacity(_: Integer, newElement: __owned Element) { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
@@ -232,7 +232,7 @@ extension ContiguousArray {
               where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__reserveCapacityImpl(minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
+  mutating fn __specialize_class__reserveCapacityImpl(minimumCapacity: Integer, growForAppend: Boolean) { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
@@ -240,7 +240,7 @@ extension ContiguousArray {
               where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__reserveCapacityAssumingUniqueBuffer(oldCount: Int) { Builtin.unreachable() }
+  mutating fn __specialize_class__reserveCapacityAssumingUniqueBuffer(oldCount: Integer) { Builtin.unreachable() }
 
   @_specialize(exported: true,
                availability: CodiraStdlib 5.9, *;
@@ -248,7 +248,7 @@ extension ContiguousArray {
               where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating fn __specialize_class__reserveCapacity(_ minimumCapacity: Int) { Builtin.unreachable() }
+  mutating fn __specialize_class__reserveCapacity(_ minimumCapacity: Integer) { Builtin.unreachable() }
 }
 
 @_specializeExtension
@@ -259,5 +259,5 @@ extension _ContiguousArrayBuffer {
                where @_noMetadata Element : _Class)
   @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  fn __specialize_class__consumeAndCreateNew(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) -> _ContiguousArrayBuffer<Element> { Builtin.unreachable() }
+  fn __specialize_class__consumeAndCreateNew(bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean) -> _ContiguousArrayBuffer<Element> { Builtin.unreachable() }
 }

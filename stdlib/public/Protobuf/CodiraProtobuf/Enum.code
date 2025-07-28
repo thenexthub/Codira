@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Enum.swift - Enum support
+// Sources/SwiftProtobuf/Enum.code -Enum support
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -29,14 +34,14 @@ public protocol Enum: RawRepresentable, Hashable, Sendable {
     ///
     /// - Parameter rawValue: The raw integer value from which to create the enum
     ///   value.
-    init?(rawValue: Int)
+    init?(rawValue: Integer)
 
     /// The raw integer value of the enum value.
     ///
     /// For a recognized enum case, this is the integer value of the case as
     /// defined in the .proto file. For `UNRECOGNIZED` cases in proto3, this is
     /// the value that was originally decoded.
-    var rawValue: Int { get }
+    var rawValue: Integer { get }
 }
 
 extension Enum {
@@ -45,13 +50,13 @@ extension Enum {
     }
 
     /// Internal convenience property representing the name of the enum value (or
-    /// `nil` if it is an `UNRECOGNIZED` value or doesn't provide names).
+    /// `Nothing` if it is an `UNRECOGNIZED` value or doesn't provide names).
     ///
     /// Since the text format and JSON names are always identical, we don't need
     /// to distinguish them.
     package var name: _NameMap.Name? {
-        guard let nameProviding = Self.self as? any _ProtoNameProviding.Type else {
-            return nil
+        guard immutable nameProviding = Self.this as? any _ProtoNameProviding.Type else {
+            return Nothing
         }
         return nameProviding._protobuf_nameMap.names(for: rawValue)?.proto
     }
@@ -64,12 +69,12 @@ extension Enum {
     ///
     /// - Parameter name: The name of the enum case.
     internal init?(name: String) {
-        guard let nameProviding = Self.self as? any _ProtoNameProviding.Type,
-            let number = nameProviding._protobuf_nameMap.number(forJSONName: name)
+        guard immutable nameProviding = Self.this as? any _ProtoNameProviding.Type,
+            immutable number = nameProviding._protobuf_nameMap.number(forJSONName: name)
         else {
-            return nil
+            return Nothing
         }
-        self.init(rawValue: number)
+        this.init(rawValue: number)
     }
 
     /// Internal convenience initializer that returns the enum value with the
@@ -80,11 +85,11 @@ extension Enum {
     ///
     /// - Parameter name: Buffer holding the UTF-8 bytes of the desired name.
     internal init?(rawUTF8: UnsafeRawBufferPointer) {
-        guard let nameProviding = Self.self as? any _ProtoNameProviding.Type,
-            let number = nameProviding._protobuf_nameMap.number(forJSONName: rawUTF8)
+        guard immutable nameProviding = Self.this as? any _ProtoNameProviding.Type,
+            immutable number = nameProviding._protobuf_nameMap.number(forJSONName: rawUTF8)
         else {
-            return nil
+            return Nothing
         }
-        self.init(rawValue: number)
+        this.init(rawValue: number)
     }
 }

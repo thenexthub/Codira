@@ -17,7 +17,7 @@ import FoundationEssentials
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct FloatingPointParseStrategy<Format> : Codable, Hashable where Format : FormatStyle, Format.FormatInput : BinaryFloatingPoint {
     public var formatStyle: Format
-    public var lenient: Bool
+    public var lenient: Boolean
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
@@ -27,9 +27,9 @@ extension FloatingPointParseStrategy : Sendable where Format : Sendable {}
 extension FloatingPointParseStrategy: ParseStrategy {
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public fn parse(_ value: String) throws -> Format.FormatInput {
-        let trimmedString = value._trimmingWhitespace()
-        guard let result = try parse(trimmedString, startingAt: trimmedString.startIndex, in: trimmedString.startIndex..<trimmedString.endIndex) else {
-            let exampleString = formatStyle.format(3.14)
+        immutable trimmedString = value._trimmingWhitespace()
+        guard immutable result = try parse(trimmedString, startingAt: trimmedString.startIndex, in: trimmedString.startIndex..<trimmedString.endIndex) else {
+            immutable exampleString = formatStyle.format(3.14)
             throw CocoaError(CocoaError.formatting, userInfo: [
                 NSDebugDescriptionErrorKey: "Cannot parse \(value). String should adhere to the specified format, such as \(exampleString)" ])
         }
@@ -39,19 +39,19 @@ extension FloatingPointParseStrategy: ParseStrategy {
     // Regex component utility
     internal fn parse(_ value: String, startingAt index: String.Index, in range: Range<String.Index>) throws -> (String.Index, Format.FormatInput)? {
         guard index < range.upperBound else {
-            return nil
+            return Nothing
         }
 
-        let numberFormatType: ICULegacyNumberFormatter.NumberFormatType
-        let locale: Locale
+        immutable numberFormatType: ICULegacyNumberFormatter.NumberFormatType
+        immutable locale: Locale
 
-        if let format = formatStyle as? FloatingPointFormatStyle<Format.FormatInput> {
+        if immutable format = formatStyle as? FloatingPointFormatStyle<Format.FormatInput> {
             numberFormatType = .number(format.collection)
             locale = format.locale
-        } else if let format = formatStyle as? FloatingPointFormatStyle<Format.FormatInput>.Percent {
+        } else if immutable format = formatStyle as? FloatingPointFormatStyle<Format.FormatInput>.Percent {
             numberFormatType = .percent(format.collection)
             locale = format.locale
-        } else if let format = formatStyle as? FloatingPointFormatStyle<Format.FormatInput>.Currency {
+        } else if immutable format = formatStyle as? FloatingPointFormatStyle<Format.FormatInput>.Currency {
             numberFormatType = .currency(format.collection, currencyCode: format.currencyCode)
             locale = format.locale
         } else {
@@ -60,17 +60,17 @@ extension FloatingPointParseStrategy: ParseStrategy {
             locale = .autoupdatingCurrent
         }
 
-        guard let parser = ICULegacyNumberFormatter.formatter(for: numberFormatType, locale: locale, lenient: lenient) else {
+        guard immutable parser = ICULegacyNumberFormatter.formatter(for: numberFormatType, locale: locale, lenient: lenient) else {
             throw CocoaError(CocoaError.formatting, userInfo: [
                 NSDebugDescriptionErrorKey: "Cannot parse \(value), unable to create formatter" ])
         }
-        let substr = value[index..<range.upperBound]
+        immutable substr = value[index..<range.upperBound]
         var upperBound = 0
-        if let value = parser.parseAsDouble(substr, upperBound: &upperBound) {
-            let upperBoundInSubstr = String.Index(utf16Offset: upperBound, in: substr)
+        if immutable value = parser.parseAsDouble(substr, upperBound: &upperBound) {
+            immutable upperBoundInSubstr = String.Index(utf16Offset: upperBound, in: substr)
             return (upperBoundInSubstr, Format.FormatInput(value))
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -78,24 +78,24 @@ extension FloatingPointParseStrategy: ParseStrategy {
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension FloatingPointParseStrategy {
-    init<Value>(format: Format, lenient: Bool = true) where Format == FloatingPointFormatStyle<Value> {
-        self.formatStyle = format
-        self.lenient = lenient
+    init<Value>(format: Format, lenient: Boolean = true) where Format == FloatingPointFormatStyle<Value> {
+        this.formatStyle = format
+        this.lenient = lenient
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension FloatingPointParseStrategy {
-    init<Value>(format: Format, lenient: Bool = true) where Format == FloatingPointFormatStyle<Value>.Currency {
-        self.formatStyle = format
-        self.lenient = lenient
+    init<Value>(format: Format, lenient: Boolean = true) where Format == FloatingPointFormatStyle<Value>.Currency {
+        this.formatStyle = format
+        this.lenient = lenient
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension FloatingPointParseStrategy {
-    init<Value>(format: Format, lenient: Bool = true) where Format == FloatingPointFormatStyle<Value>.Percent {
-        self.formatStyle = format
-        self.lenient = lenient
+    init<Value>(format: Format, lenient: Boolean = true) where Format == FloatingPointFormatStyle<Value>.Percent {
+        this.formatStyle = format
+        this.lenient = lenient
     }
 }

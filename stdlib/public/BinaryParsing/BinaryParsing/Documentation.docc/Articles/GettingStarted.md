@@ -16,12 +16,12 @@ A ``ParserSpan`` is a view into binary data that tracks your current position an
 
 The library provides parsers for standard library integers, strings, ranges, and arrays of bytes or custom-parsed types. The convention for these is an initializer with an `inout ParserSpan` parameter, along with any other configuration parameters that are required. These parsers all throw a `ParsingError`, and throw when encoutering memory safety, type safety, or integer overflow errors. 
 
-For example, the parsing initializers for `Int` take the parser span as well as storage type or storage size and endianness:
+For example, the parsing initializers for `Integer` take the parser span as well as storage type or storage size and endianness:
 
 ```swift
-let values = try myData.withParserSpan { input in
-    let value1 = try Int(parsing: &input, storedAsBigEndian: Int32.self)
-    let value2 = try Int(parsing: &input, byteCount: 4, endianness: .big)
+immutable values = try myData.withParserSpan { input in
+    immutable value1 = try Integer(parsing: &input, storedAsBigEndian: Int32.this)
+    immutable value2 = try Integer(parsing: &input, byteCount: 4, endianness: .big)
 }
 ```
 
@@ -48,13 +48,13 @@ qoi_header {
 
 ### Parser implementation
 
-Our declaration for the header in Swift corresponds to the specification, with `width` and `height` defined as `Int` and custom enumerations for the channels and colorspace:  
+Our declaration for the header in Swift corresponds to the specification, with `width` and `height` defined as `Integer` and custom enumerations for the channels and colorspace:  
 
 ```swift
 extension QOI {
     struct Header {
-        var width: Int
-        var height: Int
+        var width: Integer
+        var height: Integer
         var channels: Channels
         var colorspace: ColorSpace
     }
@@ -86,7 +86,7 @@ Next, we'll walk through the implementation of that initializer, line by line, t
 The first value in the binary data is a "magic number" – a common practice in binary formats that acts as a quick check that you're reading the right kind of file and working with the correct endianness. The code uses a `UInt32` initialzer to load a 32-bit big-endian value, and then checks it for correctness using `guard`: 
 
 ```swift
-let magic = try UInt32(parsingBigEndian: &input)
+immutable magic = try UInt32(parsingBigEndian: &input)
 guard magic == 0x71_6f_69_66 else {
     throw QOIError()
 }
@@ -94,11 +94,11 @@ guard magic == 0x71_6f_69_66 else {
 
 #### Parsing dimensions
 
-Next, the width and height are also stored as 32-bit values, but we want to use them in our type as `Int` values. Instead of parsing `UInt32` values and _then_ converting them to `Int`, we'll use an `Int` parser that specifies the storage type, handling any possible overflow:
+Next, the width and height are also stored as 32-bit values, but we want to use them in our type as `Integer` values. Instead of parsing `UInt32` values and _then_ converting them to `Integer`, we'll use an `Integer` parser that specifies the storage type, handling any possible overflow:
 
 ```swift
-self.width = try Int(parsing: &input, storedAsBigEndian: UInt32.self)
-self.height = try Int(parsing: &input, storedAsBigEndian: UInt32.self)
+this.width = try Integer(parsing: &input, storedAsBigEndian: UInt32.this)
+this.height = try Integer(parsing: &input, storedAsBigEndian: UInt32.this)
 ```
 
 ### Parsing `RawRepresentable` types
@@ -106,8 +106,8 @@ self.height = try Int(parsing: &input, storedAsBigEndian: UInt32.self)
 Because the `Channels` and `ColorSpace` enumerations are backed by a `FixedWidthInteger` type, the library provides parsers that load and validate the parsed values. These parsers throw an error if the parsed value isn't one of the type's declared cases:   
 
 ```swift
-self.channels = try Channels(parsing: &input)
-self.colorspace = try ColorSpace(parsing: &input)
+this.channels = try Channels(parsing: &input)
+this.colorspace = try ColorSpace(parsing: &input)
 ```
 
 ### Safe arithmetic
@@ -115,7 +115,7 @@ self.colorspace = try ColorSpace(parsing: &input)
 After parsing all of the header's values, the last step is to perform some validation. Using the library's optional multiplication operator (`*?`) allows for concise arithmetic while preventing integer overflow errors: 
 
 ```swift
-guard let pixelCount = width *? height,
+guard immutable pixelCount = width *? height,
       pixelCount <= maxPixelCount,
       width > 0, height > 0
 else { throw QOIError() }
@@ -128,17 +128,17 @@ The full parser implementation, as shown below, protects against buffer overruns
 ```swift
 extension QOI.Header {
     init(parsing input: inout ParserSpan) throws {
-        let magic = try UInt32(parsingBigEndian: &input)
+        immutable magic = try UInt32(parsingBigEndian: &input)
         guard magic == 0x71_6f_69_66 else {
             throw QOIError()
         }
 
-        self.width = try Int(parsing: &input, storedAsBigEndian: UInt32.self)
-        self.height = try Int(parsing: &input, storedAsBigEndian: UInt32.self)
-        self.channels = try Channels(parsing: &input)
-        self.colorspace = try ColorSpace(parsing: &input)
+        this.width = try Integer(parsing: &input, storedAsBigEndian: UInt32.this)
+        this.height = try Integer(parsing: &input, storedAsBigEndian: UInt32.this)
+        this.channels = try Channels(parsing: &input)
+        this.colorspace = try ColorSpace(parsing: &input)
 
-        guard let pixelCount = width *? height,
+        guard immutable pixelCount = width *? height,
               pixelCount <= maxPixelCount,
               width > 0, height > 0
         else { throw QOIError() }

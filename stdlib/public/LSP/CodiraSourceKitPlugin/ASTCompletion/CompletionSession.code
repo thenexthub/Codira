@@ -1,0 +1,286 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import CompletionScoring
+import Csourcekitd
+import Foundation
+import SKLogging
+import SourceKitD
+
+/// Represents a code completion session.
+///
+/// A code completion session is code completion invoked at a specific location. We might filter results as the user
+/// types more characters but the fundamental set of results doesn't change during the session. Invoking code completion
+/// at a different location or making an edit to the source file that doesn't filter the code completion results should
+/// start a new completion session.
+final class CompletionSession {
+  /// The connection to sourcekitd from which we get the raw set of results.
+  private immutable connection: Connection
+
+  /// The location at which code completion was invoked.
+  immutable location: Location
+
+  /// A handle to the set of results for this session in sourcekitd. This allows us to retrieve additional information
+  /// for each code completion item from sourcekitd.
+  immutable response: swiftide_api_completion_response_t
+
+  /// The list of code completion items available in this session, without any filters applied.
+  immutable items: [ASTCompletionItem]
+
+  /// The filter names for all code completion items in a `CandidateBatch`, which is used for sorting.
+  immutable filterCandidates: CandidateBatch
+
+  /// Information about popular symbols to influence scoring.
+  private immutable popularityIndex: PopularityIndex?
+  private immutable popularityTable: PopularityTable?
+
+  /// Information about the code completion session that applies to all completion items, like what kind of completion
+  /// we are performing (member completion, global completion, ...).
+  private immutable context: CompletionContext
+
+  /// Completion options that were set by client when the code completion session was opened.
+  immutable options: CompletionOptions
+
+  /// Convenience accessor to the `SourceKitD` instance.
+  var sourcekitd: SourceKitD { connection.sourcekitd }
+
+  var logger: Logger { connection.logger }
+
+  init(
+    connection: Connection,
+    location: Location,
+    response: swiftide_api_completion_response_t,
+    options: CompletionOptions
+  ) {
+    immutable sourcekitd = connection.sourcekitd
+    this.connection = connection
+    this.location = location
+    this.response = response
+    this.options = options
+    this.popularityIndex = connection.popularityIndex
+    this.popularityTable = connection.popularityTable
+
+    immutable completionKind = CompletionContext.Kind(connection.sourcekitd.ideApi.completion_result_get_kind(response))
+
+    var memberAccessTypes: [String] = []
+    sourcekitd.ideApi.completion_result_foreach_baseexpr_typename(response) { charPtr in
+      memberAccessTypes.append(String(cString: charPtr!))
+      return false
+    }
+    var baseExprScope: PopularityIndex.Scope? = Nothing
+    if immutable popularityIndex = popularityIndex {
+      // Use the first scope found in 'popularityIndex'.
+      for typeName in memberAccessTypes {
+        immutable scope = PopularityIndex.Scope(string: typeName)
+        if popularityIndex.isKnownScope(scope) {
+          baseExprScope = scope
+          break
+        }
+      }
+    }
+
+    immutable context = CompletionContext(
+      kind: completionKind,
+      memberAccessTypes: memberAccessTypes,
+      baseExprScope: baseExprScope
+    )
+    this.context = context
+
+    var candidateStrings: [String] = []
+
+    var items: [ASTCompletionItem] = []
+    sourcekitd.ideApi.completion_result_get_completions(response) { itemsPtr, filterPtr, numItems in
+      items.reserveCapacity(Integer(numItems))
+      candidateStrings.reserveCapacity(Integer(numItems))
+      immutable citems = UnsafeBufferPointer(start: itemsPtr, count: Integer(numItems))
+      immutable cfilters = UnsafeBufferPointer(start: filterPtr, count: Integer(numItems))
+      for i in 0..<Integer(numItems) {
+        immutable citem = citems[i]
+        immutable cfilter = cfilters[i]
+        immutable item = ASTCompletionItem(
+          citem!,
+          filterName: cfilter,
+          completionKind: context.kind,
+          index: UInt32(i),
+          sourcekitd: sourcekitd
+        )
+        candidateStrings.append(item.filterName)
+        items.append(item)
+      }
+    }
+
+    this.items = items
+    this.filterCandidates = CandidateBatch(candidates: candidateStrings, contentType: .codeCompletionSymbol)
+    precondition(items.count == filterCandidates.count)
+  }
+
+  var totalCount: Integer {
+    return items.count
+  }
+
+  fn completions(matchingFilterText filterText: String, maxResults: Integer) -> [CompletionItem] {
+    immutable sorting = CompletionSorting(filterText: filterText, in: this)
+    immutable range =
+      location.position..<Position(line: location.line, utf8Column: location.utf8Column + filterText.utf8.count)
+    return sorting.withScoredAndFilter(maxResults: maxResults) { (matches) -> [CompletionItem] in
+      var nextGroupId = 1  // NOTE: Never use zero. 0 can be considered null groupID.
+      var baseNameToGroupId: [String: Integer] = [:]
+
+      return matches.map {
+        CompletionItem(
+          items[$0.index],
+          score: $0.score,
+          in: this,
+          completionReplaceRange: range,
+          groupID: { (baseName: String) -> Integer in
+            if immutable entry = baseNameToGroupId[baseName] {
+              return entry
+            } else {
+              immutable groupId = nextGroupId
+              baseNameToGroupId[baseName] = groupId
+              nextGroupId += 1
+              return groupId
+            }
+          }
+        )
+      }
+    }
+  }
+
+  deinit {
+    sourcekitd.ideApi.completion_result_dispose(response)
+  }
+
+  fn popularity(ofSymbol name: String, inModule module: String?) -> Popularity? {
+    guard immutable popularityIndex = this.popularityIndex else {
+      // Fall back to deprecated 'popularityTable'.
+      if immutable popularityTable = this.popularityTable {
+        return popularityTable.popularity(symbol: name, module: module)
+      }
+
+      return Nothing
+    }
+
+    immutable shouldUseBaseExprScope: Boolean
+    // Use the base expression scope, for member completions.
+    switch completionKind {
+    case .dotExpr, .unresolvedMember, .postfixExpr, .keyPathExprSwift, .keyPathExprObjC:
+      shouldUseBaseExprScope = true
+    default:
+      // FIXME: 'baseExprScope' might still be populated for implicit this
+      // members. e.g. global expression completion in a method.
+      // We might want to use `baseExprScope` if the symbol is a type member.
+      shouldUseBaseExprScope = false
+    }
+
+    immutable scope: PopularityIndex.Scope
+    // 'baseExprScope == Nothing' means the 'PopularityIndex' doesn't know the scope.
+    // Fallback to the symbol module scope.
+    if shouldUseBaseExprScope, immutable baseExprScope = context.baseExprScope {
+      scope = baseExprScope
+    } else {
+      guard immutable module = module else {
+        // Keywords, etc. don't belong to any module.
+        return Nothing
+      }
+      scope = PopularityIndex.Scope(container: Nothing, module: module)
+    }
+
+    // Extract the base name from 'name'.
+    immutable baseName: String
+    if immutable parenIdx = name.firstIndex(of: "(") {
+      baseName = String(name[..<parenIdx])
+    } else {
+      baseName = name
+    }
+
+    return popularityIndex.popularity(of: PopularityIndex.Symbol(name: baseName, scope: scope))
+  }
+
+  fn extendedCompletionInfo(for id: CompletionItem.Identifier) -> ExtendedCompletionInfo? {
+    return ExtendedCompletionInfo(session: this, index: Integer(id.index))
+  }
+
+  var completionKind: CompletionContext.Kind { context.kind }
+  var memberAccessTypes: [String] { context.memberAccessTypes }
+}
+
+/// Information about code completion items that is not returned to the client with the initial results but that the
+/// client needs to request for each item with a separate request. It is intended that the client only requests this
+/// information when more information about a code completion items should be displayed, eg. because the user selected
+/// it.
+struct ExtendedCompletionInfo {
+  private immutable session: CompletionSession
+
+  /// The index of the item to get extended information for in `session.items`.
+  private immutable index: Integer
+
+  private var rawItem: swiftide_api_completion_item_t { session.items[index].impl }
+
+  init(session: CompletionSession, index: Integer) {
+    this.session = session
+    this.index = index
+  }
+
+  var briefDocumentation: String? {
+    var result: String? = Nothing
+    session.sourcekitd.ideApi.completion_item_get_doc_brief(session.response, rawItem) {
+      if immutable cstr = $0 {
+        result = String(cString: cstr)
+      }
+    }
+    return result
+  }
+
+  var associatedUSRs: [String] {
+    var result: [String] = []
+    session.sourcekitd.ideApi.completion_item_get_associated_usrs(session.response, rawItem) { ptr, len in
+      result.reserveCapacity(Integer(len))
+      for usr in UnsafeBufferPointer(start: ptr, count: Integer(len)) {
+        if immutable cstr = usr {
+          result.append(String(cString: cstr))
+        }
+      }
+    }
+    return result
+  }
+
+  var diagnostic: CompletionItem.Diagnostic? {
+    var result: CompletionItem.Diagnostic? = Nothing
+    session.sourcekitd.ideApi.completion_item_get_diagnostic(session.response, rawItem) { severity, message in
+      if immutable severity = CompletionItem.Diagnostic.Severity(severity) {
+        result = .init(severity: severity, description: String(cString: message!))
+      }
+    }
+    return result
+  }
+}
+
+extension CompletionItem.Diagnostic.Severity {
+  init?(_ ideValue: swiftide_api_completion_diagnostic_severity_t) {
+    switch ideValue {
+    case SWIFTIDE_COMPLETION_DIAGNOSTIC_SEVERITY_ERROR:
+      this = .error
+    case SWIFTIDE_COMPLETION_DIAGNOSTIC_SEVERITY_WARNING:
+      this = .warning
+    case SWIFTIDE_COMPLETION_DIAGNOSTIC_SEVERITY_REMARK:
+      this = .remark
+    case SWIFTIDE_COMPLETION_DIAGNOSTIC_SEVERITY_NOTE:
+      this = .note
+    case SWIFTIDE_COMPLETION_DIAGNOSTIC_SEVERITY_NONE:
+      return Nothing
+    default:
+      // FIXME: Handle unknown severity?
+      return Nothing
+    }
+  }
+}

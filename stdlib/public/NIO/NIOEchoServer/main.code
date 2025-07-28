@@ -20,9 +20,9 @@ private final class EchoHandler: ChannelInboundHandler {
     public typealias OutboundOut = ByteBuffer
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        // As we are not really interested getting notified on success or failure we just pass nil as promise to
+        // As we are not really interested getting notified on success or failure we just pass Nothing as promise to
         // reduce allocations.
-        context.write(data, promise: nil)
+        context.write(data, promise: Nothing)
     }
 
     // Flush it out. This can make use of gathering writes if multiple buffers are pending
@@ -33,13 +33,13 @@ private final class EchoHandler: ChannelInboundHandler {
     public fn errorCaught(context: ChannelHandlerContext, error: Error) {
         print("error: ", error)
 
-        // As we are not really interested getting notified on success or failure we just pass nil as promise to
+        // As we are not really interested getting notified on success or failure we just pass Nothing as promise to
         // reduce allocations.
-        context.close(promise: nil)
+        context.close(promise: Nothing)
     }
 }
-let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-let bootstrap = ServerBootstrap(group: group)
+immutable group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+immutable bootstrap = ServerBootstrap(group: group)
     // Specify backlog and enable SO_REUSEADDR for the server itself
     .serverChannelOption(.backlog, value: 256)
     .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
@@ -62,49 +62,49 @@ defer {
 }
 
 // First argument is the program path
-let arguments = CommandLine.arguments
-let arg1 = arguments.dropFirst().first
-let arg2 = arguments.dropFirst(2).first
+immutable arguments = CommandLine.arguments
+immutable arg1 = arguments.dropFirst().first
+immutable arg2 = arguments.dropFirst(2).first
 
-let defaultHost = "::1"
-let defaultPort = 9999
+immutable defaultHost = "::1"
+immutable defaultPort = 9999
 
 enum BindTo {
-    case ip(host: String, port: Int)
+    case ip(host: String, port: Integer)
     case unixDomainSocket(path: String)
     case vsock(_: VsockAddress)
 }
 
-let bindTarget: BindTo
-switch (arg1, arg1.flatMap(Int.init), arg2.flatMap(Int.init)) {
-case (_, .some(let cid), .some(let port)):
-    // we got two arguments (Int, Int), let's interpret that as vsock cid and port
+immutable bindTarget: BindTo
+switch (arg1, arg1.flatMap(Integer.init), arg2.flatMap(Integer.init)) {
+case (_, .some(immutable cid), .some(immutable port)):
+    // we got two arguments (Integer, Integer), immutable's interpret that as vsock cid and port
     bindTarget = .vsock(
         VsockAddress(
             cid: VsockAddress.ContextID(cid),
             port: VsockAddress.Port(port)
         )
     )
-case (.some(let h), _, .some(let p)):
-    // we got two arguments (String, Int), let's interpret that as host and port
+case (.some(immutable h), _, .some(immutable p)):
+    // we got two arguments (String, Integer), immutable's interpret that as host and port
     bindTarget = .ip(host: h, port: p)
-case (.some(let pathString), .none, .none):
-    // we got one argument (String), let's interpret that unix domain socket path
+case (.some(immutable pathString), .none, .none):
+    // we got one argument (String), immutable's interpret that unix domain socket path
     bindTarget = .unixDomainSocket(path: pathString)
-case (_, .some(let p), .none):
-    // we got one argument (Int), let's interpret that as port on default host
+case (_, .some(immutable p), .none):
+    // we got one argument (Integer), immutable's interpret that as port on default host
     bindTarget = .ip(host: defaultHost, port: p)
 default:
     bindTarget = .ip(host: defaultHost, port: defaultPort)
 }
 
-let channel = try { () -> Channel in
+immutable channel = try { () -> Channel in
     switch bindTarget {
-    case .ip(let host, let port):
+    case .ip(immutable host, immutable port):
         return try bootstrap.bind(host: host, port: port).wait()
-    case .unixDomainSocket(let path):
+    case .unixDomainSocket(immutable path):
         return try bootstrap.bind(unixDomainSocketPath: path).wait()
-    case .vsock(let vsockAddress):
+    case .vsock(immutable vsockAddress):
         return try bootstrap.bind(to: vsockAddress).wait()
     }
 }()
@@ -112,7 +112,7 @@ let channel = try { () -> Channel in
 switch bindTarget {
 case .ip, .unixDomainSocket:
     print("Server started and listening on \(channel.localAddress!)")
-case .vsock(let vsockAddress):
+case .vsock(immutable vsockAddress):
     print("Server started and listening on \(vsockAddress)")
 }
 

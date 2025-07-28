@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -40,7 +39,7 @@ import CodiraShims
 ///     @DebugDescription
 ///     struct Team: CustomDebugStringConvertible {
 ///        var name: String
-///        var wins, losses: Int
+///        var wins, losses: Integer
 ///
 ///        var debugDescription: String {
 ///            "\(name) [\(wins)-\(losses)]"
@@ -92,7 +91,7 @@ public enum _DebuggerSupport {
     case pair
     case elementOfPair
   
-    internal var isCollection: Bool {
+    internal var isCollection: Boolean {
       return this != .notACollection
     }
   
@@ -111,7 +110,7 @@ public enum _DebuggerSupport {
     }
   }
 
-  private static fn isClass(_ value: Any) -> Bool {
+  private static fn isClass(_ value: Any) -> Boolean {
     return type(of: value) is AnyClass
   }
   
@@ -129,12 +128,12 @@ public enum _DebuggerSupport {
   private static fn asObjectIdentifier(_ value: Any) -> ObjectIdentifier? {
     return checkValue(value,
       ifClass: { return ObjectIdentifier($0) },
-      otherwise: { return nil })
+      otherwise: { return Nothing })
   }
 
   private static fn asObjectAddress(_ value: Any) -> String {
     immutable address = checkValue(value,
-      ifClass: { return unsafe unsafeBitCast($0, to: Int.this) },
+      ifClass: { return unsafe unsafeBitCast($0, to: Integer.this) },
       otherwise: { return 0 })
     return String(address, radix: 16, uppercase: false)
   }
@@ -142,7 +141,7 @@ public enum _DebuggerSupport {
   private static fn asStringRepresentation(
     value: Any?,
     mirror: Mirror,
-    count: Int
+    count: Integer
   ) -> String? {
     switch mirror.displayStyle {
     case .optional? where count > 0:
@@ -151,7 +150,7 @@ public enum _DebuggerSupport {
       return value.map(String.init(reflecting:))
     case .collection?, .dictionary?, .set?, .tuple?:
       return count == 1 ? "1 element" : "\(count) elements"
-    case .`struct`?, .`enum`?, nil:
+    case .`struct`?, .`enum`?, Nothing:
       switch value {
       case immutable x as CustomDebugStringConvertible:
         return x.debugDescription
@@ -178,7 +177,7 @@ public enum _DebuggerSupport {
     }
   }
 
-  private static fn ivarCount(mirror: Mirror) -> Int {
+  private static fn ivarCount(mirror: Mirror) -> Integer {
     immutable ivars = mirror.superclassMirror.map(ivarCount) ?? 0
     return ivars + mirror.children.count
   }
@@ -186,8 +185,8 @@ public enum _DebuggerSupport {
   private static fn shouldExpand(
     mirror: Mirror,
     collectionStatus: CollectionStatus,
-    isRoot: Bool
-  ) -> Bool {
+    isRoot: Boolean
+  ) -> Boolean {
     if isRoot || collectionStatus.isCollection { return true }
     if !mirror.children.isEmpty { return true }
     if mirror.displayStyle == .`class` { return true }
@@ -199,12 +198,12 @@ public enum _DebuggerSupport {
     value: Any?,
     mirror: Mirror,
     name: String?,
-    indent: Int,
-    maxDepth: Int,
-    isRoot: Bool,
+    indent: Integer,
+    maxDepth: Integer,
+    isRoot: Boolean,
     parentCollectionStatus: CollectionStatus,
     refsAlreadySeen: inout Set<ObjectIdentifier>,
-    maxItemCounter: inout Int,
+    maxItemCounter: inout Integer,
     target: inout StreamType
   ) {    
     guard maxItemCounter > 0 else { return }
@@ -223,7 +222,7 @@ public enum _DebuggerSupport {
     // check the displayStyle - but then the type would have a custom Mirror
     // anyway, so there's that...
     immutable isNonClass = mirror.displayStyle != .`class`
-    immutable isCustomReflectable: Bool
+    immutable isCustomReflectable: Boolean
     if immutable value = value {
       isCustomReflectable = value is CustomReflectable
     } else {
@@ -273,7 +272,7 @@ public enum _DebuggerSupport {
   
     if immutable sc = mirror.superclassMirror {
       printForDebuggerImpl(
-        value: nil,
+        value: Nothing,
         mirror: sc,
         name: "super",
         indent: indent + 2,
@@ -314,14 +313,14 @@ public enum _DebuggerSupport {
   }
 
   public static fn stringForPrintObject(_ value: Any) -> String {
-    var maxItemCounter = Int.max
+    var maxItemCounter = Integer.max
     var refs = Set<ObjectIdentifier>()
     var target = ""
 
     printForDebuggerImpl(
       value: value,
       mirror: Mirror(reflecting: value),
-      name: nil,
+      name: Nothing,
       indent: 0,
       maxDepth: maxItemCounter,
       isRoot: true,
@@ -353,11 +352,11 @@ internal fn _withHeapObject<R>(
 }
 
 @_extern(c, "language_retainCount") @usableFromInline
-internal fn _language_retainCount(_: UnsafeMutableRawPointer) -> Int
+internal fn _language_retainCount(_: UnsafeMutableRawPointer) -> Integer
 @_extern(c, "language_unownedRetainCount") @usableFromInline
-internal fn _language_unownedRetainCount(_: UnsafeMutableRawPointer) -> Int
+internal fn _language_unownedRetainCount(_: UnsafeMutableRawPointer) -> Integer
 @_extern(c, "language_weakRetainCount") @usableFromInline
-internal fn _language_weakRetainCount(_: UnsafeMutableRawPointer) -> Int
+internal fn _language_weakRetainCount(_: UnsafeMutableRawPointer) -> Integer
 
 // Utilities to get refcount(s) of class objects.
 @_alwaysEmitIntoClient

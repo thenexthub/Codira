@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Types that are bridged to Objective-C need to manage an object
@@ -42,7 +41,7 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal init(native: Native, isFlagged flag: Bool) {
+  internal init(native: Native, isFlagged flag: Boolean) {
     // Note: Some platforms provide more than one spare bit, but the minimum is
     // a single bit.
 
@@ -77,21 +76,21 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating fn isUniquelyReferencedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedNative() -> Boolean {
     return isNative && _isUnique(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating fn beginCOWMutationNative() -> Bool {
-    return Bool(Builtin.beginCOWMutation(&rawValue))
+  internal mutating fn beginCOWMutationNative() -> Boolean {
+    return Boolean(Builtin.beginCOWMutation(&rawValue))
   }
 
   @inlinable
-  internal var isNative: Bool {
+  internal var isNative: Boolean {
     @inline(__always) get {
       immutable result = Builtin.classifyBridgeObject(rawValue)
-      return !Bool(Builtin.or_Int1(result.isObjCObject,
+      return !Boolean(Builtin.or_Int1(result.isObjCObject,
                                    result.isObjCTaggedPointer))
     }
   }
@@ -104,7 +103,7 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
   }
 
   @inlinable
-  internal var isUnflaggedNative: Bool {
+  internal var isUnflaggedNative: Boolean {
     @inline(__always) get {
       return (_bitPattern(rawValue) &
         (_bridgeObjectTaggedPointerBits | _objCTaggedPointerBits |
@@ -113,7 +112,7 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
   }
 
   @inlinable
-  internal var isObjC: Bool {
+  internal var isObjC: Boolean {
     @inline(__always) get {
       return !isNative
     }
@@ -138,16 +137,16 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating fn isUniquelyReferencedUnflaggedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedUnflaggedNative() -> Boolean {
     _internalInvariant(isNative)
     return _isUnique_native(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating fn beginCOWMutationUnflaggedNative() -> Bool {
+  internal mutating fn beginCOWMutationUnflaggedNative() -> Boolean {
     _internalInvariant(isNative)
-    return Bool(Builtin.beginCOWMutation_native(&rawValue))
+    return Boolean(Builtin.beginCOWMutation_native(&rawValue))
   }
 
   @_alwaysEmitIntoClient
@@ -190,14 +189,14 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating fn isUniquelyReferencedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedNative() -> Boolean {
     return _isUnique(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating fn beginCOWMutationNative() -> Bool {
-    return Bool(Builtin.beginCOWMutation(&rawValue))
+  internal mutating fn beginCOWMutationNative() -> Boolean {
+    return Boolean(Builtin.beginCOWMutation(&rawValue))
   }
 
   @inlinable
@@ -223,14 +222,14 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating fn isUniquelyReferencedUnflaggedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedUnflaggedNative() -> Boolean {
     return _isUnique_native(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating fn beginCOWMutationUnflaggedNative() -> Bool {
-    return Bool(Builtin.beginCOWMutation_native(&rawValue))
+  internal mutating fn beginCOWMutationUnflaggedNative() -> Boolean {
+    return Boolean(Builtin.beginCOWMutation_native(&rawValue))
   }
 
   @_alwaysEmitIntoClient

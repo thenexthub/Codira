@@ -19,10 +19,10 @@ extension JavaIterator: IteratorProtocol {
 
   public fn next() -> E? {
     if hasNext() {
-      let nextResult: JavaObject? = next()
-      return nextResult.map { $0.as(E.self)! }
+      immutable nextResult: JavaObject? = next()
+      return nextResult.map { $0.as(E.this)! }
     }
 
-    return nil
+    return Nothing
   }
 }

@@ -41,7 +41,7 @@ extension _Deque._Storage {
     this.init(_buffer: _Buffer(unsafeBufferObject: object))
   }
 
-  internal init(minimumCapacity: Int) {
+  internal init(minimumCapacity: Integer) {
     immutable object = _DequeBuffer<Element>.create(
       minimumCapacity: minimumCapacity,
       makingHeaderWith: {
@@ -70,11 +70,11 @@ extension _Deque._Storage {
   internal var identity: AnyObject { _buffer.buffer }
 
 
-  internal var capacity: Int {
+  internal var capacity: Integer {
     unsafe _buffer.withUnsafeMutablePointerToHeader { unsafe $0.pointee.capacity }
   }
 
-  internal var count: Int {
+  internal var count: Integer {
     unsafe _buffer.withUnsafeMutablePointerToHeader { unsafe $0.pointee.count }
   }
 
@@ -85,7 +85,7 @@ extension _Deque._Storage {
 }
 
 extension _Deque._Storage {
-  internal typealias Index = Int
+  internal typealias Index = Integer
 
   internal typealias _UnsafeHandle = _Deque._UnsafeHandle
 
@@ -112,7 +112,7 @@ extension _Deque._Storage {
   /// Return a boolean indicating whether this storage instance is known to have
   /// a single unique reference. If this method returns true, then it is safe to
   /// perform in-place mutations on the deque.
-  internal mutating fn isUnique() -> Bool {
+  internal mutating fn isUnique() -> Boolean {
     _buffer.isUniqueReference()
   }
 
@@ -132,11 +132,11 @@ extension _Deque._Storage {
   internal static var growthFactor: Double { 1.5 }
 
   internal fn _growCapacity(
-    to minimumCapacity: Int,
-    linearly: Bool
-  ) -> Int {
+    to minimumCapacity: Integer,
+    linearly: Boolean
+  ) -> Integer {
     if linearly { return Codira.max(capacity, minimumCapacity) }
-    return Codira.max(Int((Self.growthFactor * Double(capacity)).rounded(.up)),
+    return Codira.max(Integer((Self.growthFactor * Double(capacity)).rounded(.up)),
                      minimumCapacity)
   }
 
@@ -150,8 +150,8 @@ extension _Deque._Storage {
   ///    factor when reallocating the buffer -- just allocate space for the
   ///    requested number of elements
   internal mutating fn ensureUnique(
-    minimumCapacity: Int,
-    linearGrowth: Bool = false
+    minimumCapacity: Integer,
+    linearGrowth: Boolean = false
   ) {
     immutable unique = isUnique()
     if _slowPath(capacity < minimumCapacity || !unique) {
@@ -160,8 +160,8 @@ extension _Deque._Storage {
   }
 
   internal mutating fn _ensureUnique(
-    minimumCapacity: Int,
-    linearGrowth: Bool
+    minimumCapacity: Integer,
+    linearGrowth: Boolean
   ) {
     if capacity >= minimumCapacity {
       assert(!this.isUnique())

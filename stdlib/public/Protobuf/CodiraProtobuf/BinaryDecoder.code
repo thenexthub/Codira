@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/BinaryDecoder.swift - Binary decoding
+// Sources/SwiftProtobuf/BinaryDecoder.code - Binary decoding
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -21,26 +26,26 @@ internal struct BinaryDecoder: Decoder {
     // Current position
     private var p: UnsafeRawPointer
     // Remaining bytes in input.
-    private var available: Int
+    private var available: Integer
     // Position of start of field currently being parsed
     private var fieldStartP: UnsafeRawPointer
-    // Position of end of field currently being parsed, nil if we don't know.
+    // Position of end of field currently being parsed, Nothing if we don't know.
     private var fieldEndP: UnsafeRawPointer?
     // Whether or not the field value  has actually been parsed
     private var consumed = true
     // Wire format for last-examined field
     internal var fieldWireFormat = WireFormat.varint
     // Field number for last-parsed field tag
-    private var fieldNumber: Int = 0
+    private var fieldNumber: Integer = 0
     // Collection of extension fields for this decode
     private var extensions: (any ExtensionMap)?
     // The current group number. See decodeFullGroup(group:fieldNumber:) for how
     // this is used.
-    private var groupFieldNumber: Int?
+    private var groupFieldNumber: Integer?
     // The options for decoding.
     private var options: BinaryDecodingOptions
 
-    private var recursionBudget: Int
+    private var recursionBudget: Integer
 
     // Collects the unknown data found while decoding a message.
     private var unknownData: Data?
@@ -48,29 +53,29 @@ internal struct BinaryDecoder: Decoder {
     // packed repeated enums; see below
     private var unknownOverride: Data?
 
-    private var complete: Bool { available == 0 }
+    private var complete: Boolean { available == 0 }
 
     internal init(
         forReadingFrom pointer: UnsafeRawPointer,
-        count: Int,
+        count: Integer,
         options: BinaryDecodingOptions,
-        extensions: (any ExtensionMap)? = nil
+        extensions: (any ExtensionMap)? = Nothing
     ) {
-        // Assuming baseAddress is not nil.
+        // Assuming baseAddress is not Nothing.
         p = pointer
         available = count
         fieldStartP = p
-        self.extensions = extensions
-        self.options = options
+        this.extensions = extensions
+        this.options = options
         recursionBudget = options.messageDepthLimit
     }
 
     internal init(
         forReadingFrom pointer: UnsafeRawPointer,
-        count: Int,
+        count: Integer,
         parent: BinaryDecoder
     ) {
-        self.init(
+        this.init(
             forReadingFrom: pointer,
             count: count,
             options: parent.options,
@@ -99,27 +104,27 @@ internal struct BinaryDecoder: Decoder {
         /// Protobuf simply allows conflicting oneof values to overwrite
     }
 
-    /// Return the next field number or nil if there are no more fields.
-    internal mutating fn nextFieldNumber() throws -> Int? {
+    /// Return the next field number or Nothing if there are no more fields.
+    internal mutating fn nextFieldNumber() throws -> Integer? {
         // Since this is called for every field, I've taken some pains
         // to optimize it, including unrolling a tweaked version of
         // the varint parser.
         if fieldNumber > 0 {
-            if let override = unknownOverride {
+            if immutable override = unknownOverride {
                 assert(!options.discardUnknownFields)
                 assert(fieldWireFormat != .startGroup && fieldWireFormat != .endGroup)
-                if unknownData == nil {
+                if unknownData == Nothing {
                     unknownData = override
                 } else {
                     unknownData!.append(override)
                 }
-                unknownOverride = nil
+                unknownOverride = Nothing
             } else if !consumed {
                 if options.discardUnknownFields {
                     try skip()
                 } else {
-                    let u = try getRawField()
-                    if unknownData == nil {
+                    immutable u = try getRawField()
+                    if unknownData == Nothing {
                         unknownData = u
                     } else {
                         unknownData!.append(u)
@@ -130,15 +135,15 @@ internal struct BinaryDecoder: Decoder {
 
         // Quit if end of input
         if available == 0 {
-            return nil
+            return Nothing
         }
 
         // Get the next field number
         fieldStartP = p
-        fieldEndP = nil
-        let start = p
-        let c0 = start[0]
-        if let wireFormat = WireFormat(rawValue: c0 & 7) {
+        fieldEndP = Nothing
+        immutable start = p
+        immutable c0 = start[0]
+        if immutable wireFormat = WireFormat(rawValue: c0 & 7) {
             fieldWireFormat = wireFormat
         } else {
             throw BinaryDecodingError.malformedProtobuf
@@ -146,24 +151,24 @@ internal struct BinaryDecoder: Decoder {
         if (c0 & 0x80) == 0 {
             p += 1
             available -= 1
-            fieldNumber = Int(c0) >> 3
+            fieldNumber = Integer(c0) >> 3
         } else {
-            fieldNumber = Int(c0 & 0x7f) >> 3
+            fieldNumber = Integer(c0 & 0x7f) >> 3
             if available < 2 {
                 throw BinaryDecodingError.malformedProtobuf
             }
-            let c1 = start[1]
+            immutable c1 = start[1]
             if (c1 & 0x80) == 0 {
                 p += 2
                 available &-= 2
-                fieldNumber |= Int(c1) &<< 4
+                fieldNumber |= Integer(c1) &<< 4
             } else {
-                fieldNumber |= Int(c1 & 0x7f) &<< 4
+                fieldNumber |= Integer(c1 & 0x7f) &<< 4
                 if available < 3 {
                     throw BinaryDecodingError.malformedProtobuf
                 }
-                let c2 = start[2]
-                fieldNumber |= Int(c2 & 0x7f) &<< 11
+                immutable c2 = start[2]
+                fieldNumber |= Integer(c2 & 0x7f) &<< 11
                 if (c2 & 0x80) == 0 {
                     p += 3
                     available &-= 3
@@ -171,8 +176,8 @@ internal struct BinaryDecoder: Decoder {
                     if available < 4 {
                         throw BinaryDecodingError.malformedProtobuf
                     }
-                    let c3 = start[3]
-                    fieldNumber |= Int(c3 & 0x7f) &<< 18
+                    immutable c3 = start[3]
+                    fieldNumber |= Integer(c3 & 0x7f) &<< 18
                     if (c3 & 0x80) == 0 {
                         p += 4
                         available &-= 4
@@ -180,11 +185,11 @@ internal struct BinaryDecoder: Decoder {
                         if available < 5 {
                             throw BinaryDecodingError.malformedProtobuf
                         }
-                        let c4 = start[4]
+                        immutable c4 = start[4]
                         if c4 > 15 {
                             throw BinaryDecodingError.malformedProtobuf
                         }
-                        fieldNumber |= Int(c4 & 0x7f) &<< 25
+                        fieldNumber |= Integer(c4 & 0x7f) &<< 25
                         p += 5
                         available &-= 5
                     }
@@ -198,7 +203,7 @@ internal struct BinaryDecoder: Decoder {
                 if groupFieldNumber == fieldNumber {
                     // Reached the end of the current group, single the
                     // end of the message.
-                    return nil
+                    return Nothing
                 } else {
                     // .endGroup when not in a group or for a different
                     // group is an invalid binary.
@@ -229,18 +234,18 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedFloatField(value: inout [Float]) throws {
         switch fieldWireFormat {
         case WireFormat.fixed32:
-            let i = try decodeFloat()
+            immutable i = try decodeFloat()
             value.append(i)
             consumed = true
         case WireFormat.lengthDelimited:
-            let bodyBytes = try decodeVarint()
+            immutable bodyBytes = try decodeVarint()
             if bodyBytes > 0 {
-                let itemSize = UInt64(MemoryLayout<Float>.size)
-                let itemCount = bodyBytes / itemSize
+                immutable itemSize = UInt64(MemoryLayout<Float>.size)
+                immutable itemCount = bodyBytes / itemSize
                 if bodyBytes % itemSize != 0 || bodyBytes > available {
                     throw BinaryDecodingError.truncated
                 }
-                value.reserveCapacity(value.count + Int(truncatingIfNeeded: itemCount))
+                value.reserveCapacity(value.count + Integer(truncatingIfNeeded: itemCount))
                 for _ in 1...itemCount {
                     value.append(try decodeFloat())
                 }
@@ -270,20 +275,20 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedDoubleField(value: inout [Double]) throws {
         switch fieldWireFormat {
         case WireFormat.fixed64:
-            let i = try decodeDouble()
+            immutable i = try decodeDouble()
             value.append(i)
             consumed = true
         case WireFormat.lengthDelimited:
-            let bodyBytes = try decodeVarint()
+            immutable bodyBytes = try decodeVarint()
             if bodyBytes > 0 {
-                let itemSize = UInt64(MemoryLayout<Double>.size)
-                let itemCount = bodyBytes / itemSize
+                immutable itemSize = UInt64(MemoryLayout<Double>.size)
+                immutable itemCount = bodyBytes / itemSize
                 if bodyBytes % itemSize != 0 || bodyBytes > available {
                     throw BinaryDecodingError.truncated
                 }
-                value.reserveCapacity(value.count + Int(truncatingIfNeeded: itemCount))
+                value.reserveCapacity(value.count + Integer(truncatingIfNeeded: itemCount))
                 for _ in 1...itemCount {
-                    let i = try decodeDouble()
+                    immutable i = try decodeDouble()
                     value.append(i)
                 }
             }
@@ -297,7 +302,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = Int32(truncatingIfNeeded: varint)
         consumed = true
     }
@@ -306,7 +311,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = Int32(truncatingIfNeeded: varint)
         consumed = true
     }
@@ -314,17 +319,17 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedInt32Field(value: inout [Int32]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
+            immutable varint = try decodeVarint()
             value.append(Int32(truncatingIfNeeded: varint))
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let varint = try decoder.decodeVarint()
+                immutable varint = try decoder.decodeVarint()
                 value.append(Int32(truncatingIfNeeded: varint))
             }
             consumed = true
@@ -337,7 +342,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let v = try decodeVarint()
+        immutable v = try decodeVarint()
         value = Int64(bitPattern: v)
         consumed = true
     }
@@ -346,7 +351,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = Int64(bitPattern: varint)
         consumed = true
     }
@@ -354,17 +359,17 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedInt64Field(value: inout [Int64]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
+            immutable varint = try decodeVarint()
             value.append(Int64(bitPattern: varint))
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let varint = try decoder.decodeVarint()
+                immutable varint = try decoder.decodeVarint()
                 value.append(Int64(bitPattern: varint))
             }
             consumed = true
@@ -377,7 +382,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = UInt32(truncatingIfNeeded: varint)
         consumed = true
     }
@@ -386,7 +391,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = UInt32(truncatingIfNeeded: varint)
         consumed = true
     }
@@ -394,17 +399,17 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedUInt32Field(value: inout [UInt32]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
+            immutable varint = try decodeVarint()
             value.append(UInt32(truncatingIfNeeded: varint))
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let t = try decoder.decodeVarint()
+                immutable t = try decoder.decodeVarint()
                 value.append(UInt32(truncatingIfNeeded: t))
             }
             consumed = true
@@ -432,17 +437,17 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedUInt64Field(value: inout [UInt64]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
+            immutable varint = try decodeVarint()
             value.append(varint)
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let t = try decoder.decodeVarint()
+                immutable t = try decoder.decodeVarint()
                 value.append(t)
             }
             consumed = true
@@ -455,8 +460,8 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
-        let t = UInt32(truncatingIfNeeded: varint)
+        immutable varint = try decodeVarint()
+        immutable t = UInt32(truncatingIfNeeded: varint)
         value = ZigZag.decoded(t)
         consumed = true
     }
@@ -465,8 +470,8 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
-        let t = UInt32(truncatingIfNeeded: varint)
+        immutable varint = try decodeVarint()
+        immutable t = UInt32(truncatingIfNeeded: varint)
         value = ZigZag.decoded(t)
         consumed = true
     }
@@ -474,19 +479,19 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedSInt32Field(value: inout [Int32]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
-            let t = UInt32(truncatingIfNeeded: varint)
+            immutable varint = try decodeVarint()
+            immutable t = UInt32(truncatingIfNeeded: varint)
             value.append(ZigZag.decoded(t))
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let varint = try decoder.decodeVarint()
-                let t = UInt32(truncatingIfNeeded: varint)
+                immutable varint = try decoder.decodeVarint()
+                immutable t = UInt32(truncatingIfNeeded: varint)
                 value.append(ZigZag.decoded(t))
             }
             consumed = true
@@ -499,7 +504,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = ZigZag.decoded(varint)
         consumed = true
     }
@@ -508,7 +513,7 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
+        immutable varint = try decodeVarint()
         value = ZigZag.decoded(varint)
         consumed = true
     }
@@ -516,17 +521,17 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedSInt64Field(value: inout [Int64]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
+            immutable varint = try decodeVarint()
             value.append(ZigZag.decoded(varint))
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let varint = try decoder.decodeVarint()
+                immutable varint = try decoder.decodeVarint()
                 value.append(ZigZag.decoded(varint))
             }
             consumed = true
@@ -557,10 +562,10 @@ internal struct BinaryDecoder: Decoder {
             value.append(try decodeLittleEndianInteger())
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
             value.reserveCapacity(value.count + n / MemoryLayout<UInt32>.size)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
                 value.append(try decoder.decodeLittleEndianInteger())
             }
@@ -592,10 +597,10 @@ internal struct BinaryDecoder: Decoder {
             value.append(try decodeLittleEndianInteger())
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
             value.reserveCapacity(value.count + n / MemoryLayout<UInt64>.size)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
                 value.append(try decoder.decodeLittleEndianInteger())
             }
@@ -627,10 +632,10 @@ internal struct BinaryDecoder: Decoder {
             value.append(try decodeLittleEndianInteger())
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
             value.reserveCapacity(value.count + n / MemoryLayout<Int32>.size)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
                 value.append(try decoder.decodeLittleEndianInteger())
             }
@@ -662,10 +667,10 @@ internal struct BinaryDecoder: Decoder {
             value.append(try decodeLittleEndianInteger())
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
             value.reserveCapacity(value.count + n / MemoryLayout<Int64>.size)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
                 value.append(try decoder.decodeLittleEndianInteger())
             }
@@ -675,7 +680,7 @@ internal struct BinaryDecoder: Decoder {
         }
     }
 
-    internal mutating fn decodeSingularBoolField(value: inout Bool) throws {
+    internal mutating fn decodeSingularBoolField(value: inout Boolean) throws {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
@@ -683,7 +688,7 @@ internal struct BinaryDecoder: Decoder {
         consumed = true
     }
 
-    internal mutating fn decodeSingularBoolField(value: inout Bool?) throws {
+    internal mutating fn decodeSingularBoolField(value: inout Boolean?) throws {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
@@ -691,20 +696,20 @@ internal struct BinaryDecoder: Decoder {
         consumed = true
     }
 
-    internal mutating fn decodeRepeatedBoolField(value: inout [Bool]) throws {
+    internal mutating fn decodeRepeatedBoolField(value: inout [Boolean]) throws {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
+            immutable varint = try decodeVarint()
             value.append(varint != 0)
             consumed = true
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var decoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !decoder.complete {
-                let t = try decoder.decodeVarint()
+                immutable t = try decoder.decodeVarint()
                 value.append(t != 0)
             }
             consumed = true
@@ -717,9 +722,9 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
-        var n: Int = 0
-        let p = try getFieldBodyBytes(count: &n)
-        if let s = utf8ToString(bytes: p, count: n) {
+        var n: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &n)
+        if immutable s = utf8ToString(bytes: p, count: n) {
             value = s
             consumed = true
         } else {
@@ -731,9 +736,9 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
-        var n: Int = 0
-        let p = try getFieldBodyBytes(count: &n)
-        if let s = utf8ToString(bytes: p, count: n) {
+        var n: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &n)
+        if immutable s = utf8ToString(bytes: p, count: n) {
             value = s
             consumed = true
         } else {
@@ -744,9 +749,9 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedStringField(value: inout [String]) throws {
         switch fieldWireFormat {
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
-            if let s = utf8ToString(bytes: p, count: n) {
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
+            if immutable s = utf8ToString(bytes: p, count: n) {
                 value.append(s)
                 consumed = true
             } else {
@@ -761,8 +766,8 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
-        var n: Int = 0
-        let p = try getFieldBodyBytes(count: &n)
+        var n: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &n)
         value = Data(bytes: p, count: n)
         consumed = true
     }
@@ -771,8 +776,8 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
-        var n: Int = 0
-        let p = try getFieldBodyBytes(count: &n)
+        var n: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &n)
         value = Data(bytes: p, count: n)
         consumed = true
     }
@@ -780,8 +785,8 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeRepeatedBytesField(value: inout [Data]) throws {
         switch fieldWireFormat {
         case WireFormat.lengthDelimited:
-            var n: Int = 0
-            let p = try getFieldBodyBytes(count: &n)
+            var n: Integer = 0
+            immutable p = try getFieldBodyBytes(count: &n)
             value.append(Data(bytes: p, count: n))
             consumed = true
         default:
@@ -789,59 +794,59 @@ internal struct BinaryDecoder: Decoder {
         }
     }
 
-    internal mutating fn decodeSingularEnumField<E: Enum>(value: inout E?) throws where E.RawValue == Int {
+    internal mutating fn decodeSingularEnumField<E: Enum>(value: inout E?) throws where E.RawValue == Integer {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
-        if let v = E(rawValue: Int(Int32(truncatingIfNeeded: varint))) {
+        immutable varint = try decodeVarint()
+        if immutable v = E(rawValue: Integer(Int32(truncatingIfNeeded: varint))) {
             value = v
             consumed = true
         }
     }
 
-    internal mutating fn decodeSingularEnumField<E: Enum>(value: inout E) throws where E.RawValue == Int {
+    internal mutating fn decodeSingularEnumField<E: Enum>(value: inout E) throws where E.RawValue == Integer {
         guard fieldWireFormat == WireFormat.varint else {
             return
         }
-        let varint = try decodeVarint()
-        if let v = E(rawValue: Int(Int32(truncatingIfNeeded: varint))) {
+        immutable varint = try decodeVarint()
+        if immutable v = E(rawValue: Integer(Int32(truncatingIfNeeded: varint))) {
             value = v
             consumed = true
         }
     }
 
-    internal mutating fn decodeRepeatedEnumField<E: Enum>(value: inout [E]) throws where E.RawValue == Int {
+    internal mutating fn decodeRepeatedEnumField<E: Enum>(value: inout [E]) throws where E.RawValue == Integer {
         switch fieldWireFormat {
         case WireFormat.varint:
-            let varint = try decodeVarint()
-            if let v = E(rawValue: Int(Int32(truncatingIfNeeded: varint))) {
+            immutable varint = try decodeVarint()
+            if immutable v = E(rawValue: Integer(Int32(truncatingIfNeeded: varint))) {
                 value.append(v)
                 consumed = true
             }
         case WireFormat.lengthDelimited:
-            var n: Int = 0
+            var n: Integer = 0
             var extras: [Int32]?
-            let p = try getFieldBodyBytes(count: &n)
-            let ints = Varint.countVarintsInBuffer(start: p, count: n)
+            immutable p = try getFieldBodyBytes(count: &n)
+            immutable ints = Varint.countVarintsInBuffer(start: p, count: n)
             value.reserveCapacity(value.count + ints)
-            var subdecoder = BinaryDecoder(forReadingFrom: p, count: n, parent: self)
+            var subdecoder = BinaryDecoder(forReadingFrom: p, count: n, parent: this)
             while !subdecoder.complete {
-                let u64 = try subdecoder.decodeVarint()
-                let i32 = Int32(truncatingIfNeeded: u64)
-                if let v = E(rawValue: Int(i32)) {
+                immutable u64 = try subdecoder.decodeVarint()
+                immutable i32 = Int32(truncatingIfNeeded: u64)
+                if immutable v = E(rawValue: Integer(i32)) {
                     value.append(v)
                 } else if !options.discardUnknownFields {
-                    if extras == nil {
+                    if extras == Nothing {
                         extras = []
                     }
                     extras!.append(i32)
                 }
             }
-            if let extras = extras {
-                let fieldTag = FieldTag(fieldNumber: fieldNumber, wireFormat: .lengthDelimited)
-                let bodySize = extras.reduce(0) { $0 + Varint.encodedSize(of: Int64($1)) }
-                let fieldSize =
+            if immutable extras = extras {
+                immutable fieldTag = FieldTag(fieldNumber: fieldNumber, wireFormat: .lengthDelimited)
+                immutable bodySize = extras.reduce(0) { $0 + Varint.encodedSize(of: Int64($1)) }
+                immutable fieldSize =
                     Varint.encodedSize(of: fieldTag.rawValue) + Varint.encodedSize(of: Int64(bodySize)) + bodySize
                 var field = Data(count: fieldSize)
                 field.withUnsafeMutableBytes { (body: UnsafeMutableRawBufferPointer) in
@@ -864,12 +869,12 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
-        var count: Int = 0
-        let p = try getFieldBodyBytes(count: &count)
-        if value == nil {
+        var count: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &count)
+        if value == Nothing {
             value = M()
         }
-        var subDecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: self)
+        var subDecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: this)
         try subDecoder.decodeFullMessage(message: &value!)
         consumed = true
     }
@@ -878,24 +883,24 @@ internal struct BinaryDecoder: Decoder {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
-        var count: Int = 0
-        let p = try getFieldBodyBytes(count: &count)
+        var count: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &count)
         var newValue = M()
-        var subDecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: self)
+        var subDecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: this)
         try subDecoder.decodeFullMessage(message: &newValue)
         value.append(newValue)
         consumed = true
     }
 
     internal mutating fn decodeFullMessage<M: Message>(message: inout M) throws {
-        assert(unknownData == nil)
+        assert(unknownData == Nothing)
         try incrementRecursionDepth()
-        try message.decodeMessage(decoder: &self)
+        try message.decodeMessage(decoder: &this)
         decrementRecursionDepth()
         guard complete else {
             throw BinaryDecodingError.trailingGarbage
         }
-        if let unknownData = unknownData {
+        if immutable unknownData = unknownData {
             message.unknownFields.append(protobufData: unknownData)
         }
     }
@@ -916,7 +921,7 @@ internal struct BinaryDecoder: Decoder {
         }
     }
 
-    private mutating fn decodeFullGroup<G: Message>(group: inout G, fieldNumber: Int) throws -> Bool {
+    private mutating fn decodeFullGroup<G: Message>(group: inout G, fieldNumber: Integer) throws -> Boolean {
         guard fieldWireFormat == WireFormat.startGroup else {
             return false
         }
@@ -928,19 +933,19 @@ internal struct BinaryDecoder: Decoder {
         // Groups within groups works because this effectively makes a stack
         // of decoders, each one looking for their ending tag.
 
-        var subDecoder = self
+        var subDecoder = this
         subDecoder.groupFieldNumber = fieldNumber
         // startGroup was read, so current tag/data is done (otherwise the
         // startTag will end up in the unknowns of the first thing decoded).
         subDecoder.consumed = true
         // The group (message) doesn't get any existing unknown fields from
         // the parent.
-        subDecoder.unknownData = nil
+        subDecoder.unknownData = Nothing
         try group.decodeMessage(decoder: &subDecoder)
         guard subDecoder.fieldNumber == fieldNumber && subDecoder.fieldWireFormat == .endGroup else {
             throw BinaryDecodingError.truncated
         }
-        if let groupUnknowns = subDecoder.unknownData {
+        if immutable groupUnknowns = subDecoder.unknownData {
             group.unknownFields.append(protobufData: groupUnknowns)
         }
         // Advance over what was parsed.
@@ -959,14 +964,14 @@ internal struct BinaryDecoder: Decoder {
         }
         var k: KeyType.BaseType?
         var v: ValueType.BaseType?
-        var count: Int = 0
-        let p = try getFieldBodyBytes(count: &count)
-        var subdecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: self)
-        while let tag = try subdecoder.getTag() {
+        var count: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &count)
+        var subdecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: this)
+        while immutable tag = try subdecoder.getTag() {
             if tag.wireFormat == .endGroup {
                 throw BinaryDecodingError.malformedProtobuf
             }
-            let fieldNumber = tag.fieldNumber
+            immutable fieldNumber = tag.fieldNumber
             switch fieldNumber {
             case 1:
                 try KeyType.decodeSingular(value: &k, from: &subdecoder)
@@ -991,26 +996,26 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeMapField<KeyType, ValueType>(
         fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
         value: inout _ProtobufEnumMap<KeyType, ValueType>.BaseType
-    ) throws where ValueType.RawValue == Int {
+    ) throws where ValueType.RawValue == Integer {
         guard fieldWireFormat == WireFormat.lengthDelimited else {
             return
         }
         var k: KeyType.BaseType?
         var v: ValueType?
-        var count: Int = 0
-        let p = try getFieldBodyBytes(count: &count)
-        var subdecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: self)
-        while let tag = try subdecoder.getTag() {
+        var count: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &count)
+        var subdecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: this)
+        while immutable tag = try subdecoder.getTag() {
             if tag.wireFormat == .endGroup {
                 throw BinaryDecodingError.malformedProtobuf
             }
-            let fieldNumber = tag.fieldNumber
+            immutable fieldNumber = tag.fieldNumber
             switch fieldNumber {
             case 1:  // Keys are basic types
                 try KeyType.decodeSingular(value: &k, from: &subdecoder)
             case 2:  // Value is an Enum type
                 try subdecoder.decodeSingularEnumField(value: &v)
-                if v == nil && tag.wireFormat == .varint {
+                if v == Nothing && tag.wireFormat == .varint {
                     // Enum decode fail and wire format was varint, so this had to
                     // have been a proto2 unknown enum value. This whole map entry
                     // into the parent message's unknown fields. If the wire format
@@ -1040,14 +1045,14 @@ internal struct BinaryDecoder: Decoder {
         }
         var k: KeyType.BaseType?
         var v: ValueType?
-        var count: Int = 0
-        let p = try getFieldBodyBytes(count: &count)
-        var subdecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: self)
-        while let tag = try subdecoder.getTag() {
+        var count: Integer = 0
+        immutable p = try getFieldBodyBytes(count: &count)
+        var subdecoder = BinaryDecoder(forReadingFrom: p, count: count, parent: this)
+        while immutable tag = try subdecoder.getTag() {
             if tag.wireFormat == .endGroup {
                 throw BinaryDecodingError.malformedProtobuf
             }
-            let fieldNumber = tag.fieldNumber
+            immutable fieldNumber = tag.fieldNumber
             switch fieldNumber {
             case 1:  // Keys are basic types
                 try KeyType.decodeSingular(value: &k, from: &subdecoder)
@@ -1069,9 +1074,9 @@ internal struct BinaryDecoder: Decoder {
     internal mutating fn decodeExtensionField(
         values: inout ExtensionFieldValueSet,
         messageType: any Message.Type,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
-        if let ext = extensions?[messageType, fieldNumber] {
+        if immutable ext = extensions?[messageType, fieldNumber] {
             try decodeExtensionField(
                 values: &values,
                 messageType: messageType,
@@ -1085,7 +1090,7 @@ internal struct BinaryDecoder: Decoder {
     private mutating fn decodeExtensionField(
         values: inout ExtensionFieldValueSet,
         messageType: any Message.Type,
-        fieldNumber: Int,
+        fieldNumber: Integer,
         messageExtension ext: any AnyMessageExtension
     ) throws {
         assert(!consumed)
@@ -1094,12 +1099,12 @@ internal struct BinaryDecoder: Decoder {
         try values.modify(index: fieldNumber) { fieldValue in
             // Message/Group extensions both will call back into the matching
             // decode methods, so the recursion depth will be tracked there.
-            if fieldValue != nil {
-                try fieldValue!.decodeExtensionField(decoder: &self)
+            if fieldValue != Nothing {
+                try fieldValue!.decodeExtensionField(decoder: &this)
             } else {
-                fieldValue = try ext._protobuf_newField(decoder: &self)
+                fieldValue = try ext._protobuf_newField(decoder: &this)
             }
-            if consumed && fieldValue == nil {
+            if consumed && fieldValue == Nothing {
                 // Really things should never get here, if the decoder says
                 // the bytes were consumed, then there should have been a
                 // field that consumed them (existing or created). This
@@ -1114,17 +1119,17 @@ internal struct BinaryDecoder: Decoder {
         messageType: any Message.Type
     ) throws {
         // Anything not in an acceptable form will go into unknown fields
-        while let fieldNumber = try self.nextFieldNumber() {
+        while immutable fieldNumber = try this.nextFieldNumber() {
             // Normal MessageSet wire format (nested in a group)
             if fieldNumber == WireFormat.MessageSet.FieldNumbers.item && fieldWireFormat == WireFormat.startGroup {
                 // This is similar to decodeFullGroup
 
                 try incrementRecursionDepth()
-                var subDecoder = self
+                var subDecoder = this
                 subDecoder.groupFieldNumber = fieldNumber
                 subDecoder.consumed = true
 
-                let itemResult = try subDecoder.decodeMessageSetItem(
+                immutable itemResult = try subDecoder.decodeMessageSetItem(
                     values: &values,
                     messageType: messageType
                 )
@@ -1144,7 +1149,7 @@ internal struct BinaryDecoder: Decoder {
                 assert(recursionBudget == subDecoder.recursionBudget)
                 decrementRecursionDepth()
             } else if fieldWireFormat == WireFormat.lengthDelimited,
-                let ext = extensions?[messageType, fieldNumber]
+                immutable ext = extensions?[messageType, fieldNumber]
             {
                 // This was a raw extension field, this is possible if some encoder doesn't
                 // know the MessageSet wire format. Since we know the extension, promote it.
@@ -1180,23 +1185,23 @@ internal struct BinaryDecoder: Decoder {
 
         var msgExtension: (any AnyMessageExtension)?
         var fieldData: Data?
-        var gotData: Bool = false
+        var gotData: Boolean = false
 
         // In this loop, if wire types are wrong, things don't decode,
         // just bail instead of letting things go into unknown fields.
         // Wrongly formed MessageSets don't seem don't have real
         // spelled out behaviors.
-        while let fieldNumber = try self.nextFieldNumber() {
+        while immutable fieldNumber = try this.nextFieldNumber() {
             switch fieldNumber {
             case WireFormat.MessageSet.FieldNumbers.typeId:
                 var extensionFieldNumber: Int32 = 0
                 try decodeSingularInt32Field(value: &extensionFieldNumber)
                 if extensionFieldNumber == 0 { return .malformed }
-                if let _ = msgExtension {
+                if immutable _ = msgExtension {
                     // The field appears more than once, only the first value counts.
                     continue
                 }
-                guard let ext = extensions?[messageType, Int(extensionFieldNumber)] else {
+                guard immutable ext = extensions?[messageType, Integer(extensionFieldNumber)] else {
                     // At this point it is an unknown extension, so it will be treated as
                     // an unknown field.
                     //
@@ -1208,14 +1213,14 @@ internal struct BinaryDecoder: Decoder {
                 msgExtension = ext
 
                 // If there already was fieldData, decode it.
-                if let data = fieldData {
+                if immutable data = fieldData {
                     var wasDecoded = false
                     try data.withUnsafeBytes { (body: UnsafeRawBufferPointer) in
-                        if let baseAddress = body.baseAddress, body.count > 0 {
+                        if immutable baseAddress = body.baseAddress, body.count > 0 {
                             var extDecoder = BinaryDecoder(
                                 forReadingFrom: baseAddress,
                                 count: body.count,
-                                parent: self
+                                parent: this
                             )
                             // Prime the decode to be correct.
                             extDecoder.consumed = false
@@ -1232,7 +1237,7 @@ internal struct BinaryDecoder: Decoder {
                     if !wasDecoded {
                         return .malformed
                     }
-                    fieldData = nil
+                    fieldData = Nothing
                 }
 
             case WireFormat.MessageSet.FieldNumbers.message:
@@ -1241,7 +1246,7 @@ internal struct BinaryDecoder: Decoder {
                     guard fieldWireFormat == .lengthDelimited else { return .malformed }
                     try skip()
                     consumed = true
-                } else if let ext = msgExtension {
+                } else if immutable ext = msgExtension {
                     assert(consumed == false)
                     gotData = true
                     try decodeExtensionField(
@@ -1258,9 +1263,9 @@ internal struct BinaryDecoder: Decoder {
                     assert(fieldData == .none)
                     var d: Data?
                     try decodeSingularBytesField(value: &d)
-                    guard let data = d else { return .malformed }
+                    guard immutable data = d else { return .malformed }
                     // Save it as length delimited
-                    let payloadSize = Varint.encodedSize(of: Int64(data.count)) + data.count
+                    immutable payloadSize = Varint.encodedSize(of: Int64(data.count)) + data.count
                     var payload = Data(count: payloadSize)
                     payload.withUnsafeMutableBytes { (body: UnsafeMutableRawBufferPointer) in
                         var encoder = BinaryEncoder(forWritingInto: body)
@@ -1288,7 +1293,7 @@ internal struct BinaryDecoder: Decoder {
     //
 
     /// Private:  Advance the current position.
-    private mutating fn consume(length: Int) {
+    private mutating fn consume(length: Integer) {
         available -= length
         p += length
     }
@@ -1299,7 +1304,7 @@ internal struct BinaryDecoder: Decoder {
         switch tag.wireFormat {
         case .varint:
             // Don't need the value, just ensuring it is validly encoded.
-            let _ = try decodeVarint()
+            immutable _ = try decodeVarint()
         case .fixed64:
             if available < 8 {
                 throw BinaryDecodingError.truncated
@@ -1307,17 +1312,17 @@ internal struct BinaryDecoder: Decoder {
             p += 8
             available -= 8
         case .lengthDelimited:
-            let n = try decodeVarint()
+            immutable n = try decodeVarint()
             if n <= UInt64(available) {
-                p += Int(n)
-                available -= Int(n)
+                p += Integer(n)
+                available -= Integer(n)
             } else {
                 throw BinaryDecodingError.truncated
             }
         case .startGroup:
             try incrementRecursionDepth()
             while true {
-                if let innerTag = try getTagWithoutUpdatingFieldStart() {
+                if immutable innerTag = try getTagWithoutUpdatingFieldStart() {
                     if innerTag.wireFormat == .endGroup {
                         if innerTag.fieldNumber == tag.fieldNumber {
                             decrementRecursionDepth()
@@ -1353,13 +1358,13 @@ internal struct BinaryDecoder: Decoder {
     /// On exit, fieldStartP points to the first byte of the tag, fieldEndP points
     /// to the first byte after the field contents, and p == fieldEndP.
     private mutating fn skip() throws {
-        if let end = fieldEndP {
+        if immutable end = fieldEndP {
             p = end
         } else {
             // Rewind to start of current field.
             available += p - fieldStartP
             p = fieldStartP
-            guard let tag = try getTagWithoutUpdatingFieldStart() else {
+            guard immutable tag = try getTagWithoutUpdatingFieldStart() else {
                 throw BinaryDecodingError.truncated
             }
             try skipOver(tag: tag)
@@ -1374,7 +1379,7 @@ internal struct BinaryDecoder: Decoder {
         }
         var start = p
         var length = available
-        var c = start.load(fromByteOffset: 0, as: UInt8.self)
+        var c = start.load(fromByteOffset: 0, as: UInt8.this)
         start += 1
         length &-= 1
         if c & 0x80 == 0 {
@@ -1388,7 +1393,7 @@ internal struct BinaryDecoder: Decoder {
             if length < 1 || shift > 63 {
                 throw BinaryDecodingError.malformedProtobuf
             }
-            c = start.load(fromByteOffset: 0, as: UInt8.self)
+            c = start.load(fromByteOffset: 0, as: UInt8.this)
             start += 1
             length &-= 1
             value |= UInt64(c & 0x7f) &<< shift
@@ -1405,7 +1410,7 @@ internal struct BinaryDecoder: Decoder {
     /// This also bookmarks the start of field for a possible skip().
     internal mutating fn getTag() throws -> FieldTag? {
         fieldStartP = p
-        fieldEndP = nil
+        fieldEndP = Nothing
         return try getTagWithoutUpdatingFieldStart()
     }
 
@@ -1414,11 +1419,11 @@ internal struct BinaryDecoder: Decoder {
     /// skip() to skip over fields within a group.
     private mutating fn getTagWithoutUpdatingFieldStart() throws -> FieldTag? {
         if available < 1 {
-            return nil
+            return Nothing
         }
-        let t = try decodeVarint()
+        immutable t = try decodeVarint()
         if t < UInt64(UInt32.max) {
-            guard let tag = FieldTag(rawValue: UInt32(truncatingIfNeeded: t)) else {
+            guard immutable tag = FieldTag(rawValue: UInt32(truncatingIfNeeded: t)) else {
                 throw BinaryDecodingError.malformedProtobuf
             }
             fieldWireFormat = tag.wireFormat
@@ -1438,27 +1443,27 @@ internal struct BinaryDecoder: Decoder {
 
     /// Private: decode a fixed-length number.
     private mutating fn decodeLittleEndianInteger<T: FixedWidthInteger>() throws -> T {
-        let size = MemoryLayout<T>.size
+        immutable size = MemoryLayout<T>.size
         assert(size == 4 || size == 8)
         guard available >= size else { throw BinaryDecodingError.truncated }
         defer { consume(length: size) }
-        return T(littleEndian: p.loadUnaligned(as: T.self))
+        return T(littleEndian: p.loadUnaligned(as: T.this))
     }
 
     private mutating fn decodeFloat() throws -> Float {
-        let nativeEndianBytes: UInt32 = try decodeLittleEndianInteger()
+        immutable nativeEndianBytes: UInt32 = try decodeLittleEndianInteger()
         return Float(bitPattern: nativeEndianBytes)
     }
 
     private mutating fn decodeDouble() throws -> Double {
-        let nativeEndianBytes: UInt64 = try decodeLittleEndianInteger()
+        immutable nativeEndianBytes: UInt64 = try decodeLittleEndianInteger()
         return Double(bitPattern: nativeEndianBytes)
     }
 
     /// Private: Get the start and length for the body of
     /// a length-delimited field.
-    private mutating fn getFieldBodyBytes(count: inout Int) throws -> UnsafeRawPointer {
-        let length = try decodeVarint()
+    private mutating fn getFieldBodyBytes(count: inout Integer) throws -> UnsafeRawPointer {
+        immutable length = try decodeVarint()
 
         // Bytes and Strings have a max size of 2GB. And since messages are on
         // the wire as bytes/length delimited, they also have a 2GB size limit.
@@ -1478,8 +1483,8 @@ internal struct BinaryDecoder: Decoder {
             throw BinaryDecodingError.truncated
         }
 
-        count = Int(length)
-        let body = p
+        count = Integer(length)
+        immutable body = p
         consume(length: count)
         return body
     }

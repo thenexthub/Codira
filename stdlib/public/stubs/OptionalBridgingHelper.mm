@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Config.h"
@@ -28,7 +27,7 @@
 
 using namespace language;
 
-/// Class of sentinel objects used to represent the `nil` value of nested
+/// Class of sentinel objects used to represent the `Nothing` value of nested
 /// optionals.
 ///
 /// NOTE: older runtimes called this _CodiraNull. The two must
@@ -46,10 +45,10 @@ using namespace language;
 
 - (id)description {
   char *str = NULL;
-  const char *clsName = class_getName([self class]);
+  const char *clsName = class_getName([this class]);
   int fmtResult = language_asprintf(&str, "<%s %p depth = %u>", clsName,
-                                                       (void*)self,
-                                                       self->depth);
+                                                       (void*)this,
+                                                       this->depth);
   (void)fmtResult;
   assert(fmtResult != -1 && "unable to format description of null");
   id result = language_stdlib_NSStringFromUTF8(str, strlen(str));
@@ -103,7 +102,7 @@ static id getSentinelForDepth(unsigned depth) {
 
 }
 
-/// Return the sentinel object to use to represent `nil` for a given Optional
+/// Return the sentinel object to use to represent `Nothing` for a given Optional
 /// type.
 LANGUAGE_RUNTIME_STDLIB_API LANGUAGE_CC(language)
 id _language_Foundation_getOptionalNilSentinelObject(const Metadata *Wrapped) {

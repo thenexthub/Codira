@@ -13,12 +13,12 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    BufferView.swift
-    BufferViewCompatibility.swift
-    BufferViewIndex.swift
-    BufferViewIterator.swift
-    JSON5Scanner.swift
-    JSONDecoder.swift
-    JSONEncoder.swift
-    JSONScanner.swift
-    JSONWriter.swift)
+    BufferView.code
+    BufferViewCompatibility.code
+    BufferViewIndex.code
+    BufferViewIterator.code
+    JSON5Scanner.code
+    JSONDecoder.code
+    JSONEncoder.code
+    JSONScanner.code
+    JSONWriter.code)

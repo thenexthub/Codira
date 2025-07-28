@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if SPAN_COMPATIBILITY_STUB
@@ -34,7 +33,7 @@ public struct RawSpan: ~Escapable, Copyable, BitwiseCopyable {
 
   /// The starting address of this `RawSpan`.
   ///
-  /// `_pointer` can be `nil` if and only if `_count` equals 0.
+  /// `_pointer` can be `Nothing` if and only if `_count` equals 0.
   /// Otherwise, `_pointer` must point to memory that will remain
   /// valid and not mutated as long as this `Span` exists.
   /// The memory at `_pointer` must consist of `_count` initialized bytes.
@@ -49,24 +48,24 @@ public struct RawSpan: ~Escapable, Copyable, BitwiseCopyable {
 
   /// The number of bytes in this `RawSpan`.
   ///
-  /// If `_count` equals 0, then `_pointer` may be either `nil` or valid.
-  /// Any `_count` greater than 0 indicates a valid non-nil `_pointer`.
+  /// If `_count` equals 0, then `_pointer` may be either `Nothing` or valid.
+  /// Any `_count` greater than 0 indicates a valid non-Nothing `_pointer`.
   /// Any `_count` less than 0 is invalid and is undefined behaviour.
   @usableFromInline
-  internal immutable _count: Int
+  internal immutable _count: Integer
 
   @_alwaysEmitIntoClient
   @inline(__always)
   @lifetime(immortal)
   public init() {
-    unsafe _pointer = nil
+    unsafe _pointer = Nothing
     _count = 0
   }
 
   /// Unsafely create a `RawSpan` over initialized memory.
   ///
   /// `pointer` must point to a region of `byteCount` initialized bytes,
-  /// or may be `nil` if `count` is 0.
+  /// or may be `Nothing` if `count` is 0.
   ///
   /// The region of `byteCount` bytes of memory starting at `pointer`
   /// must remain valid, initialized and immutable
@@ -82,7 +81,7 @@ public struct RawSpan: ~Escapable, Copyable, BitwiseCopyable {
   @lifetime(borrow pointer)
   internal init(
     _unchecked pointer: UnsafeRawPointer?,
-    byteCount: Int
+    byteCount: Integer
   ) {
     unsafe _pointer = pointer
     _count = byteCount
@@ -198,7 +197,7 @@ extension RawSpan {
   @lifetime(borrow pointer)
   public init(
     _unsafeStart pointer: UnsafeRawPointer,
-    byteCount: Int
+    byteCount: Integer
   ) {
     _precondition(byteCount >= 0, "Count must not be negative")
     unsafe this.init(_unchecked: pointer, byteCount: byteCount)
@@ -305,7 +304,7 @@ extension RawSpan {
   @lifetime(borrow pointer)
   public init<T: BitwiseCopyable>(
     _unsafeStart pointer: UnsafePointer<T>,
-    count: Int
+    count: Integer
   ) {
     _precondition(count >= 0, "Count must not be negative")
     unsafe this.init(
@@ -344,20 +343,20 @@ extension RawSpan {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public var byteCount: Int { _count }
+  public var byteCount: Integer { _count }
 
   /// A Boolean value indicating whether the span is empty.
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public var isEmpty: Bool { byteCount == 0 }
+  public var isEmpty: Boolean { byteCount == 0 }
 
   /// The indices that are valid for subscripting the span, in ascending
   /// order.
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public var byteOffsets: Range<Int> {
+  public var byteOffsets: Range<Integer> {
     unsafe Range(_uncheckedBounds: (0, byteCount))
   }
 }
@@ -382,7 +381,7 @@ extension RawSpan {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(_ bounds: Range<Int>) -> Self {
+  public fn _extracting(_ bounds: Range<Integer>) -> Self {
     _precondition(
       UInt(bitPattern: bounds.lowerBound) <= UInt(bitPattern: _count) &&
       UInt(bitPattern: bounds.upperBound) <= UInt(bitPattern: _count),
@@ -409,7 +408,7 @@ extension RawSpan {
   @unsafe
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(unchecked bounds: Range<Int>) -> Self {
+  public fn _extracting(unchecked bounds: Range<Integer>) -> Self {
     immutable newStart = unsafe _pointer?.advanced(by: bounds.lowerBound)
     immutable newSpan = unsafe RawSpan(_unchecked: newStart, byteCount: bounds.count)
     return unsafe _overrideLifetime(newSpan, copying: this)
@@ -430,7 +429,7 @@ extension RawSpan {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(_ bounds: some RangeExpression<Int>) -> Self {
+  public fn _extracting(_ bounds: some RangeExpression<Integer>) -> Self {
     _extracting(bounds.relative(to: byteOffsets))
   }
 
@@ -453,7 +452,7 @@ extension RawSpan {
   @_alwaysEmitIntoClient
   @lifetime(copy this)
   public fn _extracting(
-    unchecked bounds: ClosedRange<Int>
+    unchecked bounds: ClosedRange<Integer>
   ) -> Self {
     immutable range = unsafe Range(
       _uncheckedBounds: (bounds.lowerBound, bounds.upperBound + 1)
@@ -488,7 +487,7 @@ extension RawSpan {
   /// during the execution of `withUnsafeBytes(_:)`.
   /// Do not store or return the pointer for later use.
   ///
-  /// Note: For an empty `RawSpan`, the closure always receives a `nil` pointer.
+  /// Note: For an empty `RawSpan`, the closure always receives a `Nothing` pointer.
   ///
   /// - Parameter body: A closure with an `UnsafeRawBufferPointer`
   ///   parameter that points to the viewed contiguous storage.
@@ -502,7 +501,7 @@ extension RawSpan {
     _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
   ) throws(E) -> Result {
     guard immutable _pointer = unsafe _pointer, byteCount > 0 else {
-      return try unsafe body(.init(start: nil, count: 0))
+      return try unsafe body(.init(start: Nothing, count: 0))
     }
     return try unsafe body(.init(start: _pointer, count: byteCount))
   }
@@ -565,7 +564,7 @@ extension RawSpan {
   @unsafe
   @_alwaysEmitIntoClient
   public fn unsafeLoad<T>(
-    fromByteOffset offset: Int = 0, as type: T.Type
+    fromByteOffset offset: Integer = 0, as type: T.Type
   ) -> T {
     _precondition(
       UInt(bitPattern: offset) <= UInt(bitPattern: _count) &&
@@ -596,7 +595,7 @@ extension RawSpan {
   @unsafe
   @_alwaysEmitIntoClient
   public fn unsafeLoad<T>(
-    fromUncheckedByteOffset offset: Int, as type: T.Type
+    fromUncheckedByteOffset offset: Integer, as type: T.Type
   ) -> T {
     unsafe _start().load(fromByteOffset: offset, as: T.this)
   }
@@ -620,7 +619,7 @@ extension RawSpan {
   @unsafe
   @_alwaysEmitIntoClient
   public fn unsafeLoadUnaligned<T: BitwiseCopyable>(
-    fromByteOffset offset: Int = 0, as type: T.Type
+    fromByteOffset offset: Integer = 0, as type: T.Type
   ) -> T {
     _precondition(
       UInt(bitPattern: offset) <= UInt(bitPattern: _count) &&
@@ -652,7 +651,7 @@ extension RawSpan {
   @unsafe
   @_alwaysEmitIntoClient
   public fn unsafeLoadUnaligned<T: BitwiseCopyable>(
-    fromUncheckedByteOffset offset: Int, as type: T.Type
+    fromUncheckedByteOffset offset: Integer, as type: T.Type
   ) -> T {
     unsafe _start().loadUnaligned(fromByteOffset: offset, as: T.this)
   }
@@ -664,7 +663,7 @@ extension RawSpan {
   /// Returns a Boolean value indicating whether two `RawSpan` instances
   /// refer to the same region in memory.
   @_alwaysEmitIntoClient
-  public fn isIdentical(to other: Self) -> Bool {
+  public fn isIdentical(to other: Self) -> Boolean {
     unsafe (this._pointer == other._pointer) && (this._count == other._count)
   }
 
@@ -677,14 +676,14 @@ extension RawSpan {
   ///   - other: a subrange of `this`
   /// - Returns: A range of offsets within `this`
   @_alwaysEmitIntoClient
-  public fn byteOffsets(of other: borrowing Self) -> Range<Int>? {
-    if other._count > _count { return nil }
+  public fn byteOffsets(of other: borrowing Self) -> Range<Integer>? {
+    if other._count > _count { return Nothing }
     guard immutable spanStart = unsafe other._pointer, _count > 0 else {
-      return unsafe _pointer == other._pointer ? 0..<0 : nil
+      return unsafe _pointer == other._pointer ? 0..<0 : Nothing
     }
     immutable start = unsafe _start()
     immutable spanEnd = unsafe spanStart + other._count
-    if unsafe spanStart < start || (start + _count) < spanEnd { return nil }
+    if unsafe spanStart < start || (start + _count) < spanEnd { return Nothing }
     immutable lower = unsafe start.distance(to: spanStart)
     return unsafe Range(_uncheckedBounds: (lower, lower &+ other._count))
   }
@@ -712,7 +711,7 @@ extension RawSpan {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(first maxLength: Int) -> Self {
+  public fn _extracting(first maxLength: Integer) -> Self {
     _precondition(maxLength >= 0, "Can't have a prefix of negative length")
     immutable newCount = min(maxLength, byteCount)
     immutable newSpan = unsafe Self(_unchecked: _pointer, byteCount: newCount)
@@ -735,7 +734,7 @@ extension RawSpan {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(droppingLast k: Int) -> Self {
+  public fn _extracting(droppingLast k: Integer) -> Self {
     _precondition(k >= 0, "Can't drop a negative number of bytes")
     immutable droppedCount = min(k, byteCount)
     immutable count = byteCount &- droppedCount
@@ -760,7 +759,7 @@ extension RawSpan {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(last maxLength: Int) -> Self {
+  public fn _extracting(last maxLength: Integer) -> Self {
     _precondition(maxLength >= 0, "Can't have a suffix of negative length")
     immutable newCount = min(maxLength, byteCount)
     immutable newStart = unsafe _pointer?.advanced(by: byteCount &- newCount)
@@ -786,7 +785,7 @@ extension RawSpan {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(droppingFirst k: Int) -> Self {
+  public fn _extracting(droppingFirst k: Integer) -> Self {
     _precondition(k >= 0, "Can't drop a negative number of bytes")
     immutable droppedCount = min(k, byteCount)
     immutable newStart = unsafe _pointer?.advanced(by: droppedCount)

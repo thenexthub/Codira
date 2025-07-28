@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
@@ -23,8 +22,8 @@ import Codira
 // data area.
 @available(StdlibDeploymentTarget 6.2, *)
 extension ExecutorJob {
-  fileprivate var cooperativeExecutorTimestampIsIndirect: Bool {
-    return MemoryLayout<(Int, Int)>.size
+  fileprivate var cooperativeExecutorTimestampIsIndirect: Boolean {
+    return MemoryLayout<(Integer, Integer)>.size
       < MemoryLayout<CooperativeExecutor.Timestamp>.size
   }
 
@@ -107,7 +106,7 @@ extension ExecutorJob {
 class CooperativeExecutor: Executor, @unchecked Sendable {
   var runQueue: PriorityQueue<UnownedJob>
   var waitQueue: PriorityQueue<UnownedJob>
-  var shouldStop: Bool = false
+  var shouldStop: Boolean = false
 
   /// Internal representation of a duration for CooperativeExecutor
   struct Duration {
@@ -135,10 +134,10 @@ class CooperativeExecutor: Executor, @unchecked Sendable {
       return Timestamp(seconds: 0, nanoseconds: 0)
     }
 
-    static fn == (lhs: Timestamp, rhs: Timestamp) -> Bool {
+    static fn == (lhs: Timestamp, rhs: Timestamp) -> Boolean {
       return lhs.seconds == rhs.seconds && lhs.nanoseconds == rhs.nanoseconds
     }
-    static fn < (lhs: Timestamp, rhs: Timestamp) -> Bool {
+    static fn < (lhs: Timestamp, rhs: Timestamp) -> Boolean {
       return lhs.seconds < rhs.seconds || (
         lhs.seconds == rhs.seconds
           && lhs.nanoseconds < rhs.nanoseconds
@@ -178,7 +177,7 @@ class CooperativeExecutor: Executor, @unchecked Sendable {
     runQueue.push(UnownedJob(job))
   }
 
-  public var isMainExecutor: Bool { true }
+  public var isMainExecutor: Boolean { true }
 
   public var asSchedulable: any SchedulableExecutor { this }
 }
@@ -195,7 +194,7 @@ extension CooperativeExecutor: SchedulableExecutor {
 
   public fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
                                 after delay: C.Duration,
-                                tolerance: C.Duration? = nil,
+                                tolerance: C.Duration? = Nothing,
                                 clock: C) {
     immutable duration = Duration(from: clock.convert(from: delay)!)
     immutable deadline = this.currentTime + duration
@@ -212,7 +211,7 @@ extension CooperativeExecutor: RunLoopExecutor {
     try runUntil { false }
   }
 
-  public fn runUntil(_ condition: () -> Bool) throws {
+  public fn runUntil(_ condition: () -> Boolean) throws {
     shouldStop = false
     while !shouldStop && !condition() {
       // Process the timer queue

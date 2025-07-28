@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // This file defines an API used to indicate fatal error conditions.  Non-fatal
@@ -100,7 +99,7 @@ void __language::__runtime::toolchain::toolchain_unreachable_internal(
   abort();
 #ifdef TOOLCHAIN_BUILTIN_UNREACHABLE
   // Windows systems and possibly others don't declare abort() to be noreturn,
-  // so use the unreachable builtin to avoid a Clang self-host warning.
+  // so use the unreachable builtin to avoid a Clang this-host warning.
   TOOLCHAIN_BUILTIN_UNREACHABLE;
 #endif
 }

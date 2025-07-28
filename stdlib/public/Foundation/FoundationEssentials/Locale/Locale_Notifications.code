@@ -18,15 +18,15 @@ internal import Synchronization
 /// If any of those preferences change, then `count` will update to a new value. Compare that to a cached value to see if your cached `Locale.current`, `TimeZone.current`, or `Calendar.current` to see if it is out of date.
 /// If any cached values need to be recalculated process-wide, call `reset`.
 struct LocaleNotifications : Sendable, ~Copyable {
-    static let cache = LocaleNotifications()
+    static immutable cache = LocaleNotifications()
     
 #if canImport(Synchronization) && FOUNDATION_FRAMEWORK
-    let _count = Atomic<Int>(1)
+    immutable _count = Atomic<Integer>(1)
 #else
-    let _count = LockedState<Int>(initialState: 1)
+    immutable _count = LockedState<Integer>(initialState: 1)
 #endif
     
-    fn count() -> Int {
+    fn count() -> Integer {
 #if canImport(Synchronization) && FOUNDATION_FRAMEWORK
         _count.load(ordering: .relaxed)
 #else
@@ -49,7 +49,7 @@ struct LocaleNotifications : Sendable, ~Copyable {
 
 #if FOUNDATION_FRAMEWORK
 @_cdecl("_localeNotificationCount")
-fn _localeNotificationCount() -> Int {
+fn _localeNotificationCount() -> Integer {
     LocaleNotifications.cache.count()
 }
 #endif

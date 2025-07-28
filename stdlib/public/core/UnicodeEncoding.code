@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 public protocol _UnicodeEncoding {
@@ -33,11 +32,11 @@ public protocol _UnicodeEncoding {
   static fn decode(_ content: EncodedScalar) -> Unicode.Scalar
 
   /// Converts from encoding-independent to encoded representation, returning
-  /// `nil` if the scalar can't be represented in this encoding.
+  /// `Nothing` if the scalar can't be represented in this encoding.
   static fn encode(_ content: Unicode.Scalar) -> EncodedScalar?
 
   /// Converts a scalar from another encoding's representation, returning
-  /// `nil` if the scalar can't be represented in this encoding.
+  /// `Nothing` if the scalar can't be represented in this encoding.
   ///
   /// A default implementation of this method will be provided 
   /// automatically for any conforming type that does not implement one.
@@ -61,13 +60,13 @@ public protocol _UnicodeEncoding {
   // intermediate, underscored protocol.
   /// Returns true if `x` only appears in this encoding as the representation of
   /// a complete scalar value.
-  static fn _isScalar(_ x: CodeUnit) -> Bool
+  static fn _isScalar(_ x: CodeUnit) -> Boolean
 }
 
 extension _UnicodeEncoding {
   // See note on declaration of requirement, above
   @inlinable
-  public static fn _isScalar(_ x: CodeUnit) -> Bool { return false }
+  public static fn _isScalar(_ x: CodeUnit) -> Boolean { return false }
 
   @inlinable
   public static fn transcode<FromEncoding: Unicode.Encoding>(

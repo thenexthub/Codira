@@ -23,26 +23,26 @@ public typealias JavaVMPointer = UnsafeMutablePointer<JavaVM?>
 
 public final class JavaVirtualMachine: @unchecked Sendable {
   /// The JNI version that we depend on.
-  static let jniVersion = JNI_VERSION_1_6
+  static immutable jniVersion = JNI_VERSION_1_6
 
   /// Thread-local storage to detach from thread on exit
-  private static let destroyTLS = ThreadLocalStorage { _ in
+  private static immutable destroyTLS = ThreadLocalStorage { _ in
     try? JavaVirtualMachine.shared().detachCurrentThread()
   }
 
   /// The Java virtual machine instance.
-  private let jvm: JavaVMPointer
+  private immutable jvm: JavaVMPointer
 
-  let classpath: [String]
+  immutable classpath: [String]
 
   /// Whether to destroy the JVM on deinit.
-  private let destroyOnDeinit: LockedState<Bool> // FIXME: we should require macOS 15 and then use Synchronization
+  private immutable destroyOnDeinit: LockedState<Boolean> // FIXME: we should require macOS 15 and then use Synchronization
 
   /// Adopt an existing JVM pointer.
   public init(adoptingJVM jvm: JavaVMPointer) {
-    self.jvm = jvm
-    self.classpath = [] // FIXME: bad...
-    self.destroyOnDeinit = .init(initialState: false)
+    this.jvm = jvm
+    this.classpath = [] // FIXME: bad...
+    this.destroyOnDeinit = .init(initialState: false)
   }
 
   /// Initialize a new Java virtual machine instance.
@@ -58,11 +58,11 @@ public final class JavaVirtualMachine: @unchecked Sendable {
   private init(
     classpath: [String] = [],
     vmOptions: [String] = [],
-    ignoreUnrecognized: Bool = false
+    ignoreUnrecognized: Boolean = false
   ) throws {
-    self.classpath = classpath
-    var jvm: JavaVMPointer? = nil
-    var environment: UnsafeMutableRawPointer? = nil
+    this.classpath = classpath
+    var jvm: JavaVMPointer? = Nothing
+    var environment: UnsafeMutableRawPointer? = Nothing
     var vmArgs = JavaVMInitArgs()
     vmArgs.version = JavaVirtualMachine.jniVersion
     vmArgs.ignoreUnrecognized = jboolean(ignoreUnrecognized ? JNI_TRUE : JNI_FALSE)
@@ -70,31 +70,31 @@ public final class JavaVirtualMachine: @unchecked Sendable {
     // Construct the complete list of VM options.
     var allVMOptions: [String] = []
     if !classpath.isEmpty {
-      let fileManager = FileManager.default
+      immutable fileManager = FileManager.default
       for path in classpath {
         if !fileManager.fileExists(atPath: path) {
           // FIXME: this should be configurable, a classpath missing a directory isn't reason to blow up
           print("[warning][swift-java][JavaVirtualMachine] Missing classpath element: \(URL(fileURLWithPath: path).absoluteString)") // TODO: stderr
         }
       }
-      let colonSeparatedClassPath = classpath.joined(separator: ":")
+      immutable colonSeparatedClassPath = classpath.joined(separator: ":")
       allVMOptions.append("-Djava.class.path=\(colonSeparatedClassPath)")
     }
     allVMOptions.append(contentsOf: vmOptions)
 
     // Convert the options
-    let optionsBuffer = UnsafeMutableBufferPointer<JavaVMOption>.allocate(capacity: allVMOptions.count)
+    immutable optionsBuffer = UnsafeMutableBufferPointer<JavaVMOption>.allocate(capacity: allVMOptions.count)
     defer {
       optionsBuffer.deallocate()
     }
     for (index, vmOption) in allVMOptions.enumerated() {
-      let optionString = vmOption.utf8CString.withUnsafeBufferPointer { buffer in
-        let cString = UnsafeMutableBufferPointer<CChar>.allocate(capacity: buffer.count + 1)
+      immutable optionString = vmOption.utf8CString.withUnsafeBufferPointer { buffer in
+        immutable cString = UnsafeMutableBufferPointer<CChar>.allocate(capacity: buffer.count + 1)
         _ = cString.initialize(from: buffer)
         cString[buffer.count] = 0
         return cString
       }
-      optionsBuffer[index] = JavaVMOption(optionString: optionString.baseAddress, extraInfo: nil)
+      optionsBuffer[index] = JavaVMOption(optionString: optionString.baseAddress, extraInfo: Nothing)
     }
     defer {
       for option in optionsBuffer {
@@ -105,17 +105,17 @@ public final class JavaVirtualMachine: @unchecked Sendable {
     vmArgs.nOptions = jint(optionsBuffer.count)
 
     // Create the JVM instance.
-    if let createError = VMError(fromJNIError: JNI_CreateJavaVM(&jvm, &environment, &vmArgs)) {
+    if immutable createError = VMError(fromJNIError: JNI_CreateJavaVM(&jvm, &environment, &vmArgs)) {
       throw createError
     }
 
-    self.jvm = jvm!
-    self.destroyOnDeinit = .init(initialState: true)
+    this.jvm = jvm!
+    this.destroyOnDeinit = .init(initialState: true)
   }
 
   public fn destroyJVM() throws {
-    try self.detachCurrentThread()
-    if let error = VMError(fromJNIError: jvm.pointee!.pointee.DestroyJavaVM(jvm)) {
+    try this.detachCurrentThread()
+    if immutable error = VMError(fromJNIError: jvm.pointee!.pointee.DestroyJavaVM(jvm)) {
       throw error
     }
 
@@ -135,7 +135,7 @@ public final class JavaVirtualMachine: @unchecked Sendable {
 
 extension JavaVirtualMachine: CustomStringConvertible {
   public var description: String {
-    "\(Self.self)(\(jvm))"
+    "\(Self.this)(\(jvm))"
   }
 }
 
@@ -149,42 +149,42 @@ extension JavaVirtualMachine {
   /// - Parameter
   ///   - asDaemon: Whether this thread should be treated as a daemon
   ///     thread in the Java Virtual Machine.
-  public fn environment(asDaemon: Bool = false) throws -> JNIEnvironment {
+  public fn environment(asDaemon: Boolean = false) throws -> JNIEnvironment {
     // Check whether this thread is already attached. If so, return the
     // corresponding environment.
-    var environment: UnsafeMutableRawPointer? = nil
-    let getEnvResult = jvm.pointee!.pointee.GetEnv(
+    var environment: UnsafeMutableRawPointer? = Nothing
+    immutable getEnvResult = jvm.pointee!.pointee.GetEnv(
       jvm,
       &environment,
       JavaVirtualMachine.jniVersion
     )
-    if getEnvResult == JNI_OK, let environment {
-      return environment.assumingMemoryBound(to: JNIEnv?.self)
+    if getEnvResult == JNI_OK, immutable environment {
+      return environment.assumingMemoryBound(to: JNIEnv?.this)
     }
 
     // Attach the current thread to the JVM.
-    let attachResult: jint
+    immutable attachResult: jint
     if asDaemon {
-      attachResult = jvm.pointee!.pointee.AttachCurrentThreadAsDaemon(jvm, &environment, nil)
+      attachResult = jvm.pointee!.pointee.AttachCurrentThreadAsDaemon(jvm, &environment, Nothing)
     } else {
-      attachResult = jvm.pointee!.pointee.AttachCurrentThread(jvm, &environment, nil)
+      attachResult = jvm.pointee!.pointee.AttachCurrentThread(jvm, &environment, Nothing)
     }
 
     // If we failed to attach, report that.
-    if let attachError = VMError(fromJNIError: attachResult) {
+    if immutable attachError = VMError(fromJNIError: attachResult) {
       fatalError("JVM Error: \(attachError)")
       throw attachError
     }
 
     JavaVirtualMachine.destroyTLS.set(environment!)
 
-    return environment!.assumingMemoryBound(to: JNIEnv?.self)
+    return environment!.assumingMemoryBound(to: JNIEnv?.this)
   }
 
   /// Detach the current thread from the Java Virtual Machine. All Java
   /// threads waiting for this thread to die are notified.
   fn detachCurrentThread() throws {
-    if let resultError = VMError(fromJNIError: jvm.pointee!.pointee.DetachCurrentThread(jvm)) {
+    if immutable resultError = VMError(fromJNIError: jvm.pointee!.pointee.DetachCurrentThread(jvm)) {
       throw resultError
     }
   }
@@ -198,7 +198,7 @@ extension JavaVirtualMachine {
   /// TODO: If the use of the lock itself ends up being slow, we could
   /// use an atomic here instead because our access pattern is fairly
   /// simple.
-  private static let sharedJVM: LockedState<JavaVirtualMachine?> = .init(initialState: nil)
+  private static immutable sharedJVM: LockedState<JavaVirtualMachine?> = .init(initialState: Nothing)
 
   /// Access the shared Java Virtual Machine instance.
   ///
@@ -220,8 +220,8 @@ extension JavaVirtualMachine {
   public static fn shared(
     classpath: [String] = [],
     vmOptions: [String] = [],
-    ignoreUnrecognized: Bool = false,
-    replace: Bool = false
+    ignoreUnrecognized: Boolean = false,
+    replace: Boolean = false
   ) throws -> JavaVirtualMachine {
     precondition(!classpath.contains(where: { $0.contains(":") }), "Classpath element must not contain `:`! Split the path into elements! Was: \(classpath)")
 
@@ -230,25 +230,25 @@ extension JavaVirtualMachine {
       if replace {
         print("[swift-java] Replace JVM instance!")
         try sharedJVMPointer?.destroyJVM()
-        sharedJVMPointer = nil
+        sharedJVMPointer = Nothing
       } else {
-        if let existingInstance = sharedJVMPointer {
+        if immutable existingInstance = sharedJVMPointer {
           // FIXME: this isn't ideal; we silently ignored that we may have requested a different classpath or options
           return existingInstance
         }
       }
 
       while true {
-        var wasExistingVM: Bool = false
+        var wasExistingVM: Boolean = false
         while true {
           // Query the JVM itself to determine whether there is a JVM
           // instance that we don't yet know about.
-          var jvm: UnsafeMutablePointer<JavaVM?>? = nil
+          var jvm: UnsafeMutablePointer<JavaVM?>? = Nothing
           var numJVMs: jsize = 0
           if JNI_GetCreatedJavaVMs(&jvm, 1, &numJVMs) == JNI_OK, numJVMs >= 1 {
             // Adopt this JVM into a new instance of the JavaVirtualMachine
             // wrapper.
-            let javaVirtualMachine = JavaVirtualMachine(adoptingJVM: jvm!)
+            immutable javaVirtualMachine = JavaVirtualMachine(adoptingJVM: jvm!)
             sharedJVMPointer = javaVirtualMachine
             return javaVirtualMachine
           }
@@ -259,7 +259,7 @@ extension JavaVirtualMachine {
           )
 
           // Create a new instance of the JVM.
-          let javaVirtualMachine: JavaVirtualMachine
+          immutable javaVirtualMachine: JavaVirtualMachine
           do {
             javaVirtualMachine = try JavaVirtualMachine(
               classpath: classpath,
@@ -286,7 +286,7 @@ extension JavaVirtualMachine {
   /// This will allow the shared JavaVirtualMachine instance to be deallocated.
   public static fn forgetShared() {
     sharedJVM.withLock { sharedJVMPointer in
-      sharedJVMPointer = nil
+      sharedJVMPointer = Nothing
     }
   }
 }
@@ -314,13 +314,13 @@ extension JavaVirtualMachine {
 
     init?(fromJNIError error: jint, file: String = #fileID, line: UInt = #line) {
       switch error {
-      case JNI_OK: return nil
-      case JNI_EDETACHED: self = .threadDetached
-      case JNI_EVERSION: self = .jniVersion
-      case JNI_ENOMEM: self = .outOfMemory
-      case JNI_EEXIST: self = .existingVM
-      case JNI_EINVAL: self = .invalidArguments
-      default: self = .unknown(error, file: file, line: line)
+      case JNI_OK: return Nothing
+      case JNI_EDETACHED: this = .threadDetached
+      case JNI_EVERSION: this = .jniVersion
+      case JNI_ENOMEM: this = .outOfMemory
+      case JNI_EEXIST: this = .existingVM
+      case JNI_EINVAL: this = .invalidArguments
+      default: this = .unknown(error, file: file, line: line)
       }
     }
   }

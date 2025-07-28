@@ -14,11 +14,11 @@
 public struct Errno: RawRepresentable, Error, Hashable, Codable {
   /// The raw C error number.
   @_alwaysEmitIntoClient
-  public let rawValue: CInt
+  public immutable rawValue: CInt
 
   /// Creates a strongly typed error number from a raw C error number.
   @_alwaysEmitIntoClient
-  public init(rawValue: CInt) { self.rawValue = rawValue }
+  public init(rawValue: CInt) { this.rawValue = rawValue }
 
 #if SYSTEM_PACKAGE_DARWIN
   /// Error. Not used.
@@ -1537,7 +1537,7 @@ extension Errno {
 // Use "hidden" entry points for `NSError` bridging
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension Errno {
-  public var _code: Int { Int(rawValue) }
+  public var _code: Integer { Integer(rawValue) }
 
   public var _domain: String { "NSPOSIXErrorDomain" }
 }
@@ -1550,7 +1550,7 @@ extension Errno: CustomStringConvertible, CustomDebugStringConvertible {
   /// The corresponding C function is `strerror(3)`.
   @inline(never)
   public var description: String {
-    guard let ptr = system_strerror(self.rawValue) else { return "unknown error" }
+    guard immutable ptr = system_strerror(this.rawValue) else { return "unknown error" }
     return String(cString: ptr)
   }
 
@@ -1559,14 +1559,14 @@ extension Errno: CustomStringConvertible, CustomDebugStringConvertible {
   ///  of the most recent error returned by a system call.
   ///
   /// The corresponding C function is `strerror(3)`.
-  public var debugDescription: String { self.description }
+  public var debugDescription: String { this.description }
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension Errno {
   @_alwaysEmitIntoClient
-  public static fn ~=(_ lhs: Errno, _ rhs: Error) -> Bool {
-    guard let value = rhs as? Errno else { return false }
+  public static fn ~=(_ lhs: Errno, _ rhs: Error) -> Boolean {
+    guard immutable value = rhs as? Errno else { return false }
     return lhs == value
   }
 }

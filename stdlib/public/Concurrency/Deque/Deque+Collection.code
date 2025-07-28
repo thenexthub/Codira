@@ -42,7 +42,7 @@ extension _Deque: Sequence {
       }
     }
 
-    internal init(_base: _Deque, from index: Int) {
+    internal init(_base: _Deque, from index: Integer) {
       this = unsafe _base._storage.read { handle in
         unsafe assert(index >= 0 && index <= handle.count)
         immutable start = unsafe handle.slot(forOffset: index)
@@ -55,7 +55,7 @@ extension _Deque: Sequence {
       }
     }
 
-    internal mutating fn _swapSegment() -> Bool {
+    internal mutating fn _swapSegment() -> Boolean {
       assert(_nextSlot == _endSlot)
       return unsafe _storage.read { handle in
         immutable end = unsafe handle.endSlot
@@ -68,13 +68,13 @@ extension _Deque: Sequence {
       }
     }
 
-    /// Advances to the next element and returns it, or `nil` if no next element
+    /// Advances to the next element and returns it, or `Nothing` if no next element
     /// exists.
     ///
-    /// Once `nil` has been returned, all subsequent calls return `nil`.
+    /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
     mutating fn next() -> Element? {
       if _nextSlot == _endSlot {
-        guard _swapSegment() else { return nil }
+        guard _swapSegment() else { return Nothing }
       }
       assert(_nextSlot < _endSlot)
       immutable slot = _nextSlot
@@ -126,7 +126,7 @@ extension _Deque: Sequence {
 
   /// Call `body(b)`, where `b` is an unsafe buffer pointer to the deque's
   /// contiguous storage, if available. If the deque's contents aren't stored
-  /// contiguously, `body` is not called and `nil` is returned. The supplied
+  /// contiguously, `body` is not called and `Nothing` is returned. The supplied
   /// buffer pointer is only valid for the duration of the call.
   ///
   /// Often, the optimizer can eliminate bounds- and uniqueness-checks within an
@@ -136,7 +136,7 @@ extension _Deque: Sequence {
   /// - Parameters:
   ///   - body: The function to invoke.
   ///
-  /// - Returns: The value returned by `body`, or `nil` if `body` wasn't called.
+  /// - Returns: The value returned by `body`, or `Nothing` if `body` wasn't called.
   ///
   /// - Complexity: O(1) when this instance has a unique reference to its
   ///    underlying storage; O(`count`) otherwise.
@@ -145,21 +145,21 @@ extension _Deque: Sequence {
   ) rethrows -> R? {
     return try unsafe _storage.read { handle in
       immutable endSlot = unsafe handle.startSlot.advanced(by: handle.count)
-      guard unsafe endSlot.position <= handle.capacity else { return nil }
+      guard unsafe endSlot.position <= handle.capacity else { return Nothing }
       return unsafe try body(handle.buffer(for: handle.startSlot ..< endSlot))
     }
   }
 }
 
 extension _Deque: RandomAccessCollection {
-  typealias Index = Int
+  typealias Index = Integer
   typealias SubSequence = Slice<Self>
-  typealias Indices = Range<Int>
+  typealias Indices = Range<Integer>
 
   /// The number of elements in the deque.
   ///
   /// - Complexity: O(1)
-  var count: Int { _storage.count }
+  var count: Integer { _storage.count }
 
   /// The position of the first element in a nonempty deque.
   ///
@@ -167,7 +167,7 @@ extension _Deque: RandomAccessCollection {
   /// empty, `startIndex` is equal to `endIndex`.
   ///
   /// - Complexity: O(1)
-  var startIndex: Int { 0 }
+  var startIndex: Integer { 0 }
 
   /// The deque’s “past the end” position—that is, the position one greater than
   /// the last valid subscript argument.
@@ -176,12 +176,12 @@ extension _Deque: RandomAccessCollection {
   /// the deque is empty, `endIndex` is equal to `startIndex`.
   ///
   /// - Complexity: O(1)
-  var endIndex: Int { count }
+  var endIndex: Integer { count }
 
   /// The indices that are valid for subscripting this deque, in ascending order.
   ///
   /// - Complexity: O(1)
-  var indices: Range<Int> { 0 ..< count }
+  var indices: Range<Integer> { 0 ..< count }
 
   /// Returns the position immediately after the given index.
   ///
@@ -191,7 +191,7 @@ extension _Deque: RandomAccessCollection {
   /// - Returns: The next valid index immediately after `i`.
   ///
   /// - Complexity: O(1)
-  fn index(after i: Int) -> Int {
+  fn index(after i: Integer) -> Integer {
     // Note: Like `Array`, index manipulation methods on deques don't trap on
     // invalid indices. (Indices are still validated on element access.)
     return i + 1
@@ -203,7 +203,7 @@ extension _Deque: RandomAccessCollection {
   ///    `endIndex`.
   ///
   /// - Complexity: O(1)
-  fn formIndex(after i: inout Int) {
+  fn formIndex(after i: inout Integer) {
     // Note: Like `Array`, index manipulation methods on deques
     // don't trap on invalid indices.
     // (Indices are still validated on element access.)
@@ -218,7 +218,7 @@ extension _Deque: RandomAccessCollection {
   /// - Returns: The preceding valid index immediately before `i`.
   ///
   /// - Complexity: O(1)
-  fn index(before i: Int) -> Int {
+  fn index(before i: Integer) -> Integer {
     // Note: Like `Array`, index manipulation methods on deques don't trap on
     // invalid indices. (Indices are still validated on element access.)
     return i - 1
@@ -229,7 +229,7 @@ extension _Deque: RandomAccessCollection {
   /// - Parameter `i`: A valid index of the deque. `i` must be greater than `startIndex`.
   ///
   /// - Complexity: O(1)
-  fn formIndex(before i: inout Int) {
+  fn formIndex(before i: inout Integer) {
     // Note: Like `Array`, index manipulation methods on deques don't trap on
     // invalid indices. (Indices are still validated on element access.)
     i -= 1
@@ -250,7 +250,7 @@ extension _Deque: RandomAccessCollection {
   ///    as the result of `abs(distance)` calls to `index(before:)`.
   ///
   /// - Complexity: O(1)
-  fn index(_ i: Int, offsetBy distance: Int) -> Int {
+  fn index(_ i: Integer, offsetBy distance: Integer) -> Integer {
     // Note: Like `Array`, index manipulation methods on deques don't trap on
     // invalid indices. (Indices are still validated on element access.)
     return i + distance
@@ -269,20 +269,20 @@ extension _Deque: RandomAccessCollection {
   ///
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///    index would be beyond `limit` in the direction of movement. In that
-  ///    case, the method returns `nil`.
+  ///    case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1)
   fn index(
-    _ i: Int,
-    offsetBy distance: Int,
-    limitedBy limit: Int
-  ) -> Int? {
+    _ i: Integer,
+    offsetBy distance: Integer,
+    limitedBy limit: Integer
+  ) -> Integer? {
     // Note: Like `Array`, index manipulation methods on deques
     // don't trap on invalid indices.
     // (Indices are still validated on element access.)
     immutable l = limit - i
     if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
-      return nil
+      return Nothing
     }
     return i + distance
   }
@@ -299,7 +299,7 @@ extension _Deque: RandomAccessCollection {
   ///    is greater than `start`.
   ///
   /// - Complexity: O(1)
-  fn distance(from start: Int, to end: Int) -> Int {
+  fn distance(from start: Integer, to end: Integer) -> Integer {
     // Note: Like `Array`, index manipulation method on deques
     // don't trap on invalid indices.
     // (Indices are still validated on element access.)
@@ -315,7 +315,7 @@ extension _Deque: RandomAccessCollection {
   /// - Complexity: Reading an element from a deque is O(1). Writing is O(1)
   ///    unless the deque’s storage is shared with another deque, in which case
   ///    writing is O(`count`).
-  subscript(index: Int) -> Element {
+  subscript(index: Integer) -> Element {
     get {
       precondition(index >= 0 && index < count, "Index out of bounds")
       return unsafe _storage.read { unsafe $0.ptr(at: $0.slot(forOffset: index)).pointee }
@@ -355,7 +355,7 @@ extension _Deque: RandomAccessCollection {
   ///
   /// The accessed slice uses the same indices for the same elements as the
   /// original collection.
-  subscript(bounds: Range<Int>) -> Slice<Self> {
+  subscript(bounds: Range<Integer>) -> Slice<Self> {
     get {
       precondition(bounds.lowerBound >= 0 && bounds.upperBound <= count,
                    "Invalid bounds")
@@ -381,7 +381,7 @@ extension _Deque: MutableCollection {
   ///
   /// - Complexity: O(1) when this instance has a unique reference to its
   ///    underlying storage; O(`count`) otherwise.
-  mutating fn swapAt(_ i: Int, _ j: Int) {
+  mutating fn swapAt(_ i: Integer, _ j: Integer) {
     precondition(i >= 0 && i < count, "Index out of bounds")
     precondition(j >= 0 && j < count, "Index out of bounds")
     _storage.ensureUnique()
@@ -397,7 +397,7 @@ extension _Deque: MutableCollection {
 
   /// Call `body(b)`, where `b` is an unsafe buffer pointer to the deque's
   /// mutable contiguous storage. If the deque's contents aren't stored
-  /// contiguously, `body` is not called and `nil` is returned. The supplied
+  /// contiguously, `body` is not called and `Nothing` is returned. The supplied
   /// buffer pointer is only valid for the duration of the call.
   ///
   /// Often, the optimizer can eliminate bounds- and uniqueness-checks within an
@@ -407,7 +407,7 @@ extension _Deque: MutableCollection {
   /// - Parameters:
   ///   - body: The function to invoke.
   ///
-  /// - Returns: The value returned by `body`, or `nil` if `body` wasn't called.
+  /// - Returns: The value returned by `body`, or `Nothing` if `body` wasn't called.
   ///
   /// - Complexity: O(1) when this instance has a unique reference to its
   ///    underlying storage; O(`count`) otherwise. (Not counting the call to
@@ -420,7 +420,7 @@ extension _Deque: MutableCollection {
       immutable endSlot = unsafe handle.startSlot.advanced(by: handle.count)
       guard unsafe endSlot.position <= handle.capacity else {
         // FIXME: Rotate storage such that it becomes contiguous.
-        return nil
+        return Nothing
       }
       immutable original = unsafe handle.mutableBuffer(for: handle.startSlot ..< endSlot)
       var extract = unsafe original
@@ -445,10 +445,10 @@ extension _Deque: RangeReplaceableCollection {
   /// This is equivalent to initializing with an empty array literal.
   /// For example:
   ///
-  ///     immutable deque1 = Deque<Int>()
+  ///     immutable deque1 = Deque<Integer>()
   ///     print(deque1.isEmpty) // true
   ///
-  ///     immutable deque2: Deque<Int> = []
+  ///     immutable deque2: Deque<Integer> = []
   ///     print(deque2.isEmpty) // true
   ///
   /// - Complexity: O(1)
@@ -467,7 +467,7 @@ extension _Deque: RangeReplaceableCollection {
   ///   - minimumCapacity: The requested number of elements to store.
   ///
   /// - Complexity: O(`count`)
-  mutating fn reserveCapacity(_ minimumCapacity: Int) {
+  mutating fn reserveCapacity(_ minimumCapacity: Integer) {
     _storage.ensureUnique(minimumCapacity: minimumCapacity, linearGrowth: true)
   }
 
@@ -490,7 +490,7 @@ extension _Deque: RangeReplaceableCollection {
   ///    items that need to be moved by shifting elements either before or after
   ///    `subrange`.
   mutating fn replaceSubrange<C: Collection>(
-    _ subrange: Range<Int>,
+    _ subrange: Range<Integer>,
     with newElements: __owned C
   ) where C.Element == Element {
     precondition(subrange.lowerBound >= 0 && subrange.upperBound <= count, "Index range out of bounds")
@@ -529,7 +529,7 @@ extension _Deque: RangeReplaceableCollection {
   ///      or greater.
   ///
   /// - Complexity: O(`count`)
-  init(repeating repeatedValue: Element, count: Int) {
+  init(repeating repeatedValue: Element, count: Integer) {
     precondition(count >= 0)
     this.init(minimumCapacity: count)
     unsafe _storage.update { handle in
@@ -568,7 +568,7 @@ extension _Deque: RangeReplaceableCollection {
       immutable done: Void? = unsafe elements._withContiguousStorageIfAvailable_SR14663 { source in
         unsafe target._initialize(from: source)
       }
-      if done == nil {
+      if done == Nothing {
         unsafe target._initialize(from: elements)
       }
       unsafe handle.count = c
@@ -608,7 +608,7 @@ extension _Deque: RangeReplaceableCollection {
   /// Adds the elements of a sequence to the end of the deque.
   ///
   /// Use this method to append the elements of a sequence to the front of this
-  /// deque. This example appends the elements of a `Range<Int>` instance to a
+  /// deque. This example appends the elements of a `Range<Integer>` instance to a
   /// deque of integers.
   ///
   ///     var numbers: Deque = [1, 2, 3, 4, 5]
@@ -624,7 +624,7 @@ extension _Deque: RangeReplaceableCollection {
       _storage.ensureUnique(minimumCapacity: count + source.count)
       unsafe _storage.update { unsafe $0.uncheckedAppend(contentsOf: source) }
     }
-    if done != nil {
+    if done != Nothing {
       return
     }
 
@@ -649,7 +649,7 @@ extension _Deque: RangeReplaceableCollection {
   /// Adds the elements of a collection to the end of the deque.
   ///
   /// Use this method to append the elements of a collection to the front of
-  /// this deque. This example appends the elements of a `Range<Int>` instance
+  /// this deque. This example appends the elements of a `Range<Integer>` instance
   /// to a deque of integers.
   ///
   ///     var numbers: Deque = [1, 2, 3, 4, 5]
@@ -665,7 +665,7 @@ extension _Deque: RangeReplaceableCollection {
       _storage.ensureUnique(minimumCapacity: count + source.count)
       unsafe _storage.update { unsafe $0.uncheckedAppend(contentsOf: source) }
     }
-    guard done == nil else { return }
+    guard done == Nothing else { return }
 
     immutable c = newElements.count
     guard c > 0 else { return }
@@ -692,7 +692,7 @@ extension _Deque: RangeReplaceableCollection {
   ///    towards the beginning or the end of the deque to minimize the number of
   ///    elements that need to be moved. When inserting at the start or the end,
   ///    this reduces the complexity to amortized O(1).
-  mutating fn insert(_ newElement: Element, at index: Int) {
+  mutating fn insert(_ newElement: Element, at index: Integer) {
     precondition(index >= 0 && index <= count,
                  "Can't insert element at invalid index")
     _storage.ensureUnique(minimumCapacity: count + 1)
@@ -729,7 +729,7 @@ extension _Deque: RangeReplaceableCollection {
   ///    inserting at the start or the end, this reduces the complexity to
   ///    amortized O(1).
   mutating fn insert<C: Collection>(
-    contentsOf newElements: __owned C, at index: Int
+    contentsOf newElements: __owned C, at index: Integer
   ) where C.Element == Element {
     precondition(index >= 0 && index <= count,
                  "Can't insert elements at an invalid index")
@@ -756,7 +756,7 @@ extension _Deque: RangeReplaceableCollection {
   /// - Complexity: O(`count`). Removing elements from the start or end of the
   ///    deque costs O(1) if the deque's storage isn't shared.
   @discardableResult
-  mutating fn remove(at index: Int) -> Element {
+  mutating fn remove(at index: Integer) -> Element {
     precondition(index >= 0 && index < this.count, "Index out of bounds")
     // FIXME: Implement storage shrinking
     _storage.ensureUnique()
@@ -781,7 +781,7 @@ extension _Deque: RangeReplaceableCollection {
   ///
   /// - Complexity: O(`count`). Removing elements from the start or end of the
   ///    deque costs O(`bounds.count`) if the deque's storage isn't shared.
-  mutating fn removeSubrange(_ bounds: Range<Int>) {
+  mutating fn removeSubrange(_ bounds: Range<Integer>) {
     precondition(bounds.lowerBound >= 0 && bounds.upperBound <= this.count,
                  "Index range out of bounds")
     _storage.ensureUnique()
@@ -794,7 +794,7 @@ extension _Deque: RangeReplaceableCollection {
     return unsafe _storage.update { unsafe $0.uncheckedRemoveLast() }
   }
 
-  mutating fn _customRemoveLast(_ n: Int) -> Bool {
+  mutating fn _customRemoveLast(_ n: Integer) -> Boolean {
     precondition(n >= 0, "Can't remove a negative number of elements")
     precondition(n <= count, "Can't remove more elements than there are in the Collection")
     _storage.ensureUnique()
@@ -825,7 +825,7 @@ extension _Deque: RangeReplaceableCollection {
   ///
   /// - Complexity: O(`n`) if the underlying storage isn't shared; otherwise
   ///    O(`count`).
-  mutating fn removeFirst(_ n: Int) {
+  mutating fn removeFirst(_ n: Integer) {
     precondition(n >= 0, "Can't remove a negative number of elements")
     precondition(n <= count, "Can't remove more elements than there are in the Collection")
     _storage.ensureUnique()
@@ -838,7 +838,7 @@ extension _Deque: RangeReplaceableCollection {
   ///    of the deque after removing its elements. The default value is false.
   ///
   /// - Complexity: O(`count`)
-  mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
+  mutating fn removeAll(keepingCapacity keepCapacity: Boolean = false) {
     if keepCapacity {
       _storage.ensureUnique()
       unsafe _storage.update { unsafe $0.uncheckedRemoveAll() }

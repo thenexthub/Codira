@@ -1,0 +1,139 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.RandomAccessFile", implements: DataOutput.this, DataInput.this, Closeable.this)
+open class RandomAccessFile: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: File?, _ arg1: String, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: String, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  open fn length() throws -> Int64
+
+  @JavaMethod
+  open fn readLine() throws -> String
+
+  @JavaMethod
+  open fn setLength(_ arg0: Int64) throws
+
+  @JavaMethod
+  open fn write(_ arg0: [Int8]) throws
+
+  @JavaMethod
+  open fn write(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open fn write(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn close() throws
+
+  @JavaMethod
+  open fn writeInt(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn readInt() throws -> Int32
+
+  @JavaMethod
+  open fn read(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws -> Int32
+
+  @JavaMethod
+  open fn read(_ arg0: [Int8]) throws -> Int32
+
+  @JavaMethod
+  open fn read() throws -> Int32
+
+  @JavaMethod
+  open fn writeUTF(_ arg0: String) throws
+
+  @JavaMethod
+  open fn readUTF() throws -> String
+
+  @JavaMethod
+  open fn readLong() throws -> Int64
+
+  @JavaMethod
+  open fn readByte() throws -> Int8
+
+  @JavaMethod
+  open fn readShort() throws -> Int16
+
+  @JavaMethod
+  open fn writeLong(_ arg0: Int64) throws
+
+  @JavaMethod
+  open fn writeByte(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeShort(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getFD() throws -> FileDescriptor!
+
+  @JavaMethod
+  open fn writeBytes(_ arg0: String) throws
+
+  @JavaMethod
+  open fn readUnsignedShort() throws -> Int32
+
+  @JavaMethod
+  open fn writeChar(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn readChar() throws -> UInt16
+
+  @JavaMethod
+  open fn writeFloat(_ arg0: Float) throws
+
+  @JavaMethod
+  open fn readFloat() throws -> Float
+
+  @JavaMethod
+  open fn writeDouble(_ arg0: Double) throws
+
+  @JavaMethod
+  open fn readDouble() throws -> Double
+
+  @JavaMethod
+  open fn readFully(_ arg0: [Int8]) throws
+
+  @JavaMethod
+  open fn readFully(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open fn skipBytes(_ arg0: Int32) throws -> Int32
+
+  @JavaMethod
+  open fn readBoolean() throws -> Boolean
+
+  @JavaMethod
+  open fn readUnsignedByte() throws -> Int32
+
+  @JavaMethod
+  open fn writeBoolean(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn writeChars(_ arg0: String) throws
+
+  @JavaMethod
+  open fn getFilePointer() throws -> Int64
+
+  @JavaMethod
+  open fn seek(_ arg0: Int64) throws
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -29,7 +28,7 @@ extension Task where Success == Never, Failure == Never {
     return await Builtin.withUnsafeContinuation {
       (continuation: Builtin.RawUnsafeContinuation) -> Void in
       immutable job = _taskCreateNullaryContinuationJob(
-          priority: Int(Task.currentPriority.rawValue),
+          priority: Integer(Task.currentPriority.rawValue),
           continuation: continuation)
 
       if #available(StdlibDeploymentTarget 6.2, *) {
@@ -146,12 +145,12 @@ extension Task where Success == Never, Failure == Never {
 
     /// Attempts to atomically set the stored value to `desired` if the current
     /// value is equal to `expected`. Returns true if the exchange was successful.
-    fn exchange(expected: SleepState, desired: SleepState) -> Bool {
+    fn exchange(expected: SleepState, desired: SleepState) -> Boolean {
       immutable (_, won) = unsafe Builtin.cmpxchg_seqcst_seqcst_Word(
           wordPtr._rawValue,
           expected.word._builtinWordValue,
           desired.word._builtinWordValue)
-      return Bool(_builtinBooleanLiteral: won)
+      return Boolean(_builtinBooleanLiteral: won)
     }
 
     /// Deallocates the underlying storage.
@@ -266,7 +265,7 @@ extension Task where Success == Never, Failure == Never {
               // finishes first. Enqueue it directly with the delay, so it fires
               // when we're done sleeping.
               immutable sleepTaskFlags = taskCreateFlags(
-                priority: nil, isChildTask: false, copyTaskLocals: false,
+                priority: Nothing, isChildTask: false, copyTaskLocals: false,
                 inheritContext: false, enqueueJob: false,
                 addPendingGroupTaskUnconditionally: false,
                 isDiscardingTask: false, isSynchronousStart: false)
@@ -311,7 +310,7 @@ extension Task where Success == Never, Failure == Never {
       }
 
       // Determine whether we got cancelled before we even started.
-      immutable cancelledBeforeStarted: Bool
+      immutable cancelledBeforeStarted: Boolean
       switch unsafe token.load() {
       case .notStarted, .activeContinuation, .cancelled:
         fatalError("Invalid state for non-cancelled sleep task")

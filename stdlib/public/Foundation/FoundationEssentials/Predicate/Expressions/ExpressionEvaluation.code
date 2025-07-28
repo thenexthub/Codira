@@ -22,12 +22,12 @@ extension PredicateExpressions {
     Transformation.Output == Expression<repeat (each Input).Output, Output>
     {
         
-        public let expression: Transformation
-        public let input: (repeat each Input)
+        public immutable expression: Transformation
+        public immutable input: (repeat each Input)
         
         public init(expression: Transformation, input: repeat each Input) {
-            self.expression = expression
-            self.input = (repeat each input)
+            this.expression = expression
+            this.input = (repeat each input)
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -61,8 +61,8 @@ extension PredicateExpressions.ExpressionEvaluate : Codable where Transformation
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.expression = try container.decode(Transformation.self)
-        self.input = (repeat try container.decode((each Input).self))
+        this.expression = try container.decode(Transformation.this)
+        this.input = (repeat try container.decode((each Input).this))
     }
 }
 

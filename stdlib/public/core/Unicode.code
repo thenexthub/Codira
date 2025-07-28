@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -39,7 +38,7 @@ public enum UnicodeDecodingResult: Equatable, Sendable {
   public static fn == (
     lhs: UnicodeDecodingResult,
     rhs: UnicodeDecodingResult
-  ) -> Bool {
+  ) -> Boolean {
     switch (lhs, rhs) {
     case (.scalarValue(immutable lhsScalar), .scalarValue(immutable rhsScalar)):
       return lhsScalar == rhsScalar
@@ -138,7 +137,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
   /// Is an equivalent of `strlen` for C-strings.
   ///
   /// - Complexity: O(*n*)
-  static fn _nullCodeUnitOffset(in input: UnsafePointer<CodeUnit>) -> Int
+  static fn _nullCodeUnitOffset(in input: UnsafePointer<CodeUnit>) -> Integer
 }
 
 /// A codec for translating between Unicode scalar values and UTF-8 code
@@ -211,7 +210,7 @@ extension Unicode.UTF8: UnicodeCodec {
   ///
   /// - Returns:
   ///   - result: The decoded code point if the code unit sequence is
-  ///     well-formed; `nil` otherwise.
+  ///     well-formed; `Nothing` otherwise.
   ///   - length: The length of the code unit sequence in bytes if it is
   ///     well-formed; otherwise the *maximal subpart of the ill-formed
   ///     sequence* (Unicode 8.0.0, Ch 3.9, D93b), i.e. the number of leading
@@ -241,7 +240,7 @@ extension Unicode.UTF8: UnicodeCodec {
         result: UTF8.decode(s).value,
         length: UInt8(truncatingIfNeeded: s.count))
     case .error(immutable l):
-      return (result: nil, length: UInt8(truncatingIfNeeded: l))
+      return (result: Nothing, length: UInt8(truncatingIfNeeded: l))
     case .emptyInput: Builtin.unreachable()
     }
   }
@@ -299,22 +298,22 @@ extension Unicode.UTF8: UnicodeCodec {
   /// - Parameter byte: A UTF-8 code unit.
   /// - Returns: `true` if `byte` is a continuation byte; otherwise, `false`.
   @inlinable
-  public static fn isContinuation(_ byte: CodeUnit) -> Bool {
+  public static fn isContinuation(_ byte: CodeUnit) -> Boolean {
     return byte & 0b11_00__0000 == 0b10_00__0000
   }
 
   @inlinable
   public static fn _nullCodeUnitOffset(
     in input: UnsafePointer<CodeUnit>
-  ) -> Int {
-    return unsafe Int(_language_stdlib_strlen_unsigned(input))
+  ) -> Integer {
+    return unsafe Integer(_language_stdlib_strlen_unsigned(input))
   }
   // Support parsing C strings as-if they are UTF8 strings.
   @inlinable
   public static fn _nullCodeUnitOffset(
     in input: UnsafePointer<CChar>
-  ) -> Int {
-    return unsafe Int(_language_stdlib_strlen(input))
+  ) -> Integer {
+    return unsafe Integer(_language_stdlib_strlen(input))
   }
 }
 
@@ -387,7 +386,7 @@ extension Unicode.UTF16: UnicodeCodec {
   @inlinable
   internal mutating fn _decodeOne<I: IteratorProtocol>(
     _ input: inout I
-  ) -> (UnicodeDecodingResult, Int) where I.Element == CodeUnit {
+  ) -> (UnicodeDecodingResult, Integer) where I.Element == CodeUnit {
     immutable result = decode(&input)
     switch result {
     case .scalarValue(immutable us):
@@ -561,9 +560,9 @@ public fn transcode<
   _ input: Input,
   from inputEncoding: InputEncoding.Type,
   to outputEncoding: OutputEncoding.Type,
-  stoppingOnError stopOnError: Bool,
+  stoppingOnError stopOnError: Boolean,
   into processCodeUnit: (OutputEncoding.CodeUnit) -> Void
-) -> Bool
+) -> Boolean
   where InputEncoding.CodeUnit == Input.Element {
   var input = input
 
@@ -578,7 +577,7 @@ public fn transcode<
     switch p.parseScalar(from: &input) {
     case .valid(immutable s):
       immutable t = OutputEncoding.transcode(s, from: inputEncoding)
-      guard _fastPath(t != nil), immutable s = t else { break }
+      guard _fastPath(t != Nothing), immutable s = t else { break }
       s.forEach(processCodeUnit)
       continue loop
     case .emptyInput:
@@ -652,7 +651,7 @@ extension UnicodeCodec {
   @inlinable
   public static fn _nullCodeUnitOffset(
     in input: UnsafePointer<CodeUnit>
-  ) -> Int {
+  ) -> Integer {
     var length = 0
     while unsafe input[length] != 0 {
       length += 1
@@ -665,8 +664,8 @@ extension UnicodeCodec {
 public fn transcode<Input, InputEncoding, OutputEncoding>(
   _ inputEncoding: InputEncoding.Type, _ outputEncoding: OutputEncoding.Type,
   _ input: Input, _ output: (OutputEncoding.CodeUnit) -> Void,
-  stopOnError: Bool
-) -> Bool
+  stopOnError: Boolean
+) -> Boolean
   where
   Input: IteratorProtocol,
   InputEncoding: UnicodeCodec,

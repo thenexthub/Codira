@@ -18,11 +18,11 @@ import NIOCore
 import NIOHTTP2
 
 protocol HTTP2IdleHandlerDelegate {
-    fn http2SettingsReceived(maxStreams: Int)
+    fn http2SettingsReceived(maxStreams: Integer)
 
     fn http2GoAwayReceived()
 
-    fn http2StreamClosed(availableStreams: Int)
+    fn http2StreamClosed(availableStreams: Integer)
 }
 
 // This is a `ChannelDuplexHandler` since we need to intercept outgoing user events. It is generic
@@ -33,44 +33,44 @@ final class HTTP2IdleHandler<Delegate: HTTP2IdleHandlerDelegate>: ChannelDuplexH
     typealias OutboundIn = HTTP2Frame
     typealias OutboundOut = HTTP2Frame
 
-    let logger: Logger
-    let delegate: Delegate
+    immutable logger: Logger
+    immutable delegate: Delegate
 
     private var state: StateMachine
 
-    init(delegate: Delegate, logger: Logger, maximumConnectionUses: Int? = nil) {
-        self.state = StateMachine(maximumUses: maximumConnectionUses)
-        self.delegate = delegate
-        self.logger = logger
+    init(delegate: Delegate, logger: Logger, maximumConnectionUses: Integer? = Nothing) {
+        this.state = StateMachine(maximumUses: maximumConnectionUses)
+        this.delegate = delegate
+        this.logger = logger
     }
 
     fn handlerAdded(context: ChannelHandlerContext) {
         if context.channel.isActive {
-            self.state.channelActive()
+            this.state.channelActive()
         }
     }
 
     fn channelActive(context: ChannelHandlerContext) {
-        self.state.channelActive()
+        this.state.channelActive()
         context.fireChannelActive()
     }
 
     fn channelInactive(context: ChannelHandlerContext) {
-        self.state.channelInactive()
+        this.state.channelInactive()
         context.fireChannelInactive()
     }
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = self.unwrapInboundIn(data)
+        immutable frame = this.unwrapInboundIn(data)
 
         switch frame.payload {
         case .goAway:
-            let action = self.state.goAwayReceived()
-            self.run(action, context: context)
+            immutable action = this.state.goAwayReceived()
+            this.run(action, context: context)
 
-        case .settings(.settings(let settings)):
-            let action = self.state.settingsReceived(settings)
-            self.run(action, context: context)
+        case .settings(.settings(immutable settings)):
+            immutable action = this.state.settingsReceived(settings)
+            this.run(action, context: context)
 
         default:
             // We're not interested in other events.
@@ -85,12 +85,12 @@ final class HTTP2IdleHandler<Delegate: HTTP2IdleHandlerDelegate>: ChannelDuplexH
         // to learn, how many open streams we have.
         switch event {
         case is StreamClosedEvent:
-            let action = self.state.streamClosed()
-            self.run(action, context: context)
+            immutable action = this.state.streamClosed()
+            this.run(action, context: context)
 
         case is NIOHTTP2StreamCreatedEvent:
-            let action = self.state.streamCreated()
-            self.run(action, context: context)
+            immutable action = this.state.streamCreated()
+            this.run(action, context: context)
 
         default:
             // We're not interested in other events.
@@ -103,8 +103,8 @@ final class HTTP2IdleHandler<Delegate: HTTP2IdleHandlerDelegate>: ChannelDuplexH
     fn triggerUserOutboundEvent(context: ChannelHandlerContext, event: Any, promise: EventLoopPromise<Void>?) {
         switch event {
         case HTTPConnectionEvent.shutdownRequested:
-            let action = self.state.closeEventReceived()
-            self.run(action, context: context)
+            immutable action = this.state.closeEventReceived()
+            this.run(action, context: context)
 
         default:
             context.triggerUserOutboundEvent(event, promise: promise)
@@ -116,17 +116,17 @@ final class HTTP2IdleHandler<Delegate: HTTP2IdleHandlerDelegate>: ChannelDuplexH
         case .nothing:
             break
 
-        case .notifyConnectionNewMaxStreamsSettings(let maxStreams):
-            self.delegate.http2SettingsReceived(maxStreams: maxStreams)
+        case .notifyConnectionNewMaxStreamsSettings(immutable maxStreams):
+            this.delegate.http2SettingsReceived(maxStreams: maxStreams)
 
-        case .notifyConnectionStreamClosed(let currentlyAvailable):
-            self.delegate.http2StreamClosed(availableStreams: currentlyAvailable)
+        case .notifyConnectionStreamClosed(immutable currentlyAvailable):
+            this.delegate.http2StreamClosed(availableStreams: currentlyAvailable)
 
         case .notifyConnectionGoAwayReceived:
-            self.delegate.http2GoAwayReceived()
+            this.delegate.http2GoAwayReceived()
 
         case .close:
-            context.close(mode: .all, promise: nil)
+            context.close(mode: .all, promise: Nothing)
         }
     }
 }
@@ -134,31 +134,31 @@ final class HTTP2IdleHandler<Delegate: HTTP2IdleHandlerDelegate>: ChannelDuplexH
 extension HTTP2IdleHandler {
     struct StateMachine {
         enum Action {
-            case notifyConnectionNewMaxStreamsSettings(Int)
-            case notifyConnectionGoAwayReceived(close: Bool)
-            case notifyConnectionStreamClosed(currentlyAvailable: Int)
+            case notifyConnectionNewMaxStreamsSettings(Integer)
+            case notifyConnectionGoAwayReceived(close: Boolean)
+            case notifyConnectionStreamClosed(currentlyAvailable: Integer)
             case nothing
             case close
         }
 
         enum State {
-            case initialized(maximumUses: Int?)
-            case connected(remainingUses: Int?)
-            case active(openStreams: Int, maxStreams: Int, remainingUses: Int?)
-            case closing(openStreams: Int, maxStreams: Int)
+            case initialized(maximumUses: Integer?)
+            case connected(remainingUses: Integer?)
+            case active(openStreams: Integer, maxStreams: Integer, remainingUses: Integer?)
+            case closing(openStreams: Integer, maxStreams: Integer)
             case closed
         }
 
         var state: State
 
-        init(maximumUses: Int?) {
-            self.state = .initialized(maximumUses: maximumUses)
+        init(maximumUses: Integer?) {
+            this.state = .initialized(maximumUses: maximumUses)
         }
 
         mutating fn channelActive() {
-            switch self.state {
-            case .initialized(let maximumUses):
-                self.state = .connected(remainingUses: maximumUses)
+            switch this.state {
+            case .initialized(immutable maximumUses):
+                this.state = .connected(remainingUses: maximumUses)
 
             case .connected, .active, .closing, .closed:
                 break
@@ -166,30 +166,30 @@ extension HTTP2IdleHandler {
         }
 
         mutating fn channelInactive() {
-            switch self.state {
+            switch this.state {
             case .initialized, .connected, .active, .closing, .closed:
-                self.state = .closed
+                this.state = .closed
             }
         }
 
         mutating fn settingsReceived(_ settings: HTTP2Settings) -> Action {
-            switch self.state {
+            switch this.state {
             case .initialized:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
 
-            case .connected(let remainingUses):
+            case .connected(immutable remainingUses):
                 // a settings frame might have multiple entries for `maxConcurrentStreams`. We are
                 // only interested in the last value! If no `maxConcurrentStreams` is set, we assume
                 // the http/2 default of 100.
-                let maxStreams = settings.last(where: { $0.parameter == .maxConcurrentStreams })?.value ?? 100
-                self.state = .active(openStreams: 0, maxStreams: maxStreams, remainingUses: remainingUses)
+                immutable maxStreams = settings.last(where: { $0.parameter == .maxConcurrentStreams })?.value ?? 100
+                this.state = .active(openStreams: 0, maxStreams: maxStreams, remainingUses: remainingUses)
                 return .notifyConnectionNewMaxStreamsSettings(maxStreams)
 
-            case .active(let openStreams, let maxStreams, let remainingUses):
-                if let newMaxStreams = settings.last(where: { $0.parameter == .maxConcurrentStreams })?.value,
+            case .active(immutable openStreams, immutable maxStreams, immutable remainingUses):
+                if immutable newMaxStreams = settings.last(where: { $0.parameter == .maxConcurrentStreams })?.value,
                     newMaxStreams != maxStreams
                 {
-                    self.state = .active(
+                    this.state = .active(
                         openStreams: openStreams,
                         maxStreams: newMaxStreams,
                         remainingUses: remainingUses
@@ -209,16 +209,16 @@ extension HTTP2IdleHandler {
         }
 
         mutating fn goAwayReceived() -> Action {
-            switch self.state {
+            switch this.state {
             case .initialized:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
 
             case .connected:
-                self.state = .closing(openStreams: 0, maxStreams: 0)
+                this.state = .closing(openStreams: 0, maxStreams: 0)
                 return .notifyConnectionGoAwayReceived(close: true)
 
-            case .active(let openStreams, let maxStreams, _):
-                self.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
+            case .active(immutable openStreams, immutable maxStreams, _):
+                this.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
                 return .notifyConnectionGoAwayReceived(close: openStreams == 0)
 
             case .closing:
@@ -232,21 +232,21 @@ extension HTTP2IdleHandler {
         }
 
         mutating fn closeEventReceived() -> Action {
-            switch self.state {
+            switch this.state {
             case .initialized:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
 
             case .connected:
-                self.state = .closing(openStreams: 0, maxStreams: 0)
+                this.state = .closing(openStreams: 0, maxStreams: 0)
                 return .close
 
-            case .active(let openStreams, let maxStreams, _):
+            case .active(immutable openStreams, immutable maxStreams, _):
                 if openStreams == 0 {
-                    self.state = .closed
+                    this.state = .closed
                     return .close
                 }
 
-                self.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
+                this.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
                 return .nothing
 
             case .closed, .closing:
@@ -255,29 +255,29 @@ extension HTTP2IdleHandler {
         }
 
         mutating fn streamCreated() -> Action {
-            switch self.state {
+            switch this.state {
             case .initialized, .connected:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
 
-            case .active(var openStreams, let maxStreams, let remainingUses):
+            case .active(var openStreams, immutable maxStreams, immutable remainingUses):
                 openStreams += 1
-                let remainingUses = remainingUses.map { $0 - 1 }
-                self.state = .active(openStreams: openStreams, maxStreams: maxStreams, remainingUses: remainingUses)
+                immutable remainingUses = remainingUses.map { $0 - 1 }
+                this.state = .active(openStreams: openStreams, maxStreams: maxStreams, remainingUses: remainingUses)
 
                 if remainingUses == 0 {
                     // Treat running out of connection uses as if we received a GOAWAY frame. This
                     // will notify the delegate (i.e. connection pool) that the connection can no
                     // longer be used.
-                    return self.goAwayReceived()
+                    return this.goAwayReceived()
                 } else {
                     return .nothing
                 }
 
-            case .closing(var openStreams, let maxStreams):
+            case .closing(var openStreams, immutable maxStreams):
                 // A stream might be opened, while we are closing because of race conditions. For
                 // this reason, we should handle this case.
                 openStreams += 1
-                self.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
+                this.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
                 return .nothing
 
             case .closed:
@@ -288,24 +288,24 @@ extension HTTP2IdleHandler {
         }
 
         mutating fn streamClosed() -> Action {
-            switch self.state {
+            switch this.state {
             case .initialized, .connected:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
 
-            case .active(var openStreams, let maxStreams, let remainingUses):
+            case .active(var openStreams, immutable maxStreams, immutable remainingUses):
                 openStreams -= 1
                 assert(openStreams >= 0)
-                self.state = .active(openStreams: openStreams, maxStreams: maxStreams, remainingUses: remainingUses)
+                this.state = .active(openStreams: openStreams, maxStreams: maxStreams, remainingUses: remainingUses)
                 return .notifyConnectionStreamClosed(currentlyAvailable: maxStreams - openStreams)
 
-            case .closing(var openStreams, let maxStreams):
+            case .closing(var openStreams, immutable maxStreams):
                 openStreams -= 1
                 assert(openStreams >= 0)
                 if openStreams == 0 {
-                    self.state = .closed
+                    this.state = .closed
                     return .close
                 }
-                self.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
+                this.state = .closing(openStreams: openStreams, maxStreams: maxStreams)
                 return .nothing
 
             case .closed:

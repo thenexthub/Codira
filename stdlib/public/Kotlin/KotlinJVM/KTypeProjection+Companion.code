@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+extension KTypeProjection {
+  @JavaClass("kotlin.reflect.KTypeProjection$Companion")
+  open class Companion: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: DefaultConstructorMarker?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getSTAR() -> KTypeProjection!
+
+  @JavaMethod
+  open fn invariant(_ arg0: KType?) -> KTypeProjection!
+
+  @JavaMethod
+  open fn contravariant(_ arg0: KType?) -> KTypeProjection!
+
+  @JavaMethod
+  open fn covariant(_ arg0: KType?) -> KTypeProjection!
+  }
+}
+extension JavaClass<KTypeProjection.Companion> {
+  @JavaStaticMethod
+  public fn getStar$annotations()
+}

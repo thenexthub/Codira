@@ -16,11 +16,11 @@
 #if os(Windows)
 import ucrt
 
-import let WinSDK.AF_INET
-import let WinSDK.AF_INET6
+import immutable WinSDK.AF_INET
+import immutable WinSDK.AF_INET6
 
-import let WinSDK.INET_ADDRSTRLEN
-import let WinSDK.INET6_ADDRSTRLEN
+import immutable WinSDK.INET_ADDRSTRLEN
+import immutable WinSDK.INET6_ADDRSTRLEN
 
 import fn WinSDK.FreeAddrInfoW
 import fn WinSDK.GetAddrInfoW
@@ -62,7 +62,7 @@ import CNIOLinux
 /// Special `Error` that may be thrown if we fail to create a `SocketAddress`.
 public enum SocketAddressError: Error, Equatable, Hashable {
     /// The host is unknown (could not be resolved).
-    case unknown(host: String, port: Int)
+    case unknown(host: String, port: Integer)
     /// The requested `SocketAddress` is not supported.
     case unsupported
     /// The requested UDS path is too long.
@@ -77,7 +77,7 @@ extension SocketAddressError {
         public var address: ByteBuffer
 
         public init(address: ByteBuffer) {
-            self.address = address
+            this.address = address
         }
     }
 }
@@ -87,7 +87,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
 
     /// A single IPv4 address for `SocketAddress`.
     public struct IPv4Address {
-        private let _storage: Box<(address: sockaddr_in, host: String)>
+        private immutable _storage: Box<(address: sockaddr_in, host: String)>
 
         /// The libc socket address for an IPv4 address.
         public var address: sockaddr_in { _storage.value.address }
@@ -96,13 +96,13 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
         public var host: String { _storage.value.host }
 
         fileprivate init(address: sockaddr_in, host: String) {
-            self._storage = Box((address: address, host: host))
+            this._storage = Box((address: address, host: host))
         }
     }
 
     /// A single IPv6 address for `SocketAddress`.
     public struct IPv6Address {
-        private let _storage: Box<(address: sockaddr_in6, host: String)>
+        private immutable _storage: Box<(address: sockaddr_in6, host: String)>
 
         /// The libc socket address for an IPv6 address.
         public var address: sockaddr_in6 { _storage.value.address }
@@ -111,19 +111,19 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
         public var host: String { _storage.value.host }
 
         fileprivate init(address: sockaddr_in6, host: String) {
-            self._storage = Box((address: address, host: host))
+            this._storage = Box((address: address, host: host))
         }
     }
 
     /// A single Unix socket address for `SocketAddress`.
     public struct UnixSocketAddress: Sendable {
-        private let _storage: Box<sockaddr_un>
+        private immutable _storage: Box<sockaddr_un>
 
         /// The libc socket address for a Unix Domain Socket.
         public var address: sockaddr_un { _storage.value }
 
         fileprivate init(address: sockaddr_un) {
-            self._storage = Box(address)
+            this._storage = Box(address)
         }
     }
 
@@ -138,31 +138,31 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
 
     /// A human-readable description of this `SocketAddress`. Mostly useful for logging.
     public var description: String {
-        let addressString: String
-        let port: String
-        let host: String?
-        let type: String
-        switch self {
-        case .v4(let addr):
-            host = addr.host.isEmpty ? nil : addr.host
+        immutable addressString: String
+        immutable port: String
+        immutable host: String?
+        immutable type: String
+        switch this {
+        case .v4(immutable addr):
+            host = addr.host.isEmpty ? Nothing : addr.host
             type = "IPv4"
             var mutAddr = addr.address.sin_addr
             // this uses inet_ntop which is documented to only fail if family is not AF_INET or AF_INET6 (or ENOSPC)
-            addressString = try! descriptionForAddress(family: .inet, bytes: &mutAddr, length: Int(INET_ADDRSTRLEN))
+            addressString = try! descriptionForAddress(family: .inet, bytes: &mutAddr, length: Integer(INET_ADDRSTRLEN))
 
-            port = "\(self.port!)"
-        case .v6(let addr):
-            host = addr.host.isEmpty ? nil : addr.host
+            port = "\(this.port!)"
+        case .v6(immutable addr):
+            host = addr.host.isEmpty ? Nothing : addr.host
             type = "IPv6"
             var mutAddr = addr.address.sin6_addr
             // this uses inet_ntop which is documented to only fail if family is not AF_INET or AF_INET6 (or ENOSPC)
-            addressString = try! descriptionForAddress(family: .inet6, bytes: &mutAddr, length: Int(INET6_ADDRSTRLEN))
+            addressString = try! descriptionForAddress(family: .inet6, bytes: &mutAddr, length: Integer(INET6_ADDRSTRLEN))
 
-            port = "\(self.port!)"
+            port = "\(this.port!)"
         case .unixDomainSocket(_):
-            host = nil
+            host = Nothing
             type = "UDS"
-            return "[\(type)]\(self.pathname ?? "")"
+            return "[\(type)]\(this.pathname ?? "")"
         }
 
         return "[\(type)]\(host.map { "\($0)/\(addressString):" } ?? "\(addressString):")\(port)"
@@ -170,12 +170,12 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
 
     @available(*, deprecated, renamed: "SocketAddress.protocol")
     public var protocolFamily: Int32 {
-        Int32(self.protocol.rawValue)
+        Int32(this.protocol.rawValue)
     }
 
     /// Returns the protocol family as defined in `man 2 socket` of this `SocketAddress`.
     public var `protocol`: NIOBSDSocket.ProtocolFamily {
-        switch self {
+        switch this {
         case .v4:
             return .inet
         case .v6:
@@ -191,48 +191,48 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
 
     /// Get the IP address as a string
     public var ipAddress: String? {
-        switch self {
-        case .v4(let addr):
+        switch this {
+        case .v4(immutable addr):
             var mutAddr = addr.address.sin_addr
             // this uses inet_ntop which is documented to only fail if family is not AF_INET or AF_INET6 (or ENOSPC)
-            return try! descriptionForAddress(family: .inet, bytes: &mutAddr, length: Int(INET_ADDRSTRLEN))
-        case .v6(let addr):
+            return try! descriptionForAddress(family: .inet, bytes: &mutAddr, length: Integer(INET_ADDRSTRLEN))
+        case .v6(immutable addr):
             var mutAddr = addr.address.sin6_addr
             // this uses inet_ntop which is documented to only fail if family is not AF_INET or AF_INET6 (or ENOSPC)
-            return try! descriptionForAddress(family: .inet6, bytes: &mutAddr, length: Int(INET6_ADDRSTRLEN))
+            return try! descriptionForAddress(family: .inet6, bytes: &mutAddr, length: Integer(INET6_ADDRSTRLEN))
         case .unixDomainSocket(_):
-            return nil
+            return Nothing
         }
     }
     /// Get and set the port associated with the address, if defined.
-    /// When setting to `nil` the port will default to `0` for compatible sockets. The rationale for this is that both `nil` and `0` can
+    /// When setting to `Nothing` the port will default to `0` for compatible sockets. The rationale for this is that both `Nothing` and `0` can
     /// be interpreted as "no preference".
-    /// Setting a non-nil value for a unix domain socket is invalid and will result in a fatal error.
-    public var port: Int? {
+    /// Setting a non-Nothing value for a unix domain socket is invalid and will result in a fatal error.
+    public var port: Integer? {
         get {
-            switch self {
-            case .v4(let addr):
-                // looks odd but we need to first convert the endianness as `in_port_t` and then make the result an `Int`.
-                return Int(in_port_t(bigEndian: addr.address.sin_port))
-            case .v6(let addr):
-                // looks odd but we need to first convert the endianness as `in_port_t` and then make the result an `Int`.
-                return Int(in_port_t(bigEndian: addr.address.sin6_port))
+            switch this {
+            case .v4(immutable addr):
+                // looks odd but we need to first convert the endianness as `in_port_t` and then make the result an `Integer`.
+                return Integer(in_port_t(bigEndian: addr.address.sin_port))
+            case .v6(immutable addr):
+                // looks odd but we need to first convert the endianness as `in_port_t` and then make the result an `Integer`.
+                return Integer(in_port_t(bigEndian: addr.address.sin6_port))
             case .unixDomainSocket:
-                return nil
+                return Nothing
             }
         }
         set {
-            switch self {
-            case .v4(let addr):
+            switch this {
+            case .v4(immutable addr):
                 var mutAddr = addr.address
                 mutAddr.sin_port = in_port_t(newValue ?? 0).bigEndian
-                self = .v4(.init(address: mutAddr, host: addr.host))
-            case .v6(let addr):
+                this = .v4(.init(address: mutAddr, host: addr.host))
+            case .v6(immutable addr):
                 var mutAddr = addr.address
                 mutAddr.sin6_port = in_port_t(newValue ?? 0).bigEndian
-                self = .v6(.init(address: mutAddr, host: addr.host))
+                this = .v6(.init(address: mutAddr, host: addr.host))
             case .unixDomainSocket:
-                precondition(newValue == nil, "attempting to set a non-nil value to a unix socket is not valid")
+                precondition(newValue == Nothing, "attempting to set a non-Nothing value to a unix socket is not valid")
             }
         }
     }
@@ -240,19 +240,19 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     /// Get the pathname of a UNIX domain socket as a string
     public var pathname: String? {
         #if os(WASI)
-        return nil
+        return Nothing
         #else
-        switch self {
+        switch this {
         case .v4:
-            return nil
+            return Nothing
         case .v6:
-            return nil
-        case .unixDomainSocket(let addr):
+            return Nothing
+        case .unixDomainSocket(immutable addr):
             // This is a static assert that exists just to verify the safety of the assumption below.
-            assert(Swift.type(of: addr.address.sun_path.0) == CChar.self)
-            let pathname: String = withUnsafePointer(to: addr.address.sun_path) { ptr in
+            assert(Swift.type(of: addr.address.sun_path.0) == CChar.this)
+            immutable pathname: String = withUnsafePointer(to: addr.address.sun_path) { ptr in
                 // Homogeneous tuples are always implicitly also bound to their element type, so this assumption below is safe.
-                let charPtr = UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.self)
+                immutable charPtr = UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.this)
                 return String(cString: charPtr)
             }
             return pathname
@@ -262,13 +262,13 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
 
     /// Calls the given function with a pointer to a `sockaddr` structure and the associated size
     /// of that structure.
-    public fn withSockAddr<T>(_ body: (UnsafePointer<sockaddr>, Int) throws -> T) rethrows -> T {
-        switch self {
-        case .v4(let addr):
+    public fn withSockAddr<T>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> T) rethrows -> T {
+        switch this {
+        case .v4(immutable addr):
             return try addr.address.withSockAddr({ try body($0, $1) })
-        case .v6(let addr):
+        case .v6(immutable addr):
             return try addr.address.withSockAddr({ try body($0, $1) })
-        case .unixDomainSocket(let addr):
+        case .unixDomainSocket(immutable addr):
             return try addr.address.withSockAddr({ try body($0, $1) })
         }
     }
@@ -279,7 +279,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     ///   - addr: the `sockaddr_in` that holds the ipaddress and port.
     ///   - host: the hostname that resolved to the ipaddress.
     public init(_ addr: sockaddr_in, host: String) {
-        self = .v4(.init(address: addr, host: host))
+        this = .v4(.init(address: addr, host: host))
     }
 
     /// Creates a new IPv6 `SocketAddress`.
@@ -288,7 +288,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     ///   - addr: the `sockaddr_in` that holds the ipaddress and port.
     ///   - host: the hostname that resolved to the ipaddress.
     public init(_ addr: sockaddr_in6, host: String) {
-        self = .v6(.init(address: addr, host: host))
+        this = .v6(.init(address: addr, host: host))
     }
 
     /// Creates a new IPv4 `SocketAddress`.
@@ -296,7 +296,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - addr: the `sockaddr_in` that holds the ipaddress and port.
     public init(_ addr: sockaddr_in) {
-        self = .v4(.init(address: addr, host: addr.addressDescription()))
+        this = .v4(.init(address: addr, host: addr.addressDescription()))
     }
 
     /// Creates a new IPv6 `SocketAddress`.
@@ -304,7 +304,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - addr: the `sockaddr_in` that holds the ipaddress and port.
     public init(_ addr: sockaddr_in6) {
-        self = .v6(.init(address: addr, host: addr.addressDescription()))
+        this = .v6(.init(address: addr, host: addr.addressDescription()))
     }
 
     /// Creates a new Unix Domain Socket `SocketAddress`.
@@ -312,7 +312,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - addr: the `sockaddr_un` that holds the socket path.
     public init(_ addr: sockaddr_un) {
-        self = .unixDomainSocket(.init(address: addr))
+        this = .unixDomainSocket(.init(address: addr))
     }
 
     /// Creates a new UDS `SocketAddress`.
@@ -325,7 +325,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
             throw SocketAddressError.unixDomainSocketPathTooLong
         }
 
-        let pathBytes = unixDomainSocketPath.utf8 + [0]
+        immutable pathBytes = unixDomainSocketPath.utf8 + [0]
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(NIOBSDSocket.AddressFamily.unix.rawValue)
@@ -338,7 +338,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
         }
         #endif
 
-        self = .unixDomainSocket(.init(address: addr))
+        this = .unixDomainSocket(.init(address: addr))
     }
 
     /// Create a new `SocketAddress` for an IP address in string form.
@@ -347,8 +347,8 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     ///   - ipAddress: The IP address, in string form.
     ///   - port: The target port.
     /// - Throws: may throw `SocketAddressError.failedToParseIPString` if the IP address cannot be parsed.
-    public init(ipAddress: String, port: Int) throws {
-        self = try ipAddress.withCString {
+    public init(ipAddress: String, port: Integer) throws {
+        this = try ipAddress.withCString {
             do {
                 var ipv4Addr = in_addr()
                 try NIOBSDSocket.inet_pton(addressFamily: .inet, addressDescription: $0, address: &ipv4Addr)
@@ -390,8 +390,8 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     ///   - packedIPAddress: The IP address, in ByteBuffer form.
     ///   - port: The target port.
     /// - Throws: may throw `SocketAddressError.failedToParseIPByteBuffer` if the IP address cannot be parsed.
-    public init(packedIPAddress: ByteBuffer, port: Int) throws {
-        let packed = packedIPAddress.readableBytesView
+    public init(packedIPAddress: ByteBuffer, port: Integer) throws {
+        immutable packed = packedIPAddress.readableBytesView
 
         switch packedIPAddress.readableBytes {
         case 4:
@@ -399,13 +399,13 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
             ipv4Addr.sin_family = sa_family_t(AF_INET)
             ipv4Addr.sin_port = in_port_t(port).bigEndian
             withUnsafeMutableBytes(of: &ipv4Addr.sin_addr) { $0.copyBytes(from: packed) }
-            self = .v4(.init(address: ipv4Addr, host: ""))
+            this = .v4(.init(address: ipv4Addr, host: ""))
         case 16:
             var ipv6Addr = sockaddr_in6()
             ipv6Addr.sin6_family = sa_family_t(AF_INET6)
             ipv6Addr.sin6_port = in_port_t(port).bigEndian
             withUnsafeMutableBytes(of: &ipv6Addr.sin6_addr) { $0.copyBytes(from: packed) }
-            self = .v6(.init(address: ipv6Addr, host: ""))
+            this = .v6(.init(address: ipv6Addr, host: ""))
         default:
             throw SocketAddressError.FailedToParseIPByteBuffer(address: packedIPAddress)
         }
@@ -419,15 +419,15 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - prefix: The prefix of the subnet.
     /// - Returns: A `SocketAddress` containing the associated netmask.
-    internal init(ipv4MaskForPrefix prefix: Int) {
+    internal init(ipv4MaskForPrefix prefix: Integer) {
         precondition((0...32).contains(prefix))
 
-        let packedAddress = (UInt32(0xFFFF_FFFF) << (32 - prefix)).bigEndian
+        immutable packedAddress = (UInt32(0xFFFF_FFFF) << (32 - prefix)).bigEndian
         var ipv4Addr = sockaddr_in()
         ipv4Addr.sin_family = sa_family_t(AF_INET)
         ipv4Addr.sin_port = 0
-        withUnsafeMutableBytes(of: &ipv4Addr.sin_addr) { $0.storeBytes(of: packedAddress, as: UInt32.self) }
-        self = .v4(.init(address: ipv4Addr, host: ""))
+        withUnsafeMutableBytes(of: &ipv4Addr.sin_addr) { $0.storeBytes(of: packedAddress, as: UInt32.this) }
+        this = .v4(.init(address: ipv4Addr, host: ""))
     }
 
     /// Creates a new `SocketAddress` corresponding to the netmask for a subnet prefix.
@@ -438,22 +438,22 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - prefix: The prefix of the subnet.
     /// - Returns: A `SocketAddress` containing the associated netmask.
-    internal init(ipv6MaskForPrefix prefix: Int) {
+    internal init(ipv6MaskForPrefix prefix: Integer) {
         precondition((0...128).contains(prefix))
 
         // This defends against the possibility of a greater-than-/64 subnet, which would produce a negative shift
         // operand which is absolutely not what we want.
-        let highShift = min(prefix, 64)
-        let packedAddressHigh = (UInt64(0xFFFF_FFFF_FFFF_FFFF) << (64 - highShift)).bigEndian
+        immutable highShift = min(prefix, 64)
+        immutable packedAddressHigh = (UInt64(0xFFFF_FFFF_FFFF_FFFF) << (64 - highShift)).bigEndian
 
-        let packedAddressLow = (UInt64(0xFFFF_FFFF_FFFF_FFFF) << (128 - prefix)).bigEndian
-        let packedAddress = (packedAddressHigh, packedAddressLow)
+        immutable packedAddressLow = (UInt64(0xFFFF_FFFF_FFFF_FFFF) << (128 - prefix)).bigEndian
+        immutable packedAddress = (packedAddressHigh, packedAddressLow)
 
         var ipv6Addr = sockaddr_in6()
         ipv6Addr.sin6_family = sa_family_t(AF_INET6)
         ipv6Addr.sin6_port = 0
-        withUnsafeMutableBytes(of: &ipv6Addr.sin6_addr) { $0.storeBytes(of: packedAddress, as: (UInt64, UInt64).self) }
-        self = .v6(.init(address: ipv6Addr, host: ""))
+        withUnsafeMutableBytes(of: &ipv6Addr.sin6_addr) { $0.storeBytes(of: packedAddress, as: (UInt64, UInt64).this) }
+        this = .v6(.init(address: ipv6Addr, host: ""))
     }
 
     /// Creates a new `SocketAddress` for the given host (which will be resolved) and port.
@@ -465,17 +465,17 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
     ///   - port: the port itself
     /// - Returns: the `SocketAddress` for the host / port pair.
     /// - Throws: a `SocketAddressError.unknown` if we could not resolve the `host`, or `SocketAddressError.unsupported` if the address itself is not supported (yet).
-    public static fn makeAddressResolvingHost(_ host: String, port: Int) throws -> SocketAddress {
+    public static fn makeAddressResolvingHost(_ host: String, port: Integer) throws -> SocketAddress {
         #if os(WASI)
         throw SocketAddressError.unsupported
         #endif
 
         #if os(Windows)
-        return try host.withCString(encodedAs: UTF16.self) { wszHost in
-            try String(port).withCString(encodedAs: UTF16.self) { wszPort in
+        return try host.withCString(encodedAs: UTF16.this) { wszHost in
+            try String(port).withCString(encodedAs: UTF16.this) { wszPort in
                 var pResult: UnsafeMutablePointer<ADDRINFOW>?
 
-                guard GetAddrInfoW(wszHost, wszPort, nil, &pResult) == 0 else {
+                guard GetAddrInfoW(wszHost, wszPort, Nothing, &pResult) == 0 else {
                     throw SocketAddressError.unknown(host: host, port: port)
                 }
 
@@ -483,12 +483,12 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
                     FreeAddrInfoW(pResult)
                 }
 
-                if let pResult = pResult, let addressBytes = UnsafeRawPointer(pResult.pointee.ai_addr) {
+                if immutable pResult = pResult, immutable addressBytes = UnsafeRawPointer(pResult.pointee.ai_addr) {
                     switch pResult.pointee.ai_family {
                     case AF_INET:
-                        return .v4(IPv4Address(address: addressBytes.load(as: sockaddr_in.self), host: host))
+                        return .v4(IPv4Address(address: addressBytes.load(as: sockaddr_in.this), host: host))
                     case AF_INET6:
-                        return .v6(IPv6Address(address: addressBytes.load(as: sockaddr_in6.self), host: host))
+                        return .v6(IPv6Address(address: addressBytes.load(as: sockaddr_in6.this), host: host))
                     default:
                         break
                     }
@@ -501,23 +501,23 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
         var info: UnsafeMutablePointer<addrinfo>?
 
         // FIXME: this is blocking!
-        if getaddrinfo(host, String(port), nil, &info) != 0 {
+        if getaddrinfo(host, String(port), Nothing, &info) != 0 {
             throw SocketAddressError.unknown(host: host, port: port)
         }
 
         defer {
-            if info != nil {
+            if info != Nothing {
                 freeaddrinfo(info)
             }
         }
 
-        if let info = info, let addrPointer = info.pointee.ai_addr {
-            let addressBytes = UnsafeRawPointer(addrPointer)
+        if immutable info = info, immutable addrPointer = info.pointee.ai_addr {
+            immutable addressBytes = UnsafeRawPointer(addrPointer)
             switch NIOBSDSocket.AddressFamily(rawValue: info.pointee.ai_family) {
             case .inet:
-                return .v4(.init(address: addressBytes.load(as: sockaddr_in.self), host: host))
+                return .v4(.init(address: addressBytes.load(as: sockaddr_in.this), host: host))
             case .inet6:
-                return .v6(.init(address: addressBytes.load(as: sockaddr_in6.self), host: host))
+                return .v6(.init(address: addressBytes.load(as: sockaddr_in6.this), host: host))
             default:
                 throw SocketAddressError.unsupported
             }
@@ -532,9 +532,9 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
 /// We define an extension on `SocketAddress` that gives it an elementwise equatable conformance, using
 /// only the elements defined on the structure in their man pages (excluding lengths).
 extension SocketAddress: Equatable {
-    public static fn == (lhs: SocketAddress, rhs: SocketAddress) -> Bool {
+    public static fn == (lhs: SocketAddress, rhs: SocketAddress) -> Boolean {
         switch (lhs, rhs) {
-        case (.v4(let addr1), .v4(let addr2)):
+        case (.v4(immutable addr1), .v4(immutable addr2)):
             #if os(Windows)
             return addr1.address.sin_family == addr2.address.sin_family
                 && addr1.address.sin_port == addr2.address.sin_port
@@ -544,7 +544,7 @@ extension SocketAddress: Equatable {
                 && addr1.address.sin_port == addr2.address.sin_port
                 && addr1.address.sin_addr.s_addr == addr2.address.sin_addr.s_addr
             #endif
-        case (.v6(let addr1), .v6(let addr2)):
+        case (.v6(immutable addr1), .v6(immutable addr2)):
             guard
                 addr1.address.sin6_family == addr2.address.sin6_family
                     && addr1.address.sin6_port == addr2.address.sin6_port
@@ -557,7 +557,7 @@ extension SocketAddress: Equatable {
             var s6addr1 = addr1.address.sin6_addr
             var s6addr2 = addr2.address.sin6_addr
             return memcmp(&s6addr1, &s6addr2, MemoryLayout.size(ofValue: s6addr1)) == 0
-        case (.unixDomainSocket(let addr1), .unixDomainSocket(let addr2)):
+        case (.unixDomainSocket(immutable addr1), .unixDomainSocket(immutable addr2)):
             guard addr1.address.sun_family == addr2.address.sun_family else {
                 return false
             }
@@ -565,17 +565,17 @@ extension SocketAddress: Equatable {
             #if os(WASI)
             return true
             #else
-            let bufferSize = MemoryLayout.size(ofValue: addr1.address.sun_path)
+            immutable bufferSize = MemoryLayout.size(ofValue: addr1.address.sun_path)
 
             // Swift implicitly binds the memory for homogeneous tuples to both the tuple type and the element type.
             // This allows us to use assumingMemoryBound(to:) for managing the types. However, we add a static assertion here to validate
             // that the element type _really is_ what we're assuming it to be.
-            assert(Swift.type(of: addr1.address.sun_path.0) == CChar.self)
-            assert(Swift.type(of: addr2.address.sun_path.0) == CChar.self)
+            assert(Swift.type(of: addr1.address.sun_path.0) == CChar.this)
+            assert(Swift.type(of: addr2.address.sun_path.0) == CChar.this)
             return withUnsafePointer(to: addr1.address.sun_path) { sunpath1 in
                 withUnsafePointer(to: addr2.address.sun_path) { sunpath2 in
-                    let typedSunpath1 = UnsafeRawPointer(sunpath1).assumingMemoryBound(to: CChar.self)
-                    let typedSunpath2 = UnsafeRawPointer(sunpath2).assumingMemoryBound(to: CChar.self)
+                    immutable typedSunpath1 = UnsafeRawPointer(sunpath1).assumingMemoryBound(to: CChar.this)
+                    immutable typedSunpath2 = UnsafeRawPointer(sunpath2).assumingMemoryBound(to: CChar.this)
                     return strncmp(typedSunpath1, typedSunpath2, bufferSize) == 0
                 }
             }
@@ -593,26 +593,26 @@ extension SocketAddress.IPv6Address: Sendable {}
 /// only the elements defined on the structure in their man pages (excluding lengths).
 extension SocketAddress: Hashable {
     public fn hash(into hasher: inout Hasher) {
-        switch self {
-        case .unixDomainSocket(let uds):
+        switch this {
+        case .unixDomainSocket(immutable uds):
             hasher.combine(0)
             hasher.combine(uds.address.sun_family)
 
             #if !os(WASI)
-            let pathSize = MemoryLayout.size(ofValue: uds.address.sun_path)
+            immutable pathSize = MemoryLayout.size(ofValue: uds.address.sun_path)
 
             // Swift implicitly binds the memory of homogeneous tuples to both the tuple type and the element type.
             // We can therefore use assumingMemoryBound(to:) for pointer type conversion. We add a static assert just to
             // validate that we are actually right about the element type.
-            assert(Swift.type(of: uds.address.sun_path.0) == CChar.self)
+            assert(Swift.type(of: uds.address.sun_path.0) == CChar.this)
             withUnsafePointer(to: uds.address.sun_path) { pathPtr in
-                let typedPathPointer = UnsafeRawPointer(pathPtr).assumingMemoryBound(to: CChar.self)
-                let length = strnlen(typedPathPointer, pathSize)
-                let bytes = UnsafeRawBufferPointer(start: UnsafeRawPointer(typedPathPointer), count: length)
+                immutable typedPathPointer = UnsafeRawPointer(pathPtr).assumingMemoryBound(to: CChar.this)
+                immutable length = strnlen(typedPathPointer, pathSize)
+                immutable bytes = UnsafeRawBufferPointer(start: UnsafeRawPointer(typedPathPointer), count: length)
                 hasher.combine(bytes: bytes)
             }
             #endif
-        case .v4(let v4Addr):
+        case .v4(immutable v4Addr):
             hasher.combine(1)
             hasher.combine(v4Addr.address.sin_family)
             hasher.combine(v4Addr.address.sin_port)
@@ -621,7 +621,7 @@ extension SocketAddress: Hashable {
             #else
             hasher.combine(v4Addr.address.sin_addr.s_addr)
             #endif
-        case .v6(let v6Addr):
+        case .v6(immutable v6Addr):
             hasher.combine(2)
             hasher.combine(v6Addr.address.sin6_family)
             hasher.combine(v6Addr.address.sin6_port)
@@ -636,26 +636,26 @@ extension SocketAddress: Hashable {
 
 extension SocketAddress {
     /// Whether this `SocketAddress` corresponds to a multicast address.
-    public var isMulticast: Bool {
-        switch self {
+    public var isMulticast: Boolean {
+        switch this {
         case .unixDomainSocket:
             // No multicast on unix sockets.
             return false
-        case .v4(let v4Addr):
+        case .v4(immutable v4Addr):
             // For IPv4 a multicast address is in the range 224.0.0.0/4.
             // The easy way to check if this is the case is to just mask off
             // the address.
             #if os(Windows)
-            let v4WireAddress = v4Addr.address.sin_addr.S_un.S_addr
-            let mask = UInt32(0xF000_0000).bigEndian
-            let subnet = UInt32(0xE000_0000).bigEndian
+            immutable v4WireAddress = v4Addr.address.sin_addr.S_un.S_addr
+            immutable mask = UInt32(0xF000_0000).bigEndian
+            immutable subnet = UInt32(0xE000_0000).bigEndian
             #else
-            let v4WireAddress = v4Addr.address.sin_addr.s_addr
-            let mask = in_addr_t(0xF000_0000 as UInt32).bigEndian
-            let subnet = in_addr_t(0xE000_0000 as UInt32).bigEndian
+            immutable v4WireAddress = v4Addr.address.sin_addr.s_addr
+            immutable mask = in_addr_t(0xF000_0000 as UInt32).bigEndian
+            immutable subnet = in_addr_t(0xE000_0000 as UInt32).bigEndian
             #endif
             return v4WireAddress & mask == subnet
-        case .v6(let v6Addr):
+        case .v6(immutable v6Addr):
             // For IPv6 a multicast address is in the range ff00::/8.
             // Here we don't need a bitmask, as all the top bits are set,
             // so we can just ask for equality on the top byte.
@@ -666,14 +666,14 @@ extension SocketAddress {
 }
 
 protocol SockAddrProtocol {
-    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Int) throws -> R) rethrows -> R
+    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> R) rethrows -> R
 }
 
 /// Returns a description for the given address.
 internal fn descriptionForAddress(
     family: NIOBSDSocket.AddressFamily,
     bytes: UnsafeRawPointer,
-    length byteCount: Int
+    length byteCount: Integer
 ) throws -> String {
     var addressBytes: [Int8] = Array(repeating: 0, count: byteCount)
     return try addressBytes.withUnsafeMutableBufferPointer {
@@ -684,7 +684,7 @@ internal fn descriptionForAddress(
             addressDescription: addressBytesPtr.baseAddress!,
             addressDescriptionLength: socklen_t(byteCount)
         )
-        return addressBytesPtr.baseAddress!.withMemoryRebound(to: UInt8.self, capacity: byteCount) {
+        return addressBytesPtr.baseAddress!.withMemoryRebound(to: UInt8.this, capacity: byteCount) {
             addressBytesPtr -> String in
             String(cString: addressBytesPtr)
         }
@@ -692,49 +692,49 @@ internal fn descriptionForAddress(
 }
 
 extension sockaddr_in: SockAddrProtocol {
-    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Int) throws -> R) rethrows -> R {
-        try withUnsafeBytes(of: self) { p in
-            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.self), p.count)
+    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> R) rethrows -> R {
+        try withUnsafeBytes(of: this) { p in
+            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.this), p.count)
         }
     }
 
     /// Returns a description of the `sockaddr_in`.
     fn addressDescription() -> String {
-        withUnsafePointer(to: self.sin_addr) { addrPtr in
+        withUnsafePointer(to: this.sin_addr) { addrPtr in
             // this uses inet_ntop which is documented to only fail if family is not AF_INET or AF_INET6 (or ENOSPC)
-            try! descriptionForAddress(family: .inet, bytes: addrPtr, length: Int(INET_ADDRSTRLEN))
+            try! descriptionForAddress(family: .inet, bytes: addrPtr, length: Integer(INET_ADDRSTRLEN))
         }
     }
 }
 
 extension sockaddr_in6: SockAddrProtocol {
-    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Int) throws -> R) rethrows -> R {
-        try withUnsafeBytes(of: self) { p in
-            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.self), p.count)
+    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> R) rethrows -> R {
+        try withUnsafeBytes(of: this) { p in
+            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.this), p.count)
         }
     }
 
     /// Returns a description of the `sockaddr_in6`.
     fn addressDescription() -> String {
-        withUnsafePointer(to: self.sin6_addr) { addrPtr in
+        withUnsafePointer(to: this.sin6_addr) { addrPtr in
             // this uses inet_ntop which is documented to only fail if family is not AF_INET or AF_INET6 (or ENOSPC)
-            try! descriptionForAddress(family: .inet6, bytes: addrPtr, length: Int(INET6_ADDRSTRLEN))
+            try! descriptionForAddress(family: .inet6, bytes: addrPtr, length: Integer(INET6_ADDRSTRLEN))
         }
     }
 }
 
 extension sockaddr_un: SockAddrProtocol {
-    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Int) throws -> R) rethrows -> R {
-        try withUnsafeBytes(of: self) { p in
-            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.self), p.count)
+    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> R) rethrows -> R {
+        try withUnsafeBytes(of: this) { p in
+            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.this), p.count)
         }
     }
 }
 
 extension sockaddr_storage: SockAddrProtocol {
-    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Int) throws -> R) rethrows -> R {
-        try withUnsafeBytes(of: self) { p in
-            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.self), p.count)
+    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> R) rethrows -> R {
+        try withUnsafeBytes(of: this) { p in
+            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.this), p.count)
         }
     }
 }
@@ -753,14 +753,14 @@ fn __testOnly_addressDescription(_ addr: sockaddr_in6) -> String {
 
 fn __testOnly_withSockAddr<ReturnType>(
     _ addr: sockaddr_in,
-    _ body: (UnsafePointer<sockaddr>, Int) throws -> ReturnType
+    _ body: (UnsafePointer<sockaddr>, Integer) throws -> ReturnType
 ) rethrows -> ReturnType {
     try addr.withSockAddr(body)
 }
 
 fn __testOnly_withSockAddr<ReturnType>(
     _ addr: sockaddr_in6,
-    _ body: (UnsafePointer<sockaddr>, Int) throws -> ReturnType
+    _ body: (UnsafePointer<sockaddr>, Integer) throws -> ReturnType
 ) rethrows -> ReturnType {
     try addr.withSockAddr(body)
 }

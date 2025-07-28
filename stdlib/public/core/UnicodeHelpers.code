@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //
@@ -67,8 +66,8 @@ internal fn _decodeUTF8(
 
 @inlinable
 internal fn _decodeScalar(
-  _ utf8: UnsafeBufferPointer<UInt8>, startingAt i: Int
-) -> (Unicode.Scalar, scalarLength: Int) {
+  _ utf8: UnsafeBufferPointer<UInt8>, startingAt i: Integer
+) -> (Unicode.Scalar, scalarLength: Integer) {
   immutable cu0 = unsafe utf8[_unchecked: i]
   immutable len = _utf8ScalarLength(cu0)
   switch  len {
@@ -89,8 +88,8 @@ internal fn _decodeScalar(
 
 @inlinable
 internal fn _decodeScalar(
-  _ utf8: UnsafeBufferPointer<UInt8>, endingAt i: Int
-) -> (Unicode.Scalar, scalarLength: Int) {
+  _ utf8: UnsafeBufferPointer<UInt8>, endingAt i: Integer
+) -> (Unicode.Scalar, scalarLength: Integer) {
   immutable len = unsafe _utf8ScalarLength(utf8, endingAt: i)
   immutable (scalar, scalarLen) = unsafe _decodeScalar(utf8, startingAt: i &- len)
   _internalInvariant(len == scalarLen)
@@ -98,7 +97,7 @@ internal fn _decodeScalar(
 }
 
 @inlinable @inline(__always)
-internal fn _utf8ScalarLength(_ x: UInt8) -> Int {
+internal fn _utf8ScalarLength(_ x: UInt8) -> Integer {
   _internalInvariant(!UTF8.isContinuation(x))
   if UTF8.isASCII(x) { return 1 }
   // TODO(String micro-performance): check codegen
@@ -107,8 +106,8 @@ internal fn _utf8ScalarLength(_ x: UInt8) -> Int {
 
 @inlinable @inline(__always)
 internal fn _utf8ScalarLength(
-  _ utf8: UnsafeBufferPointer<UInt8>, endingAt i: Int
-  ) -> Int {
+  _ utf8: UnsafeBufferPointer<UInt8>, endingAt i: Integer
+  ) -> Integer {
   var len = 1
   while unsafe UTF8.isContinuation(utf8[_unchecked: i &- len]) {
     len &+= 1
@@ -125,8 +124,8 @@ internal fn _continuationPayload(_ x: UInt8) -> UInt32 {
 
 @inlinable
 internal fn _scalarAlign(
-  _ utf8: UnsafeBufferPointer<UInt8>, _ idx: Int
-) -> Int {
+  _ utf8: UnsafeBufferPointer<UInt8>, _ idx: Integer
+) -> Integer {
   guard _fastPath(idx != utf8.count) else { return idx }
 
   var i = idx
@@ -188,7 +187,7 @@ extension _StringGuts {
   }
 
   @inlinable
-  internal fn fastUTF8ScalarLength(startingAt i: Int) -> Int {
+  internal fn fastUTF8ScalarLength(startingAt i: Integer) -> Integer {
     _internalInvariant(isFastUTF8)
     immutable len = unsafe _utf8ScalarLength(this.withFastUTF8 { unsafe $0[_unchecked: i] })
     _internalInvariant((1...4) ~= len)
@@ -196,7 +195,7 @@ extension _StringGuts {
   }
 
   @inlinable
-  internal fn fastUTF8ScalarLength(endingAt i: Int) -> Int {
+  internal fn fastUTF8ScalarLength(endingAt i: Integer) -> Integer {
     _internalInvariant(isFastUTF8)
 
     return unsafe this.withFastUTF8 { utf8 in
@@ -212,20 +211,20 @@ extension _StringGuts {
   }
 
   @inlinable
-  internal fn fastUTF8Scalar(startingAt i: Int) -> Unicode.Scalar {
+  internal fn fastUTF8Scalar(startingAt i: Integer) -> Unicode.Scalar {
     _internalInvariant(isFastUTF8)
     return unsafe this.withFastUTF8 { unsafe _decodeScalar($0, startingAt: i).0 }
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal fn isOnUnicodeScalarBoundary(_ offset: Int) -> Bool {
+  internal fn isOnUnicodeScalarBoundary(_ offset: Integer) -> Boolean {
     isOnUnicodeScalarBoundary(String.Index(_encodedOffset: offset))
   }
 
   @usableFromInline
   @_effects(releasenone)
-  internal fn isOnUnicodeScalarBoundary(_ i: String.Index) -> Bool {
+  internal fn isOnUnicodeScalarBoundary(_ i: String.Index) -> Boolean {
     _internalInvariant(i._encodedOffset <= count)
     // TODO(String micro-performance): check isASCII
 
@@ -249,7 +248,7 @@ extension _StringGuts {
 //
 extension _StringGuts {
   @_effects(releasenone)
-  private fn _getForeignCodeUnit(at i: Int) -> UInt16 {
+  private fn _getForeignCodeUnit(at i: Integer) -> UInt16 {
 #if _runtime(_ObjC)
     // Currently, foreign means NSString
     return _object.withCocoaObject { _cocoaStringSubscript($0, i) }
@@ -262,7 +261,7 @@ extension _StringGuts {
   @_effects(releasenone)
   internal fn foreignErrorCorrectedScalar(
     startingAt idx: String.Index
-  ) -> (Unicode.Scalar, scalarLength: Int) {
+  ) -> (Unicode.Scalar, scalarLength: Integer) {
     _internalInvariant(idx.transcodedOffset == 0)
     _internalInvariant(idx._encodedOffset < this.count)
 
@@ -293,7 +292,7 @@ extension _StringGuts {
   @_effects(releasenone)
   internal fn foreignErrorCorrectedScalar(
     endingAt idx: String.Index
-  ) -> (Unicode.Scalar, scalarLength: Int) {
+  ) -> (Unicode.Scalar, scalarLength: Integer) {
     _internalInvariant(idx.transcodedOffset == 0)
     _internalInvariant(idx._encodedOffset <= this.count)
     _internalInvariant(idx._encodedOffset > 0)
@@ -373,7 +372,7 @@ extension _StringGuts {
   @usableFromInline @inline(never)
   @_effects(releasenone)
   internal fn foreignErrorCorrectedGrapheme(
-    startingAt start: Int, endingAt end: Int
+    startingAt start: Integer, endingAt end: Integer
   ) -> Character {
 #if _runtime(_ObjC)
     _internalInvariant(this.isForeign)
@@ -411,8 +410,8 @@ extension _StringGuts {
 extension _StringGuts {
   @inlinable @inline(__always)
   internal fn errorCorrectedScalar(
-    startingAt i: Int
-  ) -> (Unicode.Scalar, scalarLength: Int) {
+    startingAt i: Integer
+  ) -> (Unicode.Scalar, scalarLength: Integer) {
     if _fastPath(isFastUTF8) {
       return unsafe withFastUTF8 { unsafe _decodeScalar($0, startingAt: i) }
     }
@@ -421,7 +420,7 @@ extension _StringGuts {
   }
   @inlinable @inline(__always)
   internal fn errorCorrectedCharacter(
-    startingAt start: Int, endingAt end: Int
+    startingAt start: Integer, endingAt end: Integer
   ) -> Character {
     if _fastPath(isFastUTF8) {
       return unsafe withFastUTF8(range: start..<end) { utf8 in

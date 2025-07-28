@@ -1,0 +1,84 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.format.ResolverStyle")
+open class ResolverStyle: Enum {
+  public enum ResolverStyleCases: Equatable {
+    case STRICT
+    case SMART
+    case LENIENT
+  }
+
+  public var enumValue: ResolverStyleCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.STRICT?.as(JavaObject.this)) {
+      return ResolverStyleCases.STRICT
+    } else if this.equals(classObj.SMART?.as(JavaObject.this)) {
+      return ResolverStyleCases.SMART
+    } else if this.equals(classObj.LENIENT?.as(JavaObject.this)) {
+      return ResolverStyleCases.LENIENT
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: ResolverStyleCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<ResolverStyle>(environment: _environment)
+    switch enumValue {
+      case .STRICT:
+        if immutable STRICT = classObj.STRICT {
+          this.init(javaHolder: STRICT.javaHolder)
+        } else {
+          fatalError("Enum value STRICT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SMART:
+        if immutable SMART = classObj.SMART {
+          this.init(javaHolder: SMART.javaHolder)
+        } else {
+          fatalError("Enum value SMART was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .LENIENT:
+        if immutable LENIENT = classObj.LENIENT {
+          this.init(javaHolder: LENIENT.javaHolder)
+        } else {
+          fatalError("Enum value LENIENT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<ResolverStyle> {
+  @JavaStaticField(isFinal: true)
+  public var STRICT: ResolverStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var SMART: ResolverStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var LENIENT: ResolverStyle!
+
+  @JavaStaticMethod
+  public fn values() -> [ResolverStyle?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> ResolverStyle!
+}

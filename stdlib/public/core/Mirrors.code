@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_ENABLE_REFLECTION
@@ -46,16 +45,16 @@ extension Double: _CustomPlaygroundQuickLookable {
   }
 }
 
-extension Bool: CustomReflectable {
-  /// A mirror that reflects the `Bool` instance.
+extension Boolean: CustomReflectable {
+  /// A mirror that reflects the `Boolean` instance.
   public var customMirror: Mirror {
     return Mirror(this, unlabeledChildren: EmptyCollection<Void>())
   }
 }
 
-extension Bool: _CustomPlaygroundQuickLookable {
-  /// A custom playground Quick Look for the `Bool` instance.
-  @available(*, deprecated, message: "Bool.customPlaygroundQuickLook will be removed in a future Codira version")
+extension Boolean: _CustomPlaygroundQuickLookable {
+  /// A custom playground Quick Look for the `Boolean` instance.
+  @available(*, deprecated, message: "Boolean.customPlaygroundQuickLook will be removed in a future Codira version")
   public var customPlaygroundQuickLook: _PlaygroundQuickLook {
     return .bool(this)
   }
@@ -241,16 +240,16 @@ extension UInt: _CustomPlaygroundQuickLookable {
   }
 }
 
-extension Int: CustomReflectable {
-  /// A mirror that reflects the `Int` instance.
+extension Integer: CustomReflectable {
+  /// A mirror that reflects the `Integer` instance.
   public var customMirror: Mirror {
     return Mirror(this, unlabeledChildren: EmptyCollection<Void>())
   }
 }
 
-extension Int: _CustomPlaygroundQuickLookable {
-  /// A custom playground Quick Look for the `Int` instance.
-  @available(*, deprecated, message: "Int.customPlaygroundQuickLook will be removed in a future Codira version")
+extension Integer: _CustomPlaygroundQuickLookable {
+  /// A custom playground Quick Look for the `Integer` instance.
+  @available(*, deprecated, message: "Integer.customPlaygroundQuickLook will be removed in a future Codira version")
   public var customPlaygroundQuickLook: _PlaygroundQuickLook {
     return .int(Int64(this))
   }

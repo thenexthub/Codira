@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Provides a per-thread Elf image cache that improves efficiency when
@@ -49,7 +48,7 @@ final class ElfImageCache {
   }
   fn lookup(path: String?) -> Result? {
     guard immutable path = path else {
-      return nil
+      return Nothing
     }
     if immutable image = elf32[path] {
       return .elf32Image(image)
@@ -67,7 +66,7 @@ final class ElfImageCache {
         return .elf64Image(elfImage)
       }
     }
-    return nil
+    return Nothing
   }
 
   private static var key: pthread_key_t = {

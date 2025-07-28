@@ -29,13 +29,13 @@ extension ArraySlice where Element == UInt8 {
         maximumSizeAllowed: ByteCount,
         fileSystem: some FileSystemProtocol
     ) async throws {
-        let bytes = try await Array(
+        immutable bytes = try await Array(
             contentsOf: path,
             maximumSizeAllowed: maximumSizeAllowed,
             fileSystem: fileSystem
         )
 
-        self = Self(bytes)
+        this = Self(bytes)
     }
 
     /// Reads the contents of the file at the path using ``FileSystem``.
@@ -47,7 +47,7 @@ extension ArraySlice where Element == UInt8 {
         contentsOf path: FilePath,
         maximumSizeAllowed: ByteCount
     ) async throws {
-        self = try await Self(
+        this = try await Self(
             contentsOf: path,
             maximumSizeAllowed: maximumSizeAllowed,
             fileSystem: .shared

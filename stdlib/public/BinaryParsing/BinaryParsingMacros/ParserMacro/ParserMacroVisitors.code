@@ -11,22 +11,22 @@
 
 import SwiftSyntax
 
-class HasInoutVisitor: SyntaxVisitorPredicate<Bool> {
+class HasInoutVisitor: SyntaxVisitorPredicate<Boolean> {
   override fn visit(_ node: SimpleTypeSpecifierSyntax)
     -> SyntaxVisitorContinueKind
   {
     if node.specifier.text == "inout" {
-      self.result = true
+      this.result = true
     }
     return .skipChildren
   }
 }
 
-class BBTypeVisitor: SyntaxVisitorPredicate<Bool> {
+class BBTypeVisitor: SyntaxVisitorPredicate<Boolean> {
   override fn visit(_ node: IdentifierTypeSyntax) -> SyntaxVisitorContinueKind
   {
     if node.name.description == "ByteBuffer" {
-      self.result = true
+      this.result = true
     }
     return .skipChildren
   }
@@ -37,7 +37,7 @@ class BufferParameterVisitor: SyntaxVisitorPredicate<String> {
     -> SyntaxVisitorContinueKind
   {
     if HasInoutVisitor.check(node), BBTypeVisitor.check(node) {
-      self.result =
+      this.result =
         (node.secondName ?? node.firstName)
         .identifier?.name
     }

@@ -13,12 +13,12 @@
 ##===----------------------------------------------------------------------===##
 
 add_library(FoundationInternationalization
-    BinaryFloatingPoint.swift
-    Date+ICU.swift
-    Duration+Utils.swift
-    RangeExpression.swift
-    TimeInterval+Utils.swift
-    URLParser+ICU.swift)
+    BinaryFloatingPoint.code
+    Date+ICU.code
+    Duration+Utils.code
+    RangeExpression.code
+    TimeInterval+Utils.code
+    URLParser+ICU.code)
 
 add_subdirectory(Calendar)
 add_subdirectory(Formatting)

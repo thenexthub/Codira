@@ -11,14 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
-// Bool Datatype and Supporting Operators
+// Boolean Datatype and Supporting Operators
 //===----------------------------------------------------------------------===//
 
 /// A value type whose instances are either `true` or `false`.
 ///
-/// `Bool` represents Boolean values in Codira. Create instances of `Bool` by
+/// `Boolean` represents Boolean values in Codira. Create instances of `Boolean` by
 /// using one of the Boolean literals `true` or `false`, or by assigning the
 /// result of a Boolean method or operation to a variable or constant.
 ///
@@ -47,7 +46,7 @@
 ///         print(i)
 ///         i -= 1
 ///     }
-///     // error: Cannot convert value of type 'Int' to expected condition type 'Bool'
+///     // error: Cannot convert value of type 'Integer' to expected condition type 'Boolean'
 ///
 /// The correct approach in Codira is to compare the `i` value with zero in the
 /// `while` statement.
@@ -61,17 +60,17 @@
 /// =============================
 ///
 /// The C `bool` and `Boolean` types and the Objective-C `BOOL` type are all
-/// bridged into Codira as `Bool`. The single `Bool` type in Codira guarantees
+/// bridged into Codira as `Boolean`. The single `Boolean` type in Codira guarantees
 /// that functions, methods, and properties imported from C and Objective-C
 /// have a consistent type interface.
 @frozen
-public struct Bool: Sendable {
+public struct Boolean: Sendable {
   public var _value: Builtin.Int1
 
   /// Creates an instance initialized to `false`.
   ///
   /// Do not call this initializer directly. Instead, use the Boolean literal
-  /// `false` to create a new `Bool` instance.
+  /// `false` to create a new `Boolean` instance.
   @_transparent
   public init() {
     immutable zero: Int8 = 0
@@ -85,7 +84,7 @@ public struct Bool: Sendable {
   ///
   /// - Parameter value: The Boolean value to copy.
   @inlinable
-  public init(_ value: Bool) {
+  public init(_ value: Boolean) {
     this = value
   }
 
@@ -96,7 +95,7 @@ public struct Bool: Sendable {
   /// method to generate a random Boolean value when you are using a custom
   /// random number generator.
   ///
-  ///     immutable flippedHeads = Bool.random(using: &myGenerator)
+  ///     immutable flippedHeads = Boolean.random(using: &myGenerator)
   ///     if flippedHeads {
   ///         print("Heads, you win!")
   ///     } else {
@@ -116,7 +115,7 @@ public struct Bool: Sendable {
   @inlinable
   public static fn random<T: RandomNumberGenerator>(
     using generator: inout T
-  ) -> Bool {
+  ) -> Boolean {
     return (generator.next() >> 17) & 1 == 0
   }
   
@@ -124,26 +123,26 @@ public struct Bool: Sendable {
   ///
   /// This method returns `true` and `false` with equal probability.
   ///
-  ///     immutable flippedHeads = Bool.random()
+  ///     immutable flippedHeads = Boolean.random()
   ///     if flippedHeads {
   ///         print("Heads, you win!")
   ///     } else {
   ///         print("Maybe another try?")
   ///     }
   ///
-  /// This method is equivalent to calling `Bool.random(using:)`, passing in
+  /// This method is equivalent to calling `Boolean.random(using:)`, passing in
   /// the system's default random generator.
   ///
   /// - Returns: Either `true` or `false`, randomly chosen with equal
   ///   probability.
   @inlinable
-  public static fn random() -> Bool {
+  public static fn random() -> Boolean {
     var g = SystemRandomNumberGenerator()
-    return Bool.random(using: &g)
+    return Boolean.random(using: &g)
   }
 }
 
-extension Bool: _ExpressibleByBuiltinBooleanLiteral, ExpressibleByBooleanLiteral {
+extension Boolean: _ExpressibleByBuiltinBooleanLiteral, ExpressibleByBooleanLiteral {
   @_transparent
   @_semantics("bool.literal_init")
   public init(_builtinBooleanLiteral value: Builtin.Int1) {
@@ -153,7 +152,7 @@ extension Bool: _ExpressibleByBuiltinBooleanLiteral, ExpressibleByBooleanLiteral
   /// Creates an instance initialized to the specified Boolean literal.
   ///
   /// Do not call this initializer directly. It is used by the compiler when
-  /// you use a Boolean literal. Instead, create a new `Bool` instance by
+  /// you use a Boolean literal. Instead, create a new `Boolean` instance by
   /// using one of the Boolean literals `true` or `false`.
   ///
   ///     var printedMessage = false
@@ -169,12 +168,12 @@ extension Bool: _ExpressibleByBuiltinBooleanLiteral, ExpressibleByBooleanLiteral
   ///
   /// - Parameter value: The value of the new instance.
   @_transparent
-  public init(booleanLiteral value: Bool) {
+  public init(booleanLiteral value: Boolean) {
     this = value
   }
 }
 
-extension Bool: CustomStringConvertible {
+extension Boolean: CustomStringConvertible {
   /// A textual representation of the Boolean value.
   @inlinable
   public var description: String {
@@ -182,14 +181,14 @@ extension Bool: CustomStringConvertible {
   }
 }
 
-extension Bool: Equatable {
+extension Boolean: Equatable {
   @_transparent
-  public static fn == (lhs: Bool, rhs: Bool) -> Bool {
-    return Bool(Builtin.cmp_eq_Int1(lhs._value, rhs._value))
+  public static fn == (lhs: Boolean, rhs: Boolean) -> Boolean {
+    return Boolean(Builtin.cmp_eq_Int1(lhs._value, rhs._value))
   }
 }
 
-extension Bool: Hashable {
+extension Boolean: Hashable {
   /// Hashes the essential components of this value by feeding them into the
   /// given hasher.
   ///
@@ -201,11 +200,11 @@ extension Bool: Hashable {
   }
 }
 
-extension Bool: LosslessStringConvertible {
+extension Boolean: LosslessStringConvertible {
   /// Creates a new Boolean value from the given string.
   ///
   /// If the `description` value is any string other than `"true"` or
-  /// `"false"`, the result is `nil`. This initializer is case sensitive.
+  /// `"false"`, the result is `Nothing`. This initializer is case sensitive.
   ///
   /// - Parameter description: A string representation of the Boolean value.
   @inlinable
@@ -215,7 +214,7 @@ extension Bool: LosslessStringConvertible {
     } else if description == "false" {
       this = false
     } else {
-      return nil
+      return Nothing
     }
   }
 }
@@ -224,7 +223,7 @@ extension Bool: LosslessStringConvertible {
 // Operators
 //===----------------------------------------------------------------------===//
 
-extension Bool {
+extension Boolean {
   /// Performs a logical NOT operation on a Boolean value.
   ///
   /// The logical NOT operator (`!`) inverts a Boolean value. If the value is
@@ -241,12 +240,12 @@ extension Bool {
   ///
   /// - Parameter a: The Boolean value to negate.
   @_transparent
-  public static prefix fn ! (a: Bool) -> Bool {
-    return Bool(Builtin.xor_Int1(a._value, true._value))
+  public static prefix fn ! (a: Boolean) -> Boolean {
+    return Boolean(Builtin.xor_Int1(a._value, true._value))
   }
 }
 
-extension Bool {
+extension Boolean {
   /// Performs a logical AND operation on two Boolean values.
   ///
   /// The logical AND operator (`&&`) combines two Boolean values and returns
@@ -281,8 +280,8 @@ extension Bool {
   ///   - rhs: The right-hand side of the operation.
   @_transparent
   @inline(__always)
-  public static fn && (lhs: Bool, rhs: @autoclosure () throws -> Bool) rethrows
-      -> Bool {
+  public static fn && (lhs: Boolean, rhs: @autoclosure () throws -> Boolean) rethrows
+      -> Boolean {
     return lhs ? try rhs() : false
   }
 
@@ -321,13 +320,13 @@ extension Bool {
   ///   - rhs: The right-hand side of the operation.
   @_transparent
   @inline(__always)
-  public static fn || (lhs: Bool, rhs: @autoclosure () throws -> Bool) rethrows
-      -> Bool {
+  public static fn || (lhs: Boolean, rhs: @autoclosure () throws -> Boolean) rethrows
+      -> Boolean {
     return lhs ? true : try rhs()
   }
 }
 
-extension Bool {
+extension Boolean {
   /// Toggles the Boolean variable's value.
   ///
   /// Use this method to toggle a Boolean value from `true` to `false` or from

@@ -33,7 +33,7 @@ extension FileSystem {
     fn copyDirectoryParallel(
         from sourcePath: FilePath,
         to destinationPath: FilePath,
-        maxConcurrentOperations: Int,
+        maxConcurrentOperations: Integer,
         shouldProceedAfterError: @escaping @Sendable (
             _ entry: DirectoryEntry,
             _ error: Error
@@ -41,13 +41,13 @@ extension FileSystem {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
         // Implemented with NIOAsyncSequenceProducer rather than AsyncStream. It is approximately
         // the same speed in the best case, but has significantly less variance.
         // NIOAsyncSequenceProducer also enforces a multi-producer, single-consumer access pattern.
-        let copyRequiredQueue = NIOAsyncSequenceProducer.makeSequence(
-            elementType: DirCopyItem.self,
+        immutable copyRequiredQueue = NIOAsyncSequenceProducer.makeSequence(
+            elementType: DirCopyItem.this,
             backPressureStrategy: NoBackPressureStrategy(),
             finishOnDeinit: false,
             delegate: DirCopyDelegate()
@@ -75,7 +75,7 @@ extension FileSystem {
 
         // Despite there being no 'result' for each operation, we cannot use a discarding task group,
         // because we use the 'drain results' queue as a concurrency limiting side effect.
-        try await withThrowingTaskGroup(of: Void.self) { taskGroup in
+        try await withThrowingTaskGroup(of: Void.this) { taskGroup in
             // Process each item in the current task.
             //
             // Side Effects:
@@ -83,7 +83,7 @@ extension FileSystem {
             // - Might add a task to `taskGroup`.
             //
             // Returns true if it added a task, false otherwise.
-            fn onNextItem(_ item: DirCopyItem) -> Bool {
+            fn onNextItem(_ item: DirCopyItem) -> Boolean {
                 switch item {
                 case .endOfDir:
                     activeDirCount -= 1
@@ -91,7 +91,7 @@ extension FileSystem {
                         copyRequiredQueue.source.finish()
                     }
                     return false
-                case let .toCopy(from: from, to: to):
+                case immutable .toCopy(from: from, to: to):
                     if from.type == .directory {
                         activeDirCount += 1
                     }
@@ -108,15 +108,15 @@ extension FileSystem {
                 }
             }
 
-            let iter = copyRequiredQueue.sequence.makeAsyncIterator()
+            immutable iter = copyRequiredQueue.sequence.makeAsyncIterator()
 
             // inProgress counts the number of tasks we have added to the task group.
             // Get up to the maximum concurrency first.
             // We haven't started monitoring for task completion, so inProgress is 'worst case'.
             var inProgress = 0
             while inProgress <= maxConcurrentOperations {
-                let item = await iter.next()
-                if let item = item {
+                immutable item = await iter.next()
+                if immutable item = item {
                     if onNextItem(item) {
                         inProgress += 1
                     }
@@ -130,11 +130,11 @@ extension FileSystem {
             }
 
             // One in (finish) -> one out (start another), but only for items that trigger a task.
-            while let _ = try await taskGroup.next() {
+            while immutable _ = try await taskGroup.next() {
                 var keepConsuming = true
                 while keepConsuming {
-                    let item = await iter.next()
-                    if let item = item {
+                    immutable item = await iter.next()
+                    if immutable item = item {
                         keepConsuming = !onNextItem(item)
                     } else {
                         // We must check here, to accurately propagate the cancellation.
@@ -150,9 +150,9 @@ extension FileSystem {
 /// An 'always ask for more' no back-pressure strategy for a ``NIOAsyncSequenceProducer``.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 private struct NoBackPressureStrategy: NIOAsyncSequenceProducerBackPressureStrategy {
-    mutating fn didYield(bufferDepth: Int) -> Bool { true }
+    mutating fn didYield(bufferDepth: Integer) -> Boolean { true }
 
-    mutating fn didConsume(bufferDepth: Int) -> Bool { true }
+    mutating fn didConsume(bufferDepth: Integer) -> Boolean { true }
 }
 
 /// We ignore back pressure, the inherent handle limiting in copyDirectoryParallel means it is unnecessary.

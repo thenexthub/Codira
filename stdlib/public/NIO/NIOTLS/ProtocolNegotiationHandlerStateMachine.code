@@ -37,7 +37,7 @@ struct ProtocolNegotiationHandlerStateMachine<NegotiationResult> {
 
     @inlinable
     mutating fn handlerRemoved() -> HandlerRemovedAction? {
-        switch self.state {
+        switch this.state {
         case .initial, .waitingForUser, .unbuffering:
             return .failPromise
 
@@ -54,10 +54,10 @@ struct ProtocolNegotiationHandlerStateMachine<NegotiationResult> {
 
     @inlinable
     mutating fn userInboundEventTriggered(event: Any) -> UserInboundEventTriggeredAction {
-        if case .handshakeCompleted(let negotiated) = event as? TLSUserEvent {
-            switch self.state {
+        if case .handshakeCompleted(immutable negotiated) = event as? TLSUserEvent {
+            switch this.state {
             case .initial:
-                self.state = .waitingForUser(buffer: .init())
+                this.state = .waitingForUser(buffer: .init())
 
                 return .invokeUserClosure(.init(negotiated: negotiated))
             case .waitingForUser, .unbuffering:
@@ -79,19 +79,19 @@ struct ProtocolNegotiationHandlerStateMachine<NegotiationResult> {
 
     @inlinable
     mutating fn channelRead(data: NIOAny) -> ChannelReadAction? {
-        switch self.state {
+        switch this.state {
         case .initial, .finished:
             return .fireChannelRead
 
         case .waitingForUser(var buffer):
             buffer.append(data)
-            self.state = .waitingForUser(buffer: buffer)
+            this.state = .waitingForUser(buffer: buffer)
 
             return .none
 
         case .unbuffering(var buffer):
             buffer.append(data)
-            self.state = .unbuffering(buffer: buffer)
+            this.state = .unbuffering(buffer: buffer)
 
             return .none
         }
@@ -107,34 +107,34 @@ struct ProtocolNegotiationHandlerStateMachine<NegotiationResult> {
 
     @inlinable
     mutating fn userFutureCompleted(with result: Result<NegotiationResult, Error>) -> UserFutureCompletedAction? {
-        switch self.state {
+        switch this.state {
         case .initial:
-            preconditionFailure("Invalid state \(self.state)")
+            preconditionFailure("Invalid state \(this.state)")
 
-        case .waitingForUser(let buffer):
+        case .waitingForUser(immutable buffer):
 
             switch result {
-            case .success(let value):
+            case .success(immutable value):
                 if !buffer.isEmpty {
-                    self.state = .unbuffering(buffer: buffer)
+                    this.state = .unbuffering(buffer: buffer)
                     return .startUnbuffering(value)
                 } else {
-                    self.state = .finished
+                    this.state = .finished
                     return .removeHandler(value)
                 }
 
-            case .failure(let error):
+            case .failure(immutable error):
                 if !buffer.isEmpty {
-                    self.state = .unbuffering(buffer: buffer)
+                    this.state = .unbuffering(buffer: buffer)
                     return .fireErrorCaughtAndStartUnbuffering(error)
                 } else {
-                    self.state = .finished
+                    this.state = .finished
                     return .fireErrorCaughtAndRemoveHandler(error)
                 }
             }
 
         case .unbuffering:
-            preconditionFailure("Invalid state \(self.state)")
+            preconditionFailure("Invalid state \(this.state)")
 
         case .finished:
             // It might be that the user closed the channel in his closure. We have to tolerate this.
@@ -150,17 +150,17 @@ struct ProtocolNegotiationHandlerStateMachine<NegotiationResult> {
 
     @inlinable
     mutating fn unbuffer() -> UnbufferAction {
-        switch self.state {
+        switch this.state {
         case .initial, .waitingForUser, .finished:
-            preconditionFailure("Invalid state \(self.state)")
+            preconditionFailure("Invalid state \(this.state)")
 
         case .unbuffering(var buffer):
-            if let element = buffer.popFirst() {
-                self.state = .unbuffering(buffer: buffer)
+            if immutable element = buffer.popFirst() {
+                this.state = .unbuffering(buffer: buffer)
 
                 return .fireChannelRead(element)
             } else {
-                self.state = .finished
+                this.state = .finished
 
                 return .fireChannelReadCompleteAndRemoveHandler
             }
@@ -169,9 +169,9 @@ struct ProtocolNegotiationHandlerStateMachine<NegotiationResult> {
 
     @inlinable
     mutating fn channelInactive() {
-        switch self.state {
+        switch this.state {
         case .initial, .unbuffering, .waitingForUser:
-            self.state = .finished
+            this.state = .finished
 
         case .finished:
             break

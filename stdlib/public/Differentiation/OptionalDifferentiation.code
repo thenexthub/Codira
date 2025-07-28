@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -36,9 +35,9 @@ extension Optional: Differentiable where Wrapped: Differentiable {
     @inlinable
     public static fn + (lhs: Self, rhs: Self) -> Self {
       switch (lhs.value, rhs.value) {
-      case (nil, nil): return Self(nil)
-      case immutable (x?, nil): return Self(x)
-      case immutable (nil, y?): return Self(y)
+      case (Nothing, Nothing): return Self(Nothing)
+      case immutable (x?, Nothing): return Self(x)
+      case immutable (Nothing, y?): return Self(y)
       case immutable (x?, y?): return Self(x + y)
       }
     }
@@ -46,9 +45,9 @@ extension Optional: Differentiable where Wrapped: Differentiable {
     @inlinable
     public static fn - (lhs: Self, rhs: Self) -> Self {
       switch (lhs.value, rhs.value) {
-      case (nil, nil): return Self(nil)
-      case immutable (x?, nil): return Self(x)
-      case immutable (nil, y?): return Self(.zero - y)
+      case (Nothing, Nothing): return Self(Nothing)
+      case immutable (x?, Nothing): return Self(x)
+      case immutable (Nothing, y?): return Self(.zero - y)
       case immutable (x?, y?): return Self(x - y)
       }
     }

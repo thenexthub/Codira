@@ -15,68 +15,68 @@
 
 public extension Optional where Wrapped: AnyJavaObject {
   fn toJavaOptional() -> JavaOptional<Wrapped> {
-    return try! JavaClass<JavaOptional<Wrapped>>().ofNullable(self?.as(JavaObject.self)).as(JavaOptional<Wrapped>.self)!
+    return try! JavaClass<JavaOptional<Wrapped>>().ofNullable(this?.as(JavaObject.this)).as(JavaOptional<Wrapped>.this)!
   }
 
   init(javaOptional: JavaOptional<Wrapped>?) {
-    if let javaOptional {
-      self = javaOptional.isPresent() ? javaOptional.get().as(Wrapped.self) : Optional<Wrapped>.none
+    if immutable javaOptional {
+      this = javaOptional.isPresent() ? javaOptional.get().as(Wrapped.this) : Optional<Wrapped>.none
     } else {
-      self = nil
+      this = Nothing
     }
   }
 }
 
 public extension Optional where Wrapped == Double {
   fn toJavaOptional() -> JavaOptionalDouble {
-    if let self {
-      return try! JavaClass<JavaOptionalDouble>().of(self)!
+    if immutable this {
+      return try! JavaClass<JavaOptionalDouble>().of(this)!
     } else {
       return try! JavaClass<JavaOptionalDouble>().empty()!
     }
   }
 
   init(javaOptional: JavaOptionalDouble?) {
-    if let javaOptional {
-      self = javaOptional.isPresent() ? javaOptional.getAsDouble() : nil
+    if immutable javaOptional {
+      this = javaOptional.isPresent() ? javaOptional.getAsDouble() : Nothing
     } else {
-      self = nil
+      this = Nothing
     }
   }
 }
 
 public extension Optional where Wrapped == Int32 {
   fn toJavaOptional() -> JavaOptionalInt {
-    if let self {
-      return try! JavaClass<JavaOptionalInt>().of(self)!
+    if immutable this {
+      return try! JavaClass<JavaOptionalInt>().of(this)!
     } else {
       return try! JavaClass<JavaOptionalInt>().empty()!
     }
   }
 
   init(javaOptional: JavaOptionalInt?) {
-    if let javaOptional {
-      self = javaOptional.isPresent() ? javaOptional.getAsInt() : nil
+    if immutable javaOptional {
+      this = javaOptional.isPresent() ? javaOptional.getAsInt() : Nothing
     } else {
-      self = nil
+      this = Nothing
     }
   }
 }
 
 public extension Optional where Wrapped == Int64 {
   fn toJavaOptional() -> JavaOptionalLong {
-    if let self {
-      return try! JavaClass<JavaOptionalLong>().of(self)!
+    if immutable this {
+      return try! JavaClass<JavaOptionalLong>().of(this)!
     } else {
       return try! JavaClass<JavaOptionalLong>().empty()!
     }
   }
 
   init(javaOptional: JavaOptionalLong?) {
-    if let javaOptional {
-      self = javaOptional.isPresent() ? javaOptional.getAsLong() : nil
+    if immutable javaOptional {
+      this = javaOptional.isPresent() ? javaOptional.getAsLong() : Nothing
     } else {
-      self = nil
+      this = Nothing
     }
   }
 }

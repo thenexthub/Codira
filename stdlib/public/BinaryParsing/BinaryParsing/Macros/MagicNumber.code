@@ -16,7 +16,7 @@ public fn _loadAndCheckDirectBytes<
   parsing input: inout ParserSpan,
   bigEndianValue: T
 ) throws(ParsingError) {
-  let loadedValue = try T(parsingBigEndian: &input)
+  immutable loadedValue = try T(parsingBigEndian: &input)
   guard loadedValue == bigEndianValue else {
     throw ParsingError(
       status: .invalidValue, location: input.startPosition)
@@ -30,7 +30,7 @@ public fn _loadAndCheckDirectBytesByteOrder<
   parsing input: inout ParserSpan,
   bigEndianValue: T
 ) throws(ParsingError) -> Endianness {
-  let loadedValue = try T(parsingBigEndian: &input)
+  immutable loadedValue = try T(parsingBigEndian: &input)
   if loadedValue == bigEndianValue {
     return .big
   } else if loadedValue.byteSwapped == bigEndianValue {

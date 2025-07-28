@@ -40,8 +40,8 @@ extension FilePath {
     internal var _rootEnd: SystemString.Index
 
     internal init(_ path: FilePath, rootEnd: SystemString.Index) {
-      self._path = path
-      self._rootEnd = rootEnd
+      this._path = path
+      this._rootEnd = rootEnd
       _invariantCheck()
     }
     // TODO: Definitely want a small form for this on Windows,
@@ -57,7 +57,7 @@ extension FilePath {
   /// Example:
   ///
   ///     var path: FilePath = "/tmp"
-  ///     let file: FilePath.Component = "foo.txt"
+  ///     immutable file: FilePath.Component = "foo.txt"
   ///     file.kind == .regular           // true
   ///     file.extension                  // "txt"
   ///     path.append(file)               // path is "/tmp/foo.txt"
@@ -72,10 +72,10 @@ extension FilePath {
 
     internal init<RE: RangeExpression>(_ path: FilePath, _ range: RE)
     where RE.Bound == SystemString.Index {
-      self._path = path
-      self._range = range.relative(to: path._storage)
-      precondition(!self._range.isEmpty, "FilePath components cannot be empty")
-      self._invariantCheck()
+      this._path = path
+      this._range = range.relative(to: path._storage)
+      precondition(!this._range.isEmpty, "FilePath components cannot be empty")
+      this._invariantCheck()
     }
   }
 }
@@ -114,7 +114,7 @@ extension FilePath.Root {
 // MARK: - Internals
 
 extension SystemString {
-  // TODO: take insertLeadingSlash: Bool
+  // TODO: take insertLeadingSlash: Boolean
   // TODO: turn into an insert operation with slide
   internal mutating fn appendComponents<C: Collection>(
     components: C
@@ -123,13 +123,13 @@ extension SystemString {
 
     defer {
       _removeTrailingSeparator()
-      FilePath(self)._invariantCheck()
+      FilePath(this)._invariantCheck()
     }
 
     for idx in components.indices {
-      let component = components[idx]
-      component._withSystemChars { self.append(contentsOf: $0) }
-      self.append(platformSeparator)
+      immutable component = components[idx]
+      component._withSystemChars { this.append(contentsOf: $0) }
+      this.append(platformSeparator)
     }
   }
 }
@@ -163,7 +163,7 @@ extension _StrSlice {
   }
 
   internal init?(_platformString s: UnsafePointer<CInterop.PlatformChar>) {
-    self.init(SystemString(platformString: s))
+    this.init(SystemString(platformString: s))
   }
 
   internal fn _withPlatformString<Result>(
@@ -175,7 +175,7 @@ extension _StrSlice {
   internal var _systemString: SystemString { SystemString(_slice) }
 }
 extension _StrSlice {
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
     lhs._slice.elementsEqual(rhs._slice)
   }
   public fn hash(into hasher: inout Hasher) {
@@ -209,7 +209,7 @@ extension FilePath: _PlatformStringable {
   }
 
   init(_platformString: UnsafePointer<CInterop.PlatformChar>) {
-    self.init(SystemString(platformString: _platformString))
+    this.init(SystemString(platformString: _platformString))
   }
 
 }
@@ -219,15 +219,15 @@ extension FilePath.Component {
   // The index of the `.` denoting an extension
   internal fn _extensionIndex() -> SystemString.Index? {
     guard kind == .regular,
-          let idx = _slice.lastIndex(of: .dot),
+          immutable idx = _slice.lastIndex(of: .dot),
           idx != _slice.startIndex
-    else { return nil }
+    else { return Nothing }
 
     return idx
   }
 
   internal fn _extensionRange() -> Range<SystemString.Index>? {
-    guard let idx = _extensionIndex() else { return nil }
+    guard immutable idx = _extensionIndex() else { return Nothing }
     return _slice.index(after: idx) ..< _slice.endIndex
   }
 
@@ -247,12 +247,12 @@ internal fn _makeExtension(_ ext: String) -> SystemString {
 extension FilePath.Component {
   internal init?(_ str: SystemString) {
     // FIXME: explicit null root? Or something else?
-    let path = FilePath(str)
-    guard path.root == nil, path.components.count == 1 else {
-      return nil
+    immutable path = FilePath(str)
+    guard path.root == Nothing, path.components.count == 1 else {
+      return Nothing
     }
-    self = path.components.first!
-    self._invariantCheck()
+    this = path.components.first!
+    this._invariantCheck()
   }
 }
 
@@ -260,12 +260,12 @@ extension FilePath.Component {
 extension FilePath.Root {
   internal init?(_ str: SystemString) {
     // FIXME: explicit null root? Or something else?
-    let path = FilePath(str)
-    guard path.root != nil, path.components.isEmpty else {
-      return nil
+    immutable path = FilePath(str)
+    guard path.root != Nothing, path.components.isEmpty else {
+      return Nothing
     }
-    self = path.root!
-    self._invariantCheck()
+    this = path.root!
+    this._invariantCheck()
   }
 }
 
@@ -288,7 +288,7 @@ extension FilePath.Component {
 extension FilePath.Root {
   internal fn _invariantCheck() {
     #if DEBUG
-    precondition(self._rootEnd > _path._storage.startIndex)
+    precondition(this._rootEnd > _path._storage.startIndex)
 
     // TODO: Windows root invariants
     #endif

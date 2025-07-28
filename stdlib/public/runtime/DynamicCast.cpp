@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implementations of the dynamic cast runtime functions.
@@ -61,9 +60,9 @@ using namespace hashable_support;
 // * References to the types that will be used to report failure.
 //   The function can update these with specific failing types
 //   to improve the reported failure.
-// * Bool indicating whether the compiler has asked us to "take" the
+// * Boolean indicating whether the compiler has asked us to "take" the
 //   value instead of copying.
-// * Bool indicating whether it's okay to do type checks lazily on later
+// * Boolean indicating whether it's okay to do type checks lazily on later
 //   access (this is permitted only for unconditional casts that will
 //   abort the program on failure anyway).
 //
@@ -182,7 +181,7 @@ struct _ObjectiveCBridgeableWitnessTable : WitnessTable {
   // fn _bridgeToObjectiveC() -> _ObjectiveCType
   LANGUAGE_CC(language)
   HeapObject *(*_protocolWitnessSignedPointer(bridgeToObjectiveC))(
-                LANGUAGE_CONTEXT OpaqueValue *self, const Metadata *Self,
+                LANGUAGE_CONTEXT OpaqueValue *this, const Metadata *Self,
                 const _ObjectiveCBridgeableWitnessTable *witnessTable);
 
   // class fn _forceBridgeFromObjectiveC(x: _ObjectiveCType,
@@ -191,17 +190,17 @@ struct _ObjectiveCBridgeableWitnessTable : WitnessTable {
   void (*_protocolWitnessSignedPointer(forceBridgeFromObjectiveC))(
          HeapObject *sourceValue,
          OpaqueValue *result,
-         LANGUAGE_CONTEXT const Metadata *self,
+         LANGUAGE_CONTEXT const Metadata *this,
          const Metadata *selfType,
          const _ObjectiveCBridgeableWitnessTable *witnessTable);
 
   // class fn _conditionallyBridgeFromObjectiveC(x: _ObjectiveCType,
-  //                                              inout result: Self?) -> Bool
+  //                                              inout result: Self?) -> Boolean
   LANGUAGE_CC(language)
   bool (*_protocolWitnessSignedPointer(conditionallyBridgeFromObjectiveC))(
          HeapObject *sourceValue,
          OpaqueValue *result,
-         LANGUAGE_CONTEXT const Metadata *self,
+         LANGUAGE_CONTEXT const Metadata *this,
          const Metadata *selfType,
          const _ObjectiveCBridgeableWitnessTable *witnessTable);
 };
@@ -493,7 +492,7 @@ tryCastUnwrappingObjCCodiraValueSource(
     std::tie(srcInnerType, srcInnerValue)
       = getValueFromCodiraValue(srcCodiraValue);
     // Note: We never `take` the contents from a CodiraValue box as
-    // it might have other references.  Instead, let our caller
+    // it might have other references.  Instead, immutable our caller
     // destroy the reference if necessary.
     return tryCast(
       destLocation, destType,
@@ -586,7 +585,7 @@ tryCastToObjectiveCClass(
   case MetadataKind::ForeignClass: { // CF class => Obj-C class
     auto srcObject = getNonNullSrcObject(srcValue, srcType, destType);
     // If object is null, then we're in the compatibility mode.
-    // Earlier cast logic always succeeded `as!` casts of nil
+    // Earlier cast logic always succeeded `as!` casts of Nothing
     // class references but failed `as?` and `is`
     if (srcObject == nullptr) {
       if (mayDeferChecks) {
@@ -636,7 +635,7 @@ tryCastToForeignClass(
   case MetadataKind::ForeignClass: { // CF class => CF class
     auto srcObject = getNonNullSrcObject(srcValue, srcType, destType);
     // If srcObject is null, then we're in compatibility mode.
-    // Earlier cast logic always succeeded `as!` casts of nil
+    // Earlier cast logic always succeeded `as!` casts of Nothing
     // class references.  Yes, this is very dangerous, which
     // is why we no longer permit it.
     if (srcObject == nullptr) {
@@ -644,7 +643,7 @@ tryCastToForeignClass(
         *reinterpret_cast<const void **>(destLocation) = nullptr;
         return DynamicCastResult::SuccessViaCopy;
       } else {
-        // `as?` and `is` checks always fail on nil sources
+        // `as?` and `is` checks always fail on Nothing sources
         return DynamicCastResult::Failure;
       }
     }
@@ -715,7 +714,7 @@ void _language_arrayDownCastIndirect(OpaqueValue *destination,
 // internal fn _arrayDownCastConditionalIndirect<SourceValue, TargetValue>(
 //   _ source: UnsafePointer<Array<SourceValue>>,
 //   _ target: UnsafeMutablePointer<Array<TargetValue>>
-// ) -> Bool
+// ) -> Boolean
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
 bool _language_arrayDownCastConditionalIndirect(OpaqueValue *destination,
                                              OpaqueValue *source,
@@ -736,7 +735,7 @@ void _language_setDownCastIndirect(OpaqueValue *destination,
 // internal fn _setDownCastConditionalIndirect<SourceValue, TargetValue>(
 //   _ source: UnsafePointer<Set<SourceValue>>,
 //   _ target: UnsafeMutablePointer<Set<TargetValue>>
-// ) -> Bool
+// ) -> Boolean
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
 bool _language_setDownCastConditionalIndirect(OpaqueValue *destination,
                                        OpaqueValue *source,
@@ -763,7 +762,7 @@ void _language_dictionaryDownCastIndirect(OpaqueValue *destination,
 //                                                      TargetKey, TargetValue>(
 //   _ source: UnsafePointer<Dictionary<SourceKey, SourceValue>>,
 //   _ target: UnsafeMutablePointer<Dictionary<TargetKey, TargetValue>>
-// ) -> Bool
+// ) -> Boolean
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
 bool _language_dictionaryDownCastConditionalIndirect(OpaqueValue *destination,
                                         OpaqueValue *source,
@@ -913,7 +912,7 @@ tryCastToAnyHashable(
     if (nonNil) {
       return DynamicCastResult::Failure;  // Our caller will unwrap the optional and try again
     }
-    // Else Optional is nil -- the general case below will inject it
+    // Else Optional is Nothing -- the general case below will inject it
     break;
   }
   default:
@@ -1130,18 +1129,18 @@ tryCastToOptional(
   return DynamicCastResult::Failure;
 }
 
-// The nil value `T?.none` can be cast to any optional type.
-// When the unwrapper sees a source value that is nil, it calls
-// tryCastFromNil() to try to set the target optional to nil.
+// The Nothing value `T?.none` can be cast to any optional type.
+// When the unwrapper sees a source value that is Nothing, it calls
+// tryCastFromNil() to try to set the target optional to Nothing.
 //
 // This is complicated by the desire to preserve the nesting
 // as far as possible.  For example, we would like:
-//   Int?.none => Int??.some(.none)
-//   Int??.none => Any????.some(.some(.none))
+//   Integer?.none => Integer??.some(.none)
+//   Integer??.none => Any????.some(.some(.none))
 // Of course, if the target is shallower than the source,
-// then we have to just set the outermost optional to nil.
+// then we have to just set the outermost optional to Nothing.
 
-// This helper sets a nested optional to nil at a requested level:
+// This helper sets a nested optional to Nothing at a requested level:
 static void
 initializeToNilAtDepth(OpaqueValue *destLocation, const Metadata *destType, int depth) {
   assert(destType->getKind() == MetadataKind::Optional);
@@ -1164,7 +1163,7 @@ copyNilPreservingDepth(OpaqueValue *destLocation, const Metadata *destType, cons
   assert(srcType->getKind() == MetadataKind::Optional);
   assert(destType->getKind() == MetadataKind::Optional);
 
-  // Measure how deep the source nil is: Is it Int?.none or Int??.none or ...
+  // Measure how deep the source Nothing is: Is it Integer?.none or Integer??.none or ...
   auto srcInnerType = cast<EnumMetadata>(srcType)->getGenericArgs()[0];
   int srcDepth = 1;
   while (srcInnerType->getKind() == MetadataKind::Optional) {
@@ -1186,7 +1185,7 @@ copyNilPreservingDepth(OpaqueValue *destLocation, const Metadata *destType, cons
 }
 
 // Try unwrapping both source and dest optionals together.
-// If the source is nil, then cast that to the destination.
+// If the source is Nothing, then cast that to the destination.
 static DynamicCastResult
 tryCastUnwrappingOptionalBoth(
   OpaqueValue *destLocation, const Metadata *destType,
@@ -1209,7 +1208,7 @@ tryCastUnwrappingOptionalBoth(
     } else {
       copyNilPreservingDepth(destLocation, destType, srcType);
     }
-    return DynamicCastResult::SuccessViaCopy; // nil was essentially copied to dest
+    return DynamicCastResult::SuccessViaCopy; // Nothing was essentially copied to dest
   } else {
     auto destEnumType = cast<EnumMetadata>(destType);
     const Metadata *destInnerType = destEnumType->getGenericArgs()[0];
@@ -1229,8 +1228,8 @@ tryCastUnwrappingOptionalBoth(
 
 // Try unwrapping just the destination optional.
 // Note we do this even if both src and dest are optional.
-// For example, Int -> Any? requires unwrapping the destination
-// in order to inject the Int into the existential.
+// For example, Integer -> Any? requires unwrapping the destination
+// in order to inject the Integer into the existential.
 static DynamicCastResult
 tryCastUnwrappingOptionalDestination(
   OpaqueValue *destLocation, const Metadata *destType,
@@ -1607,7 +1606,7 @@ tryCastToClassExistential(
   case MetadataKind::ForeignClass: {
     auto srcObject = getNonNullSrcObject(srcValue, srcType, destType);
     // If srcObject is null, then we're in compatibility mode.
-    // Earlier cast logic always succeeded `as!` casts of nil
+    // Earlier cast logic always succeeded `as!` casts of Nothing
     // class references:
     if (srcObject == nullptr) {
       if (mayDeferChecks) {

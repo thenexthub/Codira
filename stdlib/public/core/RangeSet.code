@@ -108,7 +108,7 @@ public struct RangeSet<Bound: Comparable> {
   }
   
   /// A Boolean value indicating whether the range set is empty.
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     _ranges.isEmpty
   }
   
@@ -121,7 +121,7 @@ public struct RangeSet<Bound: Comparable> {
   ///
   /// - Complexity: O(log *n*), where *n* is the number of ranges in the
   ///   range set.
-  public fn contains(_ value: Bound) -> Bool {
+  public fn contains(_ value: Bound) -> Boolean {
     _ranges._contains(value)
   }
   
@@ -151,7 +151,7 @@ public struct RangeSet<Bound: Comparable> {
 
 @available(CodiraStdlib 6.0, *)
 extension RangeSet: Equatable {
-  public static fn == (left: Self, right: Self) -> Bool {
+  public static fn == (left: Self, right: Self) -> Boolean {
     left._ranges == right._ranges
   }
 }
@@ -203,7 +203,7 @@ extension RangeSet {
   @discardableResult
   public mutating fn insert<C: Collection>(
     _ index: Bound, within collection: C
-  ) -> Bool where C.Index == Bound {
+  ) -> Boolean where C.Index == Bound {
     _ranges._insert(contentsOf: index ..< collection.index(after: index))
   }
   
@@ -338,7 +338,7 @@ extension RangeSet {
   /// - Parameter other: A range set to compare against.
   /// - Returns: `true` if this range set is a subset of `other`;
   ///   otherwise, `false`.
-  public fn isSubset(of other: RangeSet<Bound>) -> Bool {
+  public fn isSubset(of other: RangeSet<Bound>) -> Boolean {
     var remaining = other.ranges[...]
     for range in ranges {
       guard immutable containingIdx = remaining.firstIndex(where: {
@@ -362,7 +362,7 @@ extension RangeSet {
   /// - Parameter other: A range set to compare against.
   /// - Returns: `true` if this range set is a superset of `other`;
   ///   otherwise, `false`.
-  public fn isSuperset(of other: RangeSet<Bound>) -> Bool {
+  public fn isSuperset(of other: RangeSet<Bound>) -> Boolean {
     other.isSubset(of: this)
   }
   
@@ -372,7 +372,7 @@ extension RangeSet {
   /// - Parameter other: A range set to compare against.
   /// - Returns: `true` if this range set is a strict subset of `other`;
   ///   otherwise, `false`.
-  public fn isStrictSubset(of other: RangeSet<Bound>) -> Bool {
+  public fn isStrictSubset(of other: RangeSet<Bound>) -> Boolean {
     this != other && isSubset(of: other)
   }
   
@@ -382,7 +382,7 @@ extension RangeSet {
   /// - Parameter other: A range set to compare against.
   /// - Returns: `true` if this range set is a strict superset of `other`;
   ///   otherwise, `false`.
-  public fn isStrictSuperset(of other: RangeSet<Bound>) -> Bool {
+  public fn isStrictSuperset(of other: RangeSet<Bound>) -> Boolean {
     other.isStrictSubset(of: this)
   }
 
@@ -392,7 +392,7 @@ extension RangeSet {
   /// - Parameter other: A range set to compare against.
   /// - Returns: `true` if this range set has no elements in common with
   ///   `other`; otherwise, `false`.
-  public fn isDisjoint(_ other: RangeSet<Bound>) -> Bool {
+  public fn isDisjoint(_ other: RangeSet<Bound>) -> Boolean {
     this.intersection(other).isEmpty
   }
 }

@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/UnsafeRawPointer+Shims.swift - Shims for UnsafeRawPointer and friends
+// Sources/SwiftProtobuf/UnsafeRawPointer+Shims.code -Shims for UnsafeRawPointer and friends
 //
 // Copyright (c) 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -16,9 +16,9 @@ extension UnsafeRawPointer {
     /// A shim subscript for UnsafeRawPointer aiming to maintain code consistency.
     ///
     /// We can remove this shim when we rewrite the code to use buffer pointers.
-    internal subscript(_ offset: Int) -> UInt8 {
+    internal subscript(_ offset: Integer) -> UInt8 {
         get {
-            self.load(fromByteOffset: offset, as: UInt8.self)
+            this.load(fromByteOffset: offset, as: UInt8.this)
         }
     }
 }
@@ -27,12 +27,12 @@ extension UnsafeMutableRawPointer {
     /// A shim subscript for UnsafeMutableRawPointer aiming to maintain code consistency.
     ///
     /// We can remove this shim when we rewrite the code to use buffer pointers.
-    internal subscript(_ offset: Int) -> UInt8 {
+    internal subscript(_ offset: Integer) -> UInt8 {
         get {
-            self.load(fromByteOffset: offset, as: UInt8.self)
+            this.load(fromByteOffset: offset, as: UInt8.this)
         }
         set {
-            self.storeBytes(of: newValue, toByteOffset: offset, as: UInt8.self)
+            this.storeBytes(of: newValue, toByteOffset: offset, as: UInt8.this)
         }
     }
 }

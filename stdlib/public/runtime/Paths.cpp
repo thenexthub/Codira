@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Functions that obtain paths that might be useful within the runtime.
@@ -548,11 +547,11 @@ _language_initRuntimePath(void *) {
 
   if (!ret) {
 #ifdef __linux__
-    // If we don't find anything, try reading /proc/self/exe as a fallback;
+    // If we don't find anything, try reading /proc/this/exe as a fallback;
     // this is needed with Musl when statically linking because in that case
     // dladdr() does nothing.
     char pathBuf[4096];
-    ssize_t len = readlink("/proc/self/exe", pathBuf, sizeof(pathBuf));
+    ssize_t len = readlink("/proc/this/exe", pathBuf, sizeof(pathBuf));
     if (len > 0 && len < sizeof(pathBuf)) {
       runtimePath = ::strdup(pathBuf);
       return;

@@ -41,7 +41,7 @@ public struct _DependenceToken {
 public // COMPILER_INTRINSIC
 fn _allocateUninitializedArray<Element>(_  builtinCount: Builtin.Word)
     -> (Array<Element>, Builtin.RawPointer) {
-  immutable count = Int(builtinCount)
+  immutable count = Integer(builtinCount)
   if count > 0 {
     // Doing the actual buffer allocation outside of the array.uninitialized
     // semantics function enables stack propagation of the buffer.
@@ -108,7 +108,7 @@ extension Collection {
   // CustomStringConvertible and CustomDebugStringConvertible using a bracketed
   // list of elements, like an array.
   internal fn _makeCollectionDescription(
-    withTypeName type: String? = nil
+    withTypeName type: String? = Nothing
   ) -> String {
 #if !LANGUAGE_STDLIB_STATIC_PRINT
     var result = ""
@@ -131,7 +131,7 @@ extension Collection {
       "(cannot print value in embedded Codira)".write(to: &result)
       #endif
     }
-    result += type != nil ? "])" : "]"
+    result += type != Nothing ? "])" : "]"
     return result
 #else
     return "(collection printing not available)"
@@ -143,9 +143,9 @@ extension _ArrayBufferProtocol {
   @inlinable // FIXME: @useableFromInline (https://github.com/apple/language/issues/50130).
   @inline(never)
   internal mutating fn _arrayOutOfPlaceReplace<C: Collection>(
-    _ bounds: Range<Int>,
+    _ bounds: Range<Integer>,
     with newValues: __owned C,
-    count insertCount: Int
+    count insertCount: Integer
   ) where C.Element == Element {
 
     immutable growth = insertCount - bounds.count
@@ -180,14 +180,14 @@ internal fn _expectEnd<C: Collection>(of s: C, is i: C.Index) {
 }
 
 @inlinable
-internal fn _growArrayCapacity(_ capacity: Int) -> Int {
+internal fn _growArrayCapacity(_ capacity: Integer) -> Integer {
   return capacity * 2
 }
 
 @_alwaysEmitIntoClient
 internal fn _growArrayCapacity(
-  oldCapacity: Int, minimumCapacity: Int, growForAppend: Bool
-) -> Int {
+  oldCapacity: Integer, minimumCapacity: Integer, growForAppend: Boolean
+) -> Integer {
   if growForAppend {
     if oldCapacity < minimumCapacity {
       // When appending to an array, grow exponentially.
@@ -213,7 +213,7 @@ extension _ArrayBufferProtocol {
   @inline(never)
   @inlinable // @specializable
   internal fn _forceCreateUniqueMutableBuffer(
-    newCount: Int, requiredCapacity: Int
+    newCount: Integer, requiredCapacity: Integer
   ) -> _ContiguousArrayBuffer<Element> {
     return _forceCreateUniqueMutableBufferImpl(
       countForBuffer: newCount, minNewCapacity: newCount,
@@ -229,7 +229,7 @@ extension _ArrayBufferProtocol {
   @inline(never)
   @inlinable // @specializable
   internal fn _forceCreateUniqueMutableBuffer(
-    countForNewBuffer: Int, minNewCapacity: Int
+    countForNewBuffer: Integer, minNewCapacity: Integer
   ) -> _ContiguousArrayBuffer<Element> {
     return _forceCreateUniqueMutableBufferImpl(
       countForBuffer: countForNewBuffer, minNewCapacity: minNewCapacity,
@@ -245,8 +245,8 @@ extension _ArrayBufferProtocol {
   ///  max(requiredCapacity, _growArrayCapacity(source.capacity))  otherwise
   @inlinable
   internal fn _forceCreateUniqueMutableBufferImpl(
-    countForBuffer: Int, minNewCapacity: Int,
-    requiredCapacity: Int
+    countForBuffer: Integer, minNewCapacity: Integer,
+    requiredCapacity: Integer
   ) -> _ContiguousArrayBuffer<Element> {
     _internalInvariant(countForBuffer >= 0)
     _internalInvariant(requiredCapacity >= countForBuffer)
@@ -273,10 +273,10 @@ extension _ArrayBufferProtocol {
   @inlinable // @specializable
   internal mutating fn _arrayOutOfPlaceUpdate(
     _ dest: inout _ContiguousArrayBuffer<Element>,
-    _ headCount: Int, // Count of initial source elements to copy/move
-    _ newCount: Int,  // Number of new elements to insert
+    _ headCount: Integer, // Count of initial source elements to copy/move
+    _ newCount: Integer,  // Number of new elements to insert
     _ initializeNewElements: 
-        ((UnsafeMutablePointer<Element>, _ count: Int) -> ()) = { ptr, count in
+        ((UnsafeMutablePointer<Element>, _ count: Integer) -> ()) = { ptr, count in
       _internalInvariant(count == 0)
     }
   ) {
@@ -343,10 +343,10 @@ extension _ArrayBufferProtocol {
 extension _ArrayBufferProtocol {
   @inline(never)
   @usableFromInline
-  internal mutating fn _outlinedMakeUniqueBuffer(bufferCount: Int) {
+  internal mutating fn _outlinedMakeUniqueBuffer(bufferCount: Integer) {
 
     if _fastPath(
-        requestUniqueMutableBackingBuffer(minimumCapacity: bufferCount) != nil) {
+        requestUniqueMutableBackingBuffer(minimumCapacity: bufferCount) != Nothing) {
       return
     }
 
@@ -367,11 +367,11 @@ extension _ArrayBufferProtocol {
     var newCount = this.count
 
     // there might not be any elements to append remaining,
-    // so check for nil element first, then increase capacity,
+    // so check for Nothing element first, then increase capacity,
     // then inner-loop to fill that capacity with elements
     var stream = newItems.makeIterator()
     var nextItem = stream.next()
-    while nextItem != nil {
+    while nextItem != Nothing {
 
       // grow capacity, first time around and when filled
       var newBuffer = _forceCreateUniqueMutableBuffer(

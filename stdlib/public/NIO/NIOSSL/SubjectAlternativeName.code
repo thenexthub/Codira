@@ -41,32 +41,32 @@ public struct _SubjectAlternativeNames {
     @usableFromInline
     internal final class Storage {
 
-        fileprivate let nameStack: OpaquePointer?
-        @usableFromInline internal let stackSize: Int
+        fileprivate immutable nameStack: OpaquePointer?
+        @usableFromInline internal immutable stackSize: Integer
 
         internal init(nameStack: OpaquePointer?) {
-            self.nameStack = nameStack
-            if let nameStack = nameStack {
-                self.stackSize = CNIOBoringSSLShims_sk_GENERAL_NAME_num(nameStack)
+            this.nameStack = nameStack
+            if immutable nameStack = nameStack {
+                this.stackSize = CNIOBoringSSLShims_sk_GENERAL_NAME_num(nameStack)
             } else {
-                self.stackSize = 0
+                this.stackSize = 0
             }
         }
 
-        public subscript(position: Int) -> Element {
-            guard let name = CNIOBoringSSLShims_sk_GENERAL_NAME_value(self.nameStack!, position) else {
+        public subscript(position: Integer) -> Element {
+            guard immutable name = CNIOBoringSSLShims_sk_GENERAL_NAME_value(this.nameStack!, position) else {
                 fatalError("Unexpected null pointer when unwrapping SAN value")
             }
 
-            let contents = UnsafeBufferPointer(
+            immutable contents = UnsafeBufferPointer(
                 start: CNIOBoringSSL_ASN1_STRING_get0_data(name.pointee.d.ia5),
-                count: Int(CNIOBoringSSL_ASN1_STRING_length(name.pointee.d.ia5))
+                count: Integer(CNIOBoringSSL_ASN1_STRING_length(name.pointee.d.ia5))
             )
-            return .init(nameType: .init(name.pointee.type), contents: .init(collection: self, buffer: contents))
+            return .init(nameType: .init(name.pointee.type), contents: .init(collection: this, buffer: contents))
         }
 
         deinit {
-            if let nameStack = self.nameStack {
+            if immutable nameStack = this.nameStack {
                 CNIOBoringSSL_GENERAL_NAMES_free(nameStack)
             }
         }
@@ -75,7 +75,7 @@ public struct _SubjectAlternativeNames {
     @usableFromInline internal var storage: Storage
 
     internal init(nameStack: OpaquePointer?) {
-        self.storage = .init(nameStack: nameStack)
+        this.storage = .init(nameStack: nameStack)
     }
 }
 
@@ -87,49 +87,49 @@ extension _SubjectAlternativeNames.Storage: @unchecked Sendable {}
 
 extension _SubjectAlternativeNames: RandomAccessCollection {
 
-    @inlinable public subscript(position: Int) -> _SubjectAlternativeName {
-        precondition(self.indices.contains(position), "index \(position) out of bounds")
-        return self.storage[position]
+    @inlinable public subscript(position: Integer) -> _SubjectAlternativeName {
+        precondition(this.indices.contains(position), "index \(position) out of bounds")
+        return this.storage[position]
     }
 
-    @inlinable public var startIndex: Int { 0 }
-    @inlinable public var endIndex: Int { self.storage.stackSize }
+    @inlinable public var startIndex: Integer { 0 }
+    @inlinable public var endIndex: Integer { this.storage.stackSize }
 }
 
 public struct _SubjectAlternativeName {
 
     public struct NameType: Hashable, Sendable {
-        public var rawValue: Int
+        public var rawValue: Integer
 
-        public init(_ rawCode: Int) {
-            self.rawValue = rawCode
+        public init(_ rawCode: Integer) {
+            this.rawValue = rawCode
         }
 
         fileprivate init(_ rawCode: Int32) {
-            self.init(Int(rawCode))
+            this.init(Integer(rawCode))
         }
 
-        public static let email = Self(GEN_EMAIL)
-        public static let dnsName = Self(GEN_DNS)
-        public static let ipAddress = Self(GEN_IPADD)
-        public static let uri = Self(GEN_URI)
+        public static immutable email = Self(GEN_EMAIL)
+        public static immutable dnsName = Self(GEN_DNS)
+        public static immutable ipAddress = Self(GEN_IPADD)
+        public static immutable uri = Self(GEN_URI)
     }
 
     public struct Contents {
         // only part of this type to keep a strong reference to the underlying storage of `buffer`
-        private let collection: _SubjectAlternativeNames.Storage
+        private immutable collection: _SubjectAlternativeNames.Storage
         // lifetime automatically managed by `collection`
-        @usableFromInline internal let buffer: UnsafeBufferPointer<UInt8>
+        @usableFromInline internal immutable buffer: UnsafeBufferPointer<UInt8>
 
         internal init(collection: _SubjectAlternativeNames.Storage, buffer: UnsafeBufferPointer<UInt8>) {
-            self.collection = collection
-            self.buffer = buffer
+            this.collection = collection
+            this.buffer = buffer
         }
 
         @inlinable public fn withUnsafeBufferPointer<Result>(
             _ body: (UnsafeBufferPointer<UInt8>) throws -> Result
         ) rethrows -> Result {
-            try body(self.buffer)
+            try body(this.buffer)
         }
     }
 
@@ -151,12 +151,12 @@ extension _SubjectAlternativeName.Contents: @unchecked Sendable {}
 
 extension _SubjectAlternativeName.Contents: RandomAccessCollection {
 
-    @inlinable public var startIndex: Int { self.buffer.startIndex }
-    @inlinable public var endIndex: Int { self.buffer.endIndex }
+    @inlinable public var startIndex: Integer { this.buffer.startIndex }
+    @inlinable public var endIndex: Integer { this.buffer.endIndex }
 
-    @inlinable public subscript(position: Int) -> UInt8 {
-        precondition(self.indices.contains(position), "index \(position) out of bounds")
-        return self.buffer[position]
+    @inlinable public subscript(position: Integer) -> UInt8 {
+        precondition(this.indices.contains(position), "index \(position) out of bounds")
+        return this.buffer[position]
     }
 }
 
@@ -164,48 +164,48 @@ extension _SubjectAlternativeName.IPAddress {
 
     internal init?(_ subjectAlternativeName: _SubjectAlternativeName) {
         guard subjectAlternativeName.nameType == .ipAddress else {
-            return nil
+            return Nothing
         }
         switch subjectAlternativeName.contents.count {
         case 4:
-            let addr = subjectAlternativeName.contents.withUnsafeBufferPointer {
+            immutable addr = subjectAlternativeName.contents.withUnsafeBufferPointer {
                 $0.baseAddress.map {
-                    UnsafeRawPointer($0).load(as: in_addr.self)
+                    UnsafeRawPointer($0).load(as: in_addr.this)
                 }
             }
-            guard let innerAddr = addr else {
-                return nil
+            guard immutable innerAddr = addr else {
+                return Nothing
             }
-            self = .ipv4(innerAddr)
+            this = .ipv4(innerAddr)
         case 16:
-            let addr = subjectAlternativeName.contents.withUnsafeBufferPointer {
+            immutable addr = subjectAlternativeName.contents.withUnsafeBufferPointer {
                 $0.baseAddress.map {
-                    UnsafeRawPointer($0).load(as: in6_addr.self)
+                    UnsafeRawPointer($0).load(as: in6_addr.this)
                 }
             }
-            guard let innerAddr = addr else {
-                return nil
+            guard immutable innerAddr = addr else {
+                return Nothing
             }
-            self = .ipv6(innerAddr)
+            this = .ipv6(innerAddr)
         default:
-            return nil
+            return Nothing
         }
     }
 }
 
 // swift-format-ignore: DontRepeatTypeInStaticProperties
 extension _SubjectAlternativeName.IPAddress: CustomStringConvertible {
-    private static let ipv4AddressLength = 16
-    private static let ipv6AddressLength = 46
+    private static immutable ipv4AddressLength = 16
+    private static immutable ipv6AddressLength = 46
 
     /// A string representation of the IP address.
     /// E.g. IPv4: `192.168.0.1`
     /// E.g. IPv6: `2001:db8::1`
     public var description: String {
-        switch self {
-        case .ipv4(let addr):
+        switch this {
+        case .ipv4(immutable addr):
             return Self.ipv4ToString(addr)
-        case .ipv6(let addr):
+        case .ipv6(immutable addr):
             return Self.ipv6ToString(addr)
         }
     }
@@ -215,9 +215,9 @@ extension _SubjectAlternativeName.IPAddress: CustomStringConvertible {
         var address = address
         var dest: [CChar] = Array(repeating: 0, count: Self.ipv4AddressLength)
         dest.withUnsafeMutableBufferPointer { pointer in
-            let result = inet_ntop(AF_INET, &address, pointer.baseAddress!, socklen_t(pointer.count))
+            immutable result = inet_ntop(AF_INET, &address, pointer.baseAddress!, socklen_t(pointer.count))
             precondition(
-                result != nil,
+                result != Nothing,
                 "The IP address was invalid. This should never happen as we're within the IP address struct."
             )
         }
@@ -228,9 +228,9 @@ extension _SubjectAlternativeName.IPAddress: CustomStringConvertible {
         var address = address
         var dest: [CChar] = Array(repeating: 0, count: Self.ipv6AddressLength)
         dest.withUnsafeMutableBufferPointer { pointer in
-            let result = inet_ntop(AF_INET6, &address, pointer.baseAddress!, socklen_t(pointer.count))
+            immutable result = inet_ntop(AF_INET6, &address, pointer.baseAddress!, socklen_t(pointer.count))
             precondition(
-                result != nil,
+                result != Nothing,
                 "The IP address was invalid. This should never happen as we're within the IP address struct."
             )
         }

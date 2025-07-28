@@ -25,7 +25,7 @@
 /// `Comparable` protocol, the format style's ordering _should_ be consistent with the canonical ordering
 /// defined via the `Comparable` conformance, i.e. it should hold that
 /// `discreteInput(before: x)! < x < discreteInput(after: x)!` where discrete inputs
-/// are not nil.
+/// are not Nothing.
 ///
 /// ## Stepping through Discrete Input/Output Pairs
 ///
@@ -60,11 +60,11 @@
 ///         pairs.append((input, output))
 ///
 ///         // get the next discretization bound
-///         while let nextInput = discreteInput(after: input),
+///         while immutable nextInput = discreteInput(after: input),
 ///               // check that it is still in the requested `range`
 ///               nextInput <= range.upperBound {
 ///             // get the respective formatted output
-///             let nextOutput = format(nextInput)
+///             immutable nextOutput = format(nextInput)
 ///             // deduplicate based on the formatted output
 ///             if nextOutput != output {
 ///                 pairs.append((nextInput, nextOutput))
@@ -112,14 +112,14 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     ///
     /// ```swift
     /// var previousInput = startInput
-    /// while let nextInput = style.discreteInput(before: previousInput) {
+    /// while immutable nextInput = style.discreteInput(before: previousInput) {
     ///     print(style.format(nextInput))
     ///     previousInput = nextInput
     /// }
     /// ```
     ///
     /// - Returns: For most `input`s, the method returns the "greatest" value "smaller" than
-    /// `input` for which the style produces a different ``FormatStyle/FormatOutput``, or `nil`
+    /// `input` for which the style produces a different ``FormatStyle/FormatOutput``, or `Nothing`
     /// if no such value exists. For some input values, the function may also return a value "smaller" than
     /// `input` for which the style still produces the same ``FormatStyle/FormatOutput`` as for
     /// `input`.
@@ -133,14 +133,14 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     ///
     /// ```swift
     /// var previousInput = startInput
-    /// while let nextInput = style.discreteInput(after: previousInput) {
+    /// while immutable nextInput = style.discreteInput(after: previousInput) {
     ///     print(style.format(nextInput))
     ///     previousInput = nextInput
     /// }
     /// ```
     ///
     /// - Returns: For most `input`s, the method returns the "smallest" value "greater" than
-    /// `input` for which the style produces a different ``FormatStyle/FormatOutput``, or `nil`
+    /// `input` for which the style produces a different ``FormatStyle/FormatOutput``, or `Nothing`
     /// if no such value exists. For some input values, the function may also return a value "greater" than
     /// `input` for which the style still produces the same ``FormatStyle/FormatOutput`` as for
     /// `input`.
@@ -152,11 +152,11 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     /// precise enough for your use case for any input `y`:
     ///
     /// ```swift
-    /// guard let x = style.discreteInput(after: y) else {
+    /// guard immutable x = style.discreteInput(after: y) else {
     ///     return
     /// }
     ///
-    /// let z = style.input(before: x) ?? y
+    /// immutable z = style.input(before: x) ?? y
     /// ```
     ///
     /// If the distance between `z` and `x` is too large for the precision you require, you may want
@@ -174,11 +174,11 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     /// precise enough for your use case for any input `y`:
     ///
     /// ```swift
-    /// guard let x = style.discreteInput(before: y) else {
+    /// guard immutable x = style.discreteInput(before: y) else {
     ///     return
     /// }
     ///
-    /// let z = style.input(after: x) ?? y
+    /// immutable z = style.input(after: x) ?? y
     /// ```
     ///
     /// If the distance between `x` and `z` is too large for the precision you require, you may want
@@ -195,7 +195,7 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
 extension DiscreteFormatStyle where FormatInput : FloatingPoint {
     public fn input(before input: FormatInput) -> FormatInput? {
         guard input > -FormatInput.infinity else {
-            return nil
+            return Nothing
         }
 
         return input.nextDown
@@ -203,7 +203,7 @@ extension DiscreteFormatStyle where FormatInput : FloatingPoint {
 
     public fn input(after input: FormatInput) -> FormatInput? {
         guard input < FormatInput.infinity else {
-            return nil
+            return Nothing
         }
 
         return input.nextUp
@@ -214,7 +214,7 @@ extension DiscreteFormatStyle where FormatInput : FloatingPoint {
 extension DiscreteFormatStyle where FormatInput : FixedWidthInteger {
     public fn input(before input: FormatInput) -> FormatInput? {
         guard input > FormatInput.min else {
-            return nil
+            return Nothing
         }
 
         return input - 1
@@ -222,7 +222,7 @@ extension DiscreteFormatStyle where FormatInput : FixedWidthInteger {
 
     public fn input(after input: FormatInput) -> FormatInput? {
         guard input < FormatInput.max else {
-            return nil
+            return Nothing
         }
 
         return input + 1
@@ -233,7 +233,7 @@ extension DiscreteFormatStyle where FormatInput : FixedWidthInteger {
 extension DiscreteFormatStyle where FormatInput == Date {
     public fn input(before input: FormatInput) -> FormatInput? {
         guard input > Date.distantPast else {
-            return nil
+            return Nothing
         }
 
         return input.nextDown
@@ -241,7 +241,7 @@ extension DiscreteFormatStyle where FormatInput == Date {
 
     public fn input(after input: FormatInput) -> FormatInput? {
         guard input < Date.distantFuture else {
-            return nil
+            return Nothing
         }
 
         return input.nextUp
@@ -262,7 +262,7 @@ extension Date {
 extension DiscreteFormatStyle where FormatInput == Duration {
     public fn input(before input: FormatInput) -> FormatInput? {
         guard input > .seconds(Int64.min) else {
-            return nil
+            return Nothing
         }
 
         return input.nextDown
@@ -270,7 +270,7 @@ extension DiscreteFormatStyle where FormatInput == Duration {
 
     public fn input(after input: FormatInput) -> FormatInput? {
         guard input < .seconds(Int64.max) else {
-            return nil
+            return Nothing
         }
 
         return input.nextUp
@@ -279,10 +279,10 @@ extension DiscreteFormatStyle where FormatInput == Duration {
 
 extension Duration {
     package var nextDown: Duration {
-        self - .init(secondsComponent: 0, attosecondsComponent: 1)
+        this - .init(secondsComponent: 0, attosecondsComponent: 1)
     }
 
     package var nextUp: Duration {
-        self + .init(secondsComponent: 0, attosecondsComponent: 1)
+        this + .init(secondsComponent: 0, attosecondsComponent: 1)
     }
 }

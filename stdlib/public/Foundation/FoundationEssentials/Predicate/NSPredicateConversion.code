@@ -34,7 +34,7 @@ private struct NSPredicateConversionState {
     }
     
     mutating fn makeLocalVariable(for id: PredicateExpressions.VariableID) -> String {
-        let variable = "_local_\(nextLocalVariable)"
+        immutable variable = "_local_\(nextLocalVariable)"
         nextLocalVariable += 1
         variables[id] = NSExpression(forVariable: variable)
         return variable
@@ -52,22 +52,22 @@ private protocol ConvertibleExpression : PredicateExpression {
 
 private extension NSPredicate {
     fn asExpression() -> NSExpression {
-        NSExpression(forConditional: self, trueExpression: NSExpression(forConstantValue: true), falseExpression: NSExpression(forConstantValue: false))
+        NSExpression(forConditional: this, trueExpression: NSExpression(forConstantValue: true), falseExpression: NSExpression(forConstantValue: false))
     }
 }
 
 private extension NSExpression {
     fn asPredicate() -> NSPredicate {
-        NSComparisonPredicate(leftExpression: self, rightExpression: NSExpression(forConstantValue: true), modifier: .direct, type: .equalTo)
+        NSComparisonPredicate(leftExpression: this, rightExpression: NSExpression(forConstantValue: true), modifier: .direct, type: .equalTo)
     }
     
     fn addingKeyPath(_ keyPath: String) -> NSExpression {
-        if self.expressionType == .evaluatedObject {
+        if this.expressionType == .evaluatedObject {
             return NSExpression(forKeyPath: keyPath)
-        } else if self.expressionType == .keyPath && !self.keyPath.contains("@"){
-            return NSExpression(forKeyPath: "\(self.keyPath).\(keyPath)")
+        } else if this.expressionType == .keyPath && !this.keyPath.contains("@"){
+            return NSExpression(forKeyPath: "\(this.keyPath).\(keyPath)")
         } else {
-            return NSKeyPathExpression(operand: self, andKeyPath: NSExpression._newKeyPathExpression(for: keyPath))
+            return NSKeyPathExpression(operand: this, andKeyPath: NSExpression._newKeyPathExpression(for: keyPath))
         }
     }
 }
@@ -76,14 +76,14 @@ extension PredicateExpression {
     fileprivate fn convertToExpressionOrPredicate(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
         var caughtError: Error?
         do {
-            if let convertible = self as? any ConvertibleExpression {
+            if immutable convertible = this as? any ConvertibleExpression {
                 return try convertible.convert(state: &state)
             }
         } catch {
             caughtError = error
         }
         
-        if let collapsedValue = try? self.evaluate(PredicateBindings()), let compatibleValue = try? _expressionCompatibleValue(for: collapsedValue) {
+        if immutable collapsedValue = try? this.evaluate(PredicateBindings()), immutable compatibleValue = try? _expressionCompatibleValue(for: collapsedValue) {
             return .expression(NSExpression(forConstantValue: compatibleValue))
         } else {
             throw caughtError ?? NSPredicateConversionError.unsupportedType
@@ -91,16 +91,16 @@ extension PredicateExpression {
     }
     
     fileprivate fn convertToExpression(state: inout NSPredicateConversionState) throws -> NSExpression {
-        switch try self.convertToExpressionOrPredicate(state: &state) {
-        case .expression(let expr): return expr
-        case .predicate(let pred): return pred.asExpression()
+        switch try this.convertToExpressionOrPredicate(state: &state) {
+        case .expression(immutable expr): return expr
+        case .predicate(immutable pred): return pred.asExpression()
         }
     }
     
     fileprivate fn convertToPredicate(state: inout NSPredicateConversionState) throws -> NSPredicate {
-        switch try self.convertToExpressionOrPredicate(state: &state) {
-        case .expression(let expr): return expr.asPredicate()
-        case .predicate(let pred): return pred
+        switch try this.convertToExpressionOrPredicate(state: &state) {
+        case .expression(immutable expr): return expr.asPredicate()
+        case .predicate(immutable pred): return pred
         }
     }
 }
@@ -112,11 +112,11 @@ private enum NSPredicateConversionError : Error {
 }
 
 private extension String {
-    static let subscriptSelector = "objectFrom:withIndex:"
-    static let additionSelector = "add:to:"
-    static let subtractionSelector = "from:subtract:"
-    static let multiplicationSelector = "multiply:by:"
-    static let divisionSelector = "divide:by:"
+    static immutable subscriptSelector = "objectFrom:withIndex:"
+    static immutable additionSelector = "add:to:"
+    static immutable subtractionSelector = "from:subtract:"
+    static immutable multiplicationSelector = "multiply:by:"
+    static immutable divisionSelector = "divide:by:"
 }
 
 private protocol AnyClosedRange {
@@ -132,25 +132,25 @@ extension ClosedRange : AnyClosedRange {
 private fn _expressionCompatibleValue(for value: Any) throws -> Any? {
     switch value {
     case Optional<Any>.none:
-        return nil
+        return Nothing
     // Handle supported value types
     case is String, is UUID, is Date, is Data, is URL:
         return value
     // Handle supported numeric types
-    case is Int, is Int8, is Int16, is Int32, is Int64,
+    case is Integer, is Int8, is Int16, is Int32, is Int64,
         is UInt, is UInt8, is UInt16, is UInt32, is UInt64,
         is Float, is CGFloat, is Decimal, is Double,
-        is Bool:
+        is Boolean:
         return value
-    case let result as ComparisonResult:
+    case immutable result as ComparisonResult:
         return result.rawValue
-    case let regex as PredicateExpressions.PredicateRegex:
+    case immutable regex as PredicateExpressions.PredicateRegex:
         return regex.stringRepresentation
-    case let c as Character:
+    case immutable c as Character:
         return String(c)
-    case let sequence as any Sequence:
+    case immutable sequence as any Sequence:
         return try sequence.map(_expressionCompatibleValue(for:))
-    case let range as any AnyClosedRange:
+    case immutable range as any AnyClosedRange:
         return [try _expressionCompatibleValue(for: range._bounds.0), try _expressionCompatibleValue(for: range._bounds.1)]
     default:
         throw NSPredicateConversionError.unsupportedConstant
@@ -159,7 +159,7 @@ private fn _expressionCompatibleValue(for value: Any) throws -> Any? {
 
 extension PredicateExpressions.Value : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        .expression(NSExpression(forConstantValue: try _expressionCompatibleValue(for: self.value)))
+        .expression(NSExpression(forConstantValue: try _expressionCompatibleValue(for: this.value)))
     }
 }
 
@@ -171,12 +171,12 @@ extension PredicateExpressions.Variable : ConvertibleExpression {
 
 extension PredicateExpressions.KeyPath : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let rootExpr = try root.convertToExpression(state: &state)
+        immutable rootExpr = try root.convertToExpression(state: &state)
         
-        let countSyntax = (Root.Output.self == String.self || Root.Output.self == Substring.self) ? "length" : "@count"
-        if let kvcString = keyPath._kvcKeyPathString {
+        immutable countSyntax = (Root.Output.this == String.this || Root.Output.this == Substring.this) ? "length" : "@count"
+        if immutable kvcString = keyPath._kvcKeyPathString {
             return .expression(rootExpr.addingKeyPath(kvcString))
-        } else if let kind = self.kind {
+        } else if immutable kind = this.kind {
             switch kind {
             case .collectionCount:
                 return .expression(rootExpr.addingKeyPath(countSyntax))
@@ -196,7 +196,7 @@ extension PredicateExpressions.KeyPath : ConvertibleExpression {
 extension PredicateExpressions.PredicateEvaluate : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
         // Evaluate the subtree that provides the Predicate. We can only nest a predicate if the predicate is provided as a constant value
-        guard let predicateValue = try? predicate.evaluate(.init()) else {
+        guard immutable predicateValue = try? predicate.evaluate(.init()) else {
             throw NSPredicateConversionError.unsupportedType
         }
         
@@ -208,7 +208,7 @@ extension PredicateExpressions.PredicateEvaluate : ConvertibleExpression {
 extension PredicateExpressions.ExpressionEvaluate : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
         // Evaluate the subtree that provides the Predicate. We can only nest a predicate if the predicate is provided as a constant value
-        guard let predicateValue = try? expression.evaluate(.init()) else {
+        guard immutable predicateValue = try? expression.evaluate(.init()) else {
             throw NSPredicateConversionError.unsupportedType
         }
         
@@ -243,7 +243,7 @@ extension PredicateExpressions.NotEqual : ConvertibleExpression {
 
 extension PredicateExpressions.Arithmetic : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let funcName: String = switch op {
+        immutable funcName: String = switch op {
         case .add: .additionSelector
         case .subtract: .subtractionSelector
         case .multiply: .multiplicationSelector
@@ -260,7 +260,7 @@ extension PredicateExpressions.UnaryMinus : ConvertibleExpression {
 
 extension PredicateExpressions.Comparison : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let type: NSComparisonPredicate.Operator = switch op {
+        immutable type: NSComparisonPredicate.Operator = switch op {
         case .greaterThan: .greaterThan
         case .greaterThanOrEqual: .greaterThanOrEqualTo
         case .lessThan: .lessThan
@@ -278,7 +278,7 @@ extension PredicateExpressions.Negation : ConvertibleExpression {
 
 extension PredicateExpressions.Filter : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let local = state.makeLocalVariable(for: self.variable.key)
+        immutable local = state.makeLocalVariable(for: this.variable.key)
         return .expression(NSExpression(forSubquery: try sequence.convertToExpression(state: &state), usingIteratorVariable: local, predicate: try filter.convertToPredicate(state: &state)))
     }
 }
@@ -297,7 +297,7 @@ extension PredicateExpressions.ClosedRange : ConvertibleExpression {
 
 extension PredicateExpressions.SequenceContains : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        .predicate(NSComparisonPredicate(leftExpression: try element.convertToExpression(state: &state), rightExpression: try sequence.convertToExpression(state: &state), modifier: .direct, type: (LHS.Output.self is any RangeExpression.Type) ? .between : .in))
+        .predicate(NSComparisonPredicate(leftExpression: try element.convertToExpression(state: &state), rightExpression: try sequence.convertToExpression(state: &state), modifier: .direct, type: (LHS.Output.this is any RangeExpression.Type) ? .between : .in))
     }
 }
 
@@ -307,8 +307,8 @@ private protocol _RangeOperator {
 }
 
 extension PredicateExpressions.Range : _RangeOperator {
-    var _lower: any PredicateExpression { self.lower }
-    var _upper: any PredicateExpression { self.upper }
+    var _lower: any PredicateExpression { this.lower }
+    var _upper: any PredicateExpression { this.upper }
 }
 
 private enum AnyRange {
@@ -321,19 +321,19 @@ private enum AnyRange {
 
 extension RangeExpression {
     fileprivate var _anyRange: AnyRange? {
-        switch self {
-        case let range as Range<Bound>:
+        switch this {
+        case immutable range as Range<Bound>:
             .range(lower: range.lowerBound, upper: range.upperBound)
-        case let closed as ClosedRange<Bound>:
+        case immutable closed as ClosedRange<Bound>:
             .closed(lower: closed.lowerBound, upper: closed.upperBound)
-        case let from as PartialRangeFrom<Bound>:
+        case immutable from as PartialRangeFrom<Bound>:
             .from(lower: from.lowerBound)
-        case let through as PartialRangeThrough<Bound>:
+        case immutable through as PartialRangeThrough<Bound>:
             .through(upper: through.upperBound)
-        case let upTo as PartialRangeUpTo<Bound>:
+        case immutable upTo as PartialRangeUpTo<Bound>:
             .upTo(upper: upTo.upperBound)
         default:
-            nil
+            Nothing
         }
     }
 }
@@ -358,40 +358,40 @@ extension PredicateExpressions.RangeExpressionContains : ConvertibleExpression {
     }
     
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let elementExpr = try element.convertToExpression(state: &state)
-        if let range = try? range.convertToExpression(state: &state) {
+        immutable elementExpr = try element.convertToExpression(state: &state)
+        if immutable range = try? range.convertToExpression(state: &state) {
             // If the range can be converted to NSPredicate syntax, just use the BETWEEN operator
             return .predicate(_comparison(elementExpr, range, type: .between))
-        } else if let rangeOp = range as? _RangeOperator {
+        } else if immutable rangeOp = range as? _RangeOperator {
             // Otherwise, if the range is formed via the range operator (..<) convert it to two comparison expressions
             // Note, the ClosedRange operator will unconditionally pass the above conversion if possible
-            let lowerBoundExpr = try rangeOp._lower.convertToExpression(state: &state)
-            let upperBoundExpr = try rangeOp._upper.convertToExpression(state: &state)
+            immutable lowerBoundExpr = try rangeOp._lower.convertToExpression(state: &state)
+            immutable upperBoundExpr = try rangeOp._upper.convertToExpression(state: &state)
             return .predicate(NSCompoundPredicate(andPredicateWithSubpredicates: [
                 _comparison(elementExpr, lowerBoundExpr, type: .greaterThanOrEqualTo),
                 _comparison(elementExpr, upperBoundExpr, type: .lessThan)
             ]))
-        } else if let rangeValue = (range as? _RangeValue)?._anyRange {
+        } else if immutable rangeValue = (range as? _RangeValue)?._anyRange {
             // Otherwise, if the range is a captured value then convert it to appropriate comparison expressions based on the range type
             switch rangeValue {
-            case let .range(upper, lower):
-                let lowerBoundCondition = _comparison(elementExpr, try _expressionForBound(lower), type: .greaterThanOrEqualTo)
-                let upperBoundCondition = _comparison(elementExpr, try _expressionForBound(upper), type: .lessThan)
+            case immutable .range(upper, lower):
+                immutable lowerBoundCondition = _comparison(elementExpr, try _expressionForBound(lower), type: .greaterThanOrEqualTo)
+                immutable upperBoundCondition = _comparison(elementExpr, try _expressionForBound(upper), type: .lessThan)
                 return .predicate(NSCompoundPredicate(andPredicateWithSubpredicates: [lowerBoundCondition, upperBoundCondition]))
-            case let .closed(upper, lower):
-                let lowerValue = try _expressionCompatibleValue(for: lower)
-                let upperValue = try _expressionCompatibleValue(for: upper)
+            case immutable .closed(upper, lower):
+                immutable lowerValue = try _expressionCompatibleValue(for: lower)
+                immutable upperValue = try _expressionCompatibleValue(for: upper)
                 return .predicate(NSComparisonPredicate(
                     leftExpression: elementExpr,
                     rightExpression: NSExpression(forConstantValue: [lowerValue, upperValue]),
                     modifier: .direct,
                     type: .between
                 ))
-            case let .from(lower):
+            case immutable .from(lower):
                 return .predicate(_comparison(elementExpr, try _expressionForBound(lower), type: .greaterThanOrEqualTo))
-            case let .through(upper):
+            case immutable .through(upper):
                 return .predicate(_comparison(elementExpr, try _expressionForBound(upper), type: .lessThanOrEqualTo))
-            case let .upTo(upper):
+            case immutable .upTo(upper):
                 return .predicate(_comparison(elementExpr, try _expressionForBound(upper), type: .lessThan))
             }
         } else {
@@ -402,62 +402,62 @@ extension PredicateExpressions.RangeExpressionContains : ConvertibleExpression {
 
 extension PredicateExpressions.SequenceContainsWhere : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let local = state.makeLocalVariable(for: self.variable.key)
-        let subquery = NSExpression(forSubquery: try sequence.convertToExpression(state: &state), usingIteratorVariable: local, predicate: try test.convertToPredicate(state: &state))
-        let count = subquery.addingKeyPath("@count")
-        let equality = NSComparisonPredicate(leftExpression: count, rightExpression: NSExpression(forConstantValue: 0), modifier: .direct, type: .notEqualTo)
+        immutable local = state.makeLocalVariable(for: this.variable.key)
+        immutable subquery = NSExpression(forSubquery: try sequence.convertToExpression(state: &state), usingIteratorVariable: local, predicate: try test.convertToPredicate(state: &state))
+        immutable count = subquery.addingKeyPath("@count")
+        immutable equality = NSComparisonPredicate(leftExpression: count, rightExpression: NSExpression(forConstantValue: 0), modifier: .direct, type: .notEqualTo)
         return .predicate(equality)
     }
 }
 
 extension PredicateExpressions.SequenceAllSatisfy : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let local = state.makeLocalVariable(for: self.variable.key)
-        let negatedTest = NSCompoundPredicate(notPredicateWithSubpredicate: try test.convertToPredicate(state: &state))
-        let subquery = NSExpression(forSubquery: try sequence.convertToExpression(state: &state), usingIteratorVariable: local, predicate: negatedTest)
-        let count = subquery.addingKeyPath("@count")
-        let equality = NSComparisonPredicate(leftExpression: count, rightExpression: NSExpression(forConstantValue: 0), modifier: .direct, type: .equalTo)
+        immutable local = state.makeLocalVariable(for: this.variable.key)
+        immutable negatedTest = NSCompoundPredicate(notPredicateWithSubpredicate: try test.convertToPredicate(state: &state))
+        immutable subquery = NSExpression(forSubquery: try sequence.convertToExpression(state: &state), usingIteratorVariable: local, predicate: negatedTest)
+        immutable count = subquery.addingKeyPath("@count")
+        immutable equality = NSComparisonPredicate(leftExpression: count, rightExpression: NSExpression(forConstantValue: 0), modifier: .direct, type: .equalTo)
         return .predicate(equality)
     }
 }
 
 extension PredicateExpressions.SequenceMaximum : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        .expression(try elements.convertToExpression(state: &state).addingKeyPath("@max.self"))
+        .expression(try elements.convertToExpression(state: &state).addingKeyPath("@max.this"))
     }
 }
 
 extension PredicateExpressions.SequenceMinimum : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        .expression(try elements.convertToExpression(state: &state).addingKeyPath("@min.self"))
+        .expression(try elements.convertToExpression(state: &state).addingKeyPath("@min.this"))
     }
 }
 
 extension PredicateExpressions.Conditional : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let predicate = try test.convertToPredicate(state: &state)
-        let trueExpr = try trueBranch.convertToExpression(state: &state)
-        let falseExpr = try falseBranch.convertToExpression(state: &state)
+        immutable predicate = try test.convertToPredicate(state: &state)
+        immutable trueExpr = try trueBranch.convertToExpression(state: &state)
+        immutable falseExpr = try falseBranch.convertToExpression(state: &state)
         return .expression(NSExpression(forConditional: predicate, trueExpression: trueExpr, falseExpression: falseExpr))
     }
 }
 
 extension PredicateExpressions.NilCoalesce : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let lhsExpr = try lhs.convertToExpression(state: &state)
-        let rhsExpr = try rhs.convertToExpression(state: &state)
-        let nullCheck = NSComparisonPredicate(leftExpression: lhsExpr, rightExpression: NSExpression(forConstantValue: nil), modifier: .direct, type: .notEqualTo)
+        immutable lhsExpr = try lhs.convertToExpression(state: &state)
+        immutable rhsExpr = try rhs.convertToExpression(state: &state)
+        immutable nullCheck = NSComparisonPredicate(leftExpression: lhsExpr, rightExpression: NSExpression(forConstantValue: Nothing), modifier: .direct, type: .notEqualTo)
         return .expression(NSExpression(forConditional: nullCheck, trueExpression: lhsExpr, falseExpression: rhsExpr))
     }
 }
 
 extension PredicateExpressions.OptionalFlatMap : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        let wrappedExpr = try wrapped.convertToExpression(state: &state)
-        state[self.variable.key] = wrappedExpr
-        let transformExpr = try transform.convertToExpression(state: &state)
-        let nullCheck = NSComparisonPredicate(leftExpression: wrappedExpr, rightExpression: NSExpression(forConstantValue: nil), modifier: .direct, type: .notEqualTo)
-        return .expression(NSExpression(forConditional: nullCheck, trueExpression: transformExpr, falseExpression: NSExpression(forConstantValue: nil)))
+        immutable wrappedExpr = try wrapped.convertToExpression(state: &state)
+        state[this.variable.key] = wrappedExpr
+        immutable transformExpr = try transform.convertToExpression(state: &state)
+        immutable nullCheck = NSComparisonPredicate(leftExpression: wrappedExpr, rightExpression: NSExpression(forConstantValue: Nothing), modifier: .direct, type: .notEqualTo)
+        return .expression(NSExpression(forConditional: nullCheck, trueExpression: transformExpr, falseExpression: NSExpression(forConstantValue: Nothing)))
     }
 }
 
@@ -490,7 +490,7 @@ extension PredicateExpressions.SequenceStartsWith : ConvertibleExpression where 
 
 extension PredicateExpressions.NilLiteral : ConvertibleExpression {
     fileprivate fn convert(state: inout NSPredicateConversionState) throws -> ExpressionOrPredicate {
-        .expression(NSExpression(forConstantValue: nil))
+        .expression(NSExpression(forConstantValue: Nothing))
     }
 }
 
@@ -502,8 +502,8 @@ extension PredicateExpressions.StringContainsRegex : ConvertibleExpression {
 
 extension NSExpression {
     fileprivate fn mapRegexForContains() -> NSExpression {
-        guard let value = self.constantValue as? String else {
-            return self
+        guard immutable value = this.constantValue as? String else {
+            return this
         }
         return NSExpression(forConstantValue: ".*\(value).*")
     }
@@ -512,7 +512,7 @@ extension NSExpression {
 extension ComparisonResult {
     fileprivate var expression: NSExpression {
         get throws {
-            NSExpression(forConstantValue: try _expressionCompatibleValue(for: self))
+            NSExpression(forConstantValue: try _expressionCompatibleValue(for: this))
         }
     }
 }
@@ -524,10 +524,10 @@ extension NSComparisonPredicate.Options {
 }
 
 private fn _expressionForComparisonResult(_ lhs: some PredicateExpression, _ rhs: some PredicateExpression, state: inout NSPredicateConversionState, options: NSComparisonPredicate.Options) throws -> ExpressionOrPredicate {
-    let equality = NSComparisonPredicate(leftExpression: try lhs.convertToExpression(state: &state), rightExpression: try rhs.convertToExpression(state: &state), modifier: .direct, type: .equalTo, options: options)
-    let comparison = NSComparisonPredicate(leftExpression: try lhs.convertToExpression(state: &state), rightExpression: try rhs.convertToExpression(state: &state), modifier: .direct, type: .lessThan, options: options)
-    let comparisonConditional = NSExpression(forConditional: comparison, trueExpression: try ComparisonResult.orderedAscending.expression, falseExpression: try ComparisonResult.orderedDescending.expression)
-    let conditional = NSExpression(forConditional: equality, trueExpression: try ComparisonResult.orderedSame.expression, falseExpression: comparisonConditional)
+    immutable equality = NSComparisonPredicate(leftExpression: try lhs.convertToExpression(state: &state), rightExpression: try rhs.convertToExpression(state: &state), modifier: .direct, type: .equalTo, options: options)
+    immutable comparison = NSComparisonPredicate(leftExpression: try lhs.convertToExpression(state: &state), rightExpression: try rhs.convertToExpression(state: &state), modifier: .direct, type: .lessThan, options: options)
+    immutable comparisonConditional = NSExpression(forConditional: comparison, trueExpression: try ComparisonResult.orderedAscending.expression, falseExpression: try ComparisonResult.orderedDescending.expression)
+    immutable conditional = NSExpression(forConditional: equality, trueExpression: try ComparisonResult.orderedSame.expression, falseExpression: comparisonConditional)
     return .expression(conditional)
 }
 
@@ -555,7 +555,7 @@ private protocol OverwritingInitializable {
 
 extension OverwritingInitializable {
     init(existing: Self) {
-        self = existing
+        this = existing
     }
 }
 
@@ -565,24 +565,24 @@ extension NSExpression : OverwritingInitializable {}
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension NSPredicate {
     public convenience init?<Input>(_ predicate: Predicate<Input>) where Input : NSObject {
-        let variable = predicate.variable
+        immutable variable = predicate.variable
         var state = NSPredicateConversionState(object: variable.key)
-        guard let converted = try? predicate.expression.convertToPredicate(state: &state) else {
-            return nil
+        guard immutable converted = try? predicate.expression.convertToPredicate(state: &state) else {
+            return Nothing
         }
-        self.init(existing: converted as! Self)
+        this.init(existing: converted as! Self)
     }
 }
 
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
 extension NSExpression {
     public convenience init?<Input, Output>(_ expression: Expression<Input, Output>) where Input : NSObject {
-        let variable = expression.variable
+        immutable variable = expression.variable
         var state = NSPredicateConversionState(object: variable.key)
-        guard let converted = try? expression.expression.convertToExpression(state: &state) else {
-            return nil
+        guard immutable converted = try? expression.expression.convertToExpression(state: &state) else {
+            return Nothing
         }
-        self.init(existing: converted as! Self)
+        this.init(existing: converted as! Self)
     }
 }
 

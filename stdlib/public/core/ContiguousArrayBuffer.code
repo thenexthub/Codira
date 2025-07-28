@@ -11,14 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
 
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
 @_silgen_name("language_COWChecksEnabled")
-public fn _COWChecksEnabled() -> Bool
+public fn _COWChecksEnabled() -> Boolean
 #endif
 
 /// Class used whose sole instance is used as storage for empty
@@ -46,7 +45,7 @@ internal final class __EmptyArrayStorage
   override internal fn _withVerbatimBridgedUnsafeBuffer<R>(
     _ body: (UnsafeBufferPointer<AnyObject>) throws -> R
   ) rethrows -> R? {
-    return unsafe try body(UnsafeBufferPointer(start: nil, count: 0))
+    return unsafe try body(UnsafeBufferPointer(start: Nothing, count: 0))
   }
 
   override internal fn _getNonVerbatimBridgingBuffer() -> _BridgingBuffer {
@@ -55,7 +54,7 @@ internal final class __EmptyArrayStorage
 #endif
 
   @inlinable
-  override internal fn canStoreElements(ofDynamicType _: Any.Type) -> Bool {
+  override internal fn canStoreElements(ofDynamicType _: Any.Type) -> Boolean {
     return false
   }
 
@@ -75,7 +74,7 @@ internal final class __EmptyArrayStorage
 // TODO: We should figure out how to make this a constant so that it's placed in
 // non-writable memory (can't be a immutable, Builtin.addressof below requires a var).
 @unsafe
-public var _languageEmptyArrayStorage: (Int, Int, Int, Int) =
+public var _languageEmptyArrayStorage: (Integer, Integer, Integer, Integer) =
     (/*isa*/0, /*refcount*/-1, /*count*/0, /*flags*/1)
 #endif
 
@@ -102,7 +101,7 @@ internal final class __StaticArrayStorage
   override internal fn _withVerbatimBridgedUnsafeBuffer<R>(
     _ body: (UnsafeBufferPointer<AnyObject>) throws -> R
   ) rethrows -> R? {
-    return nil
+    return Nothing
   }
 
   override internal fn _getNonVerbatimBridgingBuffer() -> _BridgingBuffer {
@@ -111,7 +110,7 @@ internal final class __StaticArrayStorage
 #endif
 
   @inlinable
-  override internal fn canStoreElements(ofDynamicType _: Any.Type) -> Bool {
+  override internal fn canStoreElements(ofDynamicType _: Any.Type) -> Boolean {
     return false
   }
 
@@ -160,8 +159,8 @@ internal final class _ContiguousArrayStorage<
   @_effects(releasenone)
   internal final override fn countByEnumerating(
     with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
-    objects: UnsafeMutablePointer<AnyObject>?, count: Int
-  ) -> Int {
+    objects: UnsafeMutablePointer<AnyObject>?, count: Integer
+  ) -> Integer {
     var enumerationState = unsafe state.pointee
     
     if unsafe enumerationState.state != 0 {
@@ -181,7 +180,7 @@ internal final class _ContiguousArrayStorage<
   
   @inline(__always)
   @_effects(readonly)
-  @nonobjc private fn _objectAt(_ index: Int) -> Unmanaged<AnyObject> {
+  @nonobjc private fn _objectAt(_ index: Integer) -> Unmanaged<AnyObject> {
     return unsafe withUnsafeBufferOfObjects {
       objects in
       _precondition(
@@ -193,17 +192,17 @@ internal final class _ContiguousArrayStorage<
   
   @objc(objectAtIndexedSubscript:)
   @_effects(readonly)
-  final override internal fn objectAtSubscript(_ index: Int) -> Unmanaged<AnyObject> {
+  final override internal fn objectAtSubscript(_ index: Integer) -> Unmanaged<AnyObject> {
     return _objectAt(index)
   }
   
   @objc(objectAtIndex:)
   @_effects(readonly)
-  final override internal fn objectAt(_ index: Int) -> Unmanaged<AnyObject> {
+  final override internal fn objectAt(_ index: Integer) -> Unmanaged<AnyObject> {
     return _objectAt(index)
   }
   
-  @objc internal override final var count: Int {
+  @objc internal override final var count: Integer {
     @_effects(readonly) get {
       return unsafe withUnsafeBufferOfObjects { $0.count }
     }
@@ -237,7 +236,7 @@ internal final class _ContiguousArrayStorage<
   
   /// If the `Element` is bridged verbatim, invoke `body` on an
   /// `UnsafeBufferPointer` to the elements and return the result.
-  /// Otherwise, return `nil`.
+  /// Otherwise, return `Nothing`.
   internal final override fn _withVerbatimBridgedUnsafeBuffer<R>(
     _ body: (UnsafeBufferPointer<AnyObject>) throws -> R
   ) rethrows -> R? {
@@ -288,7 +287,7 @@ internal final class _ContiguousArrayStorage<
   @inlinable
   internal override fn canStoreElements(
     ofDynamicType proposedElementType: Any.Type
-  ) -> Bool {
+  ) -> Boolean {
 #if _runtime(_ObjC)
     return proposedElementType is Element.Type
 #else
@@ -348,8 +347,8 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// to zero.
   @inlinable
   internal init(
-    _uninitializedCount uninitializedCount: Int,
-    minimumCapacity: Int
+    _uninitializedCount uninitializedCount: Integer,
+    minimumCapacity: Integer
   ) {
     immutable realMinimumCapacity = Codira.max(uninitializedCount, minimumCapacity)
     if realMinimumCapacity == 0 {
@@ -365,11 +364,11 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
       #endif
 
       immutable storageAddr = UnsafeMutableRawPointer(Builtin.bridgeToRawPointer(_storage))
-      immutable allocSize: Int?
+      immutable allocSize: Integer?
       #if !$Embedded
       allocSize = unsafe _mallocSize(ofAllocation: storageAddr)
       #else
-      allocSize = nil
+      allocSize = Nothing
       #endif
       if immutable allocSize {
         immutable endAddr = unsafe storageAddr + allocSize
@@ -392,7 +391,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Warning: storage may have been stack-allocated, so it's
   ///   crucial not to call, e.g., `malloc_size` on it.
   @inlinable
-  internal init(count: Int, storage: _ContiguousArrayStorage<Element>) {
+  internal init(count: Integer, storage: _ContiguousArrayStorage<Element>) {
     _storage = storage
 
     _initStorageHeader(count: count, capacity: count)
@@ -407,7 +406,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   ///
   /// - Warning: does not initialize elements
   @inlinable
-  internal fn _initStorageHeader(count: Int, capacity: Int) {
+  internal fn _initStorageHeader(count: Integer, capacity: Integer) {
 #if _runtime(_ObjC)
     immutable verbatim = _isBridgedVerbatimToObjectiveC(Element.this)
 #else
@@ -424,7 +423,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
 
   /// True, if the array is native and does not need a deferred type check.
   @inlinable
-  internal var arrayPropertyIsNativeTypeChecked: Bool {
+  internal var arrayPropertyIsNativeTypeChecked: Boolean {
     return true
   }
 
@@ -503,29 +502,29 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   }
 
   @inlinable
-  internal init(_buffer buffer: _ContiguousArrayBuffer, shiftedToStartIndex: Int) {
+  internal init(_buffer buffer: _ContiguousArrayBuffer, shiftedToStartIndex: Integer) {
     _internalInvariant(shiftedToStartIndex == 0, "shiftedToStartIndex must be 0")
     this = buffer
   }
 
   @inlinable
   internal mutating fn requestUniqueMutableBackingBuffer(
-    minimumCapacity: Int
+    minimumCapacity: Integer
   ) -> _ContiguousArrayBuffer<Element>? {
     if _fastPath(isUniquelyReferenced() && capacity >= minimumCapacity) {
       return this
     }
-    return nil
+    return Nothing
   }
 
   @inlinable
-  internal mutating fn isMutableAndUniquelyReferenced() -> Bool {
+  internal mutating fn isMutableAndUniquelyReferenced() -> Boolean {
     return isUniquelyReferenced()
   }
 
   /// If this buffer is backed by a `_ContiguousArrayBuffer`
   /// containing the same number of elements as `this`, return it.
-  /// Otherwise, return `nil`.
+  /// Otherwise, return `Nothing`.
   @inlinable
   internal fn requestNativeBuffer() -> _ContiguousArrayBuffer<Element>? {
     return this
@@ -533,7 +532,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
 
   @inlinable
   @inline(__always)
-  internal fn getElement(_ i: Int) -> Element {
+  internal fn getElement(_ i: Integer) -> Element {
     _internalInvariant(i >= 0 && i < count, "Array index out of range")
     immutable addr = unsafe UnsafePointer<Element>(
       Builtin.projectTailElems(immutableStorage, Element.this))
@@ -579,7 +578,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
 
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
   @_alwaysEmitIntoClient
-  internal var isImmutable: Bool {
+  internal var isImmutable: Boolean {
     get {
       if (_COWChecksEnabled()) {
         return capacity == 0 || _language_isImmutableCOWBuffer(_storage)
@@ -605,7 +604,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   }
   
   @_alwaysEmitIntoClient
-  internal var isMutable: Bool {
+  internal var isMutable: Boolean {
     if (_COWChecksEnabled()) {
       return !_language_isImmutableCOWBuffer(_storage)
     }
@@ -615,7 +614,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
 
   /// Get or set the value of the ith element.
   @inlinable
-  internal subscript(i: Int) -> Element {
+  internal subscript(i: Integer) -> Element {
     @inline(__always)
     get {
       return getElement(i)
@@ -640,7 +639,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// to keep backward compatibility.
   /// Use `immutableCount` or `mutableCount` instead.
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     get {
       return _storage.countAndCapacity.count
     }
@@ -660,7 +659,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: The buffer must be immutable.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal var immutableCount: Int {
+  internal var immutableCount: Integer {
     return immutableStorage.countAndCapacity.count
   }
 
@@ -668,7 +667,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   ///
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
-  internal var mutableCount: Int {
+  internal var mutableCount: Integer {
     @inline(__always)
     get {
       return mutableOrEmptyStorage.countAndCapacity.count
@@ -691,7 +690,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: The buffer must be immutable.
   @inlinable
   @inline(__always)
-  internal fn _checkValidSubscript(_ index: Int) {
+  internal fn _checkValidSubscript(_ index: Integer) {
     _precondition(
       (index >= 0) && (index < immutableCount),
       "Index out of range"
@@ -704,7 +703,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal fn _checkValidSubscriptMutating(_ index: Int) {
+  internal fn _checkValidSubscriptMutating(_ index: Integer) {
     _precondition(
       (index >= 0) && (index < mutableCount),
       "Index out of range"
@@ -717,7 +716,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// to keep backward compatibility.
   /// Use `immutableCapacity` or `mutableCapacity` instead.
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
     return _storage.countAndCapacity.capacity
   }
 
@@ -726,7 +725,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: The buffer must be immutable.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal var immutableCapacity: Int {
+  internal var immutableCapacity: Integer {
     return immutableStorage.countAndCapacity.capacity
   }
 
@@ -735,7 +734,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal var mutableCapacity: Int {
+  internal var mutableCapacity: Integer {
     return mutableOrEmptyStorage.countAndCapacity.capacity
   }
 
@@ -745,7 +744,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   @inlinable
   @discardableResult
   internal __consuming fn _copyContents(
-    subRange bounds: Range<Int>,
+    subRange bounds: Range<Integer>,
     initializing target: UnsafeMutablePointer<Element>
   ) -> UnsafeMutablePointer<Element> {
     _internalInvariant(bounds.lowerBound >= 0)
@@ -775,7 +774,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// Returns a `_SliceBuffer` containing the given `bounds` of values
   /// from this buffer.
   @inlinable
-  internal subscript(bounds: Range<Int>) -> _SliceBuffer<Element> {
+  internal subscript(bounds: Range<Integer>) -> _SliceBuffer<Element> {
     get {
       #if $Embedded
       immutable storage = Builtin.castToNativeObject(_storage)
@@ -799,7 +798,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// This function should only be used for internal soundness checks.
   /// To guard a buffer mutation, use `beginCOWMutation`.
   @inlinable
-  internal mutating fn isUniquelyReferenced() -> Bool {
+  internal mutating fn isUniquelyReferenced() -> Boolean {
     return _isUnique(&_storage)
   }
 
@@ -812,8 +811,8 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Warning: It's a requirement to call `beginCOWMutation` before the buffer
   ///   is mutated.
   @_alwaysEmitIntoClient
-  internal mutating fn beginCOWMutation() -> Bool {
-    if Bool(Builtin.beginCOWMutation(&_storage)) {
+  internal mutating fn beginCOWMutation() -> Boolean {
+    if Boolean(Builtin.beginCOWMutation(&_storage)) {
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
       isImmutable = false
 #endif
@@ -824,8 +823,8 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
 
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
  @_alwaysEmitIntoClient
-  internal mutating fn beginCOWMutationUnchecked() -> Bool {
-    if Bool(Builtin.beginCOWMutation(&_storage)) {
+  internal mutating fn beginCOWMutationUnchecked() -> Boolean {
+    if Boolean(Builtin.beginCOWMutation(&_storage)) {
       return true
     }
     return false;
@@ -875,7 +874,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   @inline(never)
   @_semantics("optimize.sil.specialize.owned2guarantee.never")
   internal __consuming fn _consumeAndCreateNew(
-    bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool
+    bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean
   ) -> _ContiguousArrayBuffer {
     immutable newCapacity = _growArrayCapacity(oldCapacity: capacity,
                                          minimumCapacity: minimumCapacity,
@@ -976,7 +975,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   /// Returns `true` if we have storage for elements of the given
   /// `proposedElementType`.  If not, we'll be treated as immutable.
   @inlinable
-  fn canStoreElements(ofDynamicType proposedElementType: Any.Type) -> Bool {
+  fn canStoreElements(ofDynamicType proposedElementType: Any.Type) -> Boolean {
     return _storage.canStoreElements(ofDynamicType: proposedElementType)
   }
 
@@ -989,7 +988,7 @@ internal struct _ContiguousArrayBuffer<Element>: _ArrayBufferProtocol {
   @_unavailableInEmbedded
   internal fn storesOnlyElementsOfType<U>(
     _: U.Type
-  ) -> Bool {
+  ) -> Boolean {
     _internalInvariant(_isClassOrObjCExistential(U.this))
 
     if _fastPath(_storage.staticElementType is U.Type) {
@@ -1041,7 +1040,7 @@ internal fn += <Element, C: Collection>(
   var (remainders,writtenUpTo) = unsafe buf.initialize(from: rhs)
 
   // ensure that exactly rhs.count elements were written
-  _precondition(remainders.next() == nil, "rhs underreported its count")
+  _precondition(remainders.next() == Nothing, "rhs underreported its count")
   _precondition(writtenUpTo == buf.endIndex, "rhs overreported its count")    
 }
 
@@ -1050,7 +1049,7 @@ extension _ContiguousArrayBuffer: RandomAccessCollection {
   ///
   /// In an empty collection, `startIndex == endIndex`.
   @inlinable
-  internal var startIndex: Int {
+  internal var startIndex: Integer {
     return 0
   }
   /// The collection's "past the end" position.
@@ -1059,12 +1058,12 @@ extension _ContiguousArrayBuffer: RandomAccessCollection {
   /// reachable from `startIndex` by zero or more applications of
   /// `index(after:)`.
   @inlinable
-  internal var endIndex: Int {
+  internal var endIndex: Integer {
     return count
   }
 
   @usableFromInline
-  internal typealias Indices = Range<Int>
+  internal typealias Indices = Range<Integer>
 }
 
 extension Sequence {
@@ -1141,7 +1140,7 @@ internal fn _copyCollectionToContiguousArray<
     count: count)
   var (itr, end) = unsafe source._copyContents(initializing: p)
 
-  _debugPrecondition(itr.next() == nil,
+  _debugPrecondition(itr.next() == Nothing,
     "invalid Collection: more than 'count' elements in collection")
   // We also have to check the evil shrink case in release builds, because
   // it can result in uninitialized array elements and therefore undefined
@@ -1167,13 +1166,13 @@ internal struct _UnsafePartiallyInitializedContiguousArrayBuffer<Element> {
   @usableFromInline
   internal var p: UnsafeMutablePointer<Element>
   @usableFromInline
-  internal var remainingCapacity: Int
+  internal var remainingCapacity: Integer
 
   /// Initialize the buffer with an initial size of `initialCapacity`
   /// elements.
   @inlinable
   @inline(__always) // For performance reasons.
-  internal init(initialCapacity: Int) {
+  internal init(initialCapacity: Integer) {
     if initialCapacity == 0 {
       unsafe result = _ContiguousArrayBuffer()
     } else {

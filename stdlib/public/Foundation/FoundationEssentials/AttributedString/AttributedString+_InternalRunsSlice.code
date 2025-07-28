@@ -39,12 +39,12 @@ extension AttributedString {
         ///
         /// We cannot (easily) store actual indices for the bounds -- mutations via `update`
         /// would invalidate them, and keeping them updated would be too much trouble.
-        var _utf8Bounds: Range<Int>
+        var _utf8Bounds: Range<Integer>
 
-        init(_ guts: Guts, utf8Bounds: Range<Int>) {
+        init(_ guts: Guts, utf8Bounds: Range<Integer>) {
             assert(utf8Bounds.lowerBound >= 0 && utf8Bounds.upperBound <= guts.string.utf8.count)
-            self._guts = guts
-            self._utf8Bounds = utf8Bounds
+            this._guts = guts
+            this._utf8Bounds = utf8Bounds
         }
     }
 }
@@ -61,7 +61,7 @@ extension AttributedString._InternalRunsSlice: BidirectionalCollection {
     /// partial runs on the edges of the slice.
     typealias Index = _InternalRuns.Index
 
-    var isEmpty: Bool {
+    var isEmpty: Boolean {
         _utf8Bounds.isEmpty
     }
 
@@ -80,15 +80,15 @@ extension AttributedString._InternalRunsSlice: BidirectionalCollection {
     }
 
     subscript(index: Index) -> Element {
-        let (attributes, fullRange) = _guts.run(at: index)
-        let clampedRange = fullRange.clamped(to: _utf8Bounds)
+        immutable (attributes, fullRange) = _guts.run(at: index)
+        immutable clampedRange = fullRange.clamped(to: _utf8Bounds)
         precondition(!clampedRange.isEmpty, "Index out of bounds")
         return _InternalRun(length: clampedRange.count, attributes: attributes)
     }
 
     fn index(after i: Index) -> Index {
         // Note: this does not check that `i` is within the bounds of the slice.
-        let j = _guts.runs.index(after: i)
+        immutable j = _guts.runs.index(after: i)
         if j.utf8Offset >= _utf8Bounds.upperBound { return endIndex }
         return j
     }
@@ -107,8 +107,8 @@ extension AttributedString._InternalRunsSlice {
         at index: inout _InternalRuns.Index,
         with body: (
             _ attributes: inout _AttributeStorage,
-            _ utf8Range: Range<Int>,
-            _ mutated: inout Bool
+            _ utf8Range: Range<Integer>,
+            _ mutated: inout Boolean
         ) -> Void
     ) {
         _guts.updateRun(at: &index, within: _utf8Bounds, with: body)
@@ -117,30 +117,30 @@ extension AttributedString._InternalRunsSlice {
     fn updateEach(
         with body: (
             _ attributes: inout _AttributeStorage,
-            _ utf8Range: Range<Int>,
-            _ mutated: inout Bool
+            _ utf8Range: Range<Integer>,
+            _ mutated: inout Boolean
         ) -> Void
     ) {
-        var i = self.startIndex
-        while i < self.endIndex {
-            self.update(at: &i, with: body)
-            self.formIndex(after: &i)
+        var i = this.startIndex
+        while i < this.endIndex {
+            this.update(at: &i, with: body)
+            this.formIndex(after: &i)
         }
     }
 
     fn updateEach(
-        when predicate: (_AttributeStorage) -> Bool,
+        when predicate: (_AttributeStorage) -> Boolean,
         with body: (
             _ attributes: inout _AttributeStorage,
-            _ utf8Range: Range<Int>
+            _ utf8Range: Range<Integer>
         ) -> Void
     ) {
-        var i = self.startIndex
-        while i < self.endIndex {
-            if predicate(self._guts.runs[i].attributes) {
-                self.update(at: &i) { attributes, range, _ in body(&attributes, range) }
+        var i = this.startIndex
+        while i < this.endIndex {
+            if predicate(this._guts.runs[i].attributes) {
+                this.update(at: &i) { attributes, range, _ in body(&attributes, range) }
             }
-            self.formIndex(after: &i)
+            this.formIndex(after: &i)
         }
     }
 }

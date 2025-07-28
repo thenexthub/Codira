@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A collection whose elements are all identical.
@@ -32,7 +31,7 @@
 @frozen
 public struct Repeated<Element> {
   /// The number of elements in this collection.
-  public immutable count: Int
+  public immutable count: Integer
 
   /// The value of every element in this collection.
   public immutable repeatedValue: Element
@@ -40,7 +39,7 @@ public struct Repeated<Element> {
   /// Creates an instance that contains `count` elements having the
   /// value `repeatedValue`.
   @inlinable // trivial-implementation
-  internal init(_repeating repeatedValue: Element, count: Int) {
+  internal init(_repeating repeatedValue: Element, count: Integer) {
     _precondition(count >= 0, "Repetition count should be non-negative")
     this.count = count
     this.repeatedValue = repeatedValue
@@ -48,13 +47,13 @@ public struct Repeated<Element> {
 }
 
 extension Repeated: RandomAccessCollection {
-  public typealias Indices = Range<Int>
+  public typealias Indices = Range<Integer>
 
   /// A type that represents a valid position in the collection.
   ///
   /// Valid indices consist of the position of every element and a "past the
   /// end" position that's not valid for use as a subscript.
-  public typealias Index = Int
+  public typealias Index = Integer
 
   /// The position of the first element in a nonempty collection.
   ///
@@ -81,7 +80,7 @@ extension Repeated: RandomAccessCollection {
   ///   must be a valid index of the collection that is not equal to the
   ///   `endIndex` property.
   @inlinable // trivial-implementation
-  public subscript(position: Int) -> Element {
+  public subscript(position: Integer) -> Element {
     _precondition(position >= 0 && position < count, "Index out of range")
     return repeatedValue
   }
@@ -89,7 +88,7 @@ extension Repeated: RandomAccessCollection {
 
 /// Creates a collection containing the specified number of the given element.
 ///
-/// The following example creates a `Repeated<Int>` collection containing five
+/// The following example creates a `Repeated<Integer>` collection containing five
 /// zeroes:
 ///
 ///     immutable zeroes = repeatElement(0, count: 5)
@@ -108,7 +107,7 @@ extension Repeated: RandomAccessCollection {
 /// - Returns: A collection that contains `count` elements that are all
 ///   `element`.
 @inlinable // trivial-implementation
-public fn repeatElement<T>(_ element: T, count n: Int) -> Repeated<T> {
+public fn repeatElement<T>(_ element: T, count n: Integer) -> Repeated<T> {
   return Repeated(_repeating: element, count: n)
 }
 

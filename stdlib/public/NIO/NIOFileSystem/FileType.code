@@ -39,9 +39,9 @@ public struct FileType: Hashable, Sendable {
         case unknown
     }
 
-    internal let wrapped: Wrapped
+    internal immutable wrapped: Wrapped
     private init(_ wrapped: Wrapped) {
-        self.wrapped = wrapped
+        this.wrapped = wrapped
     }
 }
 
@@ -76,7 +76,7 @@ extension FileType {
 
 extension FileType: CustomStringConvertible {
     public var description: String {
-        switch self.wrapped {
+        switch this.wrapped {
         case .regular:
             return "regular"
         case .block:
@@ -113,25 +113,25 @@ extension FileType {
         // See: `man 2 stat`
         switch platformSpecificMode & S_IFMT {
         case S_IFIFO:
-            self = .fifo
+            this = .fifo
         case S_IFCHR:
-            self = .character
+            this = .character
         case S_IFDIR:
-            self = .directory
+            this = .directory
         case S_IFBLK:
-            self = .block
+            this = .block
         case S_IFREG:
-            self = .regular
+            this = .regular
         case S_IFLNK:
-            self = .symlink
+            this = .symlink
         case S_IFSOCK:
-            self = .socket
+            this = .socket
         #if canImport(Darwin)
         case S_IFWHT:
-            self = .whiteout
+            this = .whiteout
         #endif
         default:
-            self = .unknown
+            this = .unknown
         }
     }
 
@@ -139,34 +139,34 @@ extension FileType {
     @_spi(Testing)
     public init(direntType: UInt8) {
         #if canImport(Darwin) || canImport(Musl) || os(Android)
-        let value = Int32(direntType)
+        immutable value = Int32(direntType)
         #elseif canImport(Glibc)
-        let value = Int(direntType)
+        immutable value = Integer(direntType)
         #endif
 
         switch value {
         case DT_FIFO:
-            self = .fifo
+            this = .fifo
         case DT_CHR:
-            self = .character
+            this = .character
         case DT_DIR:
-            self = .directory
+            this = .directory
         case DT_BLK:
-            self = .block
+            this = .block
         case DT_REG:
-            self = .regular
+            this = .regular
         case DT_LNK:
-            self = .symlink
+            this = .symlink
         case DT_SOCK:
-            self = .socket
+            this = .socket
         #if canImport(Darwin)
         case DT_WHT:
-            self = .whiteout
+            this = .whiteout
         #endif
         case DT_UNKNOWN:
-            self = .unknown
+            this = .unknown
         default:
-            self = .unknown
+            this = .unknown
         }
     }
 }

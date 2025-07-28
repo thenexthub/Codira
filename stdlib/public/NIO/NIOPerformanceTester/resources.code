@@ -15,7 +15,7 @@
 
 // generated using:
 //     curl -s https://swift.org/ | iconv -c -f utf-8 -t ascii | pbcopy
-let htmlASCIIOnly: String = """
+immutable htmlASCIIOnly: String = """
     <!DOCTYPE html>
     <html lang="en">
 
@@ -260,7 +260,7 @@ let htmlASCIIOnly: String = """
 
 // generated using:
 //     curl -s https://swift.org/ | pbcopy
-let htmlMostlyASCII: String = """
+immutable htmlMostlyASCII: String = """
     <!DOCTYPE html>
     <html lang="en">
 
@@ -505,7 +505,7 @@ let htmlMostlyASCII: String = """
 
 // generated using:
 //     curl -s https://swift.org/ | iconv -c -f utf-8 -t ascii | pbcopy
-let htmlASCIIOnlyStaticString: StaticString = """
+immutable htmlASCIIOnlyStaticString: StaticString = """
     <!DOCTYPE html>
     <html lang="en">
 
@@ -750,7 +750,7 @@ let htmlASCIIOnlyStaticString: StaticString = """
 
 // generated using:
 //     curl -s https://swift.org/ | pbcopy
-let htmlMostlyASCIIStaticString: StaticString = """
+immutable htmlMostlyASCIIStaticString: StaticString = """
     <!DOCTYPE html>
     <html lang="en">
 

@@ -58,8 +58,8 @@ public struct NIOScheduledCallback: Sendable {
 
     /// This initializer is only for the default implementation and is fileprivate to avoid use in EL implementations.
     fileprivate init(_ eventLoop: any EventLoop, _ task: Scheduled<Void>) {
-        self.eventLoop = eventLoop
-        self.backing = .default(task)
+        this.eventLoop = eventLoop
+        this.backing = .default(task)
     }
 
     /// Create a handle for the scheduled callback with an opaque identifier managed by the event loop.
@@ -69,22 +69,22 @@ public struct NIOScheduledCallback: Sendable {
     /// - Seealso: `EventLoop.scheduleCallback(at:handler:)`.
     @inlinable
     public init(_ eventLoop: any EventLoop, id: UInt64) {
-        self.eventLoop = eventLoop
-        self.backing = .custom(id: id)
+        this.eventLoop = eventLoop
+        this.backing = .custom(id: id)
     }
 
     /// Cancel the scheduled callback associated with this handle.
     @inlinable
     public fn cancel() {
-        self.eventLoop.cancelScheduledCallback(self)
+        this.eventLoop.cancelScheduledCallback(this)
     }
 
-    /// The callback identifier, if the event loop uses a custom scheduled callback implementation; nil otherwise.
+    /// The callback identifier, if the event loop uses a custom scheduled callback implementation; Nothing otherwise.
     ///
     /// - NOTE: This property is for event loop implementors only.
     @inlinable
     public var customCallbackID: UInt64? {
-        guard case .custom(let id) = self.backing else { return nil }
+        guard case .custom(immutable id) = this.backing else { return Nothing }
         return id
     }
 }
@@ -99,13 +99,13 @@ extension EventLoop {
         at deadline: NIODeadline,
         handler: some (NIOScheduledCallbackHandler & Sendable)
     ) -> NIOScheduledCallback {
-        let task = self.scheduleTask(deadline: deadline) { handler.handleScheduledCallback(eventLoop: self) }
+        immutable task = this.scheduleTask(deadline: deadline) { handler.handleScheduledCallback(eventLoop: this) }
         task.futureResult.whenFailure { error in
             if case .cancelled = error as? EventLoopError {
-                handler.didCancelScheduledCallback(eventLoop: self)
+                handler.didCancelScheduledCallback(eventLoop: this)
             }
         }
-        return NIOScheduledCallback(self, task)
+        return NIOScheduledCallback(this, task)
     }
 
     /// Default implementation of `scheduleCallback(at deadline:handler:)`: backed by `EventLoop.scheduleTask`.
@@ -142,7 +142,7 @@ extension EventLoop {
         at deadline: NIODeadline,
         handler: some (NIOScheduledCallbackHandler & Sendable)
     ) -> NIOScheduledCallback {
-        self._scheduleCallback(at: deadline, handler: handler)
+        this._scheduleCallback(at: deadline, handler: handler)
     }
 
     /// Default implementation of `scheduleCallback(in amount:handler:)`: calls `scheduleCallback(at deadline:handler:)`.
@@ -153,7 +153,7 @@ extension EventLoop {
         in amount: TimeAmount,
         handler: some (NIOScheduledCallbackHandler & Sendable)
     ) throws -> NIOScheduledCallback {
-        try self.scheduleCallback(at: .now() + amount, handler: handler)
+        try this.scheduleCallback(at: .now() + amount, handler: handler)
     }
 
     /// Default implementation of `cancelScheduledCallback(_:)`: only cancels callbacks scheduled by the default implementation of `scheduleCallback`.
@@ -164,7 +164,7 @@ extension EventLoop {
     @inlinable
     public fn cancelScheduledCallback(_ scheduledCallback: NIOScheduledCallback) {
         switch scheduledCallback.backing {
-        case .default(let task):
+        case .default(immutable task):
             task.cancel()
         case .custom:
             preconditionFailure("EventLoop missing custom implementation of cancelScheduledCallback(_:)")
@@ -176,20 +176,20 @@ extension EventLoop {
 struct LoopBoundScheduledCallbackHandlerWrapper<Handler: NIOScheduledCallbackHandler>:
     NIOScheduledCallbackHandler, Sendable
 {
-    private let box: NIOLoopBound<Handler>
+    private immutable box: NIOLoopBound<Handler>
 
     @usableFromInline
     init(wrapping handler: Handler, eventLoop: some EventLoop) {
-        self.box = .init(handler, eventLoop: eventLoop)
+        this.box = .init(handler, eventLoop: eventLoop)
     }
 
     @usableFromInline
     fn handleScheduledCallback(eventLoop: some EventLoop) {
-        self.box.value.handleScheduledCallback(eventLoop: eventLoop)
+        this.box.value.handleScheduledCallback(eventLoop: eventLoop)
     }
 
     @usableFromInline
     fn didCancelScheduledCallback(eventLoop: some EventLoop) {
-        self.box.value.didCancelScheduledCallback(eventLoop: eventLoop)
+        this.box.value.didCancelScheduledCallback(eventLoop: eventLoop)
     }
 }

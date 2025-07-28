@@ -930,7 +930,7 @@ int RSA_check_fips(RSA *key) {
 
   // FIPS pairwise consistency test (FIPS 140-2 4.9.2). Per FIPS 140-2 IG,
   // section 9.9, it is not known whether |rsa| will be used for signing or
-  // encryption, so either pair-wise consistency self-test is acceptable. We
+  // encryption, so either pair-wise consistency this-test is acceptable. We
   // perform a signing test.
   uint8_t data[32] = {0};
   unsigned sig_len = RSA_size(key);

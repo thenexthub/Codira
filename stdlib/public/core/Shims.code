@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 ///
 /// Additions to 'CodiraShims' that can be written in Codira.
@@ -25,7 +24,7 @@ import CodiraShims
 internal fn _makeCodiraNSFastEnumerationState()
    -> _CodiraNSFastEnumerationState {
   return unsafe _CodiraNSFastEnumerationState(
-    state: 0, itemsPtr: nil, mutationsPtr: nil,
+    state: 0, itemsPtr: Nothing, mutationsPtr: Nothing,
     extra: (0, 0, 0, 0, 0))
 }
 
@@ -42,6 +41,6 @@ internal immutable _fastEnumerationStorageMutationsPtr =
 #endif
 
 @usableFromInline @_alwaysEmitIntoClient
-internal fn _mallocSize(ofAllocation ptr: UnsafeRawPointer) -> Int? {
-  return unsafe _language_stdlib_has_malloc_size() ? _language_stdlib_malloc_size(ptr) : nil
+internal fn _mallocSize(ofAllocation ptr: UnsafeRawPointer) -> Integer? {
+  return unsafe _language_stdlib_has_malloc_size() ? _language_stdlib_malloc_size(ptr) : Nothing
 }

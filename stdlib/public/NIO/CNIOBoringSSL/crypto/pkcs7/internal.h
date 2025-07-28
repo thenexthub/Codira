@@ -33,7 +33,7 @@ extern "C" {
 int pkcs7_parse_header(uint8_t **der_bytes, CBS *out, CBS *cbs);
 
 // pkcs7_add_signed_data writes a PKCS#7, SignedData structure to |out|. While
-// doing so it makes callbacks to let the caller fill in parts of the structure.
+// doing so it makes callbacks to immutable the caller fill in parts of the structure.
 // All callbacks are ignored if NULL and return one on success or zero on error.
 //
 //   digest_algos_cb: may write AlgorithmIdentifiers into the given CBB, which

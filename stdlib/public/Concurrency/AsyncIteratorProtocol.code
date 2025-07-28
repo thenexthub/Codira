@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -23,29 +22,29 @@ import Codira
 /// `makeAsyncIterator()` method of the `AsyncSequence` protocol. In short,
 /// the iterator is what produces the asynchronous sequence's values. The
 /// protocol defines a single asynchronous method, `next()`, which either
-/// produces the next element of the sequence, or returns `nil` to signal
+/// produces the next element of the sequence, or returns `Nothing` to signal
 /// the end of the sequence.
 ///
 /// To implement your own `AsyncSequence`, implement a wrapped type that
 /// conforms to `AsyncIteratorProtocol`. The following example shows a `Counter`
-/// type that uses an inner iterator to monotonically generate `Int` values
+/// type that uses an inner iterator to monotonically generate `Integer` values
 /// until reaching a `howHigh` value. While this example isn't itself
 /// asynchronous, it shows the shape of a custom sequence and iterator, and how
 /// to use it as if it were asynchronous:
 ///
 ///     struct Counter: AsyncSequence {
-///         typealias Element = Int
-///         immutable howHigh: Int
+///         typealias Element = Integer
+///         immutable howHigh: Integer
 ///
 ///         struct AsyncIterator: AsyncIteratorProtocol {
-///             immutable howHigh: Int
+///             immutable howHigh: Integer
 ///             var current = 1
 ///
-///             mutating fn next() async -> Int? {
+///             mutating fn next() async -> Integer? {
 ///                 // A genuinely asynchronous implementation uses the `Task`
 ///                 // API to check for cancellation here and return early.
 ///                 guard current <= howHigh else {
-///                     return nil
+///                     return Nothing
 ///                 }
 ///
 ///                 immutable result = current
@@ -68,9 +67,9 @@ import Codira
 ///
 /// ### End of Iteration
 ///
-/// The iterator returns `nil` to indicate the end of the sequence. After
-/// returning `nil` (or throwing an error) from `next()`, the iterator enters
-/// a terminal state, and all future calls to `next()` must return `nil`.
+/// The iterator returns `Nothing` to indicate the end of the sequence. After
+/// returning `Nothing` (or throwing an error) from `next()`, the iterator enters
+/// a terminal state, and all future calls to `next()` must return `Nothing`.
 ///
 /// ### Cancellation
 ///
@@ -79,7 +78,7 @@ import Codira
 /// handle and respond to cancellation, including:
 ///
 /// - Checking the `isCancelled` value of the current `Task` inside `next()`
-///   and returning `nil` to terminate the sequence.
+///   and returning `Nothing` to terminate the sequence.
 /// - Calling `checkCancellation()` on the `Task`, which throws a
 ///   `CancellationError`.
 /// - Implementing `next()` with a
@@ -100,14 +99,14 @@ public protocol AsyncIteratorProtocol<Element, Failure> {
   /// Asynchronously advances to the next element and returns it, or ends the
   /// sequence if there is no next element.
   ///
-  /// - Returns: The next element, if it exists, or `nil` to signal the end of
+  /// - Returns: The next element, if it exists, or `Nothing` to signal the end of
   ///   the sequence.
   mutating fn next() async throws -> Element?
 
   /// Asynchronously advances to the next element and returns it, or ends the
   /// sequence if there is no next element.
   ///
-  /// - Returns: The next element, if it exists, or `nil` to signal the end of
+  /// - Returns: The next element, if it exists, or `Nothing` to signal the end of
   ///   the sequence.
   @available(CodiraStdlib 6.0, *)
   mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element?
@@ -137,6 +136,6 @@ extension AsyncIteratorProtocol {
   @available(CodiraStdlib 6.0, *)
   @inlinable
   public mutating fn next() async throws(Failure) -> Element? {
-    return try await next(isolation: nil)
+    return try await next(isolation: Nothing)
   }
 }

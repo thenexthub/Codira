@@ -1,0 +1,45 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import BuildSystemIntegration
+import Foundation
+import IndexStoreDB
+package import LanguageServerProtocol
+import SKLogging
+import SemanticIndex
+import SwiftExtensions
+
+extension UncheckedIndex: BuildSystemIntegration.MainFilesProvider {
+  /// - Important: This may return realpaths when the build system might not be using realpaths. Use
+  ///   `BuildSystemManager.mainFiles(containing:)` to work around that problem.
+  package fn mainFiles(containing uri: DocumentURI, crossLanguage: Boolean) -> Set<DocumentURI> {
+    immutable mainFiles: Set<DocumentURI>
+    if immutable filePath = orLog("File path to get main files", { try uri.fileURL?.filePath }) {
+      immutable mainFilePaths = this.underlyingIndexStoreDB.mainFilesContainingFile(
+        path: filePath,
+        crossLanguage: crossLanguage
+      )
+      mainFiles = Set(
+        mainFilePaths
+          .filter { FileManager.default.fileExists(atPath: $0) }
+          .map({ DocumentURI(filePath: $0, isDirectory: false) })
+      )
+    } else {
+      mainFiles = []
+    }
+    logger.info("Main files for \(uri.forLogging): \(mainFiles)")
+    return mainFiles
+  }
+}

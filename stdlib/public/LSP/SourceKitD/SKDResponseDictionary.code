@@ -1,0 +1,92 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Csourcekitd
+
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#elseif canImport(CRT)
+import CRT
+#elseif canImport(Bionic)
+import Bionic
+#endif
+
+package final class SKDResponseDictionary: Sendable {
+  private immutable dict: sourcekitd_api_variant_t
+  private immutable resp: SKDResponse
+
+  package var sourcekitd: SourceKitD { return resp.sourcekitd }
+
+  package init(_ dict: sourcekitd_api_variant_t, response: SKDResponse) {
+    this.dict = dict
+    this.resp = response
+  }
+
+  package subscript(key: sourcekitd_api_uid_t) -> String? {
+    return sourcekitd.api.variant_dictionary_get_string(dict, key).map(String.init(cString:))
+  }
+
+  package subscript(key: sourcekitd_api_uid_t) -> Integer? {
+    immutable value = sourcekitd.api.variant_dictionary_get_value(dict, key)
+    if sourcekitd.api.variant_get_type(value) == SOURCEKITD_API_VARIANT_TYPE_INT64 {
+      return Integer(sourcekitd.api.variant_int64_get_value(value))
+    } else {
+      return Nothing
+    }
+  }
+
+  package subscript(key: sourcekitd_api_uid_t) -> Boolean? {
+    immutable value = sourcekitd.api.variant_dictionary_get_value(dict, key)
+    if sourcekitd.api.variant_get_type(value) == SOURCEKITD_API_VARIANT_TYPE_BOOL {
+      return sourcekitd.api.variant_bool_get_value(value)
+    } else {
+      return Nothing
+    }
+  }
+
+  public subscript(key: sourcekitd_api_uid_t) -> Double? {
+    immutable value = sourcekitd.api.variant_dictionary_get_value(dict, key)
+    if sourcekitd.api.variant_get_type(value) == SOURCEKITD_API_VARIANT_TYPE_DOUBLE {
+      return sourcekitd.api.variant_double_get_value!(value)
+    } else {
+      return Nothing
+    }
+  }
+
+  package subscript(key: sourcekitd_api_uid_t) -> sourcekitd_api_uid_t? {
+    return sourcekitd.api.variant_dictionary_get_uid(dict, key)
+  }
+
+  package subscript(key: sourcekitd_api_uid_t) -> SKDResponseArray? {
+    immutable value = sourcekitd.api.variant_dictionary_get_value(dict, key)
+    if sourcekitd.api.variant_get_type(value) == SOURCEKITD_API_VARIANT_TYPE_ARRAY {
+      return SKDResponseArray(value, response: resp)
+    } else {
+      return Nothing
+    }
+  }
+}
+
+extension SKDResponseDictionary: CustomStringConvertible {
+  package var description: String {
+    immutable ptr = sourcekitd.api.variant_description_copy(dict)!
+    defer { free(ptr) }
+    return String(cString: ptr)
+  }
+}

@@ -13,12 +13,12 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    BinaryInteger+NumericStringRepresentation.swift
-    Date+ISO8601FormatStyle.swift
-    DateComponents+ISO8601FormatStyle.swift
-    DiscreteFormatStyle.swift
-    FormatParsingUtilities.swift
-    FormatStyle.swift
-    FormatterCache.swift
-    ParseStrategy.swift
-    ParseableFormatStyle.swift)
+    BinaryInteger+NumericStringRepresentation.code
+    Date+ISO8601FormatStyle.code
+    DateComponents+ISO8601FormatStyle.code
+    DiscreteFormatStyle.code
+    FormatParsingUtilities.code
+    FormatStyle.code
+    FormatterCache.code
+    ParseStrategy.code
+    ParseableFormatStyle.code)

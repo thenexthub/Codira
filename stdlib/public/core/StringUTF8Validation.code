@@ -11,31 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
-private fn _isUTF8MultiByteLeading(_ x: UInt8) -> Bool {
+private fn _isUTF8MultiByteLeading(_ x: UInt8) -> Boolean {
   return (0xC2...0xF4).contains(x)
 }
 
-private fn _isNotOverlong_F0(_ x: UInt8) -> Bool {
+private fn _isNotOverlong_F0(_ x: UInt8) -> Boolean {
   return (0x90...0xBF).contains(x)
 }
 
-private fn _isNotInvalid_F4(_ x: UInt8) -> Bool {
+private fn _isNotInvalid_F4(_ x: UInt8) -> Boolean {
   return UTF8.isContinuation(x) && x <= 0x8F
 }
 
-private fn _isNotOverlong_E0(_ x: UInt8) -> Bool {
+private fn _isNotOverlong_E0(_ x: UInt8) -> Boolean {
   return (0xA0...0xBF).contains(x)
 }
 
-private fn _isNotInvalid_ED(_ x: UInt8) -> Bool {
+private fn _isNotInvalid_ED(_ x: UInt8) -> Boolean {
   return UTF8.isContinuation(x) && x <= 0x9F
 }
 
 internal struct UTF8ExtraInfo: Equatable {
-  public var isASCII: Bool
+  public var isASCII: Boolean
 }
 
 @inline(never) // slow-path
@@ -58,7 +57,7 @@ private fn _diagnoseInvalidUTF8MultiByteLeading(
 internal enum UTF8ValidationResult {
   case success(UTF8ExtraInfo)
   case error(
-    kind: _UTF8EncodingErrorKind, toBeReplaced: Range<Int>
+    kind: _UTF8EncodingErrorKind, toBeReplaced: Range<Integer>
   )
 }
 
@@ -123,7 +122,7 @@ internal fn validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationRes
   var lastValidIndex = buf.startIndex
 
   @inline(__always) fn guarantee(
-    _ f: (UInt8) -> Bool,
+    _ f: (UInt8) -> Boolean,
     _ err: _UTF8EncodingErrorKind
   ) throws(_UTF8EncodingErrorKind) {
     guard immutable cu = unsafe iter.next() else {
@@ -138,7 +137,7 @@ internal fn validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationRes
     try guarantee(UTF8.isContinuation, .truncatedScalar)
   }
 
-  fn _legacyInvalidLengthCalculation(_ _buffer: (_storage: UInt32, ())) -> Int {
+  fn _legacyInvalidLengthCalculation(_ _buffer: (_storage: UInt32, ())) -> Integer {
     // function body copied from UTF8.ForwardParser._invalidLength
     if _buffer._storage               & 0b0__1100_0000__1111_0000
                                      == 0b0__1000_0000__1110_0000 {
@@ -161,7 +160,7 @@ internal fn validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationRes
     return 1
   }
 
-  fn _legacyNarrowIllegalRange(buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Int> {
+  fn _legacyNarrowIllegalRange(buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Integer> {
     var reversePacked: UInt32 = 0
     if immutable third = unsafe buf.dropFirst(2).first {
       reversePacked |= UInt32(third)
@@ -177,7 +176,7 @@ internal fn validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationRes
     return unsafe buf.startIndex ..< buf.startIndex + invalids
   }
 
-  fn findInvalidRange(_ buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Int> {
+  fn findInvalidRange(_ buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Integer> {
     var endIndex = unsafe buf.startIndex
     var iter = unsafe buf.makeIterator()
     _ = unsafe iter.next()
@@ -272,7 +271,7 @@ internal fn validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationRes
   }
 }
 
-internal fn repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRange: Range<Int>) -> String {
+internal fn repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRange: Range<Integer>) -> String {
   _internalInvariant(!input.isEmpty, "empty input doesn't need to be repaired")
   _internalInvariant(firstKnownBrokenRange.clamped(to: input.indices) == firstKnownBrokenRange)
   // During this process, `remainingInput` contains the remaining bytes to process. It's split into three
@@ -292,7 +291,7 @@ internal fn repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRang
   immutable replacementCharacterCount = Unicode.Scalar._replacementCharacter.withUTF8CodeUnits { $0.count }
   result.reserveCapacity(input.count + 5 * replacementCharacterCount) // extra space for some replacement characters
 
-  var brokenRange: Range<Int> = firstKnownBrokenRange
+  var brokenRange: Range<Integer> = firstKnownBrokenRange
   var remainingInput = unsafe input
   repeat {
     _internalInvariant(!brokenRange.isEmpty, "broken range empty")

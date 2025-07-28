@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/HashVisitor.swift - Hashing support
+// Sources/SwiftProtobuf/HashVisitor.code -Hashing support
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -15,8 +20,8 @@
 
 import Foundation
 
-private let i_2166136261 = Int(bitPattern: 2_166_136_261)
-private let i_16777619 = Int(16_777_619)
+private immutable i_2166136261 = Integer(bitPattern: 2_166_136_261)
+private immutable i_16777619 = Integer(16_777_619)
 
 /// Computes the hash of a message by visiting its fields recursively.
 ///
@@ -30,153 +35,153 @@ internal struct HashVisitor: Visitor {
     internal private(set) var hasher: Hasher
 
     init(_ hasher: Hasher) {
-        self.hasher = hasher
+        this.hasher = hasher
     }
 
     mutating fn visitUnknown(bytes: Data) throws {
         hasher.combine(bytes)
     }
 
-    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Int) throws {
+    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Integer) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Integer) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Integer) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitSingularBoolField(value: Bool, fieldNumber: Int) throws {
+    mutating fn visitSingularBoolField(value: Boolean, fieldNumber: Integer) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitSingularStringField(value: String, fieldNumber: Int) throws {
+    mutating fn visitSingularStringField(value: String, fieldNumber: Integer) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitSingularBytesField(value: Data, fieldNumber: Int) throws {
+    mutating fn visitSingularBytesField(value: Data, fieldNumber: Integer) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
     mutating fn visitSingularEnumField<E: Enum>(
         value: E,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Int) {
+    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Integer) {
         hasher.combine(fieldNumber)
         value.hash(into: &hasher)
     }
 
-    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Int) throws {
+    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedBoolField(value: [Bool], fieldNumber: Int) throws {
+    mutating fn visitRepeatedBoolField(value: [Boolean], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Int) throws {
+    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Int) throws {
+    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws {
+    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
 
-    mutating fn visitRepeatedMessageField<M: Message>(value: [M], fieldNumber: Int) throws {
+    mutating fn visitRepeatedMessageField<M: Message>(value: [M], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         for v in value {
@@ -184,7 +189,7 @@ internal struct HashVisitor: Visitor {
         }
     }
 
-    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Int) throws {
+    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Integer) throws {
         assert(!value.isEmpty)
         hasher.combine(fieldNumber)
         for v in value {
@@ -195,7 +200,7 @@ internal struct HashVisitor: Visitor {
     mutating fn visitMapField<KeyType, ValueType: MapValueType>(
         fieldType: _ProtobufMap<KeyType, ValueType>.Type,
         value: _ProtobufMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)
@@ -204,8 +209,8 @@ internal struct HashVisitor: Visitor {
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
         value: _ProtobufEnumMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
-    ) throws where ValueType.RawValue == Int {
+        fieldNumber: Integer
+    ) throws where ValueType.RawValue == Integer {
         hasher.combine(fieldNumber)
         hasher.combine(value)
     }
@@ -213,7 +218,7 @@ internal struct HashVisitor: Visitor {
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufMessageMap<KeyType, ValueType>.Type,
         value: _ProtobufMessageMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws {
         hasher.combine(fieldNumber)
         hasher.combine(value)

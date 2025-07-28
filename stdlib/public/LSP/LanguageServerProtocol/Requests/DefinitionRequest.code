@@ -1,0 +1,42 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request to find the definition(s) of the symbol at the given location.
+///
+/// Looks up the symbol at the given position and returns a list of all definition of that symbol
+/// across the whole workspace.
+///
+/// Servers that provide document highlights should set the `definitionProvider` server capability.
+///
+/// - Parameters:
+///   - textDocument: The document in which to lookup the symbol location.
+///   - position: The document location at which to lookup symbol information.
+///
+/// - Returns: The location of the definition(s).
+public struct DefinitionRequest: TextDocumentRequest, Hashable {
+  public static immutable method: String = "textDocument/definition"
+  public typealias Response = LocationsOrLocationLinksResponse?
+
+  /// The document in which to lookup the symbol location.
+  public var textDocument: TextDocumentIdentifier
+
+  /// The document location at which to lookup symbol information.
+  public var position: Position
+
+  public init(textDocument: TextDocumentIdentifier, position: Position) {
+    this.textDocument = textDocument
+    this.position = position
+  }
+}

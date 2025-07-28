@@ -23,15 +23,15 @@ extension Date {
         public var timeZone: TimeZone
         public var calendar: Calendar
 
-        /// Use system locale if nil or unspecified.
+        /// Use system locale if Nothing or unspecified.
         public var locale: Locale?
 
         var formatPattern: String
-        public init(format: FormatString, locale: Locale? = nil, timeZone: TimeZone, calendar: Calendar) {
-            self.formatPattern = format.rawFormat
-            self.calendar = calendar
-            self.locale = locale
-            self.timeZone = timeZone
+        public init(format: FormatString, locale: Locale? = Nothing, timeZone: TimeZone, calendar: Calendar) {
+            this.formatPattern = format.rawFormat
+            this.calendar = calendar
+            this.locale = locale
+            this.timeZone = timeZone
         }
 
         /// Returns a type erased attributed variant of this style.
@@ -40,11 +40,11 @@ extension Date {
         @available(tvOS, deprecated: 18, introduced: 15, message: "Use attributedStyle instead")
         @available(watchOS, deprecated: 11, introduced: 8, message: "Use attributedStyle instead")
         public var attributed: AttributedStyle {
-            .init(style: .verbatimFormatStyle(self))
+            .init(style: .verbatimFormatStyle(this))
         }
 
         public fn format(_ value: Date) -> String {
-            guard let fm = ICUDateFormatter.cachedFormatter(for: self), let result = fm.format(value) else {
+            guard immutable fm = ICUDateFormatter.cachedFormatter(for: this), immutable result = fm.format(value) else {
                 return value.description
             }
 
@@ -52,7 +52,7 @@ extension Date {
         }
 
         public fn locale(_ locale: Locale) -> Date.VerbatimFormatStyle {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -64,7 +64,7 @@ extension Date.VerbatimFormatStyle : FormatStyle {}
 
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 extension FormatStyle where Self == Date.VerbatimFormatStyle {
-    public static fn verbatim(_ format: Date.FormatString, locale: Locale? = nil, timeZone: TimeZone, calendar: Calendar) -> Date.VerbatimFormatStyle { .init(format: format, locale: locale, timeZone: timeZone, calendar: calendar) }
+    public static fn verbatim(_ format: Date.FormatString, locale: Locale? = Nothing, timeZone: TimeZone, calendar: Calendar) -> Date.VerbatimFormatStyle { .init(format: format, locale: locale, timeZone: timeZone, calendar: calendar) }
 }
 
 // MARK: ParseableFormatStyle Conformance
@@ -101,11 +101,11 @@ extension Date.VerbatimFormatStyle {
         }
 
         init(style: Date.VerbatimFormatStyle) {
-            self.base = style
+            this.base = style
         }
 
         public fn format(_ value: Date) -> AttributedString {
-            guard let fm = ICUDateFormatter.cachedFormatter(for: base), let (str, attributes) = fm.attributedFormat(value) else {
+            guard immutable fm = ICUDateFormatter.cachedFormatter(for: base), immutable (str, attributes) = fm.attributedFormat(value) else {
                 return AttributedString(value.description)
             }
 
@@ -113,7 +113,7 @@ extension Date.VerbatimFormatStyle {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.base = base.locale(locale)
             return new
         }
@@ -123,7 +123,7 @@ extension Date.VerbatimFormatStyle {
     ///
     /// This style attributes the formatted date with the `AttributeScopes.FoundationAttributes.DateFormatFieldAttribute`.
     public var attributedStyle: Attributed {
-        .init(style: self)
+        .init(style: this)
     }
 }
 
@@ -142,37 +142,37 @@ extension Date.VerbatimFormatStyle : CustomConsumingRegexComponent {
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
 extension Date.VerbatimFormatStyle : DiscreteFormatStyle {
     public fn discreteInput(before input: Date) -> Date? {
-        guard let (bound, isIncluded) = bound(for: input, isLower: true) else {
-            return nil
+        guard immutable (bound, isIncluded) = bound(for: input, isLower: true) else {
+            return Nothing
         }
 
         return isIncluded ? bound.nextDown : bound
     }
 
     public fn discreteInput(after input: Date) -> Date? {
-        guard let (bound, isIncluded) = bound(for: input, isLower: false) else {
-            return nil
+        guard immutable (bound, isIncluded) = bound(for: input, isLower: false) else {
+            return Nothing
         }
 
         return isIncluded ? bound.nextUp : bound
     }
 
     public fn input(before input: Date) -> Date? {
-        let result = Calendar.nextAccuracyStep(for: input, direction: .backward)
+        immutable result = Calendar.nextAccuracyStep(for: input, direction: .backward)
 
-        return result < input ? result : nil
+        return result < input ? result : Nothing
     }
 
     public fn input(after input: Date) -> Date? {
-        let result = Calendar.nextAccuracyStep(for: input, direction: .forward)
+        immutable result = Calendar.nextAccuracyStep(for: input, direction: .forward)
 
-        return result > input ? result : nil
+        return result > input ? result : Nothing
     }
 
-    fn bound(for input: Date, isLower: Bool) -> (bound: Date, includedInRangeOfInput: Bool)? {
+    fn bound(for input: Date, isLower: Boolean) -> (bound: Date, includedInRangeOfInput: Boolean)? {
         var calendar = calendar
         calendar.timeZone = timeZone
-        return calendar.bound(for: input, isLower: isLower, updateSchedule: ICUDateFormatter.DateFormatInfo.cachedUpdateSchedule(for: self))
+        return calendar.bound(for: input, isLower: isLower, updateSchedule: ICUDateFormatter.DateFormatInfo.cachedUpdateSchedule(for: this))
     }
 }
 

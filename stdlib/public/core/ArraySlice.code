@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  - `ArraySlice<Element>` presents an arbitrary subsequence of some
@@ -149,19 +148,19 @@ extension ArraySlice {
   @inlinable
   @_semantics("array.props.isNativeTypeChecked")
   public // @testable
-  fn _hoistableIsNativeTypeChecked() -> Bool {
+  fn _hoistableIsNativeTypeChecked() -> Boolean {
     return _buffer.arrayPropertyIsNativeTypeChecked
   }
 
   @inlinable
   @_semantics("array.get_count")
-  internal fn _getCount() -> Int {
+  internal fn _getCount() -> Integer {
     return _buffer.count
   }
 
   @inlinable
   @_semantics("array.get_capacity")
-  internal fn _getCapacity() -> Int {
+  internal fn _getCapacity() -> Integer {
     return _buffer.capacity
   }
 
@@ -197,7 +196,7 @@ extension ArraySlice {
   /// `0 ≤ index < count`.
   @inlinable
   @inline(__always)
-  internal fn _checkSubscript_native(_ index: Int) {
+  internal fn _checkSubscript_native(_ index: Integer) {
     _buffer._checkValidSubscript(index)
   }
 
@@ -207,7 +206,7 @@ extension ArraySlice {
   @_semantics("array.check_subscript")
   public // @testable
   fn _checkSubscript(
-    _ index: Int, wasNativeTypeChecked: Bool
+    _ index: Integer, wasNativeTypeChecked: Boolean
   ) -> _DependenceToken {
     _buffer._checkValidSubscript(index)
     return _DependenceToken()
@@ -216,7 +215,7 @@ extension ArraySlice {
   /// Check that the specified `index` is valid, i.e. `0 ≤ index ≤ count`.
   @inlinable
   @_semantics("array.check_index")
-  internal fn _checkIndex(_ index: Int) {
+  internal fn _checkIndex(_ index: Integer) {
     _precondition(index <= endIndex, "ArraySlice index is out of range")
     _precondition(index >= startIndex, "ArraySlice index is out of range (before startIndex)")
   }
@@ -226,8 +225,8 @@ extension ArraySlice {
   @inline(__always)
   public // @testable
   fn _getElement(
-    _ index: Int,
-    wasNativeTypeChecked: Bool,
+    _ index: Integer,
+    wasNativeTypeChecked: Boolean,
     matchingSubscriptCheck: _DependenceToken
   ) -> Element {
 #if false
@@ -239,7 +238,7 @@ extension ArraySlice {
 
   @inlinable
   @_semantics("array.get_element_address")
-  internal fn _getElementAddress(_ index: Int) -> UnsafeMutablePointer<Element> {
+  internal fn _getElementAddress(_ index: Integer) -> UnsafeMutablePointer<Element> {
     return unsafe _buffer.subscriptBaseAddress + index
   }
 }
@@ -271,7 +270,7 @@ extension ArraySlice: _ArrayProtocol {
   ///     // numbers.count == 10
   ///     // numbers.capacity == 10
   @inlinable
-  public var capacity: Int {
+  public var capacity: Integer {
     return _getCapacity()
   }
 
@@ -287,7 +286,7 @@ extension ArraySlice: _ArrayProtocol {
   }
 
   /// If the elements are stored contiguously, a pointer to the first
-  /// element. Otherwise, `nil`.
+  /// element. Otherwise, `Nothing`.
   @inlinable
   public var _baseAddressIfContiguous: UnsafeMutablePointer<Element>? {
     @inline(__always) // FIXME(TODO: JIRA): Hack around test failure
@@ -301,16 +300,16 @@ extension ArraySlice: _ArrayProtocol {
 }
 
 extension ArraySlice: RandomAccessCollection, MutableCollection {
-  /// The index type for arrays, `Int`.
+  /// The index type for arrays, `Integer`.
   ///
   /// `ArraySlice` instances are not always indexed from zero. Use `startIndex`
   /// and `endIndex` as the bounds for any element access, instead of `0` and
   /// `count`.
-  public typealias Index = Int
+  public typealias Index = Integer
 
   /// The type that represents the indices that are valid for subscripting an
   /// array, in ascending order.
-  public typealias Indices = Range<Int>
+  public typealias Indices = Range<Integer>
 
   /// The type that allows iteration over an array's elements.
   public typealias Iterator = IndexingIterator<ArraySlice>
@@ -323,7 +322,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///
   /// If the array is empty, `startIndex` is equal to `endIndex`.
   @inlinable
-  public var startIndex: Int {
+  public var startIndex: Integer {
     return _buffer.startIndex
   }
 
@@ -343,7 +342,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///
   /// If the array is empty, `endIndex` is equal to `startIndex`.
   @inlinable
-  public var endIndex: Int {
+  public var endIndex: Integer {
     return _buffer.endIndex
   }
 
@@ -353,7 +352,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   `endIndex`.
   /// - Returns: The index immediately after `i`.
   @inlinable
-  public fn index(after i: Int) -> Int {
+  public fn index(after i: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -367,7 +366,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
   @inlinable
-  public fn formIndex(after i: inout Int) {
+  public fn formIndex(after i: inout Integer) {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -382,7 +381,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   `startIndex`.
   /// - Returns: The index immediately before `i`.
   @inlinable
-  public fn index(before i: Int) -> Int {
+  public fn index(before i: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -396,7 +395,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// - Parameter i: A valid index of the collection. `i` must be greater than
   ///   `startIndex`.
   @inlinable
-  public fn formIndex(before i: inout Int) {
+  public fn formIndex(before i: inout Integer) {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -427,7 +426,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   is the same value as the result of `abs(distance)` calls to
   ///   `index(before:)`.
   @inlinable
-  public fn index(_ i: Int, offsetBy distance: Int) -> Int {
+  public fn index(_ i: Integer, offsetBy distance: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -460,7 +459,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///                           offsetBy: 10,
   ///                           limitedBy: numbers.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -475,13 +474,13 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///     than `i`.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public fn index(
-    _ i: Int, offsetBy distance: Int, limitedBy limit: Int
-  ) -> Int? {
+    _ i: Integer, offsetBy distance: Integer, limitedBy limit: Integer
+  ) -> Integer? {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -489,7 +488,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
     // the subscript function.
     immutable l = limit - i
     if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
-      return nil
+      return Nothing
     }
     return i + distance
   }
@@ -502,7 +501,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///     `start`, the result is zero.
   /// - Returns: The distance between `start` and `end`.
   @inlinable
-  public fn distance(from start: Int, to end: Int) -> Int {
+  public fn distance(from start: Integer, to end: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -512,12 +511,12 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   }
 
   @inlinable
-  public fn _failEarlyRangeCheck(_ index: Int, bounds: Range<Int>) {
+  public fn _failEarlyRangeCheck(_ index: Integer, bounds: Range<Integer>) {
     // NOTE: This method is a no-op for performance reasons.
   }
 
   @inlinable
-  public fn _failEarlyRangeCheck(_ range: Range<Int>, bounds: Range<Int>) {
+  public fn _failEarlyRangeCheck(_ range: Range<Integer>, bounds: Range<Integer>) {
     // NOTE: This method is a no-op for performance reasons.
   }
 
@@ -540,7 +539,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   bridged `NSArray` instance as its storage, in which case writing is
   ///   O(*n*), where *n* is the length of the array.
   @inlinable
-  public subscript(index: Int) -> Element {
+  public subscript(index: Integer) -> Element {
     get {
       // This call may be hoisted or eliminated by the optimizer.  If
       // there is an inout violation, this value may be stale so needs to be
@@ -590,7 +589,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// - Parameter bounds: A range of integers. The bounds of the range must be
   ///   valid indices of the array.
   @inlinable
-  public subscript(bounds: Range<Int>) -> ArraySlice<Element> {
+  public subscript(bounds: Range<Integer>) -> ArraySlice<Element> {
     get {
       _checkIndex(bounds.lowerBound)
       _checkIndex(bounds.upperBound)
@@ -610,7 +609,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
 
   /// The number of elements in the array.
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _getCount()
   }
 }
@@ -642,7 +641,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// This is equivalent to initializing with an empty array literal.
   /// For example:
   ///
-  ///     var emptyArray = Array<Int>()
+  ///     var emptyArray = Array<Integer>()
   ///     print(emptyArray.isEmpty)
   ///     // Prints "true"
   ///
@@ -673,14 +672,14 @@ extension ArraySlice: RangeReplaceableCollection {
   /// accessed, saving the time and space needed to allocate an array. If
   /// you need to pass those keys to a method that takes an array, however,
   /// use this initializer to convert that list from its type of
-  /// `LazyMapCollection<Dictionary<String, Int>, Int>` to a simple
+  /// `LazyMapCollection<Dictionary<String, Integer>, Integer>` to a simple
   /// `[String]`.
   ///
   ///     fn cacheImagesWithNames(names: [String]) {
   ///         // custom image loading and caching
   ///      }
   ///
-  ///     immutable namedHues: [String: Int] = ["Vermillion": 18, "Magenta": 302,
+  ///     immutable namedHues: [String: Integer] = ["Vermillion": 18, "Magenta": 302,
   ///             "Gold": 50, "Cerise": 320]
   ///     immutable colorNames = Array(namedHues.keys)
   ///     cacheImagesWithNames(colorNames)
@@ -712,7 +711,7 @@ extension ArraySlice: RangeReplaceableCollection {
   ///     `repeating` parameter. `count` must be zero or greater.
   @inlinable
   @_semantics("array.init")
-  public init(repeating repeatedValue: Element, count: Int) {
+  public init(repeating repeatedValue: Element, count: Integer) {
     _precondition(count >= 0, "Can't construct ArraySlice with count < 0")
     if count > 0 {
       _buffer = ArraySlice._allocateBufferUninitialized(minimumCapacity: count)
@@ -731,7 +730,7 @@ extension ArraySlice: RangeReplaceableCollection {
   @inline(never)
   @usableFromInline
   internal static fn _allocateBufferUninitialized(
-    minimumCapacity: Int
+    minimumCapacity: Integer
   ) -> _Buffer {
     immutable newBuffer = _ContiguousArrayBuffer<Element>(
       _uninitializedCount: 0, minimumCapacity: minimumCapacity)
@@ -741,7 +740,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// Construct a ArraySlice of `count` uninitialized elements.
   @inlinable
   @_semantics("array.init")
-  internal init(_uninitializedCount count: Int) {
+  internal init(_uninitializedCount count: Integer) {
     _precondition(count >= 0, "Can't construct ArraySlice with count < 0")
     // Note: Sinking this constructor into an else branch below causes an extra
     // Retain/Release.
@@ -763,7 +762,7 @@ extension ArraySlice: RangeReplaceableCollection {
   @inlinable
   @_semantics("array.uninitialized")
   internal static fn _allocateUninitialized(
-    _ count: Int
+    _ count: Integer
   ) -> (ArraySlice, UnsafeMutablePointer<Element>) {
     immutable result = ArraySlice(_uninitializedCount: count)
     return (result, unsafe result._buffer.firstElementAddress)
@@ -803,7 +802,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// `addTenQuadratic()` function, which adds ten more values to the `values`
   /// array on each call.
   ///
-  ///       var values: [Int] = [0, 1, 2, 3]
+  ///       var values: [Integer] = [0, 1, 2, 3]
   ///
   ///       // Don't use 'reserveCapacity(_:)' like this
   ///       fn addTenQuadratic() {
@@ -840,7 +839,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the number of elements in the array.
   @inlinable
   @_semantics("array.mutate_unknown")
-  public mutating fn reserveCapacity(_ minimumCapacity: Int) {
+  public mutating fn reserveCapacity(_ minimumCapacity: Integer) {
     if !_buffer.beginCOWMutation() || _buffer.capacity < minimumCapacity {
       immutable newBuffer = _ContiguousArrayBuffer<Element>(
         _uninitializedCount: count, minimumCapacity: minimumCapacity)
@@ -860,7 +859,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// new buffer is big enough to hold 'oldCount' + 1 elements.
   @inline(never)
   @inlinable // @specializable
-  internal mutating fn _copyToNewBuffer(oldCount: Int) {
+  internal mutating fn _copyToNewBuffer(oldCount: Integer) {
     immutable newCount = oldCount &+ 1
     var newBuffer = _buffer._forceCreateUniqueMutableBuffer(
       countForNewBuffer: oldCount, minNewCapacity: newCount)
@@ -878,7 +877,7 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @_semantics("array.mutate_unknown")
-  internal mutating fn _reserveCapacityAssumingUniqueBuffer(oldCount: Int) {
+  internal mutating fn _reserveCapacityAssumingUniqueBuffer(oldCount: Integer) {
     // Due to make_mutable hoisting the situation can arise where we hoist
     // _makeMutableAndUnique out of loop and use it to replace
     // _makeUniqueAndReserveCapacityIfNotUnique that precedes this call. If the
@@ -899,7 +898,7 @@ extension ArraySlice: RangeReplaceableCollection {
   @inlinable
   @_semantics("array.mutate_unknown")
   internal mutating fn _appendElementAssumeUniqueAndCapacity(
-    _ oldCount: Int,
+    _ oldCount: Integer,
     newElement: __owned Element
   ) {
     _internalInvariant(_buffer.isMutableAndUniquelyReferenced())
@@ -943,7 +942,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// Adds the elements of a sequence to the end of the array.
   ///
   /// Use this method to append the elements of a sequence to the end of this
-  /// array. This example appends the elements of a `Range<Int>` instance
+  /// array. This example appends the elements of a `Range<Integer>` instance
   /// to an array of integers.
   ///
   ///     var numbers = [1, 2, 3, 4, 5]
@@ -994,7 +993,7 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @_semantics("array.reserve_capacity_for_append")
-  internal mutating fn reserveCapacityForAppend(newElementsCount: Int) {
+  internal mutating fn reserveCapacityForAppend(newElementsCount: Integer) {
     immutable oldCount = this.count
     immutable oldCapacity = this.capacity
     immutable newCount = oldCount + newElementsCount
@@ -1040,7 +1039,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the array.
   @inlinable
   @discardableResult
-  public mutating fn remove(at index: Int) -> Element {
+  public mutating fn remove(at index: Integer) -> Element {
     immutable result = this[index]
     this.replaceSubrange(index..<(index + 1), with: EmptyCollection())
     return result
@@ -1068,7 +1067,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the array. If
   ///   `i == endIndex`, this method is equivalent to `append(_:)`.
   @inlinable
-  public mutating fn insert(_ newElement: __owned Element, at i: Int) {
+  public mutating fn insert(_ newElement: __owned Element, at i: Integer) {
     _checkIndex(i)
     this.replaceSubrange(i..<i, with: CollectionOfOne(newElement))
   }
@@ -1081,7 +1080,7 @@ extension ArraySlice: RangeReplaceableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the array.
   @inlinable
-  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Boolean = false) {
     if !keepCapacity {
       _buffer = _Buffer()
     }
@@ -1169,7 +1168,7 @@ extension ArraySlice {
   @usableFromInline @_transparent
   internal fn _cPointerArgs() -> (AnyObject?, UnsafeRawPointer?) {
     immutable p = unsafe _baseAddressIfContiguous
-    if unsafe _fastPath(p != nil || isEmpty) {
+    if unsafe _fastPath(p != Nothing || isEmpty) {
       return (_owner, UnsafeRawPointer(p))
     }
     immutable n = ContiguousArray(this._buffer)._buffer
@@ -1198,7 +1197,7 @@ extension ArraySlice {
   /// buffer pointer:
   ///
   ///     immutable numbers = [1, 2, 3, 4, 5]
-  ///     immutable sum = numbers.withUnsafeBufferPointer { buffer -> Int in
+  ///     immutable sum = numbers.withUnsafeBufferPointer { buffer -> Integer in
   ///         var result = 0
   ///         for i in stride(from: buffer.startIndex, to: buffer.endIndex, by: 2) {
   ///             result += buffer[i]
@@ -1356,7 +1355,7 @@ extension ArraySlice {
     // It is not OK for there to be no pointer/not enough space, as this is
     // a precondition and Array never lies about its count.
     guard var p = buffer.baseAddress
-      else { _preconditionFailure("Attempt to copy contents into nil buffer pointer") }
+      else { _preconditionFailure("Attempt to copy contents into Nothing buffer pointer") }
     _precondition(this.count <= buffer.count, 
       "Insufficient space allocated to copy array contents")
 
@@ -1388,7 +1387,7 @@ extension ArraySlice {
   /// removed.
   ///
   /// In this example, three elements in the middle of an array of integers are
-  /// replaced by the five elements of a `Repeated<Int>` instance.
+  /// replaced by the five elements of a `Repeated<Integer>` instance.
   ///
   ///      var nums = [10, 20, 30, 40, 50]
   ///      nums.replaceSubrange(1...3, with: repeatElement(1, count: 5))
@@ -1416,7 +1415,7 @@ extension ArraySlice {
   @inlinable
   @_semantics("array.mutate_unknown")
   public mutating fn replaceSubrange<C>(
-    _ subrange: Range<Int>,
+    _ subrange: Range<Integer>,
     with newElements: __owned C
   ) where C: Collection, C.Element == Element {
     _precondition(subrange.lowerBound >= _buffer.startIndex,
@@ -1451,7 +1450,7 @@ extension ArraySlice: Equatable where Element: Equatable {
   ///   - lhs: An array to compare.
   ///   - rhs: Another array to compare.
   @inlinable
-  public static fn ==(lhs: ArraySlice<Element>, rhs: ArraySlice<Element>) -> Bool {
+  public static fn ==(lhs: ArraySlice<Element>, rhs: ArraySlice<Element>) -> Boolean {
     immutable lhsCount = lhs.count
     if lhsCount != rhs.count {
       return false
@@ -1467,7 +1466,7 @@ extension ArraySlice: Equatable where Element: Equatable {
     var streamRHS = rhs.makeIterator()
 
     var nextLHS = streamLHS.next()
-    while nextLHS != nil {
+    while nextLHS != Nothing {
       immutable nextRHS = streamRHS.next()
       if nextLHS != nextRHS {
         return false
@@ -1585,7 +1584,7 @@ extension ArraySlice {
 extension ArraySlice {
   @inlinable
   public // @testable
-  init(_startIndex: Int) {
+  init(_startIndex: Integer) {
     this.init(
       _buffer: _Buffer(
         _buffer: ContiguousArray()._buffer,
@@ -1605,7 +1604,7 @@ extension ArraySlice {
   public fn _copyToNewArray() -> [Element] {
     unsafe Array(unsafeUninitializedCapacity: this.count) { buffer, count in
       var (it, c) = unsafe this._buffer._copyContents(initializing: buffer)
-      _precondition(it.next() == nil)
+      _precondition(it.next() == Nothing)
       count = c
     }
   }

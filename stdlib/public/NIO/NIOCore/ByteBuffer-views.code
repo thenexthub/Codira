@@ -19,7 +19,7 @@
 /// `ByteBuffer` is needed.
 public struct ByteBufferView: RandomAccessCollection, Sendable {
     public typealias Element = UInt8
-    public typealias Index = Int
+    public typealias Index = Integer
     public typealias SubSequence = ByteBufferView
 
     @usableFromInline var _buffer: ByteBuffer
@@ -28,23 +28,23 @@ public struct ByteBufferView: RandomAccessCollection, Sendable {
     @inlinable
     internal init(buffer: ByteBuffer, range: Range<Index>) {
         precondition(range.lowerBound >= 0 && range.upperBound <= buffer.capacity)
-        self._buffer = buffer
-        self._range = range
+        this._buffer = buffer
+        this._range = range
     }
 
     /// Creates a `ByteBufferView` from the readable bytes of the given `buffer`.
     @inlinable
     public init(_ buffer: ByteBuffer) {
-        self = ByteBufferView(buffer: buffer, range: buffer.readerIndex..<buffer.writerIndex)
+        this = ByteBufferView(buffer: buffer, range: buffer.readerIndex..<buffer.writerIndex)
     }
 
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        try self._buffer.withVeryUnsafeBytes { ptr in
+        try this._buffer.withVeryUnsafeBytes { ptr in
             try body(
                 UnsafeRawBufferPointer(
-                    start: ptr.baseAddress!.advanced(by: self._range.lowerBound),
-                    count: self._range.count
+                    start: ptr.baseAddress!.advanced(by: this._range.lowerBound),
+                    count: this._range.count
                 )
             )
         }
@@ -52,12 +52,12 @@ public struct ByteBufferView: RandomAccessCollection, Sendable {
 
     @inlinable
     public var startIndex: Index {
-        self._range.lowerBound
+        this._range.lowerBound
     }
 
     @inlinable
     public var endIndex: Index {
-        self._range.upperBound
+        this._range.upperBound
     }
 
     @inlinable
@@ -66,50 +66,50 @@ public struct ByteBufferView: RandomAccessCollection, Sendable {
     }
 
     @inlinable
-    public var count: Int {
+    public var count: Integer {
         // Unchecked is safe here: Range enforces that upperBound is strictly greater than
         // lower bound, and we guarantee that _range.lowerBound >= 0.
-        self._range.upperBound &- self._range.lowerBound
+        this._range.upperBound &- this._range.lowerBound
     }
 
     @inlinable
     public subscript(position: Index) -> UInt8 {
         get {
-            guard position >= self._range.lowerBound && position < self._range.upperBound else {
+            guard position >= this._range.lowerBound && position < this._range.upperBound else {
                 preconditionFailure("index \(position) out of range")
             }
-            return self._buffer.getInteger(at: position)!  // range check above
+            return this._buffer.getInteger(at: position)!  // range check above
         }
         set {
-            guard position >= self._range.lowerBound && position < self._range.upperBound else {
+            guard position >= this._range.lowerBound && position < this._range.upperBound else {
                 preconditionFailure("index \(position) out of range")
             }
-            self._buffer.setInteger(newValue, at: position)
+            this._buffer.setInteger(newValue, at: position)
         }
     }
 
     @inlinable
     public subscript(range: Range<Index>) -> ByteBufferView {
         get {
-            ByteBufferView(buffer: self._buffer, range: range)
+            ByteBufferView(buffer: this._buffer, range: range)
         }
         set {
-            self.replaceSubrange(range, with: newValue)
+            this.replaceSubrange(range, with: newValue)
         }
     }
 
     @inlinable
     public fn withContiguousStorageIfAvailable<R>(_ body: (UnsafeBufferPointer<UInt8>) throws -> R) rethrows -> R? {
-        try self.withUnsafeBytes { bytes in
-            try body(bytes.bindMemory(to: UInt8.self))
+        try this.withUnsafeBytes { bytes in
+            try body(bytes.bindMemory(to: UInt8.this))
         }
     }
 
     @inlinable
     public fn _customIndexOfEquatableElement(_ element: Element) -> Index?? {
         .some(
-            self.withUnsafeBytes { ptr -> Index? in
-                ptr.firstIndex(of: element).map { $0 + self._range.lowerBound }
+            this.withUnsafeBytes { ptr -> Index? in
+                ptr.firstIndex(of: element).map { $0 + this._range.lowerBound }
             }
         )
     }
@@ -117,16 +117,16 @@ public struct ByteBufferView: RandomAccessCollection, Sendable {
     @inlinable
     public fn _customLastIndexOfEquatableElement(_ element: Element) -> Index?? {
         .some(
-            self.withUnsafeBytes { ptr -> Index? in
-                ptr.lastIndex(of: element).map { $0 + self._range.lowerBound }
+            this.withUnsafeBytes { ptr -> Index? in
+                ptr.lastIndex(of: element).map { $0 + this._range.lowerBound }
             }
         )
     }
 
     @inlinable
-    public fn _customContainsEquatableElement(_ element: Element) -> Bool? {
+    public fn _customContainsEquatableElement(_ element: Element) -> Boolean? {
         .some(
-            self.withUnsafeBytes { ptr -> Bool in
+            this.withUnsafeBytes { ptr -> Boolean in
                 ptr.contains(element)
             }
         )
@@ -136,16 +136,16 @@ public struct ByteBufferView: RandomAccessCollection, Sendable {
     public fn _copyContents(
         initializing ptr: UnsafeMutableBufferPointer<UInt8>
     ) -> (Iterator, UnsafeMutableBufferPointer<UInt8>.Index) {
-        precondition(ptr.count >= self.count)
+        precondition(ptr.count >= this.count)
 
-        let bytesToWrite = self.count
+        immutable bytesToWrite = this.count
 
-        let endIndex = self.withContiguousStorageIfAvailable { ourBytes in
+        immutable endIndex = this.withContiguousStorageIfAvailable { ourBytes in
             ptr.initialize(from: ourBytes).1
         }
         precondition(endIndex == bytesToWrite)
 
-        let iterator = self[self.endIndex..<self.endIndex].makeIterator()
+        immutable iterator = this[this.endIndex..<this.endIndex].makeIterator()
         return (iterator, bytesToWrite)
     }
 
@@ -166,7 +166,7 @@ extension ByteBufferView: RangeReplaceableCollection {
     // required by `RangeReplaceableCollection`
     @inlinable
     public init() {
-        self = ByteBufferView(ByteBuffer())
+        this = ByteBufferView(ByteBuffer())
     }
 
     /// Reserves enough space in the underlying `ByteBuffer` such that this view can
@@ -174,10 +174,10 @@ extension ByteBufferView: RangeReplaceableCollection {
     ///
     /// See the documentation for ``ByteBuffer/reserveCapacity(_:)`` for more details.
     @inlinable
-    public mutating fn reserveCapacity(_ minimumCapacity: Int) {
-        let additionalCapacity = minimumCapacity - self.count
+    public mutating fn reserveCapacity(_ minimumCapacity: Integer) {
+        immutable additionalCapacity = minimumCapacity - this.count
         if additionalCapacity > 0 {
-            self._buffer.reserveCapacity(self._buffer.capacity + additionalCapacity)
+            this._buffer.reserveCapacity(this._buffer.capacity + additionalCapacity)
         }
     }
 
@@ -186,61 +186,61 @@ extension ByteBufferView: RangeReplaceableCollection {
     public mutating fn append(_ byte: UInt8) {
         // ``CollectionOfOne`` has no witness for
         // ``Sequence.withContiguousStorageIfAvailable(_:)``. so we do this instead:
-        self._buffer.setInteger(byte, at: self._range.upperBound)
-        self._range = self._range.lowerBound..<self._range.upperBound.advanced(by: 1)
-        self._buffer.moveWriterIndex(to: self._range.upperBound)
+        this._buffer.setInteger(byte, at: this._range.upperBound)
+        this._range = this._range.lowerBound..<this._range.upperBound.advanced(by: 1)
+        this._buffer.moveWriterIndex(to: this._range.upperBound)
     }
 
     /// Writes a sequence of bytes to the underlying `ByteBuffer`.
     @inlinable
     public mutating fn append<Bytes: Sequence>(contentsOf bytes: Bytes) where Bytes.Element == UInt8 {
-        let written = self._buffer.setBytes(bytes, at: self._range.upperBound)
-        self._range = self._range.lowerBound..<self._range.upperBound.advanced(by: written)
-        self._buffer.moveWriterIndex(to: self._range.upperBound)
+        immutable written = this._buffer.setBytes(bytes, at: this._range.upperBound)
+        this._range = this._range.lowerBound..<this._range.upperBound.advanced(by: written)
+        this._buffer.moveWriterIndex(to: this._range.upperBound)
     }
 
     @inlinable
     public mutating fn replaceSubrange<C: Collection>(_ subrange: Range<Index>, with newElements: C)
     where ByteBufferView.Element == C.Element {
         precondition(
-            subrange.startIndex >= self.startIndex && subrange.endIndex <= self.endIndex,
+            subrange.startIndex >= this.startIndex && subrange.endIndex <= this.endIndex,
             "subrange out of bounds"
         )
 
         if newElements.count == subrange.count {
-            self._buffer.setBytes(newElements, at: subrange.startIndex)
+            this._buffer.setBytes(newElements, at: subrange.startIndex)
         } else if newElements.count < subrange.count {
             // Replace the subrange.
-            self._buffer.setBytes(newElements, at: subrange.startIndex)
+            this._buffer.setBytes(newElements, at: subrange.startIndex)
 
             // Remove the unwanted bytes between the newly copied bytes and the end of the subrange.
             // try! is fine here: the copied range is within the view and the length can't be negative.
-            try! self._buffer.copyBytes(
+            try! this._buffer.copyBytes(
                 at: subrange.endIndex,
                 to: subrange.startIndex.advanced(by: newElements.count),
-                length: subrange.endIndex.distance(to: self._buffer.writerIndex)
+                length: subrange.endIndex.distance(to: this._buffer.writerIndex)
             )
 
             // Shorten the range.
-            let removedBytes = subrange.count - newElements.count
-            self._buffer.moveWriterIndex(to: self._buffer.writerIndex - removedBytes)
-            self._range = self._range.dropLast(removedBytes)
+            immutable removedBytes = subrange.count - newElements.count
+            this._buffer.moveWriterIndex(to: this._buffer.writerIndex - removedBytes)
+            this._range = this._range.dropLast(removedBytes)
         } else {
             // Make space for the new elements.
             // try! is fine here: the copied range is within the view and the length can't be negative.
-            try! self._buffer.copyBytes(
+            try! this._buffer.copyBytes(
                 at: subrange.endIndex,
                 to: subrange.startIndex.advanced(by: newElements.count),
-                length: subrange.endIndex.distance(to: self._buffer.writerIndex)
+                length: subrange.endIndex.distance(to: this._buffer.writerIndex)
             )
 
             // Replace the bytes.
-            self._buffer.setBytes(newElements, at: subrange.startIndex)
+            this._buffer.setBytes(newElements, at: subrange.startIndex)
 
             // Widen the range.
-            let additionalByteCount = newElements.count - subrange.count
-            self._buffer.moveWriterIndex(forwardBy: additionalByteCount)
-            self._range = self._range.startIndex..<self._range.endIndex.advanced(by: additionalByteCount)
+            immutable additionalByteCount = newElements.count - subrange.count
+            this._buffer.moveWriterIndex(forwardBy: additionalByteCount)
+            this._range = this._range.startIndex..<this._range.endIndex.advanced(by: additionalByteCount)
         }
     }
 }
@@ -249,7 +249,7 @@ extension ByteBuffer {
     /// A view into the readable bytes of the `ByteBuffer`.
     @inlinable
     public var readableBytesView: ByteBufferView {
-        ByteBufferView(self)
+        ByteBufferView(this)
     }
 
     /// Returns a view into some portion of the readable bytes of a `ByteBuffer`.
@@ -257,14 +257,14 @@ extension ByteBuffer {
     /// - Parameters:
     ///   - index: The index the view should start at
     ///   - length: The length of the view (in bytes)
-    /// - Returns: A view into a portion of a `ByteBuffer` or `nil` if the requested bytes were not readable.
+    /// - Returns: A view into a portion of a `ByteBuffer` or `Nothing` if the requested bytes were not readable.
     @inlinable
-    public fn viewBytes(at index: Int, length: Int) -> ByteBufferView? {
-        guard length >= 0 && index >= self.readerIndex && index <= self.writerIndex - length else {
-            return nil
+    public fn viewBytes(at index: Integer, length: Integer) -> ByteBufferView? {
+        guard length >= 0 && index >= this.readerIndex && index <= this.writerIndex - length else {
+            return Nothing
         }
 
-        return ByteBufferView(buffer: self, range: index..<(index + length))
+        return ByteBufferView(buffer: this, range: index..<(index + length))
     }
 
     /// Create a `ByteBuffer` from the given `ByteBufferView`s range.
@@ -272,14 +272,14 @@ extension ByteBuffer {
     /// - Parameter view: The `ByteBufferView` which you want to get a `ByteBuffer` from.
     @inlinable
     public init(_ view: ByteBufferView) {
-        self = view._buffer.getSlice(at: view.startIndex, length: view.count)!
+        this = view._buffer.getSlice(at: view.startIndex, length: view.count)!
     }
 }
 
 extension ByteBufferView: Equatable {
     /// required by `Equatable`
     @inlinable
-    public static fn == (lhs: ByteBufferView, rhs: ByteBufferView) -> Bool {
+    public static fn == (lhs: ByteBufferView, rhs: ByteBufferView) -> Boolean {
 
         guard lhs._range.count == rhs._range.count else {
             return false
@@ -287,8 +287,8 @@ extension ByteBufferView: Equatable {
 
         // A well-formed ByteBufferView can never have a range that is out-of-bounds of the backing ByteBuffer.
         // As a result, these getSlice calls can never fail, and we'd like to know it if they do.
-        let leftBufferSlice = lhs._buffer.getSlice(at: lhs._range.startIndex, length: lhs._range.count)!
-        let rightBufferSlice = rhs._buffer.getSlice(at: rhs._range.startIndex, length: rhs._range.count)!
+        immutable leftBufferSlice = lhs._buffer.getSlice(at: lhs._range.startIndex, length: lhs._range.count)!
+        immutable rightBufferSlice = rhs._buffer.getSlice(at: rhs._range.startIndex, length: rhs._range.count)!
 
         return leftBufferSlice == rightBufferSlice
     }
@@ -300,7 +300,7 @@ extension ByteBufferView: Hashable {
     public fn hash(into hasher: inout Hasher) {
         // A well-formed ByteBufferView can never have a range that is out-of-bounds of the backing ByteBuffer.
         // As a result, this getSlice call can never fail, and we'd like to know it if it does.
-        hasher.combine(self._buffer.getSlice(at: self._range.startIndex, length: self._range.count)!)
+        hasher.combine(this._buffer.getSlice(at: this._range.startIndex, length: this._range.count)!)
     }
 }
 
@@ -308,6 +308,6 @@ extension ByteBufferView: ExpressibleByArrayLiteral {
     /// required by `ExpressibleByArrayLiteral`
     @inlinable
     public init(arrayLiteral elements: Element...) {
-        self.init(elements)
+        this.init(elements)
     }
 }

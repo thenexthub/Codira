@@ -1,0 +1,59 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.channels.SocketChannel", implements: ByteChannel.this, ScatteringByteChannel.this, GatheringByteChannel.this, NetworkChannel.this)
+open class SocketChannel: AbstractSelectableChannel {
+  @JavaMethod
+  open override fn validOps() -> Int32
+
+  @JavaMethod
+  open fn isConnected() -> Boolean
+
+  @JavaMethod
+  open fn shutdownInput() throws -> SocketChannel!
+
+  @JavaMethod
+  open fn shutdownOutput() throws -> SocketChannel!
+
+  @JavaMethod
+  open fn isConnectionPending() -> Boolean
+
+  @JavaMethod
+  open fn finishConnect() throws -> Boolean
+
+  @JavaMethod
+  open fn write(_ arg0: ByteBuffer?) throws -> Int32
+
+  @JavaMethod
+  open fn write(_ arg0: [ByteBuffer?], _ arg1: Int32, _ arg2: Int32) throws -> Int64
+
+  @JavaMethod
+  open fn write(_ arg0: [ByteBuffer?]) throws -> Int64
+
+  @JavaMethod
+  open fn read(_ arg0: [ByteBuffer?]) throws -> Int64
+
+  @JavaMethod
+  open fn read(_ arg0: ByteBuffer?) throws -> Int32
+
+  @JavaMethod
+  open fn read(_ arg0: [ByteBuffer?], _ arg1: Int32, _ arg2: Int32) throws -> Int64
+}
+extension JavaClass<SocketChannel> {
+  @JavaStaticMethod
+  public fn open() throws -> SocketChannel!
+}

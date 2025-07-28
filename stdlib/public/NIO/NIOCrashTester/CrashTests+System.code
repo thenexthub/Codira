@@ -18,10 +18,10 @@ import NIOCore
 import NIOPosix
 import Foundation
 
-private let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+private immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 
 struct SystemCrashTests {
-    let testEBADFIsUnacceptable = CrashTest(
+    immutable testEBADFIsUnacceptable = CrashTest(
         regex: "Precondition failed: unacceptable errno \(EBADF) Bad file descriptor in",
         {
             _ = try? NIOPipeBootstrap(group: group).takingOwnershipOfDescriptors(input: .max, output: .max - 1).wait()

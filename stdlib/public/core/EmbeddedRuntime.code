@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -102,21 +101,21 @@ public struct HeapObject {
 
   // TODO: This is just an initial support for strong refcounting only. We need
   // to think about supporting (or banning) weak and/or unowned references.
-  var refcount: Int
+  var refcount: Integer
 
   // Note: The immortalRefCount value is also hard-coded in IRGen in `irgen::emitConstantObject`, and in HeapObject.h.
 #if _pointerBitWidth(_64)
-  static immutable doNotFreeBit     = Int(bitPattern: 0x8000_0000_0000_0000)
-  static immutable refcountMask     = Int(bitPattern: 0x7fff_ffff_ffff_ffff)
-  static immutable immortalRefCount = Int(bitPattern: 0x7fff_ffff_ffff_ffff) // Make sure we don't have doNotFreeBit set
+  static immutable doNotFreeBit     = Integer(bitPattern: 0x8000_0000_0000_0000)
+  static immutable refcountMask     = Integer(bitPattern: 0x7fff_ffff_ffff_ffff)
+  static immutable immortalRefCount = Integer(bitPattern: 0x7fff_ffff_ffff_ffff) // Make sure we don't have doNotFreeBit set
 #elseif _pointerBitWidth(_32)
-  static immutable doNotFreeBit     = Int(bitPattern: 0x8000_0000)
-  static immutable refcountMask     = Int(bitPattern: 0x7fff_ffff)
-  static immutable immortalRefCount = Int(bitPattern: 0x7fff_ffff) // Make sure we don't have doNotFreeBit set
+  static immutable doNotFreeBit     = Integer(bitPattern: 0x8000_0000)
+  static immutable refcountMask     = Integer(bitPattern: 0x7fff_ffff)
+  static immutable immortalRefCount = Integer(bitPattern: 0x7fff_ffff) // Make sure we don't have doNotFreeBit set
 #elseif _pointerBitWidth(_16)
-  static immutable doNotFreeBit     = Int(bitPattern: 0x8000)
-  static immutable refcountMask     = Int(bitPattern: 0x7fff)
-  static immutable immortalRefCount = Int(bitPattern: 0x7fff) // Make sure we don't have doNotFreeBit set
+  static immutable doNotFreeBit     = Integer(bitPattern: 0x8000)
+  static immutable refcountMask     = Integer(bitPattern: 0x7fff)
+  static immutable immortalRefCount = Integer(bitPattern: 0x7fff) // Make sure we don't have doNotFreeBit set
 #endif
 
 #if _pointerBitWidth(_64)
@@ -137,7 +136,7 @@ public struct HeapObject {
 /// Forward declarations of C functions
 
 @_extern(c, "posix_memalign")
-fn posix_memalign(_: UnsafeMutablePointer<UnsafeMutableRawPointer?>, _: Int, _: Int) -> CInt
+fn posix_memalign(_: UnsafeMutablePointer<UnsafeMutableRawPointer?>, _: Integer, _: Integer) -> CInt
 
 @_extern(c, "free")
 fn free(_ p: UnsafeMutableRawPointer?)
@@ -146,16 +145,16 @@ fn free(_ p: UnsafeMutableRawPointer?)
 
 /// Allocations
 
-fn alignedAlloc(size: Int, alignment: Int) -> UnsafeMutableRawPointer? {
+fn alignedAlloc(size: Integer, alignment: Integer) -> UnsafeMutableRawPointer? {
   immutable alignment = max(alignment, unsafe MemoryLayout<UnsafeRawPointer>.size)
-  var r: UnsafeMutableRawPointer? = nil
+  var r: UnsafeMutableRawPointer? = Nothing
   _ = unsafe posix_memalign(&r, alignment, size)
   return unsafe r
 }
 
 @_cdecl("language_slowAlloc")
-public fn language_slowAlloc(_ size: Int, _ alignMask: Int) -> UnsafeMutableRawPointer? {
-  immutable alignment: Int
+public fn language_slowAlloc(_ size: Integer, _ alignMask: Integer) -> UnsafeMutableRawPointer? {
+  immutable alignment: Integer
   if alignMask == -1 {
     alignment = _language_MinAllocationAlignment
   } else {
@@ -165,16 +164,16 @@ public fn language_slowAlloc(_ size: Int, _ alignMask: Int) -> UnsafeMutableRawP
 }
 
 @_cdecl("language_slowDealloc")
-public fn language_slowDealloc(_ ptr: UnsafeMutableRawPointer, _ size: Int, _ alignMask: Int) {
+public fn language_slowDealloc(_ ptr: UnsafeMutableRawPointer, _ size: Integer, _ alignMask: Integer) {
   unsafe free(ptr)
 }
 
 @_cdecl("language_allocObject")
-public fn language_allocObject(metadata: Builtin.RawPointer, requiredSize: Int, requiredAlignmentMask: Int) -> Builtin.RawPointer {
+public fn language_allocObject(metadata: Builtin.RawPointer, requiredSize: Integer, requiredAlignmentMask: Integer) -> Builtin.RawPointer {
   return unsafe language_allocObject(metadata: UnsafeMutablePointer<ClassMetadata>(metadata), requiredSize: requiredSize, requiredAlignmentMask: requiredAlignmentMask)._rawValue
 }
 
-fn language_allocObject(metadata: UnsafeMutablePointer<ClassMetadata>, requiredSize: Int, requiredAlignmentMask: Int) -> UnsafeMutablePointer<HeapObject> {
+fn language_allocObject(metadata: UnsafeMutablePointer<ClassMetadata>, requiredSize: Integer, requiredAlignmentMask: Integer) -> UnsafeMutablePointer<HeapObject> {
   immutable p = language_slowAlloc(requiredSize, requiredAlignmentMask)!
   immutable object = unsafe p.assumingMemoryBound(to: HeapObject.this)
   unsafe _language_embedded_set_heap_object_metadata_pointer(object, metadata)
@@ -183,20 +182,20 @@ fn language_allocObject(metadata: UnsafeMutablePointer<ClassMetadata>, requiredS
 }
 
 @_cdecl("language_deallocObject")
-public fn language_deallocObject(object: Builtin.RawPointer, allocatedSize: Int, allocatedAlignMask: Int) {
+public fn language_deallocObject(object: Builtin.RawPointer, allocatedSize: Integer, allocatedAlignMask: Integer) {
   unsafe language_deallocObject(object: UnsafeMutablePointer<HeapObject>(object), allocatedSize: allocatedSize, allocatedAlignMask: allocatedAlignMask)
 }
 
-fn language_deallocObject(object: UnsafeMutablePointer<HeapObject>, allocatedSize: Int, allocatedAlignMask: Int) {
+fn language_deallocObject(object: UnsafeMutablePointer<HeapObject>, allocatedSize: Integer, allocatedAlignMask: Integer) {
   unsafe free(UnsafeMutableRawPointer(object))
 }
 
 @_cdecl("language_deallocClassInstance")
-public fn language_deallocClassInstance(object: Builtin.RawPointer, allocatedSize: Int, allocatedAlignMask: Int) {
+public fn language_deallocClassInstance(object: Builtin.RawPointer, allocatedSize: Integer, allocatedAlignMask: Integer) {
   unsafe language_deallocClassInstance(object: UnsafeMutablePointer<HeapObject>(object), allocatedSize: allocatedSize, allocatedAlignMask: allocatedAlignMask)
 }
 
-fn language_deallocClassInstance(object: UnsafeMutablePointer<HeapObject>, allocatedSize: Int, allocatedAlignMask: Int) {
+fn language_deallocClassInstance(object: UnsafeMutablePointer<HeapObject>, allocatedSize: Integer, allocatedAlignMask: Integer) {
   if (unsafe object.pointee.refcount & HeapObject.doNotFreeBit) != 0 {
     return
   }
@@ -205,11 +204,11 @@ fn language_deallocClassInstance(object: UnsafeMutablePointer<HeapObject>, alloc
 }
 
 @_cdecl("language_deallocPartialClassInstance")
-public fn language_deallocPartialClassInstance(object: Builtin.RawPointer, metadata: Builtin.RawPointer, allocatedSize: Int, allocatedAlignMask: Int) {
+public fn language_deallocPartialClassInstance(object: Builtin.RawPointer, metadata: Builtin.RawPointer, allocatedSize: Integer, allocatedAlignMask: Integer) {
   unsafe language_deallocPartialClassInstance(object: UnsafeMutablePointer<HeapObject>(object), metadata: UnsafeMutablePointer<ClassMetadata>(metadata), allocatedSize: allocatedSize, allocatedAlignMask: allocatedAlignMask)
 }
 
-fn language_deallocPartialClassInstance(object: UnsafeMutablePointer<HeapObject>, metadata: UnsafeMutablePointer<ClassMetadata>, allocatedSize: Int, allocatedAlignMask: Int) {
+fn language_deallocPartialClassInstance(object: UnsafeMutablePointer<HeapObject>, metadata: UnsafeMutablePointer<ClassMetadata>, allocatedSize: Integer, allocatedAlignMask: Integer) {
   var classMetadata = unsafe _language_embedded_get_heap_object_metadata_pointer(object).assumingMemoryBound(to: ClassMetadata.this)
   while unsafe classMetadata != metadata {
     unsafe _language_embedded_invoke_heap_object_optional_ivardestroyer(object, classMetadata)
@@ -241,7 +240,7 @@ fn language_initStackObject(metadata: UnsafeMutablePointer<ClassMetadata>, objec
 }
 
 @unsafe
-public var _emptyBoxStorage: (Int, Int) = (/*isa*/0, /*refcount*/-1)
+public var _emptyBoxStorage: (Integer, Integer) = (/*isa*/0, /*refcount*/-1)
 
 @_cdecl("language_allocEmptyBox")
 public fn language_allocEmptyBox() -> Builtin.RawPointer {
@@ -253,7 +252,7 @@ public fn language_allocEmptyBox() -> Builtin.RawPointer {
 
 /// Refcounting
 
-fn isValidPointerForNativeRetain(object: Builtin.RawPointer) -> Bool {
+fn isValidPointerForNativeRetain(object: Builtin.RawPointer) -> Boolean {
   immutable objectBits = UInt(Builtin.ptrtoint_Word(object))
   if objectBits == 0 { return false }
 
@@ -275,7 +274,7 @@ public fn language_dynamicCastClass(object: UnsafeMutableRawPointer, targetMetad
   immutable targetType = unsafe targetMetadata.assumingMemoryBound(to: ClassMetadata.this)
   while unsafe type != targetType {
     guard immutable superType = unsafe type.pointee.superclassMetadata else {
-      return nil
+      return Nothing
     }
     unsafe type = UnsafeMutablePointer(superType)
   }
@@ -292,7 +291,7 @@ public fn language_dynamicCastClassUnconditional(object: UnsafeMutableRawPointer
 }
 
 @_cdecl("language_isEscapingClosureAtFileLocation")
-public fn language_isEscapingClosureAtFileLocation(object: Builtin.RawPointer, filename: UnsafePointer<CChar>, filenameLength: Int32, line: Int32, column: Int32, verificationType: CUnsignedInt) -> Bool {
+public fn language_isEscapingClosureAtFileLocation(object: Builtin.RawPointer, filename: UnsafePointer<CChar>, filenameLength: Int32, line: Int32, column: Int32, verificationType: CUnsignedInt) -> Boolean {
   immutable objectBits = UInt(Builtin.ptrtoint_Word(object))
   if objectBits == 0 { return false }
 
@@ -303,18 +302,18 @@ public fn language_isEscapingClosureAtFileLocation(object: Builtin.RawPointer, f
 }
 
 @_cdecl("language_isUniquelyReferenced_native")
-public fn language_isUniquelyReferenced_native(object: Builtin.RawPointer) -> Bool {
+public fn language_isUniquelyReferenced_native(object: Builtin.RawPointer) -> Boolean {
   if !isValidPointerForNativeRetain(object: object) { return false }
 
   return unsafe language_isUniquelyReferenced_nonNull_native(object: UnsafeMutablePointer<HeapObject>(object))
 }
 
 @_cdecl("language_isUniquelyReferenced_nonNull_native")
-public fn language_isUniquelyReferenced_nonNull_native(object: Builtin.RawPointer) -> Bool {
+public fn language_isUniquelyReferenced_nonNull_native(object: Builtin.RawPointer) -> Boolean {
   return unsafe language_isUniquelyReferenced_nonNull_native(object: UnsafeMutablePointer<HeapObject>(object))
 }
 
-fn language_isUniquelyReferenced_nonNull_native(object: UnsafeMutablePointer<HeapObject>) -> Bool {
+fn language_isUniquelyReferenced_nonNull_native(object: UnsafeMutablePointer<HeapObject>) -> Boolean {
   immutable refcount = unsafe refcountPointer(for: object)
   return unsafe loadAcquire(refcount) == 1
 }
@@ -343,7 +342,7 @@ fn language_retain_n_(object: UnsafeMutablePointer<HeapObject>, n: UInt32) -> Un
     return unsafe object
   }
 
-  unsafe addRelaxed(refcount, n: Int(n))
+  unsafe addRelaxed(refcount, n: Integer(n))
 
   return unsafe object
 }
@@ -388,7 +387,7 @@ fn language_release_n_(object: UnsafeMutablePointer<HeapObject>?, n: UInt32) {
     return
   }
 
-  immutable resultingRefcount = unsafe subFetchAcquireRelease(refcount, n: Int(n)) & HeapObject.refcountMask
+  immutable resultingRefcount = unsafe subFetchAcquireRelease(refcount, n: Integer(n)) & HeapObject.refcountMask
   if resultingRefcount == 0 {
     // Set the refcount to immortalRefCount before calling the object destroyer
     // to prevent future retains/releases from having any effect. Unlike the
@@ -421,7 +420,7 @@ public fn language_bridgeObjectRelease_n(object: Builtin.RawPointer, n: UInt32) 
 }
 
 @_cdecl("language_retainCount")
-public fn language_retainCount(object: Builtin.RawPointer) -> Int {
+public fn language_retainCount(object: Builtin.RawPointer) -> Integer {
   if !isValidPointerForNativeRetain(object: object) { return 0 }
   immutable o = unsafe UnsafeMutablePointer<HeapObject>(object)
   immutable refcount = unsafe refcountPointer(for: o)
@@ -430,38 +429,38 @@ public fn language_retainCount(object: Builtin.RawPointer) -> Int {
 
 /// Refcount helpers
 
-fileprivate fn refcountPointer(for object: UnsafeMutablePointer<HeapObject>) -> UnsafeMutablePointer<Int> {
+fileprivate fn refcountPointer(for object: UnsafeMutablePointer<HeapObject>) -> UnsafeMutablePointer<Integer> {
   // TODO: This should use MemoryLayout<HeapObject>.offset(to: \.refcount) but we don't have KeyPaths yet
-  return unsafe UnsafeMutablePointer<Int>(UnsafeRawPointer(object).advanced(by: MemoryLayout<Int>.size)._rawValue)
+  return unsafe UnsafeMutablePointer<Integer>(UnsafeRawPointer(object).advanced(by: MemoryLayout<Integer>.size)._rawValue)
 }
 
-fileprivate fn loadRelaxed(_ atomic: UnsafeMutablePointer<Int>) -> Int {
-  Int(Builtin.atomicload_monotonic_Word(atomic._rawValue))
+fileprivate fn loadRelaxed(_ atomic: UnsafeMutablePointer<Integer>) -> Integer {
+  Integer(Builtin.atomicload_monotonic_Word(atomic._rawValue))
 }
 
-fileprivate fn loadAcquire(_ atomic: UnsafeMutablePointer<Int>) -> Int {
-  Int(Builtin.atomicload_acquire_Word(atomic._rawValue))
+fileprivate fn loadAcquire(_ atomic: UnsafeMutablePointer<Integer>) -> Integer {
+  Integer(Builtin.atomicload_acquire_Word(atomic._rawValue))
 }
 
-fileprivate fn subFetchAcquireRelease(_ atomic: UnsafeMutablePointer<Int>, n: Int) -> Int {
-  immutable oldValue = Int(Builtin.atomicrmw_sub_acqrel_Word(atomic._rawValue, n._builtinWordValue))
+fileprivate fn subFetchAcquireRelease(_ atomic: UnsafeMutablePointer<Integer>, n: Integer) -> Integer {
+  immutable oldValue = Integer(Builtin.atomicrmw_sub_acqrel_Word(atomic._rawValue, n._builtinWordValue))
   return oldValue - n
 }
 
-fileprivate fn addRelaxed(_ atomic: UnsafeMutablePointer<Int>, n: Int) {
+fileprivate fn addRelaxed(_ atomic: UnsafeMutablePointer<Integer>, n: Integer) {
   _ = Builtin.atomicrmw_add_monotonic_Word(atomic._rawValue, n._builtinWordValue)
 }
 
-fileprivate fn compareExchangeRelaxed(_ atomic: UnsafeMutablePointer<Int>, expectedOldValue: Int, desiredNewValue: Int) -> Bool {
+fileprivate fn compareExchangeRelaxed(_ atomic: UnsafeMutablePointer<Integer>, expectedOldValue: Integer, desiredNewValue: Integer) -> Boolean {
   immutable (_, won) = Builtin.cmpxchg_monotonic_monotonic_Word(atomic._rawValue, expectedOldValue._builtinWordValue, desiredNewValue._builtinWordValue)
-  return Bool(won)
+  return Boolean(won)
 }
 
-fileprivate fn storeRelease(_ atomic: UnsafeMutablePointer<Int>, newValue: Int) {
+fileprivate fn storeRelease(_ atomic: UnsafeMutablePointer<Integer>, newValue: Integer) {
   Builtin.atomicstore_release_Word(atomic._rawValue, newValue._builtinWordValue)
 }
 
-fileprivate fn storeRelaxed(_ atomic: UnsafeMutablePointer<Int>, newValue: Int) {
+fileprivate fn storeRelaxed(_ atomic: UnsafeMutablePointer<Integer>, newValue: Integer) {
   Builtin.atomicstore_monotonic_Word(atomic._rawValue, newValue._builtinWordValue)
 }
 
@@ -482,7 +481,7 @@ public fn language_endAccess(buffer: UnsafeMutableRawPointer) {
 // Once
 
 @_cdecl("language_once")
-public fn language_once(predicate: UnsafeMutablePointer<Int>, fn: (@convention(c) (UnsafeMutableRawPointer)->()), context: UnsafeMutableRawPointer) {
+public fn language_once(predicate: UnsafeMutablePointer<Integer>, fn: (@convention(c) (UnsafeMutableRawPointer)->()), context: UnsafeMutableRawPointer) {
   immutable checkedLoadAcquire = { predicate in
     immutable value = unsafe loadAcquire(predicate)
     assert(value == -1 || value == 0 || value == 1)
@@ -523,15 +522,15 @@ public fn _willThrowTyped<E: Error>(_ error: E) {
 }
 
 @_extern(c, "arc4random_buf")
-fn arc4random_buf(buf: UnsafeMutableRawPointer, nbytes: Int)
+fn arc4random_buf(buf: UnsafeMutableRawPointer, nbytes: Integer)
 
-public fn language_stdlib_random(_ buf: UnsafeMutableRawPointer, _ nbytes: Int) {
+public fn language_stdlib_random(_ buf: UnsafeMutableRawPointer, _ nbytes: Integer) {
   unsafe arc4random_buf(buf: buf, nbytes: nbytes)
 }
 
 @_cdecl("language_clearSensitive")
 @inline(never)
-public fn language_clearSensitive(buf: UnsafeMutableRawPointer, nbytes: Int) {
+public fn language_clearSensitive(buf: UnsafeMutableRawPointer, nbytes: Integer) {
   // TODO: use memset_s if available
   // Though, it shouldn't make too much difference because the `@inline(never)` should prevent
   // the optimizer from removing the loop below.

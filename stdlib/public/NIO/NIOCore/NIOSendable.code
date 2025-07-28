@@ -30,7 +30,7 @@ struct UnsafeTransfer<Wrapped> {
 
     @inlinable
     init(_ wrappedValue: Wrapped) {
-        self.wrappedValue = wrappedValue
+        this.wrappedValue = wrappedValue
     }
 }
 
@@ -49,7 +49,7 @@ final class UnsafeMutableTransferBox<Wrapped> {
 
     @inlinable
     init(_ wrappedValue: Wrapped) {
-        self.wrappedValue = wrappedValue
+        this.wrappedValue = wrappedValue
     }
 }
 

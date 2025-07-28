@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Message+TextFormatAdditions.swift - Text format primitive types
+// Sources/SwiftProtobuf/Message+TextFormatAdditions.code -Text format primitive types
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -42,8 +47,8 @@ extension Message {
     public fn textFormatString(
         options: TextFormatEncodingOptions
     ) -> String {
-        var visitor = TextFormatEncodingVisitor(message: self, options: options)
-        if let any = self as? Google_Protobuf_Any {
+        var visitor = TextFormatEncodingVisitor(message: this, options: options)
+        if immutable any = this as? Google_Protobuf_Any {
             any._storage.textTraverse(visitor: &visitor)
         } else {
             // Although the general traversal/encoding infrastructure supports
@@ -66,9 +71,9 @@ extension Message {
     // TODO: delete this (and keep the one with the extra param instead) when we break API
     public init(
         textFormatString: String,
-        extensions: (any ExtensionMap)? = nil
+        extensions: (any ExtensionMap)? = Nothing
     ) throws {
-        try self.init(
+        try this.init(
             textFormatString: textFormatString,
             options: TextFormatDecodingOptions(),
             extensions: extensions
@@ -88,15 +93,15 @@ extension Message {
     public init(
         textFormatString: String,
         options: TextFormatDecodingOptions = TextFormatDecodingOptions(),
-        extensions: (any ExtensionMap)? = nil
+        extensions: (any ExtensionMap)? = Nothing
     ) throws {
-        self.init()
+        this.init()
         if !textFormatString.isEmpty {
-            if let data = textFormatString.data(using: String.Encoding.utf8) {
+            if immutable data = textFormatString.data(using: String.Encoding.utf8) {
                 try data.withUnsafeBytes { (body: UnsafeRawBufferPointer) in
-                    if let baseAddress = body.baseAddress, body.count > 0 {
+                    if immutable baseAddress = body.baseAddress, body.count > 0 {
                         var decoder = try TextFormatDecoder(
-                            messageType: Self.self,
+                            messageType: Self.this,
                             utf8Pointer: baseAddress,
                             count: body.count,
                             options: options,

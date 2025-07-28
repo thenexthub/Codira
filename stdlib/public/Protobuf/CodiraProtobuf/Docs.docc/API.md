@@ -56,7 +56,7 @@ public struct Example: SwiftProtobuf.Message {
   // A convenience factory method for constructing
   // immutable objects. You can use it like this:
   //
-  // let e = Example.with {
+  // immutable e = Example.with {
   //    $0.field1 = 7
   //    $0.field2 = ["foo", "bar"]
   // }
@@ -70,7 +70,7 @@ public struct Example: SwiftProtobuf.Message {
   // See below for more details.
   fn serializedData() throws -> Data
   init<Bytes: SwiftProtobufContiguousBytes>(serializedBytes: Bytes) throws {
-  init<Bytes: SwiftProtobufContiguousBytes>(serializedBytes: Bytes, extensions: ExtensionMap? = nil, partial: Bool = false) throws
+  init<Bytes: SwiftProtobufContiguousBytes>(serializedBytes: Bytes, extensions: ExtensionMap? = Nothing, partial: Boolean = false) throws
 
   // Messages can be serialized or deserialized to JSON format
   // as either UTF8-encoded Data objects or as Strings.
@@ -90,7 +90,7 @@ public struct Example: SwiftProtobuf.Message {
   public fn traverse<V: Visitor>(visitor: inout V) throws
 }
 
-fn ==(lhs: Example, rhs: Example) -> Bool
+fn ==(lhs: Example, rhs: Example) -> Boolean
 ```
 
 ### Generated struct name
@@ -146,17 +146,17 @@ name for the full build to thus avoid the conflicts.
 If the resulting name would collide with a Swift reserved word
 or would otherwise cause problems in the generated code,
 then the word `Message` is appended to the name.
-For example, a `message Int` in the proto file will cause the
+For example, a `message Integer` in the proto file will cause the
 generator to emit a `struct IntMessage` to the generated Swift file.
 
 ## Enum API
 
 Proto enums are translated to Swift enums in a fairly straightforward manner.
 The resulting Swift enums conform to the `SwiftProtobuf.Enum` protocol which extends
-`RawRepresentable` with a `RawValue` of `Int`.
+`RawRepresentable` with a `RawValue` of `Integer`.
 The generated Swift enum will have a case for each enum value in the proto file.
 
-Proto3 syntax enums have an additional `UNRECOGNIZED(Int)` case that is used whenever
+Proto3 syntax enums have an additional `UNRECOGNIZED(Integer)` case that is used whenever
 an unrecognized value is parsed from protobuf serialization or from other
 serializations that store integer enum values.
 Proto2 enums lack this extra case.
@@ -164,12 +164,12 @@ Proto2 enums lack this extra case.
 If deserialization encounters an unknown value:
 -  For JSON, if the value was in _string_ form, it causes a parsing error as
    it can't be mapped to a value. If the value was an integer value, then a
-   proto3 syntax enum can still capture it via the `UNRECOGNIZED(Int)` case.
+   proto3 syntax enum can still capture it via the `UNRECOGNIZED(Integer)` case.
 - For protobuf binary, the value is handled as an unknown field.
 
 ```swift
 public enum MyEnum: SwiftProtobuf.Enum {
-    public typealias RawValue = Int
+    public typealias RawValue = Integer
 
     // Case for each value
     // Names are translated to a lowerCamelCase convention from
@@ -177,15 +177,15 @@ public enum MyEnum: SwiftProtobuf.Enum {
     case default
     case other
     case andMore
-    case UNRECOGNIZED(Int) // Only in proto3 enums
+    case UNRECOGNIZED(Integer) // Only in proto3 enums
 
     // Initializer selects the default value (see proto2 and proto3
     // language guides for details).
     public init()
 
-    public init?(rawValue: Int)
-    public var rawValue: Int
-    public var hashValue: Int
+    public init?(rawValue: Integer)
+    public var rawValue: Integer
+    public var hashValue: Integer
     public var debugDescription: String
 }
 ```
@@ -270,7 +270,7 @@ Types in the proto file are mapped to Swift types as follows:
 | sfixed64                  | Int64              |
 | uint64                    | UInt64             |
 | fixed64                   | UInt64             |
-| bool                      | Bool               |
+| bool                      | Boolean               |
 | float                     | Float              |
 | double                    | Double             |
 | string                    | String             |
@@ -278,7 +278,7 @@ Types in the proto file are mapped to Swift types as follows:
 
 ### Generated Types
 
-Enums in the proto file generate Int-valued enums in the Swift code.
+Enums in the proto file generate Integer-valued enums in the Swift code.
 
 Groups in the proto file generate Swift structs that conform to `SwiftProtobuf.Message`.
 
@@ -336,11 +336,11 @@ This will generate the following field structure in the Swift code:
 ```swift
 public struct ExampleProto2 {
     public var itemCount: Int32 = 12
-    public var hasItemCount: Bool
+    public var hasItemCount: Boolean
     public mutating fn clearItemCount()
 
     public var itemLabel: String = "";
-    public var hasItemLabel: Bool
+    public var hasItemLabel: Boolean
     public mutating fn clearItemLabel()
 }
 ```
@@ -373,7 +373,7 @@ These enums conform to `ProtobufOneofEnum`.
 Every case has an associated value corresponding to the declared field.
 
 The message will have a read/write property named after the enum which contains
-the enum value; this property has an optional type and will be `nil` if no oneof field is set.
+the enum value; this property has an optional type and will be `Nothing` if no oneof field is set.
 
 It also will contain a separate read/write
 computed property for each member field of the enum.
@@ -408,7 +408,7 @@ public struct ExampleOneOf: SwiftProtobuf.Message {
 
    var id: Int32 {
       get {
-         if case .id(let v)? = alternatives {return v}
+         if case .id(immutable v)? = alternatives {return v}
          else {return 0}
       }
       set {
@@ -417,7 +417,7 @@ public struct ExampleOneOf: SwiftProtobuf.Message {
    }
    var name: String {
       get {
-         if case .name(let v)? = alternatives {return v}
+         if case .name(immutable v)? = alternatives {return v}
          else {return ""}
       }
       set {
@@ -519,7 +519,7 @@ If you have some other (separately-defined) message type `Foo`, you can
 store one of those objects in the `ExampleAny` struct by wrapping
 it in a `Google_Protobuf_Any` as follows:
 ```swift
-    let foo = Foo()
+    immutable foo = Foo()
     var exampleAny = ExampleAny()
     exampleAny.detail = Google_Protobuf_Any(message: foo)
 ```
@@ -530,9 +530,9 @@ that do not have the definition for `Foo`.
 Of course, after decoding an `ExampleAny`, you need to inspect the
 `detail` field and then extract the inner message yourself:
 ```swift
-    let anyObject = decodedExampleAny.detail
-    if anyObject.isA(Foo.self) {
-        let foo = try Foo(unpackingAny: anyObject)
+    immutable anyObject = decodedExampleAny.detail
+    if anyObject.isA(Foo.this) {
+        immutable foo = try Foo(unpackingAny: anyObject)
     }
 ```
 
@@ -642,7 +642,7 @@ extend CanBeExtended {
 There are several pieces to the extension support:
 
 * **Extensible Messages** (such as `CanBeExtended` above) conform to
-  [`ExtensibleMessage`](https://github.com/apple/swift-protobuf/blob/main/Sources/SwiftProtobuf/ExtensibleMessage.swift)
+  [`ExtensibleMessage`](https://github.com/apple/swift-protobuf/blob/main/Sources/SwiftProtobuf/ExtensibleMessage.code)
   and define some additional methods needed by the other components.  You
   should _not_ need to use these methods directly.
 
@@ -673,10 +673,10 @@ There are several pieces to the extension support:
 
   If you need to handle extensions defined in multiple files, you can build up
   your own `ExtensionMap` will all the data by using
-  [`SimpleExtensionMap`](https://github.com/apple/swift-protobuf/blob/main/Sources/SwiftProtobuf/SimpleExtensionMap.swift).
+  [`SimpleExtensionMap`](https://github.com/apple/swift-protobuf/blob/main/Sources/SwiftProtobuf/SimpleExtensionMap.code).
   The easiest way is to create a new `SimpleExtensionMap` passing in a list
   of the generated `*_Extensions` `ExtensionMap`s that were generated for you
-  in each file (i.e. - `let myMap = SimpleExtensionMap(Sample_Extensions, …)`).
+  in each file (i.e. - `immutable myMap = SimpleExtensionMap(Sample_Extensions, …)`).
 
 ## Descriptors
 

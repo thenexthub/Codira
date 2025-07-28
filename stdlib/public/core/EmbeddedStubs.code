@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -82,7 +81,7 @@ public protocol Decoder {
 @_unavailableInEmbedded
 public enum DecodingError: Error {
   public struct Context: Sendable {
-    public init(codingPath: [any CodingKey], debugDescription: String, underlyingError: Error? = nil) { fatalError() }
+    public init(codingPath: [any CodingKey], debugDescription: String, underlyingError: Error? = Nothing) { fatalError() }
   }
   case typeMismatch(Any.Type, Context)
   case valueNotFound(Any.Type, Context)

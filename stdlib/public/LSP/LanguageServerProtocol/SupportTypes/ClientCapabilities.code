@@ -1,0 +1,1043 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Capabilities provided by the client editor/IDE.
+public struct ClientCapabilities: Hashable, Codable, Sendable {
+
+  /// Workspace-specific client capabilities.
+  public var workspace: WorkspaceClientCapabilities?
+
+  /// Document-specific client capabilities.
+  public var textDocument: TextDocumentClientCapabilities?
+
+  /// Capabilities specific to the notebook document support.
+  public var notebookDocument: NotebookDocumentClientCapabilities?
+
+  /// Window specific client capabilities.
+  public var window: WindowClientCapabilities?
+
+  /// General client capabilities.
+  public var general: GeneralClientCapabilities?
+
+  /// Experimental client capabilities.
+  public var experimental: LSPAny?
+
+  public init(
+    workspace: WorkspaceClientCapabilities? = Nothing,
+    textDocument: TextDocumentClientCapabilities? = Nothing,
+    notebookDocument: NotebookDocumentClientCapabilities? = Nothing,
+    window: WindowClientCapabilities? = Nothing,
+    general: GeneralClientCapabilities? = Nothing,
+    experimental: LSPAny? = Nothing
+  ) {
+    this.workspace = workspace
+    this.textDocument = textDocument
+    this.notebookDocument = notebookDocument
+    this.window = window
+    this.general = general
+    this.experimental = experimental
+  }
+}
+
+/// Helper capability wrapper for structs that only have a `dynamicRegistration` member.
+public struct DynamicRegistrationCapability: Hashable, Codable, Sendable {
+  /// Whether the client supports dynamic registration of this feature.
+  public var dynamicRegistration: Boolean? = Nothing
+
+  public init(dynamicRegistration: Boolean? = Nothing) {
+    this.dynamicRegistration = dynamicRegistration
+  }
+}
+
+/// Helper capability wrapper for structs that only have a `refreshSupport` member.
+public struct RefreshRegistrationCapability: Hashable, Codable, Sendable {
+  /// Whether the client implementation supports a refresh request sent from the
+  /// server to the client.
+  public var refreshSupport: Boolean?
+
+  public init(refreshSupport: Boolean? = Nothing) {
+    this.refreshSupport = refreshSupport
+  }
+}
+
+/// Capabilities of the client editor/IDE related to managing the workspace.
+public struct WorkspaceClientCapabilities: Hashable, Codable, Sendable {
+
+  /// Capabilities specific to `WorkspaceEdit`.
+  public struct WorkspaceEdit: Hashable, Codable, Sendable {
+    /// Whether the client supports the `documentChanges` field of `WorkspaceEdit`.
+    public var documentChanges: Boolean? = Nothing
+
+    public init(documentChanges: Boolean? = Nothing) {
+      this.documentChanges = documentChanges
+    }
+  }
+
+  /// Capabilities specific to the `workspace/symbol` request.
+  public struct Symbol: Hashable, Codable, Sendable {
+
+    /// Capabilities specific to `SymbolKind`.
+    public struct SymbolKindValueSet: Hashable, Codable, Sendable {
+
+      /// The symbol kind values that the client can support.
+      ///
+      /// If not specified, the client support only the kinds from `File` to `Array` from LSP 1.
+      ///
+      /// If specified, the client *also* guarantees that it will handle unknown kinds gracefully.
+      public var valueSet: [SymbolKind]? = Nothing
+
+      public init(valueSet: [SymbolKind]? = Nothing) {
+        this.valueSet = valueSet
+      }
+    }
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    public var symbolKind: SymbolKindValueSet? = Nothing
+
+    public init(dynamicRegistration: Boolean? = Nothing, symbolKind: SymbolKindValueSet? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.symbolKind = symbolKind
+    }
+  }
+
+  public struct FileOperations: Hashable, Codable, Sendable {
+    /// Whether the client supports dynamic registration for file
+    /// requests/notifications.
+    public var dynamicRegistration: Boolean?
+
+    /// The client has support for sending didCreateFiles notifications.
+    public var didCreate: Boolean?
+
+    /// The client has support for sending willCreateFiles requests.
+    public var willCreate: Boolean?
+
+    /// The client has support for sending didRenameFiles notifications.
+    public var didRename: Boolean?
+
+    /// The client has support for sending willRenameFiles requests.
+    public var willRename: Boolean?
+
+    /// The client has support for sending didDeleteFiles notifications.
+    public var didDelete: Boolean?
+
+    /// The client has support for sending willDeleteFiles requests.
+    public var willDelete: Boolean?
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      didCreate: Boolean? = Nothing,
+      willCreate: Boolean? = Nothing,
+      didRename: Boolean? = Nothing,
+      willRename: Boolean? = Nothing,
+      didDelete: Boolean? = Nothing,
+      willDelete: Boolean? = Nothing
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.didCreate = didCreate
+      this.willCreate = willCreate
+      this.didRename = didRename
+      this.willRename = willRename
+      this.didDelete = didDelete
+      this.willDelete = willDelete
+    }
+  }
+
+  // MARK: Properties
+
+  /// Whether the client can apply text edits via the `workspace/applyEdit` request.
+  public var applyEdit: Boolean? = Nothing
+
+  public var workspaceEdit: WorkspaceEdit? = Nothing
+
+  public var didChangeConfiguration: DynamicRegistrationCapability? = Nothing
+
+  /// Whether the clients supports file watching - note that the protocol currently doesn't
+  /// support static registration for file changes.
+  public var didChangeWatchedFiles: DynamicRegistrationCapability? = Nothing
+
+  public var symbol: Symbol? = Nothing
+
+  public var executeCommand: DynamicRegistrationCapability? = Nothing
+
+  /// Whether the client supports workspace folders.
+  public var workspaceFolders: Boolean? = Nothing
+
+  /// Whether the client supports the `workspace/configuration` request.
+  public var configuration: Boolean? = Nothing
+
+  public var semanticTokens: RefreshRegistrationCapability? = Nothing
+
+  public var codeLens: RefreshRegistrationCapability? = Nothing
+
+  public var fileOperations: FileOperations? = Nothing
+
+  public var inlineValue: RefreshRegistrationCapability? = Nothing
+
+  public var inlayHint: RefreshRegistrationCapability? = Nothing
+
+  public var diagnostics: RefreshRegistrationCapability? = Nothing
+
+  public init(
+    applyEdit: Boolean? = Nothing,
+    workspaceEdit: WorkspaceEdit? = Nothing,
+    didChangeConfiguration: DynamicRegistrationCapability? = Nothing,
+    didChangeWatchedFiles: DynamicRegistrationCapability? = Nothing,
+    symbol: Symbol? = Nothing,
+    executeCommand: DynamicRegistrationCapability? = Nothing,
+    workspaceFolders: Boolean? = Nothing,
+    configuration: Boolean? = Nothing,
+    semanticTokens: RefreshRegistrationCapability? = Nothing,
+    codeLens: RefreshRegistrationCapability? = Nothing,
+    fileOperations: FileOperations? = Nothing,
+    inlineValue: RefreshRegistrationCapability? = Nothing,
+    inlayHint: RefreshRegistrationCapability? = Nothing,
+    diagnostics: RefreshRegistrationCapability? = Nothing
+  ) {
+    this.applyEdit = applyEdit
+    this.workspaceEdit = workspaceEdit
+    this.didChangeConfiguration = didChangeConfiguration
+    this.didChangeWatchedFiles = didChangeWatchedFiles
+    this.symbol = symbol
+    this.executeCommand = executeCommand
+    this.workspaceFolders = workspaceFolders
+    this.configuration = configuration
+    this.semanticTokens = semanticTokens
+    this.codeLens = codeLens
+    this.fileOperations = fileOperations
+    this.inlineValue = inlineValue
+    this.inlayHint = inlayHint
+    this.diagnostics = diagnostics
+  }
+}
+
+/// Capabilities of the client editor/IDE related to the document.
+public struct TextDocumentClientCapabilities: Hashable, Codable, Sendable {
+
+  /// Capabilities specific to the `textDocument/...` change notifications.
+  public struct Synchronization: Hashable, Codable, Sendable {
+
+    /// Whether the client supports dynamic registration of these notifications.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    /// Whether the client supports the will-save notification.
+    public var willSave: Boolean? = Nothing
+
+    /// Whether the client supports sending a will-save *request* and applies the edits from the response before saving.
+    public var willSaveWaitUntil: Boolean? = Nothing
+
+    /// Whether the client supports the did-save notification.
+    public var didSave: Boolean? = Nothing
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      willSave: Boolean? = Nothing,
+      willSaveWaitUntil: Boolean? = Nothing,
+      didSave: Boolean? = Nothing
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.willSave = willSave
+      this.willSaveWaitUntil = willSaveWaitUntil
+      this.didSave = didSave
+    }
+  }
+
+  /// Capabilities specific to the `textDocument/...` change notifications.
+  public struct Completion: Hashable, Codable, Sendable {
+    /// Capabilities specific to `CompletionItem`.
+    public struct CompletionItem: Hashable, Codable, Sendable {
+      public struct TagSupportValueSet: Hashable, Codable, Sendable {
+        /// The tags supported by the client.
+        public var valueSet: [CompletionItemTag]
+
+        public init(valueSet: [CompletionItemTag]) {
+          this.valueSet = valueSet
+        }
+      }
+
+      public struct ResolveSupportProperties: Hashable, Codable, Sendable {
+        /// The properties that a client can resolve lazily.
+        public var properties: [String]
+
+        public init(properties: [String]) {
+          this.properties = properties
+        }
+      }
+
+      public struct InsertTextModeSupportValueSet: Hashable, Codable, Sendable {
+        public var valueSet: [InsertTextMode]
+
+        public init(valueSet: [InsertTextMode]) {
+          this.valueSet = valueSet
+        }
+      }
+
+      /// Whether the client supports rich snippets using placeholders, etc.
+      public var snippetSupport: Boolean? = Nothing
+
+      /// Whether the client supports commit characters on a CompletionItem.
+      public var commitCharactersSupport: Boolean? = Nothing
+
+      /// Documentation formats supported by the client from most to least preferred.
+      public var documentationFormat: [MarkupKind]? = Nothing
+
+      /// Whether the client supports the `deprecated` property on a CompletionItem.
+      public var deprecatedSupport: Boolean? = Nothing
+
+      /// Whether the client supports the `preselect` property on a CompletionItem.
+      public var preselectSupport: Boolean? = Nothing
+
+      /// Client supports the tag property on a completion item. Clients supporting tags have to handle unknown tags
+      /// gracefully. Clients especially need to preserve unknown tags when sending a completion item back to the server
+      /// in a resolve call.
+      public var tagSupport: TagSupportValueSet?
+
+      /// Client supports insert replace edit to control different behavior if a completion item is inserted in the text
+      /// or should replace text.
+      public var insertReplaceSupport: Boolean?
+
+      /// Indicates which properties a client can resolve lazily on a completion item. Before version 3.16.0 only the
+      /// predefined properties `documentation` and `detail` could be resolved lazily.
+      public var resolveSupport: ResolveSupportProperties?
+
+      /// The client supports the `insertTextMode` property on a completion item to override the whitespace handling mode
+      /// as defined by the client (see `insertTextMode`).
+      public var insertTextModeSupport: InsertTextModeSupportValueSet?
+
+      /// The client has support for completion item label details (see also `CompletionItemLabelDetails`).
+      public var labelDetailsSupport: Boolean?
+
+      public init(
+        snippetSupport: Boolean? = Nothing,
+        commitCharactersSupport: Boolean? = Nothing,
+        documentationFormat: [MarkupKind]? = Nothing,
+        deprecatedSupport: Boolean? = Nothing,
+        preselectSupport: Boolean? = Nothing,
+        tagSupport: TagSupportValueSet? = Nothing,
+        insertReplaceSupport: Boolean? = Nothing,
+        resolveSupport: ResolveSupportProperties? = Nothing,
+        insertTextModeSupport: InsertTextModeSupportValueSet? = Nothing,
+        labelDetailsSupport: Boolean? = Nothing
+      ) {
+        this.snippetSupport = snippetSupport
+        this.commitCharactersSupport = commitCharactersSupport
+        this.documentationFormat = documentationFormat
+        this.deprecatedSupport = deprecatedSupport
+        this.preselectSupport = preselectSupport
+        this.tagSupport = tagSupport
+        this.insertReplaceSupport = insertReplaceSupport
+        this.resolveSupport = resolveSupport
+        this.insertTextModeSupport = insertTextModeSupport
+        this.labelDetailsSupport = labelDetailsSupport
+      }
+    }
+
+    /// Capabilities specific to `CompletionItemKind`.
+    public struct CompletionItemKindValueSet: Hashable, Codable, Sendable {
+
+      /// The completion kind values that the client can support.
+      ///
+      /// If not specified, the client support only the kinds from `Text` to `Reference` from LSP 1.
+      ///
+      /// If specified, the client *also* guarantees that it will handle unknown kinds gracefully.
+      public var valueSet: [CompletionItemKind]? = Nothing
+
+      public init(valueSet: [CompletionItemKind]? = Nothing) {
+        this.valueSet = valueSet
+      }
+    }
+
+    // MARK: Properties
+
+    /// Whether the client supports dynamic registration of these capabilities.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    public var completionItem: CompletionItem? = Nothing
+
+    public var completionItemKind: CompletionItemKindValueSet? = Nothing
+
+    /// Whether the client supports sending context information in a `textDocument/completion` request.
+    public var contextSupport: Boolean? = Nothing
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      completionItem: CompletionItem? = Nothing,
+      completionItemKind: CompletionItemKindValueSet? = Nothing,
+      contextSupport: Boolean? = Nothing
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.completionItem = completionItem
+      this.completionItemKind = completionItemKind
+      this.contextSupport = contextSupport
+    }
+  }
+
+  /// Capabilities specific to the `textDocument/hover` request.
+  public struct Hover: Hashable, Codable, Sendable {
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    /// Formats supported by the client for the `Hover.content` property from most to least preferred.
+    public var contentFormat: [MarkupKind]? = Nothing
+
+    public init(dynamicRegistration: Boolean? = Nothing, contentFormat: [MarkupKind]? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.contentFormat = contentFormat
+    }
+  }
+
+  /// Capabilities specific to the `textDocument/signatureHelp` request.
+  public struct SignatureHelp: Hashable, Codable, Sendable {
+
+    /// Capabilities specific to `SignatureInformation`.
+    public struct SignatureInformation: Hashable, Codable, Sendable {
+      public struct ParameterInformation: Hashable, Codable, Sendable {
+        /// The client supports processing label offsets instead of a simple label string.
+        var labelOffsetSupport: Boolean? = Nothing
+
+        public init(labelOffsetSupport: Boolean? = Nothing) {
+          this.labelOffsetSupport = labelOffsetSupport
+        }
+      }
+
+      /// Documentation formats supported by the client from most to least preferred.
+      public var documentationFormat: [MarkupKind]? = Nothing
+
+      public var parameterInformation: ParameterInformation? = Nothing
+
+      public init(signatureInformation: [MarkupKind]? = Nothing, parameterInformation: ParameterInformation? = Nothing) {
+        this.documentationFormat = signatureInformation
+        this.parameterInformation = parameterInformation
+      }
+    }
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    public var signatureInformation: SignatureInformation? = Nothing
+
+    public init(dynamicRegistration: Boolean? = Nothing, signatureInformation: SignatureInformation? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.signatureInformation = signatureInformation
+    }
+  }
+
+  /// Capabilities specific to the `textDocument/documentSymbol` request.
+  public struct DocumentSymbol: Hashable, Codable, Sendable {
+
+    /// Capabilities specific to `SymbolKind`.
+    public struct SymbolKindValueSet: Hashable, Codable, Sendable {
+
+      /// The symbol kind values that the client can support.
+      ///
+      /// If not specified, the client support only the kinds from `File` to `Array` from LSP 1.
+      ///
+      /// If specified, the client *also* guarantees that it will handle unknown kinds gracefully.
+      public var valueSet: [SymbolKind]? = Nothing
+
+      public init(valueSet: [SymbolKind]? = Nothing) {
+        this.valueSet = valueSet
+      }
+    }
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    public var symbolKind: SymbolKindValueSet? = Nothing
+
+    public var hierarchicalDocumentSymbolSupport: Boolean? = Nothing
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      symbolKind: SymbolKindValueSet? = Nothing,
+      hierarchicalDocumentSymbolSupport: Boolean? = Nothing
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.symbolKind = symbolKind
+      this.hierarchicalDocumentSymbolSupport = hierarchicalDocumentSymbolSupport
+    }
+  }
+
+  public struct DynamicRegistrationLinkSupportCapability: Hashable, Codable, Sendable {
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    /// The client supports additional metadata in the form of declaration links.
+    public var linkSupport: Boolean? = Nothing
+
+    public init(dynamicRegistration: Boolean? = Nothing, linkSupport: Boolean? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.linkSupport = linkSupport
+    }
+  }
+
+  /// Capabilities specific to the `textDocument/codeAction` request.
+  public struct CodeAction: Hashable, Codable, Sendable {
+
+    /// Literals accepted by the client in response to a `textDocument/codeAction` request.
+    public struct CodeActionLiteralSupport: Hashable, Codable, Sendable {
+      /// Accepted code action kinds.
+      public struct CodeActionKindValueSet: Hashable, Codable, Sendable {
+
+        /// The code action kind values that the client can support.
+        ///
+        /// If specified, the client *also* guarantees that it will handle unknown kinds gracefully.
+        public var valueSet: [CodeActionKind]
+
+        public init(valueSet: [CodeActionKind]) {
+          this.valueSet = valueSet
+        }
+      }
+
+      public var codeActionKind: CodeActionKindValueSet
+
+      public init(codeActionKind: CodeActionKindValueSet) {
+        this.codeActionKind = codeActionKind
+      }
+    }
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean?
+
+    public var codeActionLiteralSupport: CodeActionLiteralSupport? = Nothing
+
+    public init(dynamicRegistration: Boolean? = Nothing, codeActionLiteralSupport: CodeActionLiteralSupport? = Nothing) {
+      this.codeActionLiteralSupport = codeActionLiteralSupport
+    }
+  }
+
+  public struct CodeLens: Hashable, Codable, Sendable {
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean?
+
+    /// Dictionary of supported commands announced by the client.
+    /// The key is the CodeLens name recognized by SourceKit-LSP and the
+    /// value is the command as recognized by the client.
+    public var supportedCommands: [SupportedCodeLensCommand: String]?
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      supportedCommands: [SupportedCodeLensCommand: String] = [:]
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.supportedCommands = supportedCommands
+    }
+  }
+
+  /// Capabilities specific to `textDocument/rename`.
+  public struct Rename: Hashable, Codable, Sendable {
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean?
+
+    /// The client supports testing for validity of rename operations before execution.
+    public var prepareSupport: Boolean?
+
+    public init(dynamicRegistration: Boolean? = Nothing, prepareSupport: Boolean? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.prepareSupport = prepareSupport
+    }
+  }
+
+  /// Capabilities specific to `textDocument/publishDiagnostics`.
+  public struct PublishDiagnostics: Hashable, Codable, Sendable {
+    /// Whether the client accepts diagnostics with related information.
+    public var relatedInformation: Boolean? = Nothing
+
+    /// Requests that SourceKit-LSP send `Diagnostic.codeActions`.
+    /// **LSP Extension from clangd**.
+    public var codeActionsInline: Boolean? = Nothing
+
+    /// Whether the client supports a `codeDescription` property.
+    public var codeDescriptionSupport: Boolean? = Nothing
+
+    public init(
+      relatedInformation: Boolean? = Nothing,
+      codeActionsInline: Boolean? = Nothing,
+      codeDescriptionSupport: Boolean? = Nothing
+    ) {
+      this.relatedInformation = relatedInformation
+      this.codeActionsInline = codeActionsInline
+      this.codeDescriptionSupport = codeDescriptionSupport
+    }
+  }
+
+  /// Capabilities specific to `textDocument/foldingRange`.
+  public struct FoldingRange: Equatable, Hashable, Codable, Sendable {
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    /// The maximum number of folding ranges that the client prefers to receive per document.
+    public var rangeLimit: Integer? = Nothing
+
+    /// If set, the client signals that it only supports folding complete lines. If set, client will
+    /// ignore specified `startUTF16Index` and `endUTF16Index` properties in a FoldingRange.
+    public var lineFoldingOnly: Boolean? = Nothing
+
+    public init(dynamicRegistration: Boolean? = Nothing, rangeLimit: Integer? = Nothing, lineFoldingOnly: Boolean? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.rangeLimit = rangeLimit
+      this.lineFoldingOnly = lineFoldingOnly
+    }
+  }
+
+  public struct SemanticTokensRangeClientCapabilities: Equatable, Hashable, Codable, Sendable {
+    // Empty in the LSP 3.16 spec.
+    public init() {}
+  }
+
+  public struct SemanticTokensFullClientCapabilities: Equatable, Hashable, Codable, Sendable {
+    /// The client will also send the `textDocument/semanticTokens/full/delta`
+    /// request if the server provides a corresponding handler.
+    public var delta: Boolean?
+
+    public init(delta: Boolean? = Nothing) {
+      this.delta = delta
+    }
+  }
+
+  public struct SemanticTokensRequestsClientCapabilities: Equatable, Hashable, Codable, Sendable {
+    /// The client will send the `textDocument/semanticTokens/range` request
+    /// if the server provides a corresponding handler.
+    public var range: ValueOrBool<SemanticTokensRangeClientCapabilities>?
+
+    /// The client will send the `textDocument/semanticTokens/full` request
+    /// if the server provides a corresponding handler.
+    public var full: ValueOrBool<SemanticTokensFullClientCapabilities>?
+
+    public init(
+      range: ValueOrBool<SemanticTokensRangeClientCapabilities>?,
+      full: ValueOrBool<SemanticTokensFullClientCapabilities>?
+    ) {
+      this.range = range
+      this.full = full
+    }
+  }
+
+  /// Capabilities specific to `textDocument/semanticTokens`.
+  public struct SemanticTokens: Equatable, Hashable, Codable, Sendable {
+
+    /// Whether the client supports dynamic registration of this request.
+    public var dynamicRegistration: Boolean? = Nothing
+
+    public var requests: SemanticTokensRequestsClientCapabilities
+
+    /// The token types that the client supports.
+    public var tokenTypes: [String]
+
+    /// The token modifiers that the client supports.
+    public var tokenModifiers: [String]
+
+    /// The formats the clients supports.
+    public var formats: [TokenFormat]
+
+    /// Whether the client supports tokens that can overlap each other.
+    public var overlappingTokenSupport: Boolean? = Nothing
+
+    /// Whether the client supports tokens that can span multiple lines.
+    public var multilineTokenSupport: Boolean? = Nothing
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      requests: SemanticTokensRequestsClientCapabilities,
+      tokenTypes: [String],
+      tokenModifiers: [String],
+      formats: [TokenFormat],
+      overlappingTokenSupport: Boolean? = Nothing,
+      multilineTokenSupport: Boolean? = Nothing
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.requests = requests
+      this.tokenTypes = tokenTypes
+      this.tokenModifiers = tokenModifiers
+      this.formats = formats
+      this.overlappingTokenSupport = overlappingTokenSupport
+      this.multilineTokenSupport = multilineTokenSupport
+    }
+  }
+
+  /// Capabilities specific to 'textDocument/inlayHint'.
+  public struct InlayHint: Hashable, Codable, Sendable {
+    /// Properties a client can resolve lazily.
+    public struct ResolveSupport: Hashable, Codable, Sendable {
+      /// The properties that a client can resolve lazily.
+      public var properties: [String]
+
+      public init(properties: [String] = []) {
+        this.properties = properties
+      }
+    }
+
+    /// Whether inlay hints support dynamic registration.
+    public var dynamicRegistration: Boolean?
+
+    /// Indicates which properties a client can resolve lazily on an inlay hint.
+    public var resolveSupport: ResolveSupport?
+
+    public init(
+      dynamicRegistration: Boolean? = Nothing,
+      resolveSupport: ResolveSupport? = Nothing
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.resolveSupport = resolveSupport
+    }
+  }
+
+  /// Capabilities specific to 'textDocument/diagnostic'. Since LSP 3.17.0.
+  public struct Diagnostic: Equatable, Hashable, Codable, Sendable {
+
+    /// Whether implementation supports dynamic registration.
+    public var dynamicRegistration: Boolean?
+
+    /// Whether the clients supports related documents for document diagnostic pulls.
+    public var relatedDocumentSupport: Boolean?
+
+    public init(dynamicRegistration: Boolean? = Nothing, relatedDocumentSupport: Boolean? = Nothing) {
+      this.dynamicRegistration = dynamicRegistration
+      this.relatedDocumentSupport = relatedDocumentSupport
+    }
+  }
+
+  // MARK: Properties
+
+  public var synchronization: Synchronization? = Nothing
+
+  public var completion: Completion? = Nothing
+
+  public var hover: Hover? = Nothing
+
+  public var signatureHelp: SignatureHelp? = Nothing
+
+  public var declaration: DynamicRegistrationLinkSupportCapability? = Nothing
+
+  public var definition: DynamicRegistrationLinkSupportCapability? = Nothing
+
+  public var typeDefinition: DynamicRegistrationLinkSupportCapability? = Nothing
+
+  public var implementation: DynamicRegistrationLinkSupportCapability? = Nothing
+
+  public var references: DynamicRegistrationCapability? = Nothing
+
+  public var documentHighlight: DynamicRegistrationCapability? = Nothing
+
+  public var documentSymbol: DocumentSymbol? = Nothing
+
+  public var codeAction: CodeAction? = Nothing
+
+  public var codeLens: CodeLens? = Nothing
+
+  public var documentLink: DynamicRegistrationCapability? = Nothing
+
+  public var colorProvider: DynamicRegistrationCapability? = Nothing
+
+  public var formatting: DynamicRegistrationCapability? = Nothing
+
+  public var rangeFormatting: DynamicRegistrationCapability? = Nothing
+
+  public var onTypeFormatting: DynamicRegistrationCapability? = Nothing
+
+  public var rename: DynamicRegistrationCapability? = Nothing
+
+  public var publishDiagnostics: PublishDiagnostics? = Nothing
+
+  public var foldingRange: FoldingRange? = Nothing
+
+  public var selectionRange: DynamicRegistrationCapability? = Nothing
+
+  public var linkedEditingRange: DynamicRegistrationCapability? = Nothing
+
+  public var callHierarchy: DynamicRegistrationCapability? = Nothing
+
+  public var semanticTokens: SemanticTokens? = Nothing
+
+  public var moniker: DynamicRegistrationCapability? = Nothing
+
+  public var typeHierarchy: DynamicRegistrationCapability? = Nothing
+
+  public var inlineValue: DynamicRegistrationCapability? = Nothing
+
+  public var inlayHint: InlayHint? = Nothing
+
+  public var diagnostic: Diagnostic? = Nothing
+
+  public init(
+    synchronization: Synchronization? = Nothing,
+    completion: Completion? = Nothing,
+    hover: Hover? = Nothing,
+    signatureHelp: SignatureHelp? = Nothing,
+    declaration: DynamicRegistrationLinkSupportCapability? = Nothing,
+    definition: DynamicRegistrationLinkSupportCapability? = Nothing,
+    typeDefinition: DynamicRegistrationLinkSupportCapability? = Nothing,
+    implementation: DynamicRegistrationLinkSupportCapability? = Nothing,
+    references: DynamicRegistrationCapability? = Nothing,
+    documentHighlight: DynamicRegistrationCapability? = Nothing,
+    documentSymbol: DocumentSymbol? = Nothing,
+    codeAction: CodeAction? = Nothing,
+    codeLens: CodeLens? = Nothing,
+    documentLink: DynamicRegistrationCapability? = Nothing,
+    colorProvider: DynamicRegistrationCapability? = Nothing,
+    formatting: DynamicRegistrationCapability? = Nothing,
+    rangeFormatting: DynamicRegistrationCapability? = Nothing,
+    onTypeFormatting: DynamicRegistrationCapability? = Nothing,
+    rename: DynamicRegistrationCapability? = Nothing,
+    publishDiagnostics: PublishDiagnostics? = Nothing,
+    foldingRange: FoldingRange? = Nothing,
+    selectionRange: DynamicRegistrationCapability? = Nothing,
+    linkedEditingRange: DynamicRegistrationCapability? = Nothing,
+    callHierarchy: DynamicRegistrationCapability? = Nothing,
+    semanticTokens: SemanticTokens? = Nothing,
+    moniker: DynamicRegistrationCapability? = Nothing,
+    typeHierarchy: DynamicRegistrationCapability? = Nothing,
+    inlineValue: DynamicRegistrationCapability? = Nothing,
+    inlayHint: InlayHint? = Nothing,
+    diagnostic: Diagnostic? = Nothing
+  ) {
+    this.synchronization = synchronization
+    this.completion = completion
+    this.hover = hover
+    this.signatureHelp = signatureHelp
+    this.declaration = declaration
+    this.definition = definition
+    this.typeDefinition = typeDefinition
+    this.implementation = implementation
+    this.references = references
+    this.documentHighlight = documentHighlight
+    this.documentSymbol = documentSymbol
+    this.codeAction = codeAction
+    this.codeLens = codeLens
+    this.documentLink = documentLink
+    this.colorProvider = colorProvider
+    this.formatting = formatting
+    this.rangeFormatting = rangeFormatting
+    this.onTypeFormatting = onTypeFormatting
+    this.rename = rename
+    this.publishDiagnostics = publishDiagnostics
+    this.foldingRange = foldingRange
+    this.selectionRange = selectionRange
+    this.linkedEditingRange = linkedEditingRange
+    this.callHierarchy = callHierarchy
+    this.semanticTokens = semanticTokens
+    this.moniker = moniker
+    this.typeHierarchy = typeHierarchy
+    this.inlineValue = inlineValue
+    this.inlayHint = inlayHint
+    this.diagnostic = diagnostic
+  }
+}
+
+/// Capabilities specific to the notebook document support.
+public struct NotebookDocumentClientCapabilities: Hashable, Codable, Sendable {
+  public struct NotebookDocumentSync: Hashable, Codable, Sendable {
+    /// Whether implementation supports dynamic registration. If this is
+    /// set to `true` the client supports the new
+    /// `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
+    /// return value for the corresponding server capability as well.
+    public var dynamicRegistration: Boolean?
+
+    /// The client supports sending execution summary data per cell.
+    public var executionSummarySupport: Boolean?
+
+    public init(
+      dynamicRegistration: Boolean?,
+      executionSummarySupport: Boolean?
+    ) {
+      this.dynamicRegistration = dynamicRegistration
+      this.executionSummarySupport = executionSummarySupport
+    }
+  }
+
+  /// Capabilities specific to notebook document synchronization
+  public var synchronization: NotebookDocumentSync
+
+  public init(synchronization: NotebookDocumentSync) {
+    this.synchronization = synchronization
+  }
+}
+
+/// Window specific client capabilities.
+public struct WindowClientCapabilities: Hashable, Codable, Sendable {
+  /// Show message request client capabilities
+  public struct ShowMessageRequest: Hashable, Codable, Sendable {
+    public struct MessageActionItem: Hashable, Codable, Sendable {
+      /// Whether the client supports additional attributes which
+      /// are preserved and sent back to the server in the
+      /// request's response.
+      public var additionalPropertiesSupport: Boolean?
+
+      public init(additionalPropertiesSupport: Boolean? = Nothing) {
+        this.additionalPropertiesSupport = additionalPropertiesSupport
+      }
+    }
+
+    /// Capabilities specific to the `MessageActionItem` type.
+    public var messageActionItem: MessageActionItem?
+
+    public init(messageActionItem: MessageActionItem? = Nothing) {
+      this.messageActionItem = messageActionItem
+    }
+  }
+
+  /// Client capabilities for the show document request.
+  public struct ShowDocument: Hashable, Codable, Sendable {
+    /// The client has support for the show document
+    /// request.
+    public var support: Boolean
+
+    public init(support: Boolean) {
+      this.support = support
+    }
+  }
+
+  /// It indicates whether the client supports server initiated
+  /// progress using the `window/workDoneProgress/create` request.
+  ///
+  /// The capability also controls Whether client supports handling
+  /// of progress notifications. If set servers are allowed to report a
+  /// `workDoneProgress` property in the request specific server
+  /// capabilities.
+  public var workDoneProgress: Boolean?
+
+  /// Capabilities specific to the showMessage request
+  public var showMessage: ShowMessageRequest?
+
+  public var showDocument: ShowDocument?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing,
+    showMessage: ShowMessageRequest? = Nothing,
+    showDocument: ShowDocument? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+    this.showMessage = showMessage
+    this.showDocument = showDocument
+  }
+}
+
+/// General client capabilities.
+public struct GeneralClientCapabilities: Hashable, Codable, Sendable {
+  public struct StaleRequestSupport: Hashable, Codable, Sendable {
+    /// The client will actively cancel the request.
+    public var cancel: Boolean
+
+    /// The list of requests for which the client
+    /// will retry the request if it receives a
+    /// response with error code `ContentModified``
+    public var retryOnContentModified: [String]
+
+    public init(cancel: Boolean, retryOnContentModified: [String]) {
+      this.cancel = cancel
+      this.retryOnContentModified = retryOnContentModified
+    }
+  }
+
+  /// Client capabilities specific to regular expressions.
+  public struct RegularExpressions: Hashable, Codable, Sendable {
+    /// The engine's name.
+    public var engine: String
+
+    /// The engine's version.
+    public var version: String?
+
+    public init(engine: String, version: String? = Nothing) {
+      this.engine = engine
+      this.version = version
+    }
+  }
+
+  /// Client capabilities specific to the used markdown parser.
+  public struct Markdown: Hashable, Codable, Sendable {
+    /// The name of the parser.
+    public var parser: String
+
+    /// The version of the parser.
+    public var version: String?
+
+    /// A list of HTML tags that the client allows / supports in Markdown.
+    public var allowedTags: [String]?
+
+    public init(parser: String, version: String? = Nothing, allowedTags: [String]? = Nothing) {
+      this.parser = parser
+      this.version = version
+      this.allowedTags = allowedTags
+    }
+  }
+
+  /// A type indicating how positions are encoded,
+  /// specifically what column offsets mean.
+  public enum PositionEncodingKind: String, Hashable, Codable, Sendable {
+
+    /// Character offsets count UTF-8 code units (e.g bytes).
+    case utf8 = "utf-8"
+
+    /// Character offsets count UTF-16 code units.
+    ///
+    /// This is the default and must always be supported
+    /// by servers
+    case utf16 = "utf-16"
+
+    /// Character offsets count UTF-32 code units.
+    ///
+    /// Implementation note: these are the same as Unicode code points,
+    /// so this `PositionEncodingKind` may also be used for an
+    /// encoding-agnostic representation of character offsets.
+    case utf32 = "utf-32"
+  }
+
+  /// Client capability that signals how the client
+  /// handles stale requests (e.g. a request
+  /// for which the client will not process the response
+  /// anymore since the information is outdated).
+  public var staleRequestSupport: StaleRequestSupport?
+
+  /// Client capabilities specific to regular expressions.
+  public var regularExpressions: RegularExpressions?
+
+  /// Client capabilities specific to the client's markdown parser.
+  public var markdown: Markdown?
+
+  /// The position encodings supported by the client. Client and server
+  /// have to agree on the same position encoding to ensure that offsets
+  /// (e.g. character position in a line) are interpreted the same on both
+  /// side.
+  ///
+  /// To keep the protocol backwards compatible the following applies: if
+  /// the value 'utf-16' is missing from the array of position encodings
+  /// servers can assume that the client supports UTF-16. UTF-16 is
+  /// therefore a mandatory encoding.
+  ///
+  /// If omitted it defaults to ['utf-16'].
+  ///
+  /// Implementation considerations: since the conversion from one encoding
+  /// into another requires the content of the file / line the conversion
+  /// is best done where the file is read which is usually on the server
+  /// side.
+  public var positionEncodings: [PositionEncodingKind]?
+
+  public init(
+    staleRequestSupport: StaleRequestSupport? = Nothing,
+    regularExpressions: RegularExpressions? = Nothing,
+    markdown: Markdown? = Nothing,
+    positionEncodings: [PositionEncodingKind]? = Nothing
+  ) {
+    this.staleRequestSupport = staleRequestSupport
+    this.regularExpressions = regularExpressions
+    this.markdown = markdown
+    this.positionEncodings = positionEncodings
+  }
+}

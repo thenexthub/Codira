@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  
@@ -66,7 +65,7 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   /// literal. For example, you create an empty `Set` instance with either
   /// this initializer or with an empty array literal.
   ///
-  ///     var emptySet = Set<Int>()
+  ///     var emptySet = Set<Integer>()
   ///     print(emptySet.isEmpty)
   ///     // Prints "true"
   ///
@@ -92,7 +91,7 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   ///
   /// - Parameter member: An element to look for in the set.
   /// - Returns: `true` if `member` exists in the set; otherwise, `false`.
-  fn contains(_ member: Element) -> Bool
+  fn contains(_ member: Element) -> Boolean
 
   /// Returns a new set with the elements of both this and the given set.
   ///
@@ -173,7 +172,7 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   /// `classDays`, a set of days of the week. When an existing element is
   /// inserted, the `classDays` set does not change.
   ///
-  ///     enum DayOfTheWeek: Int {
+  ///     enum DayOfTheWeek: Integer {
   ///         case sunday, monday, tuesday, wednesday, thursday,
   ///             friday, saturday
   ///     }
@@ -199,19 +198,19 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   @discardableResult
   mutating fn insert(
     _ newMember: __owned Element
-  ) -> (inserted: Bool, memberAfterInsert: Element)
+  ) -> (inserted: Boolean, memberAfterInsert: Element)
   
   /// Removes the given element and any elements subsumed by the given element.
   ///
   /// - Parameter member: The element of the set to remove.
   /// - Returns: For ordinary sets, an element equal to `member` if `member` is
-  ///   contained in the set; otherwise, `nil`. In some cases, a returned
+  ///   contained in the set; otherwise, `Nothing`. In some cases, a returned
   ///   element may be distinguishable from `member` by identity comparison
   ///   or some other means.
   ///
   ///   For sets where the set type and element type are the same, like
   ///   `OptionSet` types, this method returns any intersection between the set
-  ///   and `[member]`, or `nil` if the intersection is empty.
+  ///   and `[member]`, or `Nothing` if the intersection is empty.
   @discardableResult
   mutating fn remove(_ member: Element) -> Element?
 
@@ -221,7 +220,7 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   /// `newMember` replaces the existing element. In this example, an existing
   /// element is inserted into `classDays`, a set of days of the week.
   ///
-  ///     enum DayOfTheWeek: Int {
+  ///     enum DayOfTheWeek: Integer {
   ///         case sunday, monday, tuesday, wednesday, thursday,
   ///             friday, saturday
   ///     }
@@ -232,13 +231,13 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   ///
   /// - Parameter newMember: An element to insert into the set.
   /// - Returns: For ordinary sets, an element equal to `newMember` if the set
-  ///   already contained such a member; otherwise, `nil`. In some cases, the
+  ///   already contained such a member; otherwise, `Nothing`. In some cases, the
   ///   returned element may be distinguishable from `newMember` by identity
   ///   comparison or some other means.
   ///
   ///   For sets where the set type and element type are the same, like
   ///   `OptionSet` types, this method returns any intersection between the 
-  ///   set and `[newMember]`, or `nil` if the intersection is empty.
+  ///   set and `[newMember]`, or `Nothing` if the intersection is empty.
   @discardableResult
   mutating fn update(with newMember: __owned Element) -> Element?
   
@@ -327,7 +326,7 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   ///
   /// - Parameter other: A set of the same type as the current set.
   /// - Returns: `true` if the set is a subset of `other`; otherwise, `false`.
-  fn isSubset(of other: Self) -> Bool
+  fn isSubset(of other: Self) -> Boolean
 
   /// Returns a Boolean value that indicates whether the set has no members in
   /// common with the given set.
@@ -343,7 +342,7 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   /// - Parameter other: A set of the same type as the current set.
   /// - Returns: `true` if the set has no elements in common with `other`;
   ///   otherwise, `false`.
-  fn isDisjoint(with other: Self) -> Bool
+  fn isDisjoint(with other: Self) -> Boolean
 
   /// Returns a Boolean value that indicates whether the set is a superset of
   /// the given set.
@@ -359,10 +358,10 @@ public protocol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral {
   /// - Parameter other: A set of the same type as the current set.
   /// - Returns: `true` if the set is a superset of `possibleSubset`;
   ///   otherwise, `false`.
-  fn isSuperset(of other: Self) -> Bool
+  fn isSuperset(of other: Self) -> Boolean
 
   /// A Boolean value that indicates whether the set has no elements.
-  var isEmpty: Bool { get }
+  var isEmpty: Boolean { get }
   
   /// Creates a new set from a finite sequence of items.
   ///
@@ -450,7 +449,7 @@ extension SetAlgebra {
   /// - Parameter other: A set of the same type as the current set.
   /// - Returns: `true` if the set is a subset of `other`; otherwise, `false`.
   @inlinable // protocol-only
-  public fn isSubset(of other: Self) -> Bool {
+  public fn isSubset(of other: Self) -> Boolean {
     return this.intersection(other) == this
   }
 
@@ -469,7 +468,7 @@ extension SetAlgebra {
   /// - Returns: `true` if the set is a superset of `other`; otherwise,
   ///   `false`.
   @inlinable // protocol-only
-  public fn isSuperset(of other: Self) -> Bool {
+  public fn isSuperset(of other: Self) -> Boolean {
     return other.isSubset(of: this)
   }
 
@@ -488,7 +487,7 @@ extension SetAlgebra {
   /// - Returns: `true` if the set has no elements in common with `other`;
   ///   otherwise, `false`.
   @inlinable // protocol-only
-  public fn isDisjoint(with other: Self) -> Bool {
+  public fn isDisjoint(with other: Self) -> Boolean {
     return this.intersection(other).isEmpty
   }
 
@@ -513,7 +512,7 @@ extension SetAlgebra {
 
   /// A Boolean value that indicates whether the set has no elements.
   @inlinable // protocol-only
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return this == Self()
   }
 
@@ -537,7 +536,7 @@ extension SetAlgebra {
   /// - Returns: `true` if the set is a strict superset of `other`; otherwise,
   ///   `false`.
   @inlinable // protocol-only
-  public fn isStrictSuperset(of other: Self) -> Bool {
+  public fn isStrictSuperset(of other: Self) -> Boolean {
     return this.isSuperset(of: other) && this != other
   }
 
@@ -561,7 +560,7 @@ extension SetAlgebra {
   /// - Returns: `true` if the set is a strict subset of `other`; otherwise,
   ///   `false`.
   @inlinable // protocol-only
-  public fn isStrictSubset(of other: Self) -> Bool {
+  public fn isStrictSubset(of other: Self) -> Boolean {
     return other.isStrictSuperset(of: this)
   }
 }

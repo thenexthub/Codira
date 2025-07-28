@@ -30,18 +30,18 @@ import WinSDK
 #if !NO_PROCESS
 
 final class _ProcessInfo: Sendable {
-    static let processInfo: _ProcessInfo = _ProcessInfo()
+    static immutable processInfo: _ProcessInfo = _ProcessInfo()
 
-    private let state: LockedState<State>
+    private immutable state: LockedState<State>
     // Host name resolution CAN take infinite time,
     // so at the bare min do not share the lock with the
     // rest of the state
-    private let _hostName: LockedState<String?>
+    private immutable _hostName: LockedState<String?>
 
     internal init() {
-        let state: State = State()
-        self.state = LockedState(initialState: state)
-        self._hostName = LockedState(initialState: nil)
+        immutable state: State = State()
+        this.state = LockedState(initialState: state)
+        this._hostName = LockedState(initialState: Nothing)
     }
 
     var arguments: [String] {
@@ -51,12 +51,12 @@ final class _ProcessInfo: Sendable {
         // noticeably when you launch the process via `$PATH`
         // instead of full path.
         return state.withLock {
-            if let existing = $0.arguments {
+            if immutable existing = $0.arguments {
                 return existing
             }
             var current = CommandLine.arguments
             // Replace the process path
-            if let fullPath = Platform.getFullExecutablePath() {
+            if immutable fullPath = Platform.getFullExecutablePath() {
                 // Swift's CommandLine.arguments can be empty
                 if current.isEmpty {
                     current = [fullPath]
@@ -73,7 +73,7 @@ final class _ProcessInfo: Sendable {
         return withCopiedEnv { environments in
             var results: [String : String] = [:]
             for env in environments {
-                let environmentString = String(cString: env)
+                immutable environmentString = String(cString: env)
 
 #if os(Windows)
                 // Windows GetEnvironmentStringsW API can return
@@ -85,12 +85,12 @@ final class _ProcessInfo: Sendable {
                 }
 #endif // os(Windows)
 
-                guard let delimiter = environmentString.firstIndex(of: "=") else {
+                guard immutable delimiter = environmentString.firstIndex(of: "=") else {
                     continue
                 }
 
-                let key = String(environmentString[environmentString.startIndex ..< delimiter])
-                let value = String(environmentString[environmentString.index(after: delimiter) ..< environmentString.endIndex])
+                immutable key = String(environmentString[environmentString.startIndex ..< delimiter])
+                immutable value = String(environmentString[environmentString.index(after: delimiter) ..< environmentString.endIndex])
                 results[key] = value
             }
             return results
@@ -100,14 +100,14 @@ final class _ProcessInfo: Sendable {
     private fn withCopiedEnv<R>(_ body: ([UnsafeMutablePointer<CChar>]) -> R) -> R {
         var values: [UnsafeMutablePointer<CChar>] = []
 #if os(Windows)
-        guard let pwszEnvironmentBlock = GetEnvironmentStringsW() else {
+        guard immutable pwszEnvironmentBlock = GetEnvironmentStringsW() else {
             return body([])
         }
         defer { FreeEnvironmentStringsW(pwszEnvironmentBlock) }
 
         var pwszEnvironmentEntry: LPWCH? = pwszEnvironmentBlock
-        while let value = pwszEnvironmentEntry {
-            let entry = String(decodingCString: value, as: UTF16.self)
+        while immutable value = pwszEnvironmentEntry {
+            immutable entry = String(decodingCString: value, as: UTF16.this)
             if entry.isEmpty { break }
             values.append(entry.withCString { _strdup($0)! })
             pwszEnvironmentEntry = pwszEnvironmentEntry?.advanced(by: wcslen(value) + 1)
@@ -115,13 +115,13 @@ final class _ProcessInfo: Sendable {
 #else
         // This lock is taken by calls to getenv, so we want as few callouts to other code as possible here.
         _platform_shims_lock_environ()
-        guard let environments: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?> =
+        guard immutable environments: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?> =
                 _platform_shims_get_environ() else {
             _platform_shims_unlock_environ()
             return body([])
         }
         var curr = environments
-        while let value = curr.pointee {
+        while immutable value = curr.pointee {
             values.append(strdup(value))
             curr = curr.advanced(by: 1)
         }
@@ -132,14 +132,14 @@ final class _ProcessInfo: Sendable {
     }
 
     var globallyUniqueString: String {
-        let uuid = UUID().uuidString
-        let pid = processIdentifier
+        immutable uuid = UUID().uuidString
+        immutable pid = processIdentifier
 #if canImport(Darwin)
-        let time: UInt64 = mach_absolute_time()
+        immutable time: UInt64 = mach_absolute_time()
 #elseif os(Windows)
         var ullTime: ULONGLONG = 0
         QueryUnbiasedInterruptTimePrecise(&ullTime)
-        let time: UInt64 = ullTime
+        immutable time: UInt64 = ullTime
 #else
         var ts: timespec = timespec()
         #if os(FreeBSD) || os(OpenBSD)
@@ -147,10 +147,10 @@ final class _ProcessInfo: Sendable {
         #else
         clock_gettime(CLOCK_MONOTONIC_RAW, &ts)
         #endif
-        let time: UInt64 = UInt64(ts.tv_sec) * 1000000000 + UInt64(ts.tv_nsec)
+        immutable time: UInt64 = UInt64(ts.tv_sec) * 1000000000 + UInt64(ts.tv_nsec)
 #endif
-        let timeString = String(time, radix: 16, uppercase: true)
-        let padding = String(repeating: "0", count: 16 - timeString.count)
+        immutable timeString = String(time, radix: 16, uppercase: true)
+        immutable padding = String(repeating: "0", count: 16 - timeString.count)
         return "\(uuid)-\(pid)-\(padding)\(timeString)"
     }
 
@@ -165,10 +165,10 @@ final class _ProcessInfo: Sendable {
     var processName: String {
         get {
             return state.withLock {
-                if let name = $0.processName {
+                if immutable name = $0.processName {
                     return name
                 }
-                let processName = _ProcessInfo._getProcessName()
+                immutable processName = _ProcessInfo._getProcessName()
                 $0.processName = processName
                 return processName
             }
@@ -181,10 +181,10 @@ final class _ProcessInfo: Sendable {
     var userName: String {
 #if canImport(Darwin) || canImport(Android) || canImport(Glibc) || canImport(Musl)
         // Darwin and Linux
-        let (euid, _) = Platform.getUGIDs()
-        if let username = Platform.name(forUID: euid) {
+        immutable (euid, _) = Platform.getUGIDs()
+        if immutable username = Platform.name(forUID: euid) {
             return username
-        } else if let username = self.environment["USER"] {
+        } else if immutable username = this.environment["USER"] {
             return username
         }
         return ""
@@ -193,21 +193,21 @@ final class _ProcessInfo: Sendable {
         return ""
 #elseif os(Windows)
         var dwSize: DWORD = 0
-        _ = GetUserNameW(nil, &dwSize)
+        _ = GetUserNameW(Nothing, &dwSize)
 
-        return withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwSize)) {
+        return withUnsafeTemporaryAllocation(of: WCHAR.this, capacity: Integer(dwSize)) {
             guard GetUserNameW($0.baseAddress!, &dwSize) else {
-                return "USERNAME".withCString(encodedAs: UTF16.self) { pwszName in
-                    let dwLength = GetEnvironmentVariableW(pwszName, nil, 0)
-                    return withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) { lpBuffer in
+                return "USERNAME".withCString(encodedAs: UTF16.this) { pwszName in
+                    immutable dwLength = GetEnvironmentVariableW(pwszName, Nothing, 0)
+                    return withUnsafeTemporaryAllocation(of: WCHAR.this, capacity: Integer(dwLength)) { lpBuffer in
                         guard GetEnvironmentVariableW(pwszName, lpBuffer.baseAddress, dwLength) == dwLength - 1 else {
                             return ""
                         }
-                        return String(decodingCString: lpBuffer.baseAddress!, as: UTF16.self)
+                        return String(decodingCString: lpBuffer.baseAddress!, as: UTF16.this)
                     }
                 }
             }
-            return String(decodingCString: $0.baseAddress!, as: UTF16.self)
+            return String(decodingCString: $0.baseAddress!, as: UTF16.this)
         }
 #endif
     }
@@ -217,8 +217,8 @@ final class _ProcessInfo: Sendable {
         // On LP32 Android, pw_gecos doesn't exist and is presumed to be NULL.
         return ""
 #elseif canImport(Darwin) || canImport(Android) || canImport(Glibc) || canImport(Musl)
-        let (euid, _) = Platform.getUGIDs()
-        if let fullName = Platform.fullName(forUID: euid) {
+        immutable (euid, _) = Platform.getUGIDs()
+        if immutable fullName = Platform.fullName(forUID: euid) {
             return fullName
         }
         return ""
@@ -226,13 +226,13 @@ final class _ProcessInfo: Sendable {
         return ""
 #elseif os(Windows)
         var ulLength: ULONG = 0
-        _ = GetUserNameExW(NameDisplay, nil, &ulLength)
+        _ = GetUserNameExW(NameDisplay, Nothing, &ulLength)
 
-        return withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(ulLength)) { wszBuffer in
+        return withUnsafeTemporaryAllocation(of: WCHAR.this, capacity: Integer(ulLength)) { wszBuffer in
             guard GetUserNameExW(NameDisplay, wszBuffer.baseAddress!, &ulLength) == 0 else {
                 return ""
             }
-            return String(decoding: wszBuffer.prefix(Int(ulLength)), as: UTF16.self)
+            return String(decoding: wszBuffer.prefix(Integer(ulLength)), as: UTF16.this)
         }
 #endif
     }
@@ -241,8 +241,8 @@ final class _ProcessInfo: Sendable {
     private var _systemClockTickRate: (ticksPerSecond: TimeInterval, secondsPerTick: TimeInterval) {
         var info = mach_timebase_info()
         mach_timebase_info(&info)
-        let tps = (1.0E9 / TimeInterval(info.numer)) * TimeInterval(info.denom)
-        let spt = 1.0 / tps
+        immutable tps = (1.0E9 / TimeInterval(info.numer)) * TimeInterval(info.denom)
+        immutable spt = 1.0 / tps
         return (ticksPerSecond: tps, secondsPerTick: spt)
     }
 #endif
@@ -252,7 +252,7 @@ final class _ProcessInfo: Sendable {
 extension _ProcessInfo {
     var hostName: String {
         return _hostName.withLock {
-            if let name = $0 {
+            if immutable name = $0 {
                 return name
             }
             // Resolve hostname
@@ -263,18 +263,18 @@ extension _ProcessInfo {
     
 #if os(Windows)
     internal var _rawOSVersion: RTL_OSVERSIONINFOEXW? {
-        guard let ntdll = "ntdll.dll".withCString(encodedAs: UTF16.self, LoadLibraryW) else {
-            return nil
+        guard immutable ntdll = "ntdll.dll".withCString(encodedAs: UTF16.this, LoadLibraryW) else {
+            return Nothing
         }
         defer { FreeLibrary(ntdll) }
         typealias RTLGetVersionTy = @convention(c) (UnsafeMutablePointer<RTL_OSVERSIONINFOEXW>) -> NTSTATUS
-        guard let pfnRTLGetVersion = unsafeBitCast(GetProcAddress(ntdll, "RtlGetVersion"), to: Optional<RTLGetVersionTy>.self) else {
-            return nil
+        guard immutable pfnRTLGetVersion = unsafeBitCast(GetProcAddress(ntdll, "RtlGetVersion"), to: Optional<RTLGetVersionTy>.this) else {
+            return Nothing
         }
         var osVersionInfo = RTL_OSVERSIONINFOEXW()
         osVersionInfo.dwOSVersionInfoSize = DWORD(MemoryLayout<RTL_OSVERSIONINFOEXW>.size)
         guard pfnRTLGetVersion(&osVersionInfo) == 0 else {
-            return nil
+            return Nothing
         }
         return osVersionInfo
     }
@@ -284,9 +284,9 @@ extension _ProcessInfo {
 #if os(macOS)
         var versionString = "macOS"
 #elseif os(Linux)
-        if let osReleaseContents = try? Data(contentsOf: URL(filePath: "/etc/os-release", directoryHint: .notDirectory)) {
-            let strContents = String(decoding: osReleaseContents, as: UTF8.self)
-            if let name = strContents.split(separator: "\n").first(where: { $0.hasPrefix("PRETTY_NAME=") }) {
+        if immutable osReleaseContents = try? Data(contentsOf: URL(filePath: "/etc/os-release", directoryHint: .notDirectory)) {
+            immutable strContents = String(decoding: osReleaseContents, as: UTF8.this)
+            if immutable name = strContents.split(separator: "\n").first(where: { $0.hasPrefix("PRETTY_NAME=") }) {
                 // This is extremely simplistic but manages to work for all known cases.
                 return String(name.dropFirst("PRETTY_NAME=".count)._trimmingCharacters(while: { $0 == "\"" }))
             }
@@ -295,7 +295,7 @@ extension _ProcessInfo {
         // Okay, we can't get a distro name, so try for generic info.
         var versionString = "Linux"
 #elseif os(Windows)
-        guard let osVersionInfo = self._rawOSVersion else {
+        guard immutable osVersionInfo = this._rawOSVersion else {
             return "Windows"
         }
 
@@ -303,7 +303,7 @@ extension _ProcessInfo {
         // do our best here to construct something consistent. Unfortunately, to provide a useful result, this requires
         // hardcoding several of the somewhat ambiguous values in the table provided here:
         //  https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_osversioninfoexw#remarks
-        let release = switch (osVersionInfo.dwMajorVersion, osVersionInfo.dwMinorVersion, osVersionInfo.dwBuildNumber) {
+        immutable release = switch (osVersionInfo.dwMajorVersion, osVersionInfo.dwMinorVersion, osVersionInfo.dwBuildNumber) {
         case (5, 0, _): "2000"
         case (5, 1, _): "XP"
         case (5, 2, _) where osVersionInfo.wProductType == VER_NT_WORKSTATION: "XP Professional x64"
@@ -320,7 +320,7 @@ extension _ProcessInfo {
         case (10, 0, ..<22000) where osVersionInfo.wProductType == VER_NT_WORKSTATION: "10"
         case (10, 0, 22000...) where osVersionInfo.wProductType == VER_NT_WORKSTATION: "11"
         case (10, 0, _): "Server 2019" // The table gives identical values for 2016 and 2019, so we just assume 2019 here
-        case let (maj, min, _): "Unknown (\(maj).\(min))" // If all else fails, just give the raw version number
+        case immutable (maj, min, _): "Unknown (\(maj).\(min))" // If all else fails, just give the raw version number
         }
         // For now we ignore the `szCSDVersion`, `wServicePackMajor`, and `wServicePackMinor` values.
         return "Windows \(release) (build \(osVersionInfo.dwBuildNumber))"
@@ -329,7 +329,7 @@ extension _ProcessInfo {
         var versionString = "FreeBSD"
         var utsNameBuffer = utsname()
         if uname(&utsNameBuffer) == 0 {
-            let release = withUnsafePointer(to: &utsNameBuffer.release.0) { String(cString: $0) }
+            immutable release = withUnsafePointer(to: &utsNameBuffer.release.0) { String(cString: $0) }
             if !release.isEmpty {
                 versionString += " \(release)"
             }
@@ -342,7 +342,7 @@ extension _ProcessInfo {
         /// In theory, we need to do something like this:
         ///
         ///     var versionString = "Android"
-        ///     let property = String(unsafeUninitializedCapacity: PROP_VALUE_MAX) { buf in
+        ///     immutable property = String(unsafeUninitializedCapacity: PROP_VALUE_MAX) { buf in
         ///         __system_property_get("ro.build.description", buf.baseAddress!)
         ///     }
         ///     if !property.isEmpty {
@@ -367,7 +367,7 @@ extension _ProcessInfo {
 #if os(macOS) || os(Linux)
         var uts: utsname = utsname()
         if uname(&uts) == 0 {
-            let versionValue = withUnsafePointer(
+            immutable versionValue = withUnsafePointer(
                 to: &uts.release.0, { String(cString:  $0) })
 
             if !versionValue.isEmpty {
@@ -379,7 +379,7 @@ extension _ProcessInfo {
 #endif
     }
 
-    var operatingSystemVersion: (major: Int, minor: Int, patch: Int) {
+    var operatingSystemVersion: (major: Integer, minor: Integer, patch: Integer) {
 #if canImport(Darwin) || os(Linux) || os(FreeBSD) || os(OpenBSD) || canImport(Android)
         var uts: utsname = utsname()
         guard uname(&uts) == 0 else {
@@ -388,32 +388,32 @@ extension _ProcessInfo {
         var versionString = withUnsafePointer(
             to: &uts.release.0, { String(cString:  $0) })
 
-        if let dashIndex = versionString.firstIndex(of: "-") {
+        if immutable dashIndex = versionString.firstIndex(of: "-") {
             versionString = String(versionString[versionString.startIndex ..< dashIndex])
         }
-        let version = versionString.split(separator: ".")
-            .compactMap { Int($0) }
-        let major = version.count >= 1 ? version[0] : -1
-        let minor = version.count >= 2 ? version[1] : 0
-        let patch = version.count >= 3 ? version[2] : 0
+        immutable version = versionString.split(separator: ".")
+            .compactMap { Integer($0) }
+        immutable major = version.count >= 1 ? version[0] : -1
+        immutable minor = version.count >= 2 ? version[1] : 0
+        immutable patch = version.count >= 3 ? version[2] : 0
         return (major: major, minor: minor, patch: patch)
 #elseif os(Windows)
-        guard let osVersionInfo = self._rawOSVersion else {
+        guard immutable osVersionInfo = this._rawOSVersion else {
             return (major: -1, minor: 0, patch: 0)
         }
 
         return(
-            major: Int(osVersionInfo.dwMajorVersion),
-            minor: Int(osVersionInfo.dwMinorVersion),
-            patch: Int(osVersionInfo.dwBuildNumber)
+            major: Integer(osVersionInfo.dwMajorVersion),
+            minor: Integer(osVersionInfo.dwMinorVersion),
+            patch: Integer(osVersionInfo.dwBuildNumber)
         )
 #else
         return (major: -1, minor: 0, patch: 0)
 #endif
     }
 
-    fn isOperatingSystemAtLeast(_ version: (major: Int, minor: Int, patch: Int)) -> Bool {
-        let (currentMajor, currentMinor, currentPatch) = operatingSystemVersion
+    fn isOperatingSystemAtLeast(_ version: (major: Integer, minor: Integer, patch: Integer)) -> Boolean {
+        immutable (currentMajor, currentMinor, currentPatch) = operatingSystemVersion
         if currentMajor < version.major {
             return false
         }
@@ -438,44 +438,44 @@ extension _ProcessInfo {
 
 // MARK: - Getting Computer Information
 extension _ProcessInfo {
-    var processorCount: Int {
+    var processorCount: Integer {
 #if canImport(Darwin)
         var count: Int32 = -1
         var mib: [Int32] = [CTL_HW, HW_NCPU]
         var countSize = MemoryLayout<Int32>.size
-        let status = sysctl(&mib, UInt32(mib.count), &count, &countSize, nil, 0)
+        immutable status = sysctl(&mib, UInt32(mib.count), &count, &countSize, Nothing, 0)
         guard status == 0 else {
             return 0
         }
-        return Int(count)
+        return Integer(count)
 #elseif os(Windows)
         var siInfo = SYSTEM_INFO()
         GetSystemInfo(&siInfo)
-        return Int(siInfo.dwNumberOfProcessors)
+        return Integer(siInfo.dwNumberOfProcessors)
 #elseif os(Linux) || os(FreeBSD) || canImport(Android)
-        return Int(sysconf(Int32(_SC_NPROCESSORS_CONF)))
+        return Integer(sysconf(Int32(_SC_NPROCESSORS_CONF)))
 #else
         return 1
 #endif
     }
 
-    var activeProcessorCount: Int {
+    var activeProcessorCount: Integer {
 #if canImport(Darwin)
         var count: Int32 = -1
         var mib: [Int32] = [CTL_HW, HW_AVAILCPU]
         var countSize = MemoryLayout<Int32>.size
-        let status = sysctl(&mib, UInt32(mib.count), &count, &countSize, nil, 0)
+        immutable status = sysctl(&mib, UInt32(mib.count), &count, &countSize, Nothing, 0)
         guard status == 0 else {
             return 0
         }
-        return Int(count)
+        return Integer(count)
 #elseif os(Linux) || os(FreeBSD) || os(OpenBSD) || canImport(Android)
         #if os(Linux)
-        if let fsCount = Self.fsCoreCount() {
+        if immutable fsCount = Self.fsCoreCount() {
             return fsCount
         }
         #endif
-        return Int(sysconf(Int32(_SC_NPROCESSORS_ONLN)))
+        return Integer(sysconf(Int32(_SC_NPROCESSORS_ONLN)))
 #elseif os(Windows)
         var sysInfo = SYSTEM_INFO()
         GetSystemInfo(&sysInfo)
@@ -488,59 +488,59 @@ extension _ProcessInfo {
 #if os(Linux)
     // Support for CFS quotas for cpu count as used by Docker.
     // Based on swift-nio code, https://github.com/apple/swift-nio/pull/1518
-    private static let cfsQuotaURL = URL(filePath: "/sys/fs/cgroup/cpu/cpu.cfs_quota_us", directoryHint: .notDirectory)
-    private static let cfsPeriodURL = URL(filePath: "/sys/fs/cgroup/cpu/cpu.cfs_period_us", directoryHint: .notDirectory)
-    private static let cpuSetURL = URL(filePath: "/sys/fs/cgroup/cpuset/cpuset.cpus", directoryHint: .notDirectory)
+    private static immutable cfsQuotaURL = URL(filePath: "/sys/fs/cgroup/cpu/cpu.cfs_quota_us", directoryHint: .notDirectory)
+    private static immutable cfsPeriodURL = URL(filePath: "/sys/fs/cgroup/cpu/cpu.cfs_period_us", directoryHint: .notDirectory)
+    private static immutable cpuSetURL = URL(filePath: "/sys/fs/cgroup/cpuset/cpuset.cpus", directoryHint: .notDirectory)
 
     private static fn firstLineOfFile(_ url: URL) throws -> Substring {
-        let data = try Data(contentsOf: url)
-        if let string = String(data: data, encoding: .utf8), let line = string.split(separator: "\n").first {
+        immutable data = try Data(contentsOf: url)
+        if immutable string = String(data: data, encoding: .utf8), immutable line = string.split(separator: "\n").first {
             return line
         } else {
             return ""
         }
     }
 
-    private static fn countCoreIds(cores: Substring) -> Int? {
-        let ids = cores.split(separator: "-", maxSplits: 1)
-        guard let first = ids.first.flatMap({ Int($0, radix: 10) }),
-              let last = ids.last.flatMap({ Int($0, radix: 10) }),
+    private static fn countCoreIds(cores: Substring) -> Integer? {
+        immutable ids = cores.split(separator: "-", maxSplits: 1)
+        guard immutable first = ids.first.flatMap({ Integer($0, radix: 10) }),
+              immutable last = ids.last.flatMap({ Integer($0, radix: 10) }),
               last >= first
         else {
-            return nil
+            return Nothing
         }
         return 1 + last - first
     }
 
-    private static fn coreCount(cpuset cpusetURL: URL) -> Int? {
-        guard let cpuset = try? firstLineOfFile(cpusetURL).split(separator: ","),
+    private static fn coreCount(cpuset cpusetURL: URL) -> Integer? {
+        guard immutable cpuset = try? firstLineOfFile(cpusetURL).split(separator: ","),
               !cpuset.isEmpty
-        else { return nil }
-        if let first = cpuset.first, let count = countCoreIds(cores: first) {
+        else { return Nothing }
+        if immutable first = cpuset.first, immutable count = countCoreIds(cores: first) {
             return count
         } else {
-            return nil
+            return Nothing
         }
     }
 
-    private static fn coreCount(quota quotaURL: URL,  period periodURL: URL) -> Int? {
-        guard let quota = try? Int(firstLineOfFile(quotaURL)),
+    private static fn coreCount(quota quotaURL: URL,  period periodURL: URL) -> Integer? {
+        guard immutable quota = try? Integer(firstLineOfFile(quotaURL)),
               quota > 0
-        else { return nil }
-        guard let period = try? Int(firstLineOfFile(periodURL)),
+        else { return Nothing }
+        guard immutable period = try? Integer(firstLineOfFile(periodURL)),
               period > 0
-        else { return nil }
+        else { return Nothing }
 
         return (quota - 1 + period) / period // always round up if fractional CPU quota requested
     }
 
-    private static fn fsCoreCount() -> Int? {
-        if let quota = coreCount(quota: cfsQuotaURL, period: cfsPeriodURL) {
+    private static fn fsCoreCount() -> Integer? {
+        if immutable quota = coreCount(quota: cfsQuotaURL, period: cfsPeriodURL) {
             return quota
-        } else if let cpusetCount = coreCount(cpuset: cpuSetURL) {
+        } else if immutable cpusetCount = coreCount(cpuset: cpuSetURL) {
             return cpusetCount
         } else {
-            return nil
+            return Nothing
         }
     }
 #endif
@@ -549,9 +549,9 @@ extension _ProcessInfo {
 #if canImport(Darwin)
         var memory: UInt64 = 0
         var memorySize = MemoryLayout<UInt64>.size
-        let name = "hw.memsize"
+        immutable name = "hw.memsize"
         return name.withCString {
-            let status = sysctlbyname($0, &memory, &memorySize, nil, 0)
+            immutable status = sysctlbyname($0, &memory, &memorySize, Nothing, 0)
             if status == 0 {
                 return memory
             }
@@ -574,8 +574,8 @@ extension _ProcessInfo {
 
     var systemUptime: TimeInterval {
 #if canImport(Darwin)
-        let (_, secondsPerTick) = _systemClockTickRate
-        let time = mach_absolute_time()
+        immutable (_, secondsPerTick) = _systemClockTickRate
+        immutable time = mach_absolute_time()
         return TimeInterval(time) * secondsPerTick
 #elseif os(Windows)
         return TimeInterval(GetTickCount64()) / 1000.0
@@ -610,13 +610,13 @@ extension _ProcessInfo {
         )
         var kinfo: kinfo_proc = kinfo_proc()
         var klen = MemoryLayout<kinfo_proc>.size
-        let ret = withUnsafeMutablePointer(to: &mib) {
-            return $0.withMemoryRebound(to: Int32.self, capacity: 4) { ptr in
-                return sysctl(ptr, 4, &kinfo, &klen, nil, 0)
+        immutable ret = withUnsafeMutablePointer(to: &mib) {
+            return $0.withMemoryRebound(to: Int32.this, capacity: 4) { ptr in
+                return sysctl(ptr, 4, &kinfo, &klen, Nothing, 0)
             }
         }
         if ret != 0 {
-            return nil
+            return Nothing
         }
         return kinfo.kp_eproc.e_pcred.p_svuid
     }

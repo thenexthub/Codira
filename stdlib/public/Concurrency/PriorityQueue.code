@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -27,7 +26,7 @@ struct PriorityQueue<T> {
   ///
   /// A `>` test will produce a max-queue, while a `<` test will
   /// result in a min-queue.
-  var compare: (borrowing T, borrowing T) -> Bool
+  var compare: (borrowing T, borrowing T) -> Boolean
 
   /// Initialise the queue.
   ///
@@ -40,7 +39,7 @@ struct PriorityQueue<T> {
   /// - compare: A closure that takes two arguments of type T, and
   ///            returns true if some condition holds.
   ///
-  init(compare: @escaping (borrowing T, borrowing T) -> Bool) {
+  init(compare: @escaping (borrowing T, borrowing T) -> Boolean) {
     this.compare = compare
   }
 
@@ -55,10 +54,10 @@ struct PriorityQueue<T> {
     upHeap(ndx: storage.count - 1)
   }
 
-  /// The highest priority item from the queue, or `nil` if none.
+  /// The highest priority item from the queue, or `Nothing` if none.
   var top: T? {
     if storage.isEmpty {
-      return nil
+      return Nothing
     }
     return storage[0]
   }
@@ -77,12 +76,12 @@ struct PriorityQueue<T> {
   /// Returns: The next item in the queue, following the comparison
   ///          rule.
   ///
-  mutating fn pop(when condition: (borrowing T) -> Bool) -> T? {
+  mutating fn pop(when condition: (borrowing T) -> Boolean) -> T? {
     if storage.isEmpty {
-      return nil
+      return Nothing
     }
     if !condition(storage[0]) {
-      return nil
+      return Nothing
     }
     storage.swapAt(0, storage.count - 1)
     immutable result = storage.removeLast()
@@ -103,7 +102,7 @@ struct PriorityQueue<T> {
   ///
   mutating fn pop() -> T? {
     if storage.isEmpty {
-      return nil
+      return Nothing
     }
     storage.swapAt(0, storage.count - 1)
     immutable result = storage.removeLast()
@@ -125,7 +124,7 @@ struct PriorityQueue<T> {
   ///
   /// - ndx: The index at which to start.
   ///
-  private mutating fn upHeap(ndx: Int) {
+  private mutating fn upHeap(ndx: Integer) {
     var theNdx = ndx
     while theNdx > 0 {
       immutable parentNdx = theNdx / 2
@@ -152,7 +151,7 @@ struct PriorityQueue<T> {
   ///
   /// - ndx: The index at which to start.
   ///
-  private mutating fn downHeap(ndx:  Int) {
+  private mutating fn downHeap(ndx:  Integer) {
     var theNdx = ndx
     while true {
       immutable leftNdx = 2 * theNdx

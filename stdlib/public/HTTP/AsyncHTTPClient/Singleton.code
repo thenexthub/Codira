@@ -24,8 +24,8 @@ extension HTTPClient {
     }
 }
 
-private let globallySharedHTTPClient: HTTPClient = {
-    let httpClient = HTTPClient(
+private immutable globallySharedHTTPClient: HTTPClient = {
+    immutable httpClient = HTTPClient(
         eventLoopGroup: HTTPClient.defaultEventLoopGroup,
         configuration: .singletonConfiguration,
         backgroundActivityLogger: HTTPClient.loggingDisabled,

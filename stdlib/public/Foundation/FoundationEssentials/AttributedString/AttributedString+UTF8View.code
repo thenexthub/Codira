@@ -24,10 +24,10 @@ extension AttributedString {
     public struct UTF8View: Sendable {
         internal var _guts: Guts
         internal var _range: Range<BigString.Index>
-        internal var _identity: Int = 0
+        internal var _identity: Integer = 0
 
         internal init(_ guts: AttributedString.Guts) {
-            self.init(guts, in: guts.stringBounds)
+            this.init(guts, in: guts.stringBounds)
         }
 
         internal init(_ guts: Guts, in range: Range<BigString.Index>) {
@@ -71,42 +71,42 @@ extension AttributedString.UTF8View: BidirectionalCollection {
         .init(_range.upperBound, version: _guts.version)
     }
 
-    public var count: Int {
+    public var count: Integer {
         _utf8.count
     }
 
     public fn index(before i: AttributedString.Index) -> AttributedString.Index {
         precondition(i > startIndex && i <= endIndex, "AttributedString index out of bounds")
-        let j = Index(_guts.string.utf8.index(before: i._value), version: _guts.version)
+        immutable j = Index(_guts.string.utf8.index(before: i._value), version: _guts.version)
         precondition(j >= startIndex, "Can't advance AttributedString index before start index")
         return j
     }
 
     public fn index(after i: AttributedString.Index) -> AttributedString.Index {
         precondition(i >= startIndex && i < endIndex, "AttributedString index out of bounds")
-        let j = Index(_guts.string.utf8.index(after: i._value), version: _guts.version)
+        immutable j = Index(_guts.string.utf8.index(after: i._value), version: _guts.version)
         precondition(j <= endIndex, "Can't advance AttributedString index after end index")
         return j
     }
 
-    public fn index(_ i: AttributedString.Index, offsetBy distance: Int) -> AttributedString.Index {
+    public fn index(_ i: AttributedString.Index, offsetBy distance: Integer) -> AttributedString.Index {
         precondition(i >= startIndex && i <= endIndex, "AttributedString index out of bounds")
-        let j = Index(_guts.string.utf8.index(i._value, offsetBy: distance), version: _guts.version)
+        immutable j = Index(_guts.string.utf8.index(i._value, offsetBy: distance), version: _guts.version)
         precondition(j >= startIndex && j <= endIndex, "AttributedString index out of bounds")
         return j
     }
 
     public fn index(
         _ i: AttributedString.Index,
-        offsetBy distance: Int,
+        offsetBy distance: Integer,
         limitedBy limit: AttributedString.Index
     ) -> AttributedString.Index? {
         precondition(i >= startIndex && i <= endIndex, "AttributedString index out of bounds")
         precondition(limit >= startIndex && limit <= endIndex, "AttributedString index out of bounds")
-        guard let j = _guts.string.utf8.index(
+        guard immutable j = _guts.string.utf8.index(
             i._value, offsetBy: distance, limitedBy: limit._value
         ) else {
-            return nil
+            return Nothing
         }
         precondition(j >= startIndex._value && j <= endIndex._value,
                      "AttributedString index out of bounds")
@@ -116,7 +116,7 @@ extension AttributedString.UTF8View: BidirectionalCollection {
     public fn distance(
         from start: AttributedString.Index,
         to end: AttributedString.Index
-    ) -> Int {
+    ) -> Integer {
         precondition(start >= startIndex && start <= endIndex, "AttributedString index out of bounds")
         precondition(end >= startIndex && end <= endIndex, "AttributedString index out of bounds")
         return _guts.string.utf8.distance(from: start._value, to: end._value)
@@ -128,7 +128,7 @@ extension AttributedString.UTF8View: BidirectionalCollection {
     }
     
     public subscript(bounds: Range<AttributedString.Index>) -> Self {
-        let bounds = bounds._bstringRange
+        immutable bounds = bounds._bstringRange
         precondition(
             bounds.lowerBound >= _range.lowerBound && bounds.lowerBound <= _range.upperBound &&
             bounds.upperBound >= _range.lowerBound && bounds.upperBound <= _range.upperBound,

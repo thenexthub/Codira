@@ -13,18 +13,18 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    BidirectionalCollection.swift
-    BuiltInUnicodeScalarSet.swift
-    RegexPatternCache.swift
-    String+Bridging.swift
-    String+Comparison.swift
-    String+Encoding.swift
-    String+EndianAdaptorSequence.swift
-    String+Essentials.swift
-    String+IO.swift
-    String+Internals.swift
-    String+Path.swift
-    StringBlocks.swift
-    StringProtocol+Essentials.swift
-    StringProtocol+Stub.swift
-    UnicodeScalar.swift)
+    BidirectionalCollection.code
+    BuiltInUnicodeScalarSet.code
+    RegexPatternCache.code
+    String+Bridging.code
+    String+Comparison.code
+    String+Encoding.code
+    String+EndianAdaptorSequence.code
+    String+Essentials.code
+    String+IO.code
+    String+Internals.code
+    String+Path.code
+    StringBlocks.code
+    StringProtocol+Essentials.code
+    StringProtocol+Stub.code
+    UnicodeScalar.code)

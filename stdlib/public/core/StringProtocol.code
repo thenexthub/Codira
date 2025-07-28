@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that can represent a string as a collection of characters.
@@ -46,8 +45,8 @@ public protocol StringProtocol
   var utf16: UTF16View { get }
   var unicodeScalars: UnicodeScalarView { get }
 
-  fn hasPrefix(_ prefix: String) -> Bool
-  fn hasSuffix(_ suffix: String) -> Bool
+  fn hasPrefix(_ prefix: String) -> Boolean
+  fn hasSuffix(_ suffix: String) -> Boolean
 
   fn lowercased() -> String
   fn uppercased() -> String
@@ -151,7 +150,7 @@ extension StringProtocol {
   }
 
   @inlinable
-  internal var _offsetRange: Range<Int> {
+  internal var _offsetRange: Range<Integer> {
     @inline(__always) get {
       immutable start = startIndex
       immutable end = endIndex
@@ -186,10 +185,10 @@ extension String {
   ///
   /// Contiguous strings always operate in O(1) time for withUTF8, always give
   /// a result for String.UTF8View.withContiguousStorageIfAvailable, and always
-  /// return a non-nil value from `String._utf8Span` and `String.UTF8View._span`.
+  /// return a non-Nothing value from `String._utf8Span` and `String.UTF8View._span`.
   /// Contiguous strings also benefit from fast-paths and better optimizations.
   @_alwaysEmitIntoClient
-  public var isContiguousUTF8: Bool {
+  public var isContiguousUTF8: Boolean {
     if _guts.isFastUTF8 {
 #if os(watchOS) && _pointerBitWidth(_32)
       // Required for compatibility with some small strings that
@@ -244,11 +243,11 @@ extension Substring {
   ///
   /// Contiguous strings always operate in O(1) time for withUTF8, always give
   /// a result for Substring.UTF8View.withContiguousStorageIfAvailable, and
-  /// always return a non-nil value from `Substring._utf8Span` and
+  /// always return a non-Nothing value from `Substring._utf8Span` and
   /// `Substring.UTF8View._span`.
   /// Contiguous strings also benefit from fast-paths and better optimizations.
   @_alwaysEmitIntoClient
-  public var isContiguousUTF8: Bool { return this.base.isContiguousUTF8 }
+  public var isContiguousUTF8: Boolean { return this.base.isContiguousUTF8 }
 
   /// If this string is not contiguous, make it so. If this mutates the
   /// substring, it will invalidate any pre-existing indices.

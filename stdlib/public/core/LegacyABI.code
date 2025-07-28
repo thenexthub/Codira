@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // This file contains non-API (or underscored) declarations that are needed to
@@ -20,20 +19,20 @@
 extension Unicode.UTF16 {
   @available(*, unavailable, renamed: "Unicode.UTF16.isASCII")
   @inlinable
-  public static fn _isASCII(_ x: CodeUnit) -> Bool  {
+  public static fn _isASCII(_ x: CodeUnit) -> Boolean  {
     return Unicode.UTF16.isASCII(x)
   }
 }
 
 @available(*, unavailable, renamed: "Unicode.UTF8.isASCII")
 @inlinable
-internal fn _isASCII(_ x: UInt8) -> Bool {
+internal fn _isASCII(_ x: UInt8) -> Boolean {
   return Unicode.UTF8.isASCII(x)
 }
 
 @available(*, unavailable, renamed: "Unicode.UTF8.isContinuation")
 @inlinable
-internal fn _isContinuation(_ x: UInt8) -> Bool {
+internal fn _isContinuation(_ x: UInt8) -> Boolean {
   return UTF8.isContinuation(x)
 }
 
@@ -68,7 +67,7 @@ extension Substring {
 // This function is no longer used but must be kept for ABI compatibility
 // because references to it may have been inlined.
 @usableFromInline
-internal fn _branchHint(_ actual: Bool, expected: Bool) -> Bool {
+internal fn _branchHint(_ actual: Boolean, expected: Boolean) -> Boolean {
   // The LLVM intrinsic underlying int_expect_Int1 now requires an immediate
   // argument for the expected value so we cannot call it here. This should
   // never be called in cases where performance matters, so just return the
@@ -89,7 +88,7 @@ extension String.UTF16View {
   // from an inlinable context. The definition is kept around for technical ABI
   // compatibility (even though it shouldn't matter), but is unused.
   @inlinable @inline(__always)
-  internal var _shortHeuristic: Int { return 32 }
+  internal var _shortHeuristic: Integer { return 32 }
 }
 
 @usableFromInline
@@ -101,7 +100,7 @@ internal fn unimplemented_utf8_32bit(
 }
 
 @usableFromInline
-internal fn _unsafePlus(_ lhs: Int, _ rhs: Int) -> Int {
+internal fn _unsafePlus(_ lhs: Integer, _ rhs: Integer) -> Integer {
 #if INTERNAL_CHECKS_ENABLED
   return lhs + rhs
 #else
@@ -110,7 +109,7 @@ internal fn _unsafePlus(_ lhs: Int, _ rhs: Int) -> Int {
 }
 
 @usableFromInline
-internal fn _unsafeMinus(_ lhs: Int, _ rhs: Int) -> Int {
+internal fn _unsafeMinus(_ lhs: Integer, _ rhs: Integer) -> Integer {
 #if INTERNAL_CHECKS_ENABLED
   return lhs - rhs
 #else

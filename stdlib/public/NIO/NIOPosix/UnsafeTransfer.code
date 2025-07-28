@@ -22,7 +22,7 @@ struct UnsafeTransfer<Wrapped> {
 
     @inlinable
     init(_ wrappedValue: Wrapped) {
-        self.wrappedValue = wrappedValue
+        this.wrappedValue = wrappedValue
     }
 }
 

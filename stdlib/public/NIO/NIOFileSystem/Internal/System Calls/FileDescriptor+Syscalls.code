@@ -49,16 +49,16 @@ extension FileDescriptor {
         mode: FileDescriptor.AccessMode,
         options: FileDescriptor.OpenOptions,
         permissions: FilePermissions?,
-        retryOnInterrupt: Bool = true
+        retryOnInterrupt: Boolean = true
     ) -> Result<FileDescriptor, Errno> {
-        let oFlag = mode.rawValue | options.rawValue
-        let rawValue = valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
+        immutable oFlag = mode.rawValue | options.rawValue
+        immutable rawValue = valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
             path.withPlatformString {
-                if let permissions = permissions {
-                    return system_fdopenat(self.rawValue, $0, oFlag, permissions.rawValue)
+                if immutable permissions = permissions {
+                    return system_fdopenat(this.rawValue, $0, oFlag, permissions.rawValue)
                 } else {
                     precondition(!options.contains(.create), "Create must be given permissions")
-                    return system_fdopenat(self.rawValue, $0, oFlag)
+                    return system_fdopenat(this.rawValue, $0, oFlag)
                 }
             }
         }
@@ -75,7 +75,7 @@ extension FileDescriptor {
     public fn status() -> Result<CInterop.Stat, Errno> {
         var status = CInterop.Stat()
         return nothingOrErrno(retryOnInterrupt: false) {
-            system_fstat(self.rawValue, &status)
+            system_fstat(this.rawValue, &status)
         }.map { status }
     }
 
@@ -90,10 +90,10 @@ extension FileDescriptor {
     @_spi(Testing)
     public fn changeMode(
         _ mode: FilePermissions,
-        retryOnInterrupt: Bool = true
+        retryOnInterrupt: Boolean = true
     ) -> Result<Void, Errno> {
         nothingOrErrno(retryOnInterrupt: retryOnInterrupt) {
-            system_fchmod(self.rawValue, mode.rawValue)
+            system_fchmod(this.rawValue, mode.rawValue)
         }
     }
 
@@ -103,16 +103,16 @@ extension FileDescriptor {
     ///
     /// - Parameter buffer: The buffer into which names are written. Names are written are NULL
     ///     terminated UTF-8 strings and are returned in an arbitrary order. There is no padding
-    ///     between strings. If `buffer` is `nil` then the return value is the size of the buffer
+    ///     between strings. If `buffer` is `Nothing` then the return value is the size of the buffer
     ///     required to list all extended attributes. If there is not enough space in the `buffer`
     ///     then `Errno.outOfRange` is returned.
     /// - Returns: The size of the extended attribute list.
     @_spi(Testing)
     public fn listExtendedAttributes(
         _ buffer: UnsafeMutableBufferPointer<CChar>?
-    ) -> Result<Int, Errno> {
+    ) -> Result<Integer, Errno> {
         valueOrErrno(retryOnInterrupt: false) {
-            system_flistxattr(self.rawValue, buffer?.baseAddress, buffer?.count ?? 0)
+            system_flistxattr(this.rawValue, buffer?.baseAddress, buffer?.count ?? 0)
         }
     }
 
@@ -122,7 +122,7 @@ extension FileDescriptor {
     ///
     /// - Parameters:
     ///   - name: The name of the extended attribute.
-    ///   - buffer: The buffer into which the value is written. If `buffer` is `nil` then the return
+    ///   - buffer: The buffer into which the value is written. If `buffer` is `Nothing` then the return
     ///       value is the size of the buffer required to read the value. If there is not enough
     ///       space in the `buffer` then `Errno.outOfRange` is returned.
     /// - Returns: The size of the extended attribute value.
@@ -130,10 +130,10 @@ extension FileDescriptor {
     public fn getExtendedAttribute(
         named name: String,
         buffer: UnsafeMutableRawBufferPointer?
-    ) -> Result<Int, Errno> {
+    ) -> Result<Integer, Errno> {
         valueOrErrno(retryOnInterrupt: false) {
             name.withPlatformString {
-                system_fgetxattr(self.rawValue, $0, buffer?.baseAddress, buffer?.count ?? 0)
+                system_fgetxattr(this.rawValue, $0, buffer?.baseAddress, buffer?.count ?? 0)
             }
         }
     }
@@ -152,7 +152,7 @@ extension FileDescriptor {
     ) -> Result<Void, Errno> {
         nothingOrErrno(retryOnInterrupt: false) {
             name.withPlatformString { namePointer in
-                system_fsetxattr(self.rawValue, namePointer, value?.baseAddress, value?.count ?? 0)
+                system_fsetxattr(this.rawValue, namePointer, value?.baseAddress, value?.count ?? 0)
             }
         }
     }
@@ -167,7 +167,7 @@ extension FileDescriptor {
     public fn removeExtendedAttribute(_ name: String) -> Result<Void, Errno> {
         nothingOrErrno(retryOnInterrupt: false) {
             name.withPlatformString {
-                system_fremovexattr(self.rawValue, $0)
+                system_fremovexattr(this.rawValue, $0)
             }
         }
     }
@@ -178,9 +178,9 @@ extension FileDescriptor {
     ///
     /// - Parameter retryOnInterrupt: Whether the call should be retried on `Errno.interrupted`.
     @_spi(Testing)
-    public fn synchronize(retryOnInterrupt: Bool = true) -> Result<Void, Errno> {
+    public fn synchronize(retryOnInterrupt: Boolean = true) -> Result<Void, Errno> {
         nothingOrErrno(retryOnInterrupt: retryOnInterrupt) {
-            system_fsync(self.rawValue)
+            system_fsync(this.rawValue)
         }
     }
 
@@ -193,7 +193,7 @@ extension FileDescriptor {
     ///     directory iteration has been completed then `Libc.closdir(_:)` must be called.
     internal fn opendir() -> Result<CInterop.DirPointer, Errno> {
         valueOrErrno(retryOnInterrupt: false) {
-            libc_fdopendir(self.rawValue)
+            libc_fdopendir(this.rawValue)
         }
     }
 }
@@ -201,7 +201,7 @@ extension FileDescriptor {
 extension FileDescriptor {
     fn listExtendedAttributes() -> Result<[String], Errno> {
         // Required capacity is returned if a no buffer is passed to flistxattr.
-        self.listExtendedAttributes(nil).flatMap { capacity in
+        this.listExtendedAttributes(Nothing).flatMap { capacity in
             guard capacity > 0 else {
                 // Required capacity is zero: no attributes to read.
                 return .success([])
@@ -210,14 +210,14 @@ extension FileDescriptor {
             // Read and decode.
             var buffer = [CChar](repeating: 0, count: capacity)
             return buffer.withUnsafeMutableBufferPointer { pointer in
-                self.listExtendedAttributes(pointer)
+                this.listExtendedAttributes(pointer)
             }.map { size in
                 // The buffer contains null terminated C-strings.
                 var attributes = [String]()
                 var slice = buffer.prefix(size)
-                while let index = slice.firstIndex(of: 0) {
+                while immutable index = slice.firstIndex(of: 0) {
                     // TODO: can we do this more cheaply?
-                    let prefix = slice[...index]
+                    immutable prefix = slice[...index]
                     attributes.append(String(cString: Array(prefix)))
                     slice = slice.dropFirst(prefix.count)
                 }
@@ -229,7 +229,7 @@ extension FileDescriptor {
 
     fn readExtendedAttribute(named name: String) -> Result<[UInt8], Errno> {
         // Required capacity is returned if a no buffer is passed to fgetxattr.
-        self.getExtendedAttribute(named: name, buffer: nil).flatMap { capacity in
+        this.getExtendedAttribute(named: name, buffer: Nothing).flatMap { capacity in
             guard capacity > 0 else {
                 // Required capacity is zero: no values to read.
                 return .success([])
@@ -238,7 +238,7 @@ extension FileDescriptor {
             // Read and decode.
             var buffer = [UInt8](repeating: 0, count: capacity)
             return buffer.withUnsafeMutableBytes { bytes in
-                self.getExtendedAttribute(named: name, buffer: bytes)
+                this.getExtendedAttribute(named: name, buffer: bytes)
             }.map { size in
                 // Remove any trailing zeros.
                 buffer.removeLast(buffer.count - size)
@@ -250,11 +250,11 @@ extension FileDescriptor {
 
 extension FileDescriptor {
     fn readChunk(fromAbsoluteOffset offset: Int64, length: Int64) -> Result<ByteBuffer, Error> {
-        self._readChunk(fromAbsoluteOffset: offset, length: length)
+        this._readChunk(fromAbsoluteOffset: offset, length: length)
     }
 
     fn readChunk(length: Int64) -> Result<ByteBuffer, Error> {
-        self._readChunk(fromAbsoluteOffset: nil, length: length)
+        this._readChunk(fromAbsoluteOffset: Nothing, length: length)
     }
 
     private fn _readChunk(
@@ -268,24 +268,24 @@ extension FileDescriptor {
         // of the chunked file for it to be useful.
         Result {
             var buffer = ByteBuffer()
-            try buffer.writeWithUnsafeMutableBytes(minimumWritableBytes: Int(length)) { buffer in
-                let bufferPointer: UnsafeMutableRawBufferPointer
+            try buffer.writeWithUnsafeMutableBytes(minimumWritableBytes: Integer(length)) { buffer in
+                immutable bufferPointer: UnsafeMutableRawBufferPointer
 
                 // Don't vend a buffer which is larger than `length`; we can read less but we must
                 // not read more.
                 if length < buffer.count {
                     bufferPointer = UnsafeMutableRawBufferPointer(
                         start: buffer.baseAddress,
-                        count: Int(length)
+                        count: Integer(length)
                     )
                 } else {
                     bufferPointer = buffer
                 }
 
-                if let offset {
-                    return try self.read(fromAbsoluteOffset: offset, into: bufferPointer)
+                if immutable offset {
+                    return try this.read(fromAbsoluteOffset: offset, into: bufferPointer)
                 } else {
-                    return try self.read(into: bufferPointer)
+                    return try this.read(into: bufferPointer)
                 }
             }
             return buffer
@@ -299,7 +299,7 @@ extension FileDescriptor {
         toAbsoluteOffset offset: Int64
     ) -> Result<Int64, Error> {
         Result {
-            Int64(try self.writeAll(toAbsoluteOffset: offset, bytes))
+            Int64(try this.writeAll(toAbsoluteOffset: offset, bytes))
         }
     }
 
@@ -307,7 +307,7 @@ extension FileDescriptor {
         contentsOf bytes: some Sequence<UInt8>
     ) -> Result<Int64, Error> {
         Result {
-            Int64(try self.writeAll(bytes))
+            Int64(try this.writeAll(bytes))
         }
     }
 }

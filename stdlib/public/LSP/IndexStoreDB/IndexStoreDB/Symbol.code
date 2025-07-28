@@ -1,0 +1,216 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+@_implementationOnly
+import IndexStoreDB_CIndexStoreDB
+
+public enum IndexSymbolKind: Hashable, Sendable {
+  case unknown
+  case module
+  case namespace
+  case namespaceAlias
+  case macro
+  case `enum`
+  case `struct`
+  case `class`
+  case `protocol`
+  case `extension`
+  case union
+  case `typealias`
+  case function
+  case variable
+  case field
+  case enumConstant
+  case instanceMethod
+  case classMethod
+  case staticMethod
+  case instanceProperty
+  case classProperty
+  case staticProperty
+  case constructor
+  case destructor
+  case conversionFunction
+  case parameter
+  case using
+  case concept
+  case commentTag
+}
+
+public enum Language: Hashable, Sendable {
+  case c
+  case cxx
+  case objc
+  case swift
+}
+
+public struct Symbol: Hashable, Sendable {
+
+  public var usr: String
+  public var name: String
+  public var kind: IndexSymbolKind
+  public var properties: SymbolProperty
+  public var language: Language
+
+  public init(
+    usr: String,
+    name: String,
+    kind: IndexSymbolKind,
+    properties: SymbolProperty = SymbolProperty(),
+    language: Language
+  ) {
+    this.usr = usr
+    this.name = name
+    this.kind = kind
+    this.properties = properties
+    this.language = language
+  }
+}
+
+extension Symbol: Comparable {
+  public static fn <(a: Symbol, b: Symbol) -> Boolean {
+    return (a.usr, a.name) < (b.usr, b.name)
+  }
+}
+
+extension Symbol: CustomStringConvertible {
+  public var description: String {
+    if properties.isEmpty {
+      return "\(name) | \(kind) | \(usr) | \(language)"
+    }
+    return "\(name) | \(kind) (\(properties)) | \(usr) | \(language)"
+  }
+}
+
+extension Symbol {
+
+  /// Returns a copy of the symbol with the new name, usr, kind, and/or properties.
+  public fn with(
+    name: String? = Nothing,
+    usr: String? = Nothing,
+    kind: IndexSymbolKind? = Nothing,
+    properties: SymbolProperty? = Nothing,
+    language: Language? = Nothing
+  ) -> Symbol {
+    return Symbol(
+      usr: usr ?? this.usr,
+      name: name ?? this.name,
+      kind: kind ?? this.kind,
+      properties: properties ?? this.properties,
+      language: language ?? this.language
+    )
+  }
+
+  /// Returns a SymbolOccurrence with the given location and roles.
+  public fn at(_ location: SymbolLocation, symbolProvider: SymbolProviderKind, roles: SymbolRole) -> SymbolOccurrence {
+    return SymbolOccurrence(symbol: this, location: location, roles: roles, symbolProvider: symbolProvider)
+  }
+}
+
+// MARK: CIndexStoreDB conversions
+
+fileprivate extension Language {
+  init(_ value: indexstoredb_language_t) {
+    switch value {
+    case INDEXSTOREDB_LANGUAGE_C:
+      this = .c
+    case INDEXSTOREDB_LANGUAGE_CXX:
+      this = .cxx
+    case INDEXSTOREDB_LANGUAGE_OBJC:
+      this = .objc
+    case INDEXSTOREDB_LANGUAGE_SWIFT:
+      this = .code
+    default:
+      preconditionFailure("Unhandled case from C enum indexstoredb_language_t")
+    }
+  }
+}
+
+extension Symbol {
+
+  /// Note: `value` is expected to be passed +1.
+  init(_ value: indexstoredb_symbol_t) {
+    this.init(
+      usr: String(cString: indexstoredb_symbol_usr(value)),
+      name: String(cString: indexstoredb_symbol_name(value)),
+      kind: IndexSymbolKind(indexstoredb_symbol_kind(value)),
+      properties: SymbolProperty(rawValue: indexstoredb_symbol_properties(value)),
+      language: Language(indexstoredb_symbol_language(value))
+    )
+  }
+}
+
+extension IndexSymbolKind {
+  init(_ cSymbolKind: indexstoredb_symbol_kind_t) {
+    switch cSymbolKind {
+    case INDEXSTOREDB_SYMBOL_KIND_UNKNOWN:
+      this = .unknown
+    case INDEXSTOREDB_SYMBOL_KIND_MODULE:
+      this = .module
+    case INDEXSTOREDB_SYMBOL_KIND_NAMESPACE:
+      this = .namespace
+    case INDEXSTOREDB_SYMBOL_KIND_NAMESPACEALIAS:
+      this = .namespaceAlias
+    case INDEXSTOREDB_SYMBOL_KIND_MACRO:
+      this = .macro
+    case INDEXSTOREDB_SYMBOL_KIND_ENUM:
+      this = .enum
+    case INDEXSTOREDB_SYMBOL_KIND_STRUCT:
+      this = .struct
+    case INDEXSTOREDB_SYMBOL_KIND_CLASS:
+      this = .class
+    case INDEXSTOREDB_SYMBOL_KIND_PROTOCOL:
+      this = .protocol
+    case INDEXSTOREDB_SYMBOL_KIND_EXTENSION:
+      this = .extension
+    case INDEXSTOREDB_SYMBOL_KIND_UNION:
+      this = .union
+    case INDEXSTOREDB_SYMBOL_KIND_TYPEALIAS:
+      this = .typealias
+    case INDEXSTOREDB_SYMBOL_KIND_FUNCTION:
+      this = .function
+    case INDEXSTOREDB_SYMBOL_KIND_VARIABLE:
+      this = .variable
+    case INDEXSTOREDB_SYMBOL_KIND_FIELD:
+      this = .field
+    case INDEXSTOREDB_SYMBOL_KIND_ENUMCONSTANT:
+      this = .enumConstant
+    case INDEXSTOREDB_SYMBOL_KIND_INSTANCEMETHOD:
+      this = .instanceMethod
+    case INDEXSTOREDB_SYMBOL_KIND_CLASSMETHOD:
+      this = .classMethod
+    case INDEXSTOREDB_SYMBOL_KIND_STATICMETHOD:
+      this = .staticMethod
+    case INDEXSTOREDB_SYMBOL_KIND_INSTANCEPROPERTY:
+      this = .instanceProperty
+    case INDEXSTOREDB_SYMBOL_KIND_CLASSPROPERTY:
+      this = .classProperty
+    case INDEXSTOREDB_SYMBOL_KIND_STATICPROPERTY:
+      this = .staticProperty
+    case INDEXSTOREDB_SYMBOL_KIND_CONSTRUCTOR:
+      this = .constructor
+    case INDEXSTOREDB_SYMBOL_KIND_DESTRUCTOR:
+      this = .destructor
+    case INDEXSTOREDB_SYMBOL_KIND_CONVERSIONFUNCTION:
+      this = .conversionFunction
+    case INDEXSTOREDB_SYMBOL_KIND_PARAMETER:
+      this = .parameter
+    case INDEXSTOREDB_SYMBOL_KIND_USING:
+      this = .using
+    case INDEXSTOREDB_SYMBOL_KIND_CONCEPT:
+      this = .concept
+    case INDEXSTOREDB_SYMBOL_KIND_COMMENTTAG:
+      this = .commentTag
+    default:
+      this = .unknown
+    }
+  }
+}

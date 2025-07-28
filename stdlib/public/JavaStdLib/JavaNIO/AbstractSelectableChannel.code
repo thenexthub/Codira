@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.channels.spi.AbstractSelectableChannel")
+open class AbstractSelectableChannel: SelectableChannel {
+  @JavaMethod
+  open override fn implCloseChannel() throws
+
+  @JavaMethod
+  open override fn isBlocking() -> Boolean
+
+  @JavaMethod
+  open fn implCloseSelectableChannel() throws
+
+  @JavaMethod
+  open fn implConfigureBlocking(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open override fn keyFor(_ arg0: Selector?) -> SelectionKey!
+
+  @JavaMethod
+  open override fn blockingLock() -> JavaObject!
+
+  @JavaMethod
+  open override fn configureBlocking(_ arg0: Boolean) throws -> SelectableChannel!
+
+  @JavaMethod
+  open override fn isRegistered() -> Boolean
+
+  @JavaMethod
+  open override fn register(_ arg0: Selector?, _ arg1: Int32, _ arg2: JavaObject?) throws -> SelectionKey!
+
+  @JavaMethod
+  open override fn provider() -> SelectorProvider!
+}

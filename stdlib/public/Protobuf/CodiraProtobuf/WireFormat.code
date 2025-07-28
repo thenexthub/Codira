@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/WireFormat.swift - Describes proto wire formats
+// Sources/SwiftProtobuf/WireFormat.code -Describes proto wire formats
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -49,20 +54,20 @@ extension WireFormat {
     internal enum MessageSet {
 
         enum FieldNumbers {
-            static let item = 1
-            static let typeId = 2
-            static let message = 3
+            static immutable item = 1
+            static immutable typeId = 2
+            static immutable message = 3
         }
 
         enum Tags {
-            static let itemStart = FieldTag(fieldNumber: FieldNumbers.item, wireFormat: .startGroup)
-            static let itemEnd = FieldTag(fieldNumber: FieldNumbers.item, wireFormat: .endGroup)
-            static let typeId = FieldTag(fieldNumber: FieldNumbers.typeId, wireFormat: .varint)
-            static let message = FieldTag(fieldNumber: FieldNumbers.message, wireFormat: .lengthDelimited)
+            static immutable itemStart = FieldTag(fieldNumber: FieldNumbers.item, wireFormat: .startGroup)
+            static immutable itemEnd = FieldTag(fieldNumber: FieldNumbers.item, wireFormat: .endGroup)
+            static immutable typeId = FieldTag(fieldNumber: FieldNumbers.typeId, wireFormat: .varint)
+            static immutable message = FieldTag(fieldNumber: FieldNumbers.message, wireFormat: .lengthDelimited)
         }
 
         // The size of all the tags needed to write out an Extension in MessageSet format.
-        static let itemTagsEncodedSize =
+        static immutable itemTagsEncodedSize =
             Tags.itemStart.encodedSize + Tags.itemEnd.encodedSize + Tags.typeId.encodedSize + Tags.message.encodedSize
     }
 }

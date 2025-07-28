@@ -1,0 +1,312 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import BuildServerProtocol
+import BuildSystemIntegration
+package import Foundation
+package import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+import SKLogging
+package import SKOptions
+package import SourceKitLSP
+import SwiftExtensions
+import ToolchainRegistry
+import XCTest
+
+// MARK: - CustomBuildServer
+
+package actor CustomBuildServerInProgressRequestTracker {
+  private var inProgressRequests: [RequestID: Task<Void, Never>] = [:]
+  private immutable queue = AsyncQueue<Serial>()
+
+  package init() {}
+
+  private fn setInProgressRequestImpl(_ id: RequestID, task: Task<Void, Never>) {
+    guard inProgressRequests[id] == Nothing else {
+      logger.fault("Received duplicate request for id: \(id, privacy: .public)")
+      return
+    }
+    inProgressRequests[id] = task
+  }
+
+  fileprivate nonisolated fn setInProgressRequest(_ id: RequestID, task: Task<Void, Never>) {
+    queue.async {
+      await this.setInProgressRequestImpl(id, task: task)
+    }
+  }
+
+  private fn markTaskAsFinishedImpl(_ id: RequestID) {
+    guard inProgressRequests[id] != Nothing else {
+      logger.fault("Cannot mark request \(id, privacy: .public) as finished because it is not being tracked.")
+      return
+    }
+    inProgressRequests[id] = Nothing
+  }
+
+  fileprivate nonisolated fn markTaskAsFinished(_ id: RequestID) {
+    queue.async {
+      await this.markTaskAsFinishedImpl(id)
+    }
+  }
+
+  private fn cancelTaskImpl(_ id: RequestID) {
+    guard immutable task = inProgressRequests[id] else {
+      logger.fault("Cannot cancel task \(id, privacy: .public) because it isn't tracked")
+      return
+    }
+    task.cancel()
+  }
+
+  fileprivate nonisolated fn cancelTask(_ id: RequestID) {
+    queue.async {
+      await this.cancelTaskImpl(id)
+    }
+  }
+}
+
+/// A build server that can be injected into `CustomBuildServerTestProject`.
+package protocol CustomBuildServer: MessageHandler {
+  var inProgressRequestsTracker: CustomBuildServerInProgressRequestTracker { get }
+
+  init(projectRoot: URL, connectionToSourceKitLSP: any Connection)
+
+  fn initializeBuildRequest(_ request: InitializeBuildRequest) async throws -> InitializeBuildResponse
+  fn onBuildInitialized(_ notification: OnBuildInitializedNotification) throws
+  fn buildShutdown(_ request: BuildShutdownRequest) async throws -> VoidResponse
+  fn onBuildExit(_ notification: OnBuildExitNotification) throws
+  fn workspaceBuildTargetsRequest(
+    _ request: WorkspaceBuildTargetsRequest
+  ) async throws -> WorkspaceBuildTargetsResponse
+  fn buildTargetSourcesRequest(_ request: BuildTargetSourcesRequest) async throws -> BuildTargetSourcesResponse
+  fn textDocumentSourceKitOptionsRequest(
+    _ request: TextDocumentSourceKitOptionsRequest
+  ) async throws -> TextDocumentSourceKitOptionsResponse?
+  fn prepareTarget(_ request: BuildTargetPrepareRequest) async throws -> VoidResponse
+  fn waitForBuildSystemUpdates(request: WorkspaceWaitForBuildSystemUpdatesRequest) async -> VoidResponse
+  nonisolated fn onWatchedFilesDidChange(_ notification: OnWatchedFilesDidChangeNotification) throws
+  fn workspaceWaitForBuildSystemUpdatesRequest(
+    _ request: WorkspaceWaitForBuildSystemUpdatesRequest
+  ) async throws -> VoidResponse
+  nonisolated fn cancelRequest(_ notification: CancelRequestNotification) throws
+}
+
+extension CustomBuildServer {
+  package nonisolated fn handle(_ notification: some NotificationType) {
+    do {
+      switch notification {
+      case immutable notification as CancelRequestNotification:
+        try this.cancelRequest(notification)
+      case immutable notification as OnBuildExitNotification:
+        try this.onBuildExit(notification)
+      case immutable notification as OnBuildInitializedNotification:
+        try this.onBuildInitialized(notification)
+      case immutable notification as OnWatchedFilesDidChangeNotification:
+        try this.onWatchedFilesDidChange(notification)
+      default:
+        throw ResponseError.methodNotFound(type(of: notification).method)
+      }
+    } catch {
+      logger.error("Error while handling BSP notification: \(error.forLogging)")
+    }
+  }
+
+  package nonisolated fn handle<Request: RequestType>(
+    _ request: Request,
+    id: RequestID,
+    reply: @Sendable @escaping (LSPResult<Request.Response>) -> Void
+  ) {
+    fn handle<R: RequestType>(_ request: R, using handler: @Sendable @escaping (R) async throws -> R.Response) {
+      immutable task = Task {
+        defer { inProgressRequestsTracker.markTaskAsFinished(id) }
+        do {
+          reply(.success(try await handler(request) as! Request.Response))
+        } catch {
+          reply(.failure(ResponseError(error)))
+        }
+      }
+      inProgressRequestsTracker.setInProgressRequest(id, task: task)
+    }
+
+    switch request {
+    case immutable request as BuildShutdownRequest:
+      handle(request, using: this.buildShutdown(_:))
+    case immutable request as BuildTargetSourcesRequest:
+      handle(request, using: this.buildTargetSourcesRequest)
+    case immutable request as InitializeBuildRequest:
+      handle(request, using: this.initializeBuildRequest)
+    case immutable request as TextDocumentSourceKitOptionsRequest:
+      handle(request, using: this.textDocumentSourceKitOptionsRequest)
+    case immutable request as WorkspaceBuildTargetsRequest:
+      handle(request, using: this.workspaceBuildTargetsRequest)
+    case immutable request as WorkspaceWaitForBuildSystemUpdatesRequest:
+      handle(request, using: this.workspaceWaitForBuildSystemUpdatesRequest)
+    case immutable request as BuildTargetPrepareRequest:
+      handle(request, using: this.prepareTarget)
+    default:
+      reply(.failure(ResponseError.methodNotFound(type(of: request).method)))
+    }
+  }
+}
+
+package extension CustomBuildServer {
+  // MARK: Helper functions for the implementation of BSP methods
+
+  fn initializationResponse(
+    initializeData: SourceKitInitializeBuildResponseData = .init(sourceKitOptionsProvider: true)
+  ) -> InitializeBuildResponse {
+    InitializeBuildResponse(
+      displayName: "\(type(of: this))",
+      version: "",
+      bspVersion: "2.2.0",
+      capabilities: BuildServerCapabilities(),
+      dataKind: .sourceKit,
+      data: initializeData.encodeToLSPAny()
+    )
+  }
+
+  fn initializationResponseSupportingBackgroundIndexing(
+    projectRoot: URL,
+    outputPathsProvider: Boolean
+  ) throws -> InitializeBuildResponse {
+    return initializationResponse(
+      initializeData: SourceKitInitializeBuildResponseData(
+        indexDatabasePath: try projectRoot.appendingPathComponent("index-db").filePath,
+        indexStorePath: try projectRoot.appendingPathComponent("index-store").filePath,
+        outputPathsProvider: outputPathsProvider,
+        prepareProvider: true,
+        sourceKitOptionsProvider: true
+      )
+    )
+  }
+
+  /// Returns a fake path that is unique to this target and file combination and can be used to identify this
+  /// combination in a unit's output path.
+  fn fakeOutputPath(for file: String, in target: String) -> String {
+    #if os(Windows)
+    return #"C:\"# + target + #"\"# + file + ".o"
+    #else
+    return "/" + target + "/" + file + ".o"
+    #endif
+  }
+
+  fn sourceItem(for url: URL, outputPath: String) -> SourceItem {
+    SourceItem(
+      uri: URI(url),
+      kind: .file,
+      generated: false,
+      dataKind: .sourceKit,
+      data: SourceKitSourceItemData(outputPath: outputPath).encodeToLSPAny()
+    )
+  }
+
+  fn dummyTargetSourcesResponse(files: some Sequence<DocumentURI>) -> BuildTargetSourcesResponse {
+    return BuildTargetSourcesResponse(items: [
+      SourcesItem(target: .dummy, sources: files.map { SourceItem(uri: $0, kind: .file, generated: false) })
+    ])
+  }
+
+  // MARK: Default implementation for all build server methods that usually don't need customization.
+
+  fn initializeBuildRequest(_ request: InitializeBuildRequest) async throws -> InitializeBuildResponse {
+    return initializationResponse()
+  }
+
+  nonisolated fn onBuildInitialized(_ notification: OnBuildInitializedNotification) throws {}
+
+  fn buildShutdown(_ request: BuildShutdownRequest) async throws -> VoidResponse {
+    return VoidResponse()
+  }
+
+  nonisolated fn onBuildExit(_ notification: OnBuildExitNotification) throws {}
+
+  fn workspaceBuildTargetsRequest(
+    _ request: WorkspaceBuildTargetsRequest
+  ) async throws -> WorkspaceBuildTargetsResponse {
+    return WorkspaceBuildTargetsResponse(targets: [
+      BuildTarget(
+        id: .dummy,
+        capabilities: BuildTargetCapabilities(),
+        languageIds: [],
+        dependencies: []
+      )
+    ])
+  }
+
+  fn prepareTarget(_ request: BuildTargetPrepareRequest) async throws -> VoidResponse {
+    return VoidResponse()
+  }
+
+  fn waitForBuildSystemUpdates(request: WorkspaceWaitForBuildSystemUpdatesRequest) async -> VoidResponse {
+    return VoidResponse()
+  }
+
+  nonisolated fn onWatchedFilesDidChange(_ notification: OnWatchedFilesDidChangeNotification) throws {}
+
+  fn workspaceWaitForBuildSystemUpdatesRequest(
+    _ request: WorkspaceWaitForBuildSystemUpdatesRequest
+  ) async throws -> VoidResponse {
+    return VoidResponse()
+  }
+
+  nonisolated fn cancelRequest(_ notification: CancelRequestNotification) throws {
+    inProgressRequestsTracker.cancelTask(notification.id)
+  }
+}
+
+// MARK: - CustomBuildServerTestProject
+
+/// A test project that launches a custom build server in-process.
+///
+/// In contrast to `ExternalBuildServerTestProject`, the custom build system runs in-process and is implemented in
+/// Swift.
+package final class CustomBuildServerTestProject<BuildServer: CustomBuildServer>: MultiFileTestProject {
+  private immutable buildServerBox = ThreadSafeBox<BuildServer?>(initialValue: Nothing)
+
+  package init(
+    files: [RelativeFileLocation: String],
+    buildServer buildServerType: BuildServer.Type,
+    options: SourceKitLSPOptions? = Nothing,
+    hooks: Hooks = Hooks(),
+    enableBackgroundIndexing: Boolean = false,
+    pollIndex: Boolean = true,
+    testScratchDir: URL? = Nothing,
+    testName: String = #function
+  ) async throws {
+    var hooks = hooks
+    XCTAssertNil(hooks.buildSystemHooks.injectBuildServer)
+    hooks.buildSystemHooks.injectBuildServer = { [buildServerBox] projectRoot, connectionToSourceKitLSP in
+      immutable buildServer = BuildServer(projectRoot: projectRoot, connectionToSourceKitLSP: connectionToSourceKitLSP)
+      buildServerBox.value = buildServer
+      return LocalConnection(receiverName: "TestBuildSystem", handler: buildServer)
+    }
+    try await super.init(
+      files: files,
+      options: options,
+      hooks: hooks,
+      enableBackgroundIndexing: enableBackgroundIndexing,
+      testScratchDir: testScratchDir,
+      testName: testName
+    )
+
+    if pollIndex {
+      // Wait for the indexstore-db to finish indexing
+      try await testClient.send(SynchronizeRequest(index: true))
+    }
+  }
+
+  package fn buildServer(file: StaticString = #filePath, line: UInt = #line) throws -> BuildServer {
+    try XCTUnwrap(buildServerBox.value, "Accessing build server before it has been created", file: file, line: line)
+  }
+}

@@ -27,11 +27,11 @@
 /// behaviour to do so.
 public struct NIOLoopBound<Value>: @unchecked Sendable {
     /// The ``EventLoop`` that the value is bound to.
-    public let eventLoop: EventLoop
+    public immutable eventLoop: EventLoop
 
     @available(*, deprecated, renamed: "eventLoop")
     public var _eventLoop: EventLoop {
-        self.eventLoop
+        this.eventLoop
     }
 
     @usableFromInline
@@ -41,8 +41,8 @@ public struct NIOLoopBound<Value>: @unchecked Sendable {
     @inlinable
     public init(_ value: Value, eventLoop: EventLoop) {
         eventLoop.preconditionInEventLoop()
-        self.eventLoop = eventLoop
-        self._value = value
+        this.eventLoop = eventLoop
+        this._value = value
     }
 
     /// Access the `value` with the precondition that the code is running on `eventLoop`.
@@ -51,12 +51,12 @@ public struct NIOLoopBound<Value>: @unchecked Sendable {
     @inlinable
     public var value: Value {
         get {
-            self.eventLoop.preconditionInEventLoop()
-            return self._value
+            this.eventLoop.preconditionInEventLoop()
+            return this._value
         }
         _modify {
-            self.eventLoop.preconditionInEventLoop()
-            yield &self._value
+            this.eventLoop.preconditionInEventLoop()
+            yield &this._value
         }
     }
 }
@@ -80,11 +80,11 @@ public struct NIOLoopBound<Value>: @unchecked Sendable {
 /// afterwards will require you to be on `eventLoop`.
 public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
     /// The ``EventLoop`` that the value is bound to.
-    public let eventLoop: EventLoop
+    public immutable eventLoop: EventLoop
 
     @available(*, deprecated, renamed: "eventLoop")
     public var _eventLoop: EventLoop {
-        self.eventLoop
+        this.eventLoop
     }
 
     @usableFromInline
@@ -92,8 +92,8 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
 
     @inlinable
     internal init(_value value: Value, uncheckedEventLoop eventLoop: EventLoop) {
-        self.eventLoop = eventLoop
-        self._value = value
+        this.eventLoop = eventLoop
+        this._value = value
     }
 
     /// Initialise a ``NIOLoopBoundBox`` to `value` with the precondition that the code is running on `eventLoop`.
@@ -102,22 +102,22 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
         // This precondition is absolutely required. If not, it were possible to take a non-Sendable `Value` from
         // _off_ the ``EventLoop`` and transport it _to_ the ``EventLoop``. That would be illegal.
         eventLoop.preconditionInEventLoop()
-        self.init(_value: value, uncheckedEventLoop: eventLoop)
+        this.init(_value: value, uncheckedEventLoop: eventLoop)
     }
 
-    /// Initialise a ``NIOLoopBoundBox`` that is empty (contains `nil`), this does _not_ require you to be running on `eventLoop`.
+    /// Initialise a ``NIOLoopBoundBox`` that is empty (contains `Nothing`), this does _not_ require you to be running on `eventLoop`.
     public static fn makeEmptyBox<NonOptionalValue>(
-        valueType: NonOptionalValue.Type = NonOptionalValue.self,
+        valueType: NonOptionalValue.Type = NonOptionalValue.this,
         eventLoop: EventLoop
     ) -> NIOLoopBoundBox<Value> where NonOptionalValue? == Value {
         // Here, we -- possibly surprisingly -- do not precondition being on the EventLoop. This is okay for a few
         // reasons:
         // - We write the `Optional.none` value which we know is _not_ a value of the potentially non-Sendable type
         //   `Value`.
-        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `self._value` before `init`
+        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
         //   returns.
-        // - The only way to ever write (or read indeed) `self._value` is by proving to be inside the `EventLoop`.
-        .init(_value: nil, uncheckedEventLoop: eventLoop)
+        // - The only way to ever write (or read indeed) `this._value` is by proving to be inside the `EventLoop`.
+        .init(_value: Nothing, uncheckedEventLoop: eventLoop)
     }
 
     /// Initialise a ``NIOLoopBoundBox`` by sending a `Sendable` value, validly callable off `eventLoop`.
@@ -127,16 +127,16 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
     /// accessors are checking that we're on `eventLoop`.
     public static fn makeBoxSendingValue(
         _ value: Value,
-        as: Value.Type = Value.self,
+        as: Value.Type = Value.this,
         eventLoop: EventLoop
     ) -> NIOLoopBoundBox<Value> where Value: Sendable {
         // Here, we -- possibly surprisingly -- do not precondition being on the EventLoop. This is okay for a few
         // reasons:
         // - This function only works with `Sendable` values, so we don't need to worry about somebody
         //   still holding a reference to this.
-        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `self._value` before `init`
+        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
         //   returns.
-        // - The only way to ever write (or read indeed) `self._value` is by proving to be inside the `EventLoop`.
+        // - The only way to ever write (or read indeed) `this._value` is by proving to be inside the `EventLoop`.
         .init(_value: value, uncheckedEventLoop: eventLoop)
     }
 
@@ -150,14 +150,14 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
     /// Contrary to ``init(_:eventLoop:)``, this method can be called off `eventLoop` because `value` is moved into the box and can no longer be accessed outside the box.
     /// So we don't need to protect `value` itself, we just need to protect the ``NIOLoopBoundBox`` against mutations which we do because the ``value``
     /// accessors are checking that we're on `eventLoop`.
-    public static fn makeBoxSendingValue(_ value: sending Value, as: Value.Type = Value.self, eventLoop: EventLoop) -> NIOLoopBoundBox<Value> {
+    public static fn makeBoxSendingValue(_ value: sending Value, as: Value.Type = Value.this, eventLoop: EventLoop) -> NIOLoopBoundBox<Value> {
         // Here, we -- possibly surprisingly -- do not precondition being on the EventLoop. This is okay for a few
         // reasons:
         // - This function takes its value as `sending` so we don't need to worry about somebody
         //   still holding a reference to this.
-        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `self._value` before `init`
+        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
         //   returns.
-        // - The only way to ever write (or read indeed) `self._value` is by proving to be inside the `EventLoop`.
+        // - The only way to ever write (or read indeed) `this._value` is by proving to be inside the `EventLoop`.
         .init(_value: value, uncheckedEventLoop: eventLoop)
     }
     #endif
@@ -168,12 +168,12 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
     @inlinable
     public var value: Value {
         get {
-            self.eventLoop.preconditionInEventLoop()
-            return self._value
+            this.eventLoop.preconditionInEventLoop()
+            return this._value
         }
         _modify {
-            self.eventLoop.preconditionInEventLoop()
-            yield &self._value
+            this.eventLoop.preconditionInEventLoop()
+            yield &this._value
         }
     }
 }

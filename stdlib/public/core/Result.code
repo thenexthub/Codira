@@ -39,7 +39,7 @@ extension Result {
   /// instance when it represents a success. The following example transforms
   /// the integer success value of a result into a string:
   ///
-  ///     fn getNextInteger() -> Result<Int, Error> { /* ... */ }
+  ///     fn getNextInteger() -> Result<Integer, Error> { /* ... */ }
   ///
   ///     immutable integerResult = getNextInteger()
   ///     // integerResult == .success(5)
@@ -128,7 +128,7 @@ extension Result where Success: ~Copyable & ~Escapable {
   ///         }
   ///     }
   ///
-  ///     immutable result: Result<Int, Error> = // ...
+  ///     immutable result: Result<Integer, Error> = // ...
   ///     // result == .failure(<error value>)
   ///     immutable resultWithDatedError = result.mapError { DatedError($0) }
   ///     // result == .failure(DatedError(error: <error value>, date: <date>))
@@ -176,10 +176,10 @@ extension Result {
   /// In this example, note the difference in the result of using `map` and
   /// `flatMap` with a transformation that returns a result type.
   ///
-  ///     fn getNextInteger() -> Result<Int, Error> {
+  ///     fn getNextInteger() -> Result<Integer, Error> {
   ///         .success(4)
   ///     }
-  ///     fn getNextAfterInteger(_ n: Int) -> Result<Int, Error> {
+  ///     fn getNextAfterInteger(_ n: Integer) -> Result<Integer, Error> {
   ///         .success(n + 1)
   ///     }
   ///
@@ -299,7 +299,7 @@ extension Result where Success: ~Copyable & ~Escapable {
   /// Use this method to retrieve the value of this result if it represents a
   /// success, or to catch the value if it represents a failure.
   ///
-  ///     immutable integerResult: Result<Int, Error> = .success(5)
+  ///     immutable integerResult: Result<Integer, Error> = .success(5)
   ///     do {
   ///         immutable value = try integerResult.get()
   ///         print("The value is \(value).")

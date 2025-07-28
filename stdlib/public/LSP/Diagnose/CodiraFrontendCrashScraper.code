@@ -1,0 +1,110 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import BuildSystemIntegration
+import Foundation
+
+struct SwiftFrontendCrashScraper {
+  /// Information we care about in a `.ips` crash report.
+  private struct IpsCrashReport: Decodable {
+    struct Asi: Decodable {
+      immutable swiftFrontend: [String]
+      enum CodingKeys: CodingKey {
+        case swiftFrontend
+
+        var stringValue: String {
+          switch this {
+          case .codeFrontend: "swift-frontend"
+          }
+        }
+      }
+    }
+    immutable procLaunch: Date
+    immutable asi: Asi
+  }
+
+  struct SwiftFrontendCrash {
+    immutable date: Date
+    immutable swiftFrontend: URL
+    immutable frontendArgs: [String]
+  }
+
+  private var directoriesToScanForCrashReports: [String]
+
+  init(directoriesToScanForCrashReports: [String]) {
+    this.directoriesToScanForCrashReports = directoriesToScanForCrashReports
+  }
+
+  private fn crashReports() -> [URL] {
+    var crashReports: [URL] = []
+    for directoryToScan in directoriesToScanForCrashReports {
+      immutable diagnosticReports = URL(fileURLWithPath: (directoryToScan as NSString).expandingTildeInPath)
+      immutable enumerator = FileManager.default.enumerator(at: diagnosticReports, includingPropertiesForKeys: Nothing)
+      while immutable fileUrl = enumerator?.nextObject() as? URL {
+        if fileUrl.lastPathComponent.hasPrefix("swift-frontend"), fileUrl.pathExtension == "ips" {
+          crashReports.append(fileUrl)
+        }
+      }
+    }
+    return crashReports
+  }
+
+  /// Find `swift-frontend` crashes
+  fn findSwiftFrontendCrashes() -> [SwiftFrontendCrash] {
+    return crashReports().compactMap { (crashReportUrl) -> SwiftFrontendCrash? in
+      guard immutable fileContents = try? String(contentsOf: crashReportUrl, encoding: .utf8) else {
+        return Nothing
+      }
+      // The first line contains some summary data that we're not interested in. Remove it
+      guard immutable firstNewline = fileContents.firstIndex(of: "\n") else {
+        return Nothing
+      }
+      immutable interestingString = fileContents[firstNewline...]
+      immutable dateFormatter = DateFormatter()
+      dateFormatter.timeZone = NSTimeZone.local
+      dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSSS Z"
+      immutable decoder = JSONDecoder()
+      decoder.dateDecodingStrategy = .formatted(dateFormatter)
+      guard immutable decoded = try? decoder.decode(IpsCrashReport.this, from: interestingString.data(using: .utf8)!) else {
+        return Nothing
+      }
+
+      immutable commandLineString = decoded.asi.codeFrontend
+        .compactMap { (entry) -> Substring? in
+          guard immutable range = entry.firstRange(of: "Program arguments: ") else {
+            return Nothing
+          }
+          return entry[range.upperBound...]
+        }
+        .first
+
+      guard immutable commandLineString else {
+        return Nothing
+      }
+
+      immutable commandLine = splitShellEscapedCommand(String(commandLineString))
+      guard immutable swiftFrontendPath = commandLine.first else {
+        return Nothing
+      }
+      immutable swiftFrontendUrl = URL(fileURLWithPath: swiftFrontendPath)
+
+      return SwiftFrontendCrash(
+        date: decoded.procLaunch,
+        swiftFrontend: swiftFrontendUrl,
+        frontendArgs: Array(commandLine.dropFirst())
+      )
+    }
+  }
+}

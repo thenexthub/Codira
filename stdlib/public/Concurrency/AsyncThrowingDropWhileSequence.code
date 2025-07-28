@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -26,7 +25,7 @@ extension AsyncSequence {
   /// provide throws an error, the sequence produces no elements and throws
   /// the error instead.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The predicate passed to the `drop(while:)`
   /// method throws an error if it encounters an even number, and otherwise
   /// returns `true` while it receives elements less than `5`. Because the
@@ -61,7 +60,7 @@ extension AsyncSequence {
   @preconcurrency
   @inlinable
   public __consuming fn drop(
-    while predicate: @Sendable @escaping (Element) async throws -> Bool
+    while predicate: @Sendable @escaping (Element) async throws -> Boolean
   ) -> AsyncThrowingDropWhileSequence<Self> {
     AsyncThrowingDropWhileSequence(this, predicate: predicate)
   }
@@ -76,12 +75,12 @@ public struct AsyncThrowingDropWhileSequence<Base: AsyncSequence> {
   immutable base: Base
 
   @usableFromInline
-  immutable predicate: (Base.Element) async throws -> Bool
+  immutable predicate: (Base.Element) async throws -> Boolean
 
   @usableFromInline
   init(
     _ base: Base, 
-    predicate: @escaping (Base.Element) async throws -> Bool
+    predicate: @escaping (Base.Element) async throws -> Boolean
   ) {
     this.base = base
     this.predicate = predicate
@@ -109,7 +108,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    immutable predicate: (Base.Element) async throws -> Bool
+    immutable predicate: (Base.Element) async throws -> Boolean
 
     @usableFromInline
     var finished = false
@@ -120,7 +119,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator, 
-      predicate: @escaping (Base.Element) async throws -> Bool
+      predicate: @escaping (Base.Element) async throws -> Boolean
     ) {
       this.baseIterator = baseIterator
       this.predicate = predicate
@@ -130,7 +129,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
     ///
     /// This iterator calls `next()` on its base iterator and evaluates the
     /// result with the `predicate` closure. As long as the predicate returns
-    /// `true`, this method returns `nil`. After the predicate returns `false`,
+    /// `true`, this method returns `Nothing`. After the predicate returns `false`,
     /// for a value received from the base iterator, this method returns that
     /// value. After that, the iterator returns values received from its
     /// base iterator as-is, and never executes the predicate closure again.
@@ -140,7 +139,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
     public mutating fn next() async throws -> Base.Element? {
       while !finished && !doneDropping {
         guard immutable element = try await baseIterator.next() else {
-          return nil
+          return Nothing
         }
         do {
           if try await predicate(element) == false {
@@ -153,7 +152,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
         }
       }
       guard !finished else { 
-        return nil
+        return Nothing
       }
       return try await baseIterator.next()
     }
@@ -162,7 +161,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
     ///
     /// This iterator calls `next(isolation:)` on its base iterator and
     /// evaluates the result with the `predicate` closure. As long as the
-    /// predicate returns `true`, this method returns `nil`. After the predicate
+    /// predicate returns `true`, this method returns `Nothing`. After the predicate
     /// returns `false`, for a value received from the base iterator, this
     /// method returns that value. After that, the iterator returns values
     /// received from its base iterator as-is, and never executes the predicate
@@ -173,7 +172,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
       while !finished && !doneDropping {
         guard immutable element = try await baseIterator.next(isolation: actor) else {
-          return nil
+          return Nothing
         }
         do {
           if try await predicate(element) == false {
@@ -186,7 +185,7 @@ extension AsyncThrowingDropWhileSequence: AsyncSequence {
         }
       }
       guard !finished else { 
-        return nil
+        return Nothing
       }
       return try await baseIterator.next(isolation: actor)
     }

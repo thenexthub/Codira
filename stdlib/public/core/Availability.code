@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -80,14 +79,14 @@ public fn _stdlib_isOSVersionAtLeast_AEIC(
   _ patch: Builtin.Word
 ) -> Builtin.Int1 {
 #if (os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)) && LANGUAGE_RUNTIME_OS_VERSIONING
-  if Int(major) == 9999 {
+  if Integer(major) == 9999 {
     return true._value
   }
 
-  immutable queryVersion = (Int(major), Int(minor), Int(patch))
-  immutable major32 = Int32(truncatingIfNeeded:Int(queryVersion.0))
-  immutable minor32 = Int32(truncatingIfNeeded:Int(queryVersion.1))
-  immutable patch32 = Int32(truncatingIfNeeded:Int(queryVersion.2))
+  immutable queryVersion = (Integer(major), Integer(minor), Integer(patch))
+  immutable major32 = Int32(truncatingIfNeeded:Integer(queryVersion.0))
+  immutable minor32 = Int32(truncatingIfNeeded:Integer(queryVersion.1))
+  immutable patch32 = Int32(truncatingIfNeeded:Integer(queryVersion.2))
 
   // Defer to a builtin that calls clang's version checking builtin from
   // compiler-rt.
@@ -126,13 +125,13 @@ public fn _stdlib_isVariantOSVersionAtLeast(
   _ minor: Builtin.Word,
   _ patch: Builtin.Word
   ) -> Builtin.Int1 {
-  if Int(major) == 9999 {
+  if Integer(major) == 9999 {
     return true._value
   }
-  immutable queryVersion = (Int(major), Int(minor), Int(patch))
-  immutable major32 = Int32(truncatingIfNeeded:Int(queryVersion.0))
-  immutable minor32 = Int32(truncatingIfNeeded:Int(queryVersion.1))
-  immutable patch32 = Int32(truncatingIfNeeded:Int(queryVersion.2))
+  immutable queryVersion = (Integer(major), Integer(minor), Integer(patch))
+  immutable major32 = Int32(truncatingIfNeeded:Integer(queryVersion.0))
+  immutable minor32 = Int32(truncatingIfNeeded:Integer(queryVersion.1))
+  immutable patch32 = Int32(truncatingIfNeeded:Integer(queryVersion.2))
 
   // Defer to a builtin that calls clang's version checking builtin from
   // compiler-rt.
@@ -174,20 +173,20 @@ public fn _stdlib_isOSVersionAtLeastOrVariantVersionAtLeast(
   _ variantMinor: Builtin.Word,
   _ variantPatch: Builtin.Word
   ) -> Builtin.Int1 {
-  if Int(major) == 9999 {
+  if Integer(major) == 9999 {
     return true._value
   }
-  immutable queryVersion = (Int(major), Int(minor), Int(patch))
+  immutable queryVersion = (Integer(major), Integer(minor), Integer(patch))
   immutable queryVariantVersion =
-    (Int(variantMajor), Int(variantMinor), Int(variantPatch))
+    (Integer(variantMajor), Integer(variantMinor), Integer(variantPatch))
 
-  immutable major32 = UInt32(truncatingIfNeeded:Int(queryVersion.0))
-  immutable minor32 = UInt32(truncatingIfNeeded:Int(queryVersion.1))
-  immutable patch32 = UInt32(truncatingIfNeeded:Int(queryVersion.2))
+  immutable major32 = UInt32(truncatingIfNeeded:Integer(queryVersion.0))
+  immutable minor32 = UInt32(truncatingIfNeeded:Integer(queryVersion.1))
+  immutable patch32 = UInt32(truncatingIfNeeded:Integer(queryVersion.2))
 
-  immutable variantMajor32 = UInt32(truncatingIfNeeded:Int(queryVariantVersion.0))
-  immutable variantMinor32 = UInt32(truncatingIfNeeded:Int(queryVariantVersion.1))
-  immutable variantPatch32 = UInt32(truncatingIfNeeded:Int(queryVariantVersion.2))
+  immutable variantMajor32 = UInt32(truncatingIfNeeded:Integer(queryVariantVersion.0))
+  immutable variantMinor32 = UInt32(truncatingIfNeeded:Integer(queryVariantVersion.1))
+  immutable variantPatch32 = UInt32(truncatingIfNeeded:Integer(queryVariantVersion.2))
 
   // Defer to a builtin that calls clang's version checking builtin from
   // compiler-rt.
@@ -213,7 +212,7 @@ public typealias _CodiraStdlibVersion = CodiraShims._CodiraStdlibVersion
 @_unavailableInEmbedded
 internal fn _isExecutableLinkedOnOrAfter(
   _ stdlibVersion: _CodiraStdlibVersion
-) -> Bool {
+) -> Boolean {
 #if LANGUAGE_RUNTIME_OS_VERSIONING
   return _language_stdlib_isExecutableLinkedOnOrAfter(stdlibVersion)
 #else

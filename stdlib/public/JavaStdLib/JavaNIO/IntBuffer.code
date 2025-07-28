@@ -1,0 +1,141 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.IntBuffer", implements: Comparable.this)
+open class IntBuffer: Buffer {
+  @JavaMethod
+  open override fn reset() -> IntBuffer!
+
+  @JavaMethod
+  open fn get() -> Int32
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Int32]) -> IntBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn get(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: [Int32]) -> IntBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Int32], _ arg2: Int32, _ arg3: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: IntBuffer?) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Int32]) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: IntBuffer?, _ arg2: Int32, _ arg3: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Int32]) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Int32], _ arg2: Int32, _ arg3: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: IntBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn clear() -> IntBuffer!
+
+  @JavaMethod
+  open override fn position(_ arg0: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open fn mismatch(_ arg0: IntBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn limit(_ arg0: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open override fn isDirect() -> Boolean
+
+  @JavaMethod
+  open override fn hasArray() -> Boolean
+
+  @JavaMethod
+  open fn array() -> [Int32]
+
+  @JavaMethod
+  open override fn arrayOffset() -> Int32
+
+  @JavaMethod
+  open override fn mark() -> IntBuffer!
+
+  @JavaMethod
+  open override fn flip() -> IntBuffer!
+
+  @JavaMethod
+  open override fn rewind() -> IntBuffer!
+
+  @JavaMethod
+  open override fn slice() -> IntBuffer!
+
+  @JavaMethod
+  open override fn slice(_ arg0: Int32, _ arg1: Int32) -> IntBuffer!
+
+  @JavaMethod
+  open override fn duplicate() -> IntBuffer!
+
+  @JavaMethod
+  open fn asReadOnlyBuffer() -> IntBuffer!
+
+  @JavaMethod
+  open fn compact() -> IntBuffer!
+
+  @JavaMethod
+  open fn order() -> ByteOrder!
+}
+extension JavaClass<IntBuffer> {
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Int32]) -> IntBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32) -> IntBuffer!
+
+  @JavaStaticMethod
+  public fn allocate(_ arg0: Int32) -> IntBuffer!
+}

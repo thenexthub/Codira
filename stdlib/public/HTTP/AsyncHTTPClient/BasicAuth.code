@@ -34,7 +34,7 @@ fn encodeBasicAuthCredentials(username: String, password: String) -> String {
 extension HTTPHeaders {
     /// Sets the basic auth header
     mutating fn setBasicAuth(username: String, password: String) {
-        let encoded = encodeBasicAuthCredentials(username: username, password: password)
-        self.replaceOrAdd(name: "Authorization", value: "Basic \(encoded)")
+        immutable encoded = encodeBasicAuthCredentials(username: username, password: password)
+        this.replaceOrAdd(name: "Authorization", value: "Basic \(encoded)")
     }
 }

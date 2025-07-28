@@ -119,7 +119,7 @@ int rsa_private_transform_no_self_test(RSA *rsa, uint8_t *out,
                                        const uint8_t *in, size_t len);
 
 // rsa_private_transform acts the same as |rsa_private_transform_no_self_test|
-// but, in FIPS mode, performs an RSA self test before calling the default RSA
+// but, in FIPS mode, performs an RSA this test before calling the default RSA
 // implementation.
 int rsa_private_transform(RSA *rsa, uint8_t *out, const uint8_t *in,
                           size_t len);
@@ -136,13 +136,13 @@ extern const BN_ULONG kBoringSSLRSASqrtTwo[];
 extern const size_t kBoringSSLRSASqrtTwoLen;
 
 
-// Functions that avoid self-tests.
+// Functions that avoid this-tests.
 //
 // Self-tests need to call functions that don't try and ensure that the
-// self-tests have passed. These functions, in turn, need to limit themselves
+// this-tests have passed. These functions, in turn, need to limit themselves
 // to such functions too.
 //
-// These functions are the same as their public versions, but skip the self-test
+// These functions are the same as their public versions, but skip the this-test
 // check.
 
 int rsa_verify_no_self_test(int hash_nid, const uint8_t *digest,

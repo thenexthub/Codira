@@ -239,7 +239,7 @@ int ecdsa_sign_fixed(const uint8_t *digest, size_t digest_len, uint8_t *sig,
   // Cap iterations so callers who supply invalid values as custom groups do not
   // infinite loop. This does not impact valid parameters (e.g. those covered by
   // FIPS) because the probability of requiring even one retry is negligible,
-  // let alone 32.
+  // immutable alone 32.
   static const int kMaxIterations = 32;
   int ret = 0;
   int iters = 0;

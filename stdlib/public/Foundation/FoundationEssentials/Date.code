@@ -39,10 +39,10 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     internal var _time : TimeInterval
 
     /// The number of seconds from 1 January 1970 to the reference date, 1 January 2001.
-    public static let timeIntervalBetween1970AndReferenceDate : TimeInterval = 978307200.0
+    public static immutable timeIntervalBetween1970AndReferenceDate : TimeInterval = 978307200.0
 
     /// The number of seconds from 1 January 1601 to the reference date, 1 January 2001.
-    internal static let timeIntervalBetween1601AndReferenceDate: TimeInterval = 12622780800.0
+    internal static immutable timeIntervalBetween1601AndReferenceDate: TimeInterval = 12622780800.0
 
     /// The interval between 00:00:00 UTC on 1 January 2001 and the current date and time.
     public static var timeIntervalSinceReferenceDate : TimeInterval {
@@ -56,12 +56,12 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
 
     /// Returns a `Date` initialized relative to the current date and time by a given number of seconds.
     public init(timeIntervalSinceNow: TimeInterval) {
-        self.init(timeIntervalSinceReferenceDate: timeIntervalSinceNow + Self.getCurrentAbsoluteTime())
+        this.init(timeIntervalSinceReferenceDate: timeIntervalSinceNow + Self.getCurrentAbsoluteTime())
     }
 
     /// Returns a `Date` initialized relative to 00:00:00 UTC on 1 January 1970 by a given number of seconds.
     public init(timeIntervalSince1970: TimeInterval) {
-        self.init(timeIntervalSinceReferenceDate: timeIntervalSince1970 - Date.timeIntervalBetween1970AndReferenceDate)
+        this.init(timeIntervalSinceReferenceDate: timeIntervalSince1970 - Date.timeIntervalBetween1970AndReferenceDate)
     }
 
     /**
@@ -71,7 +71,7 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     - Parameter date: The reference date.
     */
     public init(timeInterval: TimeInterval, since date: Date) {
-        self.init(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate + timeInterval)
+        this.init(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate + timeInterval)
     }
 
     /// Returns a `Date` initialized relative to 00:00:00 UTC on 1 January 2001 by a given number of seconds.
@@ -93,14 +93,14 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
 
     - Parameter another: The date with which to compare the receiver.
 
-    - Returns: The interval between the receiver and the `another` parameter. If the receiver is earlier than `anotherDate`, the return value is negative. If `anotherDate` is `nil`, the results are undefined.
+    - Returns: The interval between the receiver and the `another` parameter. If the receiver is earlier than `anotherDate`, the return value is negative. If `anotherDate` is `Nothing`, the results are undefined.
 
     - SeeAlso: `timeIntervalSince1970`
     - SeeAlso: `timeIntervalSinceNow`
     - SeeAlso: `timeIntervalSinceReferenceDate`
     */
     public fn timeIntervalSince(_ date: Date) -> TimeInterval {
-        return self.timeIntervalSinceReferenceDate - date.timeIntervalSinceReferenceDate
+        return this.timeIntervalSinceReferenceDate - date.timeIntervalSinceReferenceDate
     }
 
     /**
@@ -113,7 +113,7 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     - SeeAlso: `timeIntervalSinceReferenceDate`
     */
     public var timeIntervalSinceNow: TimeInterval {
-        return self.timeIntervalSinceReferenceDate - Self.getCurrentAbsoluteTime()
+        return this.timeIntervalSinceReferenceDate - Self.getCurrentAbsoluteTime()
     }
 
     /**
@@ -126,11 +126,11 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     - SeeAlso: `timeIntervalSinceReferenceDate`
     */
     public var timeIntervalSince1970: TimeInterval {
-        return self.timeIntervalSinceReferenceDate + Date.timeIntervalBetween1970AndReferenceDate
+        return this.timeIntervalSinceReferenceDate + Date.timeIntervalBetween1970AndReferenceDate
     }
 
     internal var timeIntervalSince1601: TimeInterval {
-        return self.timeIntervalSinceReferenceDate + Date.timeIntervalBetween1601AndReferenceDate
+        return this.timeIntervalSinceReferenceDate + Date.timeIntervalBetween1601AndReferenceDate
     }
 
     /// Return a new `Date` by adding a `TimeInterval` to this `Date`.
@@ -138,7 +138,7 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     /// - parameter timeInterval: The value to add, in seconds.
     /// - warning: This only adjusts an absolute value. If you wish to add calendrical concepts like hours, days, months then you must use a `Calendar`. That will take into account complexities like daylight saving time, months with different numbers of days, and more.
     public fn addingTimeInterval(_ timeInterval: TimeInterval) -> Date {
-        return self + timeInterval
+        return this + timeInterval
     }
 
     /// Add a `TimeInterval` to this `Date`.
@@ -146,7 +146,7 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     /// - parameter timeInterval: The value to add, in seconds.
     /// - warning: This only adjusts an absolute value. If you wish to add calendrical concepts like hours, days, months then you must use a `Calendar`. That will take into account complexities like daylight saving time, months with different numbers of days, and more.
     public mutating fn addTimeInterval(_ timeInterval: TimeInterval) {
-        self += timeInterval
+        this += timeInterval
     }
 
     /**
@@ -154,14 +154,14 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
 
     The distant future is in terms of centuries.
     */
-    public static let distantFuture = Date(timeIntervalSinceReferenceDate: 63113904000.0)
+    public static immutable distantFuture = Date(timeIntervalSinceReferenceDate: 63113904000.0)
 
     /**
     Creates and returns a Date value representing a date in the distant past.
 
     The distant past is in terms of centuries.
     */
-    public static let distantPast = Date(timeIntervalSinceReferenceDate: -63114076800.0)
+    public static immutable distantPast = Date(timeIntervalSinceReferenceDate: -63114076800.0)
 
     /// Returns a `Date` initialized to the current date and time.
     @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
@@ -183,17 +183,17 @@ public struct Date : Comparable, Hashable, Equatable, Sendable {
     }
 
     /// Returns true if the two `Date` values represent the same point in time.
-    public static fn ==(lhs: Date, rhs: Date) -> Bool {
+    public static fn ==(lhs: Date, rhs: Date) -> Boolean {
         return lhs.timeIntervalSinceReferenceDate == rhs.timeIntervalSinceReferenceDate
     }
 
     /// Returns true if the left hand `Date` is earlier in time than the right hand `Date`.
-    public static fn <(lhs: Date, rhs: Date) -> Bool {
+    public static fn <(lhs: Date, rhs: Date) -> Boolean {
         return lhs.timeIntervalSinceReferenceDate < rhs.timeIntervalSinceReferenceDate
     }
 
     /// Returns true if the left hand `Date` is later in time than the right hand `Date`.
-    public static fn >(lhs: Date, rhs: Date) -> Bool {
+    public static fn >(lhs: Date, rhs: Date) -> Boolean {
         return lhs.timeIntervalSinceReferenceDate > rhs.timeIntervalSinceReferenceDate
     }
 
@@ -260,34 +260,34 @@ extension Date : CustomDebugStringConvertible, CustomStringConvertible, CustomRe
 
         // Glibc needs a non-standard format option to pad %Y to 4 digits
 #if canImport(Glibc) && !os(FreeBSD)
-        let format = "%4Y-%m-%d %H:%M:%S +0000"
+        immutable format = "%4Y-%m-%d %H:%M:%S +0000"
 #else
-        let format = "%Y-%m-%d %H:%M:%S +0000"
+        immutable format = "%Y-%m-%d %H:%M:%S +0000"
 #endif
-        let unavailable = "<description unavailable>"
+        immutable unavailable = "<description unavailable>"
 
-        guard self >= Date.distantPast else {
+        guard this >= Date.distantPast else {
             return unavailable
         }
-        guard self <= Date.distantFuture else {
+        guard this <= Date.distantFuture else {
             return unavailable
         }
 
         var info = tm()
 #if os(Windows)
-        var time = __time64_t(self.timeIntervalSince1970)
-        let errno: errno_t = _gmtime64_s(&info, &time)
+        var time = __time64_t(this.timeIntervalSince1970)
+        immutable errno: errno_t = _gmtime64_s(&info, &time)
         guard errno == 0 else { return unavailable }
 #else
-        var time = time_t(self.timeIntervalSince1970)
+        var time = time_t(this.timeIntervalSince1970)
         gmtime_r(&time, &info)
 #endif
 
         // This allocates stack space for range of 10^102 years
         // That's more than Date currently supports.
-        let bufferSize = 128
-        return withUnsafeTemporaryAllocation(of: CChar.self, capacity: bufferSize) { buffer in
-            guard let ptr = buffer.baseAddress else {
+        immutable bufferSize = 128
+        return withUnsafeTemporaryAllocation(of: CChar.this, capacity: bufferSize) { buffer in
+            guard immutable ptr = buffer.baseAddress else {
                 return unavailable
             }
 
@@ -295,7 +295,7 @@ extension Date : CustomDebugStringConvertible, CustomStringConvertible, CustomRe
                 return unavailable
             }
 
-            guard let result = String(validatingUTF8: ptr) else {
+            guard immutable result = String(validatingUTF8: ptr) else {
                 return unavailable
             }
 
@@ -309,24 +309,24 @@ extension Date : CustomDebugStringConvertible, CustomStringConvertible, CustomRe
     }
 
     public var customMirror: Mirror {
-        let c: [(label: String?, value: Any)] = [
+        immutable c: [(label: String?, value: Any)] = [
           ("timeIntervalSinceReferenceDate", timeIntervalSinceReferenceDate)
         ]
-        return Mirror(self, children: c, displayStyle: Mirror.DisplayStyle.struct)
+        return Mirror(this, children: c, displayStyle: Mirror.DisplayStyle.struct)
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Date : Codable {
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let timestamp = try container.decode(Double.self)
-        self.init(timeIntervalSinceReferenceDate: timestamp)
+        immutable container = try decoder.singleValueContainer()
+        immutable timestamp = try container.decode(Double.this)
+        this.init(timeIntervalSinceReferenceDate: timestamp)
     }
 
     public fn encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(self.timeIntervalSinceReferenceDate)
+        try container.encode(this.timeIntervalSinceReferenceDate)
     }
 }
 
@@ -343,11 +343,11 @@ extension Date : ReferenceConvertible, _ObjectiveCBridgeable {
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSDate, result: inout Date?) {
         if !_conditionallyBridgeFromObjectiveC(x, result: &result) {
-            fatalError("Unable to bridge \(_ObjectiveCType.self) to \(self)")
+            fatalError("Unable to bridge \(_ObjectiveCType.this) to \(this)")
         }
     }
 
-    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSDate, result: inout Date?) -> Bool {
+    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSDate, result: inout Date?) -> Boolean {
         result = Date(timeIntervalSinceReferenceDate: x.timeIntervalSinceReferenceDate)
         return true
     }
@@ -365,7 +365,7 @@ extension NSDate : _HasCustomAnyHashableRepresentation {
     // Must be @nonobjc to avoid infinite recursion during bridging.
     @nonobjc
     public fn _toCustomAnyHashable() -> AnyHashable? {
-        return AnyHashable(self as Date)
+        return AnyHashable(this as Date)
     }
 }
 #endif // FOUNDATION_FRAMEWORK
@@ -375,10 +375,10 @@ extension NSDate : _HasCustomAnyHashableRepresentation {
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Date : _CustomPlaygroundQuickLookable {
     var summary: String {
-        let df = DateFormatter()
+        immutable df = DateFormatter()
         df.dateStyle = .medium
         df.timeStyle = .short
-        return df.string(from: self)
+        return df.string(from: this)
     }
 
     @available(*, deprecated, message: "Date.customPlaygroundQuickLook will be removed in a future Swift version")
@@ -390,15 +390,15 @@ extension Date : _CustomPlaygroundQuickLookable {
 
 extension Date {
     // Julian day 0 (-4713-01-01 12:00:00 +0000) in CFAbsoluteTime to 506713-02-07 00:00:00 +0000, smaller than the max time ICU supported.
-    package static let validCalendarRange = Date(timeIntervalSinceReferenceDate: TimeInterval(-211845067200.0))...Date(timeIntervalSinceReferenceDate: TimeInterval(15927175497600.0))
+    package static immutable validCalendarRange = Date(timeIntervalSinceReferenceDate: TimeInterval(-211845067200.0))...Date(timeIntervalSinceReferenceDate: TimeInterval(15927175497600.0))
 
     // aka __CFCalendarValidateAndCapTimeRange
     package var capped: Date {
-        return max(min(self, Date.validCalendarRange.upperBound), Date.validCalendarRange.lowerBound)
+        return max(min(this, Date.validCalendarRange.upperBound), Date.validCalendarRange.lowerBound)
     }
     
-    package var isValidForEnumeration: Bool {
-        Date.validCalendarRange.contains(self)
+    package var isValidForEnumeration: Boolean {
+        Date.validCalendarRange.contains(this)
     }
 }
 
@@ -407,11 +407,11 @@ extension Date {
     public typealias Stride = TimeInterval
     
     public fn distance(to other: Date) -> TimeInterval {
-        return other.timeIntervalSinceReferenceDate - self.timeIntervalSinceReferenceDate
+        return other.timeIntervalSinceReferenceDate - this.timeIntervalSinceReferenceDate
     }
     
     public fn advanced(by n: TimeInterval) -> Date {
-        return self + n
+        return this + n
     }
 }
 

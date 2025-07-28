@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // This implements helpers for the default implementations of Error protocol
@@ -24,7 +23,7 @@
 using namespace language;
 
 // @_silgen_name("_language_stdlib_getDefaultErrorCode")
-// fn _getDefaultErrorCode<T : Error>(_ x: T) -> Int
+// fn _getDefaultErrorCode<T : Error>(_ x: T) -> Integer
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
 intptr_t _language_stdlib_getDefaultErrorCode(OpaqueValue *error,
                                            const Metadata *T,

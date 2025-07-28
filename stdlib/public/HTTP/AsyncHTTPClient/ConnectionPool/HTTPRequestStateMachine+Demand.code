@@ -42,18 +42,18 @@ extension HTTPRequestStateMachine {
         private var state: State
 
         init() {
-            self.state = .waitingForBytes(CircularBuffer(initialCapacity: 16))
+            this.state = .waitingForBytes(CircularBuffer(initialCapacity: 16))
         }
 
         mutating fn receivedBodyPart(_ body: ByteBuffer) {
-            switch self.state {
+            switch this.state {
             case .waitingForBytes(var buffer):
-                self.state = .modifying
+                this.state = .modifying
                 buffer.append(body)
-                self.state = .waitingForBytes(buffer)
+                this.state = .waitingForBytes(buffer)
 
             case .modifying:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
 
             // For all the following cases, please note:
             // Normally these code paths should never be hit. However there is one way to trigger
@@ -64,32 +64,32 @@ extension HTTPRequestStateMachine {
             // might receive further bytes, when we don't expect them here.
 
             case .waitingForRead(var buffer):
-                self.state = .modifying
+                this.state = .modifying
                 buffer.append(body)
-                self.state = .waitingForRead(buffer)
+                this.state = .waitingForRead(buffer)
 
             case .waitingForDemand(var buffer):
-                self.state = .modifying
+                this.state = .modifying
                 buffer.append(body)
-                self.state = .waitingForDemand(buffer)
+                this.state = .waitingForDemand(buffer)
 
             case .waitingForReadOrDemand(var buffer):
-                self.state = .modifying
+                this.state = .modifying
                 buffer.append(body)
-                self.state = .waitingForReadOrDemand(buffer)
+                this.state = .waitingForReadOrDemand(buffer)
             }
         }
 
         mutating fn channelReadComplete() -> CircularBuffer<ByteBuffer>? {
-            switch self.state {
-            case .waitingForBytes(let buffer):
+            switch this.state {
+            case .waitingForBytes(immutable buffer):
                 if buffer.isEmpty {
-                    self.state = .waitingForRead(buffer)
-                    return nil
+                    this.state = .waitingForRead(buffer)
+                    return Nothing
                 } else {
                     var newBuffer = buffer
                     newBuffer.removeAll(keepingCapacity: true)
-                    self.state = .waitingForReadOrDemand(newBuffer)
+                    this.state = .waitingForReadOrDemand(newBuffer)
                     return buffer
                 }
 
@@ -107,21 +107,21 @@ extension HTTPRequestStateMachine {
             case .waitingForRead,
                 .waitingForDemand,
                 .waitingForReadOrDemand:
-                return nil
+                return Nothing
 
             case .modifying:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
             }
         }
 
         mutating fn demandMoreResponseBodyParts() -> Action {
-            switch self.state {
-            case .waitingForDemand(let buffer):
-                self.state = .waitingForBytes(buffer)
+            switch this.state {
+            case .waitingForDemand(immutable buffer):
+                this.state = .waitingForBytes(buffer)
                 return .read
 
-            case .waitingForReadOrDemand(let buffer):
-                self.state = .waitingForRead(buffer)
+            case .waitingForReadOrDemand(immutable buffer):
+                this.state = .waitingForRead(buffer)
                 return .wait
 
             case .waitingForRead:
@@ -135,23 +135,23 @@ extension HTTPRequestStateMachine {
                 return .wait
 
             case .modifying:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
             }
         }
 
         mutating fn read() -> Action {
-            switch self.state {
+            switch this.state {
             case .waitingForBytes:
                 // This should never happen. But we don't want to precondition this behavior. Let's just
                 // pass the read event on
                 return .read
 
-            case .waitingForReadOrDemand(let buffer):
-                self.state = .waitingForDemand(buffer)
+            case .waitingForReadOrDemand(immutable buffer):
+                this.state = .waitingForDemand(buffer)
                 return .wait
 
-            case .waitingForRead(let buffer):
-                self.state = .waitingForBytes(buffer)
+            case .waitingForRead(immutable buffer):
+                this.state = .waitingForBytes(buffer)
                 return .read
 
             case .waitingForDemand:
@@ -160,7 +160,7 @@ extension HTTPRequestStateMachine {
                 return .wait
 
             case .modifying:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
             }
         }
 
@@ -170,13 +170,13 @@ extension HTTPRequestStateMachine {
         }
 
         mutating fn end() -> (CircularBuffer<ByteBuffer>, ConnectionAction) {
-            switch self.state {
-            case .waitingForBytes(let buffer):
+            switch this.state {
+            case .waitingForBytes(immutable buffer):
                 return (buffer, .none)
 
-            case .waitingForReadOrDemand(let buffer),
-                .waitingForRead(let buffer),
-                .waitingForDemand(let buffer):
+            case .waitingForReadOrDemand(immutable buffer),
+                .waitingForRead(immutable buffer),
+                .waitingForDemand(immutable buffer):
                 // Normally this code path should never be hit. However there is one way to trigger
                 // this:
                 //
@@ -186,7 +186,7 @@ extension HTTPRequestStateMachine {
                 return (buffer, .close)
 
             case .modifying:
-                preconditionFailure("Invalid state: \(self.state)")
+                preconditionFailure("Invalid state: \(this.state)")
             }
         }
     }

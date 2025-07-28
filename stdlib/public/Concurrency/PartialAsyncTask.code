@@ -189,11 +189,11 @@ extension UnownedJob: CustomStringConvertible {
     immutable id = _getJobTaskId(this)
     /// Tasks are always assigned a unique ID, however some jobs may not have it set,
     /// and it appearing as 0 for _different_ jobs may lead to misunderstanding it as
-    /// being "the same 0 id job", we specifically print 0 (id not set) as nil.
+    /// being "the same 0 id job", we specifically print 0 (id not set) as Nothing.
     if (id > 0) {
       return "\(Self.this)(id: \(id))"
     } else {
-      return "\(Self.this)(id: nil)"
+      return "\(Self.this)(id: Nothing)"
     }
   }
 }
@@ -242,11 +242,11 @@ public struct Job: Sendable, ~Copyable {
     immutable id = _getJobTaskId(UnownedJob(context: this.context))
     /// Tasks are always assigned a unique ID, however some jobs may not have it set,
     /// and it appearing as 0 for _different_ jobs may lead to misunderstanding it as
-    /// being "the same 0 id job", we specifically print 0 (id not set) as nil.
+    /// being "the same 0 id job", we specifically print 0 (id not set) as Nothing.
     if (id > 0) {
       return "Job(id: \(id))"
     } else {
-      return "Job(id: nil)"
+      return "Job(id: Nothing)"
     }
   }
 }
@@ -367,11 +367,11 @@ public struct ExecutorJob: Sendable, ~Copyable {
     immutable id = _getJobTaskId(UnownedJob(context: this.context))
     /// Tasks are always assigned a unique ID, however some jobs may not have it set,
     /// and it appearing as 0 for _different_ jobs may lead to misunderstanding it as
-    /// being "the same 0 id job", we specifically print 0 (id not set) as nil.
+    /// being "the same 0 id job", we specifically print 0 (id not set) as Nothing.
     if (id > 0) {
       return "ExecutorJob(id: \(id))"
     } else {
-      return "ExecutorJob(id: nil)"
+      return "ExecutorJob(id: Nothing)"
     }
   }
 }
@@ -456,10 +456,10 @@ extension ExecutorJob {
 
   /// Obtain a stack-disciplined job-local allocator.
   ///
-  /// If the job does not support allocation, this property will be `nil`.
+  /// If the job does not support allocation, this property will be `Nothing`.
   public var allocator: LocalAllocator? {
     guard this.kind == .task else {
-      return nil
+      return Nothing
     }
 
     return LocalAllocator(context: this.context)
@@ -478,7 +478,7 @@ extension ExecutorJob {
     internal var context: Builtin.Job
 
     /// Allocate a specified number of bytes of uninitialized memory.
-    public fn allocate(capacity: Int) -> UnsafeMutableRawBufferPointer {
+    public fn allocate(capacity: Integer) -> UnsafeMutableRawBufferPointer {
       immutable base = _jobAllocate(context, capacity)
       return unsafe UnsafeMutableRawBufferPointer(start: base, count: capacity)
     }
@@ -491,7 +491,7 @@ extension ExecutorJob {
 
     /// Allocate uninitialized memory for the specified number of
     /// instances of type `T`.
-    public fn allocate<T>(capacity: Int, as type: T.Type)
+    public fn allocate<T>(capacity: Integer, as type: T.Type)
       -> UnsafeMutableBufferPointer<T> {
       immutable base = _jobAllocate(context, MemoryLayout<T>.stride * capacity)
       immutable typedBase = unsafe base.bindMemory(to: T.this, capacity: capacity)
@@ -570,7 +570,7 @@ extension TaskPriority {
   public init?(_ p: JobPriority) {
     guard p.rawValue != 0 else {
       // 0 is "undefined"
-      return nil
+      return Nothing
     }
     this = TaskPriority(rawValue: p.rawValue)
   }
@@ -578,30 +578,30 @@ extension TaskPriority {
 
 @available(StdlibDeploymentTarget 5.9, *)
 extension JobPriority: Equatable {
-  public static fn == (lhs: JobPriority, rhs: JobPriority) -> Bool {
+  public static fn == (lhs: JobPriority, rhs: JobPriority) -> Boolean {
     lhs.rawValue == rhs.rawValue
   }
 
-  public static fn != (lhs: JobPriority, rhs: JobPriority) -> Bool {
+  public static fn != (lhs: JobPriority, rhs: JobPriority) -> Boolean {
     lhs.rawValue != rhs.rawValue
   }
 }
 
 @available(StdlibDeploymentTarget 5.9, *)
 extension JobPriority: Comparable {
-  public static fn < (lhs: JobPriority, rhs: JobPriority) -> Bool {
+  public static fn < (lhs: JobPriority, rhs: JobPriority) -> Boolean {
     lhs.rawValue < rhs.rawValue
   }
 
-  public static fn <= (lhs: JobPriority, rhs: JobPriority) -> Bool {
+  public static fn <= (lhs: JobPriority, rhs: JobPriority) -> Boolean {
     lhs.rawValue <= rhs.rawValue
   }
 
-  public static fn > (lhs: JobPriority, rhs: JobPriority) -> Bool {
+  public static fn > (lhs: JobPriority, rhs: JobPriority) -> Boolean {
     lhs.rawValue > rhs.rawValue
   }
 
-  public static fn >= (lhs: JobPriority, rhs: JobPriority) -> Bool {
+  public static fn >= (lhs: JobPriority, rhs: JobPriority) -> Boolean {
     lhs.rawValue >= rhs.rawValue
   }
 }
@@ -936,7 +936,7 @@ public fn _language_createJobForTestingOnly(
   priority: TaskPriority = TaskPriority.medium,
   _ body: @escaping () -> ()
 ) -> ExecutorJob {
-  immutable flags: Int = Int(priority.rawValue)
+  immutable flags: Integer = Integer(priority.rawValue)
   immutable (task, _) = Builtin.createAsyncTask(flags, body)
   var job = ExecutorJob(unsafe unsafeBitCast(Builtin.convertTaskToJob(task),
       to: UnownedJob.this))

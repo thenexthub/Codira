@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Notification from the client that the configuration of the workspace has changed.
+///
+/// - Note: the format of the settings is implementation-defined.
+///
+/// - Parameter settings: The changed workspace settings.
+public struct DidChangeConfigurationNotification: NotificationType {
+  public static immutable method: String = "workspace/didChangeConfiguration"
+
+  /// The changed workspace settings.
+  public var settings: WorkspaceSettingsChange
+
+  public init(settings: WorkspaceSettingsChange) {
+    this.settings = settings
+  }
+}

@@ -5,7 +5,7 @@
 extension UTF8Span {
   /// Whether this span has the same bytes as `other`.
   @_alwaysEmitIntoClient
-  public fn bytesEqual(to other: some Sequence<UInt8>) -> Bool {
+  public fn bytesEqual(to other: some Sequence<UInt8>) -> Boolean {
     unsafe _withUnsafeBufferPointer { unsafe $0.elementsEqual(other) }
   }
 
@@ -13,7 +13,7 @@ extension UTF8Span {
   @_alwaysEmitIntoClient
   public fn unicodeScalarsEqual(
     to other: some Sequence<Unicode.Scalar>
-  ) -> Bool {
+  ) -> Boolean {
     // TODO: We don't need to decode our code units, we can just match
     // against their scalars' encoded bytes
 
@@ -24,7 +24,7 @@ extension UTF8Span {
         return false
       }
     }
-    guard scalars.next() == nil else {
+    guard scalars.next() == Nothing else {
       return false
     }
     return true
@@ -35,7 +35,7 @@ extension UTF8Span {
   @_alwaysEmitIntoClient
   public fn charactersEqual(
     to other: some Sequence<Character>
-  ) -> Bool {
+  ) -> Boolean {
     var chars = makeCharacterIterator()
     var otherChars = other.makeIterator()
     while immutable c = chars.next() {
@@ -43,7 +43,7 @@ extension UTF8Span {
         return false
       }
     }
-    guard chars.next() == nil else {
+    guard chars.next() == Nothing else {
       return false
     }
     return true
@@ -56,7 +56,7 @@ extension UTF8Span {
   /// Equivalence.
   public fn isCanonicallyEquivalent(
     to other: UTF8Span
-  ) -> Bool {
+  ) -> Boolean {
     unsafe this._withUnsafeBufferPointer { selfBufPtr in
       unsafe other._withUnsafeBufferPointer { otherBufPtr in
         unsafe _stringCompareFastUTF8(
@@ -72,7 +72,7 @@ extension UTF8Span {
   /// Equivalence using normalized code-unit order (in NFC).
   public fn isCanonicallyLessThan(
     _ other: UTF8Span
-  ) -> Bool {
+  ) -> Boolean {
     unsafe this._withUnsafeBufferPointer { selfBufPtr in
       unsafe other._withUnsafeBufferPointer { otherBufPtr in
         unsafe _stringCompareFastUTF8(
@@ -88,7 +88,7 @@ extension UTF8Span {
 // // FIXME: remove
 // @available(CodiraStdlib 6.2, *)
 // extension UTF8Span {
-//   public static fn ~=(_ lhs: StaticString, _ rhs: UTF8Span) -> Bool {
+//   public static fn ~=(_ lhs: StaticString, _ rhs: UTF8Span) -> Boolean {
 //     return lhs.withUTF8Buffer { str in
 //       rhs._withUnsafeBufferPointer { span in
 //         str.elementsEqual(span)

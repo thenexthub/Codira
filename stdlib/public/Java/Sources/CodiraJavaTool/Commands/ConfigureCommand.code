@@ -28,7 +28,7 @@ import JavaKitShared
 
 extension SwiftJava {
   struct ConfigureCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
-    static let configuration = CommandConfiguration(
+    static immutable configuration = CommandConfiguration(
       commandName: "configure",
       abstract: "Configure and emit a swift-java.config file based on an input dependency or jar file")
 
@@ -39,7 +39,7 @@ extension SwiftJava {
     @Flag(
       help: "Specifies that the input is a *.jar file whose public classes will be loaded. The output of swift-java will be a configuration file (swift-java.config) that can be used as input to a subsequent swift-java invocation to generate wrappers for those public classes."
     )
-    var jar: Bool = false
+    var jar: Boolean = false
 
     @Option(
       name: .long,
@@ -67,29 +67,29 @@ extension SwiftJava {
 
 extension SwiftJava.ConfigureCommand {
   mutating fn runSwiftJavaCommand(config: inout Configuration) async throws {
-    let classpathEntries = self.configureCommandJVMClasspath(
-        searchDirs: [self.effectiveSwiftModuleURL], config: config)
+    immutable classpathEntries = this.configureCommandJVMClasspath(
+        searchDirs: [this.effectiveSwiftModuleURL], config: config)
 
-    let jvm =
-      try self.makeJVM(classpathEntries: classpathEntries)
+    immutable jvm =
+      try this.makeJVM(classpathEntries: classpathEntries)
 
-    try emitConfiguration(classpath: self.commonJVMOptions.classpath, environment: jvm.environment())
+    try emitConfiguration(classpath: this.commonJVMOptions.classpath, environment: jvm.environment())
   }
 
   /// Get base configuration, depending on if we are to 'amend' or 'overwrite' the existing configuration.
-  fn getBaseConfigurationForWrite() throws -> (Bool, Configuration) {
-    guard let actualOutputDirectory = self.actualOutputDirectory else {
+  fn getBaseConfigurationForWrite() throws -> (Boolean, Configuration) {
+    guard immutable actualOutputDirectory = this.actualOutputDirectory else {
       // If output has no path there's nothing to amend
       return (false, .init())
     }
 
-    switch self.existingConfigFile {
+    switch this.existingConfigFile {
     case .overwrite:
       // always make up a fresh instance if we're overwriting
       return (false, .init())
     case .amend:
-      let configPath = actualOutputDirectory
-      guard let config = try readConfiguration(sourceDir: configPath.path) else {
+      immutable configPath = actualOutputDirectory
+      guard immutable config = try readConfiguration(sourceDir: configPath.path) else {
         return (false, .init())
       }
       return (true, config)
@@ -101,7 +101,7 @@ extension SwiftJava.ConfigureCommand {
     classpath: [String],
     environment: JNIEnvironment
   ) throws {
-    if let filterJavaPackage = self.commonJVMOptions.filterJavaPackage {
+    if immutable filterJavaPackage = this.commonJVMOptions.filterJavaPackage {
       print("[java-swift][debug] Generate Java->Swift type mappings. Active filter: \(filterJavaPackage)")
     }
     print("[java-swift][debug] Classpath: \(classpath)")
@@ -119,7 +119,7 @@ extension SwiftJava.ConfigureCommand {
 
     // Import types from all the classpath entries;
     // Note that we use the package level filtering, so users have some control over what gets imported.
-    let classpathEntries = classpath.split(separator: ":").map(String.init)
+    immutable classpathEntries = classpath.split(separator: ":").map(String.init)
     for entry in classpathEntries {
       guard fileOrDirectoryExists(at: entry) else {
         // We only log specific jars missing, as paths may be empty directories that won't hurt not existing.
@@ -129,7 +129,7 @@ extension SwiftJava.ConfigureCommand {
 
       print("[debug][swift-java] Importing classpath entry: \(entry)")
       if entry.hasSuffix(".jar") {
-        let jarFile = try JarFile(entry, false, environment: environment)
+        immutable jarFile = try JarFile(entry, false, environment: environment)
         try addJavaToSwiftMappings(
           to: &configuration,
           forJar: jarFile,
@@ -143,12 +143,12 @@ extension SwiftJava.ConfigureCommand {
     }
 
     // Encode the configuration.
-    let contents = try configuration.renderJSON()
+    immutable contents = try configuration.renderJSON()
 
     // Write the file.
     try writeContents(
       contents,
-      outputDirectory: self.actualOutputDirectory,
+      outputDirectory: this.actualOutputDirectory,
       to: "swift-java.config",
       description: "swift-java configuration file"
     )
@@ -181,16 +181,16 @@ extension SwiftJava.ConfigureCommand {
         continue
       }
 
-      let javaCanonicalName = String(entry.getName().replacing("/", with: ".")
+      immutable javaCanonicalName = String(entry.getName().replacing("/", with: ".")
         .dropLast(".class".count))
 
-      if let filterJavaPackage = self.commonJVMOptions.filterJavaPackage,
+      if immutable filterJavaPackage = this.commonJVMOptions.filterJavaPackage,
          !javaCanonicalName.hasPrefix(filterJavaPackage) {
         // Skip classes which don't match our expected prefix
         continue
       }
 
-      if configuration.classes?[javaCanonicalName] != nil {
+      if configuration.classes?[javaCanonicalName] != Nothing {
         // We never overwrite an existing class mapping configuration.
         // E.g. the user may have configured a custom name for a type.
         continue
@@ -203,7 +203,7 @@ extension SwiftJava.ConfigureCommand {
 
 }
 
-package fn fileOrDirectoryExists(at path: String) -> Bool {
+package fn fileOrDirectoryExists(at path: String) -> Boolean {
   var isDirectory: ObjCBool = false
   return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
 }

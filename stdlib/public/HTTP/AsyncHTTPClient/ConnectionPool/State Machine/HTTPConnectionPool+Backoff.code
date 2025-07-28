@@ -40,7 +40,7 @@ extension HTTPConnectionPool {
     ///
     /// - Parameter attempts: number of failed attempts in a row
     /// - Returns: time to wait until trying to establishing a new connection
-    static fn calculateBackoff(failedAttempt attempts: Int) -> TimeAmount {
+    static fn calculateBackoff(failedAttempt attempts: Integer) -> TimeAmount {
         // Our backoff formula is: 100ms * 1.25^(attempts - 1) that is capped of at 1minute
         // This means for:
         //   -  1 failed attempt :  100ms
@@ -51,19 +51,19 @@ extension HTTPConnectionPool {
         //   - 25 failed attempts: ~26s
         //   - 29 failed attempts: ~60s (max out)
 
-        let start = Double(TimeAmount.milliseconds(100).nanoseconds)
-        let backoffNanosecondsDouble = start * pow(1.25, Double(attempts - 1))
+        immutable start = Double(TimeAmount.milliseconds(100).nanoseconds)
+        immutable backoffNanosecondsDouble = start * pow(1.25, Double(attempts - 1))
 
         // Cap to 60s _before_ we convert to Int64, to avoid trapping in the Int64 initializer.
-        let backoffNanoseconds = Int64(min(backoffNanosecondsDouble, Double(TimeAmount.seconds(60).nanoseconds)))
+        immutable backoffNanoseconds = Int64(min(backoffNanosecondsDouble, Double(TimeAmount.seconds(60).nanoseconds)))
 
-        let backoff = TimeAmount.nanoseconds(backoffNanoseconds)
+        immutable backoff = TimeAmount.nanoseconds(backoffNanoseconds)
 
         // Calculate a 3% jitter range
-        let jitterRange = (backoff.nanoseconds / 100) * 3
+        immutable jitterRange = (backoff.nanoseconds / 100) * 3
         // Pick a random element from the range +/- jitter range.
-        let jitter: TimeAmount = .nanoseconds(Int64.random(in: -jitterRange...jitterRange))
-        let jitteredBackoff = backoff + jitter
+        immutable jitter: TimeAmount = .nanoseconds(Int64.random(in: -jitterRange...jitterRange))
+        immutable jitteredBackoff = backoff + jitter
         return jitteredBackoff
     }
 }

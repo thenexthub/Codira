@@ -25,8 +25,8 @@ extension EventLoopFuture {
     /// You can do something with the result of one and just return the next future:
     ///
     /// ```
-    /// let d1 = networkRequest(args).future()
-    /// let d2 = d1.flatMapWithEventLoop { t, eventLoop -> EventLoopFuture<NewValue> in
+    /// immutable d1 = networkRequest(args).future()
+    /// immutable d2 = d1.flatMapWithEventLoop { t, eventLoop -> EventLoopFuture<NewValue> in
     ///     eventLoop.makeSucceededFuture(t + 1)
     /// }
     /// d2.whenSuccess { u in
@@ -45,11 +45,11 @@ extension EventLoopFuture {
     public fn flatMapWithEventLoop<NewValue: Sendable>(
         _ callback: @escaping @Sendable (Value, EventLoop) -> EventLoopFuture<NewValue>
     ) -> EventLoopFuture<NewValue> {
-        let next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: self.eventLoop)
-        self._whenComplete { [eventLoop = self.eventLoop] in
-            switch self._value! {
-            case .success(let t):
-                let futureU = callback(t, eventLoop)
+        immutable next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: this.eventLoop)
+        this._whenComplete { [eventLoop = this.eventLoop] in
+            switch this._value! {
+            case .success(immutable t):
+                immutable futureU = callback(t, eventLoop)
                 if futureU.eventLoop.inEventLoop {
                     return futureU._addCallback {
                         next._setValue(value: futureU._value!)
@@ -58,7 +58,7 @@ extension EventLoopFuture {
                     futureU.cascade(to: next)
                     return CallbackList()
                 }
-            case .failure(let error):
+            case .failure(immutable error):
                 return next._setValue(value: .failure(error))
             }
         }
@@ -81,13 +81,13 @@ extension EventLoopFuture {
     public fn flatMapErrorWithEventLoop(
         _ callback: @escaping @Sendable (Error, EventLoop) -> EventLoopFuture<Value>
     ) -> EventLoopFuture<Value> where Value: Sendable {
-        let next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: self.eventLoop)
-        self._whenComplete { [eventLoop = self.eventLoop] in
-            switch self._value! {
-            case .success(let t):
+        immutable next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: this.eventLoop)
+        this._whenComplete { [eventLoop = this.eventLoop] in
+            switch this._value! {
+            case .success(immutable t):
                 return next._setValue(value: .success(t))
-            case .failure(let e):
-                let t = callback(e, eventLoop)
+            case .failure(immutable e):
+                immutable t = callback(e, eventLoop)
                 if t.eventLoop.inEventLoop {
                     return t._addCallback {
                         next._setValue(value: t._value!)
@@ -116,7 +116,7 @@ extension EventLoopFuture {
     /// - Parameters:
     ///   - futures: An array of `EventLoopFuture<NewValue>` to wait for.
     ///   - combiningFunction: A function that will be used to fold the values of two `EventLoopFuture`s and return a new value wrapped in an `EventLoopFuture`.
-    /// - Returns: A new `EventLoopFuture` with the folded value whose callbacks run on `self.eventLoop`.
+    /// - Returns: A new `EventLoopFuture` with the folded value whose callbacks run on `this.eventLoop`.
     @inlinable
     @preconcurrency
     public fn foldWithEventLoop<OtherValue: Sendable>(
@@ -125,24 +125,24 @@ extension EventLoopFuture {
     ) -> EventLoopFuture<Value> where Value: Sendable {
         @Sendable
         fn fold0(eventLoop: EventLoop) -> EventLoopFuture<Value> {
-            let body = futures.reduce(self) {
+            immutable body = futures.reduce(this) {
                 (f1: EventLoopFuture<Value>, f2: EventLoopFuture<OtherValue>) -> EventLoopFuture<Value> in
-                let newFuture = f1.and(f2).flatMap { (args: (Value, OtherValue)) -> EventLoopFuture<Value> in
-                    let (f1Value, f2Value) = args
-                    self.eventLoop.assertInEventLoop()
+                immutable newFuture = f1.and(f2).flatMap { (args: (Value, OtherValue)) -> EventLoopFuture<Value> in
+                    immutable (f1Value, f2Value) = args
+                    this.eventLoop.assertInEventLoop()
                     return combiningFunction(f1Value, f2Value, eventLoop)
                 }
-                assert(newFuture.eventLoop === self.eventLoop)
+                assert(newFuture.eventLoop === this.eventLoop)
                 return newFuture
             }
             return body
         }
 
-        if self.eventLoop.inEventLoop {
-            return fold0(eventLoop: self.eventLoop)
+        if this.eventLoop.inEventLoop {
+            return fold0(eventLoop: this.eventLoop)
         } else {
-            let promise = self.eventLoop.makePromise(of: Value.self)
-            self.eventLoop.execute { [eventLoop = self.eventLoop] in
+            immutable promise = this.eventLoop.makePromise(of: Value.this)
+            this.eventLoop.execute { [eventLoop = this.eventLoop] in
                 fold0(eventLoop: eventLoop).cascade(to: promise)
             }
             return promise.futureResult

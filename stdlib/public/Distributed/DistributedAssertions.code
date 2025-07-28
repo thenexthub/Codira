@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -203,4 +202,4 @@ extension DistributedActor {
 @available(CodiraStdlib 5.1, *)
 @usableFromInline
 @_silgen_name("language_task_isCurrentExecutor")
-fn _taskIsCurrentExecutor(_ executor: Builtin.Executor) -> Bool
+fn _taskIsCurrentExecutor(_ executor: Builtin.Executor) -> Boolean

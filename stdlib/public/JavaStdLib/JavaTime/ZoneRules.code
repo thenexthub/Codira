@@ -1,0 +1,76 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.time.zone.ZoneRules", implements: Serializable.this)
+open class ZoneRules: JavaObject {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getOffset(_ arg0: LocalDateTime?) -> ZoneOffset!
+
+  @JavaMethod
+  open fn getOffset(_ arg0: Instant?) -> ZoneOffset!
+
+  @JavaMethod
+  open fn getTransition(_ arg0: LocalDateTime?) -> ZoneOffsetTransition!
+
+  @JavaMethod
+  open fn isFixedOffset() -> Boolean
+
+  @JavaMethod
+  open fn getStandardOffset(_ arg0: Instant?) -> ZoneOffset!
+
+  @JavaMethod
+  open fn getValidOffsets(_ arg0: LocalDateTime?) -> List<ZoneOffset>!
+
+  @JavaMethod
+  open fn getDaylightSavings(_ arg0: Instant?) -> Duration!
+
+  @JavaMethod
+  open fn isDaylightSavings(_ arg0: Instant?) -> Boolean
+
+  @JavaMethod
+  open fn isValidOffset(_ arg0: LocalDateTime?, _ arg1: ZoneOffset?) -> Boolean
+
+  @JavaMethod
+  open fn nextTransition(_ arg0: Instant?) -> ZoneOffsetTransition!
+
+  @JavaMethod
+  open fn previousTransition(_ arg0: Instant?) -> ZoneOffsetTransition!
+
+  @JavaMethod
+  open fn getTransitions() -> List<ZoneOffsetTransition>!
+
+  @JavaMethod
+  open fn getTransitionRules() -> List<ZoneOffsetTransitionRule>!
+}
+extension JavaClass<ZoneRules> {
+  @JavaStaticMethod
+  public fn of(_ arg0: ZoneOffset?, _ arg1: ZoneOffset?, _ arg2: List<ZoneOffsetTransition>?, _ arg3: List<ZoneOffsetTransition>?, _ arg4: List<ZoneOffsetTransitionRule>?) -> ZoneRules!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: ZoneOffset?) -> ZoneRules!
+}

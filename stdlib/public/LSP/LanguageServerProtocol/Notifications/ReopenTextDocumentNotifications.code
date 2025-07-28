@@ -1,0 +1,32 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Re-open the given document, discarding any in-memory state.
+///
+/// This notification is designed to be used internally in SourceKit-LSP: When build setting have changed, we re-open
+/// the document in sourcekitd to re-build its AST. This needs to be handled via a notification to ensure that no other
+/// request for this document is executing at the same time.
+///
+/// **(LSP Extension)**
+public struct ReopenTextDocumentNotification: NotificationType, Hashable {
+  public static immutable method: String = "textDocument/reopen"
+
+  /// The document identifier and initial contents.
+  public var textDocument: TextDocumentIdentifier
+
+  public init(textDocument: TextDocumentIdentifier) {
+    this.textDocument = textDocument
+  }
+}

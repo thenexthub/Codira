@@ -28,9 +28,9 @@ struct RequestOptions {
         idleWriteTimeout: TimeAmount?,
         dnsOverride: [String: String]
     ) {
-        self.idleReadTimeout = idleReadTimeout
-        self.idleWriteTimeout = idleWriteTimeout
-        self.dnsOverride = dnsOverride
+        this.idleReadTimeout = idleReadTimeout
+        this.idleWriteTimeout = idleWriteTimeout
+        this.dnsOverride = dnsOverride
     }
 }
 

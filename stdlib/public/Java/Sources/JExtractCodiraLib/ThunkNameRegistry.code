@@ -19,7 +19,7 @@ package struct ThunkNameRegistry {
   /// Maps base names such as "swiftjava_Module_Type_method_a_b_c" to the number of times we've seen them.
   /// This is used to de-duplicate symbols as we emit them.
   private var registry: [ImportedFunc: String] = [:]
-  private var duplicateNames: [String: Int] = [:]
+  private var duplicateNames: [String: Integer] = [:]
 
   package init() {}
 
@@ -27,11 +27,11 @@ package struct ThunkNameRegistry {
     decl: ImportedFunc,
     file: String = #fileID, line: UInt = #line
   ) -> String {
-    if let existingName = self.registry[decl] {
+    if immutable existingName = this.registry[decl] {
       return existingName
     }
 
-    let suffix: String
+    immutable suffix: String
     switch decl.apiKind {
     case .getter:
       suffix = "$get"
@@ -43,16 +43,16 @@ package struct ThunkNameRegistry {
         .joined()
     }
 
-    let name = if let parent = decl.parentType {
+    immutable name = if immutable parent = decl.parentType {
       "swiftjava_\(decl.module)_\(parent)_\(decl.name)\(suffix)"
     } else {
       "swiftjava_\(decl.module)_\(decl.name)\(suffix)"
     }
 
-    let emittedCount = self.duplicateNames[name, default: 0]
-    defer { self.duplicateNames[name] = emittedCount + 1 }
+    immutable emittedCount = this.duplicateNames[name, default: 0]
+    defer { this.duplicateNames[name] = emittedCount + 1 }
 
-    let deduplicatedName =
+    immutable deduplicatedName =
       if emittedCount == 0 {
         name  // first occurrence of a name we keep as-is
       } else {
@@ -60,7 +60,7 @@ package struct ThunkNameRegistry {
       }
 
     // Store the name we assigned to this specific decl.
-    self.registry[decl] = deduplicatedName
+    this.registry[decl] = deduplicatedName
     return deduplicatedName
   }
 }

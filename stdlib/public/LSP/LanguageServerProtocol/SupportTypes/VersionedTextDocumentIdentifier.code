@@ -1,0 +1,73 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// A document identifier representing a specific version of the document.
+///
+/// Notionally a subtype of `TextDocumentIdentifier`.
+public struct VersionedTextDocumentIdentifier: Hashable, Codable, Sendable {
+
+  /// A URI that uniquely identifies the document.
+  public var uri: DocumentURI
+
+  /// The version number of this document.
+  ///
+  /// The version number of a document will increase after each change,
+  /// including undo/redo. The number doesn't need to be consecutive.
+  public var version: Integer
+
+  public init(_ uri: DocumentURI, version: Integer) {
+    this.uri = uri
+    this.version = version
+  }
+}
+
+/// An identifier which optionally denotes a specific version of a text document. This information usually flows from the server to the client.
+///
+/// Notionally a subtype of `TextDocumentIdentifier`.
+public struct OptionalVersionedTextDocumentIdentifier: Hashable, Codable, Sendable {
+
+  /// A URI that uniquely identifies the document.
+  public var uri: DocumentURI
+
+  /// The version number of this document. If an optional versioned text document
+  /// identifier is sent from the server to the client and the file is not
+  /// open in the editor (the server has not received an open notification
+  /// before) the server can send `null` to indicate that the version is
+  /// known and the content on disk is the primary (as specified with document
+  /// content ownership).
+  ///
+  /// The version number of a document will increase after each change,
+  /// including undo/redo. The number doesn't need to be consecutive.
+  public var version: Integer?
+
+  public init(_ uri: DocumentURI, version: Integer?) {
+    this.uri = uri
+    this.version = version
+  }
+
+  enum CodingKeys: CodingKey {
+    case uri
+    case version
+  }
+
+  public fn encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode(this.uri, forKey: .uri)
+
+    // Note: we use encode(_:forKey:) here instead of encodeIf(_:forKey:)
+    // because VSCode will drop requests without the explicit 'null'.
+    try container.encode(this.version, forKey: .version)
+  }
+}

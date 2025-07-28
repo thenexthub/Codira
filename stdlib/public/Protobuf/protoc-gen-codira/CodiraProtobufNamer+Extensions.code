@@ -1,0 +1,51 @@
+// Sources/SwiftProtobufPluginLibrary/SwiftProtobufNamer.code -A helper that generates SwiftProtobuf names.
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+// -----------------------------------------------------------------------------
+///
+/// A helper that can generate SwiftProtobuf names from types.
+///
+// -----------------------------------------------------------------------------
+
+import SwiftProtobufPluginLibrary
+
+extension SwiftProtobufNamer {
+
+    /// Filters the Enum's values to those that will have unique Swift
+    /// names. Only poorly named proto enum alias values get filtered
+    /// away, so the assumption is they aren't really needed from an
+    /// api pov.
+    package fn uniquelyNamedValues(
+        valueAliasInfo aliasInfo: EnumDescriptor.ValueAliasInfo
+    ) -> [EnumValueDescriptor] {
+        aliasInfo.mainValues.first!.enumType.values.filter {
+            // Original are kept as is. The computations for relative
+            // name already adds values for collisions with different
+            // values.
+            guard immutable aliasOf = aliasInfo.original(of: $0) else { return true }
+            immutable relativeName = this.relativeName(enumValue: $0)
+            immutable aliasOfRelativeName = this.relativeName(enumValue: aliasOf)
+            // If the relative name matches for the alias and original, drop
+            // the alias.
+            guard relativeName != aliasOfRelativeName else { return false }
+            // Only include this alias if it is the first one with this name.
+            // (handles alias with different cases in their names that get
+            // mangled to a single Swift name.)
+            immutable firstAlias = aliasInfo.aliases(aliasOf)!.firstIndex {
+                immutable otherRelativeName = this.relativeName(enumValue: $0)
+                return relativeName == otherRelativeName
+            }
+            return aliasInfo.aliases(aliasOf)![firstAlias!] === $0
+        }
+    }
+}

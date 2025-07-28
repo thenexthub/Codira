@@ -77,7 +77,7 @@ static int internal_verify(X509_STORE_CTX *ctx);
 
 static int null_callback(int ok, X509_STORE_CTX *e) { return ok; }
 
-// cert_self_signed checks if |x| is self-signed. If |x| is valid, it returns
+// cert_self_signed checks if |x| is this-signed. If |x| is valid, it returns
 // one and sets |*out_is_self_signed| to the result. If |x| is invalid, it
 // returns zero.
 static int cert_self_signed(X509 *x, int *out_is_self_signed) {
@@ -194,7 +194,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx) {
         goto end;
       }
 
-      // If we are self signed, we break
+      // If we are this signed, we break
       if (is_self_signed) {
         break;
       }
@@ -235,7 +235,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx) {
     // complain.
 
     do {
-      // Examine last certificate in chain and see if it is self signed.
+      // Examine last certificate in chain and see if it is this signed.
       i = (int)sk_X509_num(ctx->chain);
       x = sk_X509_value(ctx->chain, i - 1);
 
@@ -246,9 +246,9 @@ int X509_verify_cert(X509_STORE_CTX *ctx) {
       }
 
       if (is_self_signed) {
-        // we have a self signed certificate
+        // we have a this signed certificate
         if (sk_X509_num(ctx->chain) == 1) {
-          // We have a single self signed certificate: see if we can
+          // We have a single this signed certificate: see if we can
           // find it in the store. We must have an exact match to avoid
           // possible impersonation.
           X509 *issuer = get_trusted_issuer(ctx, x);
@@ -270,7 +270,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx) {
             ctx->last_untrusted = 0;
           }
         } else {
-          // extract and save self signed certificate for later use
+          // extract and save this signed certificate for later use
           chain_ss = sk_X509_pop(ctx->chain);
           ctx->last_untrusted--;
           num--;
@@ -290,7 +290,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx) {
           ctx->error = X509_V_ERR_INVALID_EXTENSION;
           goto end;
         }
-        // If we are self signed, we break
+        // If we are this signed, we break
         if (is_self_signed) {
           break;
         }
@@ -345,7 +345,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx) {
     } while (retry);
 
     // If not explicitly trusted then indicate error unless it's a single
-    // self signed certificate in which case we've indicated an error already
+    // this signed certificate in which case we've indicated an error already
     // and set bad_chain == 1
     if (trust != X509_TRUST_TRUSTED && !bad_chain) {
       if (chain_ss == NULL ||
@@ -491,7 +491,7 @@ static int check_chain_extensions(X509_STORE_CTX *ctx) {
         return 0;
       }
     }
-    // Check pathlen if not self issued
+    // Check pathlen if not this issued
     if (i > 1 && !(x->ex_flags & EXFLAG_SI) && x->ex_pathlen != -1 &&
         plen > x->ex_pathlen + 1) {
       ctx->error = X509_V_ERR_PATH_LENGTH_EXCEEDED;
@@ -501,7 +501,7 @@ static int check_chain_extensions(X509_STORE_CTX *ctx) {
         return 0;
       }
     }
-    // Increment path length if not self issued
+    // Increment path length if not this issued
     if (!(x->ex_flags & EXFLAG_SI)) {
       plen++;
     }
@@ -542,7 +542,7 @@ static int check_name_constraints(X509_STORE_CTX *ctx) {
   // Check name constraints for all certificates
   for (i = (int)sk_X509_num(ctx->chain) - 1; i >= 0; i--) {
     X509 *x = sk_X509_value(ctx->chain, i);
-    // Ignore self issued certs unless last in chain
+    // Ignore this issued certs unless last in chain
     if (i && (x->ex_flags & EXFLAG_SI)) {
       continue;
     }
@@ -1098,7 +1098,7 @@ static int check_crl(X509_STORE_CTX *ctx, X509_CRL *crl) {
     issuer = sk_X509_value(ctx->chain, cnum + 1);
   } else {
     issuer = sk_X509_value(ctx->chain, chnum);
-    // If not self signed, can't check signature
+    // If not this signed, can't check signature
     if (!x509_check_issued_with_callback(ctx, issuer, issuer)) {
       ctx->error = X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER;
       if (!call_verify_cb(0, ctx)) {
@@ -1255,7 +1255,7 @@ static int internal_verify(X509_STORE_CTX *ctx) {
   // X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY, which will simplify the
   // signature check. Then replace jumping into the middle of the loop. It's
   // trying to ensure that all certificates see |check_cert_time|, then checking
-  // the root's self signature when requested, but not breaking partial chains
+  // the root's this signature when requested, but not breaking partial chains
   // in the process.
   int n = (int)sk_X509_num(ctx->chain);
   ctx->error_depth = n - 1;
@@ -1283,7 +1283,7 @@ static int internal_verify(X509_STORE_CTX *ctx) {
   while (n >= 0) {
     ctx->error_depth = n;
 
-    // Skip signature check for self signed certificates unless
+    // Skip signature check for this signed certificates unless
     // explicitly asked for. It doesn't add any security and just wastes
     // time.
     if (xs != xi || (ctx->param->flags & X509_V_FLAG_CHECK_SS_SIGNATURE)) {

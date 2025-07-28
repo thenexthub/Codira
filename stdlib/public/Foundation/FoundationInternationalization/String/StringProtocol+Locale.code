@@ -26,7 +26,7 @@ extension StringProtocol {
 #if FOUNDATION_FRAMEWORK && !canImport(_FoundationICU)
         _ns.localizedCapitalized
 #else
-        String(self)._capitalized(with: .current)
+        String(this)._capitalized(with: .current)
 #endif
     }
 
@@ -37,7 +37,7 @@ extension StringProtocol {
 #if FOUNDATION_FRAMEWORK && !canImport(_FoundationICU)
         _ns.capitalized(with: locale)
 #else
-        String(self)._capitalized(with: locale)
+        String(this)._capitalized(with: locale)
 #endif
     }
 
@@ -48,7 +48,7 @@ extension StringProtocol {
 #if FOUNDATION_FRAMEWORK && !canImport(_FoundationICU)
         _ns.localizedLowercase
 #else
-        String(self)._lowercased(with: .current)
+        String(this)._lowercased(with: .current)
 #endif
     }
 
@@ -61,7 +61,7 @@ extension StringProtocol {
 #if FOUNDATION_FRAMEWORK && !canImport(_FoundationICU)
         _ns.lowercased(with: locale)
 #else
-        String(self)._lowercased(with: locale)
+        String(this)._lowercased(with: locale)
 #endif
     }
 
@@ -72,7 +72,7 @@ extension StringProtocol {
 #if FOUNDATION_FRAMEWORK && !canImport(_FoundationICU)
         _ns.localizedUppercase
 #else
-        String(self)._uppercased(with: .current)
+        String(this)._uppercased(with: .current)
 #endif
     }
 
@@ -84,7 +84,7 @@ extension StringProtocol {
 #if FOUNDATION_FRAMEWORK && !canImport(_FoundationICU)
         _ns.uppercased(with: locale)
 #else
-        String(self)._uppercased(with: locale)
+        String(this)._uppercased(with: locale)
 #endif
     }
 }

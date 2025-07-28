@@ -1,0 +1,85 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.charset.CharsetDecoder")
+open class CharsetDecoder: JavaObject {
+  @JavaMethod
+  open fn averageCharsPerByte() -> Float
+
+  @JavaMethod
+  open fn decodeLoop(_ arg0: ByteBuffer?, _ arg1: CharBuffer?) -> CoderResult!
+
+  @JavaMethod
+  open fn isAutoDetecting() -> Boolean
+
+  @JavaMethod
+  open fn isCharsetDetected() -> Boolean
+
+  @JavaMethod
+  open fn detectedCharset() -> Charset!
+
+  @JavaMethod
+  open fn reset() -> CharsetDecoder!
+
+  @JavaMethod
+  open fn maxCharsPerByte() -> Float
+
+  @JavaMethod
+  open fn onMalformedInput(_ arg0: CodingErrorAction?) -> CharsetDecoder!
+
+  @JavaMethod
+  open fn onUnmappableCharacter(_ arg0: CodingErrorAction?) -> CharsetDecoder!
+
+  @JavaMethod
+  open fn decode(_ arg0: ByteBuffer?, _ arg1: CharBuffer?, _ arg2: Boolean) -> CoderResult!
+
+  @JavaMethod
+  open fn decode(_ arg0: ByteBuffer?) throws -> CharBuffer!
+
+  @JavaMethod
+  open fn flush(_ arg0: CharBuffer?) -> CoderResult!
+
+  @JavaMethod
+  open fn charset() -> Charset!
+
+  @JavaMethod
+  open fn replacement() -> String
+
+  @JavaMethod
+  open fn implFlush(_ arg0: CharBuffer?) -> CoderResult!
+
+  @JavaMethod
+  open fn malformedInputAction() -> CodingErrorAction!
+
+  @JavaMethod
+  open fn unmappableCharacterAction() -> CodingErrorAction!
+
+  @JavaMethod
+  open fn replaceWith(_ arg0: String) -> CharsetDecoder!
+
+  @JavaMethod
+  open fn implReplaceWith(_ arg0: String)
+
+  @JavaMethod
+  open fn implOnMalformedInput(_ arg0: CodingErrorAction?)
+
+  @JavaMethod
+  open fn implOnUnmappableCharacter(_ arg0: CodingErrorAction?)
+
+  @JavaMethod
+  open fn implReset()
+}

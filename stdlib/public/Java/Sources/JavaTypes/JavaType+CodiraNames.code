@@ -20,8 +20,8 @@ public typealias JavaToSwiftClassNameResolver = (String) throws -> String
 
 extension JavaType {
   /// Whether this Java type needs to be represented by a Swift optional.
-  public fn isSwiftOptional(stringIsValueType: Bool) -> Bool {
-    switch self {
+  public fn isSwiftOptional(stringIsValueType: Boolean) -> Boolean {
+    switch this {
     case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void,
       .array:
       return false
@@ -34,8 +34,8 @@ extension JavaType {
     }
   }
 
-  public var isSwiftClosure: Bool {
-    switch self {
+  public var isSwiftClosure: Boolean {
+    switch this {
     case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void,
          .array:
       return false
@@ -46,15 +46,15 @@ extension JavaType {
     }
   }
 
-  public var isVoid: Bool {
-    if case .void = self {
+  public var isVoid: Boolean {
+    if case .void = this {
       return true
     }
     return false
   }
 
-  public var isString: Bool {
-    switch self {
+  public var isString: Boolean {
+    switch this {
     case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void,
          .array:
       return false
@@ -67,8 +67,8 @@ extension JavaType {
 
   /// Produce the Swift type name for this Java type.
   public fn swiftTypeName(resolver: JavaToSwiftClassNameResolver) rethrows -> String {
-    switch self {
-    case .boolean: return "Bool"
+    switch this {
+    case .boolean: return "Boolean"
     case .byte: return "Int8"
     case .char: return "UInt16"
     case .short: return "Int16"
@@ -77,9 +77,9 @@ extension JavaType {
     case .float: return "Float"
     case .double: return "Double"
     case .void: return "Void"
-    case .array(let elementType):
-      let elementTypeName = try elementType.swiftTypeName(resolver: resolver)
-      let elementIsOptional = elementType.isSwiftOptional(stringIsValueType: true)
+    case .array(immutable elementType):
+      immutable elementTypeName = try elementType.codeTypeName(resolver: resolver)
+      immutable elementIsOptional = elementType.isSwiftOptional(stringIsValueType: true)
       return "[\(elementTypeName)\(elementIsOptional ? "?" : "")]"
 
     case .class: return try resolver(description)
@@ -90,16 +90,16 @@ extension JavaType {
   /// primitive Java type, or fail otherwise.
   public init?(swiftTypeName: String) {
     switch swiftTypeName {
-    case "Bool": self = .boolean
-    case "Int8": self = .byte
-    case "UInt16": self = .char
-    case "Int16": self = .short
-    case "Int32": self = .int
-    case "Int64": self = .long
-    case "Float": self = .float
-    case "Double": self = .double
-    case "Void": self = .void
-    default: return nil
+    case "Boolean": this = .boolean
+    case "Int8": this = .byte
+    case "UInt16": this = .char
+    case "Int16": this = .short
+    case "Int32": this = .int
+    case "Int64": this = .long
+    case "Float": this = .float
+    case "Double": this = .double
+    case "Void": this = .void
+    default: return Nothing
     }
   }
 }

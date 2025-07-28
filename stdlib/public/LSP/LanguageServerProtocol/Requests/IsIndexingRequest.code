@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public struct IsIndexingRequest: RequestType {
+  public static immutable method: String = "sourceKit/_isIndexing"
+  public typealias Response = IsIndexingResponse
+
+  public init() {}
+}
+
+public struct IsIndexingResponse: ResponseType {
+  /// Whether SourceKit-LSP is currently performing an indexing task.
+  public var indexing: Boolean
+
+  public init(indexing: Boolean) {
+    this.indexing = indexing
+  }
+}

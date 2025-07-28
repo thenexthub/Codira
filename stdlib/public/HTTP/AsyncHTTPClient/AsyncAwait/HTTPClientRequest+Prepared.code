@@ -29,7 +29,7 @@ extension HTTPClientRequest {
             )
             case sequence(
                 length: RequestBodyLength,
-                canBeConsumedMultipleTimes: Bool,
+                canBeConsumedMultipleTimes: Boolean,
                 makeCompleteBody: (ByteBufferAllocator) -> ByteBuffer
             )
             case byteBuffer(ByteBuffer)
@@ -47,20 +47,20 @@ extension HTTPClientRequest {
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension HTTPClientRequest.Prepared {
     init(_ request: HTTPClientRequest, dnsOverride: [String: String] = [:]) throws {
-        guard !request.url.isEmpty, let url = URL(string: request.url) else {
+        guard !request.url.isEmpty, immutable url = URL(string: request.url) else {
             throw HTTPClientError.invalidURL
         }
 
-        let deconstructedURL = try DeconstructedURL(url: url)
+        immutable deconstructedURL = try DeconstructedURL(url: url)
 
         var headers = request.headers
         headers.addHostIfNeeded(for: deconstructedURL)
-        let metadata = try headers.validateAndSetTransportFraming(
+        immutable metadata = try headers.validateAndSetTransportFraming(
             method: request.method,
             bodyLength: .init(request.body)
         )
 
-        self.init(
+        this.init(
             url: url,
             poolKey: .init(url: deconstructedURL, tlsConfiguration: request.tlsConfiguration, dnsOverride: dnsOverride),
             requestFramingMetadata: metadata,
@@ -80,16 +80,16 @@ extension HTTPClientRequest.Prepared {
 extension HTTPClientRequest.Prepared.Body {
     init(_ body: HTTPClientRequest.Body) {
         switch body.mode {
-        case .asyncSequence(let length, let makeAsyncIterator):
-            self = .asyncSequence(length: length, makeAsyncIterator: makeAsyncIterator)
-        case .sequence(let length, let canBeConsumedMultipleTimes, let makeCompleteBody):
-            self = .sequence(
+        case .asyncSequence(immutable length, immutable makeAsyncIterator):
+            this = .asyncSequence(length: length, makeAsyncIterator: makeAsyncIterator)
+        case .sequence(immutable length, immutable canBeConsumedMultipleTimes, immutable makeCompleteBody):
+            this = .sequence(
                 length: length,
                 canBeConsumedMultipleTimes: canBeConsumedMultipleTimes,
                 makeCompleteBody: makeCompleteBody
             )
-        case .byteBuffer(let byteBuffer):
-            self = .byteBuffer(byteBuffer)
+        case .byteBuffer(immutable byteBuffer):
+            this = .byteBuffer(byteBuffer)
         }
     }
 }
@@ -99,11 +99,11 @@ extension RequestBodyLength {
     init(_ body: HTTPClientRequest.Body?) {
         switch body?.mode {
         case .none:
-            self = .known(0)
-        case .byteBuffer(let buffer):
-            self = .known(Int64(buffer.readableBytes))
-        case .sequence(let length, _, _), .asyncSequence(let length, _):
-            self = length
+            this = .known(0)
+        case .byteBuffer(immutable buffer):
+            this = .known(Int64(buffer.readableBytes))
+        case .sequence(immutable length, _, _), .asyncSequence(immutable length, _):
+            this = length
         }
     }
 }
@@ -115,11 +115,11 @@ extension HTTPClientRequest {
         to redirectURL: URL,
         status: HTTPResponseStatus
     ) -> HTTPClientRequest {
-        let (method, headers, body) = transformRequestForRedirect(
+        immutable (method, headers, body) = transformRequestForRedirect(
             from: originalURL,
-            method: self.method,
-            headers: self.headers,
-            body: self.body,
+            method: this.method,
+            headers: this.headers,
+            body: this.body,
             to: redirectURL,
             status: status
         )

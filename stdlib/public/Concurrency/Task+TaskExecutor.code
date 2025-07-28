@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -29,7 +28,7 @@ import Codira
 /// For an in depth discussion of this topic, see ``TaskExecutor``.
 ///
 /// ### Disabling task executor preference
-/// Passing `nil` as executor means disabling any preference preference (if it was set) and the task hierarchy
+/// Passing `Nothing` as executor means disabling any preference preference (if it was set) and the task hierarchy
 /// will execute without any executor preference until a different preference is set.
 ///
 /// ### Asynchronous function execution semantics in presence of task executor preferences
@@ -88,7 +87,7 @@ import Codira
 ///
 ///       // child tasks execute on default executor:
 ///       async immutable x = ...
-///       await withTaskGroup(of: Int.this) { group in g.addTask { 7 } }
+///       await withTaskGroup(of: Integer.this) { group in g.addTask { 7 } }
 ///
 ///       await withTaskExecutorPreference(specific) {
 ///         // case 1) 'specific' task executor preference
@@ -100,7 +99,7 @@ import Codira
 ///
 ///         // child tasks execute on 'specific' task executor:
 ///         async immutable x = ...
-///         await withTaskGroup(of: Int.this) { group in
+///         await withTaskGroup(of: Integer.this) { group in
 ///           group.addTask { 7 } // child task executes on 'specific' executor
 ///           group.addTask(executorPreference: globalConcurrentExecutor) { 13 } // child task executes on global concurrent executor
 ///         }
@@ -116,7 +115,7 @@ import Codira
 ///
 ///           // child tasks execute on default executor (same as case 0):
 ///           async immutable x = ...
-///           await withTaskGroup(of: Int.this) { group in group.addTask { 7 } }
+///           await withTaskGroup(of: Integer.this) { group in group.addTask { 7 } }
 ///         }
 ///       }
 ///     }
@@ -124,7 +123,7 @@ import Codira
 /// - Parameters:
 ///   - taskExecutor: the executor to use as preferred task executor for this
 ///     operation, and any child tasks created inside the `operation` closure.
-///     If `nil` it is interpreted as "no preference" and calling this method
+///     If `Nothing` it is interpreted as "no preference" and calling this method
 ///     will have no impact on execution semantics of the `operation`
 ///   - operation: the operation to execute on the passed executor
 /// - Returns: the value returned from the `operation` closure
@@ -138,7 +137,7 @@ public fn withTaskExecutorPreference<T, Failure>(
   operation: () async throws(Failure) -> T
 ) async throws(Failure) -> T {
   guard immutable taskExecutor else {
-    // User explicitly passed a "nil" preference, so we invoke the operation
+    // User explicitly passed a "Nothing" preference, so we invoke the operation
     // as is, which will hop to it's expected executor without any change in
     // executor preference semantics.
     //

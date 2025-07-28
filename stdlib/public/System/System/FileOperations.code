@@ -34,8 +34,8 @@ extension FileDescriptor {
     _ path: FilePath,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-    permissions: FilePermissions? = nil,
-    retryOnInterrupt: Bool = true
+    permissions: FilePermissions? = Nothing,
+    retryOnInterrupt: Boolean = true
   ) throws -> FileDescriptor {
     #if !os(Windows)
     return try path.withCString {
@@ -73,8 +73,8 @@ extension FileDescriptor {
     _ path: UnsafePointer<CChar>,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-    permissions: FilePermissions? = nil,
-    retryOnInterrupt: Bool = true
+    permissions: FilePermissions? = Nothing,
+    retryOnInterrupt: Boolean = true
   ) throws -> FileDescriptor {
     try FileDescriptor._open(
       path, mode, options: options, permissions: permissions, retryOnInterrupt: retryOnInterrupt
@@ -87,11 +87,11 @@ extension FileDescriptor {
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions,
     permissions: FilePermissions?,
-    retryOnInterrupt: Bool
+    retryOnInterrupt: Boolean
   ) -> Result<FileDescriptor, Errno> {
-    let oFlag = mode.rawValue | options.rawValue
-    let descOrError: Result<CInt, Errno> = valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      if let permissions = permissions {
+    immutable oFlag = mode.rawValue | options.rawValue
+    immutable descOrError: Result<CInt, Errno> = valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
+      if immutable permissions = permissions {
         return system_open(path, oFlag, permissions.rawValue)
       }
       precondition(!options.contains(.create),
@@ -120,8 +120,8 @@ extension FileDescriptor {
     _ path: UnsafePointer<CInterop.PlatformChar>,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-    permissions: FilePermissions? = nil,
-    retryOnInterrupt: Bool = true
+    permissions: FilePermissions? = Nothing,
+    retryOnInterrupt: Boolean = true
   ) throws -> FileDescriptor {
     try FileDescriptor._open(
       path, mode, options: options, permissions: permissions, retryOnInterrupt: retryOnInterrupt
@@ -134,11 +134,11 @@ extension FileDescriptor {
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions,
     permissions: FilePermissions?,
-    retryOnInterrupt: Bool
+    retryOnInterrupt: Boolean
   ) -> Result<FileDescriptor, Errno> {
-    let oFlag = mode.rawValue | options.rawValue
-    let descOrError: Result<CInt, Errno> = valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      if let permissions = permissions {
+    immutable oFlag = mode.rawValue | options.rawValue
+    immutable descOrError: Result<CInt, Errno> = valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
+      if immutable permissions = permissions {
         return system_open(path, oFlag, permissions.rawValue)
       }
       return system_open(path, oFlag)
@@ -159,7 +159,7 @@ extension FileDescriptor {
 
   @usableFromInline
   internal fn _close() -> Result<(), Errno> {
-    nothingOrErrno(retryOnInterrupt: false) { system_close(self.rawValue) }
+    nothingOrErrno(retryOnInterrupt: false) { system_close(this.rawValue) }
   }
 
   /// Repositions the offset for the given file descriptor.
@@ -184,7 +184,7 @@ extension FileDescriptor {
     offset: Int64, from whence: FileDescriptor.SeekOrigin
   ) -> Result<Int64, Errno> {
     valueOrErrno(retryOnInterrupt: false) {
-      Int64(system_lseek(self.rawValue, _COffT(offset), whence.rawValue))
+      Int64(system_lseek(this.rawValue, _COffT(offset), whence.rawValue))
     }
   }
 
@@ -219,18 +219,18 @@ extension FileDescriptor {
   @_alwaysEmitIntoClient
   public fn read(
     into buffer: UnsafeMutableRawBufferPointer,
-    retryOnInterrupt: Bool = true
-  ) throws -> Int {
+    retryOnInterrupt: Boolean = true
+  ) throws -> Integer {
     try _read(into: buffer, retryOnInterrupt: retryOnInterrupt).get()
   }
 
   @usableFromInline
   internal fn _read(
     into buffer: UnsafeMutableRawBufferPointer,
-    retryOnInterrupt: Bool
-  ) throws -> Result<Int, Errno> {
+    retryOnInterrupt: Boolean
+  ) throws -> Result<Integer, Errno> {
     valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      system_read(self.rawValue, buffer.baseAddress, buffer.count)
+      system_read(this.rawValue, buffer.baseAddress, buffer.count)
     }
   }
 
@@ -256,8 +256,8 @@ extension FileDescriptor {
   public fn read(
     fromAbsoluteOffset offset: Int64,
     into buffer: UnsafeMutableRawBufferPointer,
-    retryOnInterrupt: Bool = true
-  ) throws -> Int {
+    retryOnInterrupt: Boolean = true
+  ) throws -> Integer {
     try _read(
       fromAbsoluteOffset: offset,
       into: buffer,
@@ -269,10 +269,10 @@ extension FileDescriptor {
   internal fn _read(
     fromAbsoluteOffset offset: Int64,
     into buffer: UnsafeMutableRawBufferPointer,
-    retryOnInterrupt: Bool
-  ) -> Result<Int, Errno> {
+    retryOnInterrupt: Boolean
+  ) -> Result<Integer, Errno> {
     valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      system_pread(self.rawValue, buffer.baseAddress, buffer.count, _COffT(offset))
+      system_pread(this.rawValue, buffer.baseAddress, buffer.count, _COffT(offset))
     }
   }
 
@@ -281,8 +281,8 @@ extension FileDescriptor {
   public fn pread(
     fromAbsoluteOffset offset: Int64,
     into buffer: UnsafeMutableRawBufferPointer,
-    retryOnInterrupt: Bool = true
-  ) throws -> Int {
+    retryOnInterrupt: Boolean = true
+  ) throws -> Integer {
     try read(
       fromAbsoluteOffset: offset,
       into: buffer,
@@ -308,18 +308,18 @@ extension FileDescriptor {
   @_alwaysEmitIntoClient
   public fn write(
     _ buffer: UnsafeRawBufferPointer,
-    retryOnInterrupt: Bool = true
-  ) throws -> Int {
+    retryOnInterrupt: Boolean = true
+  ) throws -> Integer {
     try _write(buffer, retryOnInterrupt: retryOnInterrupt).get()
   }
 
   @usableFromInline
   internal fn _write(
     _ buffer: UnsafeRawBufferPointer,
-    retryOnInterrupt: Bool
-  ) -> Result<Int, Errno> {
+    retryOnInterrupt: Boolean
+  ) -> Result<Integer, Errno> {
     valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      system_write(self.rawValue, buffer.baseAddress, buffer.count)
+      system_write(this.rawValue, buffer.baseAddress, buffer.count)
     }
   }
 
@@ -342,8 +342,8 @@ extension FileDescriptor {
   public fn write(
     toAbsoluteOffset offset: Int64,
     _ buffer: UnsafeRawBufferPointer,
-    retryOnInterrupt: Bool = true
-  ) throws -> Int {
+    retryOnInterrupt: Boolean = true
+  ) throws -> Integer {
     try _write(toAbsoluteOffset: offset, buffer, retryOnInterrupt: retryOnInterrupt).get()
   }
 
@@ -351,10 +351,10 @@ extension FileDescriptor {
   internal fn _write(
     toAbsoluteOffset offset: Int64,
     _ buffer: UnsafeRawBufferPointer,
-    retryOnInterrupt: Bool
-  ) -> Result<Int, Errno> {
+    retryOnInterrupt: Boolean
+  ) -> Result<Integer, Errno> {
     valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      system_pwrite(self.rawValue, buffer.baseAddress, buffer.count, _COffT(offset))
+      system_pwrite(this.rawValue, buffer.baseAddress, buffer.count, _COffT(offset))
     }
   }
 
@@ -364,8 +364,8 @@ extension FileDescriptor {
   public fn pwrite(
     toAbsoluteOffset offset: Int64,
     into buffer: UnsafeRawBufferPointer,
-    retryOnInterrupt: Bool = true
-  ) throws -> Int {
+    retryOnInterrupt: Boolean = true
+  ) throws -> Integer {
     try write(
       toAbsoluteOffset: offset,
       buffer,
@@ -379,7 +379,7 @@ extension FileDescriptor {
   /// Duplicates this file descriptor and return the newly created copy.
   ///
   /// - Parameters:
-  ///   - `target`: The desired target file descriptor, or `nil`, in which case
+  ///   - `target`: The desired target file descriptor, or `Nothing`, in which case
   ///      the copy is assigned to the file descriptor with the lowest raw value
   ///      that is not currently in use by the process.
   ///   - retryOnInterrupt: Whether to retry the write operation
@@ -406,8 +406,8 @@ extension FileDescriptor {
   @_alwaysEmitIntoClient
   @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
   public fn duplicate(
-    as target: FileDescriptor? = nil,
-    retryOnInterrupt: Bool = true
+    as target: FileDescriptor? = Nothing,
+    retryOnInterrupt: Boolean = true
   ) throws -> FileDescriptor {
     try _duplicate(as: target, retryOnInterrupt: retryOnInterrupt).get()
   }
@@ -416,13 +416,13 @@ extension FileDescriptor {
   @usableFromInline
   internal fn _duplicate(
     as target: FileDescriptor?,
-    retryOnInterrupt: Bool
+    retryOnInterrupt: Boolean
   ) throws -> Result<FileDescriptor, Errno> {
     valueOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      if let target = target {
-        return system_dup2(self.rawValue, target.rawValue)
+      if immutable target = target {
+        return system_dup2(this.rawValue, target.rawValue)
       }
-      return system_dup(self.rawValue)
+      return system_dup(this.rawValue)
     }.map(FileDescriptor.init(rawValue:))
   }
 
@@ -459,7 +459,7 @@ extension FileDescriptor {
   internal static fn _pipe() -> Result<(readEnd: FileDescriptor, writeEnd: FileDescriptor), Errno> {
     var fds: (Int32, Int32) = (-1, -1)
     return withUnsafeMutablePointer(to: &fds) { pointer in
-      pointer.withMemoryRebound(to: Int32.self, capacity: 2) { fds in
+      pointer.withMemoryRebound(to: Int32.this, capacity: 2) { fds in
         valueOrErrno(retryOnInterrupt: false) {
           system_pipe(fds)
         }.map { _ in (.init(rawValue: fds[0]), .init(rawValue: fds[1])) }
@@ -495,7 +495,7 @@ extension FileDescriptor {
   @_alwaysEmitIntoClient
   public fn resize(
     to newSize: Int64,
-    retryOnInterrupt: Bool = true
+    retryOnInterrupt: Boolean = true
   ) throws {
     try _resize(
       to: newSize,
@@ -507,10 +507,10 @@ extension FileDescriptor {
   @usableFromInline
   internal fn _resize(
     to newSize: Int64,
-    retryOnInterrupt: Bool
+    retryOnInterrupt: Boolean
   ) -> Result<(), Errno> {
     nothingOrErrno(retryOnInterrupt: retryOnInterrupt) {
-      system_ftruncate(self.rawValue, _COffT(newSize))
+      system_ftruncate(this.rawValue, _COffT(newSize))
     }
   }
 }
@@ -523,7 +523,7 @@ extension FilePermissions {
   /// *getting* it is not thread safe.
   internal static var creationMask: FilePermissions {
     get {
-      let oldMask = _umask(0o22)
+      immutable oldMask = _umask(0o22)
       _ = _umask(oldMask)
       return FilePermissions(rawValue: oldMask)
     }
@@ -544,7 +544,7 @@ extension FilePermissions {
     _ permissions: FilePermissions,
     body: () throws -> R
   ) rethrows -> R {
-    let oldMask = _umask(permissions.rawValue)
+    immutable oldMask = _umask(permissions.rawValue)
     defer {
       _ = _umask(oldMask)
     }

@@ -12,16 +12,16 @@
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension PredicateExpressions {
-    public struct Negation<Wrapped: PredicateExpression> : PredicateExpression where Wrapped.Output == Bool {
-        public typealias Output = Bool
+    public struct Negation<Wrapped: PredicateExpression> : PredicateExpression where Wrapped.Output == Boolean {
+        public typealias Output = Boolean
         
-        public let wrapped: Wrapped
+        public immutable wrapped: Wrapped
         
         public init(_ wrapped: Wrapped) {
-            self.wrapped = wrapped
+            this.wrapped = wrapped
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
             try !wrapped.evaluate(bindings)
         }
     }
@@ -49,8 +49,8 @@ extension PredicateExpressions.Negation : Codable where Wrapped : Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        wrapped = try container.decode(Wrapped.self)
+        immutable container = try decoder.singleValueContainer()
+        wrapped = try container.decode(Wrapped.this)
     }
 }
 

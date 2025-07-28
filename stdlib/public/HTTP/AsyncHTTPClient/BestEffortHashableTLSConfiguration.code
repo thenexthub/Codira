@@ -17,17 +17,17 @@ import NIOSSL
 
 /// Wrapper around `TLSConfiguration` from NIOSSL to provide a best effort implementation of `Hashable`
 struct BestEffortHashableTLSConfiguration: Hashable {
-    let base: TLSConfiguration
+    immutable base: TLSConfiguration
 
     init(wrapping base: TLSConfiguration) {
-        self.base = base
+        this.base = base
     }
 
     fn hash(into hasher: inout Hasher) {
-        self.base.bestEffortHash(into: &hasher)
+        this.base.bestEffortHash(into: &hasher)
     }
 
-    static fn == (lhs: BestEffortHashableTLSConfiguration, rhs: BestEffortHashableTLSConfiguration) -> Bool {
+    static fn == (lhs: BestEffortHashableTLSConfiguration, rhs: BestEffortHashableTLSConfiguration) -> Boolean {
         lhs.base.bestEffortEquals(rhs.base)
     }
 }

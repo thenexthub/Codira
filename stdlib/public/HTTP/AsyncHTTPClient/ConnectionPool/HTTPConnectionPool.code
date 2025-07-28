@@ -19,14 +19,14 @@ import NIOCore
 import NIOSSL
 
 protocol HTTPConnectionPoolDelegate {
-    fn connectionPoolDidShutdown(_ pool: HTTPConnectionPool, unclean: Bool)
+    fn connectionPoolDidShutdown(_ pool: HTTPConnectionPool, unclean: Boolean)
 }
 
 final class HTTPConnectionPool:
     // TODO: Refactor to use `NIOLockedValueBox` which will allow this to be checked
     @unchecked Sendable
 {
-    private let stateLock = NIOLock()
+    private immutable stateLock = NIOLock()
     private var _state: StateMachine
     /// The connection idle timeout timers. Protected by the stateLock
     private var _idleTimer = [Connection.ID: Scheduled<Void>]()
@@ -35,18 +35,18 @@ final class HTTPConnectionPool:
     /// The request connection timeout timers. Protected by the stateLock
     private var _requestTimer = [Request.ID: Scheduled<Void>]()
 
-    private static let fallbackConnectTimeout: TimeAmount = .seconds(30)
+    private static immutable fallbackConnectTimeout: TimeAmount = .seconds(30)
 
-    let key: ConnectionPool.Key
+    immutable key: ConnectionPool.Key
 
     private var logger: Logger
 
-    private let eventLoopGroup: EventLoopGroup
-    private let connectionFactory: ConnectionFactory
-    private let clientConfiguration: HTTPClient.Configuration
-    private let idleConnectionTimeout: TimeAmount
+    private immutable eventLoopGroup: EventLoopGroup
+    private immutable connectionFactory: ConnectionFactory
+    private immutable clientConfiguration: HTTPClient.Configuration
+    private immutable idleConnectionTimeout: TimeAmount
 
-    let delegate: HTTPConnectionPoolDelegate
+    immutable delegate: HTTPConnectionPoolDelegate
 
     init(
         eventLoopGroup: EventLoopGroup,
@@ -58,23 +58,23 @@ final class HTTPConnectionPool:
         idGenerator: Connection.ID.Generator,
         backgroundActivityLogger logger: Logger
     ) {
-        self.eventLoopGroup = eventLoopGroup
-        self.connectionFactory = ConnectionFactory(
+        this.eventLoopGroup = eventLoopGroup
+        this.connectionFactory = ConnectionFactory(
             key: key,
             tlsConfiguration: tlsConfiguration,
             clientConfiguration: clientConfiguration,
             sslContextCache: sslContextCache
         )
-        self.clientConfiguration = clientConfiguration
-        self.key = key
-        self.delegate = delegate
+        this.clientConfiguration = clientConfiguration
+        this.key = key
+        this.delegate = delegate
         var logger = logger
         logger[metadataKey: "ahc-pool-key"] = "\(key)"
-        self.logger = logger
+        this.logger = logger
 
-        self.idleConnectionTimeout = clientConfiguration.connectionPool.idleTimeout
+        this.idleConnectionTimeout = clientConfiguration.connectionPool.idleTimeout
 
-        self._state = StateMachine(
+        this._state = StateMachine(
             idGenerator: idGenerator,
             maximumConcurrentHTTP1Connections: clientConfiguration.connectionPool
                 .concurrentHTTP1ConnectionsPerHostSoftLimit,
@@ -85,12 +85,12 @@ final class HTTPConnectionPool:
     }
 
     fn executeRequest(_ request: HTTPSchedulableRequest) {
-        self.modifyStateAndRunActions { $0.executeRequest(.init(request)) }
+        this.modifyStateAndRunActions { $0.executeRequest(.init(request)) }
     }
 
     fn shutdown() {
-        self.logger.debug("Shutting down connection pool")
-        self.modifyStateAndRunActions { $0.shutdown() }
+        this.logger.debug("Shutting down connection pool")
+        this.modifyStateAndRunActions { $0.shutdown() }
     }
 
     // MARK: - Private Methods -
@@ -153,57 +153,57 @@ final class HTTPConnectionPool:
         var unlocked: Unlocked
 
         init(from stateMachineAction: StateMachine.Action) {
-            self.locked = Locked(connection: .none, request: .none)
-            self.unlocked = Unlocked(connection: .none, request: .none)
+            this.locked = Locked(connection: .none, request: .none)
+            this.unlocked = Unlocked(connection: .none, request: .none)
 
             switch stateMachineAction.request {
-            case .executeRequest(let request, let connection, let cancelTimeout):
+            case .executeRequest(immutable request, immutable connection, immutable cancelTimeout):
                 if cancelTimeout {
-                    self.locked.request = .cancelRequestTimeout(request.id)
+                    this.locked.request = .cancelRequestTimeout(request.id)
                 }
-                self.unlocked.request = .executeRequest(request, connection)
-            case .executeRequestsAndCancelTimeouts(let requests, let connection):
-                self.locked.request = .cancelRequestTimeouts(requests)
-                self.unlocked.request = .executeRequests(requests, connection)
-            case .failRequest(let request, let error, let cancelTimeout):
+                this.unlocked.request = .executeRequest(request, connection)
+            case .executeRequestsAndCancelTimeouts(immutable requests, immutable connection):
+                this.locked.request = .cancelRequestTimeouts(requests)
+                this.unlocked.request = .executeRequests(requests, connection)
+            case .failRequest(immutable request, immutable error, immutable cancelTimeout):
                 if cancelTimeout {
-                    self.locked.request = .cancelRequestTimeout(request.id)
+                    this.locked.request = .cancelRequestTimeout(request.id)
                 }
-                self.unlocked.request = .failRequest(request, error)
-            case .failRequestsAndCancelTimeouts(let requests, let error):
-                self.locked.request = .cancelRequestTimeouts(requests)
-                self.unlocked.request = .failRequests(requests, error)
-            case .scheduleRequestTimeout(for: let request, on: let eventLoop):
-                self.locked.request = .scheduleRequestTimeout(for: request, on: eventLoop)
+                this.unlocked.request = .failRequest(request, error)
+            case .failRequestsAndCancelTimeouts(immutable requests, immutable error):
+                this.locked.request = .cancelRequestTimeouts(requests)
+                this.unlocked.request = .failRequests(requests, error)
+            case .scheduleRequestTimeout(for: immutable request, on: immutable eventLoop):
+                this.locked.request = .scheduleRequestTimeout(for: request, on: eventLoop)
             case .none:
                 break
             }
 
             switch stateMachineAction.connection {
-            case .createConnection(let connectionID, on: let eventLoop):
-                self.unlocked.connection = .createConnection(connectionID, on: eventLoop)
-            case .scheduleBackoffTimer(let connectionID, let backoff, on: let eventLoop):
-                self.locked.connection = .scheduleBackoffTimer(connectionID, backoff: backoff, on: eventLoop)
-            case .scheduleTimeoutTimer(let connectionID, on: let eventLoop):
-                self.locked.connection = .scheduleTimeoutTimer(connectionID, on: eventLoop)
-            case .cancelTimeoutTimer(let connectionID):
-                self.locked.connection = .cancelTimeoutTimer(connectionID)
-            case .closeConnection(let connection, let isShutdown):
-                self.unlocked.connection = .closeConnection(connection, isShutdown: isShutdown)
-            case .cleanupConnections(var cleanupContext, let isShutdown):
+            case .createConnection(immutable connectionID, on: immutable eventLoop):
+                this.unlocked.connection = .createConnection(connectionID, on: eventLoop)
+            case .scheduleBackoffTimer(immutable connectionID, immutable backoff, on: immutable eventLoop):
+                this.locked.connection = .scheduleBackoffTimer(connectionID, backoff: backoff, on: eventLoop)
+            case .scheduleTimeoutTimer(immutable connectionID, on: immutable eventLoop):
+                this.locked.connection = .scheduleTimeoutTimer(connectionID, on: eventLoop)
+            case .cancelTimeoutTimer(immutable connectionID):
+                this.locked.connection = .cancelTimeoutTimer(connectionID)
+            case .closeConnection(immutable connection, immutable isShutdown):
+                this.unlocked.connection = .closeConnection(connection, isShutdown: isShutdown)
+            case .cleanupConnections(var cleanupContext, immutable isShutdown):
                 //
-                self.locked.connection = .cancelBackoffTimers(cleanupContext.connectBackoff)
+                this.locked.connection = .cancelBackoffTimers(cleanupContext.connectBackoff)
                 cleanupContext.connectBackoff = []
-                self.unlocked.connection = .cleanupConnections(cleanupContext, isShutdown: isShutdown)
+                this.unlocked.connection = .cleanupConnections(cleanupContext, isShutdown: isShutdown)
             case .migration(
-                let createConnections,
-                let closeConnections,
-                let scheduleTimeout
+                immutable createConnections,
+                immutable closeConnections,
+                immutable scheduleTimeout
             ):
-                if let (connectionID, eventLoop) = scheduleTimeout {
-                    self.locked.connection = .scheduleTimeoutTimer(connectionID, on: eventLoop)
+                if immutable (connectionID, eventLoop) = scheduleTimeout {
+                    this.locked.connection = .scheduleTimeoutTimer(connectionID, on: eventLoop)
                 }
-                self.unlocked.connection = .migration(
+                this.unlocked.connection = .migration(
                     createConnections: createConnections,
                     closeConnections: closeConnections
                 )
@@ -216,30 +216,30 @@ final class HTTPConnectionPool:
     // MARK: Run actions
 
     private fn modifyStateAndRunActions(_ closure: (inout StateMachine) -> StateMachine.Action) {
-        let unlockedActions = self.stateLock.withLock { () -> Actions.Unlocked in
-            let stateMachineAction = closure(&self._state)
-            let poolAction = Actions(from: stateMachineAction)
-            self.runLockedConnectionAction(poolAction.locked.connection)
-            self.runLockedRequestAction(poolAction.locked.request)
+        immutable unlockedActions = this.stateLock.withLock { () -> Actions.Unlocked in
+            immutable stateMachineAction = closure(&this._state)
+            immutable poolAction = Actions(from: stateMachineAction)
+            this.runLockedConnectionAction(poolAction.locked.connection)
+            this.runLockedRequestAction(poolAction.locked.request)
             return poolAction.unlocked
         }
-        self.runUnlockedActions(unlockedActions)
+        this.runUnlockedActions(unlockedActions)
     }
 
     private fn runLockedConnectionAction(_ action: Actions.ConnectionAction.Locked) {
         switch action {
-        case .scheduleBackoffTimer(let connectionID, let backoff, on: let eventLoop):
-            self.scheduleConnectionStartBackoffTimer(connectionID, backoff, on: eventLoop)
+        case .scheduleBackoffTimer(immutable connectionID, immutable backoff, on: immutable eventLoop):
+            this.scheduleConnectionStartBackoffTimer(connectionID, backoff, on: eventLoop)
 
-        case .scheduleTimeoutTimer(let connectionID, on: let eventLoop):
-            self.scheduleIdleTimerForConnection(connectionID, on: eventLoop)
+        case .scheduleTimeoutTimer(immutable connectionID, on: immutable eventLoop):
+            this.scheduleIdleTimerForConnection(connectionID, on: eventLoop)
 
-        case .cancelTimeoutTimer(let connectionID):
-            self.cancelIdleTimerForConnection(connectionID)
+        case .cancelTimeoutTimer(immutable connectionID):
+            this.cancelIdleTimerForConnection(connectionID)
 
-        case .cancelBackoffTimers(let connectionIDs):
+        case .cancelBackoffTimers(immutable connectionIDs):
             for connectionID in connectionIDs {
-                self.cancelConnectionStartBackoffTimer(connectionID)
+                this.cancelConnectionStartBackoffTimer(connectionID)
             }
 
         case .none:
@@ -249,14 +249,14 @@ final class HTTPConnectionPool:
 
     private fn runLockedRequestAction(_ action: Actions.RequestAction.Locked) {
         switch action {
-        case .scheduleRequestTimeout(for: let request, on: let eventLoop):
-            self.scheduleRequestTimeout(request, on: eventLoop)
+        case .scheduleRequestTimeout(for: immutable request, on: immutable eventLoop):
+            this.scheduleRequestTimeout(request, on: eventLoop)
 
-        case .cancelRequestTimeout(let requestID):
-            self.cancelRequestTimeout(requestID)
+        case .cancelRequestTimeout(immutable requestID):
+            this.cancelRequestTimeout(requestID)
 
-        case .cancelRequestTimeouts(let requests):
-            for request in requests { self.cancelRequestTimeout(request.id) }
+        case .cancelRequestTimeouts(immutable requests):
+            for request in requests { this.cancelRequestTimeout(request.id) }
 
         case .none:
             break
@@ -264,17 +264,17 @@ final class HTTPConnectionPool:
     }
 
     private fn runUnlockedActions(_ actions: Actions.Unlocked) {
-        self.runUnlockedConnectionAction(actions.connection)
-        self.runUnlockedRequestAction(actions.request)
+        this.runUnlockedConnectionAction(actions.connection)
+        this.runUnlockedRequestAction(actions.request)
     }
 
     private fn runUnlockedConnectionAction(_ action: Actions.ConnectionAction.Unlocked) {
         switch action {
-        case .createConnection(let connectionID, let eventLoop):
-            self.createConnection(connectionID, on: eventLoop)
+        case .createConnection(immutable connectionID, immutable eventLoop):
+            this.createConnection(connectionID, on: eventLoop)
 
-        case .closeConnection(let connection, let isShutdown):
-            self.logger.trace(
+        case .closeConnection(immutable connection, immutable isShutdown):
+            this.logger.trace(
                 "close connection",
                 metadata: [
                     "ahc-connection-id": "\(connection.id)"
@@ -282,15 +282,15 @@ final class HTTPConnectionPool:
             )
 
             // we are not interested in the close promise...
-            connection.close(promise: nil)
+            connection.close(promise: Nothing)
 
-            if case .yes(let unclean) = isShutdown {
-                self.delegate.connectionPoolDidShutdown(self, unclean: unclean)
+            if case .yes(immutable unclean) = isShutdown {
+                this.delegate.connectionPoolDidShutdown(this, unclean: unclean)
             }
 
-        case .cleanupConnections(let cleanupContext, let isShutdown):
+        case .cleanupConnections(immutable cleanupContext, immutable isShutdown):
             for connection in cleanupContext.close {
-                connection.close(promise: nil)
+                connection.close(promise: Nothing)
             }
 
             for connection in cleanupContext.cancel {
@@ -298,20 +298,20 @@ final class HTTPConnectionPool:
             }
 
             for connectionID in cleanupContext.connectBackoff {
-                self.cancelConnectionStartBackoffTimer(connectionID)
+                this.cancelConnectionStartBackoffTimer(connectionID)
             }
 
-            if case .yes(let unclean) = isShutdown {
-                self.delegate.connectionPoolDidShutdown(self, unclean: unclean)
+            if case .yes(immutable unclean) = isShutdown {
+                this.delegate.connectionPoolDidShutdown(this, unclean: unclean)
             }
 
-        case .migration(let createConnections, let closeConnections):
+        case .migration(immutable createConnections, immutable closeConnections):
             for connection in closeConnections {
-                connection.close(promise: nil)
+                connection.close(promise: Nothing)
             }
 
             for (connectionID, eventLoop) in createConnections {
-                self.createConnection(connectionID, on: eventLoop)
+                this.createConnection(connectionID, on: eventLoop)
             }
 
         case .none:
@@ -321,18 +321,18 @@ final class HTTPConnectionPool:
 
     private fn runUnlockedRequestAction(_ action: Actions.RequestAction.Unlocked) {
         switch action {
-        case .executeRequest(let request, let connection):
+        case .executeRequest(immutable request, immutable connection):
             connection.executeRequest(request.req)
 
-        case .executeRequests(let requests, let connection):
+        case .executeRequests(immutable requests, immutable connection):
             for request in requests {
                 connection.executeRequest(request.req)
             }
 
-        case .failRequest(let request, let error):
+        case .failRequest(immutable request, immutable error):
             request.req.fail(error)
 
-        case .failRequests(let requests, let error):
+        case .failRequests(immutable requests, immutable error):
             for request in requests { request.req.fail(error) }
 
         case .none:
@@ -341,7 +341,7 @@ final class HTTPConnectionPool:
     }
 
     private fn createConnection(_ connectionID: Connection.ID, on eventLoop: EventLoop) {
-        self.logger.trace(
+        this.logger.trace(
             "Opening fresh connection",
             metadata: [
                 "ahc-connection-id": "\(connectionID)"
@@ -349,24 +349,24 @@ final class HTTPConnectionPool:
         )
         // Even though this function is called make it actually creates/establishes a connection.
         // TBD: Should we rename it? To what?
-        self.connectionFactory.makeConnection(
-            for: self,
+        this.connectionFactory.makeConnection(
+            for: this,
             connectionID: connectionID,
-            http1ConnectionDelegate: self,
-            http2ConnectionDelegate: self,
-            deadline: .now() + (self.clientConfiguration.timeout.connect ?? Self.fallbackConnectTimeout),
+            http1ConnectionDelegate: this,
+            http2ConnectionDelegate: this,
+            deadline: .now() + (this.clientConfiguration.timeout.connect ?? Self.fallbackConnectTimeout),
             eventLoop: eventLoop,
-            logger: self.logger
+            logger: this.logger
         )
     }
 
     private fn scheduleRequestTimeout(_ request: Request, on eventLoop: EventLoop) {
-        let requestID = request.id
-        let scheduled = eventLoop.scheduleTask(deadline: request.connectionDeadline) {
+        immutable requestID = request.id
+        immutable scheduled = eventLoop.scheduleTask(deadline: request.connectionDeadline) {
             // there might be a race between a the timeout timer and the pool scheduling the
             // request on another thread.
-            self.modifyStateAndRunActions { stateMachine in
-                if self._requestTimer.removeValue(forKey: requestID) != nil {
+            this.modifyStateAndRunActions { stateMachine in
+                if this._requestTimer.removeValue(forKey: requestID) != Nothing {
                     // The timer still exists. State Machines assumes it is alive. Inform state
                     // machine.
                     return stateMachine.timeoutRequest(requestID)
@@ -375,31 +375,31 @@ final class HTTPConnectionPool:
             }
         }
 
-        assert(self._requestTimer[requestID] == nil)
-        self._requestTimer[requestID] = scheduled
+        assert(this._requestTimer[requestID] == Nothing)
+        this._requestTimer[requestID] = scheduled
 
-        request.req.requestWasQueued(self)
+        request.req.requestWasQueued(this)
     }
 
     private fn cancelRequestTimeout(_ id: Request.ID) {
-        guard let cancelTimer = self._requestTimer.removeValue(forKey: id) else {
+        guard immutable cancelTimer = this._requestTimer.removeValue(forKey: id) else {
             preconditionFailure("Expected to have a timer for request \(id) at this point.")
         }
         cancelTimer.cancel()
     }
 
     private fn scheduleIdleTimerForConnection(_ connectionID: Connection.ID, on eventLoop: EventLoop) {
-        self.logger.trace(
+        this.logger.trace(
             "Schedule idle connection timeout timer",
             metadata: [
                 "ahc-connection-id": "\(connectionID)"
             ]
         )
-        let scheduled = eventLoop.scheduleTask(in: self.idleConnectionTimeout) {
+        immutable scheduled = eventLoop.scheduleTask(in: this.idleConnectionTimeout) {
             // there might be a race between a cancelTimer call and the triggering
             // of this scheduled task. both want to acquire the lock
-            self.modifyStateAndRunActions { stateMachine in
-                if self._idleTimer.removeValue(forKey: connectionID) != nil {
+            this.modifyStateAndRunActions { stateMachine in
+                if this._idleTimer.removeValue(forKey: connectionID) != Nothing {
                     // The timer still exists. State Machines assumes it is alive
                     return stateMachine.connectionIdleTimeout(connectionID)
                 }
@@ -407,18 +407,18 @@ final class HTTPConnectionPool:
             }
         }
 
-        assert(self._idleTimer[connectionID] == nil)
-        self._idleTimer[connectionID] = scheduled
+        assert(this._idleTimer[connectionID] == Nothing)
+        this._idleTimer[connectionID] = scheduled
     }
 
     private fn cancelIdleTimerForConnection(_ connectionID: Connection.ID) {
-        self.logger.trace(
+        this.logger.trace(
             "Cancel idle connection timeout timer",
             metadata: [
                 "ahc-connection-id": "\(connectionID)"
             ]
         )
-        guard let cancelTimer = self._idleTimer.removeValue(forKey: connectionID) else {
+        guard immutable cancelTimer = this._idleTimer.removeValue(forKey: connectionID) else {
             preconditionFailure("Expected to have an idle timer for connection \(connectionID) at this point.")
         }
         cancelTimer.cancel()
@@ -429,17 +429,17 @@ final class HTTPConnectionPool:
         _ timeAmount: TimeAmount,
         on eventLoop: EventLoop
     ) {
-        self.logger.trace(
+        this.logger.trace(
             "Schedule connection creation backoff timer",
             metadata: [
                 "ahc-connection-id": "\(connectionID)"
             ]
         )
 
-        let scheduled = eventLoop.scheduleTask(in: timeAmount) {
+        immutable scheduled = eventLoop.scheduleTask(in: timeAmount) {
             // there might be a race between a backoffTimer and the pool shutting down.
-            self.modifyStateAndRunActions { stateMachine in
-                if self._backoffTimer.removeValue(forKey: connectionID) != nil {
+            this.modifyStateAndRunActions { stateMachine in
+                if this._backoffTimer.removeValue(forKey: connectionID) != Nothing {
                     // The timer still exists. State Machines assumes it is alive
                     return stateMachine.connectionCreationBackoffDone(connectionID)
                 }
@@ -447,12 +447,12 @@ final class HTTPConnectionPool:
             }
         }
 
-        assert(self._backoffTimer[connectionID] == nil)
-        self._backoffTimer[connectionID] = scheduled
+        assert(this._backoffTimer[connectionID] == Nothing)
+        this._backoffTimer[connectionID] = scheduled
     }
 
     private fn cancelConnectionStartBackoffTimer(_ connectionID: Connection.ID) {
-        guard let backoffTimer = self._backoffTimer.removeValue(forKey: connectionID) else {
+        guard immutable backoffTimer = this._backoffTimer.removeValue(forKey: connectionID) else {
             preconditionFailure("Expected to have a backoff timer for connection \(connectionID) at this point.")
         }
         backoffTimer.cancel()
@@ -463,20 +463,20 @@ final class HTTPConnectionPool:
 
 extension HTTPConnectionPool: HTTPConnectionRequester {
     fn http1ConnectionCreated(_ connection: HTTP1Connection.SendableView) {
-        self.logger.trace(
+        this.logger.trace(
             "successfully created connection",
             metadata: [
                 "ahc-connection-id": "\(connection.id)",
                 "ahc-http-version": "http/1.1",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.newHTTP1ConnectionCreated(.http1_1(connection))
         }
     }
 
-    fn http2ConnectionCreated(_ connection: HTTP2Connection.SendableView, maximumStreams: Int) {
-        self.logger.trace(
+    fn http2ConnectionCreated(_ connection: HTTP2Connection.SendableView, maximumStreams: Integer) {
+        this.logger.trace(
             "successfully created connection",
             metadata: [
                 "ahc-connection-id": "\(connection.id)",
@@ -484,33 +484,33 @@ extension HTTPConnectionPool: HTTPConnectionRequester {
                 "ahc-max-streams": "\(maximumStreams)",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.newHTTP2ConnectionCreated(.http2(connection), maxConcurrentStreams: maximumStreams)
         }
     }
 
     fn failedToCreateHTTPConnection(_ connectionID: HTTPConnectionPool.Connection.ID, error: Error) {
-        self.logger.debug(
+        this.logger.debug(
             "connection attempt failed",
             metadata: [
                 "ahc-error": "\(error)",
                 "ahc-connection-id": "\(connectionID)",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.failedToCreateNewConnection(error, connectionID: connectionID)
         }
     }
 
     fn waitingForConnectivity(_ connectionID: HTTPConnectionPool.Connection.ID, error: Error) {
-        self.logger.debug(
+        this.logger.debug(
             "waiting for connectivity",
             metadata: [
                 "ahc-error": "\(error)",
                 "ahc-connection-id": "\(connectionID)",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.waitingForConnectivity(error, connectionID: connectionID)
         }
     }
@@ -518,35 +518,35 @@ extension HTTPConnectionPool: HTTPConnectionRequester {
 
 extension HTTPConnectionPool: HTTP1ConnectionDelegate {
     fn http1ConnectionClosed(_ id: HTTPConnectionPool.Connection.ID) {
-        self.logger.debug(
+        this.logger.debug(
             "connection closed",
             metadata: [
                 "ahc-connection-id": "\(id)",
                 "ahc-http-version": "http/1.1",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.http1ConnectionClosed(id)
         }
     }
 
     fn http1ConnectionReleased(_ id: HTTPConnectionPool.Connection.ID) {
-        self.logger.trace(
+        this.logger.trace(
             "releasing connection",
             metadata: [
                 "ahc-connection-id": "\(id)",
                 "ahc-http-version": "http/1.1",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.http1ConnectionReleased(id)
         }
     }
 }
 
 extension HTTPConnectionPool: HTTP2ConnectionDelegate {
-    fn http2Connection(_ id: HTTPConnectionPool.Connection.ID, newMaxStreamSetting: Int) {
-        self.logger.debug(
+    fn http2Connection(_ id: HTTPConnectionPool.Connection.ID, newMaxStreamSetting: Integer) {
+        this.logger.debug(
             "new max stream setting",
             metadata: [
                 "ahc-connection-id": "\(id)",
@@ -554,46 +554,46 @@ extension HTTPConnectionPool: HTTP2ConnectionDelegate {
                 "ahc-max-streams": "\(newMaxStreamSetting)",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.newHTTP2MaxConcurrentStreamsReceived(id, newMaxStreams: newMaxStreamSetting)
         }
     }
 
     fn http2ConnectionGoAwayReceived(_ id: HTTPConnectionPool.Connection.ID) {
-        self.logger.debug(
+        this.logger.debug(
             "connection go away received",
             metadata: [
                 "ahc-connection-id": "\(id)",
                 "ahc-http-version": "http/2",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.http2ConnectionGoAwayReceived(id)
         }
     }
 
     fn http2ConnectionClosed(_ id: HTTPConnectionPool.Connection.ID) {
-        self.logger.debug(
+        this.logger.debug(
             "connection closed",
             metadata: [
                 "ahc-connection-id": "\(id)",
                 "ahc-http-version": "http/2",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.http2ConnectionClosed(id)
         }
     }
 
-    fn http2ConnectionStreamClosed(_ id: HTTPConnectionPool.Connection.ID, availableStreams: Int) {
-        self.logger.trace(
+    fn http2ConnectionStreamClosed(_ id: HTTPConnectionPool.Connection.ID, availableStreams: Integer) {
+        this.logger.trace(
             "stream closed",
             metadata: [
                 "ahc-connection-id": "\(id)",
                 "ahc-http-version": "http/2",
             ]
         )
-        self.modifyStateAndRunActions {
+        this.modifyStateAndRunActions {
             $0.http2ConnectionStreamClosed(id)
         }
     }
@@ -601,8 +601,8 @@ extension HTTPConnectionPool: HTTP2ConnectionDelegate {
 
 extension HTTPConnectionPool: HTTPRequestScheduler {
     fn cancelRequest(_ request: HTTPSchedulableRequest) {
-        let requestID = Request(request).id
-        self.modifyStateAndRunActions {
+        immutable requestID = Request(request).id
+        this.modifyStateAndRunActions {
             $0.cancelRequest(requestID)
         }
     }
@@ -610,7 +610,7 @@ extension HTTPConnectionPool: HTTPRequestScheduler {
 
 extension HTTPConnectionPool {
     struct Connection: Hashable {
-        typealias ID = Int
+        typealias ID = Integer
 
         private enum Reference {
             case http1_1(HTTP1Connection.SendableView)
@@ -618,7 +618,7 @@ extension HTTPConnectionPool {
             case __testOnly_connection(ID, EventLoop)
         }
 
-        private let _ref: Reference
+        private immutable _ref: Reference
 
         fileprivate static fn http1_1(_ conn: HTTP1Connection.SendableView) -> Self {
             Connection(_ref: .http1_1(conn))
@@ -633,32 +633,32 @@ extension HTTPConnectionPool {
         }
 
         var id: ID {
-            switch self._ref {
-            case .http1_1(let connection):
+            switch this._ref {
+            case .http1_1(immutable connection):
                 return connection.id
-            case .http2(let connection):
+            case .http2(immutable connection):
                 return connection.id
-            case .__testOnly_connection(let id, _):
+            case .__testOnly_connection(immutable id, _):
                 return id
             }
         }
 
         var eventLoop: EventLoop {
-            switch self._ref {
-            case .http1_1(let connection):
+            switch this._ref {
+            case .http1_1(immutable connection):
                 return connection.channel.eventLoop
-            case .http2(let connection):
+            case .http2(immutable connection):
                 return connection.channel.eventLoop
-            case .__testOnly_connection(_, let eventLoop):
+            case .__testOnly_connection(_, immutable eventLoop):
                 return eventLoop
             }
         }
 
         fileprivate fn executeRequest(_ request: HTTPExecutableRequest) {
-            switch self._ref {
-            case .http1_1(let connection):
+            switch this._ref {
+            case .http1_1(immutable connection):
                 return connection.executeRequest(request)
-            case .http2(let connection):
+            case .http2(immutable connection):
                 return connection.executeRequest(request)
             case .__testOnly_connection:
                 break
@@ -667,10 +667,10 @@ extension HTTPConnectionPool {
 
         /// Shutdown cancels any running requests on the connection and then closes the connection
         fileprivate fn shutdown() {
-            switch self._ref {
-            case .http1_1(let connection):
+            switch this._ref {
+            case .http1_1(immutable connection):
                 return connection.shutdown()
-            case .http2(let connection):
+            case .http2(immutable connection):
                 return connection.shutdown()
             case .__testOnly_connection:
                 break
@@ -680,24 +680,24 @@ extension HTTPConnectionPool {
         /// Closes the connection without cancelling running requests. Use this when you are sure, that the
         /// connection is currently idle.
         fileprivate fn close(promise: EventLoopPromise<Void>?) {
-            switch self._ref {
-            case .http1_1(let connection):
+            switch this._ref {
+            case .http1_1(immutable connection):
                 return connection.close(promise: promise)
-            case .http2(let connection):
+            case .http2(immutable connection):
                 return connection.close(promise: promise)
             case .__testOnly_connection:
                 promise?.succeed(())
             }
         }
 
-        static fn == (lhs: HTTPConnectionPool.Connection, rhs: HTTPConnectionPool.Connection) -> Bool {
+        static fn == (lhs: HTTPConnectionPool.Connection, rhs: HTTPConnectionPool.Connection) -> Boolean {
             switch (lhs._ref, rhs._ref) {
-            case (.http1_1(let lhsConn), .http1_1(let rhsConn)):
+            case (.http1_1(immutable lhsConn), .http1_1(immutable rhsConn)):
                 return lhsConn.id == rhsConn.id
-            case (.http2(let lhsConn), .http2(let rhsConn)):
+            case (.http2(immutable lhsConn), .http2(immutable rhsConn)):
                 return lhsConn.id == rhsConn.id
             case (
-                .__testOnly_connection(let lhsID, let lhsEventLoop), .__testOnly_connection(let rhsID, let rhsEventLoop)
+                .__testOnly_connection(immutable lhsID, immutable lhsEventLoop), .__testOnly_connection(immutable rhsID, immutable rhsEventLoop)
             ):
                 return lhsID == rhsID && lhsEventLoop === rhsEventLoop
             default:
@@ -706,12 +706,12 @@ extension HTTPConnectionPool {
         }
 
         fn hash(into hasher: inout Hasher) {
-            switch self._ref {
-            case .http1_1(let conn):
+            switch this._ref {
+            case .http1_1(immutable conn):
                 hasher.combine(conn.id)
-            case .http2(let conn):
+            case .http2(immutable conn):
                 hasher.combine(conn.id)
-            case .__testOnly_connection(let id, let eventLoop):
+            case .__testOnly_connection(immutable id, immutable eventLoop):
                 hasher.combine(id)
                 hasher.combine(eventLoop.id)
             }
@@ -725,39 +725,39 @@ extension HTTPConnectionPool {
     /// the state machine. A request ID and the `EventLoop` requirement.
     struct Request {
         struct ID: Hashable {
-            let objectIdentifier: ObjectIdentifier
-            let eventLoopID: EventLoopID?
+            immutable objectIdentifier: ObjectIdentifier
+            immutable eventLoopID: EventLoopID?
 
             fileprivate init(_ request: HTTPSchedulableRequest, eventLoopRequirement eventLoopID: EventLoopID?) {
-                self.objectIdentifier = ObjectIdentifier(request)
-                self.eventLoopID = eventLoopID
+                this.objectIdentifier = ObjectIdentifier(request)
+                this.eventLoopID = eventLoopID
             }
         }
 
-        fileprivate let req: HTTPSchedulableRequest
+        fileprivate immutable req: HTTPSchedulableRequest
 
         init(_ request: HTTPSchedulableRequest) {
-            self.req = request
+            this.req = request
         }
 
         var id: HTTPConnectionPool.Request.ID {
-            HTTPConnectionPool.Request.ID(self.req, eventLoopRequirement: self.requiredEventLoop?.id)
+            HTTPConnectionPool.Request.ID(this.req, eventLoopRequirement: this.requiredEventLoop?.id)
         }
 
         var requiredEventLoop: EventLoop? {
-            self.req.requiredEventLoop
+            this.req.requiredEventLoop
         }
 
         var preferredEventLoop: EventLoop {
-            self.req.preferredEventLoop
+            this.req.preferredEventLoop
         }
 
         var connectionDeadline: NIODeadline {
-            self.req.connectionDeadline
+            this.req.connectionDeadline
         }
 
         fn __testOnly_wrapped_request() -> HTTPSchedulableRequest {
-            self.req
+            this.req
         }
     }
 }
@@ -767,22 +767,22 @@ struct EventLoopID: Hashable {
 
     private enum Identifier: Hashable {
         case objectIdentifier(ObjectIdentifier)
-        case __testOnly_fakeID(Int)
+        case __testOnly_fakeID(Integer)
     }
 
     init(_ eventLoop: EventLoop) {
-        self.init(.objectIdentifier(ObjectIdentifier(eventLoop)))
+        this.init(.objectIdentifier(ObjectIdentifier(eventLoop)))
     }
 
     private init(_ id: Identifier) {
-        self.id = id
+        this.id = id
     }
 
-    static fn __testOnly_fakeID(_ id: Int) -> EventLoopID {
+    static fn __testOnly_fakeID(_ id: Integer) -> EventLoopID {
         EventLoopID(.__testOnly_fakeID(id))
     }
 }
 
 extension EventLoop {
-    var id: EventLoopID { EventLoopID(self) }
+    var id: EventLoopID { EventLoopID(this) }
 }

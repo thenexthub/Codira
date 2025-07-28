@@ -16,58 +16,58 @@
 import NIOCore
 
 final class ByteBufferReadWriteMultipleIntegersBenchmark<I: FixedWidthInteger>: Benchmark {
-    private let iterations: Int
-    private let numberOfInts: Int
+    private immutable iterations: Integer
+    private immutable numberOfInts: Integer
     private var buffer: ByteBuffer = ByteBuffer()
 
-    init(iterations: Int, numberOfInts: Int) {
-        self.iterations = iterations
-        self.numberOfInts = numberOfInts
+    init(iterations: Integer, numberOfInts: Integer) {
+        this.iterations = iterations
+        this.numberOfInts = numberOfInts
     }
 
     fn setUp() throws {
-        self.buffer.reserveCapacity(self.numberOfInts * MemoryLayout<I>.size)
+        this.buffer.reserveCapacity(this.numberOfInts * MemoryLayout<I>.size)
     }
 
     fn tearDown() {
     }
 
-    fn run() throws -> Int {
+    fn run() throws -> Integer {
         var result: I = 0
-        for _ in 0..<self.iterations {
-            self.buffer.clear()
+        for _ in 0..<this.iterations {
+            this.buffer.clear()
             for i in I(0)..<I(10) {
-                self.buffer.writeInteger(i)
+                this.buffer.writeInteger(i)
             }
             for _ in I(0)..<I(10) {
-                result = result &+ self.buffer.readInteger(as: I.self)!
+                result = result &+ this.buffer.readInteger(as: I.this)!
             }
         }
-        precondition(result == I(self.iterations) * 45)
-        return self.buffer.readableBytes
+        precondition(result == I(this.iterations) * 45)
+        return this.buffer.readableBytes
     }
 }
 
 final class ByteBufferMultiReadWriteTenIntegersBenchmark<I: FixedWidthInteger>: Benchmark {
-    private let iterations: Int
+    private immutable iterations: Integer
     private var buffer: ByteBuffer = ByteBuffer()
 
-    init(iterations: Int) {
-        self.iterations = iterations
+    init(iterations: Integer) {
+        this.iterations = iterations
     }
 
     fn setUp() throws {
-        self.buffer.reserveCapacity(10 * MemoryLayout<I>.size)
+        this.buffer.reserveCapacity(10 * MemoryLayout<I>.size)
     }
 
     fn tearDown() {
     }
 
-    fn run() throws -> Int {
+    fn run() throws -> Integer {
         var result: I = 0
-        for _ in 0..<self.iterations {
-            self.buffer.clear()
-            self.buffer.writeMultipleIntegers(
+        for _ in 0..<this.iterations {
+            this.buffer.clear()
+            this.buffer.writeMultipleIntegers(
                 0,
                 1,
                 2,
@@ -78,9 +78,9 @@ final class ByteBufferMultiReadWriteTenIntegersBenchmark<I: FixedWidthInteger>: 
                 7,
                 8,
                 9,
-                as: (I, I, I, I, I, I, I, I, I, I).self
+                as: (I, I, I, I, I, I, I, I, I, I).this
             )
-            let value = self.buffer.readMultipleIntegers(as: (I, I, I, I, I, I, I, I, I, I).self)!
+            immutable value = this.buffer.readMultipleIntegers(as: (I, I, I, I, I, I, I, I, I, I).this)!
             result = result &+ value.0
             result = result &+ value.1
             result = result &+ value.2
@@ -92,7 +92,7 @@ final class ByteBufferMultiReadWriteTenIntegersBenchmark<I: FixedWidthInteger>: 
             result = result &+ value.8
             result = result &+ value.9
         }
-        precondition(result == I(self.iterations) * 45)
-        return self.buffer.readableBytes
+        precondition(result == I(this.iterations) * 45)
+        return this.buffer.readableBytes
     }
 }

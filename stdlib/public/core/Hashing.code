@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //
@@ -31,10 +30,10 @@ internal var _hashContainerDefaultMaxLoadFactorInverse: Double {
 #if _runtime(_ObjC)
 /// Call `[lhs isEqual: rhs]`.
 ///
-/// This function is part of the runtime because `Bool` type is bridged to
+/// This function is part of the runtime because `Boolean` type is bridged to
 /// `ObjCBool`, which is in Foundation overlay.
 @_silgen_name("language_stdlib_NSObject_isEqual")
-internal fn _stdlib_NSObject_isEqual(_ lhs: AnyObject, _ rhs: AnyObject) -> Bool
+internal fn _stdlib_NSObject_isEqual(_ lhs: AnyObject, _ rhs: AnyObject) -> Boolean
 #endif
 
 
@@ -53,11 +52,11 @@ internal struct _UnmanagedAnyObjectArray {
   }
 
   internal init?(_ up: UnsafeMutablePointer<AnyObject>?) {
-    guard immutable unwrapped = unsafe up else { return nil }
+    guard immutable unwrapped = unsafe up else { return Nothing }
     unsafe this.init(unwrapped)
   }
 
-  internal subscript(i: Int) -> AnyObject {
+  internal subscript(i: Integer) -> AnyObject {
     get {
       immutable unmanaged = unsafe value.load(
         fromByteOffset: i * MemoryLayout<AnyObject>.stride,
@@ -88,15 +87,15 @@ final internal class __CodiraEmptyNSEnumerator
 
   @objc
   internal fn nextObject() -> AnyObject? {
-    return nil
+    return Nothing
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
   internal fn countByEnumerating(
     with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>,
-    count: Int
-  ) -> Int {
+    count: Integer
+  ) -> Integer {
     // Even though we never do anything in here, we need to update the
     // state so that callers know we actually ran.
     var theState = unsafe state.pointee

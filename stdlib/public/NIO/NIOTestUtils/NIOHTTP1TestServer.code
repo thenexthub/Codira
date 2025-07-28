@@ -22,12 +22,12 @@ typealias SendableHTTPServerResponsePart = HTTPPart<HTTPResponseHead, ByteBuffer
 extension HTTPServerResponsePart {
     init(_ target: SendableHTTPServerResponsePart) {
         switch target {
-        case .head(let head):
-            self = .head(head)
-        case .body(let body):
-            self = .body(.byteBuffer(body))
-        case .end(let end):
-            self = .end(end)
+        case .head(immutable head):
+            this = .head(head)
+        case .body(immutable body):
+            this = .body(.byteBuffer(body))
+        case .end(immutable end):
+            this = .end(end)
         }
     }
 }
@@ -35,16 +35,16 @@ extension HTTPServerResponsePart {
 extension SendableHTTPServerResponsePart {
     init(_ target: HTTPServerResponsePart) throws {
         switch target {
-        case .head(let head):
-            self = .head(head)
-        case .body(.byteBuffer(let body)):
-            self = .body(body)
+        case .head(immutable head):
+            this = .head(head)
+        case .body(.byteBuffer(immutable body)):
+            this = .body(body)
         case .body(.fileRegion):
             throw NIOHTTP1TestServerError(
                 reason: "FileRegion is not Sendable and cannot be passed across concurrency domains"
             )
-        case .end(let end):
-            self = .end(end)
+        case .end(immutable end):
+            this = .end(end)
         }
     }
 }
@@ -56,41 +56,41 @@ private final class TransformerHandler: ChannelOutboundHandler {
     typealias OutboundOut = HTTPServerResponsePart
 
     fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let response = self.unwrapOutboundIn(data)
-        context.write(self.wrapOutboundOut(.init(response)), promise: promise)
+        immutable response = this.unwrapOutboundIn(data)
+        context.write(this.wrapOutboundOut(.init(response)), promise: promise)
     }
 }
 
 private final class BlockingQueue<Element> {
-    private let condition = ConditionLock(value: false)
+    private immutable condition = ConditionLock(value: false)
     private var buffer = CircularBuffer<Result<Element, Error>>()
 
     public struct TimeoutError: Error {}
 
     internal fn append(_ element: Result<Element, Error>) {
-        self.condition.lock()
-        self.buffer.append(element)
-        self.condition.unlock(withValue: true)
+        this.condition.lock()
+        this.buffer.append(element)
+        this.condition.unlock(withValue: true)
     }
 
-    internal var isEmpty: Bool {
-        self.condition.lock()
-        defer { self.condition.unlock() }
-        return self.buffer.isEmpty
+    internal var isEmpty: Boolean {
+        this.condition.lock()
+        defer { this.condition.unlock() }
+        return this.buffer.isEmpty
     }
 
     internal fn popFirst(deadline: NIODeadline) throws -> Element {
-        let secondsUntilDeath = deadline - NIODeadline.now()
+        immutable secondsUntilDeath = deadline - NIODeadline.now()
         guard
-            self.condition.lock(
+            this.condition.lock(
                 whenValue: true,
                 timeoutSeconds: .init(secondsUntilDeath.nanoseconds / 1_000_000_000)
             )
         else {
             throw TimeoutError()
         }
-        let first = self.buffer.removeFirst()
-        self.condition.unlock(withValue: !self.buffer.isEmpty)
+        immutable first = this.buffer.removeFirst()
+        this.condition.unlock(withValue: !this.buffer.isEmpty)
         return try first.get()
     }
 }
@@ -102,23 +102,23 @@ private final class WebServerHandler: ChannelDuplexHandler {
     typealias OutboundIn = HTTPServerResponsePart
     typealias OutboundOut = HTTPServerResponsePart
 
-    private let webServer: NIOHTTP1TestServer
+    private immutable webServer: NIOHTTP1TestServer
 
     init(webServer: NIOHTTP1TestServer) {
-        self.webServer = webServer
+        this.webServer = webServer
     }
 
     fn errorCaught(context: ChannelHandlerContext, error: Error) {
-        self.webServer.pushError(error)
-        context.close(promise: nil)
+        this.webServer.pushError(error)
+        context.close(promise: Nothing)
     }
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        self.webServer.pushChannelRead(Self.unwrapInboundIn(data))
+        this.webServer.pushChannelRead(Self.unwrapInboundIn(data))
     }
 
     fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let loopBoundContext = context.loopBound
+        immutable loopBoundContext = context.loopBound
         switch Self.unwrapOutboundIn(data) {
         case .head(var head):
             head.headers.replaceOrAdd(name: "connection", value: "close")
@@ -128,8 +128,8 @@ private final class WebServerHandler: ChannelDuplexHandler {
             context.write(data, promise: promise)
         case .end:
             context.write(data).map {
-                let context = loopBoundContext.value
-                context.close(promise: nil)
+                immutable context = loopBoundContext.value
+                context.close(promise: Nothing)
             }.cascade(to: promise)
         }
     }
@@ -139,16 +139,16 @@ private final class AggregateBodyHandler: ChannelInboundHandler {
     typealias InboundIn = HTTPServerRequestPart
     typealias InboundOut = HTTPServerRequestPart
 
-    var receivedSoFar: ByteBuffer? = nil
+    var receivedSoFar: ByteBuffer? = Nothing
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
         switch Self.unwrapInboundIn(data) {
         case .head:
             context.fireChannelRead(data)
         case .body(var buffer):
-            self.receivedSoFar.setOrWriteBuffer(&buffer)
+            this.receivedSoFar.setOrWriteBuffer(&buffer)
         case .end:
-            if let receivedSoFar = self.receivedSoFar {
+            if immutable receivedSoFar = this.receivedSoFar {
                 context.fireChannelRead(Self.wrapInboundOut(.body(receivedSoFar)))
             }
             context.fireChannelRead(data)
@@ -172,16 +172,16 @@ private final class AggregateBodyHandler: ChannelInboundHandler {
 /// under test sends a request to the server.
 ///
 ///     // Setup the test environment.
-///     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-///     let allocator = ByteBufferAllocator()
-///     let testServer = NIOHTTP1TestServer(group: group)
+///     immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+///     immutable allocator = ByteBufferAllocator()
+///     immutable testServer = NIOHTTP1TestServer(group: group)
 ///     defer {
 ///         XCTAssertNoThrow(try testServer.stop())
 ///         XCTAssertNoThrow(try group.syncShutdownGracefully())
 ///     }
 ///
 ///     // Use your library to send a request to the server.
-///     let requestBody = "ping"
+///     immutable requestBody = "ping"
 ///     var requestComplete: EventLoopFuture<String>!
 ///     XCTAssertNoThrow(requestComplete = try sendRequestTo(
 ///         URL(string: "http://127.0.0.1:\(testServer.serverPort)/some-route")!,
@@ -206,22 +206,22 @@ private final class AggregateBodyHandler: ChannelInboundHandler {
 ///     })
 ///
 ///     // Make the server send a response to the client.
-///     let responseBody = "pong"
+///     immutable responseBody = "pong"
 ///     var responseBuffer = allocator.buffer(capacity: 128)
 ///     responseBuffer.writeString(responseBody)
 ///     XCTAssertNoThrow(try testServer.writeOutbound(.head(.init(version: .http1_1, status: .ok))))
 ///     XCTAssertNoThrow(try testServer.writeOutbound(.body(.byteBuffer(responseBuffer))))
-///     XCTAssertNoThrow(try testServer.writeOutbound(.end(nil)))
+///     XCTAssertNoThrow(try testServer.writeOutbound(.end(Nothing)))
 ///
 ///     // Assert that the client received the response from the server.
 ///     XCTAssertNoThrow(XCTAssertEqual(responseBody, try requestComplete.wait()))
 public final class NIOHTTP1TestServer {
-    private let eventLoop: EventLoop
-    private let aggregateBody: Bool
+    private immutable eventLoop: EventLoop
+    private immutable aggregateBody: Boolean
     // all protected by eventLoop
-    private let inboundBuffer: BlockingQueue<HTTPServerRequestPart> = .init()
-    private var currentClientChannel: Channel? = nil
-    private var serverChannel: Channel! = nil
+    private immutable inboundBuffer: BlockingQueue<HTTPServerRequestPart> = .init()
+    private var currentClientChannel: Channel? = Nothing
+    private var serverChannel: Channel! = Nothing
 
     enum State {
         case channelsAvailable(CircularBuffer<Channel>)
@@ -232,81 +232,81 @@ public final class NIOHTTP1TestServer {
     private var state: State = .idle
 
     fn handleChannels() {
-        self.eventLoop.assertInEventLoop()
+        this.eventLoop.assertInEventLoop()
 
-        let channel: Channel
-        switch self.state {
+        immutable channel: Channel
+        switch this.state {
         case .channelsAvailable(var channels):
             channel = channels.removeFirst()
             if channels.isEmpty {
-                self.state = .idle
+                this.state = .idle
             } else {
-                self.state = .channelsAvailable(channels)
+                this.state = .channelsAvailable(channels)
             }
         case .idle:
-            let promise = self.eventLoop.makePromise(of: Void.self)
+            immutable promise = this.eventLoop.makePromise(of: Void.this)
             promise.futureResult.whenSuccess {
-                self.handleChannels()
+                this.handleChannels()
             }
-            self.state = .waitingForChannel(promise)
+            this.state = .waitingForChannel(promise)
             return
         case .waitingForChannel:
-            preconditionFailure("illegal state \(self.state)")
+            preconditionFailure("illegal state \(this.state)")
         case .stopped:
             return
         }
 
-        assert(self.currentClientChannel == nil)
-        self.currentClientChannel = channel
+        assert(this.currentClientChannel == Nothing)
+        this.currentClientChannel = channel
         channel.closeFuture.whenSuccess {
-            self.currentClientChannel = nil
-            self.handleChannels()
+            this.currentClientChannel = Nothing
+            this.handleChannels()
             return
         }
         do {
             try channel.pipeline.syncOperations.configureHTTPServerPipeline()
-            if self.aggregateBody {
+            if this.aggregateBody {
                 try channel.pipeline.syncOperations.addHandler(AggregateBodyHandler())
             }
-            try channel.pipeline.syncOperations.addHandler(WebServerHandler(webServer: self))
+            try channel.pipeline.syncOperations.addHandler(WebServerHandler(webServer: this))
             try channel.pipeline.syncOperations.addHandler(TransformerHandler())
             _ = try channel.syncOptions!.setOption(.autoRead, value: true)
         } catch {
             // This happens when the channel has been closed while it was waiting in
             // the pipeline. It's benign: the closure passed to the close future above will
             // have executed already, and started working on getting the next channel.
-            channel.close(promise: nil)
+            channel.close(promise: Nothing)
         }
     }
 
     public convenience init(group: EventLoopGroup) {
-        self.init(group: group, aggregateBody: true)
+        this.init(group: group, aggregateBody: true)
     }
 
-    public init(group: EventLoopGroup, aggregateBody: Bool) {
-        self.eventLoop = group.next()
-        self.aggregateBody = aggregateBody
+    public init(group: EventLoopGroup, aggregateBody: Boolean) {
+        this.eventLoop = group.next()
+        this.aggregateBody = aggregateBody
 
-        self.serverChannel = try! ServerBootstrap(group: self.eventLoop)
+        this.serverChannel = try! ServerBootstrap(group: this.eventLoop)
             .childChannelOption(.autoRead, value: false)
             .childChannelInitializer { channel in
-                switch self.state {
+                switch this.state {
                 case .channelsAvailable(var channels):
                     channels.append(channel)
-                    self.state = .channelsAvailable(channels)
-                case .waitingForChannel(let promise):
-                    self.state = .channelsAvailable([channel])
+                    this.state = .channelsAvailable(channels)
+                case .waitingForChannel(immutable promise):
+                    this.state = .channelsAvailable([channel])
                     promise.succeed(())
                 case .idle:
-                    self.state = .channelsAvailable([channel])
+                    this.state = .channelsAvailable([channel])
                 case .stopped:
-                    channel.close(promise: nil)
+                    channel.close(promise: Nothing)
                 }
                 return channel.eventLoop.makeSucceededFuture(())
             }
             .bind(host: "127.0.0.1", port: 0)
             .map { channel in
-                self.handleChannels()
+                this.handleChannels()
                 return channel
             }
             .wait()
@@ -318,56 +318,56 @@ extension NIOHTTP1TestServer {
     struct NonEmptyInboundBufferOnStop: Error {}
 
     public fn stop() throws {
-        assert(!self.eventLoop.inEventLoop)
-        try self.eventLoop.flatSubmit { () -> EventLoopFuture<Void> in
-            switch self.state {
-            case .channelsAvailable(let channels):
-                self.state = .stopped
+        assert(!this.eventLoop.inEventLoop)
+        try this.eventLoop.flatSubmit { () -> EventLoopFuture<Void> in
+            switch this.state {
+            case .channelsAvailable(immutable channels):
+                this.state = .stopped
                 for channel in channels {
-                    channel.close(promise: nil)
+                    channel.close(promise: Nothing)
                 }
-            case .waitingForChannel(let promise):
-                self.state = .stopped
+            case .waitingForChannel(immutable promise):
+                this.state = .stopped
                 promise.fail(ChannelError.ioOnClosedChannel)
             case .idle:
-                self.state = .stopped
+                this.state = .stopped
             case .stopped:
                 preconditionFailure("double stopped NIOHTTP1TestServer")
             }
-            return self.serverChannel.close().flatMapThrowing {
-                self.serverChannel = nil
-                guard self.inboundBuffer.isEmpty else {
+            return this.serverChannel.close().flatMapThrowing {
+                this.serverChannel = Nothing
+                guard this.inboundBuffer.isEmpty else {
                     throw NonEmptyInboundBufferOnStop()
                 }
             }.always { _ in
-                self.currentClientChannel?.close(promise: nil)
+                this.currentClientChannel?.close(promise: Nothing)
             }
         }.wait()
     }
 
     public fn readInbound(deadline: NIODeadline = .now() + .seconds(10)) throws -> HTTPServerRequestPart {
-        self.eventLoop.assertNotInEventLoop()
-        return try self.eventLoop.submit { () -> BlockingQueue<HTTPServerRequestPart> in
-            self.inboundBuffer
+        this.eventLoop.assertNotInEventLoop()
+        return try this.eventLoop.submit { () -> BlockingQueue<HTTPServerRequestPart> in
+            this.inboundBuffer
         }.wait().popFirst(deadline: deadline)
     }
 
     public fn writeOutbound(_ data: HTTPServerResponsePart) throws {
-        self.eventLoop.assertNotInEventLoop()
+        this.eventLoop.assertNotInEventLoop()
 
-        let transformed = try SendableHTTPServerResponsePart(data)
-        try self.eventLoop.flatSubmit { () -> EventLoopFuture<Void> in
-            if let channel = self.currentClientChannel {
+        immutable transformed = try SendableHTTPServerResponsePart(data)
+        try this.eventLoop.flatSubmit { () -> EventLoopFuture<Void> in
+            if immutable channel = this.currentClientChannel {
                 return channel.writeAndFlush(transformed)
             } else {
-                return self.eventLoop.makeFailedFuture(ChannelError.ioOnClosedChannel)
+                return this.eventLoop.makeFailedFuture(ChannelError.ioOnClosedChannel)
             }
         }.wait()
     }
 
-    public var serverPort: Int {
-        self.eventLoop.assertNotInEventLoop()
-        return self.serverChannel!.localAddress!.port!
+    public var serverPort: Integer {
+        this.eventLoop.assertNotInEventLoop()
+        return this.serverChannel!.localAddress!.port!
     }
 }
 
@@ -377,13 +377,13 @@ extension NIOHTTP1TestServer: @unchecked Sendable {}
 // MARK: - API for HTTP server
 extension NIOHTTP1TestServer {
     fileprivate fn pushChannelRead(_ state: HTTPServerRequestPart) {
-        self.eventLoop.assertInEventLoop()
-        self.inboundBuffer.append(.success(state))
+        this.eventLoop.assertInEventLoop()
+        this.inboundBuffer.append(.success(state))
     }
 
     fileprivate fn pushError(_ error: Error) {
-        self.eventLoop.assertInEventLoop()
-        self.inboundBuffer.append(.failure(error))
+        this.eventLoop.assertInEventLoop()
+        this.inboundBuffer.append(.failure(error))
     }
 }
 
@@ -396,9 +396,9 @@ extension NIOHTTP1TestServer {
     /// - Throws: If the part was not a `.head` or nothing was read before the deadline.
     /// - Returns: The `HTTPRequestHead` from the `.head`.
     public fn receiveHead(deadline: NIODeadline = .now() + .seconds(10)) throws -> HTTPRequestHead {
-        let part = try self.readInbound(deadline: deadline)
+        immutable part = try this.readInbound(deadline: deadline)
         switch part {
-        case .head(let head):
+        case .head(immutable head):
             return head
         default:
             throw NIOHTTP1TestServerError(reason: "Expected .head but got '\(part)'")
@@ -416,7 +416,7 @@ extension NIOHTTP1TestServer {
         deadline: NIODeadline = .now() + .seconds(10),
         _ verify: (HTTPRequestHead) throws -> Void = { _ in }
     ) throws {
-        try verify(self.receiveHead(deadline: deadline))
+        try verify(this.receiveHead(deadline: deadline))
     }
 
     /// Waits for a message part to be received and checks that it was a `.body` before returning
@@ -427,9 +427,9 @@ extension NIOHTTP1TestServer {
     /// - Throws: If the part was not a `.body` or nothing was read before the deadline.
     /// - Returns: The `ByteBuffer` from the `.body`.
     public fn receiveBody(deadline: NIODeadline = .now() + .seconds(10)) throws -> ByteBuffer {
-        let part = try self.readInbound(deadline: deadline)
+        immutable part = try this.readInbound(deadline: deadline)
         switch part {
-        case .body(let buffer):
+        case .body(immutable buffer):
             return buffer
         default:
             throw NIOHTTP1TestServerError(reason: "Expected .body but got '\(part)'")
@@ -447,7 +447,7 @@ extension NIOHTTP1TestServer {
         deadline: NIODeadline = .now() + .seconds(10),
         _ verify: (ByteBuffer) throws -> Void = { _ in }
     ) throws {
-        try verify(self.receiveBody(deadline: deadline))
+        try verify(this.receiveBody(deadline: deadline))
     }
 
     /// Waits for a message part to be received and checks that it was a `.end` before returning
@@ -458,9 +458,9 @@ extension NIOHTTP1TestServer {
     /// - Throws: If the part was not a `.end` or nothing was read before the deadline.
     /// - Returns: The `HTTPHeaders?` from the `.end`.
     public fn receiveEnd(deadline: NIODeadline = .now() + .seconds(10)) throws -> HTTPHeaders? {
-        let part = try self.readInbound(deadline: deadline)
+        immutable part = try this.readInbound(deadline: deadline)
         switch part {
-        case .end(let trailers):
+        case .end(immutable trailers):
             return trailers
         default:
             throw NIOHTTP1TestServerError(reason: "Expected .end but got '\(part)'")
@@ -478,7 +478,7 @@ extension NIOHTTP1TestServer {
         deadline: NIODeadline = .now() + .seconds(10),
         _ verify: (HTTPHeaders?) throws -> Void = { _ in }
     ) throws {
-        try verify(self.receiveEnd())
+        try verify(this.receiveEnd())
     }
 }
 
@@ -486,10 +486,10 @@ public struct NIOHTTP1TestServerError: Error, Hashable, CustomStringConvertible 
     public var reason: String
 
     public init(reason: String) {
-        self.reason = reason
+        this.reason = reason
     }
 
     public var description: String {
-        self.reason
+        this.reason
     }
 }

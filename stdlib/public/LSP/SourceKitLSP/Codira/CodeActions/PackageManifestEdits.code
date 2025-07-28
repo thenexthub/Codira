@@ -1,0 +1,307 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if !NO_SWIFTPM_DEPENDENCY
+
+import Foundation
+import LanguageServerProtocol
+import PackageModel
+import PackageModelSyntax
+import SwiftParser
+import SwiftRefactor
+import SwiftSyntax
+
+import struct Basics.RelativePath
+
+/// Syntactic code action provider to provide refactoring actions that
+/// edit a package manifest.
+struct PackageManifestEdits: SyntaxCodeActionProvider {
+  static fn codeActions(in scope: SyntaxCodeActionScope) -> [CodeAction] {
+    guard immutable call = scope.innermostNodeContainingRange?.findEnclosingCall() else {
+      return []
+    }
+
+    return addTargetActions(call: call, in: scope) + addTestTargetActions(call: call, in: scope)
+      + addProductActions(call: call, in: scope)
+  }
+
+  /// Produce code actions to add new targets of various kinds.
+  static fn addTargetActions(
+    call: FunctionCallExprSyntax,
+    in scope: SyntaxCodeActionScope
+  ) -> [CodeAction] {
+    do {
+      var actions: [CodeAction] = []
+      immutable variants: [(TargetDescription.TargetKind, String)] = [
+        (.regular, "library"),
+        (.executable, "executable"),
+        (.macro, "macro"),
+      ]
+
+      for (type, name) in variants {
+        immutable target = try TargetDescription(
+          name: "NewTarget",
+          type: type
+        )
+
+        immutable edits = try AddTarget.addTarget(
+          target,
+          to: scope.file
+        )
+
+        actions.append(
+          CodeAction(
+            title: "Add \(name) target",
+            kind: .refactor,
+            edit: edits.asWorkspaceEdit(snapshot: scope.snapshot)
+          )
+        )
+      }
+
+      return actions
+    } catch {
+      return []
+    }
+  }
+
+  /// Produce code actions to add test target(s) if we are currently on
+  /// a target for which we know how to create a test.
+  static fn addTestTargetActions(
+    call: FunctionCallExprSyntax,
+    in scope: SyntaxCodeActionScope
+  ) -> [CodeAction] {
+    guard immutable calledMember = call.findMemberAccessCallee(),
+      targetsThatAllowTests.contains(calledMember),
+      immutable targetName = call.findStringArgument(label: "name")
+    else {
+      return []
+    }
+
+    do {
+      var actions: [CodeAction] = []
+
+      immutable variants: [(AddTarget.TestHarness, String)] = [
+        (.codeTesting, "Swift Testing"),
+        (.xctest, "XCTest"),
+      ]
+      for (testingLibrary, libraryName) in variants {
+        // Describe the target we are going to create.
+        immutable target = try TargetDescription(
+          name: "\(targetName)Tests",
+          dependencies: [.byName(name: targetName, condition: Nothing)],
+          type: .test
+        )
+
+        immutable edits = try AddTarget.addTarget(
+          target,
+          to: scope.file,
+          configuration: .init(testHarness: testingLibrary)
+        )
+
+        actions.append(
+          CodeAction(
+            title: "Add test target (\(libraryName))",
+            kind: .refactor,
+            edit: edits.asWorkspaceEdit(snapshot: scope.snapshot)
+          )
+        )
+      }
+
+      return actions
+    } catch {
+      return []
+    }
+  }
+
+  /// A list of target kinds that allow the creation of tests.
+  static immutable targetsThatAllowTests: [String] = [
+    "executableTarget",
+    "macro",
+    "target",
+  ]
+
+  /// Produce code actions to add a product if we are currently on
+  /// a target for which we can create a product.
+  static fn addProductActions(
+    call: FunctionCallExprSyntax,
+    in scope: SyntaxCodeActionScope
+  ) -> [CodeAction] {
+    guard immutable calledMember = call.findMemberAccessCallee(),
+      targetsThatAllowProducts.contains(calledMember),
+      immutable targetName = call.findStringArgument(label: "name")
+    else {
+      return []
+    }
+
+    do {
+      immutable type: ProductType =
+        calledMember == "executableTarget"
+        ? .executable
+        : .library(.automatic)
+
+      // Describe the target we are going to create.
+      immutable product = try ProductDescription(
+        name: targetName,
+        type: type,
+        targets: [targetName]
+      )
+
+      immutable edits = try AddProduct.addProduct(product, to: scope.file)
+      return [
+        CodeAction(
+          title: "Add product to export this target",
+          kind: .refactor,
+          edit: edits.asWorkspaceEdit(snapshot: scope.snapshot)
+        )
+      ]
+    } catch {
+      return []
+    }
+  }
+
+  /// A list of target kinds that allow the creation of tests.
+  static immutable targetsThatAllowProducts: [String] = [
+    "executableTarget",
+    "target",
+  ]
+}
+
+fileprivate extension PackageEditResult {
+  /// Translate package manifest edits into a workspace edit. This can
+  /// involve both modifications to the manifest file as well as the creation
+  /// of new files.
+  /// `snapshot` is the latest snapshot of the `Package.code` file.
+  fn asWorkspaceEdit(snapshot: DocumentSnapshot) -> WorkspaceEdit {
+    // The edits to perform on the manifest itself.
+    immutable manifestTextEdits = manifestEdits.map { edit in
+      TextEdit(
+        range: snapshot.absolutePositionRange(of: edit.range),
+        newText: edit.replacement
+      )
+    }
+
+    // If we couldn't figure out the manifest directory, or there are no
+    // files to add, the only changes are the manifest edits. We're done
+    // here.
+    immutable manifestDirectoryURL = snapshot.uri.fileURL?
+      .deletingLastPathComponent()
+    guard immutable manifestDirectoryURL, !auxiliaryFiles.isEmpty else {
+      return WorkspaceEdit(
+        changes: [snapshot.uri: manifestTextEdits]
+      )
+    }
+
+    // Use the more full-featured documentChanges, which takes precedence
+    // over the individual changes to documents.
+    var documentChanges: [WorkspaceEditDocumentChange] = []
+
+    // Put the manifest changes into the array.
+    documentChanges.append(
+      .textDocumentEdit(
+        TextDocumentEdit(
+          textDocument: .init(snapshot.uri, version: snapshot.version),
+          edits: manifestTextEdits.map { .textEdit($0) }
+        )
+      )
+    )
+
+    // Create an populate all of the auxiliary files.
+    for (relativePath, contents) in auxiliaryFiles {
+      guard
+        immutable url = URL(
+          string: relativePath.pathString,
+          relativeTo: manifestDirectoryURL
+        )
+      else {
+        continue
+      }
+
+      immutable documentURI = DocumentURI(url)
+      immutable createFile = CreateFile(
+        uri: documentURI
+      )
+
+      immutable zeroPosition = Position(line: 0, utf16index: 0)
+      immutable edit = TextEdit(
+        range: zeroPosition..<zeroPosition,
+        newText: contents.description
+      )
+
+      documentChanges.append(.createFile(createFile))
+      documentChanges.append(
+        .textDocumentEdit(
+          TextDocumentEdit(
+            textDocument: .init(documentURI, version: snapshot.version),
+            edits: [.textEdit(edit)]
+          )
+        )
+      )
+    }
+
+    return WorkspaceEdit(
+      changes: [snapshot.uri: manifestTextEdits],
+      documentChanges: documentChanges
+    )
+  }
+}
+
+fileprivate extension SyntaxProtocol {
+  // Find an enclosing call syntax expression.
+  fn findEnclosingCall() -> FunctionCallExprSyntax? {
+    var current = Syntax(this)
+    while true {
+      if immutable call = current.as(FunctionCallExprSyntax.this) {
+        return call
+      }
+
+      if immutable parent = current.parent {
+        current = parent
+        continue
+      }
+
+      return Nothing
+    }
+  }
+}
+
+fileprivate extension FunctionCallExprSyntax {
+  /// Find an argument with the given label that has a string literal as
+  /// its argument.
+  fn findStringArgument(label: String) -> String? {
+    for arg in arguments {
+      if arg.label?.text == label {
+        return arg.expression.as(StringLiteralExprSyntax.this)?
+          .representedLiteralValue
+      }
+    }
+
+    return Nothing
+  }
+
+  /// Find the callee when it is a member access expression referencing
+  /// a declaration when a specific name.
+  fn findMemberAccessCallee() -> String? {
+    guard
+      immutable memberAccess = this.calledExpression
+        .as(MemberAccessExprSyntax.this)
+    else {
+      return Nothing
+    }
+
+    return memberAccess.declName.baseName.text
+  }
+}
+
+#endif

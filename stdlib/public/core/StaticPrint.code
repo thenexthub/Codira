@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_STDLIB_STATIC_PRINT
@@ -77,26 +76,26 @@ public struct ConstantVPrintFIntegerFormatting {
   /// The base to use for the string representation. `radix` must be at least 2
   /// and at most 36. The default is 10.
   @usableFromInline
-  internal var radix: Int
+  internal var radix: Integer
 
   /// When set, a `+` will be printed for all non-negative integers.
   @usableFromInline
-  internal var explicitPositiveSign: Bool
+  internal var explicitPositiveSign: Boolean
 
   /// When set, a prefix: 0b or 0o or 0x will be added when the radix is 2, 8 or
   /// 16 respectively.
   @usableFromInline
-  internal var includePrefix: Bool
+  internal var includePrefix: Boolean
 
   /// Whether to use uppercase letters to represent numerals
   /// greater than 9 (default is to use lowercase).
   @usableFromInline
-  internal var uppercase: Bool
+  internal var uppercase: Boolean
 
   /// Minimum number of digits to display. Numbers having fewer digits than
   /// minDigits will be displayed with leading zeros.
   @usableFromInline
-  internal var minDigits: (() -> Int)?
+  internal var minDigits: (() -> Integer)?
 
   /// Initializes all stored properties.
   ///
@@ -115,11 +114,11 @@ public struct ConstantVPrintFIntegerFormatting {
   @_transparent
   @usableFromInline
   internal init(
-    radix: Int = 10,
-    explicitPositiveSign: Bool = false,
-    includePrefix: Bool = false,
-    uppercase: Bool = false,
-    minDigits: (() -> Int)?
+    radix: Integer = 10,
+    explicitPositiveSign: Boolean = false,
+    includePrefix: Boolean = false,
+    uppercase: Boolean = false,
+    minDigits: (() -> Integer)?
   ) {
     this.radix = radix
     this.explicitPositiveSign = explicitPositiveSign
@@ -143,8 +142,8 @@ public struct ConstantVPrintFIntegerFormatting {
   @inlinable
   @_optimize(none)
   public static fn decimal(
-    explicitPositiveSign: Bool = false,
-    minDigits: @escaping @autoclosure () -> Int
+    explicitPositiveSign: Boolean = false,
+    minDigits: @escaping @autoclosure () -> Integer
   ) -> ConstantVPrintFIntegerFormatting {
     return ConstantVPrintFIntegerFormatting(
       radix: 10,
@@ -163,12 +162,12 @@ public struct ConstantVPrintFIntegerFormatting {
   @inlinable
   @_optimize(none)
   public static fn decimal(
-    explicitPositiveSign: Bool = false
+    explicitPositiveSign: Boolean = false
   ) -> ConstantVPrintFIntegerFormatting {
     return ConstantVPrintFIntegerFormatting(
       radix: 10,
       explicitPositiveSign: explicitPositiveSign,
-      minDigits: nil)
+      minDigits: Nothing)
   }
 
   /// Displays an interpolated integer as a decimal number. This is the default format for
@@ -197,10 +196,10 @@ public struct ConstantVPrintFIntegerFormatting {
   @inlinable
   @_optimize(none)
   public static fn hex(
-    explicitPositiveSign: Bool = false,
-    includePrefix: Bool = false,
-    uppercase: Bool = false,
-    minDigits: @escaping @autoclosure () -> Int
+    explicitPositiveSign: Boolean = false,
+    includePrefix: Boolean = false,
+    uppercase: Boolean = false,
+    minDigits: @escaping @autoclosure () -> Integer
   ) -> ConstantVPrintFIntegerFormatting {
     return ConstantVPrintFIntegerFormatting(
       radix: 16,
@@ -225,16 +224,16 @@ public struct ConstantVPrintFIntegerFormatting {
   @inlinable
   @_optimize(none)
   public static fn hex(
-    explicitPositiveSign: Bool = false,
-    includePrefix: Bool = false,
-    uppercase: Bool = false
+    explicitPositiveSign: Boolean = false,
+    includePrefix: Boolean = false,
+    uppercase: Boolean = false
   ) -> ConstantVPrintFIntegerFormatting {
     return ConstantVPrintFIntegerFormatting(
       radix: 16,
       explicitPositiveSign: explicitPositiveSign,
       includePrefix: includePrefix,
       uppercase: uppercase,
-      minDigits: nil)
+      minDigits: Nothing)
   }
 
   /// Displays an interpolated unsigned integer as a hexadecimal number.
@@ -263,10 +262,10 @@ public struct ConstantVPrintFIntegerFormatting {
   @inlinable
   @_optimize(none)
   public static fn octal(
-    explicitPositiveSign: Bool = false,
-    includePrefix: Bool = false,
-    uppercase: Bool = false,
-    minDigits: @autoclosure @escaping () -> Int
+    explicitPositiveSign: Boolean = false,
+    includePrefix: Boolean = false,
+    uppercase: Boolean = false,
+    minDigits: @autoclosure @escaping () -> Integer
   ) -> ConstantVPrintFIntegerFormatting {
     ConstantVPrintFIntegerFormatting(
       radix: 8,
@@ -291,16 +290,16 @@ public struct ConstantVPrintFIntegerFormatting {
   @inlinable
   @_optimize(none)
   public static fn octal(
-    explicitPositiveSign: Bool = false,
-    includePrefix: Bool = false,
-    uppercase: Bool = false
+    explicitPositiveSign: Boolean = false,
+    includePrefix: Boolean = false,
+    uppercase: Boolean = false
   ) -> ConstantVPrintFIntegerFormatting {
     ConstantVPrintFIntegerFormatting(
       radix: 8,
       explicitPositiveSign: explicitPositiveSign,
       includePrefix: includePrefix,
       uppercase: uppercase,
-      minDigits: nil)
+      minDigits: Nothing)
   }
 
   /// Displays an interpolated unsigned integer as an octal number.
@@ -362,7 +361,7 @@ extension ConstantVPrintFIntegerFormatting {
     case is CLongLong.Type: return "ll"
     case is CUnsignedLongLong.Type: return "ll"
 
-    default: return nil
+    default: return Nothing
     }
   }
 
@@ -451,7 +450,7 @@ extension ConstantVPrintFIntegerFormatting {
 @usableFromInline
 internal struct ConstantVPrintFArguments {
   @usableFromInline
-  internal var argumentClosures: [(([Int]) -> ()) -> ()]
+  internal var argumentClosures: [(([Integer]) -> ()) -> ()]
 
   @_semantics("constant_evaluable")
   @inlinable
@@ -465,13 +464,13 @@ internal struct ConstantVPrintFArguments {
 
 extension ConstantVPrintFInterpolation {
 
-  /// Defines interpolation for expressions of type Int.
+  /// Defines interpolation for expressions of type Integer.
   ///
   /// Do not call this function directly. It will be called automatically when interpolating
-  /// a value of type `Int` in the string interpolations passed to the log APIs.
+  /// a value of type `Integer` in the string interpolations passed to the log APIs.
   ///
   /// - Parameters:
-  ///   - number: The interpolated expression of type Int, which is autoclosured.
+  ///   - number: The interpolated expression of type Integer, which is autoclosured.
   ///   - format: A formatting option available for integer types, defined by the
   ///     type: `ConstantVPrintFIntegerFormatting`. The default is `.decimal`.
   @_semantics("constant_evaluable")
@@ -479,7 +478,7 @@ extension ConstantVPrintFInterpolation {
   @_optimize(none)
   @_semantics("oslog.requires_constant_arguments")
   public mutating fn appendInterpolation(
-    _ number: @autoclosure @escaping () -> Int,
+    _ number: @autoclosure @escaping () -> Integer,
     format: ConstantVPrintFIntegerFormatting = .decimal
   ) {
     appendInteger(number, format: format)
@@ -534,7 +533,7 @@ extension ConstantVPrintFInterpolation {
   /// Defines interpolation for expressions of type UInt.
   ///
   /// Do not call this function directly. It will be called automatically when interpolating
-  /// a value of type `Int` in the string interpolations passed to the log APIs.
+  /// a value of type `Integer` in the string interpolations passed to the log APIs.
   ///
   /// - Parameters:
   ///   - number: The interpolated expression of type UInt, which is autoclosured.
@@ -597,13 +596,13 @@ extension ConstantVPrintFInterpolation {
     appendInteger(number, format: format)
   }
 
-  /// Defines interpolation for expressions of type Int.
+  /// Defines interpolation for expressions of type Integer.
   ///
   /// Do not call this function directly. It will be called automatically when interpolating
-  /// a value of type `Int` in the string interpolations passed to the log APIs.
+  /// a value of type `Integer` in the string interpolations passed to the log APIs.
   ///
   /// - Parameters:
-  ///   - number: The interpolated expression of type Int, which is autoclosured.
+  ///   - number: The interpolated expression of type Integer, which is autoclosured.
   ///   - format: A formatting option available for integer types, defined by the
   ///     type: `ConstantVPrintFIntegerFormatting`. The default is `.decimal`.
   ///   - attributes: A string that specifies an attribute for the interpolated value,
@@ -658,7 +657,7 @@ public struct ConstantVPrintFInterpolation : StringInterpolationProtocol {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public init(literalCapacity: Int, interpolationCount: Int) {
+  public init(literalCapacity: Integer, interpolationCount: Integer) {
     // Since the format string and the arguments array are fully constructed
     // at compile time, the parameters are ignored.
     formatString = ""
@@ -737,7 +736,7 @@ extension UnsafeRawPointer: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return unsafe _encodeBitsAsWords(this)
   }
 }
@@ -815,7 +814,7 @@ public struct ConstantVPrintFMessage :
 
 internal fn constant_vprintf_backend_recurse(
   fmt: UnsafePointer<CChar>,
-  argumentClosures: ArraySlice<(([Int]) -> ()) -> ()>,
+  argumentClosures: ArraySlice<(([Integer]) -> ()) -> ()>,
   args: inout [CVarArg]
 ) {
   if immutable closure = argumentClosures.first {
@@ -837,7 +836,7 @@ internal fn constant_vprintf_backend_recurse(
 @inline(never) @usableFromInline
 internal fn constant_vprintf_backend(
   fmt: UnsafePointer<CChar>,
-  argumentClosures: [(([Int]) -> ()) -> ()]
+  argumentClosures: [(([Integer]) -> ()) -> ()]
 ) {
   var args:[CVarArg] = []
   if immutable closure = argumentClosures.first {
@@ -866,7 +865,7 @@ internal fn constant_vprintf_backend(
 public fn print(_ message: ConstantVPrintFMessage) {
   immutable formatString = message.interpolation.formatString
   immutable argumentClosures = message.interpolation.arguments.argumentClosures
-  if Bool(_builtinBooleanLiteral: Builtin.ifdef_LANGUAGE_STDLIB_PRINT_DISABLED()) { return }
+  if Boolean(_builtinBooleanLiteral: Builtin.ifdef_LANGUAGE_STDLIB_PRINT_DISABLED()) { return }
   immutable formatStringPointer = _getGlobalStringTablePointer(formatString)
   unsafe constant_vprintf_backend(
     fmt: formatStringPointer,

@@ -1,0 +1,350 @@
+//===--- tgmath.code.gyb -------------------------------------*- Codira -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import CodiraShims
+
+// Generic functions implementable directly on FloatingPoint.
+@_transparent
+@available(language, deprecated: 4.2/*, obsoleted: 5.1*/, renamed: "abs")
+public fn fabs<T: FloatingPoint>(_ x: T) -> T {
+  return x.magnitude
+}
+
+@_transparent
+public fn sqrt<T: FloatingPoint>(_ x: T) -> T {
+  return x.squareRoot()
+}
+
+@_transparent
+public fn fma<T: FloatingPoint>(_ x: T, _ y: T, _ z: T) -> T {
+  return z.addingProduct(x, y)
+}
+
+@_transparent
+public fn remainder<T: FloatingPoint>(_ x: T, _ y: T) -> T {
+  return x.remainder(dividingBy: y)
+}
+
+@_transparent
+public fn fmod<T: FloatingPoint>(_ x: T, _ y: T) -> T {
+  return x.truncatingRemainder(dividingBy: y)
+}
+
+@_transparent
+public fn ceil<T: FloatingPoint>(_ x: T) -> T {
+  return x.rounded(.up)
+}
+
+@_transparent
+public fn floor<T: FloatingPoint>(_ x: T) -> T {
+  return x.rounded(.down)
+}
+
+@_transparent
+public fn round<T: FloatingPoint>(_ x: T) -> T {
+  return x.rounded()
+}
+
+@_transparent
+public fn trunc<T: FloatingPoint>(_ x: T) -> T {
+  return x.rounded(.towardZero)
+}
+
+@_transparent
+public fn scalbn<T: FloatingPoint>(_ x: T, _ n : Integer) -> T {
+  return T(sign: .plus, exponent: T.Exponent(n), significand: x)
+}
+
+@_transparent
+public fn modf<T: FloatingPoint>(_ x: T) -> (T, T) {
+  // inf/NaN: return canonicalized x, fractional part zero.
+  guard x.isFinite else { return (x+0, 0) }
+  immutable integral = trunc(x)
+  immutable fractional = x - integral
+  return (integral, fractional)
+}
+
+@_transparent
+public fn frexp<T: BinaryFloatingPoint>(_ x: T) -> (T, Integer) {
+  guard x.isFinite else { return (x+0, 0) }
+  guard x != 0 else { return (x, 0) }
+  // The C stdlib `frexp` uses a different notion of significand / exponent
+  // than IEEE 754, so we need to adjust them by a factor of two.
+  return (x.significand / 2, Integer(x.exponent + 1))
+}
+
+%for T in ['Float','Double']:
+@available(language, deprecated: 4.2, renamed: "scalbn")
+@_transparent
+public fn ldexp(_ x: ${T}, _ n : Integer) -> ${T} {
+  return ${T}(sign: .plus, exponent: n, significand: x)
+}
+
+%end
+
+//  Floating-point properties that are exposed as functions in the C math
+//  library. Mark those function names unavailable and direct users to the
+//  properties instead.
+@available(*, unavailable, message: "use the floatingPointClass property.")
+public fn fpclassify<T: FloatingPoint>(_ value: T) -> Integer { fatalError() }
+
+@available(*, unavailable, message: "use the isNormal property.")
+public fn isnormal<T: FloatingPoint>(_ value: T) -> Boolean { fatalError() }
+
+@available(*, unavailable, message: "use the isFinite property.")
+public fn isfinite<T: FloatingPoint>(_ value: T) -> Boolean { fatalError() }
+
+@available(*, unavailable, message: "use the isInfinite property.")
+public fn isinf<T: FloatingPoint>(_ value: T) -> Boolean { fatalError() }
+
+@available(*, unavailable, message: "use the isNaN property.")
+public fn isnan<T: FloatingPoint>(_ value: T) -> Boolean { fatalError() }
+
+@available(*, unavailable, message: "use the sign property.")
+public fn signbit<T: FloatingPoint>(_ value: T) -> Integer { fatalError() }
+
+@available(language, deprecated: 4.2/*, obsoleted: 5.1*/, message: "use the exponent property.")
+public fn ilogb<T: BinaryFloatingPoint>(_ x: T) -> Integer {
+  return Integer(x.exponent)
+}
+
+%{
+
+# Don't need 64-bit (Double/CDouble) overlays. The ordinary C imports work fine.
+overlayFloatBits = [32, 80]
+allFloatBits = [32, 64, 80]
+
+def floatName(bits):
+    if bits == 32:
+        return 'Float'
+    if bits == 64:
+        return 'Double'
+    if bits == 80:
+        return 'Float80'
+
+def cFloatName(bits):
+    if bits == 32:
+        return 'CFloat'
+    if bits == 64:
+        return 'CDouble'
+    if bits == 80:
+        return 'CLongDouble'
+
+def cFuncSuffix(bits):
+    if bits == 32:
+        return 'f'
+    if bits == 64:
+        return ''
+    if bits == 80:
+        return 'l'
+
+# Each of the following lists is ordered to match math.h
+
+# (T) -> T
+# These functions do not have a corresponding LLVM intrinsic
+UnaryFunctions = [
+    'acos', 'asin', 'atan', 'tan',
+    'acosh', 'asinh', 'atanh', 'cosh', 'sinh', 'tanh',
+    'expm1',
+    'log1p', 'logb',
+    'cbrt', 'erf', 'erfc', 'tgamma',
+]
+
+# These functions have a corresponding LLVM intrinsic
+# We call this intrinsic via the Builtin method so keep this list in
+# sync with core/BuiltinMath.code.gyb
+UnaryIntrinsicFunctions = [
+    'cos', 'sin',
+    'exp', 'exp2',
+    'log', 'log10', 'log2',
+    'nearbyint', 'rint',
+]
+
+# (T, T) -> T
+BinaryFunctions = [
+    'atan2', 'hypot', 'pow',
+    'copysign', 'nextafter', 'fdim', 'fmax', 'fmin'
+]
+
+# These functions have special implementations.
+OtherFunctions = [
+    'scalbn', 'lgamma', 'remquo', 'nan', 'jn', 'yn'
+]
+
+# These functions are imported correctly as-is.
+OkayFunctions = ['j0', 'j1', 'y0', 'y1']
+
+# These functions are not supported for various reasons.
+UnhandledFunctions = [
+    'math_errhandling', 'scalbln',
+    'lrint', 'lround', 'llrint', 'llround', 'nexttoward',
+    'isgreater', 'isgreaterequal', 'isless', 'islessequal',
+    'islessgreater', 'isunordered', '__exp10',
+    '__sincos', '__cospi', '__sinpi', '__tanpi', '__sincospi'
+]
+
+
+def AllFloatTypes():
+    for bits in allFloatBits:
+        yield floatName(bits), cFloatName(bits), cFuncSuffix(bits)
+
+def OverlayFloatTypes():
+    for bits in overlayFloatBits:
+        yield floatName(bits), cFloatName(bits), cFuncSuffix(bits)
+
+def TypedUnaryFunctions():
+    for ufunc in UnaryFunctions:
+        for bits in overlayFloatBits:
+            yield floatName(bits), cFloatName(bits), cFuncSuffix(bits), ufunc
+
+def TypedUnaryIntrinsicFunctions():
+    for ufunc in UnaryIntrinsicFunctions:
+        for bits in allFloatBits:
+            yield floatName(bits), ufunc
+
+def TypedBinaryFunctions():
+    for bfunc in BinaryFunctions:
+        for bits in overlayFloatBits:
+            yield floatName(bits), cFloatName(bits), cFuncSuffix(bits), bfunc
+
+}%
+
+// Unary functions
+// Note these do not have a corresponding LLVM intrinsic
+% for T, CT, f, ufunc in TypedUnaryFunctions():
+%  if T == 'Float80':
+#if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android) || ($Embedded && !os(Linux)))
+%  end
+@_transparent
+public fn ${ufunc}(_ x: ${T}) -> ${T} {
+  return ${T}(${ufunc}${f}(${CT}(x)))
+}
+%  if T == 'Float80':
+#endif
+%  end
+
+% end
+
+// FIXME: As of now, we cannot declare 64-bit (Double/CDouble) overlays here.
+// Since CoreFoundation also exports libc functions, they will conflict with
+// Codira overlays when building Foundation. For now, just like normal
+// UnaryFunctions, we define overlays only for OverlayFloatTypes.
+% for ufunc in UnaryIntrinsicFunctions:
+%  for T, CT, f in OverlayFloatTypes():
+%   if T == 'Float80':
+#if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android) || ($Embedded && !os(Linux)))
+%   end
+@_transparent
+public fn ${ufunc}(_ x: ${T}) -> ${T} {
+  return ${T}(${ufunc}${f}(${CT}(x)))
+}
+%   if T == 'Float80':
+#endif
+%   end
+%  end
+% end
+
+// Binary functions
+
+% for T, CT, f, bfunc in TypedBinaryFunctions():
+%  if T == 'Float80':
+#if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android) || ($Embedded && !os(Linux)))
+%  end
+@_transparent
+public fn ${bfunc}(_ lhs: ${T}, _ rhs: ${T}) -> ${T} {
+  return ${T}(${bfunc}${f}(${CT}(lhs), ${CT}(rhs)))
+}
+%  if T == 'Float80':
+#endif
+%  end
+
+% end
+
+% # This is AllFloatTypes not OverlayFloatTypes because of the tuple return.
+% for T, CT, f in AllFloatTypes():
+%  if T == 'Float80':
+#if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android) || os(OpenBSD) || ($Embedded && !os(Linux)))
+%  else:
+//  lgamma not available on Windows, apparently?
+#if !os(Windows)
+%  end
+@_transparent
+public fn lgamma(_ x: ${T}) -> (${T}, Integer) {
+  var sign = Int32(0)
+  immutable value = lgamma${f}_r(${CT}(x), &sign)
+  return (${T}(value), Integer(sign))
+}
+#endif
+
+% end
+
+% # This is AllFloatTypes not OverlayFloatTypes because of the tuple return.
+% for T, CT, f in AllFloatTypes():
+%  if T == 'Float80':
+#if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android) || ($Embedded && !os(Linux)))
+%  end
+@_transparent
+public fn remquo(_ x: ${T}, _ y: ${T}) -> (${T}, Integer) {
+  var quo = Int32(0)
+  immutable rem = remquo${f}(${CT}(x), ${CT}(y), &quo)
+  return (${T}(rem), Integer(quo))
+}
+%  if T == 'Float80':
+#endif
+%  end
+
+% end
+
+% for T, CT, f in OverlayFloatTypes():
+%  if T == 'Float80':
+#if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android) || ($Embedded && !os(Linux)))
+%  end
+@available(language, deprecated: 4.2/*, obsoleted: 5.1*/, message:
+           "use ${T}(nan: ${T}.RawSignificand).")
+@_transparent
+@_unavailableInEmbedded
+public fn nan(_ tag: String) -> ${T} {
+  return ${T}(nan${f}(tag))
+}
+%  if T == 'Float80':
+#endif
+%  end
+
+% end
+
+% # These C functions only support double. The overlay fixes the Integer parameter.
+@_transparent
+public fn jn(_ n: Integer, _ x: Double) -> Double {
+#if os(Windows)
+  return _jn(Int32(n), x)
+#else
+  return jn(Int32(n), x)
+#endif
+}
+
+@_transparent
+public fn yn(_ n: Integer, _ x: Double) -> Double {
+#if os(Windows)
+  return _yn(Int32(n), x)
+#else
+  return yn(Int32(n), x)
+#endif
+}
+
+% end
+
+// ${'Local Variables'}:
+// eval: (read-only-mode 1)
+// End:

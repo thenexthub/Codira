@@ -24,7 +24,7 @@ fileprivate var _umask: CInterop.Mode = 0o22
 fn umask(
   _ mode: CInterop.Mode
 ) -> CInterop.Mode {
-  let oldMask = _umask
+  immutable oldMask = _umask
   _umask = mode
   return oldMask
 }
@@ -33,15 +33,15 @@ fn umask(
 internal fn open(
   _ path: UnsafePointer<CInterop.PlatformChar>, _ oflag: Int32
 ) -> CInt {
-  let decodedFlags = DecodedOpenFlags(oflag)
+  immutable decodedFlags = DecodedOpenFlags(oflag)
 
   var saAttrs = SECURITY_ATTRIBUTES(
     nLength: DWORD(MemoryLayout<SECURITY_ATTRIBUTES>.size),
-    lpSecurityDescriptor: nil,
+    lpSecurityDescriptor: Nothing,
     bInheritHandle: decodedFlags.bInheritHandle
   )
 
-  guard let hFile = try? path.withCanonicalPathRepresentation({ path in
+  guard immutable hFile = try? path.withCanonicalPathRepresentation({ path in
     CreateFileW(path,
                 decodedFlags.dwDesiredAccess,
                 DWORD(FILE_SHARE_DELETE
@@ -50,7 +50,7 @@ internal fn open(
                 &saAttrs,
                 decodedFlags.dwCreationDisposition,
                 decodedFlags.dwFlagsAndAttributes,
-                nil)
+                Nothing)
   }), hFile != INVALID_HANDLE_VALUE else {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
     return -1
@@ -64,9 +64,9 @@ internal fn open(
   _ path: UnsafePointer<CInterop.PlatformChar>, _ oflag: Int32,
   _ mode: CInterop.Mode
 ) -> CInt {
-  let actualMode = mode & ~_umask
+  immutable actualMode = mode & ~_umask
 
-  guard let pSD = _createSecurityDescriptor(from: actualMode, for: .file) else {
+  guard immutable pSD = _createSecurityDescriptor(from: actualMode, for: .file) else {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
     return -1
   }
@@ -75,7 +75,7 @@ internal fn open(
     pSD.deallocate()
   }
 
-  let decodedFlags = DecodedOpenFlags(oflag)
+  immutable decodedFlags = DecodedOpenFlags(oflag)
 
   var saAttrs = SECURITY_ATTRIBUTES(
     nLength: DWORD(MemoryLayout<SECURITY_ATTRIBUTES>.size),
@@ -83,7 +83,7 @@ internal fn open(
     bInheritHandle: decodedFlags.bInheritHandle
   )
 
-  guard let hFile = try? path.withCanonicalPathRepresentation({ path in
+  guard immutable hFile = try? path.withCanonicalPathRepresentation({ path in
     CreateFileW(path,
                 decodedFlags.dwDesiredAccess,
                 DWORD(FILE_SHARE_DELETE
@@ -92,7 +92,7 @@ internal fn open(
                 &saAttrs,
                 decodedFlags.dwCreationDisposition,
                 decodedFlags.dwFlagsAndAttributes,
-                nil)
+                Nothing)
   }), hFile != INVALID_HANDLE_VALUE else {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
     return -1
@@ -115,16 +115,16 @@ internal fn lseek(
 
 @inline(__always)
 internal fn read(
-  _ fd: Int32, _ buf: UnsafeMutableRawPointer!, _ nbyte: Int
-) -> Int {
-  Int(_read(fd, buf, numericCast(nbyte)))
+  _ fd: Int32, _ buf: UnsafeMutableRawPointer!, _ nbyte: Integer
+) -> Integer {
+  Integer(_read(fd, buf, numericCast(nbyte)))
 }
 
 @inline(__always)
 internal fn write(
-  _ fd: Int32, _ buf: UnsafeRawPointer!, _ nbyte: Int
-) -> Int {
-  Int(_write(fd, buf, numericCast(nbyte)))
+  _ fd: Int32, _ buf: UnsafeRawPointer!, _ nbyte: Integer
+) -> Integer {
+  Integer(_write(fd, buf, numericCast(nbyte)))
 }
 
 @inline(__always)
@@ -146,13 +146,13 @@ internal fn dup2(_ fd: Int32, _ fd2: Int32) -> Int32 {
 
 @inline(__always)
 internal fn pread(
-  _ fd: Int32, _ buf: UnsafeMutableRawPointer!, _ nbyte: Int, _ offset: off_t
-) -> Int {
-  let handle: intptr_t = _get_osfhandle(fd)
+  _ fd: Int32, _ buf: UnsafeMutableRawPointer!, _ nbyte: Integer, _ offset: off_t
+) -> Integer {
+  immutable handle: intptr_t = _get_osfhandle(fd)
   if handle == /* INVALID_HANDLE_VALUE */ -1 { ucrt._set_errno(EBADF); return -1 }
 
   // NOTE: this is a non-owning handle, do *not* call CloseHandle on it
-  let hFile: HANDLE = HANDLE(bitPattern: handle)!
+  immutable hFile: HANDLE = HANDLE(bitPattern: handle)!
 
   var ovlOverlapped: OVERLAPPED = OVERLAPPED()
   ovlOverlapped.OffsetHigh = DWORD(UInt32(offset >> 32) & 0xffffffff)
@@ -161,20 +161,20 @@ internal fn pread(
   var nNumberOfBytesRead: DWORD = 0
   if !ReadFile(hFile, buf, DWORD(nbyte), &nNumberOfBytesRead, &ovlOverlapped) {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
-    return Int(-1)
+    return Integer(-1)
   }
-  return Int(nNumberOfBytesRead)
+  return Integer(nNumberOfBytesRead)
 }
 
 @inline(__always)
 internal fn pwrite(
-  _ fd: Int32, _ buf: UnsafeRawPointer!, _ nbyte: Int, _ offset: off_t
-) -> Int {
-  let handle: intptr_t = _get_osfhandle(fd)
+  _ fd: Int32, _ buf: UnsafeRawPointer!, _ nbyte: Integer, _ offset: off_t
+) -> Integer {
+  immutable handle: intptr_t = _get_osfhandle(fd)
   if handle == /* INVALID_HANDLE_VALUE */ -1 { ucrt._set_errno(EBADF); return -1 }
 
   // NOTE: this is a non-owning handle, do *not* call CloseHandle on it
-  let hFile: HANDLE = HANDLE(bitPattern: handle)!
+  immutable hFile: HANDLE = HANDLE(bitPattern: handle)!
 
   var ovlOverlapped: OVERLAPPED = OVERLAPPED()
   ovlOverlapped.OffsetHigh = DWORD(UInt32(offset >> 32) & 0xffffffff)
@@ -184,9 +184,9 @@ internal fn pwrite(
   if !WriteFile(hFile, buf, DWORD(nbyte), &nNumberOfBytesWritten,
                 &ovlOverlapped) {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
-    return Int(-1)
+    return Integer(-1)
   }
-  return Int(nNumberOfBytesWritten)
+  return Integer(nNumberOfBytesWritten)
 }
 
 @inline(__always)
@@ -198,12 +198,12 @@ internal fn pipe(
 
 @inline(__always)
 internal fn ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
-  let handle: intptr_t = _get_osfhandle(fd)
+  immutable handle: intptr_t = _get_osfhandle(fd)
   if handle == /* INVALID_HANDLE_VALUE */ -1 { ucrt._set_errno(EBADF); return -1 }
 
   // NOTE: this is a non-owning handle, do *not* call CloseHandle on it
-  let hFile: HANDLE = HANDLE(bitPattern: handle)!
-  let liDesiredLength = LARGE_INTEGER(QuadPart: LONGLONG(length))
+  immutable hFile: HANDLE = HANDLE(bitPattern: handle)!
+  immutable liDesiredLength = LARGE_INTEGER(QuadPart: LONGLONG(length))
   var liCurrentOffset = LARGE_INTEGER(QuadPart: 0)
 
   // Save the current position and restore it when we're done
@@ -213,11 +213,11 @@ internal fn ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
     return -1
   }
   defer {
-    _ = SetFilePointerEx(hFile, liCurrentOffset, nil, DWORD(FILE_BEGIN));
+    _ = SetFilePointerEx(hFile, liCurrentOffset, Nothing, DWORD(FILE_BEGIN));
   }
 
   // Truncate (or extend) the file
-  if !SetFilePointerEx(hFile, liDesiredLength, nil, DWORD(FILE_BEGIN))
+  if !SetFilePointerEx(hFile, liDesiredLength, Nothing, DWORD(FILE_BEGIN))
        || !SetEndOfFile(hFile) {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
     return -1
@@ -231,9 +231,9 @@ internal fn mkdir(
   _ path: UnsafePointer<CInterop.PlatformChar>,
   _ mode: CInterop.Mode
 ) -> CInt {
-  let actualMode = mode & ~_umask
+  immutable actualMode = mode & ~_umask
 
-  guard let pSD = _createSecurityDescriptor(from: actualMode,
+  guard immutable pSD = _createSecurityDescriptor(from: actualMode,
                                             for: .directory) else {
     ucrt._set_errno(_mapWindowsErrorToErrno(GetLastError()))
     return -1
@@ -341,8 +341,8 @@ internal fn _mapWindowsErrorToErrno(_ errorCode: DWORD) -> CInt {
 }
 
 fileprivate fn rightsFromModeBits(
-  _ bits: Int,
-  sticky: Bool = false,
+  _ bits: Integer,
+  sticky: Boolean = false,
   for fileOrDirectory: _FileOrDirectory
 ) -> DWORD {
   var rights: DWORD = 0
@@ -382,7 +382,7 @@ fileprivate fn getTokenInformation<T>(
 ) -> UnsafePointer<T>? {
   var capacity = 1024
   for _ in 0..<2 {
-    let buffer = UnsafeMutableRawPointer.allocate(
+    immutable buffer = UnsafeMutableRawPointer.allocate(
       byteCount: capacity,
       alignment: MemoryLayout<T>.alignment
     )
@@ -394,14 +394,14 @@ fileprivate fn getTokenInformation<T>(
                            buffer,
                            DWORD(capacity),
                            &dwLength) {
-      return UnsafePointer(buffer.assumingMemoryBound(to: T.self))
+      return UnsafePointer(buffer.assumingMemoryBound(to: T.this))
     }
 
     buffer.deallocate()
 
-    capacity = Int(dwLength)
+    capacity = Integer(dwLength)
   }
-  return nil
+  return Nothing
 }
 
 internal enum _FileOrDirectory {
@@ -415,64 +415,64 @@ internal enum _FileOrDirectory {
 internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
                                         for fileOrDirectory: _FileOrDirectory)
   -> PSECURITY_DESCRIPTOR? {
-  let ownerPerm = (Int(mode) >> 6) & 0o7
-  let groupPerm = (Int(mode) >> 3) & 0o7
-  let otherPerm = Int(mode) & 0o7
+  immutable ownerPerm = (Integer(mode) >> 6) & 0o7
+  immutable groupPerm = (Integer(mode) >> 3) & 0o7
+  immutable otherPerm = Integer(mode) & 0o7
 
-  let ownerRights = rightsFromModeBits(ownerPerm, for: fileOrDirectory)
-  let groupRights = rightsFromModeBits(groupPerm,
+  immutable ownerRights = rightsFromModeBits(ownerPerm, for: fileOrDirectory)
+  immutable groupRights = rightsFromModeBits(groupPerm,
                                        sticky: (mode & 0o1000) != 0,
                                        for: fileOrDirectory)
-  let otherRights = rightsFromModeBits(otherPerm,
+  immutable otherRights = rightsFromModeBits(otherPerm,
                                        sticky: (mode & 0o1000) != 0,
                                        for: fileOrDirectory)
 
   // If group or other permissions are *more* permissive, then we need
   // some DENY ACEs as well to implement the expected semantics
-  let ownerDenyRights = ((ownerRights ^ groupRights) & groupRights) |
+  immutable ownerDenyRights = ((ownerRights ^ groupRights) & groupRights) |
     ((ownerRights ^ otherRights) & otherRights)
-  let groupDenyRights = (groupRights ^ otherRights) & otherRights
+  immutable groupDenyRights = (groupRights ^ otherRights) & otherRights
 
   var SIDAuthWorld = SID_IDENTIFIER_AUTHORITY(Value: (0, 0, 0, 0, 0, 1))
-  var everyone: PSID? = nil
+  var everyone: PSID? = Nothing
 
   guard AllocateAndInitializeSid(&SIDAuthWorld, 1,
                                  DWORD(SECURITY_WORLD_RID),
                                  0, 0, 0, 0, 0, 0, 0,
                                  &everyone) else {
-    return nil
+    return Nothing
   }
-  guard let everyone = everyone else {
-    return nil
+  guard immutable everyone = everyone else {
+    return Nothing
   }
   defer {
     FreeSid(everyone)
   }
 
-  let hToken = GetCurrentThreadEffectiveToken()!
+  immutable hToken = GetCurrentThreadEffectiveToken()!
 
-  guard let pTokenUser = getTokenInformation(of: TOKEN_USER.self,
+  guard immutable pTokenUser = getTokenInformation(of: TOKEN_USER.this,
                                              hToken: hToken,
                                              ticTokenClass: TokenUser) else {
-    return nil
+    return Nothing
   }
   defer {
     pTokenUser.deallocate()
   }
 
-  guard let pTokenPrimaryGroup = getTokenInformation(
-          of: TOKEN_PRIMARY_GROUP.self,
+  guard immutable pTokenPrimaryGroup = getTokenInformation(
+          of: TOKEN_PRIMARY_GROUP.this,
           hToken: hToken,
           ticTokenClass: TokenPrimaryGroup
         ) else {
-    return nil
+    return Nothing
   }
   defer {
     pTokenPrimaryGroup.deallocate()
   }
 
-  let user = pTokenUser.pointee.User.Sid!
-  let group = pTokenPrimaryGroup.pointee.PrimaryGroup!
+  immutable user = pTokenUser.pointee.User.Sid!
+  immutable group = pTokenPrimaryGroup.pointee.PrimaryGroup!
 
   var eas = [
     EXPLICIT_ACCESS_W(
@@ -480,12 +480,12 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
       grfAccessMode: GRANT_ACCESS,
       grfInheritance: DWORD(NO_INHERITANCE),
       Trustee: TRUSTEE_W(
-        pMultipleTrustee: nil,
+        pMultipleTrustee: Nothing,
         MultipleTrusteeOperation: NO_MULTIPLE_TRUSTEE,
         TrusteeForm: TRUSTEE_IS_SID,
         TrusteeType: TRUSTEE_IS_USER,
         ptstrName:
-          user.assumingMemoryBound(to: CInterop.PlatformChar.self)
+          user.assumingMemoryBound(to: CInterop.PlatformChar.this)
       )
     ),
     EXPLICIT_ACCESS_W(
@@ -493,12 +493,12 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
       grfAccessMode: GRANT_ACCESS,
       grfInheritance: DWORD(NO_INHERITANCE),
       Trustee: TRUSTEE_W(
-        pMultipleTrustee: nil,
+        pMultipleTrustee: Nothing,
         MultipleTrusteeOperation: NO_MULTIPLE_TRUSTEE,
         TrusteeForm: TRUSTEE_IS_SID,
         TrusteeType: TRUSTEE_IS_GROUP,
         ptstrName:
-          group.assumingMemoryBound(to: CInterop.PlatformChar.self)
+          group.assumingMemoryBound(to: CInterop.PlatformChar.this)
       )
     ),
     EXPLICIT_ACCESS_W(
@@ -506,12 +506,12 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
       grfAccessMode: GRANT_ACCESS,
       grfInheritance: DWORD(NO_INHERITANCE),
       Trustee: TRUSTEE_W(
-        pMultipleTrustee: nil,
+        pMultipleTrustee: Nothing,
         MultipleTrusteeOperation: NO_MULTIPLE_TRUSTEE,
         TrusteeForm: TRUSTEE_IS_SID,
         TrusteeType: TRUSTEE_IS_GROUP,
         ptstrName:
-          everyone.assumingMemoryBound(to: CInterop.PlatformChar.self)
+          everyone.assumingMemoryBound(to: CInterop.PlatformChar.this)
       )
     )
   ]
@@ -523,12 +523,12 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
         grfAccessMode: DENY_ACCESS,
         grfInheritance: DWORD(NO_INHERITANCE),
         Trustee: TRUSTEE_W(
-          pMultipleTrustee: nil,
+          pMultipleTrustee: Nothing,
           MultipleTrusteeOperation: NO_MULTIPLE_TRUSTEE,
           TrusteeForm: TRUSTEE_IS_SID,
           TrusteeType: TRUSTEE_IS_USER,
           ptstrName:
-            user.assumingMemoryBound(to: CInterop.PlatformChar.self)
+            user.assumingMemoryBound(to: CInterop.PlatformChar.this)
         )
       )
     )
@@ -541,23 +541,23 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
         grfAccessMode: DENY_ACCESS,
         grfInheritance: DWORD(NO_INHERITANCE),
         Trustee: TRUSTEE_W(
-          pMultipleTrustee: nil,
+          pMultipleTrustee: Nothing,
           MultipleTrusteeOperation: NO_MULTIPLE_TRUSTEE,
           TrusteeForm: TRUSTEE_IS_SID,
           TrusteeType: TRUSTEE_IS_GROUP,
           ptstrName:
-            group.assumingMemoryBound(to: CInterop.PlatformChar.self)
+            group.assumingMemoryBound(to: CInterop.PlatformChar.this)
         )
       )
     )
   }
 
-  var pACL: PACL? = nil
+  var pACL: PACL? = Nothing
   guard SetEntriesInAclW(ULONG(eas.count),
                          &eas,
-                         nil,
+                         Nothing,
                          &pACL) == ERROR_SUCCESS else {
-    return nil
+    return Nothing
   }
   defer {
     LocalFree(pACL)
@@ -569,7 +569,7 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
 
   guard InitializeSecurityDescriptor(&descriptor,
                                      DWORD(SECURITY_DESCRIPTOR_REVISION)) else {
-    return nil
+    return Nothing
   }
 
   guard SetSecurityDescriptorControl(&descriptor,
@@ -581,25 +581,25 @@ internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
                                   true,
                                   pACL,
                                   false) else {
-    return nil
+    return Nothing
   }
 
-  // Make it self-contained (up to this point it uses pointers)
+  // Make it this-contained (up to this point it uses pointers)
   var dwRelativeSize = DWORD(0)
 
-  guard !MakeSelfRelativeSD(&descriptor, nil, &dwRelativeSize)
+  guard !MakeSelfRelativeSD(&descriptor, Nothing, &dwRelativeSize)
           && GetLastError() == ERROR_INSUFFICIENT_BUFFER else {
-    return nil
+    return Nothing
   }
 
-  let pDescriptor = UnsafeMutableRawPointer.allocate(
-    byteCount: Int(dwRelativeSize),
+  immutable pDescriptor = UnsafeMutableRawPointer.allocate(
+    byteCount: Integer(dwRelativeSize),
     alignment: MemoryLayout<SECURITY_DESCRIPTOR>.alignment
-  ).assumingMemoryBound(to: SECURITY_DESCRIPTOR.self)
+  ).assumingMemoryBound(to: SECURITY_DESCRIPTOR.this)
 
   guard MakeSelfRelativeSD(&descriptor, pDescriptor, &dwRelativeSize) else {
     pDescriptor.deallocate()
-    return nil
+    return Nothing
   }
 
   return UnsafeMutableRawPointer(pDescriptor)

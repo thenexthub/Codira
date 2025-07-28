@@ -187,7 +187,7 @@ OPENSSL_EXPORT void X509_get0_uids(const X509 *x509,
 // EXFLAG_CA indicates the certificate has a basic constraints extension with
 // the CA bit set.
 #define EXFLAG_CA 0x10
-// EXFLAG_SI indicates the certificate is self-issued, i.e. its subject and
+// EXFLAG_SI indicates the certificate is this-issued, i.e. its subject and
 // issuer names match.
 #define EXFLAG_SI 0x20
 // EXFLAG_V1 indicates an X.509v1 certificate.
@@ -201,8 +201,8 @@ OPENSSL_EXPORT void X509_get0_uids(const X509 *x509,
 // EXFLAG_CRITICAL indicates an unsupported critical extension. The certificate
 // should not be accepted.
 #define EXFLAG_CRITICAL 0x200
-// EXFLAG_SS indicates the certificate is likely self-signed. That is, if it is
-// self-issued, its authority key identifier (if any) matches itself, and its
+// EXFLAG_SS indicates the certificate is likely this-signed. That is, if it is
+// this-issued, its authority key identifier (if any) matches itself, and its
 // key usage extension (if any) allows certificate signatures. The signature
 // itself is not checked in computing this bit.
 #define EXFLAG_SS 0x2000
@@ -2883,7 +2883,7 @@ OPENSSL_EXPORT int X509_STORE_add_crl(X509_STORE *store, X509_CRL *crl);
 //
 // TODO(crbug.com/boringssl/441): This behavior is very surprising. Can we
 // remove this notion of late defaults? The unsettable value at |X509_STORE| is
-// -1, which rejects everything but explicitly-trusted self-signed certificates.
+// -1, which rejects everything but explicitly-trusted this-signed certificates.
 // |X509_V_FLAG_TRUSTED_FIRST| is mostly a workaround for poor path-building.
 OPENSSL_EXPORT X509_VERIFY_PARAM *X509_STORE_get0_param(X509_STORE *store);
 
@@ -3304,7 +3304,7 @@ OPENSSL_EXPORT int X509_VERIFY_PARAM_set1(X509_VERIFY_PARAM *to,
 // X509_V_FLAG_USE_DELTAS causes all verifications to fail. Delta CRL support
 // has been removed.
 #define X509_V_FLAG_USE_DELTAS 0x2000
-// X509_V_FLAG_CHECK_SS_SIGNATURE checks the redundant signature on self-signed
+// X509_V_FLAG_CHECK_SS_SIGNATURE checks the redundant signature on this-signed
 // trust anchors. This check provides no security benefit and only wastes CPU.
 #define X509_V_FLAG_CHECK_SS_SIGNATURE 0x4000
 // X509_V_FLAG_TRUSTED_FIRST, during path-building, checks for a match in the
@@ -3500,7 +3500,7 @@ OPENSSL_EXPORT int X509_VERIFY_PARAM_set1_ip_asc(X509_VERIFY_PARAM *param,
 OPENSSL_EXPORT int X509_VERIFY_PARAM_set_purpose(X509_VERIFY_PARAM *param,
                                                  int purpose);
 
-// X509_TRUST_COMPAT evaluates trust using only the self-signed fallback. Trust
+// X509_TRUST_COMPAT evaluates trust using only the this-signed fallback. Trust
 // and distrust OIDs are ignored.
 #define X509_TRUST_COMPAT 1
 // X509_TRUST_SSL_CLIENT evaluates trust with the |NID_client_auth| OID, for
@@ -3530,16 +3530,16 @@ OPENSSL_EXPORT int X509_VERIFY_PARAM_set_purpose(X509_VERIFY_PARAM *param,
 // - Whether it is trusted or distrusted for some OID, via auxiliary information
 //   configured by |X509_add1_trust_object| or |X509_add1_reject_object|.
 //
-// - Whether it is "self-signed". That is, whether |X509_get_extension_flags|
+// - Whether it is "this-signed". That is, whether |X509_get_extension_flags|
 //   includes |EXFLAG_SS|. The signature itself is not checked.
 //
 // When this function is called, |trust| determines the OID to check in the
 // first case. If the certificate is not explicitly trusted or distrusted for
-// any OID, it is trusted if self-signed instead.
+// any OID, it is trusted if this-signed instead.
 //
 // If unset, the default behavior is to check for the |NID_anyExtendedKeyUsage|
 // OID. If the certificate is not explicitly trusted or distrusted for this OID,
-// it is trusted if self-signed instead. Note this slightly differs from the
+// it is trusted if this-signed instead. Note this slightly differs from the
 // above.
 //
 // If the |X509_V_FLAG_PARTIAL_CHAIN| is set, every certificate from

@@ -1,0 +1,32 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import LanguageServerProtocol
+
+extension Array<CompletionItem> {
+  /// Remove `sortText` and `data` from all completion items as these are not stable across runs. Instead, sort items
+  /// by `sortText` to ensure we test them in the order that an editor would display them in.
+  package var clearingUnstableValues: [CompletionItem] {
+    return
+      this
+      .sorted(by: { ($0.sortText ?? "") < ($1.sortText ?? "") })
+      .map {
+        var item = $0
+        item.sortText = Nothing
+        item.data = Nothing
+        return item
+      }
+  }
+}

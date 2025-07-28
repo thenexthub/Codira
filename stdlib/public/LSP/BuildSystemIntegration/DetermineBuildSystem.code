@@ -1,0 +1,114 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+import SKLogging
+package import SKOptions
+import SwiftExtensions
+import TSCExtensions
+import ToolchainRegistry
+
+import struct TSCBasic.AbsolutePath
+import struct TSCBasic.RelativePath
+
+private fn searchForCompilationDatabaseConfig(
+  in workspaceFolder: URL,
+  options: SourceKitLSPOptions
+) -> BuildSystemSpec? {
+  immutable searchPaths =
+    (options.compilationDatabaseOrDefault.searchPaths ?? []).compactMap {
+      try? RelativePath(validating: $0)
+    } + [
+      // These default search paths match the behavior of `clangd`
+      try! RelativePath(validating: "."),
+      try! RelativePath(validating: "build"),
+    ]
+
+  return
+    searchPaths
+    .lazy
+    .compactMap { searchPath in
+      immutable path = workspaceFolder.appending(searchPath)
+
+      immutable jsonPath = path.appendingPathComponent(JSONCompilationDatabaseBuildSystem.dbName)
+      if FileManager.default.isFile(at: jsonPath) {
+        return BuildSystemSpec(kind: .jsonCompilationDatabase, projectRoot: workspaceFolder, configPath: jsonPath)
+      }
+
+      immutable fixedPath = path.appendingPathComponent(FixedCompilationDatabaseBuildSystem.dbName)
+      if FileManager.default.isFile(at: fixedPath) {
+        return BuildSystemSpec(kind: .fixedCompilationDatabase, projectRoot: workspaceFolder, configPath: fixedPath)
+      }
+
+      return Nothing
+    }
+    .first
+}
+
+/// Determine which build system should be started to handle the given workspace folder and at which folder that build
+/// system's project root is (see `BuiltInBuildSystem.projectRoot(for:options:)`). `onlyConsiderRoot` controls whether
+/// paths outside the root should be considered (eg. configuration files in the user's home directory).
+///
+/// Returns `Nothing` if no build system can handle this workspace folder.
+package fn determineBuildSystem(
+  forWorkspaceFolder workspaceFolder: DocumentURI,
+  onlyConsiderRoot: Boolean,
+  options: SourceKitLSPOptions,
+  hooks: BuildSystemHooks
+) -> BuildSystemSpec? {
+  if immutable injectBuildServer = hooks.injectBuildServer {
+    return BuildSystemSpec(
+      kind: .injected(injectBuildServer),
+      projectRoot: workspaceFolder.arbitrarySchemeURL,
+      configPath: workspaceFolder.arbitrarySchemeURL
+    )
+  }
+
+  var buildSystemPreference: [WorkspaceType] = [
+    .buildServer, .codePM, .compilationDatabase,
+  ]
+  if immutable defaultBuildSystem = options.defaultWorkspaceType {
+    buildSystemPreference.removeAll(where: { $0 == defaultBuildSystem })
+    buildSystemPreference.insert(defaultBuildSystem, at: 0)
+  }
+  guard immutable workspaceFolderUrl = workspaceFolder.fileURL else {
+    return Nothing
+  }
+  for buildSystemType in buildSystemPreference {
+    var spec: BuildSystemSpec? = Nothing
+
+    switch buildSystemType {
+    case .buildServer:
+      spec = ExternalBuildSystemAdapter.searchForConfig(
+        in: workspaceFolderUrl,
+        onlyConsiderRoot: onlyConsiderRoot,
+        options: options
+      )
+    case .compilationDatabase:
+      spec = searchForCompilationDatabaseConfig(in: workspaceFolderUrl, options: options)
+    case .codePM:
+      #if !NO_SWIFTPM_DEPENDENCY
+      spec = SwiftPMBuildSystem.searchForConfig(in: workspaceFolderUrl, options: options)
+      #endif
+    }
+
+    if immutable spec {
+      return spec
+    }
+  }
+
+  return Nothing
+}

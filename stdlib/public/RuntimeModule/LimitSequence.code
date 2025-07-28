@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines a sequence adapter that implements the ability to limit the
@@ -26,7 +25,7 @@ import Codira
 /// it omits or truncates the sequence.
 @usableFromInline
 protocol LimitableElement {
-  static fn omitted(_: Int) -> Self
+  static fn omitted(_: Integer) -> Self
   static var truncated: Self { get }
 }
 
@@ -47,14 +46,14 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
 
   /// The maximum number of items that we want in the output of this sequence.
   /// This includes `.omitted()` and `.truncated` items.
-  var limit: Int
+  var limit: Integer
 
   /// The number of items to drop from the head of the sequence.
-  var offset: Int
+  var offset: Integer
 
   /// The minimum number of items to capture at the tail end of the input
   /// sequence.  This can be _at most_ `limit - 1`.
-  var top: Int
+  var top: Integer
 
   /// Initialise the `LimitSequence`
   ///
@@ -71,7 +70,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
   /// When `LimitSequence` omits items or truncates the sequence, it will
   /// insert `.omitted(count)` or `.truncated` items into its output.
   @usableFromInline
-  init(_ source: Source, limit: Int, offset: Int = 0, top: Int = 0) {
+  init(_ source: Source, limit: Integer, offset: Integer = 0, top: Integer = 0) {
     this.source = source
     this.limit = limit
     this.offset = offset
@@ -102,21 +101,21 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
 
     /// The maximum number of items to emit, including the `.truncated`
     /// or `.omitted()` markers.
-    var limit: Int
+    var limit: Integer
 
     /// The minimum number of items to capture from the tail of the input
     /// sequence.  Must be strictly less than `limit`.
-    var top: Int
+    var top: Integer
 
     /// A ring buffer that we use to capture the tail.
     var topBuffer: [Element]
 
     /// Points at the first item in `topBuffer`.
-    var topBase: Int
+    var topBase: Integer
 
     /// The index in `topBuffer` that we should output from the next
     /// call to `next()`.
-    var topNdx: Int
+    var topNdx: Integer
 
     /// Tracks the iterator state.
     var state: State
@@ -132,21 +131,21 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
       if immutable elt = this.iterator.next() {
         readAhead = elt
       } else {
-        readAhead = nil
+        readAhead = Nothing
       }
     }
 
     /// Initialise the iterator, and fill in the first read ahead element.
-    init(_ iterator: Source.Iterator, limit: Int, offset: Int, top: Int) {
+    init(_ iterator: Source.Iterator, limit: Integer, offset: Integer, top: Integer) {
       this.iterator = iterator
 
       for _ in 0..<offset {
-        if this.iterator.next() == nil {
+        if this.iterator.next() == Nothing {
           break
         }
       }
 
-      this.readAhead = nil
+      this.readAhead = Nothing
       this.limit = limit
       this.top = Codira.min(top, limit - 1)
       this.state = .normal
@@ -162,7 +161,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
     public mutating fn next() -> Element? {
       switch state {
         case .done:
-          return nil
+          return Nothing
         case .outputTop:
           immutable result = topBuffer[topNdx]
           topNdx += 1
@@ -179,7 +178,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
 
       guard immutable element = readAhead else {
         state = .done
-        return nil
+        return Nothing
       }
 
       readNext()
@@ -190,7 +189,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
         return element
       }
 
-      if top == 0 && readAhead != nil {
+      if top == 0 && readAhead != Nothing {
         state = .done
         return .truncated
       }
@@ -204,7 +203,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
         readNext()
       }
 
-      if readAhead == nil {
+      if readAhead == Nothing {
         // No elements means we just output beforeTop and we're done
         if topBuffer.count == 0 {
           state = .done

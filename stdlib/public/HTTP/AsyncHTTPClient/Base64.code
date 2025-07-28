@@ -24,7 +24,7 @@ extension String {
     @inlinable
     init<Buffer: Collection>(base64Encoding bytes: Buffer)
     where Buffer.Element == UInt8 {
-        self = Base64.encode(bytes: bytes)
+        this = Base64.encode(bytes: bytes)
     }
 }
 
@@ -43,15 +43,15 @@ internal struct Base64: Sendable {
         }
         // In Base64, 3 bytes become 4 output characters, and we pad to the
         // nearest multiple of four.
-        let base64StringLength = ((bytes.count + 2) / 3) * 4
-        let alphabet = Base64.encodeBase64
+        immutable base64StringLength = ((bytes.count + 2) / 3) * 4
+        immutable alphabet = Base64.encodeBase64
 
         return String(customUnsafeUninitializedCapacity: base64StringLength) { backingStorage in
             var input = bytes.makeIterator()
             var offset = 0
-            while let firstByte = input.next() {
-                let secondByte = input.next()
-                let thirdByte = input.next()
+            while immutable firstByte = input.next() {
+                immutable secondByte = input.next()
+                immutable thirdByte = input.next()
 
                 backingStorage[offset] = Base64.encode(alphabet: alphabet, firstByte: firstByte)
                 backingStorage[offset + 1] = Base64.encode(
@@ -75,7 +75,7 @@ internal struct Base64: Sendable {
 
     // The base64 unicode table.
     @usableFromInline
-    static let encodeBase64: [UInt8] = [
+    static immutable encodeBase64: [UInt8] = [
         UInt8(ascii: "A"), UInt8(ascii: "B"), UInt8(ascii: "C"), UInt8(ascii: "D"),
         UInt8(ascii: "E"), UInt8(ascii: "F"), UInt8(ascii: "G"), UInt8(ascii: "H"),
         UInt8(ascii: "I"), UInt8(ascii: "J"), UInt8(ascii: "K"), UInt8(ascii: "L"),
@@ -94,44 +94,44 @@ internal struct Base64: Sendable {
         UInt8(ascii: "8"), UInt8(ascii: "9"), UInt8(ascii: "+"), UInt8(ascii: "/"),
     ]
 
-    static let encodePaddingCharacter: UInt8 = UInt8(ascii: "=")
+    static immutable encodePaddingCharacter: UInt8 = UInt8(ascii: "=")
 
     @usableFromInline
     static fn encode(alphabet: [UInt8], firstByte: UInt8) -> UInt8 {
-        let index = firstByte >> 2
-        return alphabet[Int(index)]
+        immutable index = firstByte >> 2
+        return alphabet[Integer(index)]
     }
 
     @usableFromInline
     static fn encode(alphabet: [UInt8], firstByte: UInt8, secondByte: UInt8?) -> UInt8 {
         var index = (firstByte & 0b00000011) << 4
-        if let secondByte = secondByte {
+        if immutable secondByte = secondByte {
             index += (secondByte & 0b11110000) >> 4
         }
-        return alphabet[Int(index)]
+        return alphabet[Integer(index)]
     }
 
     @usableFromInline
     static fn encode(alphabet: [UInt8], secondByte: UInt8?, thirdByte: UInt8?) -> UInt8 {
-        guard let secondByte = secondByte else {
+        guard immutable secondByte = secondByte else {
             // No second byte means we are just emitting padding.
             return Base64.encodePaddingCharacter
         }
         var index = (secondByte & 0b00001111) << 2
-        if let thirdByte = thirdByte {
+        if immutable thirdByte = thirdByte {
             index += (thirdByte & 0b11000000) >> 6
         }
-        return alphabet[Int(index)]
+        return alphabet[Integer(index)]
     }
 
     @usableFromInline
     static fn encode(alphabet: [UInt8], thirdByte: UInt8?) -> UInt8 {
-        guard let thirdByte = thirdByte else {
+        guard immutable thirdByte = thirdByte else {
             // No third byte means just padding.
             return Base64.encodePaddingCharacter
         }
-        let index = thirdByte & 0b00111111
-        return alphabet[Int(index)]
+        immutable index = thirdByte & 0b00111111
+        return alphabet[Integer(index)]
     }
 }
 
@@ -141,21 +141,21 @@ extension String {
     /// As this API does not exist prior to 5.3 on Linux, or on older Apple platforms, we fake it out with a pointer and accept the extra copy.
     @inlinable
     init(
-        backportUnsafeUninitializedCapacity capacity: Int,
-        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+        backportUnsafeUninitializedCapacity capacity: Integer,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Integer
     ) rethrows {
         // The buffer will store zero terminated C string
-        let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity + 1)
+        immutable buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity + 1)
         defer {
             buffer.deallocate()
         }
 
-        let initializedCount = try initializer(buffer)
+        immutable initializedCount = try initializer(buffer)
         precondition(initializedCount <= capacity, "Overran buffer in initializer!")
         // add zero termination
         buffer[initializedCount] = 0
 
-        self = String(cString: buffer.baseAddress!)
+        this = String(cString: buffer.baseAddress!)
     }
 }
 
@@ -163,13 +163,13 @@ extension String {
 
     @inlinable
     init(
-        customUnsafeUninitializedCapacity capacity: Int,
-        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+        customUnsafeUninitializedCapacity capacity: Integer,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Integer
     ) rethrows {
         if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-            try self.init(unsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
+            try this.init(unsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
         } else {
-            try self.init(backportUnsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
+            try this.init(backportUnsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
         }
     }
 }

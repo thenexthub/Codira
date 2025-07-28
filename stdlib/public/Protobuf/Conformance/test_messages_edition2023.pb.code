@@ -29,36 +29,36 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
 }
 
 enum ProtobufTestMessages_Editions_ForeignEnumEdition2023: SwiftProtobuf.Enum, Swift.CaseIterable {
-  typealias RawValue = Int
+  typealias RawValue = Integer
   case foreignFoo // = 0
   case foreignBar // = 1
   case foreignBaz // = 2
-  case UNRECOGNIZED(Int)
+  case UNRECOGNIZED(Integer)
 
   init() {
-    self = .foreignFoo
+    this = .foreignFoo
   }
 
-  init?(rawValue: Int) {
+  init?(rawValue: Integer) {
     switch rawValue {
-    case 0: self = .foreignFoo
-    case 1: self = .foreignBar
-    case 2: self = .foreignBaz
-    default: self = .UNRECOGNIZED(rawValue)
+    case 0: this = .foreignFoo
+    case 1: this = .foreignBar
+    case 2: this = .foreignBaz
+    default: this = .UNRECOGNIZED(rawValue)
     }
   }
 
-  var rawValue: Int {
-    switch self {
+  var rawValue: Integer {
+    switch this {
     case .foreignFoo: return 0
     case .foreignBar: return 1
     case .foreignBaz: return 2
-    case .UNRECOGNIZED(let i): return i
+    case .UNRECOGNIZED(immutable i): return i
     }
   }
 
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  static let allCases: [ProtobufTestMessages_Editions_ForeignEnumEdition2023] = [
+  static immutable allCases: [ProtobufTestMessages_Editions_ForeignEnumEdition2023] = [
     .foreignFoo,
     .foreignBar,
     .foreignBaz,
@@ -76,15 +76,15 @@ struct ProtobufTestMessages_Editions_ComplexMessage: Sendable {
     set {_d = newValue}
   }
   /// Returns true if `d` has been explicitly set.
-  var hasD: Bool {return self._d != nil}
+  var hasD: Boolean {return this._d != Nothing}
   /// Clears the value of `d`. Subsequent reads from it will return its default value.
-  mutating fn clearD() {self._d = nil}
+  mutating fn clearD() {this._d = Nothing}
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   init() {}
 
-  fileprivate var _d: Int32? = nil
+  fileprivate var _d: Int32? = Nothing
 }
 
 struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.ExtensibleMessage, @unchecked Sendable {
@@ -98,198 +98,198 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     set {_uniqueStorage()._optionalInt32 = newValue}
   }
   /// Returns true if `optionalInt32` has been explicitly set.
-  var hasOptionalInt32: Bool {return _storage._optionalInt32 != nil}
+  var hasOptionalInt32: Boolean {return _storage._optionalInt32 != Nothing}
   /// Clears the value of `optionalInt32`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalInt32() {_uniqueStorage()._optionalInt32 = nil}
+  mutating fn clearOptionalInt32() {_uniqueStorage()._optionalInt32 = Nothing}
 
   var optionalInt64: Int64 {
     get {return _storage._optionalInt64 ?? 0}
     set {_uniqueStorage()._optionalInt64 = newValue}
   }
   /// Returns true if `optionalInt64` has been explicitly set.
-  var hasOptionalInt64: Bool {return _storage._optionalInt64 != nil}
+  var hasOptionalInt64: Boolean {return _storage._optionalInt64 != Nothing}
   /// Clears the value of `optionalInt64`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalInt64() {_uniqueStorage()._optionalInt64 = nil}
+  mutating fn clearOptionalInt64() {_uniqueStorage()._optionalInt64 = Nothing}
 
   var optionalUint32: UInt32 {
     get {return _storage._optionalUint32 ?? 0}
     set {_uniqueStorage()._optionalUint32 = newValue}
   }
   /// Returns true if `optionalUint32` has been explicitly set.
-  var hasOptionalUint32: Bool {return _storage._optionalUint32 != nil}
+  var hasOptionalUint32: Boolean {return _storage._optionalUint32 != Nothing}
   /// Clears the value of `optionalUint32`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalUint32() {_uniqueStorage()._optionalUint32 = nil}
+  mutating fn clearOptionalUint32() {_uniqueStorage()._optionalUint32 = Nothing}
 
   var optionalUint64: UInt64 {
     get {return _storage._optionalUint64 ?? 0}
     set {_uniqueStorage()._optionalUint64 = newValue}
   }
   /// Returns true if `optionalUint64` has been explicitly set.
-  var hasOptionalUint64: Bool {return _storage._optionalUint64 != nil}
+  var hasOptionalUint64: Boolean {return _storage._optionalUint64 != Nothing}
   /// Clears the value of `optionalUint64`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalUint64() {_uniqueStorage()._optionalUint64 = nil}
+  mutating fn clearOptionalUint64() {_uniqueStorage()._optionalUint64 = Nothing}
 
   var optionalSint32: Int32 {
     get {return _storage._optionalSint32 ?? 0}
     set {_uniqueStorage()._optionalSint32 = newValue}
   }
   /// Returns true if `optionalSint32` has been explicitly set.
-  var hasOptionalSint32: Bool {return _storage._optionalSint32 != nil}
+  var hasOptionalSint32: Boolean {return _storage._optionalSint32 != Nothing}
   /// Clears the value of `optionalSint32`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalSint32() {_uniqueStorage()._optionalSint32 = nil}
+  mutating fn clearOptionalSint32() {_uniqueStorage()._optionalSint32 = Nothing}
 
   var optionalSint64: Int64 {
     get {return _storage._optionalSint64 ?? 0}
     set {_uniqueStorage()._optionalSint64 = newValue}
   }
   /// Returns true if `optionalSint64` has been explicitly set.
-  var hasOptionalSint64: Bool {return _storage._optionalSint64 != nil}
+  var hasOptionalSint64: Boolean {return _storage._optionalSint64 != Nothing}
   /// Clears the value of `optionalSint64`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalSint64() {_uniqueStorage()._optionalSint64 = nil}
+  mutating fn clearOptionalSint64() {_uniqueStorage()._optionalSint64 = Nothing}
 
   var optionalFixed32: UInt32 {
     get {return _storage._optionalFixed32 ?? 0}
     set {_uniqueStorage()._optionalFixed32 = newValue}
   }
   /// Returns true if `optionalFixed32` has been explicitly set.
-  var hasOptionalFixed32: Bool {return _storage._optionalFixed32 != nil}
+  var hasOptionalFixed32: Boolean {return _storage._optionalFixed32 != Nothing}
   /// Clears the value of `optionalFixed32`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalFixed32() {_uniqueStorage()._optionalFixed32 = nil}
+  mutating fn clearOptionalFixed32() {_uniqueStorage()._optionalFixed32 = Nothing}
 
   var optionalFixed64: UInt64 {
     get {return _storage._optionalFixed64 ?? 0}
     set {_uniqueStorage()._optionalFixed64 = newValue}
   }
   /// Returns true if `optionalFixed64` has been explicitly set.
-  var hasOptionalFixed64: Bool {return _storage._optionalFixed64 != nil}
+  var hasOptionalFixed64: Boolean {return _storage._optionalFixed64 != Nothing}
   /// Clears the value of `optionalFixed64`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalFixed64() {_uniqueStorage()._optionalFixed64 = nil}
+  mutating fn clearOptionalFixed64() {_uniqueStorage()._optionalFixed64 = Nothing}
 
   var optionalSfixed32: Int32 {
     get {return _storage._optionalSfixed32 ?? 0}
     set {_uniqueStorage()._optionalSfixed32 = newValue}
   }
   /// Returns true if `optionalSfixed32` has been explicitly set.
-  var hasOptionalSfixed32: Bool {return _storage._optionalSfixed32 != nil}
+  var hasOptionalSfixed32: Boolean {return _storage._optionalSfixed32 != Nothing}
   /// Clears the value of `optionalSfixed32`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalSfixed32() {_uniqueStorage()._optionalSfixed32 = nil}
+  mutating fn clearOptionalSfixed32() {_uniqueStorage()._optionalSfixed32 = Nothing}
 
   var optionalSfixed64: Int64 {
     get {return _storage._optionalSfixed64 ?? 0}
     set {_uniqueStorage()._optionalSfixed64 = newValue}
   }
   /// Returns true if `optionalSfixed64` has been explicitly set.
-  var hasOptionalSfixed64: Bool {return _storage._optionalSfixed64 != nil}
+  var hasOptionalSfixed64: Boolean {return _storage._optionalSfixed64 != Nothing}
   /// Clears the value of `optionalSfixed64`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalSfixed64() {_uniqueStorage()._optionalSfixed64 = nil}
+  mutating fn clearOptionalSfixed64() {_uniqueStorage()._optionalSfixed64 = Nothing}
 
   var optionalFloat: Float {
     get {return _storage._optionalFloat ?? 0}
     set {_uniqueStorage()._optionalFloat = newValue}
   }
   /// Returns true if `optionalFloat` has been explicitly set.
-  var hasOptionalFloat: Bool {return _storage._optionalFloat != nil}
+  var hasOptionalFloat: Boolean {return _storage._optionalFloat != Nothing}
   /// Clears the value of `optionalFloat`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalFloat() {_uniqueStorage()._optionalFloat = nil}
+  mutating fn clearOptionalFloat() {_uniqueStorage()._optionalFloat = Nothing}
 
   var optionalDouble: Double {
     get {return _storage._optionalDouble ?? 0}
     set {_uniqueStorage()._optionalDouble = newValue}
   }
   /// Returns true if `optionalDouble` has been explicitly set.
-  var hasOptionalDouble: Bool {return _storage._optionalDouble != nil}
+  var hasOptionalDouble: Boolean {return _storage._optionalDouble != Nothing}
   /// Clears the value of `optionalDouble`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalDouble() {_uniqueStorage()._optionalDouble = nil}
+  mutating fn clearOptionalDouble() {_uniqueStorage()._optionalDouble = Nothing}
 
-  var optionalBool: Bool {
+  var optionalBool: Boolean {
     get {return _storage._optionalBool ?? false}
     set {_uniqueStorage()._optionalBool = newValue}
   }
   /// Returns true if `optionalBool` has been explicitly set.
-  var hasOptionalBool: Bool {return _storage._optionalBool != nil}
+  var hasOptionalBool: Boolean {return _storage._optionalBool != Nothing}
   /// Clears the value of `optionalBool`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalBool() {_uniqueStorage()._optionalBool = nil}
+  mutating fn clearOptionalBool() {_uniqueStorage()._optionalBool = Nothing}
 
   var optionalString: String {
     get {return _storage._optionalString ?? String()}
     set {_uniqueStorage()._optionalString = newValue}
   }
   /// Returns true if `optionalString` has been explicitly set.
-  var hasOptionalString: Bool {return _storage._optionalString != nil}
+  var hasOptionalString: Boolean {return _storage._optionalString != Nothing}
   /// Clears the value of `optionalString`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalString() {_uniqueStorage()._optionalString = nil}
+  mutating fn clearOptionalString() {_uniqueStorage()._optionalString = Nothing}
 
   var optionalBytes: Data {
     get {return _storage._optionalBytes ?? Data()}
     set {_uniqueStorage()._optionalBytes = newValue}
   }
   /// Returns true if `optionalBytes` has been explicitly set.
-  var hasOptionalBytes: Bool {return _storage._optionalBytes != nil}
+  var hasOptionalBytes: Boolean {return _storage._optionalBytes != Nothing}
   /// Clears the value of `optionalBytes`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalBytes() {_uniqueStorage()._optionalBytes = nil}
+  mutating fn clearOptionalBytes() {_uniqueStorage()._optionalBytes = Nothing}
 
   var optionalNestedMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage {
     get {return _storage._optionalNestedMessage ?? ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage()}
     set {_uniqueStorage()._optionalNestedMessage = newValue}
   }
   /// Returns true if `optionalNestedMessage` has been explicitly set.
-  var hasOptionalNestedMessage: Bool {return _storage._optionalNestedMessage != nil}
+  var hasOptionalNestedMessage: Boolean {return _storage._optionalNestedMessage != Nothing}
   /// Clears the value of `optionalNestedMessage`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalNestedMessage() {_uniqueStorage()._optionalNestedMessage = nil}
+  mutating fn clearOptionalNestedMessage() {_uniqueStorage()._optionalNestedMessage = Nothing}
 
   var optionalForeignMessage: ProtobufTestMessages_Editions_ForeignMessageEdition2023 {
     get {return _storage._optionalForeignMessage ?? ProtobufTestMessages_Editions_ForeignMessageEdition2023()}
     set {_uniqueStorage()._optionalForeignMessage = newValue}
   }
   /// Returns true if `optionalForeignMessage` has been explicitly set.
-  var hasOptionalForeignMessage: Bool {return _storage._optionalForeignMessage != nil}
+  var hasOptionalForeignMessage: Boolean {return _storage._optionalForeignMessage != Nothing}
   /// Clears the value of `optionalForeignMessage`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalForeignMessage() {_uniqueStorage()._optionalForeignMessage = nil}
+  mutating fn clearOptionalForeignMessage() {_uniqueStorage()._optionalForeignMessage = Nothing}
 
   var optionalNestedEnum: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum {
     get {return _storage._optionalNestedEnum ?? .foo}
     set {_uniqueStorage()._optionalNestedEnum = newValue}
   }
   /// Returns true if `optionalNestedEnum` has been explicitly set.
-  var hasOptionalNestedEnum: Bool {return _storage._optionalNestedEnum != nil}
+  var hasOptionalNestedEnum: Boolean {return _storage._optionalNestedEnum != Nothing}
   /// Clears the value of `optionalNestedEnum`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalNestedEnum() {_uniqueStorage()._optionalNestedEnum = nil}
+  mutating fn clearOptionalNestedEnum() {_uniqueStorage()._optionalNestedEnum = Nothing}
 
   var optionalForeignEnum: ProtobufTestMessages_Editions_ForeignEnumEdition2023 {
     get {return _storage._optionalForeignEnum ?? .foreignFoo}
     set {_uniqueStorage()._optionalForeignEnum = newValue}
   }
   /// Returns true if `optionalForeignEnum` has been explicitly set.
-  var hasOptionalForeignEnum: Bool {return _storage._optionalForeignEnum != nil}
+  var hasOptionalForeignEnum: Boolean {return _storage._optionalForeignEnum != Nothing}
   /// Clears the value of `optionalForeignEnum`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalForeignEnum() {_uniqueStorage()._optionalForeignEnum = nil}
+  mutating fn clearOptionalForeignEnum() {_uniqueStorage()._optionalForeignEnum = Nothing}
 
   var optionalStringPiece: String {
     get {return _storage._optionalStringPiece ?? String()}
     set {_uniqueStorage()._optionalStringPiece = newValue}
   }
   /// Returns true if `optionalStringPiece` has been explicitly set.
-  var hasOptionalStringPiece: Bool {return _storage._optionalStringPiece != nil}
+  var hasOptionalStringPiece: Boolean {return _storage._optionalStringPiece != Nothing}
   /// Clears the value of `optionalStringPiece`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalStringPiece() {_uniqueStorage()._optionalStringPiece = nil}
+  mutating fn clearOptionalStringPiece() {_uniqueStorage()._optionalStringPiece = Nothing}
 
   var optionalCord: String {
     get {return _storage._optionalCord ?? String()}
     set {_uniqueStorage()._optionalCord = newValue}
   }
   /// Returns true if `optionalCord` has been explicitly set.
-  var hasOptionalCord: Bool {return _storage._optionalCord != nil}
+  var hasOptionalCord: Boolean {return _storage._optionalCord != Nothing}
   /// Clears the value of `optionalCord`. Subsequent reads from it will return its default value.
-  mutating fn clearOptionalCord() {_uniqueStorage()._optionalCord = nil}
+  mutating fn clearOptionalCord() {_uniqueStorage()._optionalCord = Nothing}
 
   var recursiveMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023 {
     get {return _storage._recursiveMessage ?? ProtobufTestMessages_Editions_TestAllTypesEdition2023()}
     set {_uniqueStorage()._recursiveMessage = newValue}
   }
   /// Returns true if `recursiveMessage` has been explicitly set.
-  var hasRecursiveMessage: Bool {return _storage._recursiveMessage != nil}
+  var hasRecursiveMessage: Boolean {return _storage._recursiveMessage != Nothing}
   /// Clears the value of `recursiveMessage`. Subsequent reads from it will return its default value.
-  mutating fn clearRecursiveMessage() {_uniqueStorage()._recursiveMessage = nil}
+  mutating fn clearRecursiveMessage() {_uniqueStorage()._recursiveMessage = Nothing}
 
   /// Repeated
   var repeatedInt32: [Int32] {
@@ -352,7 +352,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     set {_uniqueStorage()._repeatedDouble = newValue}
   }
 
-  var repeatedBool: [Bool] {
+  var repeatedBool: [Boolean] {
     get {return _storage._repeatedBool}
     set {_uniqueStorage()._repeatedBool = newValue}
   }
@@ -458,7 +458,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     set {_uniqueStorage()._packedDouble = newValue}
   }
 
-  var packedBool: [Bool] {
+  var packedBool: [Boolean] {
     get {return _storage._packedBool}
     set {_uniqueStorage()._packedBool = newValue}
   }
@@ -529,7 +529,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     set {_uniqueStorage()._unpackedDouble = newValue}
   }
 
-  var unpackedBool: [Bool] {
+  var unpackedBool: [Boolean] {
     get {return _storage._unpackedBool}
     set {_uniqueStorage()._unpackedBool = newValue}
   }
@@ -600,7 +600,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     set {_uniqueStorage()._mapInt32Double = newValue}
   }
 
-  var mapBoolBool: Dictionary<Bool,Bool> {
+  var mapBoolBool: Dictionary<Boolean,Boolean> {
     get {return _storage._mapBoolBool}
     set {_uniqueStorage()._mapBoolBool = newValue}
   }
@@ -642,7 +642,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofUint32: UInt32 {
     get {
-      if case .oneofUint32(let v)? = _storage._oneofField {return v}
+      if case .oneofUint32(immutable v)? = _storage._oneofField {return v}
       return 0
     }
     set {_uniqueStorage()._oneofField = .oneofUint32(newValue)}
@@ -650,7 +650,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofNestedMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage {
     get {
-      if case .oneofNestedMessage(let v)? = _storage._oneofField {return v}
+      if case .oneofNestedMessage(immutable v)? = _storage._oneofField {return v}
       return ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage()
     }
     set {_uniqueStorage()._oneofField = .oneofNestedMessage(newValue)}
@@ -658,7 +658,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofString: String {
     get {
-      if case .oneofString(let v)? = _storage._oneofField {return v}
+      if case .oneofString(immutable v)? = _storage._oneofField {return v}
       return String()
     }
     set {_uniqueStorage()._oneofField = .oneofString(newValue)}
@@ -666,15 +666,15 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofBytes: Data {
     get {
-      if case .oneofBytes(let v)? = _storage._oneofField {return v}
+      if case .oneofBytes(immutable v)? = _storage._oneofField {return v}
       return Data()
     }
     set {_uniqueStorage()._oneofField = .oneofBytes(newValue)}
   }
 
-  var oneofBool: Bool {
+  var oneofBool: Boolean {
     get {
-      if case .oneofBool(let v)? = _storage._oneofField {return v}
+      if case .oneofBool(immutable v)? = _storage._oneofField {return v}
       return false
     }
     set {_uniqueStorage()._oneofField = .oneofBool(newValue)}
@@ -682,7 +682,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofUint64: UInt64 {
     get {
-      if case .oneofUint64(let v)? = _storage._oneofField {return v}
+      if case .oneofUint64(immutable v)? = _storage._oneofField {return v}
       return 0
     }
     set {_uniqueStorage()._oneofField = .oneofUint64(newValue)}
@@ -690,7 +690,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofFloat: Float {
     get {
-      if case .oneofFloat(let v)? = _storage._oneofField {return v}
+      if case .oneofFloat(immutable v)? = _storage._oneofField {return v}
       return 0
     }
     set {_uniqueStorage()._oneofField = .oneofFloat(newValue)}
@@ -698,7 +698,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofDouble: Double {
     get {
-      if case .oneofDouble(let v)? = _storage._oneofField {return v}
+      if case .oneofDouble(immutable v)? = _storage._oneofField {return v}
       return 0
     }
     set {_uniqueStorage()._oneofField = .oneofDouble(newValue)}
@@ -706,7 +706,7 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
 
   var oneofEnum: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum {
     get {
-      if case .oneofEnum(let v)? = _storage._oneofField {return v}
+      if case .oneofEnum(immutable v)? = _storage._oneofField {return v}
       return .foo
     }
     set {_uniqueStorage()._oneofField = .oneofEnum(newValue)}
@@ -717,18 +717,18 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     set {_uniqueStorage()._groupLikeType = newValue}
   }
   /// Returns true if `groupLikeType` has been explicitly set.
-  var hasGroupLikeType: Bool {return _storage._groupLikeType != nil}
+  var hasGroupLikeType: Boolean {return _storage._groupLikeType != Nothing}
   /// Clears the value of `groupLikeType`. Subsequent reads from it will return its default value.
-  mutating fn clearGroupLikeType() {_uniqueStorage()._groupLikeType = nil}
+  mutating fn clearGroupLikeType() {_uniqueStorage()._groupLikeType = Nothing}
 
   var delimitedField: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType {
     get {return _storage._delimitedField ?? ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType()}
     set {_uniqueStorage()._delimitedField = newValue}
   }
   /// Returns true if `delimitedField` has been explicitly set.
-  var hasDelimitedField: Bool {return _storage._delimitedField != nil}
+  var hasDelimitedField: Boolean {return _storage._delimitedField != Nothing}
   /// Clears the value of `delimitedField`. Subsequent reads from it will return its default value.
-  mutating fn clearDelimitedField() {_uniqueStorage()._delimitedField = nil}
+  mutating fn clearDelimitedField() {_uniqueStorage()._delimitedField = Nothing}
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -737,55 +737,55 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
     case oneofNestedMessage(ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage)
     case oneofString(String)
     case oneofBytes(Data)
-    case oneofBool(Bool)
+    case oneofBool(Boolean)
     case oneofUint64(UInt64)
     case oneofFloat(Float)
     case oneofDouble(Double)
     case oneofEnum(ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum)
 
-    fileprivate var isInitialized: Bool {
-      guard case .oneofNestedMessage(let v) = self else {return true}
+    fileprivate var isInitialized: Boolean {
+      guard case .oneofNestedMessage(immutable v) = this else {return true}
       return v.isInitialized
     }
 
   }
 
   enum NestedEnum: SwiftProtobuf.Enum, Swift.CaseIterable {
-    typealias RawValue = Int
+    typealias RawValue = Integer
     case foo // = 0
     case bar // = 1
     case baz // = 2
 
     /// Intentionally negative.
     case neg // = -1
-    case UNRECOGNIZED(Int)
+    case UNRECOGNIZED(Integer)
 
     init() {
-      self = .foo
+      this = .foo
     }
 
-    init?(rawValue: Int) {
+    init?(rawValue: Integer) {
       switch rawValue {
-      case -1: self = .neg
-      case 0: self = .foo
-      case 1: self = .bar
-      case 2: self = .baz
-      default: self = .UNRECOGNIZED(rawValue)
+      case -1: this = .neg
+      case 0: this = .foo
+      case 1: this = .bar
+      case 2: this = .baz
+      default: this = .UNRECOGNIZED(rawValue)
       }
     }
 
-    var rawValue: Int {
-      switch self {
+    var rawValue: Integer {
+      switch this {
       case .neg: return -1
       case .foo: return 0
       case .bar: return 1
       case .baz: return 2
-      case .UNRECOGNIZED(let i): return i
+      case .UNRECOGNIZED(immutable i): return i
       }
     }
 
     // The compiler won't synthesize support with the UNRECOGNIZED case.
-    static let allCases: [ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum] = [
+    static immutable allCases: [ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum] = [
       .foo,
       .bar,
       .baz,
@@ -804,18 +804,18 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
       set {_uniqueStorage()._a = newValue}
     }
     /// Returns true if `a` has been explicitly set.
-    var hasA: Bool {return _storage._a != nil}
+    var hasA: Boolean {return _storage._a != Nothing}
     /// Clears the value of `a`. Subsequent reads from it will return its default value.
-    mutating fn clearA() {_uniqueStorage()._a = nil}
+    mutating fn clearA() {_uniqueStorage()._a = Nothing}
 
     var corecursive: ProtobufTestMessages_Editions_TestAllTypesEdition2023 {
       get {return _storage._corecursive ?? ProtobufTestMessages_Editions_TestAllTypesEdition2023()}
       set {_uniqueStorage()._corecursive = newValue}
     }
     /// Returns true if `corecursive` has been explicitly set.
-    var hasCorecursive: Bool {return _storage._corecursive != nil}
+    var hasCorecursive: Boolean {return _storage._corecursive != Nothing}
     /// Clears the value of `corecursive`. Subsequent reads from it will return its default value.
-    mutating fn clearCorecursive() {_uniqueStorage()._corecursive = nil}
+    mutating fn clearCorecursive() {_uniqueStorage()._corecursive = Nothing}
 
     var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -835,25 +835,25 @@ struct ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Exte
       set {_groupInt32 = newValue}
     }
     /// Returns true if `groupInt32` has been explicitly set.
-    var hasGroupInt32: Bool {return self._groupInt32 != nil}
+    var hasGroupInt32: Boolean {return this._groupInt32 != Nothing}
     /// Clears the value of `groupInt32`. Subsequent reads from it will return its default value.
-    mutating fn clearGroupInt32() {self._groupInt32 = nil}
+    mutating fn clearGroupInt32() {this._groupInt32 = Nothing}
 
     var groupUint32: UInt32 {
       get {return _groupUint32 ?? 0}
       set {_groupUint32 = newValue}
     }
     /// Returns true if `groupUint32` has been explicitly set.
-    var hasGroupUint32: Bool {return self._groupUint32 != nil}
+    var hasGroupUint32: Boolean {return this._groupUint32 != Nothing}
     /// Clears the value of `groupUint32`. Subsequent reads from it will return its default value.
-    mutating fn clearGroupUint32() {self._groupUint32 = nil}
+    mutating fn clearGroupUint32() {this._groupUint32 = Nothing}
 
     var unknownFields = SwiftProtobuf.UnknownStorage()
 
     init() {}
 
-    fileprivate var _groupInt32: Int32? = nil
-    fileprivate var _groupUint32: UInt32? = nil
+    fileprivate var _groupInt32: Int32? = Nothing
+    fileprivate var _groupUint32: UInt32? = Nothing
   }
 
   init() {}
@@ -872,15 +872,15 @@ struct ProtobufTestMessages_Editions_ForeignMessageEdition2023: Sendable {
     set {_c = newValue}
   }
   /// Returns true if `c` has been explicitly set.
-  var hasC: Bool {return self._c != nil}
+  var hasC: Boolean {return this._c != Nothing}
   /// Clears the value of `c`. Subsequent reads from it will return its default value.
-  mutating fn clearC() {self._c = nil}
+  mutating fn clearC() {this._c = Nothing}
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   init() {}
 
-  fileprivate var _c: Int32? = nil
+  fileprivate var _c: Int32? = Nothing
 }
 
 struct ProtobufTestMessages_Editions_GroupLikeType: Sendable {
@@ -893,15 +893,15 @@ struct ProtobufTestMessages_Editions_GroupLikeType: Sendable {
     set {_c = newValue}
   }
   /// Returns true if `c` has been explicitly set.
-  var hasC: Bool {return self._c != nil}
+  var hasC: Boolean {return this._c != Nothing}
   /// Clears the value of `c`. Subsequent reads from it will return its default value.
-  mutating fn clearC() {self._c = nil}
+  mutating fn clearC() {this._c = Nothing}
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   init() {}
 
-  fileprivate var _c: Int32? = nil
+  fileprivate var _c: Int32? = Nothing
 }
 
 // MARK: - Extension support defined in test_messages_edition2023.proto.
@@ -921,7 +921,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023 {
   }
   /// Returns true if extension `ProtobufTestMessages_Editions_Extensions_extension_int32`
   /// has been explicitly set.
-  var hasProtobufTestMessages_Editions_extensionInt32: Bool {
+  var hasProtobufTestMessages_Editions_extensionInt32: Boolean {
     return hasExtensionValue(ext: ProtobufTestMessages_Editions_Extensions_extension_int32)
   }
   /// Clears the value of extension `ProtobufTestMessages_Editions_Extensions_extension_int32`.
@@ -936,7 +936,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023 {
   }
   /// Returns true if extension `ProtobufTestMessages_Editions_Extensions_GroupLikeType`
   /// has been explicitly set.
-  var hasProtobufTestMessages_Editions_groupLikeType: Bool {
+  var hasProtobufTestMessages_Editions_groupLikeType: Boolean {
     return hasExtensionValue(ext: ProtobufTestMessages_Editions_Extensions_GroupLikeType)
   }
   /// Clears the value of extension `ProtobufTestMessages_Editions_Extensions_GroupLikeType`.
@@ -951,7 +951,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023 {
   }
   /// Returns true if extension `ProtobufTestMessages_Editions_Extensions_delimited_ext`
   /// has been explicitly set.
-  var hasProtobufTestMessages_Editions_delimitedExt: Bool {
+  var hasProtobufTestMessages_Editions_delimitedExt: Boolean {
     return hasExtensionValue(ext: ProtobufTestMessages_Editions_Extensions_delimited_ext)
   }
   /// Clears the value of extension `ProtobufTestMessages_Editions_Extensions_delimited_ext`.
@@ -968,7 +968,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023 {
 /// this .proto file. It can be used any place an `SwiftProtobuf.ExtensionMap` is needed
 /// in parsing, or it can be combined with other `SwiftProtobuf.SimpleExtensionMap`s to create
 /// a larger `SwiftProtobuf.SimpleExtensionMap`.
-let ProtobufTestMessages_Editions_TestMessagesEdition2023_Extensions: SwiftProtobuf.SimpleExtensionMap = [
+immutable ProtobufTestMessages_Editions_TestMessagesEdition2023_Extensions: SwiftProtobuf.SimpleExtensionMap = [
   ProtobufTestMessages_Editions_Extensions_extension_int32,
   ProtobufTestMessages_Editions_Extensions_GroupLikeType,
   ProtobufTestMessages_Editions_Extensions_delimited_ext
@@ -978,40 +978,40 @@ let ProtobufTestMessages_Editions_TestMessagesEdition2023_Extensions: SwiftProto
 // constructing a `SimpleExtensionMap`, otherwise, use the above _Extension Properties_
 // accessors for the extension fields on the messages directly.
 
-let ProtobufTestMessages_Editions_Extensions_extension_int32 = SwiftProtobuf.MessageExtension<SwiftProtobuf.OptionalExtensionField<SwiftProtobuf.ProtobufInt32>, ProtobufTestMessages_Editions_TestAllTypesEdition2023>(
+immutable ProtobufTestMessages_Editions_Extensions_extension_int32 = SwiftProtobuf.MessageExtension<SwiftProtobuf.OptionalExtensionField<SwiftProtobuf.ProtobufInt32>, ProtobufTestMessages_Editions_TestAllTypesEdition2023>(
   _protobuf_fieldNumber: 120,
   fieldName: "protobuf_test_messages.editions.extension_int32"
 )
 
-let ProtobufTestMessages_Editions_Extensions_GroupLikeType = SwiftProtobuf.MessageExtension<SwiftProtobuf.OptionalGroupExtensionField<ProtobufTestMessages_Editions_GroupLikeType>, ProtobufTestMessages_Editions_TestAllTypesEdition2023>(
+immutable ProtobufTestMessages_Editions_Extensions_GroupLikeType = SwiftProtobuf.MessageExtension<SwiftProtobuf.OptionalGroupExtensionField<ProtobufTestMessages_Editions_GroupLikeType>, ProtobufTestMessages_Editions_TestAllTypesEdition2023>(
   _protobuf_fieldNumber: 121,
   fieldName: "protobuf_test_messages.editions.groupliketype"
 )
 
-let ProtobufTestMessages_Editions_Extensions_delimited_ext = SwiftProtobuf.MessageExtension<SwiftProtobuf.OptionalGroupExtensionField<ProtobufTestMessages_Editions_GroupLikeType>, ProtobufTestMessages_Editions_TestAllTypesEdition2023>(
+immutable ProtobufTestMessages_Editions_Extensions_delimited_ext = SwiftProtobuf.MessageExtension<SwiftProtobuf.OptionalGroupExtensionField<ProtobufTestMessages_Editions_GroupLikeType>, ProtobufTestMessages_Editions_TestAllTypesEdition2023>(
   _protobuf_fieldNumber: 122,
   fieldName: "protobuf_test_messages.editions.delimited_ext"
 )
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "protobuf_test_messages.editions"
+fileprivate immutable _protobuf_package = "protobuf_test_messages.editions"
 
 extension ProtobufTestMessages_Editions_ForeignEnumEdition2023: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0FOREIGN_FOO\0\u{1}FOREIGN_BAR\0\u{1}FOREIGN_BAZ\0")
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0FOREIGN_FOO\0\u{1}FOREIGN_BAR\0\u{1}FOREIGN_BAZ\0")
 }
 
 extension ProtobufTestMessages_Editions_ComplexMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".ComplexMessage"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}d\0")
+  static immutable protoMessageName: String = _protobuf_package + ".ComplexMessage"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}d\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularInt32Field(value: &self._d) }()
+      case 1: try { try decoder.decodeSingularInt32Field(value: &this._d) }()
       default: break
       }
     }
@@ -1022,13 +1022,13 @@ extension ProtobufTestMessages_Editions_ComplexMessage: SwiftProtobuf.Message, S
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._d {
+    try { if immutable v = this._d {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 1)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: ProtobufTestMessages_Editions_ComplexMessage, rhs: ProtobufTestMessages_Editions_ComplexMessage) -> Bool {
+  static fn ==(lhs: ProtobufTestMessages_Editions_ComplexMessage, rhs: ProtobufTestMessages_Editions_ComplexMessage) -> Boolean {
     if lhs._d != rhs._d {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -1036,32 +1036,32 @@ extension ProtobufTestMessages_Editions_ComplexMessage: SwiftProtobuf.Message, S
 }
 
 extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".TestAllTypesEdition2023"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}optional_int32\0\u{3}optional_int64\0\u{3}optional_uint32\0\u{3}optional_uint64\0\u{3}optional_sint32\0\u{3}optional_sint64\0\u{3}optional_fixed32\0\u{3}optional_fixed64\0\u{3}optional_sfixed32\0\u{3}optional_sfixed64\0\u{3}optional_float\0\u{3}optional_double\0\u{3}optional_bool\0\u{3}optional_string\0\u{3}optional_bytes\0\u{4}\u{3}optional_nested_message\0\u{3}optional_foreign_message\0\u{4}\u{2}optional_nested_enum\0\u{3}optional_foreign_enum\0\u{4}\u{2}optional_string_piece\0\u{3}optional_cord\0\u{4}\u{2}recursive_message\0\u{4}\u{4}repeated_int32\0\u{3}repeated_int64\0\u{3}repeated_uint32\0\u{3}repeated_uint64\0\u{3}repeated_sint32\0\u{3}repeated_sint64\0\u{3}repeated_fixed32\0\u{3}repeated_fixed64\0\u{3}repeated_sfixed32\0\u{3}repeated_sfixed64\0\u{3}repeated_float\0\u{3}repeated_double\0\u{3}repeated_bool\0\u{3}repeated_string\0\u{3}repeated_bytes\0\u{4}\u{3}repeated_nested_message\0\u{3}repeated_foreign_message\0\u{4}\u{2}repeated_nested_enum\0\u{3}repeated_foreign_enum\0\u{4}\u{2}repeated_string_piece\0\u{3}repeated_cord\0\u{3}map_int32_int32\0\u{3}map_int64_int64\0\u{3}map_uint32_uint32\0\u{3}map_uint64_uint64\0\u{3}map_sint32_sint32\0\u{3}map_sint64_sint64\0\u{3}map_fixed32_fixed32\0\u{3}map_fixed64_fixed64\0\u{3}map_sfixed32_sfixed32\0\u{3}map_sfixed64_sfixed64\0\u{3}map_int32_float\0\u{3}map_int32_double\0\u{3}map_bool_bool\0\u{3}map_string_string\0\u{3}map_string_bytes\0\u{3}map_string_nested_message\0\u{3}map_string_foreign_message\0\u{3}map_string_nested_enum\0\u{3}map_string_foreign_enum\0\u{3}packed_int32\0\u{3}packed_int64\0\u{3}packed_uint32\0\u{3}packed_uint64\0\u{3}packed_sint32\0\u{3}packed_sint64\0\u{3}packed_fixed32\0\u{3}packed_fixed64\0\u{3}packed_sfixed32\0\u{3}packed_sfixed64\0\u{3}packed_float\0\u{3}packed_double\0\u{3}packed_bool\0\u{3}packed_nested_enum\0\u{3}unpacked_int32\0\u{3}unpacked_int64\0\u{3}unpacked_uint32\0\u{3}unpacked_uint64\0\u{3}unpacked_sint32\0\u{3}unpacked_sint64\0\u{3}unpacked_fixed32\0\u{3}unpacked_fixed64\0\u{3}unpacked_sfixed32\0\u{3}unpacked_sfixed64\0\u{3}unpacked_float\0\u{3}unpacked_double\0\u{3}unpacked_bool\0\u{3}unpacked_nested_enum\0\u{4}\u{9}oneof_uint32\0\u{3}oneof_nested_message\0\u{3}oneof_string\0\u{3}oneof_bytes\0\u{3}oneof_bool\0\u{3}oneof_uint64\0\u{3}oneof_float\0\u{3}oneof_double\0\u{3}oneof_enum\0\u{8}R\u{1}GroupLikeType\0\u{3}delimited_field\0")
+  static immutable protoMessageName: String = _protobuf_package + ".TestAllTypesEdition2023"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}optional_int32\0\u{3}optional_int64\0\u{3}optional_uint32\0\u{3}optional_uint64\0\u{3}optional_sint32\0\u{3}optional_sint64\0\u{3}optional_fixed32\0\u{3}optional_fixed64\0\u{3}optional_sfixed32\0\u{3}optional_sfixed64\0\u{3}optional_float\0\u{3}optional_double\0\u{3}optional_bool\0\u{3}optional_string\0\u{3}optional_bytes\0\u{4}\u{3}optional_nested_message\0\u{3}optional_foreign_message\0\u{4}\u{2}optional_nested_enum\0\u{3}optional_foreign_enum\0\u{4}\u{2}optional_string_piece\0\u{3}optional_cord\0\u{4}\u{2}recursive_message\0\u{4}\u{4}repeated_int32\0\u{3}repeated_int64\0\u{3}repeated_uint32\0\u{3}repeated_uint64\0\u{3}repeated_sint32\0\u{3}repeated_sint64\0\u{3}repeated_fixed32\0\u{3}repeated_fixed64\0\u{3}repeated_sfixed32\0\u{3}repeated_sfixed64\0\u{3}repeated_float\0\u{3}repeated_double\0\u{3}repeated_bool\0\u{3}repeated_string\0\u{3}repeated_bytes\0\u{4}\u{3}repeated_nested_message\0\u{3}repeated_foreign_message\0\u{4}\u{2}repeated_nested_enum\0\u{3}repeated_foreign_enum\0\u{4}\u{2}repeated_string_piece\0\u{3}repeated_cord\0\u{3}map_int32_int32\0\u{3}map_int64_int64\0\u{3}map_uint32_uint32\0\u{3}map_uint64_uint64\0\u{3}map_sint32_sint32\0\u{3}map_sint64_sint64\0\u{3}map_fixed32_fixed32\0\u{3}map_fixed64_fixed64\0\u{3}map_sfixed32_sfixed32\0\u{3}map_sfixed64_sfixed64\0\u{3}map_int32_float\0\u{3}map_int32_double\0\u{3}map_bool_bool\0\u{3}map_string_string\0\u{3}map_string_bytes\0\u{3}map_string_nested_message\0\u{3}map_string_foreign_message\0\u{3}map_string_nested_enum\0\u{3}map_string_foreign_enum\0\u{3}packed_int32\0\u{3}packed_int64\0\u{3}packed_uint32\0\u{3}packed_uint64\0\u{3}packed_sint32\0\u{3}packed_sint64\0\u{3}packed_fixed32\0\u{3}packed_fixed64\0\u{3}packed_sfixed32\0\u{3}packed_sfixed64\0\u{3}packed_float\0\u{3}packed_double\0\u{3}packed_bool\0\u{3}packed_nested_enum\0\u{3}unpacked_int32\0\u{3}unpacked_int64\0\u{3}unpacked_uint32\0\u{3}unpacked_uint64\0\u{3}unpacked_sint32\0\u{3}unpacked_sint64\0\u{3}unpacked_fixed32\0\u{3}unpacked_fixed64\0\u{3}unpacked_sfixed32\0\u{3}unpacked_sfixed64\0\u{3}unpacked_float\0\u{3}unpacked_double\0\u{3}unpacked_bool\0\u{3}unpacked_nested_enum\0\u{4}\u{9}oneof_uint32\0\u{3}oneof_nested_message\0\u{3}oneof_string\0\u{3}oneof_bytes\0\u{3}oneof_bool\0\u{3}oneof_uint64\0\u{3}oneof_float\0\u{3}oneof_double\0\u{3}oneof_enum\0\u{8}R\u{1}GroupLikeType\0\u{3}delimited_field\0")
 
   fileprivate class _StorageClass {
-    var _optionalInt32: Int32? = nil
-    var _optionalInt64: Int64? = nil
-    var _optionalUint32: UInt32? = nil
-    var _optionalUint64: UInt64? = nil
-    var _optionalSint32: Int32? = nil
-    var _optionalSint64: Int64? = nil
-    var _optionalFixed32: UInt32? = nil
-    var _optionalFixed64: UInt64? = nil
-    var _optionalSfixed32: Int32? = nil
-    var _optionalSfixed64: Int64? = nil
-    var _optionalFloat: Float? = nil
-    var _optionalDouble: Double? = nil
-    var _optionalBool: Bool? = nil
-    var _optionalString: String? = nil
-    var _optionalBytes: Data? = nil
-    var _optionalNestedMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage? = nil
-    var _optionalForeignMessage: ProtobufTestMessages_Editions_ForeignMessageEdition2023? = nil
-    var _optionalNestedEnum: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum? = nil
-    var _optionalForeignEnum: ProtobufTestMessages_Editions_ForeignEnumEdition2023? = nil
-    var _optionalStringPiece: String? = nil
-    var _optionalCord: String? = nil
-    var _recursiveMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023? = nil
+    var _optionalInt32: Int32? = Nothing
+    var _optionalInt64: Int64? = Nothing
+    var _optionalUint32: UInt32? = Nothing
+    var _optionalUint64: UInt64? = Nothing
+    var _optionalSint32: Int32? = Nothing
+    var _optionalSint64: Int64? = Nothing
+    var _optionalFixed32: UInt32? = Nothing
+    var _optionalFixed64: UInt64? = Nothing
+    var _optionalSfixed32: Int32? = Nothing
+    var _optionalSfixed64: Int64? = Nothing
+    var _optionalFloat: Float? = Nothing
+    var _optionalDouble: Double? = Nothing
+    var _optionalBool: Boolean? = Nothing
+    var _optionalString: String? = Nothing
+    var _optionalBytes: Data? = Nothing
+    var _optionalNestedMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage? = Nothing
+    var _optionalForeignMessage: ProtobufTestMessages_Editions_ForeignMessageEdition2023? = Nothing
+    var _optionalNestedEnum: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum? = Nothing
+    var _optionalForeignEnum: ProtobufTestMessages_Editions_ForeignEnumEdition2023? = Nothing
+    var _optionalStringPiece: String? = Nothing
+    var _optionalCord: String? = Nothing
+    var _recursiveMessage: ProtobufTestMessages_Editions_TestAllTypesEdition2023? = Nothing
     var _repeatedInt32: [Int32] = []
     var _repeatedInt64: [Int64] = []
     var _repeatedUint32: [UInt32] = []
@@ -1074,7 +1074,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
     var _repeatedSfixed64: [Int64] = []
     var _repeatedFloat: [Float] = []
     var _repeatedDouble: [Double] = []
-    var _repeatedBool: [Bool] = []
+    var _repeatedBool: [Boolean] = []
     var _repeatedString: [String] = []
     var _repeatedBytes: [Data] = []
     var _repeatedNestedMessage: [ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage] = []
@@ -1095,7 +1095,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
     var _packedSfixed64: [Int64] = []
     var _packedFloat: [Float] = []
     var _packedDouble: [Double] = []
-    var _packedBool: [Bool] = []
+    var _packedBool: [Boolean] = []
     var _packedNestedEnum: [ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum] = []
     var _unpackedInt32: [Int32] = []
     var _unpackedInt64: [Int64] = []
@@ -1109,7 +1109,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
     var _unpackedSfixed64: [Int64] = []
     var _unpackedFloat: [Float] = []
     var _unpackedDouble: [Double] = []
-    var _unpackedBool: [Bool] = []
+    var _unpackedBool: [Boolean] = []
     var _unpackedNestedEnum: [ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum] = []
     var _mapInt32Int32: Dictionary<Int32,Int32> = [:]
     var _mapInt64Int64: Dictionary<Int64,Int64> = [:]
@@ -1123,7 +1123,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
     var _mapSfixed64Sfixed64: Dictionary<Int64,Int64> = [:]
     var _mapInt32Float: Dictionary<Int32,Float> = [:]
     var _mapInt32Double: Dictionary<Int32,Double> = [:]
-    var _mapBoolBool: Dictionary<Bool,Bool> = [:]
+    var _mapBoolBool: Dictionary<Boolean,Boolean> = [:]
     var _mapStringString: Dictionary<String,String> = [:]
     var _mapStringBytes: Dictionary<String,Data> = [:]
     var _mapStringNestedMessage: Dictionary<String,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage> = [:]
@@ -1131,14 +1131,14 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
     var _mapStringNestedEnum: Dictionary<String,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum> = [:]
     var _mapStringForeignEnum: Dictionary<String,ProtobufTestMessages_Editions_ForeignEnumEdition2023> = [:]
     var _oneofField: ProtobufTestMessages_Editions_TestAllTypesEdition2023.OneOf_OneofField?
-    var _groupLikeType: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType? = nil
-    var _delimitedField: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType? = nil
+    var _groupLikeType: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType? = Nothing
+    var _delimitedField: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType? = Nothing
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
       // This will force a copy to be made of this reference when the first mutation occurs;
       // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+      static nonisolated(unsafe) immutable defaultInstance = _StorageClass()
 
     private init() {}
 
@@ -1246,14 +1246,14 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
     return _storage
   }
 
-  public var isInitialized: Bool {
+  public var isInitialized: Boolean {
     if !_protobuf_extensionFieldValues.isInitialized {return false}
     return withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      if let v = _storage._optionalNestedMessage, !v.isInitialized {return false}
-      if let v = _storage._recursiveMessage, !v.isInitialized {return false}
+      if immutable v = _storage._optionalNestedMessage, !v.isInitialized {return false}
+      if immutable v = _storage._recursiveMessage, !v.isInitialized {return false}
       if !SwiftProtobuf.Internal.areAllInitialized(_storage._repeatedNestedMessage) {return false}
       if !SwiftProtobuf.Internal.areAllInitialized(_storage._mapStringNestedMessage) {return false}
-      if let v = _storage._oneofField, !v.isInitialized {return false}
+      if immutable v = _storage._oneofField, !v.isInitialized {return false}
       return true
     }
   }
@@ -1261,7 +1261,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     _ = _uniqueStorage()
     try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
+      while immutable fieldNumber = try decoder.nextFieldNumber() {
         // The use of inline closures is to circumvent an issue where the compiler
         // allocates stack space for every case branch when no optimizations are
         // enabled. https://github.com/apple/swift-protobuf/issues/1034
@@ -1309,25 +1309,25 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
         case 52: try { try decoder.decodeRepeatedEnumField(value: &_storage._repeatedForeignEnum) }()
         case 54: try { try decoder.decodeRepeatedStringField(value: &_storage._repeatedStringPiece) }()
         case 55: try { try decoder.decodeRepeatedStringField(value: &_storage._repeatedCord) }()
-        case 56: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufInt32>.self, value: &_storage._mapInt32Int32) }()
-        case 57: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt64,SwiftProtobuf.ProtobufInt64>.self, value: &_storage._mapInt64Int64) }()
-        case 58: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt32,SwiftProtobuf.ProtobufUInt32>.self, value: &_storage._mapUint32Uint32) }()
-        case 59: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt64,SwiftProtobuf.ProtobufUInt64>.self, value: &_storage._mapUint64Uint64) }()
-        case 60: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt32,SwiftProtobuf.ProtobufSInt32>.self, value: &_storage._mapSint32Sint32) }()
-        case 61: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt64,SwiftProtobuf.ProtobufSInt64>.self, value: &_storage._mapSint64Sint64) }()
-        case 62: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed32,SwiftProtobuf.ProtobufFixed32>.self, value: &_storage._mapFixed32Fixed32) }()
-        case 63: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed64,SwiftProtobuf.ProtobufFixed64>.self, value: &_storage._mapFixed64Fixed64) }()
-        case 64: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed32,SwiftProtobuf.ProtobufSFixed32>.self, value: &_storage._mapSfixed32Sfixed32) }()
-        case 65: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed64,SwiftProtobuf.ProtobufSFixed64>.self, value: &_storage._mapSfixed64Sfixed64) }()
-        case 66: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufFloat>.self, value: &_storage._mapInt32Float) }()
-        case 67: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufDouble>.self, value: &_storage._mapInt32Double) }()
-        case 68: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufBool,SwiftProtobuf.ProtobufBool>.self, value: &_storage._mapBoolBool) }()
-        case 69: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: &_storage._mapStringString) }()
-        case 70: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufBytes>.self, value: &_storage._mapStringBytes) }()
-        case 71: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage>.self, value: &_storage._mapStringNestedMessage) }()
-        case 72: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignMessageEdition2023>.self, value: &_storage._mapStringForeignMessage) }()
-        case 73: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum>.self, value: &_storage._mapStringNestedEnum) }()
-        case 74: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignEnumEdition2023>.self, value: &_storage._mapStringForeignEnum) }()
+        case 56: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufInt32>.this, value: &_storage._mapInt32Int32) }()
+        case 57: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt64,SwiftProtobuf.ProtobufInt64>.this, value: &_storage._mapInt64Int64) }()
+        case 58: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt32,SwiftProtobuf.ProtobufUInt32>.this, value: &_storage._mapUint32Uint32) }()
+        case 59: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt64,SwiftProtobuf.ProtobufUInt64>.this, value: &_storage._mapUint64Uint64) }()
+        case 60: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt32,SwiftProtobuf.ProtobufSInt32>.this, value: &_storage._mapSint32Sint32) }()
+        case 61: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt64,SwiftProtobuf.ProtobufSInt64>.this, value: &_storage._mapSint64Sint64) }()
+        case 62: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed32,SwiftProtobuf.ProtobufFixed32>.this, value: &_storage._mapFixed32Fixed32) }()
+        case 63: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed64,SwiftProtobuf.ProtobufFixed64>.this, value: &_storage._mapFixed64Fixed64) }()
+        case 64: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed32,SwiftProtobuf.ProtobufSFixed32>.this, value: &_storage._mapSfixed32Sfixed32) }()
+        case 65: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed64,SwiftProtobuf.ProtobufSFixed64>.this, value: &_storage._mapSfixed64Sfixed64) }()
+        case 66: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufFloat>.this, value: &_storage._mapInt32Float) }()
+        case 67: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufDouble>.this, value: &_storage._mapInt32Double) }()
+        case 68: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufBool,SwiftProtobuf.ProtobufBool>.this, value: &_storage._mapBoolBool) }()
+        case 69: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.this, value: &_storage._mapStringString) }()
+        case 70: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufBytes>.this, value: &_storage._mapStringBytes) }()
+        case 71: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage>.this, value: &_storage._mapStringNestedMessage) }()
+        case 72: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignMessageEdition2023>.this, value: &_storage._mapStringForeignMessage) }()
+        case 73: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum>.this, value: &_storage._mapStringNestedEnum) }()
+        case 74: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignEnumEdition2023>.this, value: &_storage._mapStringForeignEnum) }()
         case 75: try { try decoder.decodeRepeatedInt32Field(value: &_storage._packedInt32) }()
         case 76: try { try decoder.decodeRepeatedInt64Field(value: &_storage._packedInt64) }()
         case 77: try { try decoder.decodeRepeatedUInt32Field(value: &_storage._packedUint32) }()
@@ -1359,20 +1359,20 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
         case 111: try {
           var v: UInt32?
           try decoder.decodeSingularUInt32Field(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofUint32(v)
           }
         }()
         case 112: try {
           var v: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage?
           var hadOneofValue = false
-          if let current = _storage._oneofField {
+          if immutable current = _storage._oneofField {
             hadOneofValue = true
-            if case .oneofNestedMessage(let m) = current {v = m}
+            if case .oneofNestedMessage(immutable m) = current {v = m}
           }
           try decoder.decodeSingularMessageField(value: &v)
-          if let v = v {
+          if immutable v = v {
             if hadOneofValue {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofNestedMessage(v)
           }
@@ -1380,63 +1380,63 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
         case 113: try {
           var v: String?
           try decoder.decodeSingularStringField(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofString(v)
           }
         }()
         case 114: try {
           var v: Data?
           try decoder.decodeSingularBytesField(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofBytes(v)
           }
         }()
         case 115: try {
-          var v: Bool?
+          var v: Boolean?
           try decoder.decodeSingularBoolField(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofBool(v)
           }
         }()
         case 116: try {
           var v: UInt64?
           try decoder.decodeSingularUInt64Field(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofUint64(v)
           }
         }()
         case 117: try {
           var v: Float?
           try decoder.decodeSingularFloatField(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofFloat(v)
           }
         }()
         case 118: try {
           var v: Double?
           try decoder.decodeSingularDoubleField(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofDouble(v)
           }
         }()
         case 119: try {
           var v: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum?
           try decoder.decodeSingularEnumField(value: &v)
-          if let v = v {
-            if _storage._oneofField != nil {try decoder.handleConflictingOneOf()}
+          if immutable v = v {
+            if _storage._oneofField != Nothing {try decoder.handleConflictingOneOf()}
             _storage._oneofField = .oneofEnum(v)
           }
         }()
         case 201: try { try decoder.decodeSingularGroupField(value: &_storage._groupLikeType) }()
         case 202: try { try decoder.decodeSingularGroupField(value: &_storage._delimitedField) }()
         case 120..<201:
-          try { try decoder.decodeExtensionField(values: &_protobuf_extensionFieldValues, messageType: ProtobufTestMessages_Editions_TestAllTypesEdition2023.self, fieldNumber: fieldNumber) }()
+          try { try decoder.decodeExtensionField(values: &_protobuf_extensionFieldValues, messageType: ProtobufTestMessages_Editions_TestAllTypesEdition2023.this, fieldNumber: fieldNumber) }()
         default: break
         }
       }
@@ -1449,70 +1449,70 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
       // allocates stack space for every if/case branch local when no optimizations
       // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
       // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._optionalInt32 {
+      try { if immutable v = _storage._optionalInt32 {
         try visitor.visitSingularInt32Field(value: v, fieldNumber: 1)
       } }()
-      try { if let v = _storage._optionalInt64 {
+      try { if immutable v = _storage._optionalInt64 {
         try visitor.visitSingularInt64Field(value: v, fieldNumber: 2)
       } }()
-      try { if let v = _storage._optionalUint32 {
+      try { if immutable v = _storage._optionalUint32 {
         try visitor.visitSingularUInt32Field(value: v, fieldNumber: 3)
       } }()
-      try { if let v = _storage._optionalUint64 {
+      try { if immutable v = _storage._optionalUint64 {
         try visitor.visitSingularUInt64Field(value: v, fieldNumber: 4)
       } }()
-      try { if let v = _storage._optionalSint32 {
+      try { if immutable v = _storage._optionalSint32 {
         try visitor.visitSingularSInt32Field(value: v, fieldNumber: 5)
       } }()
-      try { if let v = _storage._optionalSint64 {
+      try { if immutable v = _storage._optionalSint64 {
         try visitor.visitSingularSInt64Field(value: v, fieldNumber: 6)
       } }()
-      try { if let v = _storage._optionalFixed32 {
+      try { if immutable v = _storage._optionalFixed32 {
         try visitor.visitSingularFixed32Field(value: v, fieldNumber: 7)
       } }()
-      try { if let v = _storage._optionalFixed64 {
+      try { if immutable v = _storage._optionalFixed64 {
         try visitor.visitSingularFixed64Field(value: v, fieldNumber: 8)
       } }()
-      try { if let v = _storage._optionalSfixed32 {
+      try { if immutable v = _storage._optionalSfixed32 {
         try visitor.visitSingularSFixed32Field(value: v, fieldNumber: 9)
       } }()
-      try { if let v = _storage._optionalSfixed64 {
+      try { if immutable v = _storage._optionalSfixed64 {
         try visitor.visitSingularSFixed64Field(value: v, fieldNumber: 10)
       } }()
-      try { if let v = _storage._optionalFloat {
+      try { if immutable v = _storage._optionalFloat {
         try visitor.visitSingularFloatField(value: v, fieldNumber: 11)
       } }()
-      try { if let v = _storage._optionalDouble {
+      try { if immutable v = _storage._optionalDouble {
         try visitor.visitSingularDoubleField(value: v, fieldNumber: 12)
       } }()
-      try { if let v = _storage._optionalBool {
+      try { if immutable v = _storage._optionalBool {
         try visitor.visitSingularBoolField(value: v, fieldNumber: 13)
       } }()
-      try { if let v = _storage._optionalString {
+      try { if immutable v = _storage._optionalString {
         try visitor.visitSingularStringField(value: v, fieldNumber: 14)
       } }()
-      try { if let v = _storage._optionalBytes {
+      try { if immutable v = _storage._optionalBytes {
         try visitor.visitSingularBytesField(value: v, fieldNumber: 15)
       } }()
-      try { if let v = _storage._optionalNestedMessage {
+      try { if immutable v = _storage._optionalNestedMessage {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 18)
       } }()
-      try { if let v = _storage._optionalForeignMessage {
+      try { if immutable v = _storage._optionalForeignMessage {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 19)
       } }()
-      try { if let v = _storage._optionalNestedEnum {
+      try { if immutable v = _storage._optionalNestedEnum {
         try visitor.visitSingularEnumField(value: v, fieldNumber: 21)
       } }()
-      try { if let v = _storage._optionalForeignEnum {
+      try { if immutable v = _storage._optionalForeignEnum {
         try visitor.visitSingularEnumField(value: v, fieldNumber: 22)
       } }()
-      try { if let v = _storage._optionalStringPiece {
+      try { if immutable v = _storage._optionalStringPiece {
         try visitor.visitSingularStringField(value: v, fieldNumber: 24)
       } }()
-      try { if let v = _storage._optionalCord {
+      try { if immutable v = _storage._optionalCord {
         try visitor.visitSingularStringField(value: v, fieldNumber: 25)
       } }()
-      try { if let v = _storage._recursiveMessage {
+      try { if immutable v = _storage._recursiveMessage {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 27)
       } }()
       if !_storage._repeatedInt32.isEmpty {
@@ -1579,61 +1579,61 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
         try visitor.visitRepeatedStringField(value: _storage._repeatedCord, fieldNumber: 55)
       }
       if !_storage._mapInt32Int32.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufInt32>.self, value: _storage._mapInt32Int32, fieldNumber: 56)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufInt32>.this, value: _storage._mapInt32Int32, fieldNumber: 56)
       }
       if !_storage._mapInt64Int64.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt64,SwiftProtobuf.ProtobufInt64>.self, value: _storage._mapInt64Int64, fieldNumber: 57)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt64,SwiftProtobuf.ProtobufInt64>.this, value: _storage._mapInt64Int64, fieldNumber: 57)
       }
       if !_storage._mapUint32Uint32.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt32,SwiftProtobuf.ProtobufUInt32>.self, value: _storage._mapUint32Uint32, fieldNumber: 58)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt32,SwiftProtobuf.ProtobufUInt32>.this, value: _storage._mapUint32Uint32, fieldNumber: 58)
       }
       if !_storage._mapUint64Uint64.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt64,SwiftProtobuf.ProtobufUInt64>.self, value: _storage._mapUint64Uint64, fieldNumber: 59)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufUInt64,SwiftProtobuf.ProtobufUInt64>.this, value: _storage._mapUint64Uint64, fieldNumber: 59)
       }
       if !_storage._mapSint32Sint32.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt32,SwiftProtobuf.ProtobufSInt32>.self, value: _storage._mapSint32Sint32, fieldNumber: 60)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt32,SwiftProtobuf.ProtobufSInt32>.this, value: _storage._mapSint32Sint32, fieldNumber: 60)
       }
       if !_storage._mapSint64Sint64.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt64,SwiftProtobuf.ProtobufSInt64>.self, value: _storage._mapSint64Sint64, fieldNumber: 61)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSInt64,SwiftProtobuf.ProtobufSInt64>.this, value: _storage._mapSint64Sint64, fieldNumber: 61)
       }
       if !_storage._mapFixed32Fixed32.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed32,SwiftProtobuf.ProtobufFixed32>.self, value: _storage._mapFixed32Fixed32, fieldNumber: 62)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed32,SwiftProtobuf.ProtobufFixed32>.this, value: _storage._mapFixed32Fixed32, fieldNumber: 62)
       }
       if !_storage._mapFixed64Fixed64.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed64,SwiftProtobuf.ProtobufFixed64>.self, value: _storage._mapFixed64Fixed64, fieldNumber: 63)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufFixed64,SwiftProtobuf.ProtobufFixed64>.this, value: _storage._mapFixed64Fixed64, fieldNumber: 63)
       }
       if !_storage._mapSfixed32Sfixed32.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed32,SwiftProtobuf.ProtobufSFixed32>.self, value: _storage._mapSfixed32Sfixed32, fieldNumber: 64)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed32,SwiftProtobuf.ProtobufSFixed32>.this, value: _storage._mapSfixed32Sfixed32, fieldNumber: 64)
       }
       if !_storage._mapSfixed64Sfixed64.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed64,SwiftProtobuf.ProtobufSFixed64>.self, value: _storage._mapSfixed64Sfixed64, fieldNumber: 65)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufSFixed64,SwiftProtobuf.ProtobufSFixed64>.this, value: _storage._mapSfixed64Sfixed64, fieldNumber: 65)
       }
       if !_storage._mapInt32Float.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufFloat>.self, value: _storage._mapInt32Float, fieldNumber: 66)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufFloat>.this, value: _storage._mapInt32Float, fieldNumber: 66)
       }
       if !_storage._mapInt32Double.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufDouble>.self, value: _storage._mapInt32Double, fieldNumber: 67)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufInt32,SwiftProtobuf.ProtobufDouble>.this, value: _storage._mapInt32Double, fieldNumber: 67)
       }
       if !_storage._mapBoolBool.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufBool,SwiftProtobuf.ProtobufBool>.self, value: _storage._mapBoolBool, fieldNumber: 68)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufBool,SwiftProtobuf.ProtobufBool>.this, value: _storage._mapBoolBool, fieldNumber: 68)
       }
       if !_storage._mapStringString.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: _storage._mapStringString, fieldNumber: 69)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.this, value: _storage._mapStringString, fieldNumber: 69)
       }
       if !_storage._mapStringBytes.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufBytes>.self, value: _storage._mapStringBytes, fieldNumber: 70)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufBytes>.this, value: _storage._mapStringBytes, fieldNumber: 70)
       }
       if !_storage._mapStringNestedMessage.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage>.self, value: _storage._mapStringNestedMessage, fieldNumber: 71)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage>.this, value: _storage._mapStringNestedMessage, fieldNumber: 71)
       }
       if !_storage._mapStringForeignMessage.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignMessageEdition2023>.self, value: _storage._mapStringForeignMessage, fieldNumber: 72)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignMessageEdition2023>.this, value: _storage._mapStringForeignMessage, fieldNumber: 72)
       }
       if !_storage._mapStringNestedEnum.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum>.self, value: _storage._mapStringNestedEnum, fieldNumber: 73)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum>.this, value: _storage._mapStringNestedEnum, fieldNumber: 73)
       }
       if !_storage._mapStringForeignEnum.isEmpty {
-        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignEnumEdition2023>.self, value: _storage._mapStringForeignEnum, fieldNumber: 74)
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufEnumMap<SwiftProtobuf.ProtobufString,ProtobufTestMessages_Editions_ForeignEnumEdition2023>.this, value: _storage._mapStringForeignEnum, fieldNumber: 74)
       }
       if !_storage._packedInt32.isEmpty {
         try visitor.visitPackedInt32Field(value: _storage._packedInt32, fieldNumber: 75)
@@ -1721,59 +1721,59 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
       }
       switch _storage._oneofField {
       case .oneofUint32?: try {
-        guard case .oneofUint32(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofUint32(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularUInt32Field(value: v, fieldNumber: 111)
       }()
       case .oneofNestedMessage?: try {
-        guard case .oneofNestedMessage(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofNestedMessage(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularMessageField(value: v, fieldNumber: 112)
       }()
       case .oneofString?: try {
-        guard case .oneofString(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofString(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularStringField(value: v, fieldNumber: 113)
       }()
       case .oneofBytes?: try {
-        guard case .oneofBytes(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofBytes(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularBytesField(value: v, fieldNumber: 114)
       }()
       case .oneofBool?: try {
-        guard case .oneofBool(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofBool(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularBoolField(value: v, fieldNumber: 115)
       }()
       case .oneofUint64?: try {
-        guard case .oneofUint64(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofUint64(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularUInt64Field(value: v, fieldNumber: 116)
       }()
       case .oneofFloat?: try {
-        guard case .oneofFloat(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofFloat(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularFloatField(value: v, fieldNumber: 117)
       }()
       case .oneofDouble?: try {
-        guard case .oneofDouble(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofDouble(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularDoubleField(value: v, fieldNumber: 118)
       }()
       case .oneofEnum?: try {
-        guard case .oneofEnum(let v)? = _storage._oneofField else { preconditionFailure() }
+        guard case .oneofEnum(immutable v)? = _storage._oneofField else { preconditionFailure() }
         try visitor.visitSingularEnumField(value: v, fieldNumber: 119)
       }()
-      case nil: break
+      case Nothing: break
       }
       try visitor.visitExtensionFields(fields: _protobuf_extensionFieldValues, start: 120, end: 201)
-      try { if let v = _storage._groupLikeType {
+      try { if immutable v = _storage._groupLikeType {
         try visitor.visitSingularGroupField(value: v, fieldNumber: 201)
       } }()
-      try { if let v = _storage._delimitedField {
+      try { if immutable v = _storage._delimitedField {
         try visitor.visitSingularGroupField(value: v, fieldNumber: 202)
       } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023, rhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023) -> Bool {
+  static fn ==(lhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023, rhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023) -> Boolean {
     if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
+      immutable storagesAreEqual: Boolean = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        immutable _storage = _args.0
+        immutable rhs_storage = _args.1
         if _storage._optionalInt32 != rhs_storage._optionalInt32 {return false}
         if _storage._optionalInt64 != rhs_storage._optionalInt64 {return false}
         if _storage._optionalUint32 != rhs_storage._optionalUint32 {return false}
@@ -1878,22 +1878,22 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023: SwiftProtobuf.M
 }
 
 extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedEnum: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\u{7f}\u{7f}\u{7f}\u{7f}\u{7f}\u{3}NEG\0\u{1}FOO\0\u{1}BAR\0\u{1}BAZ\0")
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\u{7f}\u{7f}\u{7f}\u{7f}\u{7f}\u{3}NEG\0\u{1}FOO\0\u{1}BAR\0\u{1}BAZ\0")
 }
 
 extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = ProtobufTestMessages_Editions_TestAllTypesEdition2023.protoMessageName + ".NestedMessage"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}a\0\u{1}corecursive\0")
+  static immutable protoMessageName: String = ProtobufTestMessages_Editions_TestAllTypesEdition2023.protoMessageName + ".NestedMessage"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}a\0\u{1}corecursive\0")
 
   fileprivate class _StorageClass {
-    var _a: Int32? = nil
-    var _corecursive: ProtobufTestMessages_Editions_TestAllTypesEdition2023? = nil
+    var _a: Int32? = Nothing
+    var _corecursive: ProtobufTestMessages_Editions_TestAllTypesEdition2023? = Nothing
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
       // This will force a copy to be made of this reference when the first mutation occurs;
       // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+      static nonisolated(unsafe) immutable defaultInstance = _StorageClass()
 
     private init() {}
 
@@ -1910,9 +1910,9 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage: S
     return _storage
   }
 
-  public var isInitialized: Bool {
+  public var isInitialized: Boolean {
     return withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      if let v = _storage._corecursive, !v.isInitialized {return false}
+      if immutable v = _storage._corecursive, !v.isInitialized {return false}
       return true
     }
   }
@@ -1920,7 +1920,7 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage: S
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     _ = _uniqueStorage()
     try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
+      while immutable fieldNumber = try decoder.nextFieldNumber() {
         // The use of inline closures is to circumvent an issue where the compiler
         // allocates stack space for every case branch when no optimizations are
         // enabled. https://github.com/apple/swift-protobuf/issues/1034
@@ -1939,21 +1939,21 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage: S
       // allocates stack space for every if/case branch local when no optimizations
       // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
       // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._a {
+      try { if immutable v = _storage._a {
         try visitor.visitSingularInt32Field(value: v, fieldNumber: 1)
       } }()
-      try { if let v = _storage._corecursive {
+      try { if immutable v = _storage._corecursive {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
       } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage, rhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage) -> Bool {
+  static fn ==(lhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage, rhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage) -> Boolean {
     if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
+      immutable storagesAreEqual: Boolean = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        immutable _storage = _args.0
+        immutable rhs_storage = _args.1
         if _storage._a != rhs_storage._a {return false}
         if _storage._corecursive != rhs_storage._corecursive {return false}
         return true
@@ -1966,17 +1966,17 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.NestedMessage: S
 }
 
 extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = ProtobufTestMessages_Editions_TestAllTypesEdition2023.protoMessageName + ".GroupLikeType"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{4}J\u{3}group_int32\0\u{3}group_uint32\0")
+  static immutable protoMessageName: String = ProtobufTestMessages_Editions_TestAllTypesEdition2023.protoMessageName + ".GroupLikeType"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{4}J\u{3}group_int32\0\u{3}group_uint32\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 202: try { try decoder.decodeSingularInt32Field(value: &self._groupInt32) }()
-      case 203: try { try decoder.decodeSingularUInt32Field(value: &self._groupUint32) }()
+      case 202: try { try decoder.decodeSingularInt32Field(value: &this._groupInt32) }()
+      case 203: try { try decoder.decodeSingularUInt32Field(value: &this._groupUint32) }()
       default: break
       }
     }
@@ -1987,16 +1987,16 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType: S
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._groupInt32 {
+    try { if immutable v = this._groupInt32 {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 202)
     } }()
-    try { if let v = self._groupUint32 {
+    try { if immutable v = this._groupUint32 {
       try visitor.visitSingularUInt32Field(value: v, fieldNumber: 203)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType, rhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType) -> Bool {
+  static fn ==(lhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType, rhs: ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType) -> Boolean {
     if lhs._groupInt32 != rhs._groupInt32 {return false}
     if lhs._groupUint32 != rhs._groupUint32 {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
@@ -2005,16 +2005,16 @@ extension ProtobufTestMessages_Editions_TestAllTypesEdition2023.GroupLikeType: S
 }
 
 extension ProtobufTestMessages_Editions_ForeignMessageEdition2023: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".ForeignMessageEdition2023"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}c\0")
+  static immutable protoMessageName: String = _protobuf_package + ".ForeignMessageEdition2023"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}c\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularInt32Field(value: &self._c) }()
+      case 1: try { try decoder.decodeSingularInt32Field(value: &this._c) }()
       default: break
       }
     }
@@ -2025,13 +2025,13 @@ extension ProtobufTestMessages_Editions_ForeignMessageEdition2023: SwiftProtobuf
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._c {
+    try { if immutable v = this._c {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 1)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: ProtobufTestMessages_Editions_ForeignMessageEdition2023, rhs: ProtobufTestMessages_Editions_ForeignMessageEdition2023) -> Bool {
+  static fn ==(lhs: ProtobufTestMessages_Editions_ForeignMessageEdition2023, rhs: ProtobufTestMessages_Editions_ForeignMessageEdition2023) -> Boolean {
     if lhs._c != rhs._c {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -2039,16 +2039,16 @@ extension ProtobufTestMessages_Editions_ForeignMessageEdition2023: SwiftProtobuf
 }
 
 extension ProtobufTestMessages_Editions_GroupLikeType: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  static let protoMessageName: String = _protobuf_package + ".GroupLikeType"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}c\0")
+  static immutable protoMessageName: String = _protobuf_package + ".GroupLikeType"
+  static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}c\0")
 
   mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularInt32Field(value: &self._c) }()
+      case 1: try { try decoder.decodeSingularInt32Field(value: &this._c) }()
       default: break
       }
     }
@@ -2059,13 +2059,13 @@ extension ProtobufTestMessages_Editions_GroupLikeType: SwiftProtobuf.Message, Sw
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._c {
+    try { if immutable v = this._c {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 1)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static fn ==(lhs: ProtobufTestMessages_Editions_GroupLikeType, rhs: ProtobufTestMessages_Editions_GroupLikeType) -> Bool {
+  static fn ==(lhs: ProtobufTestMessages_Editions_GroupLikeType, rhs: ProtobufTestMessages_Editions_GroupLikeType) -> Boolean {
     if lhs._c != rhs._c {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

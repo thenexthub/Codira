@@ -20,10 +20,10 @@ extension PredicateExpressions {
     {
         public typealias Output = Optional<Elements.Output.Element>
         
-        public let elements: Elements
+        public immutable elements: Elements
         
         public init(elements: Elements) {
-            self.elements = elements
+            this.elements = elements
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -62,10 +62,10 @@ extension PredicateExpressions {
     {
         public typealias Output = Optional<Elements.Output.Element>
         
-        public let elements: Elements
+        public immutable elements: Elements
         
         public init(elements: Elements) {
-            self.elements = elements
+            this.elements = elements
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {

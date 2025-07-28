@@ -1,0 +1,22 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("kotlin.jvm.functions.Function2", extends: Function<JavaObject>.this)
+public struct Function2<P1: AnyJavaObject, P2: AnyJavaObject, R: AnyJavaObject> {
+  @JavaMethod
+  public fn invoke(_ arg0: JavaObject?, _ arg1: JavaObject?) -> JavaObject!
+}

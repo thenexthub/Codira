@@ -30,19 +30,19 @@ public fn helloWorld() {
   p("\(#function)")
 }
 
-public fn globalTakeInt(i: Int) {
+public fn globalTakeInt(i: Integer) {
   p("i:\(i)")
 }
 
-public fn globalMakeInt() -> Int {
+public fn globalMakeInt() -> Integer {
   return 42
 }
 
-public fn globalWriteString(string: String) -> Int {
+public fn globalWriteString(string: String) -> Integer {
   return string.count
 }
 
-public fn globalTakeIntInt(i: Int, j: Int) {
+public fn globalTakeIntInt(i: Integer, j: Integer) {
   p("i:\(i), j:\(j)")
 }
 
@@ -50,7 +50,7 @@ public fn globalCallMeRunnable(run: () -> ()) {
   run()
 }
 
-public fn globalReceiveRawBuffer(buf: UnsafeRawBufferPointer) -> Int {
+public fn globalReceiveRawBuffer(buf: UnsafeRawBufferPointer) -> Integer {
   return buf.count
 }
 
@@ -64,7 +64,7 @@ public fn withBuffer(body: (UnsafeRawBufferPointer) -> Void) {
   body(globalBuffer)
 }
 
-public fn globalReceiveSomeDataProtocol(data: some DataProtocol) -> Int {
+public fn globalReceiveSomeDataProtocol(data: some DataProtocol) -> Integer {
   p(Array(data).description)
   return data.count
 }

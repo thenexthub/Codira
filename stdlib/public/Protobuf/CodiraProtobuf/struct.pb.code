@@ -55,32 +55,32 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: ProtobufAPIVersionCheck 
 ///
 /// The JSON representation for `NullValue` is JSON `null`.
 public enum Google_Protobuf_NullValue: Enum, Swift.CaseIterable {
-  public typealias RawValue = Int
+  public typealias RawValue = Integer
 
   /// Null value.
   case nullValue // = 0
-  case UNRECOGNIZED(Int)
+  case UNRECOGNIZED(Integer)
 
   public init() {
-    self = .nullValue
+    this = .nullValue
   }
 
-  public init?(rawValue: Int) {
+  public init?(rawValue: Integer) {
     switch rawValue {
-    case 0: self = .nullValue
-    default: self = .UNRECOGNIZED(rawValue)
+    case 0: this = .nullValue
+    default: this = .UNRECOGNIZED(rawValue)
     }
   }
 
-  public var rawValue: Int {
-    switch self {
+  public var rawValue: Integer {
+    switch this {
     case .nullValue: return 0
-    case .UNRECOGNIZED(let i): return i
+    case .UNRECOGNIZED(immutable i): return i
     }
   }
 
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static let allCases: [Google_Protobuf_NullValue] = [
+  public static immutable allCases: [Google_Protobuf_NullValue] = [
     .nullValue,
   ]
 
@@ -119,12 +119,12 @@ public struct Google_Protobuf_Value: Sendable {
   // methods supported on all messages.
 
   /// The kind of value.
-  public var kind: Google_Protobuf_Value.OneOf_Kind? = nil
+  public var kind: Google_Protobuf_Value.OneOf_Kind? = Nothing
 
   /// Represents a null value.
   public var nullValue: Google_Protobuf_NullValue {
     get {
-      if case .nullValue(let v)? = kind {return v}
+      if case .nullValue(immutable v)? = kind {return v}
       return .nullValue
     }
     set {kind = .nullValue(newValue)}
@@ -133,7 +133,7 @@ public struct Google_Protobuf_Value: Sendable {
   /// Represents a double value.
   public var numberValue: Double {
     get {
-      if case .numberValue(let v)? = kind {return v}
+      if case .numberValue(immutable v)? = kind {return v}
       return 0
     }
     set {kind = .numberValue(newValue)}
@@ -142,16 +142,16 @@ public struct Google_Protobuf_Value: Sendable {
   /// Represents a string value.
   public var stringValue: String {
     get {
-      if case .stringValue(let v)? = kind {return v}
+      if case .stringValue(immutable v)? = kind {return v}
       return String()
     }
     set {kind = .stringValue(newValue)}
   }
 
   /// Represents a boolean value.
-  public var boolValue: Bool {
+  public var boolValue: Boolean {
     get {
-      if case .boolValue(let v)? = kind {return v}
+      if case .boolValue(immutable v)? = kind {return v}
       return false
     }
     set {kind = .boolValue(newValue)}
@@ -160,7 +160,7 @@ public struct Google_Protobuf_Value: Sendable {
   /// Represents a structured value.
   public var structValue: Google_Protobuf_Struct {
     get {
-      if case .structValue(let v)? = kind {return v}
+      if case .structValue(immutable v)? = kind {return v}
       return Google_Protobuf_Struct()
     }
     set {kind = .structValue(newValue)}
@@ -169,7 +169,7 @@ public struct Google_Protobuf_Value: Sendable {
   /// Represents a repeated `Value`.
   public var listValue: Google_Protobuf_ListValue {
     get {
-      if case .listValue(let v)? = kind {return v}
+      if case .listValue(immutable v)? = kind {return v}
       return Google_Protobuf_ListValue()
     }
     set {kind = .listValue(newValue)}
@@ -186,7 +186,7 @@ public struct Google_Protobuf_Value: Sendable {
     /// Represents a string value.
     case stringValue(String)
     /// Represents a boolean value.
-    case boolValue(Bool)
+    case boolValue(Boolean)
     /// Represents a structured value.
     case structValue(Google_Protobuf_Struct)
     /// Represents a repeated `Value`.
@@ -215,36 +215,36 @@ public struct Google_Protobuf_ListValue: Sendable {
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "google.protobuf"
+fileprivate immutable _protobuf_package = "google.protobuf"
 
 extension Google_Protobuf_NullValue: _ProtoNameProviding {
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0NULL_VALUE\0")
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0NULL_VALUE\0")
 }
 
 extension Google_Protobuf_Struct: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Struct"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}fields\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Struct"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}fields\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeMapField(fieldType: _ProtobufMessageMap<ProtobufString,Google_Protobuf_Value>.self, value: &self.fields) }()
+      case 1: try { try decoder.decodeMapField(fieldType: _ProtobufMessageMap<ProtobufString,Google_Protobuf_Value>.this, value: &this.fields) }()
       default: break
       }
     }
   }
 
   public fn traverse<V: Visitor>(visitor: inout V) throws {
-    if !self.fields.isEmpty {
-      try visitor.visitMapField(fieldType: _ProtobufMessageMap<ProtobufString,Google_Protobuf_Value>.self, value: self.fields, fieldNumber: 1)
+    if !this.fields.isEmpty {
+      try visitor.visitMapField(fieldType: _ProtobufMessageMap<ProtobufString,Google_Protobuf_Value>.this, value: this.fields, fieldNumber: 1)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Struct, rhs: Google_Protobuf_Struct) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Struct, rhs: Google_Protobuf_Struct) -> Boolean {
     if lhs.fields != rhs.fields {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -252,11 +252,11 @@ extension Google_Protobuf_Struct: Message, _MessageImplementationBase, _ProtoNam
 }
 
 extension Google_Protobuf_Value: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Value"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{3}null_value\0\u{3}number_value\0\u{3}string_value\0\u{3}bool_value\0\u{3}struct_value\0\u{3}list_value\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Value"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{3}null_value\0\u{3}number_value\0\u{3}string_value\0\u{3}bool_value\0\u{3}struct_value\0\u{3}list_value\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
@@ -264,59 +264,59 @@ extension Google_Protobuf_Value: Message, _MessageImplementationBase, _ProtoName
       case 1: try {
         var v: Google_Protobuf_NullValue?
         try decoder.decodeSingularEnumField(value: &v)
-        if let v = v {
-          if self.kind != nil {try decoder.handleConflictingOneOf()}
-          self.kind = .nullValue(v)
+        if immutable v = v {
+          if this.kind != Nothing {try decoder.handleConflictingOneOf()}
+          this.kind = .nullValue(v)
         }
       }()
       case 2: try {
         var v: Double?
         try decoder.decodeSingularDoubleField(value: &v)
-        if let v = v {
-          if self.kind != nil {try decoder.handleConflictingOneOf()}
-          self.kind = .numberValue(v)
+        if immutable v = v {
+          if this.kind != Nothing {try decoder.handleConflictingOneOf()}
+          this.kind = .numberValue(v)
         }
       }()
       case 3: try {
         var v: String?
         try decoder.decodeSingularStringField(value: &v)
-        if let v = v {
-          if self.kind != nil {try decoder.handleConflictingOneOf()}
-          self.kind = .stringValue(v)
+        if immutable v = v {
+          if this.kind != Nothing {try decoder.handleConflictingOneOf()}
+          this.kind = .stringValue(v)
         }
       }()
       case 4: try {
-        var v: Bool?
+        var v: Boolean?
         try decoder.decodeSingularBoolField(value: &v)
-        if let v = v {
-          if self.kind != nil {try decoder.handleConflictingOneOf()}
-          self.kind = .boolValue(v)
+        if immutable v = v {
+          if this.kind != Nothing {try decoder.handleConflictingOneOf()}
+          this.kind = .boolValue(v)
         }
       }()
       case 5: try {
         var v: Google_Protobuf_Struct?
         var hadOneofValue = false
-        if let current = self.kind {
+        if immutable current = this.kind {
           hadOneofValue = true
-          if case .structValue(let m) = current {v = m}
+          if case .structValue(immutable m) = current {v = m}
         }
         try decoder.decodeSingularMessageField(value: &v)
-        if let v = v {
+        if immutable v = v {
           if hadOneofValue {try decoder.handleConflictingOneOf()}
-          self.kind = .structValue(v)
+          this.kind = .structValue(v)
         }
       }()
       case 6: try {
         var v: Google_Protobuf_ListValue?
         var hadOneofValue = false
-        if let current = self.kind {
+        if immutable current = this.kind {
           hadOneofValue = true
-          if case .listValue(let m) = current {v = m}
+          if case .listValue(immutable m) = current {v = m}
         }
         try decoder.decodeSingularMessageField(value: &v)
-        if let v = v {
+        if immutable v = v {
           if hadOneofValue {try decoder.handleConflictingOneOf()}
-          self.kind = .listValue(v)
+          this.kind = .listValue(v)
         }
       }()
       default: break
@@ -329,37 +329,37 @@ extension Google_Protobuf_Value: Message, _MessageImplementationBase, _ProtoName
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    switch self.kind {
+    switch this.kind {
     case .nullValue?: try {
-      guard case .nullValue(let v)? = self.kind else { preconditionFailure() }
+      guard case .nullValue(immutable v)? = this.kind else { preconditionFailure() }
       try visitor.visitSingularEnumField(value: v, fieldNumber: 1)
     }()
     case .numberValue?: try {
-      guard case .numberValue(let v)? = self.kind else { preconditionFailure() }
+      guard case .numberValue(immutable v)? = this.kind else { preconditionFailure() }
       try visitor.visitSingularDoubleField(value: v, fieldNumber: 2)
     }()
     case .stringValue?: try {
-      guard case .stringValue(let v)? = self.kind else { preconditionFailure() }
+      guard case .stringValue(immutable v)? = this.kind else { preconditionFailure() }
       try visitor.visitSingularStringField(value: v, fieldNumber: 3)
     }()
     case .boolValue?: try {
-      guard case .boolValue(let v)? = self.kind else { preconditionFailure() }
+      guard case .boolValue(immutable v)? = this.kind else { preconditionFailure() }
       try visitor.visitSingularBoolField(value: v, fieldNumber: 4)
     }()
     case .structValue?: try {
-      guard case .structValue(let v)? = self.kind else { preconditionFailure() }
+      guard case .structValue(immutable v)? = this.kind else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     }()
     case .listValue?: try {
-      guard case .listValue(let v)? = self.kind else { preconditionFailure() }
+      guard case .listValue(immutable v)? = this.kind else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
     }()
-    case nil: break
+    case Nothing: break
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Value, rhs: Google_Protobuf_Value) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Value, rhs: Google_Protobuf_Value) -> Boolean {
     if lhs.kind != rhs.kind {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -367,29 +367,29 @@ extension Google_Protobuf_Value: Message, _MessageImplementationBase, _ProtoName
 }
 
 extension Google_Protobuf_ListValue: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ListValue"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}values\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".ListValue"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}values\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.values) }()
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &this.values) }()
       default: break
       }
     }
   }
 
   public fn traverse<V: Visitor>(visitor: inout V) throws {
-    if !self.values.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.values, fieldNumber: 1)
+    if !this.values.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.values, fieldNumber: 1)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_ListValue, rhs: Google_Protobuf_ListValue) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_ListValue, rhs: Google_Protobuf_ListValue) -> Boolean {
     if lhs.values != rhs.values {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

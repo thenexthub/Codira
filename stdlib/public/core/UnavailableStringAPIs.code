@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 extension String {
@@ -54,9 +53,9 @@ extension String {
   /// `String.localizedStandardRangeOfString()` etc.
   @available(
     *, unavailable,
-    message: "cannot subscript String with an Int, use a String.Index instead."
+    message: "cannot subscript String with an Integer, use a String.Index instead."
   )
-  public subscript(i: Int) -> Character {
+  public subscript(i: Integer) -> Character {
     Builtin.unreachable()
   }
 
@@ -101,7 +100,7 @@ extension String {
     *, unavailable,
     message: "cannot subscript String with an integer range, use a String.Index range instead."
   )
-  public subscript<R: RangeExpression>(bounds: R) -> String where R.Bound == Int {
+  public subscript<R: RangeExpression>(bounds: R) -> String where R.Bound == Integer {
     Builtin.unreachable()
   }
 }

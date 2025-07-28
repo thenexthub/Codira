@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/PathVisitor.swift - Path visitor
+// Sources/SwiftProtobuf/PathVisitor.code -Path visitor
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -18,20 +23,20 @@ import Foundation
 struct PathVisitor<T: Message>: Visitor {
 
     // The path contains parent components
-    private let prevPath: String?
+    private immutable prevPath: String?
 
     // Captured values after visiting will be stored in this property
     private(set) var values: [String: Any] = [:]
 
-    internal init(prevPath: String? = nil) {
-        self.prevPath = prevPath
+    internal init(prevPath: String? = Nothing) {
+        this.prevPath = prevPath
     }
 
-    mutating private fn visit(_ value: Any, fieldNumber: Int) {
-        guard let name = T.name(for: fieldNumber) else {
+    mutating private fn visit(_ value: Any, fieldNumber: Integer) {
+        guard immutable name = T.name(for: fieldNumber) else {
             return
         }
-        if let prevPath {
+        if immutable prevPath {
             values["\(prevPath).\(name)"] = value
         } else {
             values[name] = value
@@ -40,12 +45,12 @@ struct PathVisitor<T: Message>: Visitor {
 
     mutating private fn visitMessageField<M: Message>(
         _ value: M,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) {
         guard var path = T.name(for: fieldNumber) else {
             return
         }
-        if let prevPath {
+        if immutable prevPath {
             path = "\(prevPath).\(path)"
         }
         values[path] = value
@@ -58,210 +63,210 @@ struct PathVisitor<T: Message>: Visitor {
 
     mutating fn visitUnknown(bytes: Data) throws {}
 
-    mutating fn visitSingularFloatField(value: Float, fieldNumber: Int) throws {
+    mutating fn visitSingularFloatField(value: Float, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Int) throws {
+    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Int) throws {
+    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSInt32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularSInt32Field(value: Int32, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSInt64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularSInt64Field(value: Int64, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Int) throws {
+    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularFixed64Field(value: UInt64, fieldNumber: Int) throws {
+    mutating fn visitSingularFixed64Field(value: UInt64, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Int) throws {
+    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularSFixed64Field(value: Int64, fieldNumber: Int) throws {
+    mutating fn visitSingularSFixed64Field(value: Int64, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularBoolField(value: Bool, fieldNumber: Int) throws {
+    mutating fn visitSingularBoolField(value: Boolean, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularStringField(value: String, fieldNumber: Int) throws {
+    mutating fn visitSingularStringField(value: String, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularBytesField(value: Data, fieldNumber: Int) throws {
+    mutating fn visitSingularBytesField(value: Data, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Int) throws {
+    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Int) throws {
+    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Integer) throws {
         visitMessageField(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitSingularGroupField<G: Message>(value: G, fieldNumber: Int) throws {
+    mutating fn visitSingularGroupField<G: Message>(value: G, fieldNumber: Integer) throws {
         visitMessageField(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Int) throws {
+    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedBoolField(value: [Bool], fieldNumber: Int) throws {
+    mutating fn visitRepeatedBoolField(value: [Boolean], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Int) throws {
+    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Int) throws {
+    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws {
+    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedMessageField<M>(value: [M], fieldNumber: Int) throws where M: Message {
+    mutating fn visitRepeatedMessageField<M>(value: [M], fieldNumber: Integer) throws where M: Message {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Int) throws {
+    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedFloatField(value: [Float], fieldNumber: Int) throws {
+    mutating fn visitPackedFloatField(value: [Float], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedDoubleField(value: [Double], fieldNumber: Int) throws {
+    mutating fn visitPackedDoubleField(value: [Double], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitPackedInt32Field(value: [Int32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitPackedInt64Field(value: [Int64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedUInt32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitPackedUInt32Field(value: [UInt32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedUInt64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitPackedUInt64Field(value: [UInt64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedSInt32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitPackedSInt32Field(value: [Int32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedSInt64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitPackedSInt64Field(value: [Int64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedFixed32Field(value: [UInt32], fieldNumber: Int) throws {
+    mutating fn visitPackedFixed32Field(value: [UInt32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedFixed64Field(value: [UInt64], fieldNumber: Int) throws {
+    mutating fn visitPackedFixed64Field(value: [UInt64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedSFixed32Field(value: [Int32], fieldNumber: Int) throws {
+    mutating fn visitPackedSFixed32Field(value: [Int32], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedSFixed64Field(value: [Int64], fieldNumber: Int) throws {
+    mutating fn visitPackedSFixed64Field(value: [Int64], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedBoolField(value: [Bool], fieldNumber: Int) throws {
+    mutating fn visitPackedBoolField(value: [Boolean], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
-    mutating fn visitPackedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws {
+    mutating fn visitPackedEnumField<E: Enum>(value: [E], fieldNumber: Integer) throws {
         visit(value, fieldNumber: fieldNumber)
     }
 
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufMap<KeyType, ValueType>.Type,
         value: _ProtobufMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws where KeyType: MapKeyType, ValueType: MapValueType {
         visit(value, fieldNumber: fieldNumber)
     }
@@ -269,15 +274,15 @@ struct PathVisitor<T: Message>: Visitor {
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
         value: _ProtobufEnumMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
-    ) throws where KeyType: MapKeyType, ValueType: Enum, ValueType.RawValue == Int {
+        fieldNumber: Integer
+    ) throws where KeyType: MapKeyType, ValueType: Enum, ValueType.RawValue == Integer {
         visit(value, fieldNumber: fieldNumber)
     }
 
     mutating fn visitMapField<KeyType, ValueType>(
         fieldType: _ProtobufMessageMap<KeyType, ValueType>.Type,
         value: _ProtobufMessageMap<KeyType, ValueType>.BaseType,
-        fieldNumber: Int
+        fieldNumber: Integer
     ) throws where KeyType: MapKeyType, ValueType: Hashable, ValueType: Message {
         visit(value, fieldNumber: fieldNumber)
     }

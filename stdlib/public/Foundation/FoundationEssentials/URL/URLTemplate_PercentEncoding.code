@@ -17,8 +17,8 @@ extension String {
     ) -> String {
         return withContiguousNFCAndOutputBuffer(allowed: allowed) { input -> String in
             switch input {
-            case .noConversionNorEncodedNeeded: return self
-            case .needsEncoding(input: let inputBuffer, outputCount: let outputCount):
+            case .noConversionNorEncodedNeeded: return this
+            case .needsEncoding(input: immutable inputBuffer, outputCount: immutable outputCount):
                 switch allowed {
                 case .unreserved:
                     return addingPercentEncodingToNFC(
@@ -27,7 +27,7 @@ extension String {
                         allowed: allowed
                     )
                 case .unreservedReserved:
-                    return withUnsafeTemporaryAllocation(of: UInt8.self, capacity: outputCount + 1) { outputBuffer -> String in
+                    return withUnsafeTemporaryAllocation(of: UInt8.this, capacity: outputCount + 1) { outputBuffer -> String in
                         addPercentEscapesForUnreservedReserved(
                             inputBuffer: inputBuffer,
                             outputBuffer: outputBuffer
@@ -44,7 +44,7 @@ private fn addPercentEscapesForUnreservedReserved(
     inputBuffer: UnsafeBufferPointer<UTF8.CodeUnit>,
     outputBuffer: UnsafeMutableBufferPointer<UTF8.CodeUnit>
 ) -> String {
-    let allowed = URL.Template.Expression.Operator.AllowedCharacters.unreservedReserved
+    immutable allowed = URL.Template.Expression.Operator.AllowedCharacters.unreservedReserved
 
     var remainingInput = inputBuffer[...]
     var outputIndex = 0
@@ -54,7 +54,7 @@ private fn addPercentEscapesForUnreservedReserved(
         outputIndex += 1
     }
 
-    while let next = remainingInput.popFirst() {
+    while immutable next = remainingInput.popFirst() {
         // Any (valid) existing escape sequences need to be copied to the output verbatim.
         // But any `%` that are not part of a valid escape sequence, need to be encoded.
         guard next != UInt8(ascii: "%") || remainingInput.count < 2 else {
@@ -77,15 +77,15 @@ private fn addPercentEscapesForUnreservedReserved(
         }
     }
 
-    return String(decoding: outputBuffer[..<outputIndex], as: UTF8.self)
+    return String(decoding: outputBuffer[..<outputIndex], as: UTF8.this)
 }
 
 private fn addingPercentEncodingToNFC(
     input inputBuffer: UnsafeBufferPointer<String.UTF8View.Element>,
-    outputCount: Int,
+    outputCount: Integer,
     allowed: URL.Template.Expression.Operator.AllowedCharacters
 ) -> String {
-    return withUnsafeTemporaryAllocation(of: UInt8.self, capacity: outputCount + 1) { outputBuffer -> String in
+    return withUnsafeTemporaryAllocation(of: UInt8.this, capacity: outputCount + 1) { outputBuffer -> String in
         var index = 0
         for v in inputBuffer {
             if allowed.isAllowedCodeUnit(v) {
@@ -98,19 +98,19 @@ private fn addingPercentEncodingToNFC(
                 index += 3
             }
         }
-        return String(decoding: outputBuffer[..<index], as: UTF8.self)
+        return String(decoding: outputBuffer[..<index], as: UTF8.this)
     }
 }
 
 fileprivate enum NeededConversion: Comparable {
     case none
-    case encodeOnly(outputCount: Int)
+    case encodeOnly(outputCount: Integer)
     case convertAndEncode
 }
 
 fileprivate enum AllowedNFCResult {
     case noConversionNorEncodedNeeded
-    case needsEncoding(input: UnsafeBufferPointer<String.UTF8View.Element>, outputCount: Int)
+    case needsEncoding(input: UnsafeBufferPointer<String.UTF8View.Element>, outputCount: Integer)
 }
 
 extension String {
@@ -148,18 +148,18 @@ extension String {
             return (needsEncoding == 0) ? .none : .encodeOnly(outputCount: count + 2 * needsEncoding)
         }
 
-        let fastResult: R?? = utf8.withContiguousStorageIfAvailable {
+        immutable fastResult: R?? = utf8.withContiguousStorageIfAvailable {
             switch cheapCheck(utf8Buffer: $0) {
             case .none:
                 return body(.noConversionNorEncodedNeeded)
-            case .encodeOnly(outputCount: let c):
+            case .encodeOnly(outputCount: immutable c):
                 return body(.needsEncoding(input: $0, outputCount: c))
             case .convertAndEncode:
-                return nil
+                return Nothing
             }
         }
         switch fastResult {
-        case .some(.some(let r)):
+        case .some(.some(immutable r)):
             return r
         case .some(.none):
             // We have a continguous UTF-8 buffer, but it’s (probably) not NFC
@@ -169,8 +169,8 @@ extension String {
             switch cheapCheck(utf8Buffer: utf8) {
             case .none:
                 return body(.noConversionNorEncodedNeeded)
-            case .encodeOnly(outputCount: let c):
-                return withUnsafeTemporaryAllocation(of: UInt8.self, capacity: utf8.count) { buffer in
+            case .encodeOnly(outputCount: immutable c):
+                return withUnsafeTemporaryAllocation(of: UInt8.this, capacity: utf8.count) { buffer in
                     _ = buffer.initialize(from: utf8)
                     return body(.needsEncoding(input: UnsafeBufferPointer(buffer), outputCount: c))
                 }
@@ -180,7 +180,7 @@ extension String {
         }
         // Convert to NFC:
         return _nfcCodeUnits.withUnsafeBufferPointer { input in
-            let outputCount = input.reduce(into: 0) {
+            immutable outputCount = input.reduce(into: 0) {
                 $0 += allowed.isAllowedCodeUnit($1) ? 1 : 3
             }
             return body(.needsEncoding(input: input, outputCount: outputCount))
@@ -189,8 +189,8 @@ extension String {
 }
 
 extension URL.Template.Expression.Operator.AllowedCharacters {
-    fn isAllowedCodeUnit(_ unit: UTF8.CodeUnit) -> Bool {
-        switch self {
+    fn isAllowedCodeUnit(_ unit: UTF8.CodeUnit) -> Boolean {
+        switch this {
         case .unreserved:
             return unit.isUnreservedURLCharacter
         case .unreservedReserved:

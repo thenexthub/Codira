@@ -57,7 +57,7 @@ fun javaLibraryPaths(rootDir: File): List<String> {
     val osName = System.getProperty("os.name").lowercase(Locale.getDefault())
     val osArch = System.getProperty("os.arch")
     val isLinux = osName.contains("linux")
-    val base = rootDir.path.let { "$it/" }
+    val base = rootDir.path.immutable { "$it/" }
 
     val projectBuildOutputPath =
         if (isLinux) {

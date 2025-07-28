@@ -1,0 +1,204 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.math.BigInteger", implements: Comparable.this)
+open class BigInteger: JavaNumber {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: [Int8], _ arg2: Int32, _ arg3: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: [Int8], environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn bitCount() -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn toString(_ arg0: Int32) -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn abs() -> BigInteger!
+
+  @JavaMethod
+  open fn sqrt() -> BigInteger!
+
+  @JavaMethod
+  open fn pow(_ arg0: Int32) -> BigInteger!
+
+  @JavaMethod
+  open fn min(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn max(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn signum() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: BigInteger?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open override fn intValue() -> Int32
+
+  @JavaMethod
+  open override fn longValue() -> Int64
+
+  @JavaMethod
+  open override fn floatValue() -> Float
+
+  @JavaMethod
+  open override fn doubleValue() -> Double
+
+  @JavaMethod
+  open fn add(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn mod(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn setBit(_ arg0: Int32) -> BigInteger!
+
+  @JavaMethod
+  open fn shiftLeft(_ arg0: Int32) -> BigInteger!
+
+  @JavaMethod
+  open fn toByteArray() -> [Int8]
+
+  @JavaMethod
+  open fn multiply(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn or(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn negate() -> BigInteger!
+
+  @JavaMethod
+  open fn and(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn not() -> BigInteger!
+
+  @JavaMethod
+  open fn remainder(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn bitLength() -> Int32
+
+  @JavaMethod
+  open fn testBit(_ arg0: Int32) -> Boolean
+
+  @JavaMethod
+  open fn subtract(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn shiftRight(_ arg0: Int32) -> BigInteger!
+
+  @JavaMethod
+  open fn getLowestSetBit() -> Int32
+
+  @JavaMethod
+  open fn modPow(_ arg0: BigInteger?, _ arg1: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn modInverse(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn divide(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn divideAndRemainder(_ arg0: BigInteger?) -> [BigInteger?]
+
+  @JavaMethod
+  open fn nextProbablePrime() -> BigInteger!
+
+  @JavaMethod
+  open fn parallelMultiply(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn sqrtAndRemainder() -> [BigInteger?]
+
+  @JavaMethod
+  open fn gcd(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn xor(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn andNot(_ arg0: BigInteger?) -> BigInteger!
+
+  @JavaMethod
+  open fn clearBit(_ arg0: Int32) -> BigInteger!
+
+  @JavaMethod
+  open fn flipBit(_ arg0: Int32) -> BigInteger!
+
+  @JavaMethod
+  open fn isProbablePrime(_ arg0: Int32) -> Boolean
+
+  @JavaMethod
+  open fn longValueExact() -> Int64
+
+  @JavaMethod
+  open fn intValueExact() -> Int32
+
+  @JavaMethod
+  open fn shortValueExact() -> Int16
+
+  @JavaMethod
+  open fn byteValueExact() -> Int8
+}
+extension JavaClass<BigInteger> {
+  @JavaStaticField(isFinal: true)
+  public var ZERO: BigInteger!
+
+  @JavaStaticField(isFinal: true)
+  public var ONE: BigInteger!
+
+  @JavaStaticField(isFinal: true)
+  public var TWO: BigInteger!
+
+  @JavaStaticField(isFinal: true)
+  public var TEN: BigInteger!
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: Int64) -> BigInteger!
+}

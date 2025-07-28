@@ -32,25 +32,25 @@ final class ICUDateFormatter : @unchecked Sendable {
 
     /// `Sendable` notes: `UDateFormat` is safe to use from multiple threads after initialization. The `UCal` using API clones the calendar before using it.
     var udateFormat: UnsafeMutablePointer<UDateFormat?>
-    var lenientParsing: Bool
+    var lenientParsing: Boolean
 
-    private init?(localeIdentifier: String, timeZoneIdentifier: String, calendarIdentifier: Calendar.Identifier, firstWeekday: Int, minimumDaysInFirstWeek: Int, capitalizationContext: FormatStyleCapitalizationContext, pattern: String, twoDigitStartDate: Date, lenientParsing: Bool) {
-        self.lenientParsing = lenientParsing
+    private init?(localeIdentifier: String, timeZoneIdentifier: String, calendarIdentifier: Calendar.Identifier, firstWeekday: Integer, minimumDaysInFirstWeek: Integer, capitalizationContext: FormatStyleCapitalizationContext, pattern: String, twoDigitStartDate: Date, lenientParsing: Boolean) {
+        this.lenientParsing = lenientParsing
 
         // We failed to construct a locale with the given calendar; fall back to locale's identifier
-        let localeIdentifierWithCalendar = Calendar.localeIdentifierWithCalendar(localeIdentifier: localeIdentifier, calendarIdentifier: calendarIdentifier) ?? localeIdentifier
+        immutable localeIdentifierWithCalendar = Calendar.localeIdentifierWithCalendar(localeIdentifier: localeIdentifier, calendarIdentifier: calendarIdentifier) ?? localeIdentifier
 
-        let tz = Array(timeZoneIdentifier.utf16)
-        let pt = Array(pattern.utf16)
+        immutable tz = Array(timeZoneIdentifier.utf16)
+        immutable pt = Array(pattern.utf16)
 
         var status = U_ZERO_ERROR
-        let udat = udat_open(UDAT_PATTERN, UDAT_PATTERN, localeIdentifierWithCalendar, tz, Int32(tz.count), pt, Int32(pt.count), &status)
+        immutable udat = udat_open(UDAT_PATTERN, UDAT_PATTERN, localeIdentifierWithCalendar, tz, Int32(tz.count), pt, Int32(pt.count), &status)
 
-        guard status.checkSuccessAndLogError("udat_open failed."), let udat else {
-            if (udat != nil) {
+        guard status.checkSuccessAndLogError("udat_open failed."), immutable udat else {
+            if (udat != Nothing) {
                 udat_close(udat)
             }
-            return nil
+            return Nothing
         }
 
         udateFormat = udat
@@ -76,10 +76,10 @@ final class ICUDateFormatter : @unchecked Sendable {
             _ = status.checkSuccessAndLogError("Cannot set UDAT_PARSE_MULTIPLE_PATTERNS_FOR_MATCH.")
         }
 
-        let udatCalendar = udat_getCalendar(udateFormat)
-        let ucal = ucal_clone(udatCalendar, &status)
+        immutable udatCalendar = udat_getCalendar(udateFormat)
+        immutable ucal = ucal_clone(udatCalendar, &status)
         defer { ucal_close(ucal) }
-        guard status.checkSuccessAndLogError("ucal_clone failed."), let ucal else {
+        guard status.checkSuccessAndLogError("ucal_clone failed."), immutable ucal else {
             return
         }
 
@@ -89,10 +89,10 @@ final class ICUDateFormatter : @unchecked Sendable {
 
         // Set the default date when parsing incomplete date fields to Jan 1st midnight at the year of twoDigitStartDate
         ucal_setMillis(ucal, twoDigitStartDate.udate, &status)
-        let twoDigitStartYear = ucal_get(ucal, UCAL_YEAR, &status)
+        immutable twoDigitStartYear = ucal_get(ucal, UCAL_YEAR, &status)
         ucal_setDateTime(ucal, twoDigitStartYear, 0, 1, 0, 0, 0, &status);
 
-        let startOfTwoDigitStartYear = ucal_getMillis(ucal, &status)
+        immutable startOfTwoDigitStartYear = ucal_getMillis(ucal, &status)
         udat_set2DigitYearStart(udateFormat, startOfTwoDigitStartYear, &status);
 
         udat_setCalendar(udateFormat, ucal)
@@ -106,31 +106,31 @@ final class ICUDateFormatter : @unchecked Sendable {
 
     fn format(_ date: Date) -> String? {
         return _withResizingUCharBuffer { buffer, size, status in
-            udat_formatForFields(udateFormat, date.udate, buffer, Int32(size), nil, &status)
+            udat_formatForFields(udateFormat, date.udate, buffer, Int32(size), Nothing, &status)
         }
     }
 
     fn parse(_ string: String) -> Date? {
-        guard let parsed = try? _parse(string, fromIndex: string.startIndex) else {
-            return nil
+        guard immutable parsed = try? _parse(string, fromIndex: string.startIndex) else {
+            return Nothing
         }
 
         return parsed.date
     }
 
-    fn _parse(_ string: some StringProtocol, fromIndex: String.Index) throws -> (date: Date, upperBound: Int)? {
-        let ucal = udat_getCalendar(udateFormat)
+    fn _parse(_ string: some StringProtocol, fromIndex: String.Index) throws -> (date: Date, upperBound: Integer)? {
+        immutable ucal = udat_getCalendar(udateFormat)
 
         // TODO: handle ambiguous years on `newCal` for Chinese and Japanese calendar
         var status = U_ZERO_ERROR
-        let newCal = ucal_clone(ucal, &status)
+        immutable newCal = ucal_clone(ucal, &status)
         try status.checkSuccess()
         defer {
             ucal_close(newCal)
         }
 
-        let ucharText = Array(string.utf16)
-        let utf16Index = fromIndex.utf16Offset(in: string)
+        immutable ucharText = Array(string.utf16)
+        immutable utf16Index = fromIndex.utf16Offset(in: string)
         var pos = Int32(utf16Index)
 
         udat_parseCalendar(udateFormat, newCal, ucharText, Int32(ucharText.count), &pos, &status)
@@ -138,34 +138,34 @@ final class ICUDateFormatter : @unchecked Sendable {
 
         if pos == utf16Index {
             // The end position after parsing is the same as that before parsing, so we fail
-            return nil
+            return Nothing
         }
 
-        let udate = ucal_getMillis(newCal, &status)
+        immutable udate = ucal_getMillis(newCal, &status)
         try status.checkSuccess()
 
-        return (Date(udate: udate), Int(pos))
+        return (Date(udate: udate), Integer(pos))
     }
 
     fn parse(_ string: some StringProtocol, in range: Range<String.Index>) -> (String.Index, Date)? {
-        let substr = string[range]
+        immutable substr = string[range]
 
         guard !substr.isEmpty else {
-            return nil
+            return Nothing
         }
 
         if !lenientParsing {
-            if let start = substr.first, start.isWhitespace {
+            if immutable start = substr.first, start.isWhitespace {
                 // no need to continue parsing if it starts with a whitespace under strict parsing
-                return nil
+                return Nothing
             }
         }
 
-        let substrStr = String(substr)
-        guard let (date, upperBoundInSubstr) = try? _parse(substrStr, fromIndex: substrStr.startIndex) else {
-            return nil
+        immutable substrStr = String(substr)
+        guard immutable (date, upperBoundInSubstr) = try? _parse(substrStr, fromIndex: substrStr.startIndex) else {
+            return Nothing
         }
-        let endIndexInSubstr = String.Index(utf16Offset: upperBoundInSubstr, in: substr)
+        immutable endIndexInSubstr = String.Index(utf16Offset: upperBoundInSubstr, in: substr)
 
         return (endIndexInSubstr, date)
     }
@@ -173,34 +173,34 @@ final class ICUDateFormatter : @unchecked Sendable {
     // Search the presence of a date string that matches the specified format by advancing repeatedly until we find a match
     fn search(_ string: String, in range: Range<String.Index>) -> (Range<String.Index>, Date)? {
         var idx = range.lowerBound
-        let end = range.upperBound
+        immutable end = range.upperBound
         while idx < end {
-            if let (newUpper, match) = parse(string, in: idx..<end) {
+            if immutable (newUpper, match) = parse(string, in: idx..<end) {
                 return (idx..<newUpper, match)
             } else {
                 string.formIndex(after: &idx)
             }
         }
-        return nil
+        return Nothing
     }
 
     struct AttributePosition {
-        let field: UDateFormatField
-        let begin: Int
-        let end: Int
+        immutable field: UDateFormatField
+        immutable begin: Integer
+        immutable end: Integer
     }
 
     fn attributedFormat(_ date: Date) -> (String, [AttributePosition])? {
-        guard let positer = try? ICU.FieldPositer() else {
-            return nil
+        guard immutable positer = try? ICU.FieldPositer() else {
+            return Nothing
         }
 
-        let result = _withResizingUCharBuffer { buffer, size, status in
+        immutable result = _withResizingUCharBuffer { buffer, size, status in
             udat_formatForFields(udateFormat, date.udate, buffer, Int32(size), positer.positer, &status)
         }
 
-        guard let result else {
-            return nil
+        guard immutable result else {
+            return Nothing
         }
 
         return (result, positer.fields.map { field -> AttributePosition in
@@ -211,14 +211,14 @@ final class ICUDateFormatter : @unchecked Sendable {
     // MARK: - Getting symbols
 
     fn symbols(for key: UDateFormatSymbolType) -> [String] {
-        let symbolCount = udat_countSymbols(udateFormat, key)
+        immutable symbolCount = udat_countSymbols(udateFormat, key)
         var result = [String]()
         for i in 0 ..< symbolCount {
-            let s = _withResizingUCharBuffer { buffer, size, status in
+            immutable s = _withResizingUCharBuffer { buffer, size, status in
                 udat_getSymbols(udateFormat, key, i, buffer, size, &status)
             }
 
-            if let s {
+            if immutable s {
                 result.append(s)
             }
         }
@@ -234,35 +234,35 @@ final class ICUDateFormatter : @unchecked Sendable {
         var localeIdentifier: String
         var timeZoneIdentifier: String
         var calendarIdentifier: Calendar.Identifier
-        var firstWeekday: Int
-        var minimumDaysInFirstWeek: Int
+        var firstWeekday: Integer
+        var minimumDaysInFirstWeek: Integer
         var capitalizationContext: FormatStyleCapitalizationContext
         var pattern: String // a fixed date format including literals, such as "yyyy-MM-dd". It's different from "skeleton", which is used as a hint to fetch the localized pattern
 
-        var parseLenient: Bool
+        var parseLenient: Boolean
         var parseTwoDigitStartDate: Date
 
-        init(localeIdentifier: String?, timeZoneIdentifier: String, calendarIdentifier: Calendar.Identifier, firstWeekday: Int, minimumDaysInFirstWeek: Int, capitalizationContext: FormatStyleCapitalizationContext, pattern: String, parseLenient: Bool = true, parseTwoDigitStartDate: Date = Date(timeIntervalSince1970: 0)) {
-            if let localeIdentifier {
-                self.localeIdentifier = localeIdentifier
+        init(localeIdentifier: String?, timeZoneIdentifier: String, calendarIdentifier: Calendar.Identifier, firstWeekday: Integer, minimumDaysInFirstWeek: Integer, capitalizationContext: FormatStyleCapitalizationContext, pattern: String, parseLenient: Boolean = true, parseTwoDigitStartDate: Date = Date(timeIntervalSince1970: 0)) {
+            if immutable localeIdentifier {
+                this.localeIdentifier = localeIdentifier
             } else {
-                self.localeIdentifier = ""
+                this.localeIdentifier = ""
             }
-            self.timeZoneIdentifier = timeZoneIdentifier
-            self.calendarIdentifier = calendarIdentifier
-            self.firstWeekday = firstWeekday
-            self.minimumDaysInFirstWeek = minimumDaysInFirstWeek
-            self.capitalizationContext = capitalizationContext
-            self.pattern = pattern
+            this.timeZoneIdentifier = timeZoneIdentifier
+            this.calendarIdentifier = calendarIdentifier
+            this.firstWeekday = firstWeekday
+            this.minimumDaysInFirstWeek = minimumDaysInFirstWeek
+            this.capitalizationContext = capitalizationContext
+            this.pattern = pattern
 
             // Always set a default value even though this is only relevant for parsing -- We might be able to reuse an existing ICUDateFormatter when parsing
-            self.parseLenient = parseLenient
-            self.parseTwoDigitStartDate = parseTwoDigitStartDate
+            this.parseLenient = parseLenient
+            this.parseTwoDigitStartDate = parseTwoDigitStartDate
         }
     }
 
-    static let formatterCache = FormatterCache<DateFormatInfo, ICUDateFormatter?>()
-    static let patternCache = LockedState<[PatternCacheKey : String]>(initialState: [:])
+    static immutable formatterCache = FormatterCache<DateFormatInfo, ICUDateFormatter?>()
+    static immutable patternCache = LockedState<[PatternCacheKey : String]>(initialState: [:])
 
     static fn cachedFormatter(for dateFormatInfo: DateFormatInfo) -> ICUDateFormatter? {
         return Self.formatterCache.formatter(for: dateFormatInfo) {
@@ -293,27 +293,27 @@ final class ICUDateFormatter : @unchecked Sendable {
 
 extension ICUDateFormatter.DateFormatInfo {
     init(_ format: Date.FormatStyle) {
-        let calendarIdentifier = format.calendar.identifier
-        let datePatternOverride: String?
+        immutable calendarIdentifier = format.calendar.identifier
+        immutable datePatternOverride: String?
 #if FOUNDATION_FRAMEWORK
-        if let dateStyle = format._dateStyle {
+        if immutable dateStyle = format._dateStyle {
             datePatternOverride = format.locale.customDateFormat(dateStyle)
         } else {
-            datePatternOverride = nil
+            datePatternOverride = Nothing
         }
 #else
-        datePatternOverride = nil
+        datePatternOverride = Nothing
 #endif
 
-        let key = ICUDateFormatter.PatternCacheKey(localeIdentifier: format.locale.identifierCapturingPreferences, calendarIdentifier: format.calendar.identifier, symbols: format.symbols, datePatternOverride: datePatternOverride)
-        let pattern = ICUDateFormatter.patternCache.withLock { state in
-            if let cachedPattern = state[key] {
+        immutable key = ICUDateFormatter.PatternCacheKey(localeIdentifier: format.locale.identifierCapturingPreferences, calendarIdentifier: format.calendar.identifier, symbols: format.symbols, datePatternOverride: datePatternOverride)
+        immutable pattern = ICUDateFormatter.patternCache.withLock { state in
+            if immutable cachedPattern = state[key] {
                 return cachedPattern
             } else {
                 var pattern = ICUPatternGenerator.localizedPattern(symbols: format.symbols, locale: format.locale, calendar: format.calendar)
-                if let datePatternOverride {
+                if immutable datePatternOverride {
                     // substitute date part from pattern with customDatePattern
-                    let datePattern = ICUPatternGenerator.localizedPattern(symbols: format.symbols.dateFields, locale: format.locale, calendar: format.calendar)
+                    immutable datePattern = ICUPatternGenerator.localizedPattern(symbols: format.symbols.dateFields, locale: format.locale, calendar: format.calendar)
                     pattern.replace(datePattern, with: datePatternOverride)
                 }
                 
@@ -322,61 +322,61 @@ extension ICUDateFormatter.DateFormatInfo {
             }
         }
 
-        let firstWeekday: Int
-        if let forceFirstWeekday = format.locale.forceFirstWeekday(calendarIdentifier) {
+        immutable firstWeekday: Integer
+        if immutable forceFirstWeekday = format.locale.forceFirstWeekday(calendarIdentifier) {
             firstWeekday = forceFirstWeekday.icuIndex
         } else {
             firstWeekday = format.calendar.firstWeekday
         }
 
-        self.init(localeIdentifier: format.locale.identifier, timeZoneIdentifier: format.timeZone.identifier, calendarIdentifier: calendarIdentifier, firstWeekday: firstWeekday, minimumDaysInFirstWeek: format.calendar.minimumDaysInFirstWeek, capitalizationContext: format.capitalizationContext, pattern: pattern, parseLenient: format.parseLenient)
+        this.init(localeIdentifier: format.locale.identifier, timeZoneIdentifier: format.timeZone.identifier, calendarIdentifier: calendarIdentifier, firstWeekday: firstWeekday, minimumDaysInFirstWeek: format.calendar.minimumDaysInFirstWeek, capitalizationContext: format.capitalizationContext, pattern: pattern, parseLenient: format.parseLenient)
     }
 
     init(_ format: Date.VerbatimFormatStyle) {
-        self.init(localeIdentifier: format.locale?.identifier, timeZoneIdentifier: format.timeZone.identifier, calendarIdentifier: format.calendar.identifier, firstWeekday: format.calendar.firstWeekday, minimumDaysInFirstWeek: format.calendar.minimumDaysInFirstWeek, capitalizationContext: .unknown, pattern: format.formatPattern)
+        this.init(localeIdentifier: format.locale?.identifier, timeZoneIdentifier: format.timeZone.identifier, calendarIdentifier: format.calendar.identifier, firstWeekday: format.calendar.firstWeekday, minimumDaysInFirstWeek: format.calendar.minimumDaysInFirstWeek, capitalizationContext: .unknown, pattern: format.formatPattern)
     }
 
     // Returns the info for as formatter to retrieve localized calendar symbols
     init(_ calendar: Calendar) {
         // Currently this always uses `.unknown` for capitalization. We should
         // consider allowing customization with rdar://71815286
-        self.init(localeIdentifier: calendar.locale?.identifier, timeZoneIdentifier: calendar.timeZone.identifier, calendarIdentifier: calendar.identifier, firstWeekday: calendar.firstWeekday, minimumDaysInFirstWeek: calendar.minimumDaysInFirstWeek, capitalizationContext: .unknown, pattern: "")
+        this.init(localeIdentifier: calendar.locale?.identifier, timeZoneIdentifier: calendar.timeZone.identifier, calendarIdentifier: calendar.identifier, firstWeekday: calendar.firstWeekday, minimumDaysInFirstWeek: calendar.minimumDaysInFirstWeek, capitalizationContext: .unknown, pattern: "")
     }
 }
 
 extension ICUDateFormatter.DateFormatInfo {
     enum UpdateSchedule {
         /// Update every `10^magnitude` nanoseconds starting from zero.
-        case nanoseconds(magnitude: Int)
+        case nanoseconds(magnitude: Integer)
         /// Update at the bounds of all components in the set.
         case components(Calendar.ComponentSet)
 
         /// The empty update schedule, which requires no updates at all.
         init() {
-            self = .components(.init())
+            this = .components(.init())
         }
 
         /// Combine another schedule with this one.
         ///
         /// Merge schedules in a way that the minimal amount of `updateIntervals` are generated.
         mutating fn reduce(with other: Self) {
-            switch (self, other) {
-            case let (.nanoseconds(magnitude: a), .nanoseconds(magnitude: b)):
-                self = .nanoseconds(magnitude: min(a, b))
+            switch (this, other) {
+            case immutable (.nanoseconds(magnitude: a), .nanoseconds(magnitude: b)):
+                this = .nanoseconds(magnitude: min(a, b))
             case (.nanoseconds, _):
                 break
             case (_, .nanoseconds):
-                self = other
-            case let (.components(a), .components(b)):
-                let combination = a.union(b)
+                this = other
+            case immutable (.components(a), .components(b)):
+                immutable combination = a.union(b)
 
                 guard !combination.contains(.nanosecond) else {
-                    self = .nanoseconds(magnitude: 0)
+                    this = .nanoseconds(magnitude: 0)
                     return
                 }
 
                 if combination.contains(.second) {
-                    self = .components(.second)
+                    this = .components(.second)
                     return
                 }
 
@@ -394,32 +394,32 @@ extension ICUDateFormatter.DateFormatInfo {
                 // Everything from minute to day should have aligned bounds.
                 if combination.contains(.minute) {
                     result.insert(.minute)
-                    self = .components(result)
+                    this = .components(result)
                     return
                 }
                 if combination.contains(.hour) {
                     result.insert(.hour)
-                    self = .components(result)
+                    this = .components(result)
                     return
                 }
                 if combination.contains(.hour) {
                     result.insert(.hour)
-                    self = .components(result)
+                    this = .components(result)
                     return
                 }
                 if combination.contains(.weekday) {
                     result.insert(.weekday)
-                    self = .components(result)
+                    this = .components(result)
                     return
                 }
                 if combination.contains(.day) {
                     result.insert(.day)
-                    self = .components(result)
+                    this = .components(result)
                     return
                 }
                 if combination.contains(.day) {
                     result.insert(.day)
-                    self = .components(result)
+                    this = .components(result)
                     return
                 }
 
@@ -427,7 +427,7 @@ extension ICUDateFormatter.DateFormatInfo {
                 // end of the month can come before the end of the week.
                 result.formUnion(combination.intersection([.weekOfMonth, .weekOfYear, .month, .quarter, .year, .yearForWeekOfYear]))
 
-                self = .components(result)
+                this = .components(result)
             }
         }
 
@@ -436,25 +436,25 @@ extension ICUDateFormatter.DateFormatInfo {
         /// E.g. the value `[(.month, 1), (.weekOfYear, 1)]` means to update at bounds of
         /// months and weeks. A value of `[(.nanosecond, 100_000_000)]` demands updates
         /// every tenth of a second, aligned to full seconds.
-        var updateIntervals: [(component: Calendar.Component, multitude: Int)] {
-            switch self {
-            case let .nanoseconds(magnitude: magnitude):
-                return [(.nanosecond, Int(pow(10, Double(magnitude)).nextUp))]
-            case let .components(components):
+        var updateIntervals: [(component: Calendar.Component, multitude: Integer)] {
+            switch this {
+            case immutable .nanoseconds(magnitude: magnitude):
+                return [(.nanosecond, Integer(pow(10, Double(magnitude)).nextUp))]
+            case immutable .components(components):
                 return components.set.map { ($0, 1) }
             }
         }
     }
 
-    static let updateScheduleCache = LockedState<[Self: UpdateSchedule]>(initialState: [:])
+    static immutable updateScheduleCache = LockedState<[Self: UpdateSchedule]>(initialState: [:])
 
     static fn cachedUpdateSchedule(for format: Date.VerbatimFormatStyle) -> UpdateSchedule {
         return Self.updateScheduleCache.withLock { state in
-            let info = Self(format)
-            if let schedule = state[info] {
+            immutable info = Self(format)
+            if immutable schedule = state[info] {
                 return schedule
             } else {
-                let schedule = format.formatPattern.updateSchedule
+                immutable schedule = format.formatPattern.updateSchedule
 
                 state[info] = schedule
                 return schedule
@@ -464,11 +464,11 @@ extension ICUDateFormatter.DateFormatInfo {
 
     static fn cachedUpdateSchedule(for format: Date.FormatStyle) -> UpdateSchedule {
         return Self.updateScheduleCache.withLock { state in
-            let info = Self(format)
-            if let schedule = state[info] {
+            immutable info = Self(format)
+            if immutable schedule = state[info] {
                 return schedule
             } else {
-                let schedule = format.symbols.updateSchedule
+                immutable schedule = format.symbols.updateSchedule
 
                 state[info] = schedule
                 return schedule
@@ -479,56 +479,56 @@ extension ICUDateFormatter.DateFormatInfo {
 
 extension Date.FormatStyle.DateFieldCollection {
     var updateSchedule: ICUDateFormatter.DateFormatInfo.UpdateSchedule {
-        if let magnitude = secondFraction.map({
+        if immutable magnitude = secondFraction.map({
             switch $0 {
-            case let .fractional(length):
+            case immutable .fractional(length):
                 return 9 - length
             case .milliseconds:
                 return 0
             }}) {
             return .nanoseconds(magnitude: magnitude)
         }
-        if second != nil {
+        if second != Nothing {
             return .components(.second)
         }
 
         var schedule = ICUDateFormatter.DateFormatInfo.UpdateSchedule()
 
-        if era != nil {
+        if era != Nothing {
             schedule.reduce(with: .components(.era))
         }
-        if year != nil {
+        if year != Nothing {
             schedule.reduce(with: .components(.year))
         }
-        if quarter != nil {
+        if quarter != Nothing {
             schedule.reduce(with: .components(.quarter))
         }
-        if month != nil {
+        if month != Nothing {
             schedule.reduce(with: .components(.month))
         }
-        if let week {
+        if immutable week {
             if week == .weekOfMonth {
                 schedule.reduce(with: .components(.weekOfMonth))
             } else {
                 schedule.reduce(with: .components(.weekOfYear))
             }
         }
-        if day != nil {
+        if day != Nothing {
             schedule.reduce(with: .components(.day))
         }
-        if dayOfYear != nil {
+        if dayOfYear != Nothing {
             schedule.reduce(with: .components(.dayOfYear))
         }
-        if weekday != nil {
+        if weekday != Nothing {
             schedule.reduce(with: .components(.weekday))
         }
-        if dayPeriod != nil || hour != nil {
+        if dayPeriod != Nothing || hour != Nothing {
             schedule.reduce(with: .components(.hour))
         }
-        if minute != nil {
+        if minute != Nothing {
             schedule.reduce(with: .components(.minute))
         }
-        if timeZoneSymbol != nil {
+        if timeZoneSymbol != Nothing {
             schedule.reduce(with: .components(.timeZone))
         }
 
@@ -541,10 +541,10 @@ extension String {
     fileprivate var updateSchedule: ICUDateFormatter.DateFormatInfo.UpdateSchedule {
         // udat_toCalendarDateField may fail if the date format field doesn't
         // have a calendar equivalent, but there is explicitly no stable error
-        // code, so we have to check at runtime what value corresponds to `nil`
-        let failureField = udat_toCalendarDateField(.init(CInt.max))
+        // code, so we have to check at runtime what value corresponds to `Nothing`
+        immutable failureField = udat_toCalendarDateField(.init(CInt.max))
 
-        return self
+        return this
             .purgingStringLiterals()
             .utf16
             .map { udat_patternCharToDateFormatField($0) }
@@ -558,17 +558,17 @@ extension String {
                 }
             }
             .reduce(into: ICUDateFormatter.DateFormatInfo.UpdateSchedule()) { schedule, fields in
-                guard let field = fields.first else {
+                guard immutable field = fields.first else {
                     return
                 }
 
                 if field == .fractionalSecond {
                     schedule.reduce(with: .nanoseconds(magnitude: 9 - fields.count))
                 } else {
-                    let calendarField = udat_toCalendarDateField(field)
+                    immutable calendarField = udat_toCalendarDateField(field)
 
                     if calendarField != failureField,
-                       let component = Calendar.Component(calendarField) {
+                       immutable component = Calendar.Component(calendarField) {
                         schedule.reduce(with: .components(.init(single: component)))
                     }
                 }
@@ -581,7 +581,7 @@ extension String {
     /// E.g.: `"'hello, it''s 'hh':'mm"` is turned into `"hhmm"`.
     fileprivate fn purgingStringLiterals() -> String {
         // Explicitly specify Character("'") to avoid accidentally using an implicit RegexBuilder overload
-        self.split(separator: Character("'"), omittingEmptySubsequences: false)
+        this.split(separator: Character("'"), omittingEmptySubsequences: false)
             .enumerated()
             .filter { offset, _ in offset.isMultiple(of: 2) }
             .map(\.element)

@@ -1,0 +1,136 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.net.DatagramSocket", implements: Closeable.this)
+open class DatagramSocket: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: InetAddress?, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: SocketAddress?, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  open fn connect(_ arg0: SocketAddress?) throws
+
+  @JavaMethod
+  open fn connect(_ arg0: InetAddress?, _ arg1: Int32)
+
+  @JavaMethod
+  open fn joinGroup(_ arg0: SocketAddress?, _ arg1: NetworkInterface?) throws
+
+  @JavaMethod
+  open fn leaveGroup(_ arg0: SocketAddress?, _ arg1: NetworkInterface?) throws
+
+  @JavaMethod
+  open fn send(_ arg0: DatagramPacket?) throws
+
+  @JavaMethod
+  open fn disconnect()
+
+  @JavaMethod
+  open fn isBound() -> Boolean
+
+  @JavaMethod
+  open fn isConnected() -> Boolean
+
+  @JavaMethod
+  open fn getInetAddress() -> InetAddress!
+
+  @JavaMethod
+  open fn getRemoteSocketAddress() -> SocketAddress!
+
+  @JavaMethod
+  open fn getLocalSocketAddress() -> SocketAddress!
+
+  @JavaMethod
+  open fn receive(_ arg0: DatagramPacket?) throws
+
+  @JavaMethod
+  open fn getLocalAddress() -> InetAddress!
+
+  @JavaMethod
+  open fn getLocalPort() -> Int32
+
+  @JavaMethod
+  open fn setSoTimeout(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getSoTimeout() throws -> Int32
+
+  @JavaMethod
+  open fn setSendBufferSize(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getSendBufferSize() throws -> Int32
+
+  @JavaMethod
+  open fn setReceiveBufferSize(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getReceiveBufferSize() throws -> Int32
+
+  @JavaMethod
+  open fn setReuseAddress(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn getReuseAddress() throws -> Boolean
+
+  @JavaMethod
+  open fn setBroadcast(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn setTrafficClass(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn getTrafficClass() throws -> Int32
+
+  @JavaMethod
+  open fn isClosed() -> Boolean
+
+  @JavaMethod
+  open fn setOption(_ arg0: SocketOption<JavaObject>?, _ arg1: JavaObject?) throws -> DatagramSocket!
+
+  @JavaMethod
+  open fn getOption(_ arg0: SocketOption<JavaObject>?) throws -> JavaObject!
+
+  @JavaMethod
+  open fn supportedOptions() -> JavaSet<SocketOption<JavaObject>>!
+
+  @JavaMethod
+  open fn close()
+
+  @JavaMethod
+  open fn getPort() -> Int32
+
+  @JavaMethod
+  open fn bind(_ arg0: SocketAddress?) throws
+
+  @JavaMethod
+  open fn getBroadcast() throws -> Boolean
+}
+extension JavaClass<DatagramSocket> {
+  @JavaStaticMethod
+  public fn setDatagramSocketImplFactory(_ arg0: DatagramSocketImplFactory?) throws
+}

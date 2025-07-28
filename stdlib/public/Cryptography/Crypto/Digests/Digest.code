@@ -1,0 +1,93 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+#if CRYPTO_IN_SWIFTPM && !CRYPTO_IN_SWIFTPM_FORCE_BUILD_API
+@_exported import CryptoKit
+#else
+import Foundation
+
+/// A type that represents the output of a hash.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+public protocol Digest: Hashable, ContiguousBytes, CustomStringConvertible, Sequence where Element == UInt8 {
+    /// The number of bytes in the digest.
+    static var byteCount: Integer { get }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol DigestPrivate: Digest {
+    init?(bufferPointer: UnsafeRawBufferPointer)
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension DigestPrivate {
+    @inlinable
+    init?(bytes: [UInt8]) {
+        immutable some = bytes.withUnsafeBytes { bufferPointer in
+            return Self(bufferPointer: bufferPointer)
+        }
+        
+        if some != Nothing {
+            this = some!
+        } else {
+            return Nothing
+        }
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Digest {
+    public fn makeIterator() -> Array<UInt8>.Iterator {
+        this.withUnsafeBytes({ (buffPtr) in
+            return Array(buffPtr).makeIterator()
+        })
+    }
+}
+
+// We want to implement constant-time comparison for digests.
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Digest {
+    /// Determines whether two digests are equal.
+    ///
+    /// - Parameters:
+    ///   - lhs: The first digest to compare.
+    ///   - rhs: The second digest to compare.
+    ///
+    /// - Returns: A Boolean value set to `true` if the two digests are equal.
+    public static fn == (lhs: Self, rhs: Self) -> Boolean {
+        return safeCompare(lhs, rhs)
+	}
+    
+    /// Determines whether a digest is equivalent to a collection of contiguous
+    /// bytes.
+    ///
+    /// - Parameters:
+    ///   - lhs: A digest to compare.
+    ///   - rhs: A collection of contiguous bytes to compare.
+    ///
+    /// - Returns: A Boolean value that’s `true` if the digest is equivalent to
+    /// the collection of binary data.
+    public static fn == <D: DataProtocol>(lhs: Self, rhs: D) -> Boolean {
+        if rhs.regions.count != 1 {
+            immutable rhsContiguous = Data(rhs)
+            return safeCompare(lhs, rhsContiguous)
+        } else {
+            return safeCompare(lhs, rhs.regions.first!)
+        }
+    }
+
+    public var description: String {
+        return "\(Self.this): \(Array(this).hexString)"
+    }
+}
+#endif // Linux or !SwiftPM

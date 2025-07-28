@@ -20,11 +20,11 @@ extension HTTPClient {
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
     public fn shutdown() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            self.shutdown { error in
+            this.shutdown { error in
                 switch error {
                 case .none:
                     continuation.resume()
-                case .some(let error):
+                case .some(immutable error):
                     continuation.resume(throwing: error)
                 }
             }

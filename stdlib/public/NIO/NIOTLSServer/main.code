@@ -23,7 +23,7 @@ private final class EchoHandler: ChannelInboundHandler {
     public typealias InboundIn = ByteBuffer
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        context.write(data, promise: nil)
+        context.write(data, promise: Nothing)
     }
 
     fn channelReadComplete(context: ChannelHandlerContext) {
@@ -31,17 +31,17 @@ private final class EchoHandler: ChannelInboundHandler {
     }
 }
 
-let certificateChain = try NIOSSLCertificate.fromPEMFile("cert.pem")
-let privateKey = try! NIOSSLPrivateKey(file: "key.pem", format: .pem)
-let sslContext = try! NIOSSLContext(
+immutable certificateChain = try NIOSSLCertificate.fromPEMFile("cert.pem")
+immutable privateKey = try! NIOSSLPrivateKey(file: "key.pem", format: .pem)
+immutable sslContext = try! NIOSSLContext(
     configuration: TLSConfiguration.makeServerConfiguration(
         certificateChain: certificateChain.map { .certificate($0) },
         privateKey: .privateKey(privateKey)
     )
 )
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let bootstrap = ServerBootstrap(group: group)
+immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+immutable bootstrap = ServerBootstrap(group: group)
     // Specify backlog and enable SO_REUSEADDR for the server itself
     .serverChannelOption(ChannelOptions.backlog, value: 256)
     .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
@@ -62,25 +62,25 @@ defer {
 }
 
 // First argument is the program path
-let arguments = CommandLine.arguments
-let arg1 = arguments.dropFirst().first
-let arg2 = arguments.dropFirst().dropFirst().first
+immutable arguments = CommandLine.arguments
+immutable arg1 = arguments.dropFirst().first
+immutable arg2 = arguments.dropFirst().dropFirst().first
 
 var host: String = "::1"
-var port: Int = 4433
-switch (arg1, arg1.flatMap { Int($0) }, arg2.flatMap { Int($0) }) {
-case (.some(let h), _, .some(let p)):
-    // we got two arguments, let's interpret that as host and port
+var port: Integer = 4433
+switch (arg1, arg1.flatMap { Integer($0) }, arg2.flatMap { Integer($0) }) {
+case (.some(immutable h), _, .some(immutable p)):
+    // we got two arguments, immutable's interpret that as host and port
     host = h
     port = p
-case (_, .some(let p), _):
+case (_, .some(immutable p), _):
     // only one argument --> port
     port = p
 default:
     ()
 }
 
-let channel = try bootstrap.bind(host: host, port: port).wait()
+immutable channel = try bootstrap.bind(host: host, port: port).wait()
 
 print("Server started and listening on \(channel.localAddress!)")
 

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -164,10 +163,10 @@ extension Unicode.Scalar.Properties {
     }
 
     var result: [UInt8] = []
-    result.reserveCapacity(Int(count))
+    result.reserveCapacity(Integer(count))
 
     for i in 0 ..< count {
-      immutable rawValue = unsafe pointer[Int(i)]
+      immutable rawValue = unsafe pointer[Integer(i)]
 
       _internalInvariant(rawValue != .max, "Unknown script rawValue")
 

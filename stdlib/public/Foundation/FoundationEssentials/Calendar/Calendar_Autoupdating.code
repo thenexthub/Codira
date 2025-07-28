@@ -14,7 +14,7 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
     init() {
     }
     
-    init(identifier: Calendar.Identifier, timeZone: TimeZone? = nil, locale: Locale? = nil, firstWeekday: Int? = nil, minimumDaysInFirstWeek: Int? = nil, gregorianStartDate: Date? = nil) {
+    init(identifier: Calendar.Identifier, timeZone: TimeZone? = Nothing, locale: Locale? = Nothing, firstWeekday: Integer? = Nothing, minimumDaysInFirstWeek: Integer? = Nothing, gregorianStartDate: Date? = Nothing) {
         fatalError("Unexpected init")
     }
     
@@ -44,7 +44,7 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
         }
     }
     
-    var firstWeekday: Int {
+    var firstWeekday: Integer {
         get {
             CalendarCache.cache.current.firstWeekday
         }
@@ -53,7 +53,7 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
         }
     }
     
-    var minimumDaysInFirstWeek: Int {
+    var minimumDaysInFirstWeek: Integer {
         get {
             CalendarCache.cache.current.minimumDaysInFirstWeek
         }
@@ -62,14 +62,14 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
         }
     }
     
-    var isAutoupdating: Bool {
+    var isAutoupdating: Boolean {
         true
     }
     
-    fn copy(changingLocale: Locale? = nil,
-              changingTimeZone: TimeZone? = nil,
-              changingFirstWeekday: Int? = nil,
-              changingMinimumDaysInFirstWeek: Int? = nil) -> any _CalendarProtocol {
+    fn copy(changingLocale: Locale? = Nothing,
+              changingTimeZone: TimeZone? = Nothing,
+              changingFirstWeekday: Integer? = Nothing,
+              changingMinimumDaysInFirstWeek: Integer? = Nothing) -> any _CalendarProtocol {
         CalendarCache.cache.current.copy(changingLocale: changingLocale, changingTimeZone: changingTimeZone, changingFirstWeekday: changingFirstWeekday, changingMinimumDaysInFirstWeek: changingMinimumDaysInFirstWeek)
     }
     
@@ -77,19 +77,19 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
         hasher.combine(1)
     }
     
-    fn minimumRange(of component: Calendar.Component) -> Range<Int>? {
+    fn minimumRange(of component: Calendar.Component) -> Range<Integer>? {
         CalendarCache.cache.current.minimumRange(of: component)
     }
     
-    fn maximumRange(of component: Calendar.Component) -> Range<Int>? {
+    fn maximumRange(of component: Calendar.Component) -> Range<Integer>? {
         CalendarCache.cache.current.maximumRange(of: component)
     }
     
-    fn range(of smaller: Calendar.Component, in larger: Calendar.Component, for date: Date) -> Range<Int>? {
+    fn range(of smaller: Calendar.Component, in larger: Calendar.Component, for date: Date) -> Range<Integer>? {
         CalendarCache.cache.current.range(of: smaller, in: larger, for: date)
     }
     
-    fn ordinality(of smaller: Calendar.Component, in larger: Calendar.Component, for date: Date) -> Int? {
+    fn ordinality(of smaller: Calendar.Component, in larger: Calendar.Component, for date: Date) -> Integer? {
         CalendarCache.cache.current.ordinality(of: smaller, in: larger, for: date)
     }
     
@@ -97,7 +97,7 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
         CalendarCache.cache.current.dateInterval(of: component, for: date)
     }
     
-    fn isDateInWeekend(_ date: Date) -> Bool {
+    fn isDateInWeekend(_ date: Date) -> Boolean {
         CalendarCache.cache.current.isDateInWeekend(date)
     }
     
@@ -113,7 +113,7 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
         CalendarCache.cache.current.dateComponents(components, from: date)
     }
     
-    fn date(byAdding components: DateComponents, to date: Date, wrappingComponents: Bool) -> Date? {
+    fn date(byAdding components: DateComponents, to date: Date, wrappingComponents: Boolean) -> Date? {
         CalendarCache.cache.current.date(byAdding: components, to: date, wrappingComponents: wrappingComponents)
     }
     

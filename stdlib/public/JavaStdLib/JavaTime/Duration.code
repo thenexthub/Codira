@@ -1,0 +1,209 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.time.Duration", implements: TemporalAmount.this, Comparable.this, Serializable.this)
+open class Duration: JavaObject {
+  @JavaMethod
+  open fn get(_ arg0: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn abs() -> Duration!
+
+  @JavaMethod
+  open fn compareTo(_ arg0: Duration?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn toNanos() -> Int64
+
+  @JavaMethod
+  open fn toMillis() -> Int64
+
+  @JavaMethod
+  open fn isZero() -> Boolean
+
+  @JavaMethod
+  open fn getNano() -> Int32
+
+  @JavaMethod
+  open fn toDays() -> Int64
+
+  @JavaMethod
+  open fn toSeconds() -> Int64
+
+  @JavaMethod
+  open fn isNegative() -> Boolean
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Duration!
+
+  @JavaMethod
+  open fn minus(_ arg0: Duration?) -> Duration!
+
+  @JavaMethod
+  open fn isPositive() -> Boolean
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Duration!
+
+  @JavaMethod
+  open fn plus(_ arg0: Duration?) -> Duration!
+
+  @JavaMethod
+  open fn getUnits() -> List<TemporalUnit>!
+
+  @JavaMethod
+  open fn negated() -> Duration!
+
+  @JavaMethod
+  open fn getSeconds() -> Int64
+
+  @JavaMethod
+  open fn plusNanos(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn plusSeconds(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn plusMillis(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn multipliedBy(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn plusDays(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn plusHours(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn plusMinutes(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn toHours() -> Int64
+
+  @JavaMethod
+  open fn toMinutes() -> Int64
+
+  @JavaMethod
+  open fn withSeconds(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn withNanos(_ arg0: Int32) -> Duration!
+
+  @JavaMethod
+  open fn minusDays(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn minusHours(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn minusMinutes(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn minusSeconds(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn minusMillis(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn minusNanos(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn dividedBy(_ arg0: Int64) -> Duration!
+
+  @JavaMethod
+  open fn dividedBy(_ arg0: Duration?) -> Int64
+
+  @JavaMethod
+  open fn addTo(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn subtractFrom(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn toDaysPart() -> Int64
+
+  @JavaMethod
+  open fn toHoursPart() -> Int32
+
+  @JavaMethod
+  open fn toMinutesPart() -> Int32
+
+  @JavaMethod
+  open fn toSecondsPart() -> Int32
+
+  @JavaMethod
+  open fn toMillisPart() -> Int32
+
+  @JavaMethod
+  open fn toNanosPart() -> Int32
+
+  @JavaMethod
+  open fn truncatedTo(_ arg0: TemporalUnit?) -> Duration!
+}
+extension JavaClass<Duration> {
+  @JavaStaticField(isFinal: true)
+  public var ZERO: Duration!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int64, _ arg1: TemporalUnit?) -> Duration!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAmount?) -> Duration!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?) -> Duration!
+
+  @JavaStaticMethod
+  public fn between(_ arg0: Temporal?, _ arg1: Temporal?) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofSeconds(_ arg0: Int64, _ arg1: Int64) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofSeconds(_ arg0: Int64) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofNanos(_ arg0: Int64) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofDays(_ arg0: Int64) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofHours(_ arg0: Int64) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofMinutes(_ arg0: Int64) -> Duration!
+
+  @JavaStaticMethod
+  public fn ofMillis(_ arg0: Int64) -> Duration!
+}

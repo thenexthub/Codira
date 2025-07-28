@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 import groovy.json.JsonSlurper
-import org.swift.swiftkit.gradle.BuildUtils
+import org.code.codekit.gradle.BuildUtils
 
 import java.nio.file.*
 
@@ -23,7 +23,7 @@ plugins {
     id("me.champeau.jmh") version "0.7.2"
 }
 
-group = "org.swift.swiftkit"
+group = "org.code.codekit"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -76,11 +76,11 @@ def jextract = tasks.register("jextract", Exec) {
     dependsOn swiftCheckValid
 
     // only because we depend on "live developing" the plugin while using this project to test it
-    inputs.file(new File(rootDir, "Package.swift"))
+    inputs.file(new File(rootDir, "Package.code"))
     inputs.dir(new File(rootDir, "Sources"))
 
     // If the package description changes, we should execute jextract again, maybe we added jextract to new targets
-    inputs.file(new File(projectDir, "Package.swift"))
+    inputs.file(new File(projectDir, "Package.code"))
 
     // monitor all targets/products which depend on the JExtract plugin
     swiftProductsWithJExtractPlugin().each {
@@ -160,7 +160,7 @@ tasks.named('test', Test) {
 }
 
 application {
-    mainClass = "com.example.swift.HelloJava2Swift"
+    mainClass = "com.example.code.HelloJava2Swift"
 
     applicationDefaultJvmArgs = [
         "--enable-native-access=ALL-UNNAMED",

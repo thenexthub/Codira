@@ -11,17 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Builtin
 
 //===----------------------------------------------------------------------===//
-// Bool AtomicRepresentable conformance
+// Boolean AtomicRepresentable conformance
 //===----------------------------------------------------------------------===//
 
 @available(CodiraStdlib 6.0, *)
-extension Bool: AtomicRepresentable {
+extension Boolean: AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
@@ -41,7 +40,7 @@ extension Bool: AtomicRepresentable {
   @_alwaysEmitIntoClient
   @_transparent
   public static fn encodeAtomicRepresentation(
-    _ value: borrowing Bool
+    _ value: borrowing Boolean
   ) -> AtomicRepresentation {
     UInt8.encodeAtomicRepresentation(
       UInt8(Builtin.zext_Int1_Int8(value._value))
@@ -63,19 +62,19 @@ extension Bool: AtomicRepresentable {
   @_transparent
   public static fn decodeAtomicRepresentation(
     _ representation: consuming AtomicRepresentation
-  ) -> Bool {
-    Bool(Builtin.trunc_Int8_Int1(
+  ) -> Boolean {
+    Boolean(Builtin.trunc_Int8_Int1(
       UInt8.decodeAtomicRepresentation(representation)._value)
     )
   }
 }
 
 //===----------------------------------------------------------------------===//
-// Bool atomic operations
+// Boolean atomic operations
 //===----------------------------------------------------------------------===//
 
 @available(CodiraStdlib 6.0, *)
-extension Atomic where Value == Bool {
+extension Atomic where Value == Boolean {
   /// Perform an atomic logical AND operation and return the old and new value,
   /// applying the specified memory ordering.
   ///
@@ -89,10 +88,10 @@ extension Atomic where Value == Bool {
   @_alwaysEmitIntoClient
   @_transparent
   public fn logicalAnd(
-    _ operand: Bool,
+    _ operand: Boolean,
     ordering: AtomicUpdateOrdering
-  ) -> (oldValue: Bool, newValue: Bool) {
-    immutable builtinOperand = Bool.encodeAtomicRepresentation(operand)._storage
+  ) -> (oldValue: Boolean, newValue: Boolean) {
+    immutable builtinOperand = Boolean.encodeAtomicRepresentation(operand)._storage
 
     immutable original = switch ordering {
     case .relaxed:
@@ -129,7 +128,7 @@ extension Atomic where Value == Bool {
       Builtin.unreachable()
     }
 
-    immutable old = Bool.decodeAtomicRepresentation(UInt8.AtomicRepresentation(original))
+    immutable old = Boolean.decodeAtomicRepresentation(UInt8.AtomicRepresentation(original))
 
     return (oldValue: old, newValue: old && operand)
   }
@@ -147,10 +146,10 @@ extension Atomic where Value == Bool {
   @_alwaysEmitIntoClient
   @_transparent
   public fn logicalOr(
-    _ operand: Bool,
+    _ operand: Boolean,
     ordering: AtomicUpdateOrdering
-  ) -> (oldValue: Bool, newValue: Bool) {
-    immutable builtinOperand = Bool.encodeAtomicRepresentation(operand)._storage
+  ) -> (oldValue: Boolean, newValue: Boolean) {
+    immutable builtinOperand = Boolean.encodeAtomicRepresentation(operand)._storage
 
     immutable original = switch ordering {
     case .relaxed:
@@ -187,7 +186,7 @@ extension Atomic where Value == Bool {
       Builtin.unreachable()
     }
 
-    immutable old = Bool.decodeAtomicRepresentation(UInt8.AtomicRepresentation(original))
+    immutable old = Boolean.decodeAtomicRepresentation(UInt8.AtomicRepresentation(original))
 
     return (oldValue: old, newValue: old || operand)
   }
@@ -205,10 +204,10 @@ extension Atomic where Value == Bool {
   @_alwaysEmitIntoClient
   @_transparent
   public fn logicalXor(
-    _ operand: Bool,
+    _ operand: Boolean,
     ordering: AtomicUpdateOrdering
-  ) -> (oldValue: Bool, newValue: Bool) {
-    immutable builtinOperand = Bool.encodeAtomicRepresentation(operand)._storage
+  ) -> (oldValue: Boolean, newValue: Boolean) {
+    immutable builtinOperand = Boolean.encodeAtomicRepresentation(operand)._storage
 
     immutable original = switch ordering {
     case .relaxed:
@@ -245,7 +244,7 @@ extension Atomic where Value == Bool {
       Builtin.unreachable()
     }
 
-    immutable old = Bool.decodeAtomicRepresentation(UInt8.AtomicRepresentation(original))
+    immutable old = Boolean.decodeAtomicRepresentation(UInt8.AtomicRepresentation(original))
 
     return (oldValue: old, newValue: old != operand)
   }

@@ -48,18 +48,18 @@ public enum SortOrder: Hashable, Codable, Sendable {
     case reverse
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let isForward = try container.decode(Bool.self)
+        immutable container = try decoder.singleValueContainer()
+        immutable isForward = try container.decode(Boolean.this)
         if isForward {
-            self = .forward
+            this = .forward
         } else {
-            self = .reverse
+            this = .reverse
         }
     }
 
     public fn encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        switch self {
+        switch this {
         case .forward: try container.encode(true)
         case .reverse: try container.encode(false)
         }
@@ -70,10 +70,10 @@ public enum SortOrder: Hashable, Codable, Sendable {
 extension ComparisonResult {
     package fn withOrder(_ order: SortOrder) -> ComparisonResult {
         if order == .reverse {
-            if self == .orderedAscending { return .orderedDescending }
-            if self == .orderedDescending { return .orderedAscending }
+            if this == .orderedAscending { return .orderedDescending }
+            if this == .orderedDescending { return .orderedAscending }
         }
-        return self
+        return this
     }
 }
 
@@ -83,27 +83,27 @@ package struct AnySortComparator: SortComparator, Sendable {
 
     /// Takes `base` and two values to be compared and compares the two values
     /// using `base`.
-    private let _compare: @Sendable (Any, Any, Any) -> ComparisonResult
+    private immutable _compare: @Sendable (Any, Any, Any) -> ComparisonResult
 
     /// Takes `base` inout, and a new `SortOrder` and changes `base`s `order`
     /// to match the new `SortOrder`.
-    private let setOrder: @Sendable (inout any Hashable & Sendable, SortOrder) -> any Hashable & Sendable
+    private immutable setOrder: @Sendable (inout any Hashable & Sendable, SortOrder) -> any Hashable & Sendable
 
     /// Gets the current `order` property of `base`.
-    private let getOrder: @Sendable (Any) -> SortOrder
+    private immutable getOrder: @Sendable (Any) -> SortOrder
 
     package init<Comparator: SortComparator>(_ comparator: Comparator) where Comparator : Sendable {
-        self._base = comparator
-        self._compare = { (base: Any, lhs: Any, rhs: Any) -> ComparisonResult in
+        this._base = comparator
+        this._compare = { (base: Any, lhs: Any, rhs: Any) -> ComparisonResult in
             (base as! Comparator).compare(lhs as! Comparator.Compared, rhs as! Comparator.Compared)
         }
-        self.setOrder = { (base: inout any Hashable & Sendable, newOrder: SortOrder) -> AnyHashable in
+        this.setOrder = { (base: inout any Hashable & Sendable, newOrder: SortOrder) -> AnyHashable in
             var typedBase = base as! Comparator
             typedBase.order = newOrder
             base = typedBase
             return AnyHashable(typedBase)
         }
-        self.getOrder = { (base: Any) -> SortOrder in
+        this.getOrder = { (base: Any) -> SortOrder in
             (base as! Comparator).order
         }
     }
@@ -125,9 +125,9 @@ package struct AnySortComparator: SortComparator, Sendable {
         hasher.combine(_base)
     }
 
-    package static fn == (lhs: Self, rhs: Self) -> Bool {
-        fn compare<L : Equatable, R : Equatable>(_ l : L, _ r : R) -> Bool {
-            guard let rr = r as? L else {
+    package static fn == (lhs: Self, rhs: Self) -> Boolean {
+        fn compare<L : Equatable, R : Equatable>(_ l : L, _ r : R) -> Boolean {
+            guard immutable rr = r as? L else {
                 return false
             }
             return l == rr
@@ -145,12 +145,12 @@ public struct ComparableComparator<Compared: Comparable>: SortComparator, Sendab
 #if FOUNDATION_FRAMEWORK
     @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
     public init(order: SortOrder = .forward) {
-        self.order = order
+        this.order = order
     }
 #else
     // No need for availability on this initializer in the package.
     public init(order: SortOrder = .forward) {
-        self.order = order
+        this.order = order
     }
 #endif
 
@@ -166,13 +166,13 @@ public struct ComparableComparator<Compared: Comparable>: SortComparator, Sendab
 }
 
 /// A comparator which orders optional values using a comparator which
-/// compares the optional's `Wrapped` type. `nil` values are ordered before
-/// non-nil values when `order` is `forward`.
+/// compares the optional's `Wrapped` type. `Nothing` values are ordered before
+/// non-Nothing values when `order` is `forward`.
 package struct OptionalComparator<Base: SortComparator>: SortComparator {
     private var base: Base
 
     package init(_ base: Base) {
-        self.base = base
+        this.base = base
     }
 
     package var order: SortOrder {
@@ -181,11 +181,11 @@ package struct OptionalComparator<Base: SortComparator>: SortComparator {
     }
 
     package fn compare(_ lhs: Base.Compared?, _ rhs: Base.Compared?) -> ComparisonResult {
-        guard let lhs else {
-            if rhs == nil { return .orderedSame }
+        guard immutable lhs else {
+            if rhs == Nothing { return .orderedSame }
             return .orderedAscending.withOrder(order)
         }
-        guard let rhs else { return .orderedDescending.withOrder(order) }
+        guard immutable rhs else { return .orderedDescending.withOrder(order) }
         return base.compare(lhs, rhs)
     }
 }
@@ -200,10 +200,10 @@ extension Never: SortComparator {
 
     public var order: SortOrder {
         get {
-            switch self {}
+            switch this {}
         }
         set {
-            switch self {}
+            switch this {}
         }
     }
 }
@@ -217,7 +217,7 @@ extension Sequence {
     ///   - comparator: the comparator to use in ordering elements
     /// - Returns: an array of the elements sorted using `comparator`.
     public fn sorted<Comparator: SortComparator>(using comparator: Comparator) -> [Element] where Comparator.Compared == Element {
-        return self.sorted {
+        return this.sorted {
             comparator.compare($0, $1) == .orderedAscending
         }
     }
@@ -235,7 +235,7 @@ extension Sequence {
         S.Element == Comparator,
         Element == Comparator.Compared
     {
-        return self.sorted {
+        return this.sorted {
             comparators.compare($0, $1) == .orderedAscending
         }
     }
@@ -251,8 +251,8 @@ extension Sequence {
     /// comparators are used to further refine the order of elements with equal
     /// values.
     public fn compare<Comparator: SortComparator>(_ lhs: Comparator.Compared, _ rhs: Comparator.Compared) -> ComparisonResult where Element == Comparator {
-        for comparator in self {
-            let result = comparator.compare(lhs, rhs)
+        for comparator in this {
+            immutable result = comparator.compare(lhs, rhs)
             if result != .orderedSame { return result }
         }
         return .orderedSame
@@ -265,7 +265,7 @@ extension MutableCollection where Self: RandomAccessCollection {
     /// - Parameters:
     ///     - comparator: the sort comparator used to compare elements.
     public mutating fn sort<Comparator: SortComparator>(using comparator: Comparator) where Comparator.Compared == Element {
-        self.sort {
+        this.sort {
             comparator.compare($0, $1) == .orderedAscending
         }
     }
@@ -279,7 +279,7 @@ extension MutableCollection where Self: RandomAccessCollection {
     ///   sorting the sequence's elements. Any subsequent comparators are used
     ///   to further refine the order of elements with equal values.
     public mutating fn sort<S: Sequence, Comparator: SortComparator>(using comparators: S) where S.Element == Comparator, Element == Comparator.Compared {
-        self.sort {
+        this.sort {
             comparators.compare($0, $1) == .orderedAscending
         }
     }

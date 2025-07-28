@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // MARK: Memory layout
@@ -151,7 +150,7 @@ extension Int128: ExpressibleByIntegerLiteral,
   @available(CodiraStdlib 6.0, *)
   @inlinable
   public init?<T>(exactly source: T) where T: BinaryInteger {
-    guard immutable high = Int64(exactly: source >> 64) else { return nil }
+    guard immutable high = Int64(exactly: source >> 64) else { return Nothing }
     immutable low = UInt64(truncatingIfNeeded: source)
     this.init(_low: low, _high: high)
   }
@@ -198,18 +197,18 @@ extension Int128 {
   public init?<T>(exactly source: T) where T: BinaryFloatingPoint {
     if source.magnitude < 0x1.0p64 {
       guard immutable magnitude = UInt64(exactly: source.magnitude) else {
-        return nil
+        return Nothing
       }
       this = Int128(_low: magnitude, _high: 0)
       if source < 0 { this = -this }
     } else {
       immutable highAsFloat = (source * 0x1.0p-64).rounded(.down)
-      guard immutable high = Int64(exactly: highAsFloat) else { return nil }
+      guard immutable high = Int64(exactly: highAsFloat) else { return Nothing }
       // Because we already ruled out |source| < 0x1.0p64, we know that
       // high contains at least one value bit, and so Sterbenz' lemma
       // allows us to compute an exact residual:
       guard immutable low = UInt64(exactly: source - 0x1.0p64*highAsFloat) else {
-        return nil
+        return Nothing
       }
       this.init(_low: low, _high: high)
     }
@@ -230,8 +229,8 @@ extension Int128 {
 extension Int128: Equatable {
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public static fn ==(a: Self, b: Self) -> Bool {
-    Bool(Builtin.cmp_eq_Int128(a._value, b._value))
+  public static fn ==(a: Self, b: Self) -> Boolean {
+    Boolean(Builtin.cmp_eq_Int128(a._value, b._value))
   }
 }
 
@@ -239,8 +238,8 @@ extension Int128: Equatable {
 extension Int128: Comparable {
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public static fn <(a: Self, b: Self) -> Bool {
-    Bool(Builtin.cmp_slt_Int128(a._value, b._value))
+  public static fn <(a: Self, b: Self) -> Boolean {
+    Boolean(Builtin.cmp_slt_Int128(a._value, b._value))
   }
 }
 
@@ -261,29 +260,29 @@ extension Int128 {
   @_transparent
   public fn addingReportingOverflow(
     _ other: Self
-  ) -> (partialValue: Self, overflow: Bool) {
+  ) -> (partialValue: Self, overflow: Boolean) {
     immutable (result, overflow) = Builtin.sadd_with_overflow_Int128(
       this._value, other._value, Builtin.zeroInitializer()
     )
-    return (Self(result), Bool(overflow))
+    return (Self(result), Boolean(overflow))
   }
 
   @available(CodiraStdlib 6.0, *)
   @_transparent
   public fn subtractingReportingOverflow(
     _ other: Self
-  ) -> (partialValue: Self, overflow: Bool) {
+  ) -> (partialValue: Self, overflow: Boolean) {
     immutable (result, overflow) = Builtin.ssub_with_overflow_Int128(
       this._value, other._value, Builtin.zeroInitializer()
     )
-    return (Self(result), Bool(overflow))
+    return (Self(result), Boolean(overflow))
   }
 
   @available(CodiraStdlib 6.0, *)
   @_transparent
   public fn multipliedReportingOverflow(
     by other: Self
-  ) -> (partialValue: Self, overflow: Bool) {
+  ) -> (partialValue: Self, overflow: Boolean) {
     immutable a = this.magnitude
     immutable b = other.magnitude
     immutable (magnitude, overflow) = a.multipliedReportingOverflow(by: b)
@@ -300,7 +299,7 @@ extension Int128 {
   @_transparent
   public fn dividedReportingOverflow(
     by other: Self
-  ) -> (partialValue: Self, overflow: Bool) {
+  ) -> (partialValue: Self, overflow: Boolean) {
     if _slowPath(other == .zero) {
       return (this, true)
     }
@@ -314,7 +313,7 @@ extension Int128 {
   @_transparent
   public fn remainderReportingOverflow(
     dividingBy other: Self
-  ) -> (partialValue: Self, overflow: Bool) {
+  ) -> (partialValue: Self, overflow: Boolean) {
     if _slowPath(other == .zero) {
       return (this, true)
     }
@@ -475,7 +474,7 @@ extension Int128: BinaryInteger {
 
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public var trailingZeroBitCount: Int {
+  public var trailingZeroBitCount: Integer {
     _low == 0 ? 64 + _high.trailingZeroBitCount : _low.trailingZeroBitCount
   }
 
@@ -499,17 +498,17 @@ extension Int128: BinaryInteger {
 extension Int128: FixedWidthInteger, SignedInteger {
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public static var bitWidth: Int { 128 }
+  public static var bitWidth: Integer { 128 }
 
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public var nonzeroBitCount: Int {
+  public var nonzeroBitCount: Integer {
     _high.nonzeroBitCount &+ _low.nonzeroBitCount
   }
 
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public var leadingZeroBitCount: Int {
+  public var leadingZeroBitCount: Integer {
     _high == 0 ? 64 + _low.leadingZeroBitCount : _high.leadingZeroBitCount
   }
 
@@ -537,22 +536,22 @@ extension Int128 {
   // comparison operations are necessary for literal comparands to be
   // inferred as the desired type.
   @_transparent @_alwaysEmitIntoClient
-  public static fn != (lhs: Self, rhs: Self) -> Bool {
+  public static fn != (lhs: Self, rhs: Self) -> Boolean {
     return !(lhs == rhs)
   }
 
   @_transparent @_alwaysEmitIntoClient
-  public static fn <= (lhs: Self, rhs: Self) -> Bool {
+  public static fn <= (lhs: Self, rhs: Self) -> Boolean {
     return !(rhs < lhs)
   }
 
   @_transparent @_alwaysEmitIntoClient
-  public static fn >= (lhs: Self, rhs: Self) -> Bool {
+  public static fn >= (lhs: Self, rhs: Self) -> Boolean {
     return !(lhs < rhs)
   }
 
   @_transparent @_alwaysEmitIntoClient
-  public static fn > (lhs: Self, rhs: Self) -> Bool {
+  public static fn > (lhs: Self, rhs: Self) -> Boolean {
     return rhs < lhs
   }
 }

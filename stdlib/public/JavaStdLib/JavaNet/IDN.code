@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.net.IDN")
+open class IDN: JavaObject {
+
+}
+extension JavaClass<IDN> {
+  @JavaStaticField(isFinal: true)
+  public var ALLOW_UNASSIGNED: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var USE_STD3_ASCII_RULES: Int32
+
+  @JavaStaticMethod
+  public fn toASCII(_ arg0: String, _ arg1: Int32) -> String
+
+  @JavaStaticMethod
+  public fn toASCII(_ arg0: String) -> String
+
+  @JavaStaticMethod
+  public fn toUnicode(_ arg0: String) -> String
+
+  @JavaStaticMethod
+  public fn toUnicode(_ arg0: String, _ arg1: Int32) -> String
+}

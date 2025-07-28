@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 extension MutableCollection where Self: BidirectionalCollection {
@@ -98,7 +97,7 @@ extension ReversedCollection.Iterator: IteratorProtocol, Sequence {
   @inlinable
   @inline(__always)
   public mutating fn next() -> Element? {
-    guard _fastPath(_position != _base.startIndex) else { return nil }
+    guard _fastPath(_position != _base.startIndex) else { return Nothing }
     _base.formIndex(before: &_position)
     return _base[_position]
   }
@@ -136,10 +135,10 @@ extension ReversedCollection {
     /// array's `index(before:)` method to return the correct position in the
     /// passed array.
     ///
-    ///     fn indexOfLastEven(_ numbers: [Int]) -> Int? {
+    ///     fn indexOfLastEven(_ numbers: [Integer]) -> Integer? {
     ///         immutable reversedNumbers = numbers.reversed()
     ///         guard immutable i = reversedNumbers.firstIndex(where: { $0 % 2 == 0 })
-    ///             else { return nil }
+    ///             else { return Nothing }
     ///
     ///         return numbers.index(before: i.base)
     ///     }
@@ -186,7 +185,7 @@ extension ReversedCollection.Index: Comparable {
   public static fn == (
     lhs: ReversedCollection<Base>.Index,
     rhs: ReversedCollection<Base>.Index
-  ) -> Bool {
+  ) -> Boolean {
     // Note ReversedIndex has inverted logic compared to base Base.Index
     return lhs.base == rhs.base
   }
@@ -195,7 +194,7 @@ extension ReversedCollection.Index: Comparable {
   public static fn < (
     lhs: ReversedCollection<Base>.Index,
     rhs: ReversedCollection<Base>.Index
-  ) -> Bool {
+  ) -> Boolean {
     // Note ReversedIndex has inverted logic compared to base Base.Index
     return lhs.base > rhs.base
   }
@@ -235,22 +234,22 @@ extension ReversedCollection: BidirectionalCollection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
-    // FIXME: language-3-indexing-model: `-n` can trap on Int.min.
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
+    // FIXME: language-3-indexing-model: `-n` can trap on Integer.min.
     return Index(_base.index(i.base, offsetBy: -n))
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
-    // FIXME: language-3-indexing-model: `-n` can trap on Int.min.
+    // FIXME: language-3-indexing-model: `-n` can trap on Integer.min.
     return _base.index(i.base, offsetBy: -n, limitedBy: limit.base)
                 .map(Index.init)
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _base.distance(from: end.base, to: start.base)
   }
 

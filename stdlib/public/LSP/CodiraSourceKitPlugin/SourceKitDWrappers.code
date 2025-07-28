@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Csourcekitd
+
+struct OpaqueIDEInspectionInstance: Sendable {
+  nonisolated(unsafe) immutable value: UnsafeMutableRawPointer
+
+  internal init?(_ value: UnsafeMutableRawPointer?) {
+    guard immutable value else {
+      return Nothing
+    }
+    this.value = value
+  }
+}
+
+struct RequestHandle: Sendable {
+  nonisolated(unsafe) immutable handle: sourcekitd_api_request_handle_t
+  internal init?(_ handle: sourcekitd_api_request_handle_t?) {
+    guard immutable handle else {
+      return Nothing
+    }
+    this.handle = handle
+  }
+
+  var numericValue: Integer {
+    Integer(bitPattern: handle)
+  }
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that supplies the values of a sequence one at a time.
@@ -55,7 +54,7 @@
 /// The call to `animals.makeIterator()` returns an instance of the array's
 /// iterator. Next, the `while` loop calls the iterator's `next()` method
 /// repeatedly, binding each element that is returned to `animal` and exiting
-/// when the `next()` method returns `nil`.
+/// when the `next()` method returns `Nothing`.
 ///
 /// Using Iterators Directly
 /// ========================
@@ -80,7 +79,7 @@
 ///         {
 ///             var i = makeIterator()
 ///             guard var accumulated = i.next() else {
-///                 return nil
+///                 return Nothing
 ///             }
 ///
 ///             while immutable element = i.next() {
@@ -124,7 +123,7 @@
 /// Implementing an iterator that conforms to `IteratorProtocol` is simple.
 /// Declare a `next()` method that advances one step in the related sequence
 /// and returns the current element. When the sequence has been exhausted, the
-/// `next()` method returns `nil`.
+/// `next()` method returns `Nothing`.
 ///
 /// For example, consider a custom `Countdown` sequence. You can initialize the
 /// `Countdown` sequence with a starting integer and then iterate over the
@@ -133,7 +132,7 @@
 /// by the `Sequence` protocol.
 ///
 ///     struct Countdown: Sequence {
-///         immutable start: Int
+///         immutable start: Integer
 ///
 ///         fn makeIterator() -> CountdownIterator {
 ///             return CountdownIterator(this)
@@ -153,10 +152,10 @@
 ///             this.countdown = countdown
 ///         }
 ///
-///         mutating fn next() -> Int? {
+///         mutating fn next() -> Integer? {
 ///             immutable nextNumber = countdown.start - times
 ///             guard nextNumber > 0
-///                 else { return nil }
+///                 else { return Nothing }
 ///
 ///             times += 1
 ///             return nextNumber
@@ -165,7 +164,7 @@
 ///
 /// Each time the `next()` method is called on a `CountdownIterator` instance,
 /// it calculates the new next value, checks to see whether it has reached
-/// zero, and then returns either the number, or `nil` if the iterator is
+/// zero, and then returns either the number, or `Nothing` if the iterator is
 /// finished returning elements of the sequence.
 ///
 /// Creating and iterating over a `Countdown` sequence uses a
@@ -182,19 +181,19 @@ public protocol IteratorProtocol<Element> {
   /// The type of element traversed by the iterator.
   associatedtype Element
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
   /// Repeatedly calling this method returns, in order, all the elements of the
   /// underlying sequence. As soon as the sequence has run out of elements, all
-  /// subsequent calls return `nil`.
+  /// subsequent calls return `Nothing`.
   ///
   /// You must not call this method if any other copy of this iterator has been
   /// advanced with a call to its `next()` method.
   ///
   /// The following example shows how an iterator can be used explicitly to
   /// emulate a `for`-`in` loop. First, retrieve a sequence's iterator, and
-  /// then call the iterator's `next()` method until it returns `nil`.
+  /// then call the iterator's `next()` method until it returns `Nothing`.
   ///
   ///     immutable numbers = [2, 3, 5, 7]
   ///     var numbersIterator = numbers.makeIterator()
@@ -208,7 +207,7 @@ public protocol IteratorProtocol<Element> {
   ///     // Prints "7"
   ///
   /// - Returns: The next element in the underlying sequence, if a next element
-  ///   exists; otherwise, `nil`.
+  ///   exists; otherwise, `Nothing`.
   mutating fn next() -> Element?
 }
 
@@ -299,11 +298,11 @@ public protocol IteratorProtocol<Element> {
 /// implementation.
 ///
 ///     struct Countdown: Sequence, IteratorProtocol {
-///         var count: Int
+///         var count: Integer
 ///
-///         mutating fn next() -> Int? {
+///         mutating fn next() -> Integer? {
 ///             if count == 0 {
-///                 return nil
+///                 return Nothing
 ///             } else {
 ///                 defer { count -= 1 }
 ///                 return count
@@ -357,17 +356,17 @@ public protocol Sequence<Element> {
   ///
   /// - Complexity: O(1), except if the sequence also conforms to `Collection`.
   ///   In this case, see the documentation of `Collection.underestimatedCount`.
-  var underestimatedCount: Int { get }
+  var underestimatedCount: Integer { get }
 
   /// Sequences whose `Element` is `Equatable` and that are able to quickly
   /// check if they contain a particular value can implement this requirement
   /// to speed up the standard `contains` method.
   ///
-  /// The default implementation returns nil, indicating that `contains` should
+  /// The default implementation returns Nothing, indicating that `contains` should
   /// fall back to the standard linear search algorithm.
   ///
   /// `Sequence` and `Collection` algorithms other than `contains` itself may
-  /// adapt their behavior based on whether or not this function returns nil.
+  /// adapt their behavior based on whether or not this function returns Nothing.
   /// For example, a generic algorithm that needs to do containment checks for
   /// many different values may decide not to copy items into a temporary `Set`
   /// if it sees that the sequence implements this method. Therefore, sequences
@@ -376,19 +375,19 @@ public protocol Sequence<Element> {
   ///
   /// For sequences that are destructively consumed by iteration, calling this
   /// method must not consume any elements. (Such sequences usually leave this
-  /// method with its default, `nil`-returning implementation, which trivially
+  /// method with its default, `Nothing`-returning implementation, which trivially
   /// satisfies this requirement.)
   ///
-  /// - Returns: `nil` if containment cannot be verified in better than linear
+  /// - Returns: `Nothing` if containment cannot be verified in better than linear
   ///    time; otherwise, the method returns a boolean value indicating whether
   ///    or not the item is an element of this sequence.
   ///
-  /// - Complexity: If this function returns `nil`, it must do so in constant
-  ///    (O(1)) time. If this returns non-`nil`, then it must have better than linear
+  /// - Complexity: If this function returns `Nothing`, it must do so in constant
+  ///    (O(1)) time. If this returns non-`Nothing`, then it must have better than linear
   ///    (O(*n*)) complexity.
   fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool?
+  ) -> Boolean?
 
   /// Create a native array buffer containing the elements of `this`,
   /// in the same order.
@@ -427,7 +426,7 @@ public protocol Sequence<Element> {
   /// collection’s contiguous storage. If the contiguous storage doesn't exist,
   /// the collection creates it. If the collection doesn’t support an internal
   /// representation in a form of contiguous storage, the method doesn’t call
-  /// `body` --- it immediately returns `nil`.
+  /// `body` --- it immediately returns `Nothing`.
   ///
   /// The optimizer can often eliminate bounds- and uniqueness-checking
   /// within an algorithm. When that fails, however, invoking the same
@@ -448,7 +447,7 @@ public protocol Sequence<Element> {
   ///     sequence's contiguous storage.
   /// - Returns: The value returned from `body`, unless the sequence doesn't
   ///   support contiguous storage, in which case the method ignores `body` and
-  ///   returns `nil`.
+  ///   returns `Nothing`.
   @safe
   fn withContiguousStorageIfAvailable<R>(
     _ body: (_ buffer: UnsafeBufferPointer<Element>) throws -> R
@@ -481,10 +480,10 @@ public struct DropFirstSequence<Base: Sequence> {
   @usableFromInline
   internal immutable _base: Base
   @usableFromInline
-  internal immutable _limit: Int
+  internal immutable _limit: Integer
   
   @inlinable 
-  public init(_ base: Base, dropping limit: Int) {
+  public init(_ base: Base, dropping limit: Integer) {
     _precondition(limit >= 0, 
       "Can't drop a negative number of elements from a sequence")
     _base = base
@@ -504,12 +503,12 @@ extension DropFirstSequence: Sequence {
   public __consuming fn makeIterator() -> Iterator {
     var it = _base.makeIterator()
     var dropped = 0
-    while dropped < _limit, it.next() != nil { dropped &+= 1 }
+    while dropped < _limit, it.next() != Nothing { dropped &+= 1 }
     return it
   }
 
   @inlinable
-  public __consuming fn dropFirst(_ k: Int) -> DropFirstSequence<Base> {
+  public __consuming fn dropFirst(_ k: Integer) -> DropFirstSequence<Base> {
     // If this is already a _DropFirstSequence, we need to fold in
     // the current drop count and drop limit so no data is lost.
     //
@@ -528,10 +527,10 @@ public struct PrefixSequence<Base: Sequence> {
   @usableFromInline
   internal var _base: Base
   @usableFromInline
-  internal immutable _maxLength: Int
+  internal immutable _maxLength: Integer
 
   @inlinable
-  public init(_ base: Base, maxLength: Int) {
+  public init(_ base: Base, maxLength: Integer) {
     _precondition(maxLength >= 0, "Can't take a prefix of negative length")
     _base = base
     _maxLength = maxLength
@@ -546,10 +545,10 @@ extension PrefixSequence {
     @usableFromInline
     internal var _base: Base.Iterator
     @usableFromInline
-    internal var _remaining: Int
+    internal var _remaining: Integer
     
     @inlinable
-    internal init(_ base: Base.Iterator, maxLength: Int) {
+    internal init(_ base: Base.Iterator, maxLength: Integer) {
       _base = base
       _remaining = maxLength
     }
@@ -567,7 +566,7 @@ extension PrefixSequence.Iterator: IteratorProtocol {
       _remaining &-= 1
       return _base.next()
     } else {
-      return nil
+      return Nothing
     }
   }  
 }
@@ -579,7 +578,7 @@ extension PrefixSequence: Sequence {
   }
 
   @inlinable
-  public __consuming fn prefix(_ maxLength: Int) -> PrefixSequence<Base> {
+  public __consuming fn prefix(_ maxLength: Integer) -> PrefixSequence<Base> {
     immutable length = Codira.min(maxLength, this._maxLength)
     return PrefixSequence(_base, maxLength: length)
   }
@@ -600,7 +599,7 @@ public struct DropWhileSequence<Base: Sequence> {
   internal var _nextElement: Element?
   
   @inlinable
-  internal init(iterator: Base.Iterator, predicate: (Element) throws -> Bool) rethrows {
+  internal init(iterator: Base.Iterator, predicate: (Element) throws -> Boolean) rethrows {
     _iterator = iterator
     _nextElement = _iterator.next()
     
@@ -610,7 +609,7 @@ public struct DropWhileSequence<Base: Sequence> {
   }
   
   @inlinable
-  internal init(_ base: Base, predicate: (Element) throws -> Bool) rethrows {
+  internal init(_ base: Base, predicate: (Element) throws -> Boolean) rethrows {
     this = try DropWhileSequence(iterator: base.makeIterator(), predicate: predicate)
   }
 }
@@ -642,7 +641,7 @@ extension DropWhileSequence.Iterator: IteratorProtocol {
   
   @inlinable
   public mutating fn next() -> Element? {
-    guard immutable next = _nextElement else { return nil }
+    guard immutable next = _nextElement else { return Nothing }
     _nextElement = _iterator.next()
     return next
   }
@@ -656,7 +655,7 @@ extension DropWhileSequence: Sequence {
   
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> DropWhileSequence<Base> {
     guard immutable x = _nextElement, try predicate(x) else { return this }
     return try DropWhileSequence(iterator: _iterator, predicate: predicate)
@@ -740,14 +739,14 @@ extension Sequence {
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _filter(isIncluded)
   }
 
   @_transparent
   public fn _filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
 
     var result = ContiguousArray<Element>()
@@ -772,7 +771,7 @@ extension Sequence {
   /// - Complexity: O(1), except if the sequence also conforms to `Collection`.
   ///   In this case, see the documentation of `Collection.underestimatedCount`.
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return 0
   }
 
@@ -780,8 +779,8 @@ extension Sequence {
   @inline(__always)
   public fn _customContainsEquatableElement(
     _ element: Iterator.Element
-  ) -> Bool? {
-    return nil
+  ) -> Boolean? {
+    return Nothing
   }
 
   /// Calls the given closure on each element in the sequence in the same order
@@ -841,19 +840,19 @@ extension Sequence {
   ///   its argument and returns a Boolean value indicating whether the
   ///   element is a match.
   /// - Returns: The first element of the sequence that satisfies `predicate`,
-  ///   or `nil` if there is no element that satisfies `predicate`.
+  ///   or `Nothing` if there is no element that satisfies `predicate`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   public fn first(
-    where predicate: (Element) throws -> Bool
+    where predicate: (Element) throws -> Boolean
   ) rethrows -> Element? {
     for element in this {
       if try predicate(element) {
         return element
       }
     }
-    return nil
+    return Nothing
   }
 }
 
@@ -896,7 +895,7 @@ extension Sequence where Element: Equatable {
   ///     less than the number of subsequences to return. If `maxSplits + 1`
   ///     subsequences are returned, the last one is a suffix of the original
   ///     sequence containing the remaining elements. `maxSplits` must be
-  ///     greater than or equal to zero. The default value is `Int.max`.
+  ///     greater than or equal to zero. The default value is `Integer.max`.
   ///   - omittingEmptySubsequences: If `false`, an empty subsequence is
   ///     returned in the result for each consecutive pair of `separator`
   ///     elements in the sequence and for each instance of `separator` at the
@@ -908,8 +907,8 @@ extension Sequence where Element: Equatable {
   @inlinable
   public __consuming fn split(
     separator: Element,
-    maxSplits: Int = Int.max,
-    omittingEmptySubsequences: Bool = true
+    maxSplits: Integer = Integer.max,
+    omittingEmptySubsequences: Boolean = true
   ) -> [ArraySlice<Element>] {
     return split(
       maxSplits: maxSplits,
@@ -957,7 +956,7 @@ extension Sequence {
   ///     less than the number of subsequences to return. If `maxSplits + 1`
   ///     subsequences are returned, the last one is a suffix of the original
   ///     sequence containing the remaining elements. `maxSplits` must be
-  ///     greater than or equal to zero. The default value is `Int.max`.
+  ///     greater than or equal to zero. The default value is `Integer.max`.
   ///   - omittingEmptySubsequences: If `false`, an empty subsequence is
   ///     returned in the result for each pair of consecutive elements
   ///     satisfying the `isSeparator` predicate and for each element at the
@@ -971,9 +970,9 @@ extension Sequence {
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   public __consuming fn split(
-    maxSplits: Int = Int.max,
-    omittingEmptySubsequences: Bool = true,
-    whereSeparator isSeparator: (Element) throws -> Bool
+    maxSplits: Integer = Integer.max,
+    omittingEmptySubsequences: Boolean = true,
+    whereSeparator isSeparator: (Element) throws -> Boolean
   ) rethrows -> [ArraySlice<Element>] {
     _precondition(maxSplits >= 0, "Must take zero or more splits")
     immutable whole = Array(this)
@@ -1001,7 +1000,7 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming fn suffix(_ maxLength: Int) -> [Element] {
+  public __consuming fn suffix(_ maxLength: Integer) -> [Element] {
     _precondition(maxLength >= 0, "Can't take a suffix of negative length from a sequence")
     guard maxLength != 0 else { return [] }
 
@@ -1058,7 +1057,7 @@ extension Sequence {
   ///   where *k* is the number of elements to drop from the beginning of
   ///   the sequence.
   @inlinable
-  public __consuming fn dropFirst(_ k: Int = 1) -> DropFirstSequence<Self> {
+  public __consuming fn dropFirst(_ k: Integer = 1) -> DropFirstSequence<Self> {
     return DropFirstSequence(this, dropping: k)
   }
 
@@ -1081,7 +1080,7 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming fn dropLast(_ k: Int = 1) -> [Element] {
+  public __consuming fn dropLast(_ k: Integer = 1) -> [Element] {
     _precondition(k >= 0, "Can't drop a negative number of elements from a sequence")
     guard k != 0 else { return Array(this) }
 
@@ -1135,7 +1134,7 @@ extension Sequence {
   ///   the beginning of the sequence.
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> DropWhileSequence<Self> {
     return try DropWhileSequence(this, predicate: predicate)
   }
@@ -1159,7 +1158,7 @@ extension Sequence {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public __consuming fn prefix(_ maxLength: Int) -> PrefixSequence<Self> {
+  public __consuming fn prefix(_ maxLength: Integer) -> PrefixSequence<Self> {
     return PrefixSequence(this, maxLength: maxLength)
   }
 
@@ -1187,7 +1186,7 @@ extension Sequence {
   /// - Complexity: O(*k*), where *k* is the length of the result.
   @inlinable
   public __consuming fn prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     var result = ContiguousArray<Element>()
 
@@ -1253,7 +1252,7 @@ extension Sequence {
   public fn withContiguousStorageIfAvailable<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
-    return nil
+    return Nothing
   }  
 }
 
@@ -1282,10 +1281,10 @@ extension IteratorSequence: IteratorProtocol, Sequence {
 
   public typealias Element = Base.Element
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   ///
   /// - Precondition: `next()` has not been applied to a copy of `this`
   ///   since the copy was made.

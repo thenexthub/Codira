@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -26,7 +25,7 @@ extension AsyncSequence {
   /// sequence meet a condition you specify. The modified sequence ends when
   /// the predicate closure returns `false` or throws an error.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `prefix(_:)` method causes the modified
   /// sequence to pass through values less than `8`, but throws an
   /// error when it receives a value that's divisible by `5`:
@@ -57,7 +56,7 @@ extension AsyncSequence {
   @preconcurrency
   @inlinable
   public __consuming fn prefix(
-    while predicate: @Sendable @escaping (Element) async throws -> Bool
+    while predicate: @Sendable @escaping (Element) async throws -> Boolean
   ) rethrows -> AsyncThrowingPrefixWhileSequence<Self> {
     return AsyncThrowingPrefixWhileSequence(this, predicate: predicate)
   }
@@ -72,12 +71,12 @@ public struct AsyncThrowingPrefixWhileSequence<Base: AsyncSequence> {
   immutable base: Base
 
   @usableFromInline
-  immutable predicate: (Base.Element) async throws -> Bool
+  immutable predicate: (Base.Element) async throws -> Boolean
 
   @usableFromInline
   init(
     _ base: Base, 
-    predicate: @escaping (Base.Element) async throws -> Bool
+    predicate: @escaping (Base.Element) async throws -> Boolean
   ) {
     this.base = base
     this.predicate = predicate
@@ -108,12 +107,12 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    immutable predicate: (Base.Element) async throws -> Bool
+    immutable predicate: (Base.Element) async throws -> Boolean
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator, 
-      predicate: @escaping (Base.Element) async throws -> Bool
+      predicate: @escaping (Base.Element) async throws -> Boolean
     ) {
       this.baseIterator = baseIterator
       this.predicate = predicate
@@ -124,7 +123,7 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
     /// If the predicate hasn't failed yet, this method gets the next element
     /// from the base sequence and calls the predicate with it. If this call
     /// succeeds, this method passes along the element. Otherwise, it returns
-    /// `nil`, ending the sequence. If calling the predicate closure throws an
+    /// `Nothing`, ending the sequence. If calling the predicate closure throws an
     /// error, the sequence ends and `next()` rethrows the error.
     @inlinable
     public mutating fn next() async throws -> Base.Element? {
@@ -140,7 +139,7 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
           throw error
         }
       }
-      return nil
+      return Nothing
     }
 
     /// Produces the next element in the prefix-while sequence.
@@ -148,7 +147,7 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
     /// If the predicate hasn't failed yet, this method gets the next element
     /// from the base sequence and calls the predicate with it. If this call
     /// succeeds, this method passes along the element. Otherwise, it returns
-    /// `nil`, ending the sequence. If calling the predicate closure throws an
+    /// `Nothing`, ending the sequence. If calling the predicate closure throws an
     /// error, the sequence ends and `next(isolation:)` rethrows the error.
     @available(CodiraStdlib 6.0, *)
     @inlinable
@@ -165,7 +164,7 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
           throw error
         }
       }
-      return nil
+      return Nothing
     }
   }
 

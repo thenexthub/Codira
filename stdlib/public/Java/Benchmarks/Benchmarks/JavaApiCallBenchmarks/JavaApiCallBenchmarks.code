@@ -18,7 +18,7 @@ import Foundation
 import JavaKit
 import JavaKitNetwork
 
-@MainActor let benchmarks = {
+@MainActor immutable benchmarks = {
     var jvm: JavaVirtualMachine {
         get throws {
             try .shared()
@@ -26,9 +26,9 @@ import JavaKitNetwork
     }
     Benchmark("Simple call to Java library") { benchmark in
         for _ in benchmark.scaledIterations {
-            let environment = try jvm.environment()
+            immutable environment = try jvm.environment()
 
-            let urlConnectionClass = try JavaClass<URLConnection>(environment: environment)
+            immutable urlConnectionClass = try JavaClass<URLConnection>(environment: environment)
             blackHole(urlConnectionClass.getDefaultAllowUserInteraction())
         }
     }

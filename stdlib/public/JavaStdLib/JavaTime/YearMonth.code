@@ -1,0 +1,175 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.YearMonth", implements: Temporal.this, TemporalAdjuster.this, Comparable.this, Serializable.this)
+open class YearMonth: JavaObject {
+  @JavaMethod
+  open fn isValidDay(_ arg0: Int32) -> Boolean
+
+  @JavaMethod
+  open fn atDay(_ arg0: Int32) -> LocalDate!
+
+  @JavaMethod
+  open fn atEndOfMonth() -> LocalDate!
+
+  @JavaMethod
+  open fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: YearMonth?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn format(_ arg0: DateTimeFormatter?) -> String
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalUnit?) -> Boolean
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> YearMonth!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> YearMonth!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  open fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open fn getYear() -> Int32
+
+  @JavaMethod
+  open fn getMonthValue() -> Int32
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> YearMonth!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> YearMonth!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> YearMonth!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> YearMonth!
+
+  @JavaMethod
+  open fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open fn adjustInto(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn isAfter(_ arg0: YearMonth?) -> Boolean
+
+  @JavaMethod
+  open fn isBefore(_ arg0: YearMonth?) -> Boolean
+
+  @JavaMethod
+  open fn isLeapYear() -> Boolean
+
+  @JavaMethod
+  open fn lengthOfMonth() -> Int32
+
+  @JavaMethod
+  open fn lengthOfYear() -> Int32
+
+  @JavaMethod
+  open fn getMonth() -> Month!
+
+  @JavaMethod
+  open fn withMonth(_ arg0: Int32) -> YearMonth!
+
+  @JavaMethod
+  open fn plusMonths(_ arg0: Int64) -> YearMonth!
+
+  @JavaMethod
+  open fn withYear(_ arg0: Int32) -> YearMonth!
+
+  @JavaMethod
+  open fn plusYears(_ arg0: Int64) -> YearMonth!
+
+  @JavaMethod
+  open fn minusMonths(_ arg0: Int64) -> YearMonth!
+
+  @JavaMethod
+  open fn minusYears(_ arg0: Int64) -> YearMonth!
+}
+extension JavaClass<YearMonth> {
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32, _ arg1: Int32) -> YearMonth!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32, _ arg1: Month?) -> YearMonth!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> YearMonth!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?, _ arg1: DateTimeFormatter?) -> YearMonth!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?) -> YearMonth!
+
+  @JavaStaticMethod
+  public fn now() -> YearMonth!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: ZoneId?) -> YearMonth!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: Clock?) -> YearMonth!
+}

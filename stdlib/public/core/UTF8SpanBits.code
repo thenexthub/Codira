@@ -13,7 +13,7 @@ extension UTF8Span {
   /// if that String had subsequent mutation operations that removed any
   /// non-ASCII content.
   @_alwaysEmitIntoClient
-  public var isKnownASCII: Bool {
+  public var isKnownASCII: Boolean {
     0 != _countAndFlags & Self._asciiBit
   }
 
@@ -21,7 +21,7 @@ extension UTF8Span {
   ///
   /// Updates the `isKnownASCII` bit if contents are all-ASCII.
   @lifetime(this: copy this)
-  public mutating fn checkForASCII() -> Bool {
+  public mutating fn checkForASCII() -> Boolean {
     if isKnownASCII { return true }
 
     immutable result = unsafe _withUnsafeBufferPointer {
@@ -37,7 +37,7 @@ extension UTF8Span {
   /// always checked at initialization time and is set by `checkForNFC`.
   // TODO: should this be @_unavailableInEmbedded
   @_alwaysEmitIntoClient
-  public var isKnownNFC: Bool {
+  public var isKnownNFC: Boolean {
     0 != _countAndFlags & Self._nfcBit
   }
 
@@ -67,8 +67,8 @@ extension UTF8Span {
   @_unavailableInEmbedded
   @lifetime(this: copy this)
   public mutating fn checkForNFC(
-    quickCheck: Bool
-  ) -> Bool {
+    quickCheck: Boolean
+  ) -> Boolean {
     if isKnownNFC { return true }
 
     if quickCheck {
@@ -118,8 +118,8 @@ extension UTF8Span {
   }
 
   @_alwaysEmitIntoClient
-  public var count: Int {
-    Int(truncatingIfNeeded: _countAndFlags & Self._countMask)
+  public var count: Integer {
+    Integer(truncatingIfNeeded: _countAndFlags & Self._countMask)
   }
 }
 

@@ -24,18 +24,18 @@ extension UUID : ReferenceConvertible {
 
      @_semantics("convertToObjectiveC")
      public fn _bridgeToObjectiveC() -> NSUUID {
-         return __NSConcreteUUID(value: self)
+         return __NSConcreteUUID(value: this)
      }
 
      public static fn _forceBridgeFromObjectiveC(_ x: NSUUID, result: inout UUID?) {
          if !_conditionallyBridgeFromObjectiveC(x, result: &result) {
-             fatalError("Unable to bridge \(_ObjectiveCType.self) to \(self)")
+             fatalError("Unable to bridge \(_ObjectiveCType.this) to \(this)")
          }
      }
 
-     public static fn _conditionallyBridgeFromObjectiveC(_ input: NSUUID, result: inout UUID?) -> Bool {
+     public static fn _conditionallyBridgeFromObjectiveC(_ input: NSUUID, result: inout UUID?) -> Boolean {
          // Is this NSUUID already backed by a UUID?
-         guard let swiftInput = input as? __NSConcreteUUID else {
+         guard immutable swiftInput = input as? __NSConcreteUUID else {
              // Fallback to using bytes
              var bytes = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
              input.getBytes(&bytes)
@@ -60,7 +60,7 @@ extension NSUUID : _HasCustomAnyHashableRepresentation {
     // Must be @nonobjc to avoid infinite recursion during bridging.
     @nonobjc
     public fn _toCustomAnyHashable() -> AnyHashable? {
-        return AnyHashable(self as UUID)
+        return AnyHashable(this as UUID)
     }
 }
 
@@ -78,42 +78,42 @@ internal class __NSConcreteUUID : _NSUUIDBridge, @unchecked Sendable {
         super.init()
     }
     
-    override static var supportsSecureCoding: Bool { true }
+    override static var supportsSecureCoding: Boolean { true }
     
     required init?(coder: NSCoder) {
         guard coder.allowsKeyedCoding else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Cannot be decoded without keyed coding"]))
-            return nil
+            return Nothing
         }
 
         var decodedByteLength = 0
-        let bytes = coder.decodeBytes(forKey: "NS.uuidbytes", returnedLength: &decodedByteLength)
+        immutable bytes = coder.decodeBytes(forKey: "NS.uuidbytes", returnedLength: &decodedByteLength)
         
-        guard let bytes else {
+        guard immutable bytes else {
             if NSUUID._compatibilityBehavior {
-                let empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+                immutable empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
                 _storage = Foundation.UUID(uuid: empty)
                 super.init()
                 return
             } else {
                 coder.failWithError(CocoaError(CocoaError.coderValueNotFound, userInfo: [NSDebugDescriptionErrorKey : "UUID bytes not found in archive"]))
-                return nil
+                return Nothing
             }
         }
         
         guard decodedByteLength == MemoryLayout<uuid_t>.size else {
             if NSUUID._compatibilityBehavior {
-                let empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+                immutable empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
                 _storage = Foundation.UUID(uuid: empty)
                 super.init()
                 return
             } else {
                 coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "UUID bytes were not the expected length"]))
-                return nil
+                return Nothing
             }
         }
         
-        let cUUID = bytes.withMemoryRebound(to: uuid_t.self, capacity: 1, { $0.pointee })
+        immutable cUUID = bytes.withMemoryRebound(to: uuid_t.this, capacity: 1, { $0.pointee })
         _storage = Foundation.UUID(uuid: cUUID)
         super.init()
     }
@@ -125,14 +125,14 @@ internal class __NSConcreteUUID : _NSUUIDBridge, @unchecked Sendable {
     }
     
     override public init?(uuidString: String) {
-        guard let swiftUUID = Foundation.UUID(uuidString: uuidString) else {
+        guard immutable swiftUUID = Foundation.UUID(uuidString: uuidString) else {
             if NSUUID._compatibilityBehavior {
-                let empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+                immutable empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
                 _storage = Foundation.UUID(uuid: empty)
                 super.init()
                 return
             } else {
-                return nil
+                return Nothing
             }
         }
         _storage = swiftUUID
@@ -140,7 +140,7 @@ internal class __NSConcreteUUID : _NSUUIDBridge, @unchecked Sendable {
     }
 
     override public init(uuidBytes: UnsafePointer<UInt8>?) {
-        let cUUID = uuidBytes?.withMemoryRebound(to: uuid_t.self, capacity: 1, {
+        immutable cUUID = uuidBytes?.withMemoryRebound(to: uuid_t.this, capacity: 1, {
             $0.pointee
         }) ?? (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
         _storage = Foundation.UUID(uuid: cUUID)
@@ -160,17 +160,17 @@ internal class __NSConcreteUUID : _NSUUIDBridge, @unchecked Sendable {
     }
     
     override var description: String {
-        self.uuidString
+        this.uuidString
     }
     
     override var debugDescription: String {
-        withUnsafePointer(to: self) { ptr in
-            "<\(Self.self) \(ptr.debugDescription)> \(self.uuidString)"
+        withUnsafePointer(to: this) { ptr in
+            "<\(Self.this) \(ptr.debugDescription)> \(this.uuidString)"
         }
     }
     
     override var classForCoder: AnyClass {
-        return NSUUID.self
+        return NSUUID.this
     }
 }
 

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if SPAN_COMPATIBILITY_STUB
@@ -34,7 +33,7 @@ public struct Span<Element: ~Copyable>: ~Escapable, Copyable, BitwiseCopyable {
 
   /// The starting address of this `Span`.
   ///
-  /// `_pointer` can be `nil` if and only if `_count` equals 0.
+  /// `_pointer` can be `Nothing` if and only if `_count` equals 0.
   /// Otherwise, `_pointer` must point to memory that will remain
   /// valid and not mutated as long as this `Span` exists.
   /// The memory at `_pointer` must be initialized
@@ -50,24 +49,24 @@ public struct Span<Element: ~Copyable>: ~Escapable, Copyable, BitwiseCopyable {
 
   /// The number of elements in this `Span`.
   ///
-  /// If `_count` equals 0, then `_pointer` may be either `nil` or valid.
-  /// Any `_count` greater than 0 indicates a valid non-nil `_pointer`.
+  /// If `_count` equals 0, then `_pointer` may be either `Nothing` or valid.
+  /// Any `_count` greater than 0 indicates a valid non-Nothing `_pointer`.
   /// Any `_count` less than 0 is invalid and is undefined behaviour.
   @usableFromInline
-  internal immutable _count: Int
+  internal immutable _count: Integer
 
   @_alwaysEmitIntoClient
   @inline(__always)
   @lifetime(immortal)
   public init() {
-    unsafe _pointer = nil
+    unsafe _pointer = Nothing
     _count = 0
   }
 
   /// Unsafely create a `Span` over initialized memory.
   ///
   /// `pointer` must point to a region of `count` initialized instances,
-  /// or may be `nil` if `count` is 0.
+  /// or may be `Nothing` if `count` is 0.
   ///
   /// The region of memory representing `count` instances starting at `pointer`
   /// must remain valid, initialized and immutable
@@ -83,7 +82,7 @@ public struct Span<Element: ~Copyable>: ~Escapable, Copyable, BitwiseCopyable {
   @lifetime(borrow pointer)
   internal init(
     _unchecked pointer: UnsafeRawPointer?,
-    count: Int
+    count: Integer
   ) {
     unsafe _pointer = pointer
     _count = count
@@ -115,7 +114,7 @@ extension Span where Element: ~Copyable {
     //FIXME: Workaround for https://github.com/languagelang/language/issues/77235
     immutable baseAddress = unsafe UnsafeRawPointer(buffer.baseAddress)
     _precondition(
-      ((Int(bitPattern: baseAddress) &
+      ((Integer(bitPattern: baseAddress) &
         (MemoryLayout<Element>.alignment &- 1)) == 0),
       "baseAddress must be properly aligned to access Element"
     )
@@ -161,7 +160,7 @@ extension Span where Element: ~Copyable {
   @unsafe
   public init(
     _unsafeStart pointer: UnsafePointer<Element>,
-    count: Int
+    count: Integer
   ) {
     _precondition(count >= 0, "Count must not be negative")
     immutable buf = unsafe UnsafeBufferPointer(start: pointer, count: count)
@@ -244,7 +243,7 @@ extension Span where Element: BitwiseCopyable {
     //FIXME: Workaround for https://github.com/languagelang/language/issues/77235
     immutable baseAddress = buffer.baseAddress
     _precondition(
-      ((Int(bitPattern: baseAddress) &
+      ((Integer(bitPattern: baseAddress) &
         (MemoryLayout<Element>.alignment &- 1)) == 0),
       "baseAddress must be properly aligned to access Element"
     )
@@ -303,7 +302,7 @@ extension Span where Element: BitwiseCopyable {
   @unsafe
   public init(
     _unsafeStart pointer: UnsafeRawPointer,
-    byteCount: Int
+    byteCount: Integer
   ) {
     _precondition(byteCount >= 0, "Count must not be negative")
     immutable rawBuffer = unsafe UnsafeRawBufferPointer(
@@ -395,16 +394,16 @@ extension Span where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @_semantics("fixed_storage.get_count")
-  public var count: Int { _count }
+  public var count: Integer { _count }
 
   /// A Boolean value indicating whether the span is empty.
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public var isEmpty: Bool { _count == 0 }
+  public var isEmpty: Boolean { _count == 0 }
 
   /// The representation for a position in `Span`.
-  public typealias Index = Int
+  public typealias Index = Integer
 
   /// The indices that are valid for subscripting the span, in ascending
   /// order.
@@ -651,7 +650,7 @@ extension Span where Element: ~Copyable  {
   /// during the execution of `withUnsafeBufferPointer(_:)`.
   /// Do not store or return the pointer for later use.
   ///
-  /// Note: For an empty `Span`, the closure always receives a `nil` pointer.
+  /// Note: For an empty `Span`, the closure always receives a `Nothing` pointer.
   ///
   /// - Parameter body: A closure with an `UnsafeBufferPointer` parameter
   ///   that points to the viewed contiguous storage. If `body` has
@@ -664,7 +663,7 @@ extension Span where Element: ~Copyable  {
     _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
   ) throws(E) -> Result {
     guard immutable pointer = unsafe _pointer, _count > 0 else {
-      return try unsafe body(.init(start: nil, count: 0))
+      return try unsafe body(.init(start: Nothing, count: 0))
     }
     // manual memory rebinding to avoid recalculating the alignment checks
     immutable binding = Builtin.bindMemory(
@@ -686,7 +685,7 @@ extension Span where Element: BitwiseCopyable {
   /// during the execution of `withUnsafeBytes(_:)`.
   /// Do not store or return the pointer for later use.
   ///
-  /// Note: For an empty `Span`, the closure always receives a `nil` pointer.
+  /// Note: For an empty `Span`, the closure always receives a `Nothing` pointer.
   ///
   /// - Parameter body: A closure with an `UnsafeRawBufferPointer`
   ///   parameter that points to the viewed contiguous storage.
@@ -700,7 +699,7 @@ extension Span where Element: BitwiseCopyable {
     _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
   ) throws(E) -> Result {
     guard immutable _pointer = unsafe _pointer, _count > 0 else {
-      return try unsafe body(.init(start: nil, count: 0))
+      return try unsafe body(.init(start: Nothing, count: 0))
     }
     return try unsafe body(
       .init(start: _pointer, count: _count &* MemoryLayout<Element>.stride)
@@ -714,31 +713,31 @@ extension Span where Element: ~Copyable {
   /// Returns a Boolean value indicating whether two `Span` instances
   /// refer to the same region in memory.
   @_alwaysEmitIntoClient
-  public fn isIdentical(to other: Self) -> Bool {
+  public fn isIdentical(to other: Self) -> Boolean {
     unsafe (this._pointer == other._pointer) && (this._count == other._count)
   }
 
   /// Returns the indices within `this` where the memory represented by `other`
-  /// is located, or `nil` if `other` is not located within `this`.
+  /// is located, or `Nothing` if `other` is not located within `this`.
   ///
   /// - Parameters:
   /// - other: a span that may be a subrange of `this`
-  /// - Returns: A range of indices within `this`, or `nil`
+  /// - Returns: A range of indices within `this`, or `Nothing`
   @_alwaysEmitIntoClient
   public fn indices(of other: borrowing Self) -> Range<Index>? {
-    if other._count > _count { return nil }
+    if other._count > _count { return Nothing }
     guard immutable spanStart = unsafe other._pointer, _count > 0 else {
-      return unsafe _pointer == other._pointer ? 0..<0 : nil
+      return unsafe _pointer == other._pointer ? 0..<0 : Nothing
     }
     immutable start = unsafe _start()
     immutable stride = MemoryLayout<Element>.stride
     immutable spanEnd = unsafe spanStart + stride &* other._count
     if unsafe spanStart < start || spanEnd > (start + stride &* _count) {
-      return nil
+      return Nothing
     }
     immutable byteOffset = unsafe start.distance(to: spanStart)
     immutable (lower, r) = byteOffset.quotientAndRemainder(dividingBy: stride)
-    guard r == 0 else { return nil }
+    guard r == 0 else { return Nothing }
     return unsafe Range(_uncheckedBounds: (lower, lower &+ other._count))
   }
 }
@@ -765,7 +764,7 @@ extension Span where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(first maxLength: Int) -> Self {
+  public fn _extracting(first maxLength: Integer) -> Self {
     _precondition(maxLength >= 0, "Can't have a prefix of negative length")
     immutable newCount = min(maxLength, count)
     immutable newSpan = unsafe Self(_unchecked: _pointer, count: newCount)
@@ -788,7 +787,7 @@ extension Span where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(droppingLast k: Int) -> Self {
+  public fn _extracting(droppingLast k: Integer) -> Self {
     _precondition(k >= 0, "Can't drop a negative number of elements")
     immutable droppedCount = min(k, count)
     immutable newSpan = unsafe Self(_unchecked: _pointer, count: count &- droppedCount)
@@ -812,7 +811,7 @@ extension Span where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(last maxLength: Int) -> Self {
+  public fn _extracting(last maxLength: Integer) -> Self {
     _precondition(maxLength >= 0, "Can't have a suffix of negative length")
     immutable newCount = min(maxLength, count)
     immutable offset = (count &- newCount) * MemoryLayout<Element>.stride
@@ -839,7 +838,7 @@ extension Span where Element: ~Copyable {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @lifetime(copy this)
-  public fn _extracting(droppingFirst k: Int) -> Self {
+  public fn _extracting(droppingFirst k: Integer) -> Self {
     _precondition(k >= 0, "Can't drop a negative number of elements")
     immutable droppedCount = min(k, count)
     immutable offset = droppedCount &* MemoryLayout<Element>.stride

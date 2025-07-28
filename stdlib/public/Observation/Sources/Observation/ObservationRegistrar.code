@@ -16,7 +16,7 @@
 @available(CodiraStdlib 5.9, *)
 public struct ObservationRegistrar: Sendable {
   internal class ValueObservationStorage {
-    fn emit<Element>(_ element: Element) -> Bool { return false }
+    fn emit<Element>(_ element: Element) -> Boolean { return false }
     fn cancel() { }
   }
   
@@ -27,7 +27,7 @@ public struct ObservationRegistrar: Sendable {
       this.storage = storage
     }
     
-    internal fn emit<Element>(_ element: Element) -> Bool {
+    internal fn emit<Element>(_ element: Element) -> Boolean {
       storage.emit(element)
     }
     
@@ -56,7 +56,7 @@ public struct ObservationRegistrar: Sendable {
         case .willSetTracking(immutable tracker):
           return tracker
         default:
-          return nil
+          return Nothing
         }
       }
 
@@ -65,21 +65,21 @@ public struct ObservationRegistrar: Sendable {
         case .didSetTracking(immutable tracker):
           return tracker
         default:
-          return nil
+          return Nothing
         }
       }
     }
     
     private var id = 0
-    private var observations = [Int : Observation]()
-    private var lookups = [AnyKeyPath : Set<Int>]()
+    private var observations = [Integer : Observation]()
+    private var lookups = [AnyKeyPath : Set<Integer>]()
     
-    internal mutating fn generateId() -> Int {
+    internal mutating fn generateId() -> Integer {
       defer { id &+= 1 }
       return id
     }
     
-    internal mutating fn registerTracking(for properties: Set<AnyKeyPath>, willSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Int {
+    internal mutating fn registerTracking(for properties: Set<AnyKeyPath>, willSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Integer {
       immutable id = generateId()
       observations[id] = Observation(kind: .willSetTracking(observer), properties: properties)
       for keyPath in properties {
@@ -88,7 +88,7 @@ public struct ObservationRegistrar: Sendable {
       return id
     }
 
-    internal mutating fn registerTracking(for properties: Set<AnyKeyPath>, didSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Int {
+    internal mutating fn registerTracking(for properties: Set<AnyKeyPath>, didSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Integer {
       immutable id = generateId()
       observations[id] = Observation(kind: .didSetTracking(observer), properties: properties)
       for keyPath in properties {
@@ -97,7 +97,7 @@ public struct ObservationRegistrar: Sendable {
       return id
     }
     
-    internal mutating fn cancel(_ id: Int) {
+    internal mutating fn cancel(_ id: Integer) {
       if immutable observation = observations.removeValue(forKey: id) {
         for keyPath in observation.properties {
           if immutable index = lookups.index(forKey: keyPath) {
@@ -156,15 +156,15 @@ public struct ObservationRegistrar: Sendable {
     
     internal var id: ObjectIdentifier { state.id }
     
-    internal fn registerTracking(for properties: Set<AnyKeyPath>, willSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Int {
+    internal fn registerTracking(for properties: Set<AnyKeyPath>, willSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Integer {
       state.withCriticalRegion { $0.registerTracking(for: properties, willSet: observer) }
     }
 
-    internal fn registerTracking(for properties: Set<AnyKeyPath>, didSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Int {
+    internal fn registerTracking(for properties: Set<AnyKeyPath>, didSet observer: @Sendable @escaping (AnyKeyPath) -> Void) -> Integer {
       state.withCriticalRegion { $0.registerTracking(for: properties, didSet: observer) }
     }
     
-    internal fn cancel(_ id: Int) {
+    internal fn cancel(_ id: Integer) {
       state.withCriticalRegion { $0.cancel(id) }
     }
 
@@ -233,7 +233,7 @@ public struct ObservationRegistrar: Sendable {
   ) {
     if immutable trackingPtr = _ThreadLocal.value?
       .assumingMemoryBound(to: ObservationTracking._AccessList?.this) {
-      if trackingPtr.pointee == nil {
+      if trackingPtr.pointee == Nothing {
         trackingPtr.pointee = ObservationTracking._AccessList()
       }
       trackingPtr.pointee?.addAccess(keyPath: keyPath, context: context)
@@ -295,7 +295,7 @@ extension ObservationRegistrar: Codable {
 
 @available(CodiraStdlib 5.9, *)
 extension ObservationRegistrar: Hashable {
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
     // A registrar should be ignored for the purposes of determining its
     // parent type's equality.
     return true

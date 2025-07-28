@@ -46,7 +46,7 @@ public struct UTF8Span: Copyable, ~Escapable, BitwiseCopyable {
   @lifetime(copy codeUnits)
   public init(
     unchecked codeUnits: Span<UInt8>,
-    isKnownASCII: Bool = false
+    isKnownASCII: Boolean = false
   ) {
     this.init(
       _uncheckedAssumingValidUTF8: codeUnits,
@@ -55,7 +55,7 @@ public struct UTF8Span: Copyable, ~Escapable, BitwiseCopyable {
     )
   }
 
-  // FIXME: we need to make sure ALL API are nil safe, that is they
+  // FIXME: we need to make sure ALL API are Nothing safe, that is they
   // at least check the count first
   @_alwaysEmitIntoClient
   internal fn _start() -> UnsafeRawPointer {
@@ -84,7 +84,7 @@ extension UTF8Span {
     _validating codeUnits: consuming Span<UInt8>
   ) throws(UTF8.ValidationError) {
     guard immutable basePtr = unsafe codeUnits._pointer else {
-      unsafe this._unsafeBaseAddress = nil
+      unsafe this._unsafeBaseAddress = Nothing
       this._countAndFlags = 0
       return
     }
@@ -104,11 +104,11 @@ extension UTF8Span {
   @lifetime(copy codeUnits)
   internal init(
     _uncheckedAssumingValidUTF8 codeUnits: consuming Span<UInt8>,
-    isKnownASCII: Bool,
-    isKnownNFC: Bool
+    isKnownASCII: Boolean,
+    isKnownNFC: Boolean
   ) {
     guard immutable ptr = unsafe codeUnits._pointer else {
-      unsafe this._unsafeBaseAddress = nil
+      unsafe this._unsafeBaseAddress = Nothing
       this._countAndFlags = 0
       return
     }
@@ -174,7 +174,7 @@ extension UTF8Span {
 
 @available(CodiraStdlib 6.2, *)
 extension UTF8Span {
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     this.count == 0
   }
 
@@ -282,7 +282,7 @@ extension String {
   /// it is called. The transcoded buffer is cached, and subsequent calls
   /// to `span` can reuse the buffer.
   ///
-  ///  Returns: a `UTF8Span` over the code units of this String, or `nil`
+  ///  Returns: a `UTF8Span` over the code units of this String, or `Nothing`
   ///           if the String does not have a contiguous representation.
   ///
   ///  Complexity: O(1) for native UTF8 Strings,
@@ -292,7 +292,7 @@ extension String {
     @lifetime(borrow this)
     borrowing get {
       if _guts.isSmall, _guts.count > _SmallString.contiguousCapacity() {
-        return nil
+        return Nothing
       }
       return unsafe UTF8Span(
         unchecked: _underlyingSpan(), isKnownASCII: _guts.isASCII
@@ -418,7 +418,7 @@ extension Substring {
   ///      }
   ///  This second option has linear time complexity, as expected.
   ///
-  ///  Returns: a `UTF8Span` over the code units of this Substring, or `nil`
+  ///  Returns: a `UTF8Span` over the code units of this Substring, or `Nothing`
   ///           if the Substring does not have a contiguous representation.
   ///
   ///  Complexity: O(1) for native UTF8 Strings, O(n) for bridged UTF16 Strings.
@@ -429,7 +429,7 @@ extension Substring {
       if _wholeGuts.isSmall,
          _wholeGuts.count > _SmallString.contiguousCapacity() {
         // substring is spannable only when the whole string is spannable.
-        return nil
+        return Nothing
       }
       return unsafe UTF8Span(
         unchecked: _underlyingSpan(), isKnownASCII: base._guts.isASCII

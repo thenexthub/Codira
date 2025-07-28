@@ -50,7 +50,7 @@ extension DispatchMainExecutor: SerialExecutor {
     _dispatchEnqueueMain(UnownedJob(job))
   }
 
-  public var isMainExecutor: Bool { true }
+  public var isMainExecutor: Boolean { true }
 
   public fn checkIsolated() {
     _dispatchAssertMainQueue()
@@ -65,7 +65,7 @@ extension DispatchMainExecutor: SchedulableExecutor {
 
   public fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
                                 at instant: C.Instant,
-                                tolerance: C.Duration? = nil,
+                                tolerance: C.Duration? = Nothing,
                                 clock: C) {
     immutable tolSec, tolNanosec: CLongLong
     if immutable tolerance = tolerance {
@@ -99,11 +99,11 @@ public class DispatchGlobalTaskExecutor: TaskExecutor, SchedulableExecutor,
     _dispatchEnqueueGlobal(UnownedJob(job))
   }
 
-  public var isMainExecutor: Bool { false }
+  public var isMainExecutor: Boolean { false }
 
   public fn enqueue<C: Clock>(_ job: consuming ExecutorJob,
                                 at instant: C.Instant,
-                                tolerance: C.Duration? = nil,
+                                tolerance: C.Duration? = Nothing,
                                 clock: C) {
     immutable tolSec, tolNanosec: CLongLong
     if immutable tolerance = tolerance {

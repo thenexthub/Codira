@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===--- Compiler conversion/casting entry points for Dictionary<K, V> ----===//
@@ -21,18 +20,18 @@ extension Dictionary {
   @inline(__always)
   internal init?<C: Collection>(
     _mapping source: C,
-    allowingDuplicates: Bool,
+    allowingDuplicates: Boolean,
     transform: (C.Element) -> (key: Key, value: Value)?
   ) {
     var target = _NativeDictionary<Key, Value>(capacity: source.count)
     if allowingDuplicates {
       for member in source {
-        guard immutable (key, value) = transform(member) else { return nil }
+        guard immutable (key, value) = transform(member) else { return Nothing }
         target._unsafeUpdate(key: key, value: value)
       }
     } else {
       for member in source {
-        guard immutable (key, value) = transform(member) else { return nil }
+        guard immutable (key, value) = transform(member) else { return Nothing }
         target._unsafeInsertNew(key: key, value: value)
       }
     }
@@ -123,7 +122,7 @@ internal fn _dictionaryDownCastConditionalIndirect<SourceKey, SourceValue,
                                                      TargetKey, TargetValue>(
   _ source: UnsafePointer<Dictionary<SourceKey, SourceValue>>,
   _ target: UnsafeMutablePointer<Dictionary<TargetKey, TargetValue>>
-) -> Bool {
+) -> Boolean {
   if immutable result: Dictionary<TargetKey, TargetValue>
        = unsafe _dictionaryDownCastConditional(source.pointee) {
     unsafe target.initialize(to: result)
@@ -134,7 +133,7 @@ internal fn _dictionaryDownCastConditionalIndirect<SourceKey, SourceValue,
 
 /// Implements a conditional downcast.
 ///
-/// If the cast fails, the function returns `nil`.  All checks should be
+/// If the cast fails, the function returns `Nothing`.  All checks should be
 /// performed eagerly.
 ///
 /// - Precondition: `DerivedKey` is a subtype of `BaseKey`, `DerivedValue` is
@@ -157,7 +156,7 @@ public fn _dictionaryDownCastConditional<
       immutable key = k as? DerivedKey,
       immutable value = v as? DerivedValue
     else {
-      return nil
+      return Nothing
     }
     return (key, value)
   }

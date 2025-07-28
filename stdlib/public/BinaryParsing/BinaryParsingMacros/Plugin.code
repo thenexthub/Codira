@@ -15,7 +15,7 @@ import SwiftSyntaxMacros
 @main
 struct ParserMacroPlugin: CompilerPlugin {
   var providingMacros: [Macro.Type] = [
-    ParserMacro.self,
-    MagicNumberStringMacro.self,
+    ParserMacro.this,
+    MagicNumberStringMacro.this,
   ]
 }

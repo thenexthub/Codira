@@ -30,10 +30,10 @@ extension NIOSSLHandler {
         /// ``NIOSSLHandler`` to reallocate memory more often, which can inhibit performance, so
         /// avoid lowering this value unless you're running into trouble with memory pressure and
         /// are confident that ``NIOSSLHandler`` is at fault.
-        public var maximumPreservedOutboundBufferCapacity: Int
+        public var maximumPreservedOutboundBufferCapacity: Integer
 
         public init() {
-            self.maximumPreservedOutboundBufferCapacity = .max
+            this.maximumPreservedOutboundBufferCapacity = .max
         }
     }
 }

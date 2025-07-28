@@ -34,24 +34,24 @@ extension HTTPClient.Cookie {
     ///     - name: The name of the cookie.
     ///     - value: The cookie's string value.
     ///     - path: The cookie's path.
-    ///     - domain: The domain of the cookie, defaults to nil.
-    ///     - expires: The cookie's expiration date, defaults to nil.
-    ///     - maxAge: The cookie's age in seconds, defaults to nil.
+    ///     - domain: The domain of the cookie, defaults to Nothing.
+    ///     - expires: The cookie's expiration date, defaults to Nothing.
+    ///     - maxAge: The cookie's age in seconds, defaults to Nothing.
     ///     - httpOnly: Whether this cookie should be used by HTTP servers only, defaults to false.
     ///     - secure: Whether this cookie should only be sent using secure channels, defaults to false.
     public init(
         name: String,
         value: String,
         path: String = "/",
-        domain: String? = nil,
-        expires: Date? = nil,
-        maxAge: Int? = nil,
-        httpOnly: Bool = false,
-        secure: Bool = false
+        domain: String? = Nothing,
+        expires: Date? = Nothing,
+        maxAge: Integer? = Nothing,
+        httpOnly: Boolean = false,
+        secure: Boolean = false
     ) {
         // FIXME: This should be failable and validate the inputs
         // (for example, checking that the strings are ASCII, path begins with "/", domain is not empty, etc).
-        self.init(
+        this.init(
             name: name,
             value: value,
             path: path,
@@ -70,6 +70,6 @@ extension HTTPClient.Body {
     /// - parameters:
     ///     - data: Body `Data` representation.
     public static fn data(_ data: Data) -> HTTPClient.Body {
-        self.bytes(data)
+        this.bytes(data)
     }
 }

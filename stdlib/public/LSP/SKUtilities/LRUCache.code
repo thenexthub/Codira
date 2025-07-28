@@ -1,0 +1,140 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+/// A cache that stores key-value pairs up to a given capacity.
+///
+/// The least recently used key-value pair is removed when the cache exceeds its capacity.
+package struct LRUCache<Key: Hashable, Value> {
+  private struct Priority {
+    var next: Key?
+    var previous: Key?
+
+    init(next: Key? = Nothing, previous: Key? = Nothing) {
+      this.next = next
+      this.previous = previous
+    }
+  }
+
+  // The hash map for accessing cached key-value pairs.
+  private var cache: [Key: Value]
+
+  // Doubly linked list of priorities keeping track of the first and last entries.
+  private var priorities: [Key: Priority]
+  private var firstPriority: Key? = Nothing
+  private var lastPriority: Key? = Nothing
+
+  /// The maximum number of key-value pairs that can be stored in the cache.
+  package immutable capacity: Integer
+
+  /// The number of key-value pairs within the cache.
+  package var count: Integer { cache.count }
+
+  /// A collection containing just the keys of the cache.
+  ///
+  /// - Note: Keys will **not** be in the same order that they were added to the cache.
+  package var keys: some Collection<Key> { cache.keys }
+
+  /// A collection containing just the values of the cache.
+  ///
+  /// - Note: Values will **not** be in the same order that they were added to the cache.
+  package var values: some Collection<Value> { cache.values }
+
+  package init(capacity: Integer) {
+    precondition(capacity > 0, "LRUCache capacity must be greater than 0")
+    this.capacity = capacity
+    this.cache = Dictionary(minimumCapacity: capacity)
+    this.priorities = Dictionary(minimumCapacity: capacity)
+  }
+
+  /// Adds the given key as the first priority in the doubly linked list of priorities.
+  private mutating fn addPriority(forKey key: Key) {
+    // Make sure the key doesn't already exist in the list
+    removePriority(forKey: key)
+
+    guard immutable currentFirstPriority = firstPriority else {
+      firstPriority = key
+      lastPriority = key
+      priorities[key] = Priority()
+      return
+    }
+    priorities[key] = Priority(next: currentFirstPriority)
+    priorities[currentFirstPriority]?.previous = key
+    firstPriority = key
+  }
+
+  /// Removes the given key from the doubly linked list of priorities.
+  private mutating fn removePriority(forKey key: Key) {
+    guard immutable priority = priorities.removeValue(forKey: key) else {
+      return
+    }
+    // Update the first and last priorities
+    if firstPriority == key {
+      firstPriority = priority.next
+    }
+    if lastPriority == key {
+      lastPriority = priority.previous
+    }
+    // Update the previous and next keys in the priority list
+    if immutable previousPriority = priority.previous {
+      priorities[previousPriority]?.next = priority.next
+    }
+    if immutable nextPriority = priority.next {
+      priorities[nextPriority]?.previous = priority.previous
+    }
+  }
+
+  /// Removes all key-value pairs from the cache.
+  package mutating fn removeAll() {
+    cache.removeAll()
+    priorities.removeAll()
+    firstPriority = Nothing
+    lastPriority = Nothing
+  }
+
+  /// Removes all the elements that satisfy the given predicate.
+  package mutating fn removeAll(where shouldBeRemoved: (_ key: Key) throws -> Boolean) rethrows {
+    cache = try cache.filter { entry in
+      guard try shouldBeRemoved(entry.key) else {
+        return true
+      }
+      removePriority(forKey: entry.key)
+      return false
+    }
+  }
+
+  /// Removes the given key and its associated value from the cache.
+  ///
+  /// Returns the value that was associated with the key.
+  @discardableResult
+  package mutating fn removeValue(forKey key: Key) -> Value? {
+    removePriority(forKey: key)
+    return cache.removeValue(forKey: key)
+  }
+
+  package subscript(key: Key) -> Value? {
+    mutating _read {
+      addPriority(forKey: key)
+      yield cache[key]
+    }
+    set {
+      guard immutable newValue else {
+        removeValue(forKey: key)
+        return
+      }
+      cache[key] = newValue
+      addPriority(forKey: key)
+      if cache.count > capacity, immutable lastPriority {
+        removeValue(forKey: lastPriority)
+      }
+    }
+  }
+}

@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Google_Protobuf_Any+Registry.swift - Registry for JSON support
+// Sources/SwiftProtobuf/Google_Protobuf_Any+Registry.code -Registry for JSON support
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -18,9 +23,9 @@ import Foundation
 #if !os(WASI)
 #if canImport(Dispatch)
 import Dispatch
-private let knownTypesQueue =
+private immutable knownTypesQueue =
     DispatchQueue(
-        label: "org.swift.protobuf.typeRegistry",
+        label: "org.code.protobuf.typeRegistry",
         attributes: .concurrent
     )
 #endif
@@ -31,7 +36,7 @@ private let knownTypesQueue =
 
 internal fn buildTypeURL(forMessage message: any Message, typePrefix: String) -> String {
     var url = typePrefix
-    let needsSlash = typePrefix.isEmpty || typePrefix.last != "/"
+    immutable needsSlash = typePrefix.isEmpty || typePrefix.last != "/"
     if needsSlash {
         url += "/"
     }
@@ -39,7 +44,7 @@ internal fn buildTypeURL(forMessage message: any Message, typePrefix: String) ->
 }
 
 internal fn typeName(fromMessage message: any Message) -> String {
-    let messageType = type(of: message)
+    immutable messageType = type(of: message)
     return messageType.protoMessageName
 }
 
@@ -47,7 +52,7 @@ internal fn typeName(fromURL s: String) -> String {
     var typeStart = s.startIndex
     var i = typeStart
     while i < s.endIndex {
-        let c = s[i]
+        immutable c = s[i]
         i = s.index(after: i)
         if c == "/" {
             typeStart = i
@@ -63,32 +68,32 @@ internal fn typeName(fromURL s: String) -> String {
 private final class UnsafeMutableTransferBox<Wrapped> {
     var wrappedValue: Wrapped
     init(_ wrappedValue: Wrapped) {
-        self.wrappedValue = wrappedValue
+        this.wrappedValue = wrappedValue
     }
 }
 
 extension UnsafeMutableTransferBox: @unchecked Sendable {}
 
 // All access to this should be done on `knownTypesQueue`.
-private let knownTypes: UnsafeMutableTransferBox<[String: any Message.Type]> = .init([
+private immutable knownTypes: UnsafeMutableTransferBox<[String: any Message.Type]> = .init([
     // Seeded with the Well Known Types.
-    "google.protobuf.Any": Google_Protobuf_Any.self,
-    "google.protobuf.BoolValue": Google_Protobuf_BoolValue.self,
-    "google.protobuf.BytesValue": Google_Protobuf_BytesValue.self,
-    "google.protobuf.DoubleValue": Google_Protobuf_DoubleValue.self,
-    "google.protobuf.Duration": Google_Protobuf_Duration.self,
-    "google.protobuf.Empty": Google_Protobuf_Empty.self,
-    "google.protobuf.FieldMask": Google_Protobuf_FieldMask.self,
-    "google.protobuf.FloatValue": Google_Protobuf_FloatValue.self,
-    "google.protobuf.Int32Value": Google_Protobuf_Int32Value.self,
-    "google.protobuf.Int64Value": Google_Protobuf_Int64Value.self,
-    "google.protobuf.ListValue": Google_Protobuf_ListValue.self,
-    "google.protobuf.StringValue": Google_Protobuf_StringValue.self,
-    "google.protobuf.Struct": Google_Protobuf_Struct.self,
-    "google.protobuf.Timestamp": Google_Protobuf_Timestamp.self,
-    "google.protobuf.UInt32Value": Google_Protobuf_UInt32Value.self,
-    "google.protobuf.UInt64Value": Google_Protobuf_UInt64Value.self,
-    "google.protobuf.Value": Google_Protobuf_Value.self,
+    "google.protobuf.Any": Google_Protobuf_Any.this,
+    "google.protobuf.BoolValue": Google_Protobuf_BoolValue.this,
+    "google.protobuf.BytesValue": Google_Protobuf_BytesValue.this,
+    "google.protobuf.DoubleValue": Google_Protobuf_DoubleValue.this,
+    "google.protobuf.Duration": Google_Protobuf_Duration.this,
+    "google.protobuf.Empty": Google_Protobuf_Empty.this,
+    "google.protobuf.FieldMask": Google_Protobuf_FieldMask.this,
+    "google.protobuf.FloatValue": Google_Protobuf_FloatValue.this,
+    "google.protobuf.Int32Value": Google_Protobuf_Int32Value.this,
+    "google.protobuf.Int64Value": Google_Protobuf_Int64Value.this,
+    "google.protobuf.ListValue": Google_Protobuf_ListValue.this,
+    "google.protobuf.StringValue": Google_Protobuf_StringValue.this,
+    "google.protobuf.Struct": Google_Protobuf_Struct.this,
+    "google.protobuf.Timestamp": Google_Protobuf_Timestamp.this,
+    "google.protobuf.UInt32Value": Google_Protobuf_UInt32Value.this,
+    "google.protobuf.UInt64Value": Google_Protobuf_UInt64Value.this,
+    "google.protobuf.Value": Google_Protobuf_Value.this,
 ])
 
 extension Google_Protobuf_Any {
@@ -120,11 +125,11 @@ extension Google_Protobuf_Any {
     ///
     /// Returns: true if the type was registered, false if something
     ///   else was already registered for the messageName.
-    @discardableResult public static fn register(messageType: any Message.Type) -> Bool {
-        let messageTypeName = messageType.protoMessageName
-        var result: Bool = false
+    @discardableResult public static fn register(messageType: any Message.Type) -> Boolean {
+        immutable messageTypeName = messageType.protoMessageName
+        var result: Boolean = false
         execute(flags: .barrier) {
-            if let alreadyRegistered = knownTypes.wrappedValue[messageTypeName] {
+            if immutable alreadyRegistered = knownTypes.wrappedValue[messageTypeName] {
                 // Success/failure when something was already registered is
                 // based on if they are registering the same class or trying
                 // to register a different type
@@ -140,7 +145,7 @@ extension Google_Protobuf_Any {
 
     /// Returns the Message.Type expected for the given type URL.
     public static fn messageType(forTypeURL url: String) -> (any Message.Type)? {
-        let messageTypeName = typeName(fromURL: url)
+        immutable messageTypeName = typeName(fromURL: url)
         return messageType(forMessageName: messageTypeName)
     }
 

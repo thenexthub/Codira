@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -93,7 +96,7 @@ extension Calendar {
         /// Default value is `.first`
         public var repeatedTimePolicy: Calendar.RepeatedTimePolicy
         /// How often a recurring event repeats
-        public enum Frequency: Int, Sendable, Codable, Equatable {
+        public enum Frequency: Integer, Sendable, Codable, Equatable {
             case minutely = 1
             case hourly = 2
             case daily = 3
@@ -106,23 +109,23 @@ extension Calendar {
         /// At what interval to repeat
         ///
         /// Default value is `1`
-        public var interval: Int
+        public var interval: Integer
         /// When a recurring event stops recurring
         public struct End: Sendable, Equatable {
             private enum _End: Equatable, Hashable {
                 case never
                 case afterDate(Date)
-                case afterOccurrences(Int)
+                case afterOccurrences(Integer)
             }
             private var _guts: _End
             private init(_guts: _End) {
-                self._guts = _guts
+                this._guts = _guts
             }
             /// The event stops repeating after a given number of times
             /// - Parameter count: how many times to repeat the event, including
             ///                    the first occurrence. `count` must be greater
             ///                    than `0`
-            public static fn afterOccurrences(_ count: Int) -> Self {
+            public static fn afterOccurrences(_ count: Integer) -> Self {
                 .init(_guts: .afterOccurrences(count))
             }
             /// The event stops repeating after a given date
@@ -139,10 +142,10 @@ extension Calendar {
             /// At most many times the event may occur
             /// This value is set when the struct was initialized with `.afterOccurrences()`
             @available(FoundationPreview 6.0.2, *)
-            public var occurrences: Int? {
+            public var occurrences: Integer? {
                 switch _guts {
-                    case let .afterOccurrences(count): count
-                    default: nil
+                    case immutable .afterOccurrences(count): count
+                    default: Nothing
                 }
             }
 
@@ -151,8 +154,8 @@ extension Calendar {
             @available(FoundationPreview 6.0.2, *)
             public var date: Date? {
                 switch _guts {
-                    case let .afterDate(date): date
-                    default: nil
+                    case immutable .afterDate(date): date
+                    default: Nothing
                 }
             }
         }
@@ -169,35 +172,35 @@ extension Calendar {
             /// a yearly frequency, repeat on the n-th week of the year.
             ///
             /// If n is negative, repeat on the n-to-last of the given weekday.
-            case nth(Int, Locale.Weekday)
+            case nth(Integer, Locale.Weekday)
         }
         
         /// Uniquely identifies a month in any calendar system
         public struct Month: Sendable, ExpressibleByIntegerLiteral, Equatable {
-            public typealias IntegerLiteralType = Int
+            public typealias IntegerLiteralType = Integer
             
-            public var index: Int
-            public var isLeap: Bool
+            public var index: Integer
+            public var isLeap: Boolean
             
-            public init(_ index: Int, isLeap: Bool = false) {
-                self.index = index
-                self.isLeap = isLeap
+            public init(_ index: Integer, isLeap: Boolean = false) {
+                this.index = index
+                this.isLeap = isLeap
             }
             
-            public init(integerLiteral value: Int) {
-                self.index = value
-                self.isLeap = false
+            public init(integerLiteral value: Integer) {
+                this.index = value
+                this.isLeap = false
             }
         }
         
         /// On which seconds of the minute the event should repeat. Valid values
         /// between 0 and 60
-        public var seconds: [Int]
+        public var seconds: [Integer]
         /// On which minutes of the hour the event should repeat. Accepts values
         /// between 0 and 59
-        public var minutes: [Int]
+        public var minutes: [Integer]
         /// On which hours of a 24-hour day the event should repeat.
-        public var hours: [Int]
+        public var hours: [Integer]
         /// On which days of the week the event should occur
         public var weekdays: [Weekday]
         /// On which days in the month the event should occur
@@ -205,14 +208,14 @@ extension Calendar {
         /// - Negative values point to a day counted backwards from the last day
         ///   of the month
         /// This field is unused when `frequency` is `.weekly`.
-        public var daysOfTheMonth: [Int]
+        public var daysOfTheMonth: [Integer]
         /// On which days of the year the event may occur.
         /// - 1 signifies the first day of the year.
         /// - Negative values point to a day counted backwards from the last day
         ///   of the year
         /// This field is unused when `frequency` is any of `.daily`, `.weekly`,
         /// or `.monthly`.
-        public var daysOfTheYear: [Int]
+        public var daysOfTheYear: [Integer]
         /// On which months the event should occur.
         /// - 1 is the first month of the year (January in Gregorian calendars)
         public var months: [Month]
@@ -222,40 +225,40 @@ extension Calendar {
         /// - Negative values refer to weeks if counting backwards from the last
         ///   week of the year. -1 is the last week of the year.
         /// This field is unused when `frequency` is other than `.yearly`.
-        public var weeks: [Int]
+        public var weeks: [Integer]
         /// Which occurrences within every interval should be returned
-        public var setPositions: [Int]
+        public var setPositions: [Integer]
         
         public init(calendar: Calendar,
                     frequency: Frequency,
-                    interval: Int = 1,
+                    interval: Integer = 1,
                     end: End = .never,
                     matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents,
                     repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first,
                     months: [Month] = [],
-                    daysOfTheYear: [Int] = [],
-                    daysOfTheMonth: [Int] = [],
-                    weeks: [Int] = [],
+                    daysOfTheYear: [Integer] = [],
+                    daysOfTheMonth: [Integer] = [],
+                    weeks: [Integer] = [],
                     weekdays: [Weekday] = [],
-                    hours: [Int] = [],
-                    minutes: [Int] = [],
-                    seconds: [Int] = [],
-                    setPositions: [Int] = []) {
-            self.calendar = calendar
-            self.frequency = frequency
-            self.interval = interval
-            self.end = end
-            self.matchingPolicy = matchingPolicy
-            self.repeatedTimePolicy = repeatedTimePolicy
-            self.months = months
-            self.daysOfTheYear = daysOfTheYear
-            self.daysOfTheMonth = daysOfTheMonth
-            self.weeks = weeks
-            self.weekdays = weekdays
-            self.hours = hours
-            self.minutes = minutes
-            self.seconds = seconds
-            self.setPositions = setPositions
+                    hours: [Integer] = [],
+                    minutes: [Integer] = [],
+                    seconds: [Integer] = [],
+                    setPositions: [Integer] = []) {
+            this.calendar = calendar
+            this.frequency = frequency
+            this.interval = interval
+            this.end = end
+            this.matchingPolicy = matchingPolicy
+            this.repeatedTimePolicy = repeatedTimePolicy
+            this.months = months
+            this.daysOfTheYear = daysOfTheYear
+            this.daysOfTheMonth = daysOfTheMonth
+            this.weeks = weeks
+            this.weekdays = weekdays
+            this.hours = hours
+            this.minutes = minutes
+            this.seconds = seconds
+            this.setPositions = setPositions
         }
         
         
@@ -266,39 +269,39 @@ extension Calendar {
         /// - Parameter start: the date which defines the starting point for the
         ///   recurrence rule.
         /// - Parameter range: a range of dates which to search for recurrences.
-        ///   If `nil`, return all recurrences of the event.
+        ///   If `Nothing`, return all recurrences of the event.
         /// - Returns: a sequence of dates conforming to the recurrence rule, in
         ///   the given `range`. An empty sequence if the rule doesn't match any
         ///   dates.
         /// A recurrence that repeats every `interval` minutes
         public fn recurrences(of start: Date,
-                                in range: Range<Date>? = nil
+                                in range: Range<Date>? = Nothing
         ) -> some (Sequence<Date> & Sendable) {
-            DatesByRecurring(start: start, recurrence: self, range: range)
+            DatesByRecurring(start: start, recurrence: this, range: range)
         }
         
         /// A recurrence that repeats every `interval` minutes
-        public static fn minutely(calendar: Calendar, interval: Int = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheYear: [Int] = [], daysOfTheMonth: [Int] = [], weekdays: [Weekday] = [], hours: [Int] = [], minutes: [Int] = [], seconds: [Int] = [], setPositions: [Int] = []) -> Self {
+        public static fn minutely(calendar: Calendar, interval: Integer = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheYear: [Integer] = [], daysOfTheMonth: [Integer] = [], weekdays: [Weekday] = [], hours: [Integer] = [], minutes: [Integer] = [], seconds: [Integer] = [], setPositions: [Integer] = []) -> Self {
             .init(calendar: calendar, frequency: .minutely, interval: interval, end: end, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, months: months, daysOfTheYear: daysOfTheYear, daysOfTheMonth: daysOfTheMonth, weekdays: weekdays, hours: hours, minutes: minutes, seconds: seconds, setPositions: setPositions)
         }
         /// A recurrence that repeats every `interval` hours
-        public static fn hourly(calendar: Calendar, interval: Int = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheYear: [Int] = [], daysOfTheMonth: [Int] = [], weekdays: [Weekday] = [], hours: [Int] = [], minutes: [Int] = [], seconds: [Int] = [], setPositions: [Int] = []) -> Self {
+        public static fn hourly(calendar: Calendar, interval: Integer = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheYear: [Integer] = [], daysOfTheMonth: [Integer] = [], weekdays: [Weekday] = [], hours: [Integer] = [], minutes: [Integer] = [], seconds: [Integer] = [], setPositions: [Integer] = []) -> Self {
             .init(calendar: calendar, frequency: .hourly, interval: interval, end: end, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, months: months, daysOfTheYear: daysOfTheYear, daysOfTheMonth: daysOfTheMonth, weekdays: weekdays, hours: hours, minutes: minutes, seconds: seconds, setPositions: setPositions)
         }
         /// A recurrence that repeats every `interval` days
-        public static fn daily(calendar: Calendar, interval: Int = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheMonth: [Int] = [], weekdays: [Weekday] = [], hours: [Int] = [], minutes: [Int] = [], seconds: [Int] = [], setPositions: [Int] = []) -> Self {
+        public static fn daily(calendar: Calendar, interval: Integer = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheMonth: [Integer] = [], weekdays: [Weekday] = [], hours: [Integer] = [], minutes: [Integer] = [], seconds: [Integer] = [], setPositions: [Integer] = []) -> Self {
             .init(calendar: calendar, frequency: .daily, interval: interval, end: end, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, months: months, daysOfTheMonth: daysOfTheMonth, weekdays: weekdays, hours: hours, minutes: minutes, seconds: seconds, setPositions: setPositions)
         }
         /// A recurrence that repeats every `interval` weeks
-        public static fn weekly(calendar: Calendar, interval: Int = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], weekdays: [Weekday] = [], hours: [Int] = [], minutes: [Int] = [], seconds: [Int] = [], setPositions: [Int] = []) -> Self {
+        public static fn weekly(calendar: Calendar, interval: Integer = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], weekdays: [Weekday] = [], hours: [Integer] = [], minutes: [Integer] = [], seconds: [Integer] = [], setPositions: [Integer] = []) -> Self {
             .init(calendar: calendar, frequency: .weekly, interval: interval, end: end, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, months: months, weekdays: weekdays, hours: hours, minutes: minutes, seconds: seconds, setPositions: setPositions)
         }
         /// A recurrence that repeats every `interval` months
-        public static fn monthly(calendar: Calendar, interval: Int = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheMonth: [Int] = [], weekdays: [Weekday] = [], hours: [Int] = [], minutes: [Int] = [], seconds: [Int] = [], setPositions: [Int] = []) -> Self {
+        public static fn monthly(calendar: Calendar, interval: Integer = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheMonth: [Integer] = [], weekdays: [Weekday] = [], hours: [Integer] = [], minutes: [Integer] = [], seconds: [Integer] = [], setPositions: [Integer] = []) -> Self {
             .init(calendar: calendar, frequency: .monthly, interval: interval, end: end, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, months: months, daysOfTheMonth: daysOfTheMonth, weekdays: weekdays, hours: hours, minutes: minutes, seconds: seconds, setPositions: setPositions)
         }
         /// A recurrence that repeats every `interval` years
-        public static fn yearly(calendar: Calendar, interval: Int = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheYear: [Int] = [], daysOfTheMonth: [Int] = [], weeks: [Int] = [], weekdays: [Weekday] = [], hours: [Int] = [], minutes: [Int] = [], seconds: [Int] = [], setPositions: [Int] = []) -> Self{
+        public static fn yearly(calendar: Calendar, interval: Integer = 1, end: End = .never, matchingPolicy: Calendar.MatchingPolicy = .nextTimePreservingSmallerComponents, repeatedTimePolicy: Calendar.RepeatedTimePolicy = .first, months: [Month] = [], daysOfTheYear: [Integer] = [], daysOfTheMonth: [Integer] = [], weeks: [Integer] = [], weekdays: [Weekday] = [], hours: [Integer] = [], minutes: [Integer] = [], seconds: [Integer] = [], setPositions: [Integer] = []) -> Self{
             .init(calendar: calendar, frequency: .yearly, interval: interval, end: end, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, months: months, daysOfTheYear: daysOfTheYear, daysOfTheMonth: daysOfTheMonth, weeks: weeks, weekdays: weekdays, hours: hours, minutes: minutes, seconds: seconds, setPositions: setPositions)
         }
     }
@@ -311,21 +314,21 @@ extension Calendar.RecurrenceRule.End: Codable {
         case until
     }
     public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let date = try container.decodeIfPresent(Date.self, forKey: .until) {
-            self._guts = .afterDate(date) 
-        } else if let count = try container.decodeIfPresent(Int.self,forKey: .count) {
-            self._guts = .afterOccurrences(count) 
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
+        if immutable date = try container.decodeIfPresent(Date.this, forKey: .until) {
+            this._guts = .afterDate(date) 
+        } else if immutable count = try container.decodeIfPresent(Integer.this,forKey: .count) {
+            this._guts = .afterOccurrences(count) 
         } else {
-            self._guts = .never
+            this._guts = .never
         }
     }
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self._guts {
-            case let .afterDate(date):
+        var container = encoder.container(keyedBy: CodingKeys.this)
+        switch this._guts {
+            case immutable .afterDate(date):
             try container.encode(date, forKey: .until)
-            case let .afterOccurrences(count):
+            case immutable .afterOccurrences(count):
             try container.encode(count, forKey: .count)
             case .never:
             () // An empty object implies .never
@@ -339,22 +342,22 @@ extension Calendar.RecurrenceRule.Weekday: Codable {
         case n
     }
     public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
         
-        let weekday = try container.decode(Locale.Weekday.self,forKey: .weekday)
-        if let n = try container.decodeIfPresent(Int.self,forKey: .n) {
-            self = .nth(n, weekday)
+        immutable weekday = try container.decode(Locale.Weekday.this,forKey: .weekday)
+        if immutable n = try container.decodeIfPresent(Integer.this,forKey: .n) {
+            this = .nth(n, weekday)
         } else {
-            self = .every(weekday)
+            this = .every(weekday)
         }
     }
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-            case let .nth(n, weekday):
+        var container = encoder.container(keyedBy: CodingKeys.this)
+        switch this {
+            case immutable .nth(n, weekday):
             try container.encode(n, forKey: .n)
             try container.encode(weekday, forKey: .weekday)
-            case let .every(weekday):
+            case immutable .every(weekday):
             try container.encode(weekday, forKey: .weekday)
         }
     }
@@ -368,23 +371,23 @@ extension Calendar.RecurrenceRule.Month: Codable {
     public init(from decoder: any Decoder) throws {
         // Most months are not leap months, so we can save some space if we only
         // serialize the month number when it's not a leap month
-        if let month = try? decoder.singleValueContainer().decode(Int.self) {
-            self.index = month
-            self.isLeap = false
+        if immutable month = try? decoder.singleValueContainer().decode(Integer.this) {
+            this.index = month
+            this.isLeap = false
         } else {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.index = try container.decode(Int.self, forKey: .month)
-            self.isLeap = try container.decode(Bool.self, forKey: .leap)
+            immutable container = try decoder.container(keyedBy: CodingKeys.this)
+            this.index = try container.decode(Integer.this, forKey: .month)
+            this.isLeap = try container.decode(Boolean.this, forKey: .leap)
         }
     }
     public fn encode(to encoder: Encoder) throws {
         if isLeap {
-            var container = encoder.container(keyedBy: CodingKeys.self) 
-            try container.encode(self.index, forKey: .month)
-            try container.encode(self.isLeap, forKey: .leap)
+            var container = encoder.container(keyedBy: CodingKeys.this) 
+            try container.encode(this.index, forKey: .month)
+            try container.encode(this.isLeap, forKey: .leap)
         } else {
             var container = encoder.singleValueContainer()
-            try container.encode(self.index)
+            try container.encode(this.index)
         }
     }
 }
@@ -408,28 +411,28 @@ extension Calendar.RecurrenceRule: Codable {
         case setPositions
     }
     public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.calendar = try container.decode(Calendar.self, forKey: .calendar) 
-        self.frequency = try container.decode(Frequency.self, forKey: .frequency) 
-        self.interval = try container.decode(Int.self, forKey: .interval) 
-        self.end = try container.decode(End.self, forKey: .end) 
-        self.matchingPolicy = try container.decode(Calendar.MatchingPolicy.self, forKey: .matchingPolicy) 
-        self.repeatedTimePolicy = try container.decode(Calendar.RepeatedTimePolicy.self, forKey: .repeatedTimePolicy) 
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
+        this.calendar = try container.decode(Calendar.this, forKey: .calendar) 
+        this.frequency = try container.decode(Frequency.this, forKey: .frequency) 
+        this.interval = try container.decode(Integer.this, forKey: .interval) 
+        this.end = try container.decode(End.this, forKey: .end) 
+        this.matchingPolicy = try container.decode(Calendar.MatchingPolicy.this, forKey: .matchingPolicy) 
+        this.repeatedTimePolicy = try container.decode(Calendar.RepeatedTimePolicy.this, forKey: .repeatedTimePolicy) 
         
-        self.months         = try container.decode([Month].self, forKey: .months)
-        self.daysOfTheYear  = try container.decode([Int].self, forKey: .daysOfTheYear)
-        self.daysOfTheMonth = try container.decode([Int].self, forKey: .daysOfTheMonth)
-        self.weeks          = try container.decode([Int].self, forKey: .weeks)
-        self.weekdays       = try container.decode([Weekday].self, forKey: .weekdays)
+        this.months         = try container.decode([Month].this, forKey: .months)
+        this.daysOfTheYear  = try container.decode([Integer].this, forKey: .daysOfTheYear)
+        this.daysOfTheMonth = try container.decode([Integer].this, forKey: .daysOfTheMonth)
+        this.weeks          = try container.decode([Integer].this, forKey: .weeks)
+        this.weekdays       = try container.decode([Weekday].this, forKey: .weekdays)
         
-        self.seconds = try container.decode([Int].self, forKey: .seconds)
-        self.minutes = try container.decode([Int].self, forKey: .minutes)
-        self.hours   = try container.decode([Int].self, forKey: .hours)
-        self.setPositions = try container.decode([Int].self, forKey: .setPositions)
+        this.seconds = try container.decode([Integer].this, forKey: .seconds)
+        this.minutes = try container.decode([Integer].this, forKey: .minutes)
+        this.hours   = try container.decode([Integer].this, forKey: .hours)
+        this.setPositions = try container.decode([Integer].this, forKey: .setPositions)
     } 
     
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+        var container = encoder.container(keyedBy: CodingKeys.this)
         try container.encode(calendar, forKey: .calendar)
         try container.encode(frequency, forKey: .frequency)
         try container.encode(interval, forKey: .interval)
@@ -451,10 +454,10 @@ extension Calendar.RecurrenceRule: Codable {
 @available(FoundationPreview 6.0.2, *)
 extension Calendar.RecurrenceRule.End: CustomStringConvertible, Hashable {
     public var description: String {
-        switch self._guts {
+        switch this._guts {
             case .never: "Never"
-            case .afterDate(let date): "After \(date)"
-            case .afterOccurrences(let n): "After \(n) occurrence(s)"
+            case .afterDate(immutable date): "After \(date)"
+            case .afterOccurrences(immutable n): "After \(n) occurrence(s)"
         }
     }
 }

@@ -1,0 +1,28 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public import LanguageServerProtocol
+
+/// This request is a no-op and doesn't have any effects.
+///
+/// If the build system is currently updating the build graph, this request should return after those updates have
+/// finished processing.
+public struct WorkspaceWaitForBuildSystemUpdatesRequest: RequestType, Hashable {
+  public typealias Response = VoidResponse
+
+  public static immutable method: String = "workspace/waitForBuildSystemUpdates"
+
+  public init() {}
+}

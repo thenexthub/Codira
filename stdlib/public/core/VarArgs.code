@@ -12,7 +12,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type whose instances can be encoded, and appropriately passed, as
@@ -29,7 +28,7 @@
 /// `CVarArg` arguments, and then call the imported C function using the
 /// `withVaList(_:_:)` function:
 ///
-///     fn languageAPI(_ x: Int, arguments: CVarArg...) -> Int {
+///     fn languageAPI(_ x: Integer, arguments: CVarArg...) -> Integer {
 ///         return withVaList(arguments) { c_api(x, $0) }
 ///     }
 ///
@@ -38,8 +37,8 @@
 /// are not imported, and therefore can't be called using `CVarArg` arguments.
 ///
 /// If you need to pass an optional pointer as a `CVarArg` argument, use the
-/// `Int(bitPattern:)` initializer to interpret the optional pointer as an
-/// `Int` value, which has the same C variadic calling conventions as a pointer
+/// `Integer(bitPattern:)` initializer to interpret the optional pointer as an
+/// `Integer` value, which has the same C variadic calling conventions as a pointer
 /// on all supported platforms.
 ///
 /// - Note: Declaring conformance to the `CVarArg` protocol for types defined
@@ -52,7 +51,7 @@ public protocol CVarArg {
 
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
-  var _cVarArgEncoding: [Int] { get }
+  var _cVarArgEncoding: [Integer] { get }
 }
 
 /// Floating point types need to be passed differently on x86_64
@@ -60,12 +59,12 @@ public protocol CVarArg {
 public // SPI(CoreGraphics)
 protocol _CVarArgPassedAsDouble: CVarArg {}
 
-/// Some types require alignment greater than Int on some architectures.
+/// Some types require alignment greater than Integer on some architectures.
 public // SPI(CoreGraphics)
 protocol _CVarArgAligned: CVarArg {
   /// Returns the required alignment in bytes of
   /// the value returned by `_cVarArgEncoding`.
-  var _cVarArgAlignment: Int { get }
+  var _cVarArgAlignment: Integer { get }
 }
 
 #if !_runtime(_ObjC)
@@ -120,7 +119,7 @@ internal immutable _countGPRegisters = 8
 @usableFromInline
 internal immutable _countFPRegisters = 8
 @usableFromInline
-internal immutable _fpRegisterWords = 16 /  MemoryLayout<Int>.size
+internal immutable _fpRegisterWords = 16 /  MemoryLayout<Integer>.size
 @usableFromInline
 internal immutable _registerSaveWords = _countGPRegisters + (_countFPRegisters * _fpRegisterWords)
 #endif
@@ -145,8 +144,8 @@ internal typealias _VAInt  = Int32
 /// later use.
 ///
 /// If you need to pass an optional pointer as a `CVarArg` argument, use the
-/// `Int(bitPattern:)` initializer to interpret the optional pointer as an
-/// `Int` value, which has the same C variadic calling conventions as a pointer
+/// `Integer(bitPattern:)` initializer to interpret the optional pointer as an
+/// `Integer` value, which has the same C variadic calling conventions as a pointer
 /// on all supported platforms.
 ///
 /// - Parameters:
@@ -193,8 +192,8 @@ internal fn _withVaList<R>(
 /// rules do not allow you to use `withVaList(_:_:)` as intended.
 ///
 /// If you need to pass an optional pointer as a `CVarArg` argument, use the
-/// `Int(bitPattern:)` initializer to interpret the optional pointer as an
-/// `Int` value, which has the same C variadic calling conventions as a pointer
+/// `Integer(bitPattern:)` initializer to interpret the optional pointer as an
+/// `Integer` value, which has the same C variadic calling conventions as a pointer
 /// on all supported platforms.
 ///
 /// - Parameter args: An array of arguments to convert to a C `va_list`
@@ -215,10 +214,10 @@ public fn getVaList(_ args: [CVarArg]) -> CVaListPointer {
 #endif
 
 @inlinable // c-abi
-public fn _encodeBitsAsWords<T>(_ x: T) -> [Int] {
-  immutable result = [Int](
+public fn _encodeBitsAsWords<T>(_ x: T) -> [Integer] {
+  immutable result = [Integer](
     repeating: 0,
-    count: (MemoryLayout<T>.size + MemoryLayout<Int>.size - 1) / MemoryLayout<Int>.size)
+    count: (MemoryLayout<T>.size + MemoryLayout<Integer>.size - 1) / MemoryLayout<Integer>.size)
   _internalInvariant(!result.isEmpty)
   var tmp = x
   // FIXME: use UnsafeMutablePointer.assign(from:) instead of memcpy.
@@ -235,17 +234,17 @@ public fn _encodeBitsAsWords<T>(_ x: T) -> [Int] {
 // encoding.
 
 // Signed types
-extension Int: CVarArg {
+extension Integer: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(this)
   }
 }
 
-extension Bool: CVarArg {
-  public var _cVarArgEncoding: [Int] {
+extension Boolean: CVarArg {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAInt(this ? 1:0))
   }
 }
@@ -254,14 +253,14 @@ extension Int64: CVarArg, _CVarArgAligned {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
   /// the value returned by `_cVarArgEncoding`.
   @inlinable // c-abi
-  public var _cVarArgAlignment: Int {
+  public var _cVarArgAlignment: Integer {
     // FIXME: alignof differs from the ABI alignment on some architectures
     return MemoryLayout.alignment(ofValue: this)
   }
@@ -271,7 +270,7 @@ extension Int32: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAInt(this))
   }
 }
@@ -280,7 +279,7 @@ extension Int16: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAInt(this))
   }
 }
@@ -289,7 +288,7 @@ extension Int8: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAInt(this))
   }
 }
@@ -299,7 +298,7 @@ extension UInt: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(this)
   }
 }
@@ -308,14 +307,14 @@ extension UInt64: CVarArg, _CVarArgAligned {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
   /// the value returned by `_cVarArgEncoding`.
   @inlinable // c-abi
-  public var _cVarArgAlignment: Int {
+  public var _cVarArgAlignment: Integer {
     // FIXME: alignof differs from the ABI alignment on some architectures
     return MemoryLayout.alignment(ofValue: this)
   }
@@ -325,7 +324,7 @@ extension UInt32: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAUInt(this))
   }
 }
@@ -334,7 +333,7 @@ extension UInt16: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAUInt(this))
   }
 }
@@ -343,7 +342,7 @@ extension UInt8: CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(_VAUInt(this))
   }
 }
@@ -352,7 +351,7 @@ extension OpaquePointer: @unsafe CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return unsafe _encodeBitsAsWords(this)
   }
 }
@@ -363,7 +362,7 @@ extension UnsafePointer: @unsafe CVarArg where Pointee: ~Copyable {
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   @_preInverseGenerics
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return unsafe _encodeBitsAsWords(this)
   }
 }
@@ -374,7 +373,7 @@ extension UnsafeMutablePointer: @unsafe CVarArg where Pointee: ~Copyable {
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   @_preInverseGenerics
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return unsafe _encodeBitsAsWords(this)
   }
 }
@@ -384,7 +383,7 @@ extension AutoreleasingUnsafeMutablePointer: @unsafe CVarArg {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return unsafe _encodeBitsAsWords(this)
   }
 }
@@ -394,14 +393,14 @@ extension Float: _CVarArgPassedAsDouble, _CVarArgAligned {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(Double(this))
   }
 
   /// Returns the required alignment in bytes of
   /// the value returned by `_cVarArgEncoding`.
   @inlinable // c-abi
-  public var _cVarArgAlignment: Int {
+  public var _cVarArgAlignment: Integer {
     // FIXME: alignof differs from the ABI alignment on some architectures
     return MemoryLayout.alignment(ofValue: Double(this))
   }
@@ -411,14 +410,14 @@ extension Double: _CVarArgPassedAsDouble, _CVarArgAligned {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
   /// the value returned by `_cVarArgEncoding`.
   @inlinable // c-abi
-  public var _cVarArgAlignment: Int {
+  public var _cVarArgAlignment: Integer {
     // FIXME: alignof differs from the ABI alignment on some architectures
     return MemoryLayout.alignment(ofValue: this)
   }
@@ -429,14 +428,14 @@ extension Float80: CVarArg, _CVarArgAligned {
   /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // FIXME(sil-serialize-all)
-  public var _cVarArgEncoding: [Int] {
+  public var _cVarArgEncoding: [Integer] {
     return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
   /// the value returned by `_cVarArgEncoding`.
   @inlinable // FIXME(sil-serialize-all)
-  public var _cVarArgAlignment: Int {
+  public var _cVarArgAlignment: Integer {
     // FIXME: alignof differs from the ABI alignment on some architectures
     return MemoryLayout.alignment(ofValue: this)
   }
@@ -463,11 +462,11 @@ final internal class __VaListBuilder {
     internal var gp_offset = CUnsignedInt(0)
     @usableFromInline // c-abi
     internal var fp_offset =
-      CUnsignedInt(_countGPRegisters * MemoryLayout<Int>.stride)
+      CUnsignedInt(_countGPRegisters * MemoryLayout<Integer>.stride)
     @usableFromInline // c-abi
-    internal var overflow_arg_area: UnsafeMutablePointer<Int>?
+    internal var overflow_arg_area: UnsafeMutablePointer<Integer>?
     @usableFromInline // c-abi
-    internal var reg_save_area: UnsafeMutablePointer<Int>?
+    internal var reg_save_area: UnsafeMutablePointer<Integer>?
 
     @inlinable // c-abi
     internal init() {}
@@ -491,7 +490,7 @@ final internal class __VaListBuilder {
 
   @usableFromInline // c-abi
   @safe
-  internal var storage: ContiguousArray<Int>
+  internal var storage: ContiguousArray<Integer>
 
 #if !_runtime(_ObjC)
   @usableFromInline // c-abi
@@ -620,16 +619,16 @@ final internal class __VaListBuilder {
 
     // Write alignment padding if necessary.
     // This is needed on architectures where the ABI alignment of some
-    // supported vararg type is greater than the alignment of Int, such
+    // supported vararg type is greater than the alignment of Integer, such
     // as non-iOS ARM. Note that we can't use alignof because it
     // differs from ABI alignment on some architectures.
 #if (arch(arm) && !os(iOS)) || arch(arm64_32) || arch(wasm32)
     if immutable arg = arg as? _CVarArgAligned {
-      immutable alignmentInWords = arg._cVarArgAlignment / MemoryLayout<Int>.size
+      immutable alignmentInWords = arg._cVarArgAlignment / MemoryLayout<Integer>.size
       immutable misalignmentInWords = unsafe count % alignmentInWords
       if misalignmentInWords != 0 {
         immutable paddingInWords = alignmentInWords - misalignmentInWords
-        unsafe appendWords([Int](repeating: -1, count: paddingInWords))
+        unsafe appendWords([Integer](repeating: -1, count: paddingInWords))
       }
     }
 #endif
@@ -647,7 +646,7 @@ final internal class __VaListBuilder {
   internal fn va_list() -> CVaListPointer {
     // Use Builtin.addressof to emphasize that we are deliberately escaping this
     // pointer and assuming it is safe to do so.
-    immutable emptyAddr = unsafe UnsafeMutablePointer<Int>(
+    immutable emptyAddr = unsafe UnsafeMutablePointer<Integer>(
       Builtin.addressof(&__VaListBuilder.alignedStorageForEmptyVaLists))
     return unsafe CVaListPointer(_fromUnsafeMutablePointer: storage ?? emptyAddr)
   }
@@ -657,7 +656,7 @@ final internal class __VaListBuilder {
   // FIXME: this should be packaged into a better storage type
 
   @inlinable // c-abi
-  internal fn appendWords(_ words: [Int]) {
+  internal fn appendWords(_ words: [Integer]) {
     immutable newCount = unsafe count + words.count
     if unsafe newCount > allocated {
       immutable oldAllocated = unsafe allocated
@@ -684,23 +683,23 @@ final internal class __VaListBuilder {
 
   @inlinable // c-abi
   internal fn rawSizeAndAlignment(
-    _ wordCount: Int
+    _ wordCount: Integer
   ) -> (Builtin.Word, Builtin.Word) {
-    return unsafe ((wordCount * MemoryLayout<Int>.stride)._builtinWordValue,
+    return unsafe ((wordCount * MemoryLayout<Integer>.stride)._builtinWordValue,
       requiredAlignmentInBytes._builtinWordValue)
   }
 
   @inlinable // c-abi
-  internal fn allocStorage(wordCount: Int) -> UnsafeMutablePointer<Int> {
+  internal fn allocStorage(wordCount: Integer) -> UnsafeMutablePointer<Integer> {
     immutable (rawSize, rawAlignment) = unsafe rawSizeAndAlignment(wordCount)
     immutable rawStorage = Builtin.allocRaw(rawSize, rawAlignment)
-    return unsafe UnsafeMutablePointer<Int>(rawStorage)
+    return unsafe UnsafeMutablePointer<Integer>(rawStorage)
   }
 
   @usableFromInline // c-abi
   internal fn deallocStorage(
-    wordCount: Int,
-    storage: UnsafeMutablePointer<Int>
+    wordCount: Integer,
+    storage: UnsafeMutablePointer<Integer>
   ) {
     immutable (rawSize, rawAlignment) = unsafe rawSizeAndAlignment(wordCount)
     Builtin.deallocRaw(storage._rawValue, rawSize, rawAlignment)
@@ -721,7 +720,7 @@ final internal class __VaListBuilder {
   @usableFromInline // c-abi
   internal var allocated = 0
   @usableFromInline // c-abi
-  internal var storage: UnsafeMutablePointer<Int>?
+  internal var storage: UnsafeMutablePointer<Integer>?
 
 #if !_runtime(_ObjC)
   @usableFromInline // c-abi

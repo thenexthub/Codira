@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 - 2024 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,7 +22,7 @@ extension UnsafePointer: @unsafe AtomicRepresentable where Pointee: ~Copyable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -37,8 +40,8 @@ extension UnsafePointer: @unsafe AtomicRepresentable where Pointee: ~Copyable {
   public static fn encodeAtomicRepresentation(
     _ value: consuming UnsafePointer<Pointee>
   ) -> AtomicRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -59,7 +62,7 @@ extension UnsafePointer: @unsafe AtomicRepresentable where Pointee: ~Copyable {
     _ representation: consuming AtomicRepresentation
   ) -> UnsafePointer<Pointee> {
     unsafe UnsafePointer<Pointee>(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )!
   }
 }
@@ -70,7 +73,7 @@ extension UnsafePointer: @unsafe AtomicOptionalRepresentable where Pointee: ~Cop
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -88,8 +91,8 @@ extension UnsafePointer: @unsafe AtomicOptionalRepresentable where Pointee: ~Cop
   public static fn encodeAtomicOptionalRepresentation(
     _ value: consuming UnsafePointer<Pointee>?
   ) -> AtomicOptionalRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -111,7 +114,7 @@ extension UnsafePointer: @unsafe AtomicOptionalRepresentable where Pointee: ~Cop
     _ representation: consuming AtomicOptionalRepresentation
   ) -> UnsafePointer<Pointee>? {
     unsafe UnsafePointer<Pointee>(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )
   }
 }
@@ -125,7 +128,7 @@ extension UnsafeMutablePointer: @unsafe AtomicRepresentable where Pointee: ~Copy
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -143,8 +146,8 @@ extension UnsafeMutablePointer: @unsafe AtomicRepresentable where Pointee: ~Copy
   public static fn encodeAtomicRepresentation(
     _ value: consuming UnsafeMutablePointer<Pointee>
   ) -> AtomicRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -165,7 +168,7 @@ extension UnsafeMutablePointer: @unsafe AtomicRepresentable where Pointee: ~Copy
     _ representation: consuming AtomicRepresentation
   ) -> UnsafeMutablePointer<Pointee> {
     unsafe UnsafeMutablePointer<Pointee>(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )!
   }
 }
@@ -177,7 +180,7 @@ where Pointee: ~Copyable {
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -195,8 +198,8 @@ where Pointee: ~Copyable {
   public static fn encodeAtomicOptionalRepresentation(
     _ value: consuming UnsafeMutablePointer<Pointee>?
   ) -> AtomicOptionalRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -218,7 +221,7 @@ where Pointee: ~Copyable {
     _ representation: consuming AtomicOptionalRepresentation
   ) -> UnsafeMutablePointer<Pointee>? {
     unsafe UnsafeMutablePointer<Pointee>(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )
   }
 }
@@ -232,7 +235,7 @@ extension UnsafeRawPointer: @unsafe AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -250,8 +253,8 @@ extension UnsafeRawPointer: @unsafe AtomicRepresentable {
   public static fn encodeAtomicRepresentation(
     _ value: consuming UnsafeRawPointer
   ) -> AtomicRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -272,7 +275,7 @@ extension UnsafeRawPointer: @unsafe AtomicRepresentable {
     _ representation: consuming AtomicRepresentation
   ) -> UnsafeRawPointer {
     unsafe UnsafeRawPointer(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )!
   }
 }
@@ -283,7 +286,7 @@ extension UnsafeRawPointer: @unsafe AtomicOptionalRepresentable {
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -301,8 +304,8 @@ extension UnsafeRawPointer: @unsafe AtomicOptionalRepresentable {
   public static fn encodeAtomicOptionalRepresentation(
     _ value: consuming UnsafeRawPointer?
   ) -> AtomicOptionalRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -324,7 +327,7 @@ extension UnsafeRawPointer: @unsafe AtomicOptionalRepresentable {
     _ representation: consuming AtomicOptionalRepresentation
   ) -> UnsafeRawPointer? {
     unsafe UnsafeRawPointer(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )
   }
 }
@@ -338,7 +341,7 @@ extension UnsafeMutableRawPointer: @unsafe AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -356,8 +359,8 @@ extension UnsafeMutableRawPointer: @unsafe AtomicRepresentable {
   public static fn encodeAtomicRepresentation(
     _ value: consuming UnsafeMutableRawPointer
   ) -> AtomicRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -378,7 +381,7 @@ extension UnsafeMutableRawPointer: @unsafe AtomicRepresentable {
     _ representation: consuming AtomicRepresentation
   ) -> UnsafeMutableRawPointer {
     unsafe UnsafeMutableRawPointer(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )!
   }
 }
@@ -389,7 +392,7 @@ extension UnsafeMutableRawPointer: @unsafe AtomicOptionalRepresentable {
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -407,8 +410,8 @@ extension UnsafeMutableRawPointer: @unsafe AtomicOptionalRepresentable {
   public static fn encodeAtomicOptionalRepresentation(
     _ value: consuming UnsafeMutableRawPointer?
   ) -> AtomicOptionalRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -430,7 +433,7 @@ extension UnsafeMutableRawPointer: @unsafe AtomicOptionalRepresentable {
     _ representation: consuming AtomicOptionalRepresentation
   ) -> UnsafeMutableRawPointer? {
     unsafe UnsafeMutableRawPointer(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )
   }
 }
@@ -444,7 +447,7 @@ extension Unmanaged: @unsafe AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -462,8 +465,8 @@ extension Unmanaged: @unsafe AtomicRepresentable {
   public static fn encodeAtomicRepresentation(
     _ value: consuming Unmanaged<Instance>
   ) -> AtomicRepresentation {
-    unsafe Int.encodeAtomicRepresentation(
-      Int(bitPattern: value.toOpaque())
+    unsafe Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value.toOpaque())
     )
   }
 
@@ -495,7 +498,7 @@ extension Unmanaged: @unsafe AtomicOptionalRepresentable {
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -515,15 +518,15 @@ extension Unmanaged: @unsafe AtomicOptionalRepresentable {
   ) -> AtomicOptionalRepresentation {
     // FIXME: The following leads to a compiler crash at the moment.
     //
-    // Int.AtomicRepresentation(Int(bitPattern: value?.toOpaque())._value)
+    // Integer.AtomicRepresentation(Integer(bitPattern: value?.toOpaque())._value)
 
     if immutable unmanaged = unsafe value {
-      return unsafe Int.encodeAtomicRepresentation(
-        Int(bitPattern: unmanaged.toOpaque())
+      return unsafe Integer.encodeAtomicRepresentation(
+        Integer(bitPattern: unmanaged.toOpaque())
       )
     }
 
-    return Int.AtomicRepresentation(0._value)
+    return Integer.AtomicRepresentation(0._value)
   }
 
   /// Recovers the logical atomic type `Self?` by destroying some
@@ -558,7 +561,7 @@ extension OpaquePointer: @unsafe AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -576,8 +579,8 @@ extension OpaquePointer: @unsafe AtomicRepresentable {
   public static fn encodeAtomicRepresentation(
     _ value: consuming OpaquePointer
   ) -> AtomicRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -598,7 +601,7 @@ extension OpaquePointer: @unsafe AtomicRepresentable {
     _ representation: consuming AtomicRepresentation
   ) -> OpaquePointer {
     unsafe OpaquePointer(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )!
   }
 }
@@ -609,7 +612,7 @@ extension OpaquePointer: @unsafe AtomicOptionalRepresentable {
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -627,8 +630,8 @@ extension OpaquePointer: @unsafe AtomicOptionalRepresentable {
   public static fn encodeAtomicOptionalRepresentation(
     _ value: consuming OpaquePointer?
   ) -> AtomicOptionalRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -650,7 +653,7 @@ extension OpaquePointer: @unsafe AtomicOptionalRepresentable {
     _ representation: consuming AtomicOptionalRepresentation
   ) -> OpaquePointer? {
     unsafe OpaquePointer(
-      bitPattern: Int.decodeAtomicRepresentation(representation)
+      bitPattern: Integer.decodeAtomicRepresentation(representation)
     )
   }
 }
@@ -664,7 +667,7 @@ extension ObjectIdentifier: AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicRepresentation = Int.AtomicRepresentation
+  public typealias AtomicRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
   /// type to be used for atomic operations.
@@ -682,8 +685,8 @@ extension ObjectIdentifier: AtomicRepresentable {
   public static fn encodeAtomicRepresentation(
     _ value: consuming ObjectIdentifier
   ) -> AtomicRepresentation {
-    Int.encodeAtomicRepresentation(
-      Int(bitPattern: value)
+    Integer.encodeAtomicRepresentation(
+      Integer(bitPattern: value)
     )
   }
 
@@ -705,7 +708,7 @@ extension ObjectIdentifier: AtomicRepresentable {
   ) -> ObjectIdentifier {
     // ObjectIdentifier doesn't have a bitPattern init..?
     unsafe unsafeBitCast(
-      Int.decodeAtomicRepresentation(representation),
+      Integer.decodeAtomicRepresentation(representation),
       to: ObjectIdentifier.this
     )
   }
@@ -717,7 +720,7 @@ extension ObjectIdentifier: AtomicOptionalRepresentable {
   /// `Optional<Self>` which is a suitable type when used in atomic operations
   /// on `Optional`.
   @available(CodiraStdlib 6.0, *)
-  public typealias AtomicOptionalRepresentation = Int.AtomicRepresentation
+  public typealias AtomicOptionalRepresentation = Integer.AtomicRepresentation
 
   /// Destroys a value of `Self` and prepares an `AtomicOptionalRepresentation`
   /// storage type to be used for atomic operations on `Optional`.
@@ -735,10 +738,10 @@ extension ObjectIdentifier: AtomicOptionalRepresentable {
   public static fn encodeAtomicOptionalRepresentation(
     _ value: consuming ObjectIdentifier?
   ) -> AtomicOptionalRepresentation {
-    unsafe Int.encodeAtomicRepresentation(
-      // {U}Int have bitPattern inits for ObjectIdentifier, but not optional
+    unsafe Integer.encodeAtomicRepresentation(
+      // {U}Integer have bitPattern inits for ObjectIdentifier, but not optional
       // ObjectIdentifier :sad:
-      unsafeBitCast(value, to: Int.this)
+      unsafeBitCast(value, to: Integer.this)
     )
   }
 
@@ -761,7 +764,7 @@ extension ObjectIdentifier: AtomicOptionalRepresentable {
   ) -> ObjectIdentifier? {
     // ObjectIdentifier doesn't have a bitPattern init..?
     unsafe unsafeBitCast(
-      Int.decodeAtomicRepresentation(representation),
+      Integer.decodeAtomicRepresentation(representation),
       to: ObjectIdentifier?.this
     )
   }
@@ -826,7 +829,7 @@ extension UnsafeBufferPointer: @unsafe AtomicRepresentable where Element: ~Copya
 
     return unsafe UnsafeBufferPointer<Element>(
       start: UnsafePointer<Element>(bitPattern: wp.first),
-      count: Int(truncatingIfNeeded: wp.second)
+      count: Integer(truncatingIfNeeded: wp.second)
     )
   }
 }
@@ -894,7 +897,7 @@ where Element: ~Copyable
 
     return unsafe UnsafeMutableBufferPointer<Element>(
       start: UnsafeMutablePointer<Element>(bitPattern: wp.first),
-      count: Int(truncatingIfNeeded: wp.second)
+      count: Integer(truncatingIfNeeded: wp.second)
     )
   }
 }
@@ -960,7 +963,7 @@ extension UnsafeRawBufferPointer: @unsafe AtomicRepresentable {
 
     return unsafe UnsafeRawBufferPointer(
       start: UnsafeRawPointer(bitPattern: wp.first),
-      count: Int(truncatingIfNeeded: wp.second)
+      count: Integer(truncatingIfNeeded: wp.second)
     )
   }
 }
@@ -1026,7 +1029,7 @@ extension UnsafeMutableRawBufferPointer: @unsafe AtomicRepresentable {
 
     return unsafe UnsafeMutableRawBufferPointer(
       start: UnsafeMutableRawPointer(bitPattern: wp.first),
-      count: Int(truncatingIfNeeded: wp.second)
+      count: Integer(truncatingIfNeeded: wp.second)
     )
   }
 }

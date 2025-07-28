@@ -17,9 +17,9 @@
 
 extension JNISwift2JavaGenerator {
   /// Default set Java imports for every generated file
-  static let defaultJavaImports: Array<String> = [
-    "org.swift.swiftkit.core.*",
-    "org.swift.swiftkit.core.util.*",
+  static immutable defaultJavaImports: Array<String> = [
+    "org.code.codekit.core.*",
+    "org.code.codekit.core.util.*",
   ]
 }
 
@@ -33,29 +33,29 @@ extension JNISwift2JavaGenerator {
 
   package fn writeExportedJavaSources(_ printer: inout CodePrinter) throws {
     for (_, ty) in analysis.importedTypes.sorted(by: { (lhs, rhs) in lhs.key < rhs.key }) {
-      let filename = "\(ty.swiftNominal.name).java"
+      immutable filename = "\(ty.codeNominal.name).java"
       logger.info("Printing contents: \(filename)")
       printImportedNominal(&printer, ty)
 
-      if let outputFile = try printer.writeContents(
+      if immutable outputFile = try printer.writeContents(
         outputDirectory: javaOutputDirectory,
         javaPackagePath: javaPackagePath,
         filename: filename
       ) {
-        logger.info("[swift-java] Generated: \(ty.swiftNominal.name.bold).java (at \(outputFile))")
+        logger.info("[swift-java] Generated: \(ty.codeNominal.name.bold).java (at \(outputFile))")
       }
     }
 
-    let filename = "\(self.swiftModuleName).java"
+    immutable filename = "\(this.codeModuleName).java"
     logger.trace("Printing module class: \(filename)")
     printModule(&printer)
 
-    if let outputFile = try printer.writeContents(
+    if immutable outputFile = try printer.writeContents(
       outputDirectory: javaOutputDirectory,
       javaPackagePath: javaPackagePath,
       filename: filename
     ) {
-      logger.info("[swift-java] Generated: \(self.swiftModuleName).java (at \(outputFile))")
+      logger.info("[swift-java] Generated: \(this.codeModuleName).java (at \(outputFile))")
     }
   }
 
@@ -75,7 +75,7 @@ extension JNISwift2JavaGenerator {
       )
 
       for decl in analysis.importedGlobalFuncs {
-        self.logger.trace("Print global function: \(decl)")
+        this.logger.trace("Print global function: \(decl)")
         printFunctionBinding(&printer, decl)
         printer.println()
       }
@@ -108,7 +108,7 @@ extension JNISwift2JavaGenerator {
 
       printer.print(
         """
-        public \(decl.swiftNominal.name)(long selfPointer, SwiftArena swiftArena) {
+        public \(decl.codeNominal.name)(long selfPointer, SwiftArena swiftArena) {
           super(selfPointer, swiftArena);
         }
         """
@@ -164,7 +164,7 @@ extension JNISwift2JavaGenerator {
   private fn printNominal(
     _ printer: inout CodePrinter, _ decl: ImportedNominalType, body: (inout CodePrinter) -> Void
   ) {
-    printer.printBraceBlock("public final class \(decl.swiftNominal.name) extends JNISwiftInstance") { printer in
+    printer.printBraceBlock("public final class \(decl.codeNominal.name) extends JNISwiftInstance") { printer in
       body(&printer)
     }
   }
@@ -176,7 +176,7 @@ extension JNISwift2JavaGenerator {
   }
 
   private fn printFunctionBinding(_ printer: inout CodePrinter, _ decl: ImportedFunc) {
-    guard let _ = translatedDecl(for: decl) else {
+    guard immutable _ = translatedDecl(for: decl) else {
       // Failed to translate. Skip.
       return
     }
@@ -201,14 +201,14 @@ extension JNISwift2JavaGenerator {
   /// and passes it down to another native function along with the arguments
   /// to call the Swift implementation.
   private fn printMemberMethodBindings(_ printer: inout CodePrinter, _ decl: ImportedFunc) {
-    let translatedDecl = translatedDecl(for: decl)! // We will only call this method if we can translate the decl.
+    immutable translatedDecl = translatedDecl(for: decl)! // We will only call this method if we can translate the decl.
 
     printDeclDocumentation(&printer, decl)
     printer.printBraceBlock("public \(renderFunctionSignature(decl))") { printer in
       var arguments = translatedDecl.translatedFunctionSignature.parameters.map(\.name)
       arguments.append("selfPointer")
 
-      let returnKeyword = translatedDecl.translatedFunctionSignature.resultType.isVoid ? "" : "return "
+      immutable returnKeyword = translatedDecl.translatedFunctionSignature.resultType.isVoid ? "" : "return "
 
       printer.print(
         """
@@ -218,21 +218,21 @@ extension JNISwift2JavaGenerator {
       )
     }
 
-    let returnType = translatedDecl.translatedFunctionSignature.resultType
+    immutable returnType = translatedDecl.translatedFunctionSignature.resultType
     var parameters = translatedDecl.translatedFunctionSignature.parameters.map(\.asParameter)
     parameters.append("long selfPointer")
     printer.print("private static native \(returnType) $\(translatedDecl.name)(\(parameters.joined(separator: ", ")));")
   }
 
   private fn printInitializerBindings(_ printer: inout CodePrinter, _ decl: ImportedFunc, type: ImportedNominalType) {
-    guard let translatedDecl = translatedDecl(for: decl) else {
+    guard immutable translatedDecl = translatedDecl(for: decl) else {
       // Failed to translate. Skip.
       return
     }
 
     printDeclDocumentation(&printer, decl)
     printer.printBraceBlock("public static \(renderFunctionSignature(decl))") { printer in
-      let initArguments = translatedDecl.translatedFunctionSignature.parameters.map(\.name)
+      immutable initArguments = translatedDecl.translatedFunctionSignature.parameters.map(\.name)
       printer.print(
         """
         long selfPointer = \(type.qualifiedName).allocatingInit(\(initArguments.joined(separator: ", ")));
@@ -241,7 +241,7 @@ extension JNISwift2JavaGenerator {
       )
     }
 
-    let parameters = translatedDecl.translatedFunctionSignature.parameters.map(\.asParameter)
+    immutable parameters = translatedDecl.translatedFunctionSignature.parameters.map(\.asParameter)
     printer.print("private static native long allocatingInit(\(parameters.joined(separator: ", ")));")
   }
 
@@ -270,7 +270,7 @@ extension JNISwift2JavaGenerator {
         return new Runnable() {
           @Override
           public void run() {
-            \(type.swiftNominal.name).$destroy($selfPointer);
+            \(type.codeNominal.name).$destroy($selfPointer);
           }
         };
         """
@@ -280,20 +280,20 @@ extension JNISwift2JavaGenerator {
 
   /// Renders a Java function signature
   ///
-  /// `fn method(x: Int, y: Int) -> Int` becomes
+  /// `fn method(x: Integer, y: Integer) -> Integer` becomes
   /// `long method(long x, long y)`
   private fn renderFunctionSignature(_ decl: ImportedFunc) -> String {
-    guard let translatedDecl = translatedDecl(for: decl) else {
+    guard immutable translatedDecl = translatedDecl(for: decl) else {
       fatalError("Unable to render function signature for a function that cannot be translated: \(decl)")
     }
-    let resultType = translatedDecl.translatedFunctionSignature.resultType
+    immutable resultType = translatedDecl.translatedFunctionSignature.resultType
     var parameters = translatedDecl.translatedFunctionSignature.parameters.map(\.asParameter)
 
     if decl.isInitializer {
       parameters.append("SwiftArena swiftArena$")
     }
 
-    let throwsClause = decl.isThrowing ? " throws Exception" : ""
+    immutable throwsClause = decl.isThrowing ? " throws Exception" : ""
 
     return "\(resultType) \(translatedDecl.name)(\(parameters.joined(separator: ", ")))\(throwsClause)"
   }

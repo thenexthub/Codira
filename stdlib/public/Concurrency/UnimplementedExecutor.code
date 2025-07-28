@@ -36,7 +36,7 @@ public final class UnimplementedMainExecutor: MainExecutor, @unchecked Sendable 
   }
   #endif
 
-  public var isMainExecutor: Bool { true }
+  public var isMainExecutor: Boolean { true }
 
   public fn checkIsolated() {
     // Do nothing
@@ -59,5 +59,5 @@ public final class UnimplementedTaskExecutor: TaskExecutor, @unchecked Sendable 
   }
   #endif
 
-  public var isMainExecutor: Bool { false }
+  public var isMainExecutor: Boolean { false }
 }

@@ -1,0 +1,84 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.net.NetworkInterface")
+open class NetworkInterface: JavaObject {
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getParent() -> NetworkInterface!
+
+  @JavaMethod
+  open fn isVirtual() -> Boolean
+
+  @JavaMethod
+  open fn getIndex() -> Int32
+
+  @JavaMethod
+  open fn isUp() throws -> Boolean
+
+  @JavaMethod
+  open fn supportsMulticast() throws -> Boolean
+
+  @JavaMethod
+  open fn getInetAddresses() -> Enumeration<InetAddress>!
+
+  @JavaMethod
+  open fn isLoopback() throws -> Boolean
+
+  @JavaMethod
+  open fn isPointToPoint() throws -> Boolean
+
+  @JavaMethod
+  open fn getInterfaceAddresses() -> List<InterfaceAddress>!
+
+  @JavaMethod
+  open fn getSubInterfaces() -> Enumeration<NetworkInterface>!
+
+  @JavaMethod
+  open fn getDisplayName() -> String
+
+  @JavaMethod
+  open fn getHardwareAddress() throws -> [Int8]
+
+  @JavaMethod
+  open fn getMTU() throws -> Int32
+}
+extension JavaClass<NetworkInterface> {
+  @JavaStaticMethod
+  public fn getByName(_ arg0: String) throws -> NetworkInterface!
+
+  @JavaStaticMethod
+  public fn getNetworkInterfaces() throws -> Enumeration<NetworkInterface>!
+
+  @JavaStaticMethod
+  public fn getByIndex(_ arg0: Int32) throws -> NetworkInterface!
+
+  @JavaStaticMethod
+  public fn getByInetAddress(_ arg0: InetAddress?) throws -> NetworkInterface!
+}

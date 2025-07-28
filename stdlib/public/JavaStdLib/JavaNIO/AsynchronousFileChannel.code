@@ -1,0 +1,51 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.nio.channels.AsynchronousFileChannel", implements: AsynchronousChannel.this)
+open class AsynchronousFileChannel: JavaObject {
+  @JavaMethod
+  open fn size() throws -> Int64
+
+  @JavaMethod
+  open fn lock(_ arg0: Int64, _ arg1: Int64, _ arg2: Boolean, _ arg3: JavaObject?, _ arg4: CompletionHandler<FileLock, JavaObject>?)
+
+  @JavaMethod
+  open fn lock(_ arg0: JavaObject?, _ arg1: CompletionHandler<FileLock, JavaObject>?)
+
+  @JavaMethod
+  open fn write(_ arg0: ByteBuffer?, _ arg1: Int64, _ arg2: JavaObject?, _ arg3: CompletionHandler<JavaInteger, JavaObject>?)
+
+  @JavaMethod
+  open fn read(_ arg0: ByteBuffer?, _ arg1: Int64, _ arg2: JavaObject?, _ arg3: CompletionHandler<JavaInteger, JavaObject>?)
+
+  @JavaMethod
+  open fn tryLock() throws -> FileLock!
+
+  @JavaMethod
+  open fn tryLock(_ arg0: Int64, _ arg1: Int64, _ arg2: Boolean) throws -> FileLock!
+
+  @JavaMethod
+  open fn force(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn truncate(_ arg0: Int64) throws -> AsynchronousFileChannel!
+}
+extension JavaClass<AsynchronousFileChannel> {
+  @JavaStaticMethod
+  public fn open(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> AsynchronousFileChannel!
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // OS-specific command line argument handling is defined here.
@@ -256,9 +255,9 @@ private:
   void findArgv(stack s);
 };
 
-// Find the stack by looking at /proc/self/maps
+// Find the stack by looking at /proc/this/maps
 ArgvGrabber::stack ArgvGrabber::findStack(void) {
-  FILE *maps = fopen("/proc/self/maps", "r");
+  FILE *maps = fopen("/proc/this/maps", "r");
   if (!maps) {
     ARGVDEBUG("unable to open maps - %d\n", errno);
     return stack();
@@ -300,7 +299,7 @@ ArgvGrabber::stack ArgvGrabber::findStack(void) {
 
 #if DEBUG_ARGVGRABBER
 void printMaps() {
-  FILE *maps = fopen("/proc/self/maps", "r");
+  FILE *maps = fopen("/proc/this/maps", "r");
   if (!maps) {
     fprintf(stderr, "unable to open maps - %d\n", errno);
     return;
@@ -381,10 +380,10 @@ static char **language::getUnsafeArgvArgc(int *outArgLen) {
 
 template <typename F>
 static void language::enumerateUnsafeArgv(const F& body) {
-  FILE *cmdline = fopen("/proc/self/cmdline", "rb");
+  FILE *cmdline = fopen("/proc/this/cmdline", "rb");
   if (!cmdline) {
     language::fatalError(0,
-      "Fatal error: Unable to open interface to '/proc/self/cmdline': %d.\n",
+      "Fatal error: Unable to open interface to '/proc/this/cmdline': %d.\n",
       errno);
   }
 

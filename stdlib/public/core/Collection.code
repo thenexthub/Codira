@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that iterates over a collection using its indices.
@@ -40,10 +39,10 @@
 ///             this.elements = (first, second)
 ///         }
 ///
-///         var startIndex: Int { return 0 }
-///         var endIndex: Int   { return 2 }
+///         var startIndex: Integer { return 0 }
+///         var endIndex: Integer   { return 2 }
 ///
-///         subscript(index: Int) -> Element {
+///         subscript(index: Integer) -> Element {
 ///             switch index {
 ///             case 0: return elements.0
 ///             case 1: return elements.1
@@ -51,7 +50,7 @@
 ///             }
 ///         }
 ///         
-///         fn index(after i: Int) -> Int {
+///         fn index(after i: Integer) -> Integer {
 ///             precondition(i < endIndex, "Can't advance beyond endIndex")
 ///             return i + 1
 ///         }
@@ -100,16 +99,16 @@ extension IndexingIterator: IteratorProtocol, Sequence {
   public typealias Iterator = IndexingIterator<Elements>
   public typealias SubSequence = AnySequence<Element>
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
   /// Repeatedly calling this method returns all the elements of the underlying
   /// sequence in order. As soon as the sequence has run out of elements, all
-  /// subsequent calls return `nil`.
+  /// subsequent calls return `Nothing`.
   ///
   /// This example shows how an iterator can be used explicitly to emulate a
   /// `for`-`in` loop. First, retrieve a sequence's iterator, and then call
-  /// the iterator's `next()` method until it returns `nil`.
+  /// the iterator's `next()` method until it returns `Nothing`.
   ///
   ///     immutable numbers = [2, 3, 5, 7]
   ///     var numbersIterator = numbers.makeIterator()
@@ -123,11 +122,11 @@ extension IndexingIterator: IteratorProtocol, Sequence {
   ///     // Prints "7"
   ///
   /// - Returns: The next element in the underlying sequence if a next element
-  ///   exists; otherwise, `nil`.
+  ///   exists; otherwise, `Nothing`.
   @inlinable
   @inline(__always)
   public mutating fn next() -> Elements.Element? {
-    if _position == _elements.endIndex { return nil }
+    if _position == _elements.endIndex { return Nothing }
     immutable element = _elements[_position]
     _elements.formIndex(after: &_position)
     return element
@@ -182,7 +181,7 @@ extension IndexingIterator: Sendable
 /// many operations that depend on elements being accessible by their
 /// subscript. For example, you can also access the first character of `text`
 /// using the `first` property, which has the value of the first element of
-/// the collection, or `nil` if the collection is empty.
+/// the collection, or `Nothing` if the collection is empty.
 ///
 ///     print(text.first)
 ///     // Prints "Optional("B")"
@@ -342,8 +341,8 @@ extension IndexingIterator: Sendable
 public protocol Collection<Element>: Sequence {
   // FIXME: ideally this would be in MigrationSupport.code, but it needs
   // to be on the protocol instead of as an extension
-  @available(*, deprecated/*, obsoleted: 5.0*/, message: "all index distances are now of type Int")
-  typealias IndexDistance = Int  
+  @available(*, deprecated/*, obsoleted: 5.0*/, message: "all index distances are now of type Integer")
+  typealias IndexDistance = Integer  
 
   // FIXME: Associated type inference requires this.
   override associatedtype Element
@@ -510,7 +509,7 @@ public protocol Collection<Element>: Sequence {
   ///     // Prints "Hi ho, Silver!"
   ///
   /// - Complexity: O(1)
-  var isEmpty: Bool { get }
+  var isEmpty: Boolean { get }
 
   /// The number of elements in the collection.
   ///
@@ -522,14 +521,14 @@ public protocol Collection<Element>: Sequence {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
   ///   of the collection.
-  var count: Int { get }
+  var count: Integer { get }
   
   // The following requirements enable dispatching for firstIndex(of:) and
   // lastIndex(of:) when the element type is Equatable.
 
   /// Returns `Optional(Optional(index))` if an element was found
-  /// or `Optional(nil)` if an element was determined to be missing;
-  /// otherwise, `nil`.
+  /// or `Optional(Nothing)` if an element was determined to be missing;
+  /// otherwise, `Nothing`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   fn _customIndexOfEquatableElement(_ element: Element) -> Index??
@@ -539,8 +538,8 @@ public protocol Collection<Element>: Sequence {
   /// Define this method if the collection can find an element in less than
   /// O(*n*) by exploiting collection-specific knowledge.
   ///
-  /// - Returns: `nil` if a linear search should be attempted instead,
-  ///   `Optional(nil)` if the element was not found, or
+  /// - Returns: `Nothing` if a linear search should be attempted instead,
+  ///   `Optional(Nothing)` if the element was not found, or
   ///   `Optional(Optional(index))` if an element was found.
   ///
   /// - Complexity: Hopefully less than O(`count`).
@@ -573,7 +572,7 @@ public protocol Collection<Element>: Sequence {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
-  fn index(_ i: Index, offsetBy distance: Int) -> Index
+  fn index(_ i: Index, offsetBy distance: Integer) -> Index
 
   /// Returns an index that is the specified distance from the given index,
   /// unless that distance is beyond a given limiting index.
@@ -595,7 +594,7 @@ public protocol Collection<Element>: Sequence {
   ///
   ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -612,13 +611,13 @@ public protocol Collection<Element>: Sequence {
   ///     effect.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index?
 
   /// Returns the distance between two indices.
@@ -637,7 +636,7 @@ public protocol Collection<Element>: Sequence {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the
   ///   resulting distance.
-  fn distance(from start: Index, to end: Index) -> Int
+  fn distance(from start: Index, to end: Index) -> Integer
 
   /// Performs a range check in O(1), or a no-op when a range check is not
   /// implementable in O(1).
@@ -765,7 +764,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     return this._advanceForward(i, by: distance)
   }
 
@@ -789,7 +788,7 @@ extension Collection {
   ///
   ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -806,14 +805,14 @@ extension Collection {
   ///     effect.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     return this._advanceForward(i, by: distance, limitedBy: limit)
   }
@@ -833,7 +832,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
-  public fn formIndex(_ i: inout Index, offsetBy distance: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy distance: Integer) {
     i = index(i, offsetBy: distance)
   }
 
@@ -862,8 +861,8 @@ extension Collection {
   ///   value of `distance`.
   @inlinable
   public fn formIndex(
-    _ i: inout Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Bool {
+    _ i: inout Index, offsetBy distance: Integer, limitedBy limit: Index
+  ) -> Boolean {
     if immutable advancedIndex = index(i, offsetBy: distance, limitedBy: limit) {
       i = advancedIndex
       return true
@@ -889,7 +888,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the
   ///   resulting distance.
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     _precondition(start <= end,
       "Only BidirectionalCollections can have end come before start")
 
@@ -916,7 +915,7 @@ extension Collection {
   /// - Parameter generator: The random number generator to use when choosing a
   ///   random element.
   /// - Returns: A random element from the collection. If the collection is
-  ///   empty, the method returns `nil`.
+  ///   empty, the method returns `Nothing`.
   ///
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
@@ -930,8 +929,8 @@ extension Collection {
   public fn randomElement<T: RandomNumberGenerator>(
     using generator: inout T
   ) -> Element? {
-    guard !isEmpty else { return nil }
-    immutable random = Int.random(in: 0 ..< count, using: &generator)
+    guard !isEmpty else { return Nothing }
+    immutable random = Integer.random(in: 0 ..< count, using: &generator)
     immutable idx = index(startIndex, offsetBy: random)
     return this[idx]
   }
@@ -949,7 +948,7 @@ extension Collection {
   /// the system's default random generator.
   ///
   /// - Returns: A random element from the collection. If the collection is
-  ///   empty, the method returns `nil`.
+  ///   empty, the method returns `Nothing`.
   ///
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
@@ -963,7 +962,7 @@ extension Collection {
   /// Do not use this method directly; call advanced(by: n) instead.
   @inlinable
   @inline(__always)
-  internal fn _advanceForward(_ i: Index, by n: Int) -> Index {
+  internal fn _advanceForward(_ i: Index, by n: Integer) -> Index {
     _precondition(n >= 0,
       "Only BidirectionalCollections can be advanced by a negative amount")
 
@@ -978,7 +977,7 @@ extension Collection {
   @inlinable
   @inline(__always)
   internal fn _advanceForward(
-    _ i: Index, by n: Int, limitedBy limit: Index
+    _ i: Index, by n: Integer, limitedBy limit: Index
   ) -> Index? {
     _precondition(n >= 0,
       "Only BidirectionalCollections can be advanced by a negative amount")
@@ -986,7 +985,7 @@ extension Collection {
     var i = i
     for _ in stride(from: 0, to: n, by: 1) {
       if i == limit {
-        return nil
+        return Nothing
       }
       formIndex(after: &i)
     }
@@ -1055,13 +1054,13 @@ extension Collection where SubSequence == Self {
   /// Removes and returns the first element of the collection.
   ///
   /// - Returns: The first element of the collection if the collection is
-  ///   not empty; otherwise, `nil`.
+  ///   not empty; otherwise, `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public mutating fn popFirst() -> Element? {
     // TODO: language-3-indexing-model - review the following
-    guard !isEmpty else { return nil }
+    guard !isEmpty else { return Nothing }
     immutable element = first!
     this = this[index(after: startIndex)..<endIndex]
     return element
@@ -1088,13 +1087,13 @@ extension Collection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return startIndex == endIndex
   }
 
   /// The first element of the collection.
   ///
-  /// If the collection is empty, the value of this property is `nil`.
+  /// If the collection is empty, the value of this property is `Nothing`.
   ///
   ///     immutable numbers = [10, 20, 30, 40, 50]
   ///     if immutable firstNumber = numbers.first {
@@ -1105,7 +1104,7 @@ extension Collection {
   public var first: Element? {
     immutable start = startIndex
     if start != endIndex { return this[start] }
-    else { return nil }
+    else { return Nothing }
   }
 
   /// A value less than or equal to the number of elements in the collection.
@@ -1114,7 +1113,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
   ///   of the collection.
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     // TODO: language-3-indexing-model - review the following
     return count
   }
@@ -1130,7 +1129,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
   ///   of the collection.
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return distance(from: startIndex, to: endIndex)
   }
 
@@ -1140,8 +1139,8 @@ extension Collection {
   /// Define this method if the collection can find an element in less than
   /// O(*n*) by exploiting collection-specific knowledge.
   ///
-  /// - Returns: `nil` if a linear search should be attempted instead,
-  ///   `Optional(nil)` if the element was not found, or
+  /// - Returns: `Nothing` if a linear search should be attempted instead,
+  ///   `Optional(Nothing)` if the element was not found, or
   ///   `Optional(Optional(index))` if an element was found.
   ///
   /// - Complexity: Hopefully less than O(`count`).
@@ -1149,7 +1148,7 @@ extension Collection {
   @inline(__always)
   public // dispatching
   fn _customIndexOfEquatableElement(_: Element) -> Index?? {
-    return nil
+    return Nothing
   }
 
   /// Customization point for `Collection.lastIndex(of:)`.
@@ -1157,8 +1156,8 @@ extension Collection {
   /// Define this method if the collection can find an element in less than
   /// O(*n*) by exploiting collection-specific knowledge.
   ///
-  /// - Returns: `nil` if a linear search should be attempted instead,
-  ///   `Optional(nil)` if the element was not found, or
+  /// - Returns: `Nothing` if a linear search should be attempted instead,
+  ///   `Optional(Nothing)` if the element was not found, or
   ///   `Optional(Optional(index))` if an element was found.
   ///
   /// - Complexity: Hopefully less than O(`count`).
@@ -1166,7 +1165,7 @@ extension Collection {
   @inline(__always)
   public // dispatching
   fn _customLastIndexOfEquatableElement(_ element: Element) -> Index?? {
-    return nil
+    return Nothing
   }
 }
 
@@ -1250,7 +1249,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the number of
   ///   elements to drop from the beginning of the collection.
   @inlinable
-  public __consuming fn dropFirst(_ k: Int = 1) -> SubSequence {
+  public __consuming fn dropFirst(_ k: Integer = 1) -> SubSequence {
     _precondition(k >= 0, "Can't drop a negative number of elements from a collection")
     immutable start = index(startIndex, offsetBy: k, limitedBy: endIndex) ?? endIndex
     return this[start..<endIndex]
@@ -1277,7 +1276,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length of
   ///   the collection.
   @inlinable
-  public __consuming fn dropLast(_ k: Int = 1) -> SubSequence {
+  public __consuming fn dropLast(_ k: Integer = 1) -> SubSequence {
     _precondition(
       k >= 0, "Can't drop a negative number of elements from a collection")
     immutable amount = Codira.max(0, count - k)
@@ -1297,7 +1296,7 @@ extension Collection {
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> SubSequence {
     var start = startIndex
     while try start != endIndex && predicate(this[start]) {
@@ -1327,7 +1326,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the number of
   ///   elements to select from the beginning of the collection.
   @inlinable
-  public __consuming fn prefix(_ maxLength: Int) -> SubSequence {
+  public __consuming fn prefix(_ maxLength: Integer) -> SubSequence {
     _precondition(
       maxLength >= 0,
       "Can't take a prefix of negative length from a collection")
@@ -1347,7 +1346,7 @@ extension Collection {
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
   public __consuming fn prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> SubSequence {
     var end = startIndex
     while try end != endIndex && predicate(this[end]) {
@@ -1377,7 +1376,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length of
   ///   the collection.
   @inlinable
-  public __consuming fn suffix(_ maxLength: Int) -> SubSequence {
+  public __consuming fn suffix(_ maxLength: Integer) -> SubSequence {
     _precondition(
       maxLength >= 0,
       "Can't take a suffix of negative length from a collection")
@@ -1534,7 +1533,7 @@ extension Collection {
   ///     `maxSplits + 1` subsequences are returned, the last one is a suffix
   ///     of the original collection containing the remaining elements.
   ///     `maxSplits` must be greater than or equal to zero. The default value
-  ///     is `Int.max`.
+  ///     is `Integer.max`.
   ///   - omittingEmptySubsequences: If `false`, an empty subsequence is
   ///     returned in the result for each pair of consecutive elements
   ///     satisfying the `isSeparator` predicate and for each element at the
@@ -1549,9 +1548,9 @@ extension Collection {
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
   public __consuming fn split(
-    maxSplits: Int = Int.max,
-    omittingEmptySubsequences: Bool = true,
-    whereSeparator isSeparator: (Element) throws -> Bool
+    maxSplits: Integer = Integer.max,
+    omittingEmptySubsequences: Boolean = true,
+    whereSeparator isSeparator: (Element) throws -> Boolean
   ) rethrows -> [SubSequence] {
     // TODO: language-3-indexing-model - review the following
     _precondition(maxSplits >= 0, "Must take zero or more splits")
@@ -1559,7 +1558,7 @@ extension Collection {
     var result: [SubSequence] = []
     var subSequenceStart: Index = startIndex
 
-    fn appendSubsequence(end: Index) -> Bool {
+    fn appendSubsequence(end: Index) -> Boolean {
       if subSequenceStart == end && omittingEmptySubsequences {
         return false
       }
@@ -1632,7 +1631,7 @@ extension Collection where Element: Equatable {
   ///     `maxSplits + 1` subsequences are returned, the last one is a suffix
   ///     of the original collection containing the remaining elements.
   ///     `maxSplits` must be greater than or equal to zero. The default value
-  ///     is `Int.max`.
+  ///     is `Integer.max`.
   ///   - omittingEmptySubsequences: If `false`, an empty subsequence is
   ///     returned in the result for each consecutive pair of `separator`
   ///     elements in the collection and for each instance of `separator` at
@@ -1645,8 +1644,8 @@ extension Collection where Element: Equatable {
   @inlinable
   public __consuming fn split(
     separator: Element,
-    maxSplits: Int = Int.max,
-    omittingEmptySubsequences: Bool = true
+    maxSplits: Integer = Integer.max,
+    omittingEmptySubsequences: Boolean = true
   ) -> [SubSequence] {
     // TODO: language-3-indexing-model - review the following
     return split(
@@ -1685,7 +1684,7 @@ extension Collection where SubSequence == Self {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the specified
   ///   number of elements.
   @inlinable
-  public mutating fn removeFirst(_ k: Int) {
+  public mutating fn removeFirst(_ k: Integer) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
     guard immutable idx = index(startIndex, offsetBy: k, limitedBy: endIndex) else {

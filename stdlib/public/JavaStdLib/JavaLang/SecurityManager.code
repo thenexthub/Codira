@@ -1,0 +1,101 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.lang.SecurityManager")
+open class SecurityManager: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getClassContext() -> [JavaClass<JavaObject>?]
+
+  @JavaMethod
+  open fn getSecurityContext() -> JavaObject!
+
+  @JavaMethod
+  open fn checkExec(_ arg0: String)
+
+  @JavaMethod
+  open fn checkLink(_ arg0: String)
+
+  @JavaMethod
+  open fn checkRead(_ arg0: FileDescriptor?)
+
+  @JavaMethod
+  open fn checkRead(_ arg0: String)
+
+  @JavaMethod
+  open fn checkRead(_ arg0: String, _ arg1: JavaObject?)
+
+  @JavaMethod
+  open fn checkWrite(_ arg0: String)
+
+  @JavaMethod
+  open fn checkWrite(_ arg0: FileDescriptor?)
+
+  @JavaMethod
+  open fn checkDelete(_ arg0: String)
+
+  @JavaMethod
+  open fn checkConnect(_ arg0: String, _ arg1: Int32)
+
+  @JavaMethod
+  open fn checkConnect(_ arg0: String, _ arg1: Int32, _ arg2: JavaObject?)
+
+  @JavaMethod
+  open fn checkListen(_ arg0: Int32)
+
+  @JavaMethod
+  open fn checkAccept(_ arg0: String, _ arg1: Int32)
+
+  @JavaMethod
+  open fn checkPropertiesAccess()
+
+  @JavaMethod
+  open fn checkPropertyAccess(_ arg0: String)
+
+  @JavaMethod
+  open fn checkPrintJobAccess()
+
+  @JavaMethod
+  open fn checkPackageAccess(_ arg0: String)
+
+  @JavaMethod
+  open fn checkPackageDefinition(_ arg0: String)
+
+  @JavaMethod
+  open fn checkSetFactory()
+
+  @JavaMethod
+  open fn checkSecurityAccess(_ arg0: String)
+
+  @JavaMethod
+  open fn checkCreateClassLoader()
+
+  @JavaMethod
+  open fn getThreadGroup() -> ThreadGroup!
+
+  @JavaMethod
+  open fn checkAccess(_ arg0: ThreadGroup?)
+
+  @JavaMethod
+  open fn checkAccess(_ arg0: Thread?)
+
+  @JavaMethod
+  open fn checkExit(_ arg0: Int32)
+}

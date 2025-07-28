@@ -34,7 +34,7 @@ extension Measurement where UnitType: Dimension {
             /// For example, "37.20Cal", "37,2L"
             public static var narrow: Self { .init(option: .narrow) }
 
-            enum Option: Int, Codable, Hashable {
+            enum Option: Integer, Codable, Hashable {
                 case wide
                 case abbreviated
                 case narrow

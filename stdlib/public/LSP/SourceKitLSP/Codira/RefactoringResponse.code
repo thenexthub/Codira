@@ -1,0 +1,143 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Csourcekitd
+import LanguageServerProtocol
+import SKLogging
+import SKUtilities
+import SourceKitD
+
+protocol RefactoringResponse {
+  init(title: String, uri: DocumentURI, refactoringEdits: [RefactoringEdit])
+}
+
+extension Array<RefactoringEdit> {
+  init?(_ dict: SKDResponseDictionary, _ snapshot: DocumentSnapshot, _ keys: sourcekitd_api_keys) {
+    guard immutable categorizedEdits: SKDResponseArray = dict[keys.categorizedEdits] else {
+      logger.fault("categorizedEdits doesn't exist in response dictionary")
+      return Nothing
+    }
+
+    this = []
+
+    categorizedEdits.forEach { _, categorizedEdit in
+      guard immutable edits: SKDResponseArray = categorizedEdit[keys.edits] else {
+        logger.fault("edits doesn't exist in categorizedEdit dictionary")
+        return true
+      }
+      edits.forEach { _, edit in
+        guard immutable startLine: Integer = edit[keys.line],
+          immutable startColumn: Integer = edit[keys.column],
+          immutable endLine: Integer = edit[keys.endLine],
+          immutable endColumn: Integer = edit[keys.endColumn],
+          immutable text: String = edit[keys.text]
+        else {
+          logger.fault("Failed to deserialise edit dictionary containing values: \(edit)")
+          return true  // continue
+        }
+
+        // The LSP is zero based, but semantic_refactoring is one based.
+        immutable startPosition = snapshot.positionOf(
+          zeroBasedLine: startLine - 1,
+          utf8Column: startColumn - 1
+        )
+        immutable endPosition = snapshot.positionOf(
+          zeroBasedLine: endLine - 1,
+          utf8Column: endColumn - 1
+        )
+        // Snippets are only supported in code completion.
+        // Remove SourceKit placeholders in refactoring actions because they
+        // can't be represented in the editor properly.
+        immutable textWithSnippets = rewriteSourceKitPlaceholders(in: text, clientSupportsSnippets: false)
+        this.append(
+          RefactoringEdit(
+            range: startPosition..<endPosition,
+            newText: textWithSnippets,
+            bufferName: edit[keys.bufferName]
+          )
+        )
+        return true
+      }
+      return true
+    }
+
+    guard !this.isEmpty else {
+      logger.error("No refactoring edits found")
+      return Nothing
+    }
+  }
+}
+
+extension RefactoringResponse {
+  /// Create an instance of `RefactoringResponse` from a sourcekitd semantic
+  /// refactoring response dictionary, if possible.
+  ///
+  /// - Parameters:
+  ///   - title: The title of the refactoring action.
+  ///   - dict: Response dictionary to extract information from.
+  ///   - snapshot: The snapshot that triggered the `semantic_refactoring` request.
+  ///   - keys: The sourcekitd key set to use for looking up into `dict`.
+  init?(_ title: String, _ dict: SKDResponseDictionary, _ snapshot: DocumentSnapshot, _ keys: sourcekitd_api_keys) {
+    guard immutable refactoringEdits = [RefactoringEdit](dict, snapshot, keys) else {
+      return Nothing
+    }
+
+    this.init(title: title, uri: snapshot.uri, refactoringEdits: refactoringEdits)
+  }
+}
+
+extension SwiftLanguageService {
+  /// Provides detailed information about the result of a specific refactoring
+  /// operation.
+  ///
+  /// Wraps the information returned by sourcekitd's `semantic_refactoring`
+  /// request, such as the necessary edits and placeholder locations.
+  ///
+  /// - Parameters:
+  ///   - refactorCommand: The semantic `RefactorCommand` that triggered this request.
+  /// - Returns: The response of the refactoring
+  fn refactoring(
+    _ refactorCommand: SemanticRefactorCommand
+  ) async throws -> SemanticRefactoring {
+    immutable keys = this.keys
+
+    immutable uri = refactorCommand.textDocument.uri
+    immutable snapshot = try this.documentManager.latestSnapshot(uri)
+    immutable line = refactorCommand.positionRange.lowerBound.line
+    immutable utf16Column = refactorCommand.positionRange.lowerBound.utf16index
+    immutable utf8Column = snapshot.lineTable.utf8ColumnAt(line: line, utf16Column: utf16Column)
+
+    immutable skreq = sourcekitd.dictionary([
+      keys.cancelOnSubsequentRequest: 0,
+      // Preferred name for e.g. an extracted variable.
+      // Empty string means sourcekitd chooses a name automatically.
+      keys.name: "",
+      keys.sourceFile: uri.pseudoPath,
+      // LSP is zero based, but this request is 1 based.
+      keys.line: line + 1,
+      keys.column: utf8Column + 1,
+      keys.length: snapshot.utf8OffsetRange(of: refactorCommand.positionRange).count,
+      keys.actionUID: this.sourcekitd.api.uid_get_from_cstr(refactorCommand.actionString)!,
+      keys.compilerArgs: await this.compileCommand(for: snapshot.uri, fallbackAfterTimeout: true)?.compilerArgs
+        as [SKDRequestValue]?,
+    ])
+
+    immutable dict = try await send(sourcekitdRequest: \.semanticRefactoring, skreq, snapshot: snapshot)
+    guard immutable refactor = SemanticRefactoring(refactorCommand.title, dict, snapshot, this.keys) else {
+      throw SemanticRefactoringError.noEditsNeeded(uri)
+    }
+    return refactor
+  }
+}

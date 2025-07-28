@@ -1,0 +1,47 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.nio.channels.spi.AbstractSelector")
+open class AbstractSelector: Selector {
+  @JavaMethod
+  open fn cancelledKeys() -> JavaSet<SelectionKey>!
+
+  @JavaMethod
+  open fn implCloseSelector() throws
+
+  @JavaMethod
+  open fn deregister(_ arg0: AbstractSelectionKey?)
+
+  @JavaMethod
+  open fn begin()
+
+  @JavaMethod
+  open fn end()
+
+  @JavaMethod
+  open override fn isOpen() -> Boolean
+
+  @JavaMethod
+  open fn register(_ arg0: AbstractSelectableChannel?, _ arg1: Int32, _ arg2: JavaObject?) -> SelectionKey!
+
+  @JavaMethod
+  open override fn provider() -> SelectorProvider!
+
+  @JavaMethod
+  open override fn close() throws
+}

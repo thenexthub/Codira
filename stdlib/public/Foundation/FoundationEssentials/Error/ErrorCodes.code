@@ -436,45 +436,45 @@ extension CocoaError {
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension CocoaError {
     @available(macOS, introduced: 10.11) @available(iOS, introduced: 9.0)
-    public var isCoderError: Bool {
+    public var isCoderError: Boolean {
         return code.rawValue >= 4864 && code.rawValue <= 4991
     }
 
     @available(macOS, introduced: 10.10) @available(iOS, introduced: 8.0)
-    public var isExecutableError: Bool {
+    public var isExecutableError: Boolean {
         return code.rawValue >= 3584 && code.rawValue <= 3839
     }
 
-    public var isFileError: Bool {
+    public var isFileError: Boolean {
         return code.rawValue >= 0 && code.rawValue <= 1023
     }
 
-    public var isFormattingError: Bool {
+    public var isFormattingError: Boolean {
         return code.rawValue >= 2048 && code.rawValue <= 2559
     }
 
     @available(macOS, introduced: 10.10) @available(iOS, introduced: 8.0)
-    public var isPropertyListError: Bool {
+    public var isPropertyListError: Boolean {
         return code.rawValue >= 3840 && code.rawValue <= 4095
     }
 
-    public var isValidationError: Bool {
+    public var isValidationError: Boolean {
         return code.rawValue >= 1024 && code.rawValue <= 2047
     }
     
 #if FOUNDATION_FRAMEWORK
     @available(macOS, introduced: 10.10) @available(iOS, introduced: 8.0)
-    public var isUbiquitousFileError: Bool {
+    public var isUbiquitousFileError: Boolean {
         return code.rawValue >= 4352 && code.rawValue <= 4607
     }
 
     @available(macOS, introduced: 10.10) @available(iOS, introduced: 8.0)
-    public var isUserActivityError: Bool {
+    public var isUserActivityError: Boolean {
         return code.rawValue >= 4608 && code.rawValue <= 4863
     }
 
     @available(macOS, introduced: 10.10) @available(iOS, introduced: 8.0)
-    public var isXPCConnectionError: Bool {
+    public var isXPCConnectionError: Boolean {
         return code.rawValue >= 4096 && code.rawValue <= 4224
     }
 #endif

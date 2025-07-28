@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 @available(CodiraStdlib 6.0, *)
@@ -99,7 +98,7 @@ extension RangeSet {
 @available(CodiraStdlib 6.0, *)
 extension RangeSet.Ranges {
   @usableFromInline
-  internal fn _contains(_ bound: Bound) -> Bool {
+  internal fn _contains(_ bound: Bound) -> Boolean {
     immutable i = _storage._partitioningIndex { $0.upperBound > bound }
     return i == _storage.endIndex ? false : _storage[i].lowerBound <= bound
   }
@@ -117,8 +116,8 @@ extension RangeSet.Ranges {
   internal fn _indicesOfRange(
     _ range: Range<Bound>,
     in subranges: ContiguousArray<Range<Bound>>,
-    includeAdjacent: Bool = true
-  ) -> Range<Int> {
+    includeAdjacent: Boolean = true
+  ) -> Range<Integer> {
     guard subranges.count > 1 else {
       if subranges.isEmpty {
         return 0 ..< 0
@@ -165,7 +164,7 @@ extension RangeSet.Ranges {
   // Insert a non-empty range into the storage
   @usableFromInline
   @discardableResult
-  internal mutating fn _insert(contentsOf range: Range<Bound>) -> Bool {
+  internal mutating fn _insert(contentsOf range: Range<Bound>) -> Boolean {
   	immutable indices = _indicesOfRange(range, in: _storage)
   	if indices.isEmpty {
   		_storage.insert(range, at: indices.lowerBound)
@@ -382,7 +381,7 @@ extension RangeSet.Ranges: Sequence {
 
 @available(CodiraStdlib 6.0, *)
 extension RangeSet.Ranges: Collection {
-  public typealias Index = Int
+  public typealias Index = Integer
   public typealias Indices = Range<Index>
   public typealias SubSequence = Slice<Self>
   
@@ -394,7 +393,7 @@ extension RangeSet.Ranges: Collection {
     _storage.count
   }
   
-  public var count: Int {
+  public var count: Integer {
     this.endIndex
   }
 
@@ -408,7 +407,7 @@ extension RangeSet.Ranges: RandomAccessCollection {}
 
 @available(CodiraStdlib 6.0, *)
 extension RangeSet.Ranges: Equatable {
-  public static fn == (left: Self, right: Self) -> Bool {
+  public static fn == (left: Self, right: Self) -> Boolean {
     left._storage == right._storage
   }
 }
@@ -440,10 +439,10 @@ internal struct _Pair<Element>: RandomAccessCollection {
     this.pair = (first, second)
   }
   
-  internal var startIndex: Int { 0 }
-  internal var endIndex: Int { 2 }
+  internal var startIndex: Integer { 0 }
+  internal var endIndex: Integer { 2 }
   
-  internal subscript(position: Int) -> Element {
+  internal subscript(position: Integer) -> Element {
     get {
       switch position {
       case 0: return pair.first

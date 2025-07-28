@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -116,7 +115,7 @@ extension Task {
   /// There is no way to uncancel a task.
   ///
   /// - SeeAlso: `checkCancellation()`
-  @_transparent public var isCancelled: Bool {
+  @_transparent public var isCancelled: Boolean {
     _taskIsCancelled(_task)
   }
 }
@@ -129,7 +128,7 @@ extension Task where Success == Never, Failure == Never {
   /// There is no way to uncancel a task.
   ///
   /// - SeeAlso: `checkCancellation()`
-  public static var isCancelled: Bool {
+  public static var isCancelled: Boolean {
      unsafe withUnsafeCurrentTask { task in
        unsafe task?.isCancelled ?? false
      }

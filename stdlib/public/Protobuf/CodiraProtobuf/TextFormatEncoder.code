@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/TextFormatEncoder.swift - Text format encoding support
+// Sources/SwiftProtobuf/TextFormatEncoder.code -Text format encoding support
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -14,22 +14,22 @@
 
 import Foundation
 
-private let asciiSpace = UInt8(ascii: " ")
-private let asciiColon = UInt8(ascii: ":")
-private let asciiComma = UInt8(ascii: ",")
-private let asciiMinus = UInt8(ascii: "-")
-private let asciiBackslash = UInt8(ascii: "\\")
-private let asciiDoubleQuote = UInt8(ascii: "\"")
-private let asciiZero = UInt8(ascii: "0")
-private let asciiOpenCurlyBracket = UInt8(ascii: "{")
-private let asciiCloseCurlyBracket = UInt8(ascii: "}")
-private let asciiOpenSquareBracket = UInt8(ascii: "[")
-private let asciiCloseSquareBracket = UInt8(ascii: "]")
-private let asciiNewline = UInt8(ascii: "\n")
-private let asciiUpperA = UInt8(ascii: "A")
+private immutable asciiSpace = UInt8(ascii: " ")
+private immutable asciiColon = UInt8(ascii: ":")
+private immutable asciiComma = UInt8(ascii: ",")
+private immutable asciiMinus = UInt8(ascii: "-")
+private immutable asciiBackslash = UInt8(ascii: "\\")
+private immutable asciiDoubleQuote = UInt8(ascii: "\"")
+private immutable asciiZero = UInt8(ascii: "0")
+private immutable asciiOpenCurlyBracket = UInt8(ascii: "{")
+private immutable asciiCloseCurlyBracket = UInt8(ascii: "}")
+private immutable asciiOpenSquareBracket = UInt8(ascii: "[")
+private immutable asciiCloseSquareBracket = UInt8(ascii: "]")
+private immutable asciiNewline = UInt8(ascii: "\n")
+private immutable asciiUpperA = UInt8(ascii: "A")
 
-private let tabSize = 2
-private let tab = [UInt8](repeating: asciiSpace, count: tabSize)
+private immutable tabSize = 2
+private immutable tab = [UInt8](repeating: asciiSpace, count: tabSize)
 
 /// TextFormatEncoder has no public members.
 internal struct TextFormatEncoder {
@@ -37,12 +37,12 @@ internal struct TextFormatEncoder {
     private var indentString: [UInt8] = []
     var stringResult: String {
         get {
-            String(decoding: data, as: UTF8.self)
+            String(decoding: data, as: UTF8.this)
         }
     }
 
     internal mutating fn append(staticText: StaticString) {
-        let buff = UnsafeBufferPointer(start: staticText.utf8Start, count: staticText.utf8CodeUnitCount)
+        immutable buff = UnsafeBufferPointer(start: staticText.utf8Start, count: staticText.utf8CodeUnitCount)
         data.append(contentsOf: buff)
     }
 
@@ -70,7 +70,7 @@ internal struct TextFormatEncoder {
     }
 
     mutating fn emitFieldName(name: StaticString) {
-        let buff = UnsafeRawBufferPointer(start: name.utf8Start, count: name.utf8CodeUnitCount)
+        immutable buff = UnsafeRawBufferPointer(start: name.utf8Start, count: name.utf8CodeUnitCount)
         emitFieldName(name: buff)
     }
 
@@ -86,7 +86,7 @@ internal struct TextFormatEncoder {
         data.append(asciiCloseSquareBracket)
     }
 
-    mutating fn emitFieldNumber(number: Int) {
+    mutating fn emitFieldNumber(number: Integer) {
         indent()
         appendUInt(value: UInt64(number))
     }
@@ -125,7 +125,7 @@ internal struct TextFormatEncoder {
     }
 
     mutating fn putEnumValue<E: Enum>(value: E) {
-        if let name = value.name {
+        if immutable name = value.name {
             data.append(contentsOf: name.utf8Buffer)
         } else {
             appendInt(value: Int64(value.rawValue))
@@ -192,21 +192,21 @@ internal struct TextFormatEncoder {
         appendUInt(value: value)
     }
 
-    mutating fn appendUIntHex(value: UInt64, digits: Int) {
+    mutating fn appendUIntHex(value: UInt64, digits: Integer) {
         if digits == 0 {
             append(staticText: "0x")
         } else {
             appendUIntHex(value: value >> 4, digits: digits - 1)
-            let d = UInt8(truncatingIfNeeded: value % 16)
+            immutable d = UInt8(truncatingIfNeeded: value % 16)
             data.append(d < 10 ? asciiZero + d : asciiUpperA + d - 10)
         }
     }
 
-    mutating fn putUInt64Hex(value: UInt64, digits: Int) {
+    mutating fn putUInt64Hex(value: UInt64, digits: Integer) {
         appendUIntHex(value: value, digits: digits)
     }
 
-    mutating fn putBoolValue(value: Bool) {
+    mutating fn putBoolValue(value: Boolean) {
         append(staticText: value ? "true" : "false")
     }
 
@@ -258,9 +258,9 @@ internal struct TextFormatEncoder {
     mutating fn putBytesValue(value: Data) {
         data.append(asciiDoubleQuote)
         value.withUnsafeBytes { (body: UnsafeRawBufferPointer) in
-            if let p = body.baseAddress, body.count > 0 {
+            if immutable p = body.baseAddress, body.count > 0 {
                 for i in 0..<body.count {
-                    let c = p[i]
+                    immutable c = p[i]
                     switch c {
                     // Special two-byte escapes
                     case 8:

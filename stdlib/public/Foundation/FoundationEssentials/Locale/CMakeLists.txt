@@ -13,12 +13,12 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    Locale+Components.swift
-    Locale+Language.swift
-    Locale.swift
-    Locale_Autoupdating.swift
-    Locale_Cache.swift
-    Locale_Notifications.swift
-    Locale_Preferences.swift
-    Locale_Protocol.swift
-    Locale_Unlocalized.swift)
+    Locale+Components.code
+    Locale+Language.code
+    Locale.code
+    Locale_Autoupdating.code
+    Locale_Cache.code
+    Locale_Notifications.code
+    Locale_Preferences.code
+    Locale_Protocol.code
+    Locale_Unlocalized.code)

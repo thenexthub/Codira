@@ -16,7 +16,7 @@
 import JavaKit
 import JavaRuntime
 
-@JavaInterface("org.swift.javakit.dependencies.DependencyResolver")
+@JavaInterface("org.code.javakit.dependencies.DependencyResolver")
 public struct DependencyResolver {
 }
 
@@ -28,6 +28,6 @@ extension JavaClass<DependencyResolver> {
     dependencies: [String]) throws -> String
 
   @JavaStaticMethod
-  public fn hasDependencyResolverDependenciesLoaded() -> Bool
+  public fn hasDependencyResolverDependenciesLoaded() -> Boolean
 
 }

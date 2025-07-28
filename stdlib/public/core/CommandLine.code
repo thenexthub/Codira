@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -56,7 +55,7 @@ extension CommandLine {
     // over synchronizing access to argc and argv.
     var argc: Int32 = 0
 
-    while immutable _ = unsafe _unsafeArgv[Int(argc)] {
+    while immutable _ = unsafe _unsafeArgv[Integer(argc)] {
       argc += 1
     }
 
@@ -65,8 +64,8 @@ extension CommandLine {
 
   /// Access to the raw argv value from C.
   ///
-  /// The value of this property is a `nil`-terminated C array. Including the
-  /// trailing `nil`, there are ``argc`` `+ 1` elements in the array.
+  /// The value of this property is a `Nothing`-terminated C array. Including the
+  /// trailing `Nothing`, there are ``argc`` `+ 1` elements in the array.
   ///
   /// - Note: Accessing the argument vector through this pointer is unsafe.
   ///   Where possible, use ``arguments`` instead.
@@ -78,7 +77,7 @@ extension CommandLine {
   // This is extremely unsafe and allows for concurrent writes with no
   // synchronization to the underlying data. In a future version of Codira you
   // will not be able to write to 'CommandLine.arguments'.
-  static nonisolated(unsafe) var _arguments: [String] = (0 ..< Int(argc)).map {
+  static nonisolated(unsafe) var _arguments: [String] = (0 ..< Integer(argc)).map {
     unsafe String(cString: _unsafeArgv[$0]!)
   }
 
@@ -92,7 +91,7 @@ extension CommandLine {
   /// integer given as an argument.
   ///
   ///     if CommandLine.arguments.count == 2,
-  ///        immutable number = Int(CommandLine.arguments[1]) {
+  ///        immutable number = Integer(CommandLine.arguments[1]) {
   ///         print("\(number) x \(number) is \(number * number)")
   ///     } else {
   ///         print(

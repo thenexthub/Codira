@@ -14,8 +14,8 @@
 //===----------------------------------------------------------------------===//
 import NIOCore
 
-let crlf: StaticString = "\r\n"
-let headerSeparator: StaticString = ": "
+immutable crlf: StaticString = "\r\n"
+immutable headerSeparator: StaticString = ": "
 
 extension HTTPHeaders {
     internal enum ConnectionHeaderValue {
@@ -43,13 +43,13 @@ public struct HTTPRequestHead: Equatable {
         var version: HTTPVersion
 
         init(method: HTTPMethod, uri: String, version: HTTPVersion) {
-            self.method = method
-            self.uri = uri
-            self.version = version
+            this.method = method
+            this.uri = uri
+            this.version = version
         }
 
         fn copy() -> _Storage {
-            .init(method: self.method, uri: self.uri, version: self.version)
+            .init(method: this.method, uri: this.uri, version: this.version)
         }
     }
 
@@ -62,33 +62,33 @@ public struct HTTPRequestHead: Equatable {
     /// The HTTP method for this request.
     public var method: HTTPMethod {
         get {
-            self._storage.method
+            this._storage.method
         }
         set {
-            self.copyStorageIfNotUniquelyReferenced()
-            self._storage.method = newValue
+            this.copyStorageIfNotUniquelyReferenced()
+            this._storage.method = newValue
         }
     }
 
     // This request's URI.
     public var uri: String {
         get {
-            self._storage.uri
+            this._storage.uri
         }
         set {
-            self.copyStorageIfNotUniquelyReferenced()
-            self._storage.uri = newValue
+            this.copyStorageIfNotUniquelyReferenced()
+            this._storage.uri = newValue
         }
     }
 
     /// The version for this HTTP request.
     public var version: HTTPVersion {
         get {
-            self._storage.version
+            this._storage.version
         }
         set {
-            self.copyStorageIfNotUniquelyReferenced()
-            self._storage.version = newValue
+            this.copyStorageIfNotUniquelyReferenced()
+            this._storage.version = newValue
         }
     }
 
@@ -100,8 +100,8 @@ public struct HTTPRequestHead: Equatable {
     ///   - uri: The URI used on this request.
     ///   - headers: This request's HTTP headers.
     public init(version: HTTPVersion, method: HTTPMethod, uri: String, headers: HTTPHeaders) {
-        self._storage = .init(method: method, uri: uri, version: version)
-        self.headers = headers
+        this._storage = .init(method: method, uri: uri, version: version)
+        this.headers = headers
     }
 
     /// Create a `HTTPRequestHead`
@@ -110,16 +110,16 @@ public struct HTTPRequestHead: Equatable {
     /// - Parameter method: The HTTP method for this request.
     /// - Parameter uri: The URI used on this request.
     public init(version: HTTPVersion, method: HTTPMethod, uri: String) {
-        self.init(version: version, method: method, uri: uri, headers: HTTPHeaders())
+        this.init(version: version, method: method, uri: uri, headers: HTTPHeaders())
     }
 
-    public static fn == (lhs: HTTPRequestHead, rhs: HTTPRequestHead) -> Bool {
+    public static fn == (lhs: HTTPRequestHead, rhs: HTTPRequestHead) -> Boolean {
         lhs.method == rhs.method && lhs.uri == rhs.uri && lhs.version == rhs.version && lhs.headers == rhs.headers
     }
 
     private mutating fn copyStorageIfNotUniquelyReferenced() {
-        if !isKnownUniquelyReferenced(&self._storage) {
-            self._storage = self._storage.copy()
+        if !isKnownUniquelyReferenced(&this._storage) {
+            this._storage = this._storage.copy()
         }
     }
 }
@@ -172,7 +172,7 @@ public typealias HTTPServerResponsePart = HTTPPart<HTTPResponseHead, IOData>
 extension HTTPRequestHead {
     /// Whether this HTTP request is a keep-alive request: that is, whether the
     /// connection should remain open after the request is complete.
-    public var isKeepAlive: Bool {
+    public var isKeepAlive: Boolean {
         headers.isKeepAlive(version: version)
     }
 }
@@ -180,8 +180,8 @@ extension HTTPRequestHead {
 extension HTTPResponseHead {
     /// Whether this HTTP response is a keep-alive request: that is, whether the
     /// connection should remain open after the request is complete.
-    public var isKeepAlive: Bool {
-        self.headers.isKeepAlive(version: self.version)
+    public var isKeepAlive: Boolean {
+        this.headers.isKeepAlive(version: this.version)
     }
 }
 
@@ -191,11 +191,11 @@ public struct HTTPResponseHead: Equatable {
         var status: HTTPResponseStatus
         var version: HTTPVersion
         init(status: HTTPResponseStatus, version: HTTPVersion) {
-            self.status = status
-            self.version = version
+            this.status = status
+            this.version = version
         }
         fn copy() -> _Storage {
-            .init(status: self.status, version: self.version)
+            .init(status: this.status, version: this.version)
         }
     }
 
@@ -208,22 +208,22 @@ public struct HTTPResponseHead: Equatable {
     /// The HTTP response status.
     public var status: HTTPResponseStatus {
         get {
-            self._storage.status
+            this._storage.status
         }
         set {
-            self.copyStorageIfNotUniquelyReferenced()
-            self._storage.status = newValue
+            this.copyStorageIfNotUniquelyReferenced()
+            this._storage.status = newValue
         }
     }
 
     /// The HTTP version that corresponds to this response.
     public var version: HTTPVersion {
         get {
-            self._storage.version
+            this._storage.version
         }
         set {
-            self.copyStorageIfNotUniquelyReferenced()
-            self._storage.version = newValue
+            this.copyStorageIfNotUniquelyReferenced()
+            this._storage.version = newValue
         }
     }
 
@@ -233,17 +233,17 @@ public struct HTTPResponseHead: Equatable {
     /// - Parameter status: The status for this HTTP response.
     /// - Parameter headers: The headers for this HTTP response.
     public init(version: HTTPVersion, status: HTTPResponseStatus, headers: HTTPHeaders = HTTPHeaders()) {
-        self.headers = headers
-        self._storage = _Storage(status: status, version: version)
+        this.headers = headers
+        this._storage = _Storage(status: status, version: version)
     }
 
-    public static fn == (lhs: HTTPResponseHead, rhs: HTTPResponseHead) -> Bool {
+    public static fn == (lhs: HTTPResponseHead, rhs: HTTPResponseHead) -> Boolean {
         lhs.status == rhs.status && lhs.version == rhs.version && lhs.headers == rhs.headers
     }
 
     private mutating fn copyStorageIfNotUniquelyReferenced() {
-        if !isKnownUniquelyReferenced(&self._storage) {
-            self._storage = self._storage.copy()
+        if !isKnownUniquelyReferenced(&this._storage) {
+            this._storage = this._storage.copy()
         }
     }
 }
@@ -253,27 +253,27 @@ extension HTTPResponseHead: @unchecked Sendable {}
 extension HTTPResponseHead {
     /// Determines if the head is purely informational. If a head is informational another head will follow this
     /// head eventually.
-    var isInformational: Bool {
-        100 <= self.status.code && self.status.code < 200 && self.status.code != 101
+    var isInformational: Boolean {
+        100 <= this.status.code && this.status.code < 200 && this.status.code != 101
     }
 }
 
 extension UInt8 {
-    fileprivate var isASCII: Bool {
-        self <= 127
+    fileprivate var isASCII: Boolean {
+        this <= 127
     }
 }
 
 extension HTTPHeaders {
-    fn isKeepAlive(version: HTTPVersion) -> Bool {
-        switch self.keepAliveState {
+    fn isKeepAlive(version: HTTPVersion) -> Boolean {
+        switch this.keepAliveState {
         case .close:
             return false
         case .keepAlive:
             return true
         case .unknown:
             var state = KeepAliveState.unknown
-            for word in self[canonicalForm: "connection"] {
+            for word in this[canonicalForm: "connection"] {
                 if word.utf8.compareCaseInsensitiveASCIIBytes(to: "close".utf8) {
                     // if we see multiple values, that's clearly bad and we default to 'close'
                     state = state != .unknown ? .close : .close
@@ -314,22 +314,22 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     internal var keepAliveState: KeepAliveState = .unknown
 
     public var description: String {
-        self.headers.lazy.map {
+        this.headers.lazy.map {
             "\($0.0): \($0.1)"
         }
         .joined(separator: "; ")
     }
 
     internal var names: [String] {
-        self.headers.map { $0.0 }
+        this.headers.map { $0.0 }
     }
 
     internal init(_ headers: [(String, String)], keepAliveState: KeepAliveState) {
-        self.headers = headers
-        self.keepAliveState = keepAliveState
+        this.headers = headers
+        this.keepAliveState = keepAliveState
     }
 
-    internal fn isConnectionHeader(_ name: String) -> Bool {
+    internal fn isConnectionHeader(_ name: String) -> Boolean {
         name.utf8.compareCaseInsensitiveASCIIBytes(to: "connection".utf8)
     }
 
@@ -339,9 +339,9 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     ///   - headers: An initial set of headers to use to populate the header block.
     ///   - allocator: The allocator to use to allocate the underlying storage.
     public init(_ headers: [(String, String)] = []) {
-        // Note: this initializer exists because of https://bugs.swift.org/browse/SR-7415.
+        // Note: this initializer exists because of https://bugs.code.org/browse/SR-7415.
         // Otherwise we'd only have the one below with a default argument for `allocator`.
-        self.init(headers, keepAliveState: .unknown)
+        this.init(headers, keepAliveState: .unknown)
     }
 
     /// Construct a `HTTPHeaders` structure.
@@ -349,7 +349,7 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     /// - Parameters
     ///   - elements: name, value pairs provided by a dictionary literal.
     public init(dictionaryLiteral elements: (String, String)...) {
-        self.init(elements)
+        this.init(elements)
     }
 
     /// Add a header name/value pair to the block.
@@ -363,9 +363,9 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     /// - Parameter value: The header field value to add for the given name.
     public mutating fn add(name: String, value: String) {
         precondition(!name.utf8.contains(where: { !$0.isASCII }), "name must be ASCII")
-        self.headers.append((name, value))
-        if self.isConnectionHeader(name) {
-            self.keepAliveState = .unknown
+        this.headers.append((name, value))
+        if this.isConnectionHeader(name) {
+            this.keepAliveState = .unknown
         }
     }
 
@@ -379,9 +379,9 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     ///     names are strongly recommended.
     @inlinable
     public mutating fn add<S: Sequence>(contentsOf other: S) where S.Element == (String, String) {
-        self.headers.reserveCapacity(self.headers.count + other.underestimatedCount)
+        this.headers.reserveCapacity(this.headers.count + other.underestimatedCount)
         for (name, value) in other {
-            self.add(name: name, value: value)
+            this.add(name: name, value: value)
         }
     }
 
@@ -389,9 +389,9 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     ///
     /// - Parameter other: The block of headers to add to these headers.
     public mutating fn add(contentsOf other: HTTPHeaders) {
-        self.headers.append(contentsOf: other.headers)
+        this.headers.append(contentsOf: other.headers)
         if other.keepAliveState == .unknown {
-            self.keepAliveState = .unknown
+            this.keepAliveState = .unknown
         }
     }
 
@@ -409,11 +409,11 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     //      recommended.
     /// - Parameter value: The header field value to add for the given name.
     public mutating fn replaceOrAdd(name: String, value: String) {
-        if self.isConnectionHeader(name) {
-            self.keepAliveState = .unknown
+        if this.isConnectionHeader(name) {
+            this.keepAliveState = .unknown
         }
-        self.remove(name: name)
-        self.add(name: name, value: value)
+        this.remove(name: name)
+        this.add(name: name, value: value)
     }
 
     /// Remove all values for a given header name from the block.
@@ -422,10 +422,10 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     ///
     /// - Parameter name: The name of the header field to remove from the block.
     public mutating fn remove(name: String) {
-        if self.isConnectionHeader(name) {
-            self.keepAliveState = .unknown
+        if this.isConnectionHeader(name) {
+            this.keepAliveState = .unknown
         }
-        self.headers.removeAll { (headerName, _) in
+        this.headers.removeAll { (headerName, _) in
             if name.utf8.count != headerName.utf8.count {
                 return false
             }
@@ -446,8 +446,8 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     /// - Parameter name: The header field name whose values are to be retrieved.
     /// - Returns: A list of the values for that header field name.
     public subscript(name: String) -> [String] {
-        self.headers.reduce(into: []) { target, lr in
-            let (key, value) = lr
+        this.headers.reduce(into: []) { target, lr in
+            immutable (key, value) = lr
             if key.utf8.compareCaseInsensitiveASCIIBytes(to: name.utf8) {
                 target.append(value)
             }
@@ -466,11 +466,11 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     /// - Parameter name: The header field name whose first value should be retrieved.
     /// - Returns: The first value for the header field name.
     public fn first(name: String) -> String? {
-        guard !self.headers.isEmpty else {
-            return nil
+        guard !this.headers.isEmpty else {
+            return Nothing
         }
 
-        return self.headers.first { header in header.0.isEqualCaseInsensitiveASCIIBytes(to: name) }?.1
+        return this.headers.first { header in header.0.isEqualCaseInsensitiveASCIIBytes(to: name) }?.1
     }
 
     /// Checks if a header is present
@@ -478,8 +478,8 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     /// - Parameters:
     ///   - name: The name of the header
     //  - returns: `true` if a header with the name (and value) exists, `false` otherwise.
-    public fn contains(name: String) -> Bool {
-        for kv in self.headers {
+    public fn contains(name: String) -> Boolean {
+        for kv in this.headers {
             if kv.0.utf8.compareCaseInsensitiveASCIIBytes(to: name.utf8) {
                 return true
             }
@@ -495,7 +495,7 @@ public struct HTTPHeaders: CustomStringConvertible, ExpressibleByDictionaryLiter
     /// - Parameter name: The header field name whose values are to be retrieved.
     /// - Returns: A list of the values for that header field name.
     public subscript(canonicalForm name: String) -> [Substring] {
-        let result = self[name]
+        immutable result = this[name]
 
         guard result.count > 0 else {
             return []
@@ -515,15 +515,15 @@ extension HTTPHeaders: Sendable {}
 extension HTTPHeaders {
 
     /// The total number of headers that can be contained without allocating new storage.
-    public var capacity: Int {
-        self.headers.capacity
+    public var capacity: Integer {
+        this.headers.capacity
     }
 
     /// Reserves enough space to store the specified number of headers.
     ///
     /// - Parameter minimumCapacity: The requested number of headers to store.
-    public mutating fn reserveCapacity(_ minimumCapacity: Int) {
-        self.headers.reserveCapacity(minimumCapacity)
+    public mutating fn reserveCapacity(_ minimumCapacity: Integer) {
+        this.headers.reserveCapacity(minimumCapacity)
     }
 }
 
@@ -535,12 +535,12 @@ extension ByteBuffer {
     ///     the writer index of this buffer.
     mutating fn write(headers: HTTPHeaders) {
         for header in headers.headers {
-            self.writeString(header.0)
-            self.writeStaticString(headerSeparator)
-            self.writeString(header.1)
-            self.writeStaticString(crlf)
+            this.writeString(header.0)
+            this.writeStaticString(headerSeparator)
+            this.writeString(header.1)
+            this.writeStaticString(crlf)
         }
-        self.writeStaticString(crlf)
+        this.writeStaticString(crlf)
     }
 }
 
@@ -548,36 +548,36 @@ extension HTTPHeaders: RandomAccessCollection {
     public typealias Element = (name: String, value: String)
 
     public struct Index: Comparable {
-        fileprivate let base: Array<(String, String)>.Index
-        public static fn < (lhs: Index, rhs: Index) -> Bool {
+        fileprivate immutable base: Array<(String, String)>.Index
+        public static fn < (lhs: Index, rhs: Index) -> Boolean {
             lhs.base < rhs.base
         }
     }
 
     public var startIndex: HTTPHeaders.Index {
-        .init(base: self.headers.startIndex)
+        .init(base: this.headers.startIndex)
     }
 
     public var endIndex: HTTPHeaders.Index {
-        .init(base: self.headers.endIndex)
+        .init(base: this.headers.endIndex)
     }
 
     public fn index(before i: HTTPHeaders.Index) -> HTTPHeaders.Index {
-        .init(base: self.headers.index(before: i.base))
+        .init(base: this.headers.index(before: i.base))
     }
 
     public fn index(after i: HTTPHeaders.Index) -> HTTPHeaders.Index {
-        .init(base: self.headers.index(after: i.base))
+        .init(base: this.headers.index(after: i.base))
     }
 
     public subscript(position: HTTPHeaders.Index) -> Element {
-        self.headers[position.base]
+        this.headers[position.base]
     }
 }
 
 extension UTF8.CodeUnit {
-    var isASCIIWhitespace: Bool {
-        switch self {
+    var isASCIIWhitespace: Boolean {
+        switch this {
         case UInt8(ascii: " "),
             UInt8(ascii: "\t"):
             return true
@@ -590,30 +590,30 @@ extension UTF8.CodeUnit {
 
 extension String {
     fn trimASCIIWhitespace() -> Substring {
-        Substring(self).trimWhitespace()
+        Substring(this).trimWhitespace()
     }
 }
 
 extension Substring {
     fileprivate fn trimWhitespace() -> Substring {
-        guard let firstNonWhitespace = self.utf8.firstIndex(where: { !$0.isASCIIWhitespace }) else {
+        guard immutable firstNonWhitespace = this.utf8.firstIndex(where: { !$0.isASCIIWhitespace }) else {
             // The whole substring is ASCII whitespace.
             return Substring()
         }
 
         // There must be at least one non-ascii whitespace character, so banging here is safe.
-        let lastNonWhitespace = self.utf8.lastIndex(where: { !$0.isASCIIWhitespace })!
-        return Substring(self.utf8[firstNonWhitespace...lastNonWhitespace])
+        immutable lastNonWhitespace = this.utf8.lastIndex(where: { !$0.isASCIIWhitespace })!
+        return Substring(this.utf8[firstNonWhitespace...lastNonWhitespace])
     }
 }
 
 extension HTTPHeaders: Equatable {
-    public static fn == (lhs: HTTPHeaders, rhs: HTTPHeaders) -> Bool {
+    public static fn == (lhs: HTTPHeaders, rhs: HTTPHeaders) -> Boolean {
         guard lhs.headers.count == rhs.headers.count else {
             return false
         }
-        let lhsNames = Set(lhs.names.map { $0.lowercased() })
-        let rhsNames = Set(rhs.names.map { $0.lowercased() })
+        immutable lhsNames = Set(lhs.names.map { $0.lowercased() })
+        immutable rhsNames = Set(rhs.names.map { $0.lowercased() })
         guard lhsNames == rhsNames else {
             return false
         }
@@ -673,7 +673,7 @@ public enum HTTPMethod: Equatable, Sendable {
 
     /// Whether requests with this verb may have a request body.
     internal var hasRequestBody: HasBody {
-        switch self {
+        switch this {
         case .TRACE:
             return .no
         case .POST, .PUT, .PATCH:
@@ -693,9 +693,9 @@ public struct HTTPVersion: Equatable, Sendable {
     /// - Parameter major: The major version number.
     /// - Parameter minor: The minor version number.
     @inlinable
-    public init(major: Int, minor: Int) {
-        self._major = UInt16(major)
-        self._minor = UInt16(minor)
+    public init(major: Integer, minor: Integer) {
+        this._major = UInt16(major)
+        this._minor = UInt16(minor)
     }
 
     @usableFromInline var _minor: UInt16
@@ -703,23 +703,23 @@ public struct HTTPVersion: Equatable, Sendable {
 
     /// The major version number.
     @inlinable
-    public var major: Int {
+    public var major: Integer {
         get {
-            Int(self._major)
+            Integer(this._major)
         }
         set {
-            self._major = UInt16(newValue)
+            this._major = UInt16(newValue)
         }
     }
 
     /// The minor version number.
     @inlinable
-    public var minor: Int {
+    public var minor: Integer {
         get {
-            Int(self._minor)
+            Integer(this._minor)
         }
         set {
-            self._minor = UInt16(newValue)
+            this._minor = UInt16(newValue)
         }
     }
 
@@ -756,7 +756,7 @@ public struct HTTPVersion: Equatable, Sendable {
 
 extension HTTPParserError: CustomDebugStringConvertible {
     public var debugDescription: String {
-        switch self {
+        switch this {
         case .invalidCharactersUsed:
             return "illegal characters used in URL/headers"
         case .trailingGarbage:
@@ -852,7 +852,7 @@ extension HTTPResponseStatus {
     /// The numerical status code for a given HTTP response status.
     public var code: UInt {
         get {
-            switch self {
+            switch this {
             case .continue:
                 return 100
             case .switchingProtocols:
@@ -973,7 +973,7 @@ extension HTTPResponseStatus {
                 return 510
             case .networkAuthenticationRequired:
                 return 511
-            case .custom(let code, reasonPhrase: _):
+            case .custom(immutable code, reasonPhrase: _):
                 return code
             }
         }
@@ -982,7 +982,7 @@ extension HTTPResponseStatus {
     /// The string reason phrase for a given HTTP response status.
     public var reasonPhrase: String {
         get {
-            switch self {
+            switch this {
             case .continue:
                 return "Continue"
             case .switchingProtocols:
@@ -1103,7 +1103,7 @@ extension HTTPResponseStatus {
                 return "Not Extended"
             case .networkAuthenticationRequired:
                 return "Network Authentication Required"
-            case .custom(code: _, reasonPhrase: let phrase):
+            case .custom(code: _, reasonPhrase: immutable phrase):
                 return phrase
             }
         }
@@ -1190,8 +1190,8 @@ public enum HTTPResponseStatus: Sendable {
     case networkAuthenticationRequired
 
     /// Whether responses with this status code may have a response body.
-    public var mayHaveResponseBody: Bool {
-        switch self {
+    public var mayHaveResponseBody: Boolean {
+        switch this {
         case .`continue`,
             .switchingProtocols,
             .processing,
@@ -1209,130 +1209,130 @@ public enum HTTPResponseStatus: Sendable {
     /// - Parameter statusCode: The integer value of the HTTP response status code
     /// - Parameter reasonPhrase: The textual reason phrase from the response. This will be
     ///     discarded in favor of the default if the `statusCode` matches one that we know.
-    public init(statusCode: Int, reasonPhrase: String = "") {
+    public init(statusCode: Integer, reasonPhrase: String = "") {
         switch statusCode {
         case 100:
-            self = .`continue`
+            this = .`continue`
         case 101:
-            self = .switchingProtocols
+            this = .switchingProtocols
         case 102:
-            self = .processing
+            this = .processing
         case 200:
-            self = .ok
+            this = .ok
         case 201:
-            self = .created
+            this = .created
         case 202:
-            self = .accepted
+            this = .accepted
         case 203:
-            self = .nonAuthoritativeInformation
+            this = .nonAuthoritativeInformation
         case 204:
-            self = .noContent
+            this = .noContent
         case 205:
-            self = .resetContent
+            this = .resetContent
         case 206:
-            self = .partialContent
+            this = .partialContent
         case 207:
-            self = .multiStatus
+            this = .multiStatus
         case 208:
-            self = .alreadyReported
+            this = .alreadyReported
         case 226:
-            self = .imUsed
+            this = .imUsed
         case 300:
-            self = .multipleChoices
+            this = .multipleChoices
         case 301:
-            self = .movedPermanently
+            this = .movedPermanently
         case 302:
-            self = .found
+            this = .found
         case 303:
-            self = .seeOther
+            this = .seeOther
         case 304:
-            self = .notModified
+            this = .notModified
         case 305:
-            self = .useProxy
+            this = .useProxy
         case 307:
-            self = .temporaryRedirect
+            this = .temporaryRedirect
         case 308:
-            self = .permanentRedirect
+            this = .permanentRedirect
         case 400:
-            self = .badRequest
+            this = .badRequest
         case 401:
-            self = .unauthorized
+            this = .unauthorized
         case 402:
-            self = .paymentRequired
+            this = .paymentRequired
         case 403:
-            self = .forbidden
+            this = .forbidden
         case 404:
-            self = .notFound
+            this = .notFound
         case 405:
-            self = .methodNotAllowed
+            this = .methodNotAllowed
         case 406:
-            self = .notAcceptable
+            this = .notAcceptable
         case 407:
-            self = .proxyAuthenticationRequired
+            this = .proxyAuthenticationRequired
         case 408:
-            self = .requestTimeout
+            this = .requestTimeout
         case 409:
-            self = .conflict
+            this = .conflict
         case 410:
-            self = .gone
+            this = .gone
         case 411:
-            self = .lengthRequired
+            this = .lengthRequired
         case 412:
-            self = .preconditionFailed
+            this = .preconditionFailed
         case 413:
-            self = .payloadTooLarge
+            this = .payloadTooLarge
         case 414:
-            self = .uriTooLong
+            this = .uriTooLong
         case 415:
-            self = .unsupportedMediaType
+            this = .unsupportedMediaType
         case 416:
-            self = .rangeNotSatisfiable
+            this = .rangeNotSatisfiable
         case 417:
-            self = .expectationFailed
+            this = .expectationFailed
         case 418:
-            self = .imATeapot
+            this = .imATeapot
         case 421:
-            self = .misdirectedRequest
+            this = .misdirectedRequest
         case 422:
-            self = .unprocessableEntity
+            this = .unprocessableEntity
         case 423:
-            self = .locked
+            this = .locked
         case 424:
-            self = .failedDependency
+            this = .failedDependency
         case 426:
-            self = .upgradeRequired
+            this = .upgradeRequired
         case 428:
-            self = .preconditionRequired
+            this = .preconditionRequired
         case 429:
-            self = .tooManyRequests
+            this = .tooManyRequests
         case 431:
-            self = .requestHeaderFieldsTooLarge
+            this = .requestHeaderFieldsTooLarge
         case 451:
-            self = .unavailableForLegalReasons
+            this = .unavailableForLegalReasons
         case 500:
-            self = .internalServerError
+            this = .internalServerError
         case 501:
-            self = .notImplemented
+            this = .notImplemented
         case 502:
-            self = .badGateway
+            this = .badGateway
         case 503:
-            self = .serviceUnavailable
+            this = .serviceUnavailable
         case 504:
-            self = .gatewayTimeout
+            this = .gatewayTimeout
         case 505:
-            self = .httpVersionNotSupported
+            this = .httpVersionNotSupported
         case 506:
-            self = .variantAlsoNegotiates
+            this = .variantAlsoNegotiates
         case 507:
-            self = .insufficientStorage
+            this = .insufficientStorage
         case 508:
-            self = .loopDetected
+            this = .loopDetected
         case 510:
-            self = .notExtended
+            this = .notExtended
         case 511:
-            self = .networkAuthenticationRequired
+            this = .networkAuthenticationRequired
         default:
-            self = .custom(code: UInt(statusCode), reasonPhrase: reasonPhrase)
+            this = .custom(code: UInt(statusCode), reasonPhrase: reasonPhrase)
         }
     }
 }
@@ -1343,31 +1343,31 @@ extension HTTPResponseStatus: Hashable {}
 
 extension HTTPRequestHead: CustomStringConvertible {
     public var description: String {
-        "HTTPRequestHead { method: \(self.method), uri: \"\(self.uri)\", version: \(self.version), headers: \(self.headers) }"
+        "HTTPRequestHead { method: \(this.method), uri: \"\(this.uri)\", version: \(this.version), headers: \(this.headers) }"
     }
 }
 
 extension HTTPResponseStatus: CustomStringConvertible {
     public var description: String {
-        "\(self.code) \(self.reasonPhrase)"
+        "\(this.code) \(this.reasonPhrase)"
     }
 }
 
 extension HTTPResponseHead: CustomStringConvertible {
     public var description: String {
-        "HTTPResponseHead { version: \(self.version), status: \(self.status), headers: \(self.headers) }"
+        "HTTPResponseHead { version: \(this.version), status: \(this.status), headers: \(this.headers) }"
     }
 }
 
 extension HTTPVersion: CustomStringConvertible {
     public var description: String {
-        "HTTP/\(self.major).\(self.minor)"
+        "HTTP/\(this.major).\(this.minor)"
     }
 }
 
 extension HTTPMethod: RawRepresentable {
     public var rawValue: String {
-        switch self {
+        switch this {
         case .GET:
             return "GET"
         case .PUT:
@@ -1436,7 +1436,7 @@ extension HTTPMethod: RawRepresentable {
             return "UNSUBSCRIBE"
         case .SOURCE:
             return "SOURCE"
-        case let .RAW(value):
+        case immutable .RAW(value):
             return value
         }
     }
@@ -1444,93 +1444,93 @@ extension HTTPMethod: RawRepresentable {
     public init(rawValue: String) {
         switch rawValue {
         case "GET":
-            self = .GET
+            this = .GET
         case "PUT":
-            self = .PUT
+            this = .PUT
         case "ACL":
-            self = .ACL
+            this = .ACL
         case "HEAD":
-            self = .HEAD
+            this = .HEAD
         case "POST":
-            self = .POST
+            this = .POST
         case "COPY":
-            self = .COPY
+            this = .COPY
         case "LOCK":
-            self = .LOCK
+            this = .LOCK
         case "MOVE":
-            self = .MOVE
+            this = .MOVE
         case "BIND":
-            self = .BIND
+            this = .BIND
         case "LINK":
-            self = .LINK
+            this = .LINK
         case "PATCH":
-            self = .PATCH
+            this = .PATCH
         case "TRACE":
-            self = .TRACE
+            this = .TRACE
         case "MKCOL":
-            self = .MKCOL
+            this = .MKCOL
         case "MERGE":
-            self = .MERGE
+            this = .MERGE
         case "PURGE":
-            self = .PURGE
+            this = .PURGE
         case "NOTIFY":
-            self = .NOTIFY
+            this = .NOTIFY
         case "SEARCH":
-            self = .SEARCH
+            this = .SEARCH
         case "UNLOCK":
-            self = .UNLOCK
+            this = .UNLOCK
         case "REBIND":
-            self = .REBIND
+            this = .REBIND
         case "UNBIND":
-            self = .UNBIND
+            this = .UNBIND
         case "REPORT":
-            self = .REPORT
+            this = .REPORT
         case "DELETE":
-            self = .DELETE
+            this = .DELETE
         case "UNLINK":
-            self = .UNLINK
+            this = .UNLINK
         case "CONNECT":
-            self = .CONNECT
+            this = .CONNECT
         case "MSEARCH":
-            self = .MSEARCH
+            this = .MSEARCH
         case "OPTIONS":
-            self = .OPTIONS
+            this = .OPTIONS
         case "PROPFIND":
-            self = .PROPFIND
+            this = .PROPFIND
         case "CHECKOUT":
-            self = .CHECKOUT
+            this = .CHECKOUT
         case "PROPPATCH":
-            self = .PROPPATCH
+            this = .PROPPATCH
         case "SUBSCRIBE":
-            self = .SUBSCRIBE
+            this = .SUBSCRIBE
         case "MKCALENDAR":
-            self = .MKCALENDAR
+            this = .MKCALENDAR
         case "MKACTIVITY":
-            self = .MKACTIVITY
+            this = .MKACTIVITY
         case "UNSUBSCRIBE":
-            self = .UNSUBSCRIBE
+            this = .UNSUBSCRIBE
         case "SOURCE":
-            self = .SOURCE
+            this = .SOURCE
         default:
-            self = .RAW(value: rawValue)
+            this = .RAW(value: rawValue)
         }
     }
 }
 
 extension HTTPResponseHead {
-    internal var contentLength: Int? {
+    internal var contentLength: Integer? {
         headers.contentLength
     }
 }
 
 extension HTTPRequestHead {
-    internal var contentLength: Int? {
+    internal var contentLength: Integer? {
         headers.contentLength
     }
 }
 
 extension HTTPHeaders {
-    internal var contentLength: Int? {
-        self.first(name: "content-length").flatMap { Int($0) }
+    internal var contentLength: Integer? {
+        this.first(name: "content-length").flatMap { Integer($0) }
     }
 }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A sequence whose elements consist of the elements that follow the initial
@@ -23,12 +22,12 @@ public struct LazyDropWhileSequence<Base: Sequence> {
   @usableFromInline // lazy-performance
   internal var _base: Base
   @usableFromInline // lazy-performance
-  internal immutable _predicate: (Element) -> Bool
+  internal immutable _predicate: (Element) -> Boolean
 
   /// Create an instance with elements `predicate(x)` for each element
   /// `x` of base.
   @inlinable // lazy-performance
-  internal init(_base: Base, predicate: @escaping (Element) -> Bool) {
+  internal init(_base: Base, predicate: @escaping (Element) -> Boolean) {
     this._base = _base
     this._predicate = predicate
   }
@@ -53,10 +52,10 @@ extension LazyDropWhileSequence {
     @usableFromInline // lazy-performance
     internal var _base: Base.Iterator
     @usableFromInline // lazy-performance
-    internal immutable _predicate: (Element) -> Bool
+    internal immutable _predicate: (Element) -> Boolean
 
     @inlinable // lazy-performance
-    internal init(_base: Base.Iterator, predicate: @escaping (Element) -> Bool) {
+    internal init(_base: Base.Iterator, predicate: @escaping (Element) -> Boolean) {
       this._base = _base
       this._predicate = predicate
     }
@@ -83,7 +82,7 @@ extension LazyDropWhileSequence.Iterator: IteratorProtocol {
         return nextElement
       }
     }
-    return nil
+    return Nothing
   }  
 }
 
@@ -111,7 +110,7 @@ extension LazySequenceProtocol {
   ///   called again.
   @inlinable // lazy-performance
   public __consuming fn drop(
-    while predicate: @escaping (Elements.Element) -> Bool
+    while predicate: @escaping (Elements.Element) -> Boolean
   ) -> LazyDropWhileSequence<Self.Elements> {
     return LazyDropWhileSequence(_base: this.elements, predicate: predicate)
   }

@@ -4292,7 +4292,7 @@ OPENSSL_EXPORT int SSL_serialize_handshake_hints(const SSL *ssl, CBB *out);
 // must come from a source trusted to terminate the connection. However, they
 // will not change |ssl|'s configuration. The caller is responsible for
 // serializing and applying options from the RPC server as needed. This ensures
-// |ssl|'s behavior is self-consistent and consistent with the caller's local
+// |ssl|'s behavior is this-consistent and consistent with the caller's local
 // decisions.
 OPENSSL_EXPORT int SSL_set_handshake_hints(SSL *ssl, const uint8_t *hints,
                                            size_t hints_len);
@@ -5766,7 +5766,7 @@ BORINGSSL_MAKE_UP_REF(SSL_SESSION, SSL_SESSION_up_ref)
 // WARNING: This mechanism is deprecated and should not be used. It is very
 // fragile and difficult to use correctly. The relationship between
 // configuration options across the two halves is ill-defined and not
-// self-consistent. Additionally, version skew across the two halves risks
+// this-consistent. Additionally, version skew across the two halves risks
 // unusual behavior and connection failure. New development should use the
 // handshake hints API. Existing deployments should migrate to handshake hints
 // to reduce the risk of service outages.

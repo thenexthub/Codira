@@ -1,0 +1,184 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.lang.AbstractStringBuilder", implements: Appendable.this, CharSequence.this)
+open class AbstractStringBuilder: JavaObject {
+  @JavaMethod
+  open fn length() -> Int32
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: [UInt16]) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: JavaObject?) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: String) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: StringBuffer?) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: Int64) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: Float) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: Double) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: UInt16) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: Boolean) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: UInt16) throws -> Appendable!
+
+  @JavaMethod
+  open fn reverse() -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn getChars(_ arg0: Int32, _ arg1: Int32, _ arg2: [UInt16], _ arg3: Int32)
+
+  @JavaMethod
+  open fn indexOf(_ arg0: String, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn indexOf(_ arg0: String) -> Int32
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: [UInt16], _ arg2: Int32, _ arg3: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: CharSequence?, _ arg2: Int32, _ arg3: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: Boolean) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: String) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: CharSequence?) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: [UInt16]) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: Int64) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: Float) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: UInt16) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: Double) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn insert(_ arg0: Int32, _ arg1: JavaObject?) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn charAt(_ arg0: Int32) -> UInt16
+
+  @JavaMethod
+  open fn codePointAt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn codePointBefore(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn codePointCount(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn offsetByCodePoints(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn lastIndexOf(_ arg0: String, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn lastIndexOf(_ arg0: String) -> Int32
+
+  @JavaMethod
+  open fn substring(_ arg0: Int32, _ arg1: Int32) -> String
+
+  @JavaMethod
+  open fn substring(_ arg0: Int32) -> String
+
+  @JavaMethod
+  open fn replace(_ arg0: Int32, _ arg1: Int32, _ arg2: String) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn `repeat`(_ arg0: Int32, _ arg1: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn `repeat`(_ arg0: CharSequence?, _ arg1: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn subSequence(_ arg0: Int32, _ arg1: Int32) -> CharSequence!
+
+  @JavaMethod
+  open fn setLength(_ arg0: Int32)
+
+  @JavaMethod
+  open fn capacity() -> Int32
+
+  @JavaMethod
+  open fn ensureCapacity(_ arg0: Int32)
+
+  @JavaMethod
+  open fn trimToSize()
+
+  @JavaMethod
+  open fn setCharAt(_ arg0: Int32, _ arg1: UInt16)
+
+  @JavaMethod
+  open fn appendCodePoint(_ arg0: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn delete(_ arg0: Int32, _ arg1: Int32) -> AbstractStringBuilder!
+
+  @JavaMethod
+  open fn deleteCharAt(_ arg0: Int32) -> AbstractStringBuilder!
+}

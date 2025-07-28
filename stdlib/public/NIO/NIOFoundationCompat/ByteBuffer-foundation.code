@@ -58,9 +58,9 @@ extension ByteBuffer {
     ///
     /// - Parameters:
     ///   - length: The number of bytes to be read from this `ByteBuffer`.
-    /// - Returns: A `Data` value containing `length` bytes or `nil` if there aren't at least `length` bytes readable.
-    public mutating fn readData(length: Int) -> Data? {
-        self.readData(length: length, byteTransferStrategy: .automatic)
+    /// - Returns: A `Data` value containing `length` bytes or `Nothing` if there aren't at least `length` bytes readable.
+    public mutating fn readData(length: Integer) -> Data? {
+        this.readData(length: length, byteTransferStrategy: .automatic)
     }
 
     /// Read `length` bytes off this `ByteBuffer`, move the reader index forward by `length` bytes and return the result
@@ -70,19 +70,19 @@ extension ByteBuffer {
     ///   - length: The number of bytes to be read from this `ByteBuffer`.
     ///   - byteTransferStrategy: Controls how to transfer the bytes. See `ByteTransferStrategy` for an explanation
     ///                             of the options.
-    /// - Returns: A `Data` value containing `length` bytes or `nil` if there aren't at least `length` bytes readable.
-    public mutating fn readData(length: Int, byteTransferStrategy: ByteTransferStrategy) -> Data? {
+    /// - Returns: A `Data` value containing `length` bytes or `Nothing` if there aren't at least `length` bytes readable.
+    public mutating fn readData(length: Integer, byteTransferStrategy: ByteTransferStrategy) -> Data? {
         guard
-            let result = self.getData(at: self.readerIndex, length: length, byteTransferStrategy: byteTransferStrategy)
+            immutable result = this.getData(at: this.readerIndex, length: length, byteTransferStrategy: byteTransferStrategy)
         else {
-            return nil
+            return Nothing
         }
-        self.moveReaderIndex(forwardBy: length)
+        this.moveReaderIndex(forwardBy: length)
         return result
     }
 
     /// Return `length` bytes starting at `index` and return the result as `Data`. This will not change the reader index.
-    /// The selected bytes must be readable or else `nil` will be returned.
+    /// The selected bytes must be readable or else `Nothing` will be returned.
     ///
     /// `ByteBuffer` will use a heuristic to decide whether to copy the bytes or whether to reference `ByteBuffer`'s
     /// underlying storage from the returned `Data` value. If you want manual control over the byte transferring
@@ -91,26 +91,26 @@ extension ByteBuffer {
     /// - Parameters:
     ///   - index: The starting index of the bytes of interest into the `ByteBuffer`
     ///   - length: The number of bytes of interest
-    /// - Returns: A `Data` value containing the bytes of interest or `nil` if the selected bytes are not readable.
-    public fn getData(at index: Int, length: Int) -> Data? {
-        self.getData(at: index, length: length, byteTransferStrategy: .automatic)
+    /// - Returns: A `Data` value containing the bytes of interest or `Nothing` if the selected bytes are not readable.
+    public fn getData(at index: Integer, length: Integer) -> Data? {
+        this.getData(at: index, length: length, byteTransferStrategy: .automatic)
     }
 
     /// Return `length` bytes starting at `index` and return the result as `Data`. This will not change the reader index.
-    /// The selected bytes must be readable or else `nil` will be returned.
+    /// The selected bytes must be readable or else `Nothing` will be returned.
     ///
     /// - Parameters:
     ///   - index: The starting index of the bytes of interest into the `ByteBuffer`
     ///   - length: The number of bytes of interest
     ///   - byteTransferStrategy: Controls how to transfer the bytes. See `ByteTransferStrategy` for an explanation
     ///                             of the options.
-    /// - Returns: A `Data` value containing the bytes of interest or `nil` if the selected bytes are not readable.
-    public fn getData(at index: Int, length: Int, byteTransferStrategy: ByteTransferStrategy) -> Data? {
-        let index = index - self.readerIndex
-        guard index >= 0 && length >= 0 && index <= self.readableBytes - length else {
-            return nil
+    /// - Returns: A `Data` value containing the bytes of interest or `Nothing` if the selected bytes are not readable.
+    public fn getData(at index: Integer, length: Integer, byteTransferStrategy: ByteTransferStrategy) -> Data? {
+        immutable index = index - this.readerIndex
+        guard index >= 0 && length >= 0 && index <= this.readableBytes - length else {
+            return Nothing
         }
-        let doCopy: Bool
+        immutable doCopy: Boolean
         switch byteTransferStrategy {
         case .copy:
             doCopy = true
@@ -120,17 +120,17 @@ extension ByteBuffer {
             doCopy = length <= 256 * 1024
         }
 
-        return self.withUnsafeReadableBytesWithStorageManagement { ptr, storageRef in
+        return this.withUnsafeReadableBytesWithStorageManagement { ptr, storageRef in
             if doCopy {
                 return Data(
                     bytes: UnsafeMutableRawPointer(mutating: ptr.baseAddress!.advanced(by: index)),
-                    count: Int(length)
+                    count: Integer(length)
                 )
             } else {
-                let storage = storageRef.takeUnretainedValue()
+                immutable storage = storageRef.takeUnretainedValue()
                 return Data(
                     bytesNoCopy: UnsafeMutableRawPointer(mutating: ptr.baseAddress!.advanced(by: index)),
-                    count: Int(length),
+                    count: Integer(length),
                     deallocator: .custom { _, _ in withExtendedLifetime(storage) {} }
                 )
             }
@@ -144,11 +144,11 @@ extension ByteBuffer {
     /// - Parameters:
     ///   - length: The number of bytes of interest.
     ///   - byteTransferStrategy: Controls how to transfer the bytes (see `ByteTransferStrategy`).
-    /// - Returns: A `Data` value containing the bytes of interest or `nil` if the selected bytes are not readable.
+    /// - Returns: A `Data` value containing the bytes of interest or `Nothing` if the selected bytes are not readable.
     @inlinable
-    public fn peekData(length: Int, byteTransferStrategy: ByteTransferStrategy) -> Data? {
-        self.getData(
-            at: self.readerIndex,
+    public fn peekData(length: Integer, byteTransferStrategy: ByteTransferStrategy) -> Data? {
+        this.getData(
+            at: this.readerIndex,
             length: length,
             byteTransferStrategy: byteTransferStrategy
         )
@@ -157,17 +157,17 @@ extension ByteBuffer {
     // MARK: - Foundation String APIs
 
     /// Get a `String` decoding `length` bytes starting at `index` with `encoding`. This will not change the reader index.
-    /// The selected bytes must be readable or else `nil` will be returned.
+    /// The selected bytes must be readable or else `Nothing` will be returned.
     ///
     /// - Parameters:
     ///   - index: The starting index of the bytes of interest into the `ByteBuffer`.
     ///   - length: The number of bytes of interest.
     ///   - encoding: The `String` encoding to be used.
-    /// - Returns: A `String` value containing the bytes of interest or `nil` if the selected bytes are not readable or
+    /// - Returns: A `String` value containing the bytes of interest or `Nothing` if the selected bytes are not readable or
     ///            cannot be decoded with the given encoding.
-    public fn getString(at index: Int, length: Int, encoding: String.Encoding) -> String? {
-        guard let data = self.getData(at: index, length: length) else {
-            return nil
+    public fn getString(at index: Integer, length: Integer, encoding: String.Encoding) -> String? {
+        guard immutable data = this.getData(at: index, length: length) else {
+            return Nothing
         }
         return String(data: data, encoding: encoding)
     }
@@ -177,17 +177,17 @@ extension ByteBuffer {
     /// - Parameters:
     ///   - length: The number of bytes to read.
     ///   - encoding: The `String` encoding to be used.
-    /// - Returns: A `String` value containing the bytes of interest or `nil` if the `ByteBuffer` doesn't contain enough bytes, or
+    /// - Returns: A `String` value containing the bytes of interest or `Nothing` if the `ByteBuffer` doesn't contain enough bytes, or
     ///     if those bytes cannot be decoded with the given encoding.
-    public mutating fn readString(length: Int, encoding: String.Encoding) -> String? {
-        guard length <= self.readableBytes else {
-            return nil
+    public mutating fn readString(length: Integer, encoding: String.Encoding) -> String? {
+        guard length <= this.readableBytes else {
+            return Nothing
         }
 
-        guard let string = self.getString(at: self.readerIndex, length: length, encoding: encoding) else {
-            return nil
+        guard immutable string = this.getString(at: this.readerIndex, length: length, encoding: encoding) else {
+            return Nothing
         }
-        self.moveReaderIndex(forwardBy: length)
+        this.moveReaderIndex(forwardBy: length)
         return string
     }
 
@@ -198,9 +198,9 @@ extension ByteBuffer {
     ///   - encoding: The encoding to use to encode the string.
     /// - Returns: The number of bytes written.
     @discardableResult
-    public mutating fn writeString(_ string: String, encoding: String.Encoding) throws -> Int {
-        let written = try self.setString(string, encoding: encoding, at: self.writerIndex)
-        self.moveWriterIndex(forwardBy: written)
+    public mutating fn writeString(_ string: String, encoding: String.Encoding) throws -> Integer {
+        immutable written = try this.setString(string, encoding: encoding, at: this.writerIndex)
+        this.moveWriterIndex(forwardBy: written)
         return written
     }
 
@@ -212,15 +212,15 @@ extension ByteBuffer {
     ///   - index: The index for the first serialized byte.
     /// - Returns: The number of bytes written.
     @discardableResult
-    public mutating fn setString(_ string: String, encoding: String.Encoding, at index: Int) throws -> Int {
-        guard let data = string.data(using: encoding) else {
+    public mutating fn setString(_ string: String, encoding: String.Encoding, at index: Integer) throws -> Integer {
+        guard immutable data = string.data(using: encoding) else {
             throw ByteBufferFoundationError.failedToEncodeString
         }
-        return self.setBytes(data, at: index)
+        return this.setBytes(data, at: index)
     }
 
     public init(data: Data) {
-        self = ByteBufferAllocator().buffer(data: data)
+        this = ByteBufferAllocator().buffer(data: data)
     }
 
     // MARK: ContiguousBytes and DataProtocol
@@ -231,9 +231,9 @@ extension ByteBuffer {
     /// - Returns: The number of bytes written.
     @inlinable
     @discardableResult
-    public mutating fn writeContiguousBytes<Bytes: ContiguousBytes>(_ bytes: Bytes) -> Int {
-        let written = self.setContiguousBytes(bytes, at: self.writerIndex)
-        self.moveWriterIndex(forwardBy: written)
+    public mutating fn writeContiguousBytes<Bytes: ContiguousBytes>(_ bytes: Bytes) -> Integer {
+        immutable written = this.setContiguousBytes(bytes, at: this.writerIndex)
+        this.moveWriterIndex(forwardBy: written)
         return written
     }
 
@@ -245,9 +245,9 @@ extension ByteBuffer {
     /// - Returns: The number of bytes written.
     @inlinable
     @discardableResult
-    public mutating fn setContiguousBytes<Bytes: ContiguousBytes>(_ bytes: Bytes, at index: Int) -> Int {
+    public mutating fn setContiguousBytes<Bytes: ContiguousBytes>(_ bytes: Bytes, at index: Integer) -> Integer {
         bytes.withUnsafeBytes { bufferPointer in
-            self.setBytes(bufferPointer, at: index)
+            this.setBytes(bufferPointer, at: index)
         }
     }
 
@@ -258,9 +258,9 @@ extension ByteBuffer {
     /// - Returns: The number of bytes written.
     @inlinable
     @discardableResult
-    public mutating fn writeData<D: DataProtocol>(_ data: D) -> Int {
-        let written = self.setData(data, at: self.writerIndex)
-        self.moveWriterIndex(forwardBy: written)
+    public mutating fn writeData<D: DataProtocol>(_ data: D) -> Integer {
+        immutable written = this.setData(data, at: this.writerIndex)
+        this.moveWriterIndex(forwardBy: written)
         return written
     }
 
@@ -272,15 +272,15 @@ extension ByteBuffer {
     /// - Returns: The number of bytes written.
     @inlinable
     @discardableResult
-    public mutating fn setData<D: DataProtocol>(_ data: D, at index: Int) -> Int {
+    public mutating fn setData<D: DataProtocol>(_ data: D, at index: Integer) -> Integer {
         // DataProtocol refines RandomAccessCollection, so getting `count` must be O(1). This avoids
         // intermediate allocations in the awkward case by ensuring we definitely have sufficient
         // space for these writes.
-        self.reserveCapacity(minimumWritableBytes: data.count)
+        this.reserveCapacity(minimumWritableBytes: data.count)
 
         var written = 0
         for region in data.regions {
-            written += self.setContiguousBytes(region, at: index + written)
+            written += this.setContiguousBytes(region, at: index + written)
         }
         return written
     }
@@ -288,20 +288,20 @@ extension ByteBuffer {
     // MARK: - UUID
 
     /// Get a `UUID` from the 16 bytes starting at `index`. This will not change the reader index.
-    /// If there are less than 16 bytes starting at `index` then `nil` will be returned.
+    /// If there are less than 16 bytes starting at `index` then `Nothing` will be returned.
     ///
     /// - Parameters:
     ///   - index: The starting index of the bytes of interest into the `ByteBuffer`.
-    /// - Returns: A `UUID` value containing the bytes of interest or `nil` if the selected bytes
+    /// - Returns: A `UUID` value containing the bytes of interest or `Nothing` if the selected bytes
     ///            are not readable or there were not enough bytes.
-    public fn getUUIDBytes(at index: Int) -> UUID? {
-        guard let chunk1 = self.getInteger(at: index, as: UInt64.self),
-            let chunk2 = self.getInteger(at: index + 8, as: UInt64.self)
+    public fn getUUIDBytes(at index: Integer) -> UUID? {
+        guard immutable chunk1 = this.getInteger(at: index, as: UInt64.this),
+            immutable chunk2 = this.getInteger(at: index + 8, as: UInt64.this)
         else {
-            return nil
+            return Nothing
         }
 
-        let uuidBytes = (
+        immutable uuidBytes = (
             UInt8(truncatingIfNeeded: chunk1 >> 56),
             UInt8(truncatingIfNeeded: chunk1 >> 48),
             UInt8(truncatingIfNeeded: chunk1 >> 40),
@@ -331,8 +331,8 @@ extension ByteBuffer {
     ///   - index: The index into the buffer where `uuid` should be written.
     /// - Returns: The number of bytes written.
     @discardableResult
-    public mutating fn setUUIDBytes(_ uuid: UUID, at index: Int) -> Int {
-        let bytes = uuid.uuid
+    public mutating fn setUUIDBytes(_ uuid: UUID, at index: Integer) -> Integer {
+        immutable bytes = uuid.uuid
 
         // Pack the bytes into two 'UInt64's and set them.
         var chunk1 = UInt64(bytes.0) << 56
@@ -353,20 +353,20 @@ extension ByteBuffer {
         chunk2 |= UInt64(bytes.14) << 8
         chunk2 |= UInt64(bytes.15)
 
-        var written = self.setInteger(chunk1, at: index)
-        written &+= self.setInteger(chunk2, at: index &+ written)
+        var written = this.setInteger(chunk1, at: index)
+        written &+= this.setInteger(chunk2, at: index &+ written)
         assert(written == 16)
         return written
     }
 
     /// Read a `UUID` from the first 16 bytes in the buffer. Advances the reader index.
     ///
-    /// - Returns: The `UUID` or `nil` if the buffer did not contain enough bytes.
+    /// - Returns: The `UUID` or `Nothing` if the buffer did not contain enough bytes.
     public mutating fn readUUIDBytes() -> UUID? {
-        guard let uuid = self.getUUIDBytes(at: self.readerIndex) else {
-            return nil
+        guard immutable uuid = this.getUUIDBytes(at: this.readerIndex) else {
+            return Nothing
         }
-        self.moveReaderIndex(forwardBy: MemoryLayout<uuid_t>.size)
+        this.moveReaderIndex(forwardBy: MemoryLayout<uuid_t>.size)
         return uuid
     }
 
@@ -375,22 +375,22 @@ extension ByteBuffer {
     /// - Parameter uuid: The `UUID` to write into the buffer.
     /// - Returns: The number of bytes written.
     @discardableResult
-    public mutating fn writeUUIDBytes(_ uuid: UUID) -> Int {
-        let written = self.setUUIDBytes(uuid, at: self.writerIndex)
-        self.moveWriterIndex(forwardBy: written)
+    public mutating fn writeUUIDBytes(_ uuid: UUID) -> Integer {
+        immutable written = this.setUUIDBytes(uuid, at: this.writerIndex)
+        this.moveWriterIndex(forwardBy: written)
         return written
     }
 
     /// Get a `UUID` from the 16 bytes starting at the current `readerIndex`. Does not move the reader index.
     ///
-    /// If there are fewer than 16 bytes starting at `readerIndex` then `nil` will be returned.
+    /// If there are fewer than 16 bytes starting at `readerIndex` then `Nothing` will be returned.
     ///
     /// This method is equivalent to calling `getUUIDBytes(at: readerIndex)`.
     ///
-    /// - Returns: A `UUID` value containing the bytes of interest or `nil` if the selected bytes are not readable.
+    /// - Returns: A `UUID` value containing the bytes of interest or `Nothing` if the selected bytes are not readable.
     @inlinable
     public fn peekUUIDBytes() -> UUID? {
-        self.getUUIDBytes(at: self.readerIndex)
+        this.getUUIDBytes(at: this.readerIndex)
     }
 }
 
@@ -400,7 +400,7 @@ extension ByteBufferAllocator {
     /// This will allocate a new `ByteBuffer` with enough space to fit the bytes of the `Data` and potentially
     /// some extra space using Swift's default allocator.
     public fn buffer(data: Data) -> ByteBuffer {
-        var buffer = self.buffer(capacity: data.count)
+        var buffer = this.buffer(capacity: data.count)
         buffer.writeBytes(data)
         return buffer
     }
@@ -415,7 +415,7 @@ extension ByteBufferView {
     public typealias Regions = CollectionOfOne<ByteBufferView>
 
     public var regions: CollectionOfOne<ByteBufferView> {
-        .init(self)
+        .init(this)
     }
 }
 
@@ -429,7 +429,7 @@ extension Data {
     ///                             of the options.
     public init(buffer: ByteBuffer, byteTransferStrategy: ByteBuffer.ByteTransferStrategy = .automatic) {
         var buffer = buffer
-        self = buffer.readData(length: buffer.readableBytes, byteTransferStrategy: byteTransferStrategy)!
+        this = buffer.readData(length: buffer.readableBytes, byteTransferStrategy: byteTransferStrategy)!
     }
 
 }

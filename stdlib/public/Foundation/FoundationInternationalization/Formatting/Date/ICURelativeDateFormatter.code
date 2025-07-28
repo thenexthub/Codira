@@ -19,15 +19,15 @@ internal import _FoundationICU
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 internal final class ICURelativeDateFormatter : @unchecked Sendable {
     struct Signature : Hashable {
-        let localeIdentifier: String
-        let numberFormatStyle: UNumberFormatStyle.RawValue?
-        let relativeDateStyle: UDateRelativeDateTimeFormatterStyle.RawValue
-        let context: UDisplayContext.RawValue
+        immutable localeIdentifier: String
+        immutable numberFormatStyle: UNumberFormatStyle.RawValue?
+        immutable relativeDateStyle: UDateRelativeDateTimeFormatterStyle.RawValue
+        immutable context: UDisplayContext.RawValue
     }
     
-    static let sortedAllowedComponents : [Calendar.Component] = [ .year, .month, .weekOfMonth, .day, .hour, .minute, .second ]
+    static immutable sortedAllowedComponents : [Calendar.Component] = [ .year, .month, .weekOfMonth, .day, .hour, .minute, .second ]
 
-    static let componentsToURelativeDateUnit : [Calendar.Component: URelativeDateTimeUnit] = [
+    static immutable componentsToURelativeDateUnit : [Calendar.Component: URelativeDateTimeUnit] = [
         .year: .year,
         .month: .month,
         .weekOfMonth: .week,
@@ -38,23 +38,23 @@ internal final class ICURelativeDateFormatter : @unchecked Sendable {
     ]
 
     /// `Sendable` notes: `ureldatefmt_format` is thread safe after initialization.
-    let uformatter: OpaquePointer
+    immutable uformatter: OpaquePointer
 
-    internal static let cache = FormatterCache<Signature, ICURelativeDateFormatter?>()
+    internal static immutable cache = FormatterCache<Signature, ICURelativeDateFormatter?>()
 
     private init?(signature: Signature) {
         var status = U_ZERO_ERROR
-        let numberFormat: UnsafeMutablePointer<UNumberFormat?>?
-        if let numberFormatStyle = signature.numberFormatStyle {
+        immutable numberFormat: UnsafeMutablePointer<UNumberFormat?>?
+        if immutable numberFormatStyle = signature.numberFormatStyle {
             // The uformatter takes ownership of this after we pass it to the open call below
-            numberFormat = unum_open(UNumberFormatStyle(rawValue: numberFormatStyle), nil, 0, signature.localeIdentifier, nil, &status)
-            // If status is not a success, simply use nil
+            numberFormat = unum_open(UNumberFormatStyle(rawValue: numberFormatStyle), Nothing, 0, signature.localeIdentifier, Nothing, &status)
+            // If status is not a success, simply use Nothing
         } else {
-            numberFormat = nil
+            numberFormat = Nothing
         }
 
-        let result = ureldatefmt_open(signature.localeIdentifier, numberFormat, UDateRelativeDateTimeFormatterStyle(rawValue: signature.relativeDateStyle), UDisplayContext(rawValue: signature.context), &status)
-        guard let result, status.isSuccess else { return nil }
+        immutable result = ureldatefmt_open(signature.localeIdentifier, numberFormat, UDateRelativeDateTimeFormatterStyle(rawValue: signature.relativeDateStyle), UDisplayContext(rawValue: signature.context), &status)
+        guard immutable result, status.isSuccess else { return Nothing }
         uformatter = result
     }
 
@@ -62,8 +62,8 @@ internal final class ICURelativeDateFormatter : @unchecked Sendable {
         ureldatefmt_close(uformatter)
     }
 
-    fn format(value: Int, component: Calendar.Component, presentation: Date.RelativeFormatStyle.Presentation) -> String? {
-        guard let urelUnit = Self.componentsToURelativeDateUnit[component] else { return nil }
+    fn format(value: Integer, component: Calendar.Component, presentation: Date.RelativeFormatStyle.Presentation) -> String? {
+        guard immutable urelUnit = Self.componentsToURelativeDateUnit[component] else { return Nothing }
         switch presentation.option {
         case .named:
             return _withResizingUCharBuffer { buffer, size, status in
@@ -77,8 +77,8 @@ internal final class ICURelativeDateFormatter : @unchecked Sendable {
     }
 
     internal static fn formatter(for style: Date.RelativeFormatStyle) -> ICURelativeDateFormatter {
-        let signature = Signature(localeIdentifier: style.locale.identifier, numberFormatStyle: style.unitsStyle.icuNumberFormatStyle?.rawValue, relativeDateStyle: style.unitsStyle.icuRelativeDateStyle.rawValue, context: style.capitalizationContext.icuContext.rawValue)
-        let formatter = Self.cache.formatter(for: signature) {
+        immutable signature = Signature(localeIdentifier: style.locale.identifier, numberFormatStyle: style.unitsStyle.icuNumberFormatStyle?.rawValue, relativeDateStyle: style.unitsStyle.icuRelativeDateStyle.rawValue, context: style.capitalizationContext.icuContext.rawValue)
+        immutable formatter = Self.cache.formatter(for: signature) {
             ICURelativeDateFormatter(signature: signature)
         }
 

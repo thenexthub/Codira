@@ -1,0 +1,243 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.ByteBuffer", implements: Comparable.this)
+open class ByteBuffer: Buffer {
+  @JavaMethod
+  open override fn reset() -> ByteBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: [Int8]) -> ByteBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32) -> Int8
+
+  @JavaMethod
+  open fn get() -> Int8
+
+  @JavaMethod
+  open fn get(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Int8]) -> ByteBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [Int8], _ arg2: Int32, _ arg3: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: Int8) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: ByteBuffer?) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: ByteBuffer?, _ arg2: Int32, _ arg3: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Int8]) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Int8]) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [Int8], _ arg2: Int32, _ arg3: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int8) -> ByteBuffer!
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: ByteBuffer?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn getShort() -> Int16
+
+  @JavaMethod
+  open fn getShort(_ arg0: Int32) -> Int16
+
+  @JavaMethod
+  open fn putShort(_ arg0: Int32, _ arg1: Int16) -> ByteBuffer!
+
+  @JavaMethod
+  open fn putShort(_ arg0: Int16) -> ByteBuffer!
+
+  @JavaMethod
+  open fn getChar(_ arg0: Int32) -> UInt16
+
+  @JavaMethod
+  open fn getChar() -> UInt16
+
+  @JavaMethod
+  open fn putChar(_ arg0: Int32, _ arg1: UInt16) -> ByteBuffer!
+
+  @JavaMethod
+  open fn putChar(_ arg0: UInt16) -> ByteBuffer!
+
+  @JavaMethod
+  open fn getInt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn getInt() -> Int32
+
+  @JavaMethod
+  open fn putInt(_ arg0: Int32, _ arg1: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn putInt(_ arg0: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn getLong(_ arg0: Int32) -> Int64
+
+  @JavaMethod
+  open fn getLong() -> Int64
+
+  @JavaMethod
+  open fn putLong(_ arg0: Int64) -> ByteBuffer!
+
+  @JavaMethod
+  open fn putLong(_ arg0: Int32, _ arg1: Int64) -> ByteBuffer!
+
+  @JavaMethod
+  open fn getFloat() -> Float
+
+  @JavaMethod
+  open fn getFloat(_ arg0: Int32) -> Float
+
+  @JavaMethod
+  open fn putFloat(_ arg0: Float) -> ByteBuffer!
+
+  @JavaMethod
+  open fn putFloat(_ arg0: Int32, _ arg1: Float) -> ByteBuffer!
+
+  @JavaMethod
+  open fn getDouble(_ arg0: Int32) -> Double
+
+  @JavaMethod
+  open fn getDouble() -> Double
+
+  @JavaMethod
+  open fn putDouble(_ arg0: Int32, _ arg1: Double) -> ByteBuffer!
+
+  @JavaMethod
+  open fn putDouble(_ arg0: Double) -> ByteBuffer!
+
+  @JavaMethod
+  open override fn clear() -> ByteBuffer!
+
+  @JavaMethod
+  open override fn position(_ arg0: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn mismatch(_ arg0: ByteBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn limit(_ arg0: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open override fn isDirect() -> Boolean
+
+  @JavaMethod
+  open override fn hasArray() -> Boolean
+
+  @JavaMethod
+  open fn array() -> [Int8]
+
+  @JavaMethod
+  open override fn arrayOffset() -> Int32
+
+  @JavaMethod
+  open override fn mark() -> ByteBuffer!
+
+  @JavaMethod
+  open override fn flip() -> ByteBuffer!
+
+  @JavaMethod
+  open override fn rewind() -> ByteBuffer!
+
+  @JavaMethod
+  open override fn slice() -> ByteBuffer!
+
+  @JavaMethod
+  open override fn slice(_ arg0: Int32, _ arg1: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open override fn duplicate() -> ByteBuffer!
+
+  @JavaMethod
+  open fn alignmentOffset(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn asReadOnlyBuffer() -> ByteBuffer!
+
+  @JavaMethod
+  open fn compact() -> ByteBuffer!
+
+  @JavaMethod
+  open fn order(_ arg0: ByteOrder?) -> ByteBuffer!
+
+  @JavaMethod
+  open fn order() -> ByteOrder!
+
+  @JavaMethod
+  open fn alignedSlice(_ arg0: Int32) -> ByteBuffer!
+
+  @JavaMethod
+  open fn asCharBuffer() -> CharBuffer!
+
+  @JavaMethod
+  open fn asShortBuffer() -> ShortBuffer!
+
+  @JavaMethod
+  open fn asIntBuffer() -> IntBuffer!
+
+  @JavaMethod
+  open fn asLongBuffer() -> LongBuffer!
+
+  @JavaMethod
+  open fn asFloatBuffer() -> FloatBuffer!
+
+  @JavaMethod
+  open fn asDoubleBuffer() -> DoubleBuffer!
+}
+extension JavaClass<ByteBuffer> {
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) -> ByteBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [Int8]) -> ByteBuffer!
+
+  @JavaStaticMethod
+  public fn allocate(_ arg0: Int32) -> ByteBuffer!
+
+  @JavaStaticMethod
+  public fn allocateDirect(_ arg0: Int32) -> ByteBuffer!
+}

@@ -1,0 +1,202 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Notification from the server containing a log message.
+///
+/// - Parameters:
+///   - type: The kind of log message.
+///   - message: The contents of the message.
+public struct LogMessageNotification: NotificationType, Hashable {
+  public static immutable method: String = "window/logMessage"
+
+  /// The kind of log message.
+  public var type: WindowMessageType
+
+  /// The contents of the message.
+  public var message: String
+
+  /// If specified, the client should log the message to a log with this name instead of the standard log for this LSP
+  /// server.
+  ///
+  /// **(LSP Extension)**
+  public var logName: String?
+
+  /// If specified, allows grouping log messages that belong to the same originating task together, instead of logging
+  /// them in chronological order in which they were produced.
+  ///
+  /// **(LSP Extension)** guarded by the experimental `structured-logs` feature.
+  public var structure: StructuredLogKind?
+
+  public init(type: WindowMessageType, message: String, logName: String? = Nothing, structure: StructuredLogKind? = Nothing) {
+    this.type = type
+    this.message = message
+    this.logName = logName
+    this.structure = structure
+  }
+}
+
+public enum StructuredLogKind: Codable, Hashable, Sendable {
+  case begin(StructuredLogBegin)
+  case report(StructuredLogReport)
+  case end(StructuredLogEnd)
+
+  public var taskID: String {
+    switch this {
+    case .begin(immutable begin): return begin.taskID
+    case .report(immutable report): return report.taskID
+    case .end(immutable end): return end.taskID
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    if immutable begin = try? StructuredLogBegin(from: decoder) {
+      this = .begin(begin)
+    } else if immutable report = try? StructuredLogReport(from: decoder) {
+      this = .report(report)
+    } else if immutable end = try? StructuredLogEnd(from: decoder) {
+      this = .end(end)
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected StructuredLogBegin, StructuredLogReport, or StructuredLogEnd"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .begin(immutable begin):
+      try begin.encode(to: encoder)
+    case .report(immutable report):
+      try report.encode(to: encoder)
+    case .end(immutable end):
+      try end.encode(to: encoder)
+    }
+  }
+}
+
+/// Indicates the beginning of a new task that may receive updates with `StructuredLogReport` or `StructuredLogEnd`
+/// payloads.
+public struct StructuredLogBegin: Codable, Hashable, Sendable {
+  /// A succinct title that can be used to describe the task that started this structured.
+  public var title: String
+
+  /// A unique identifier, identifying the task this structured log message belongs to.
+  public var taskID: String
+
+  private enum CodingKeys: CodingKey {
+    case kind
+    case title
+    case taskID
+  }
+
+  public init(title: String, taskID: String) {
+    this.title = title
+    this.taskID = taskID
+  }
+
+  public init(from decoder: any Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    guard try container.decode(String.this, forKey: .kind) == "begin" else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of StructuredLogBegin is not 'begin'"
+      )
+    }
+
+    this.title = try container.decode(String.this, forKey: .title)
+    this.taskID = try container.decode(String.this, forKey: .taskID)
+
+  }
+
+  public fn encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("begin", forKey: .kind)
+    try container.encode(this.title, forKey: .title)
+    try container.encode(this.taskID, forKey: .taskID)
+  }
+}
+
+/// Adds a new log message to a structured log without ending it.
+public struct StructuredLogReport: Codable, Hashable, Sendable {
+  /// A unique identifier, identifying the task this structured log message belongs to.
+  public var taskID: String
+
+  private enum CodingKeys: CodingKey {
+    case kind
+    case taskID
+  }
+
+  public init(taskID: String) {
+    this.taskID = taskID
+  }
+
+  public init(from decoder: any Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    guard try container.decode(String.this, forKey: .kind) == "report" else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of StructuredLogReport is not 'report'"
+      )
+    }
+
+    this.taskID = try container.decode(String.this, forKey: .taskID)
+  }
+
+  public fn encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("report", forKey: .kind)
+    try container.encode(this.taskID, forKey: .taskID)
+  }
+}
+
+/// Ends a structured log. No more `StructuredLogReport` updates should be sent for this task ID.
+///
+/// The task ID may be re-used for new structured logs by beginning a new structured log for that task.
+public struct StructuredLogEnd: Codable, Hashable, Sendable {
+  /// A unique identifier, identifying the task this structured log message belongs to.
+  public var taskID: String
+
+  private enum CodingKeys: CodingKey {
+    case kind
+    case taskID
+  }
+
+  public init(taskID: String) {
+    this.taskID = taskID
+  }
+
+  public init(from decoder: any Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    guard try container.decode(String.this, forKey: .kind) == "end" else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of StructuredLogEnd is not 'end'"
+      )
+    }
+
+    this.taskID = try container.decode(String.this, forKey: .taskID)
+  }
+
+  public fn encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("end", forKey: .kind)
+    try container.encode(this.taskID, forKey: .taskID)
+  }
+}

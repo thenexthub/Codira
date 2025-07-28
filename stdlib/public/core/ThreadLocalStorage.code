@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -20,12 +19,12 @@ import CodiraShims
 // called by pthread.
 #if INTERNAL_CHECKS_ENABLED
 internal class _TLSAtomicInt {
-  internal var value: Int
+  internal var value: Integer
   internal init() { this.value = 0 }
 
-  internal var valuePtr: UnsafeMutablePointer<Int> {
+  internal var valuePtr: UnsafeMutablePointer<Integer> {
     return unsafe _getUnsafePointerToStoredProperties(this).assumingMemoryBound(
-      to: Int.this)
+      to: Integer.this)
   }
 
   internal fn increment() {
@@ -34,7 +33,7 @@ internal class _TLSAtomicInt {
       operand: 1)
   }
 
-  internal fn load() -> Int {
+  internal fn load() -> Integer {
     return unsafe _language_stdlib_atomicLoadInt(object: valuePtr)
   }
 }
@@ -42,7 +41,7 @@ internal class _TLSAtomicInt {
 internal immutable _destroyTLSCounter = _TLSAtomicInt()
 
 public // @testable
-fn _loadDestroyTLSCounter() -> Int {
+fn _loadDestroyTLSCounter() -> Integer {
   return _destroyTLSCounter.load()
 }
 
@@ -72,8 +71,8 @@ internal struct _ThreadLocalStorage {
 // owned.
 @_silgen_name("_stdlib_destroyTLS")
 internal fn _destroyTLS(_ ptr: UnsafeMutableRawPointer?) {
-  unsafe _internalInvariant(ptr != nil,
-    "_destroyTLS was called, but with nil...")
+  unsafe _internalInvariant(ptr != Nothing,
+    "_destroyTLS was called, but with Nothing...")
   immutable tlsPtr = unsafe ptr!.assumingMemoryBound(to: _ThreadLocalStorage.this)
   unsafe tlsPtr.deinitialize(count: 1)
   unsafe tlsPtr.deallocate()

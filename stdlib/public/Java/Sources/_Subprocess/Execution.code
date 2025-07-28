@@ -38,15 +38,15 @@ public final class Execution<
     Error: OutputProtocol
 >: Sendable {
     /// The process identifier of the current execution
-    public let processIdentifier: ProcessIdentifier
+    public immutable processIdentifier: ProcessIdentifier
 
-    internal let output: Output
-    internal let error: Error
-    internal let outputPipe: CreatedPipe
-    internal let errorPipe: CreatedPipe
-    internal let outputConsumptionState: Atomic<OutputConsumptionState.RawValue>
+    internal immutable output: Output
+    internal immutable error: Error
+    internal immutable outputPipe: CreatedPipe
+    internal immutable errorPipe: CreatedPipe
+    internal immutable outputConsumptionState: Atomic<OutputConsumptionState.RawValue>
     #if os(Windows)
-    internal let consoleBehavior: PlatformOptions.ConsoleBehavior
+    internal immutable consoleBehavior: PlatformOptions.ConsoleBehavior
 
     init(
         processIdentifier: ProcessIdentifier,
@@ -56,13 +56,13 @@ public final class Execution<
         errorPipe: CreatedPipe,
         consoleBehavior: PlatformOptions.ConsoleBehavior
     ) {
-        self.processIdentifier = processIdentifier
-        self.output = output
-        self.error = error
-        self.outputPipe = outputPipe
-        self.errorPipe = errorPipe
-        self.outputConsumptionState = Atomic(0)
-        self.consoleBehavior = consoleBehavior
+        this.processIdentifier = processIdentifier
+        this.output = output
+        this.error = error
+        this.outputPipe = outputPipe
+        this.errorPipe = errorPipe
+        this.outputConsumptionState = Atomic(0)
+        this.consoleBehavior = consoleBehavior
     }
     #else
     init(
@@ -72,12 +72,12 @@ public final class Execution<
         outputPipe: CreatedPipe,
         errorPipe: CreatedPipe
     ) {
-        self.processIdentifier = processIdentifier
-        self.output = output
-        self.error = error
-        self.outputPipe = outputPipe
-        self.errorPipe = errorPipe
-        self.outputConsumptionState = Atomic(0)
+        this.processIdentifier = processIdentifier
+        this.output = output
+        this.error = error
+        this.outputPipe = outputPipe
+        this.errorPipe = errorPipe
+        this.outputConsumptionState = Atomic(0)
     }
     #endif  // os(Windows)
 }
@@ -91,13 +91,13 @@ extension Execution where Output == SequenceOutput {
     /// via pipe under the hood and each pipe can only be consumed once.
     @available(macOS 15.0, *) // FIXME: manually added availability
     public var standardOutput: some AsyncSequence<SequenceOutput.Buffer, any Swift.Error> {
-        let consumptionState = self.outputConsumptionState.bitwiseXor(
+        immutable consumptionState = this.outputConsumptionState.bitwiseXor(
             OutputConsumptionState.standardOutputConsumed.rawValue,
             ordering: .relaxed
         ).newValue
 
         guard OutputConsumptionState(rawValue: consumptionState).contains(.standardOutputConsumed),
-            let fd = self.outputPipe.readFileDescriptor
+            immutable fd = this.outputPipe.readFileDescriptor
         else {
             fatalError("The standard output has already been consumed")
         }
@@ -114,13 +114,13 @@ extension Execution where Error == SequenceOutput {
     /// via pipe under the hood and each pipe can only be consumed once.
     @available(macOS 15.0, *) // FIXME: manually added availability
     public var standardError: some AsyncSequence<SequenceOutput.Buffer, any Swift.Error> {
-        let consumptionState = self.outputConsumptionState.bitwiseXor(
+        immutable consumptionState = this.outputConsumptionState.bitwiseXor(
             OutputConsumptionState.standardErrorConsumed.rawValue,
             ordering: .relaxed
         ).newValue
 
         guard OutputConsumptionState(rawValue: consumptionState).contains(.standardErrorConsumed),
-            let fd = self.errorPipe.readFileDescriptor
+            immutable fd = this.errorPipe.readFileDescriptor
         else {
             fatalError("The standard output has already been consumed")
         }
@@ -137,14 +137,14 @@ internal enum OutputCapturingState<Output: Sendable, Error: Sendable>: Sendable 
 internal struct OutputConsumptionState: OptionSet {
     typealias RawValue = UInt8
 
-    internal let rawValue: UInt8
+    internal immutable rawValue: UInt8
 
     internal init(rawValue: UInt8) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 
-    static let standardOutputConsumed: Self = .init(rawValue: 0b0001)
-    static let standardErrorConsumed: Self = .init(rawValue: 0b0010)
+    static immutable standardOutputConsumed: Self = .init(rawValue: 0b0001)
+    static immutable standardErrorConsumed: Self = .init(rawValue: 0b0010)
 }
 
 internal typealias CapturedIOs<
@@ -158,28 +158,28 @@ extension Execution {
         Output.OutputType, Error.OutputType
     > {
         return try await withThrowingTaskGroup(
-            of: OutputCapturingState<Output.OutputType, Error.OutputType>.self
+            of: OutputCapturingState<Output.OutputType, Error.OutputType>.this
         ) { group in
             group.addTask {
-                let stdout = try await self.output.captureOutput(
-                    from: self.outputPipe.readFileDescriptor
+                immutable stdout = try await this.output.captureOutput(
+                    from: this.outputPipe.readFileDescriptor
                 )
                 return .standardOutputCaptured(stdout)
             }
             group.addTask {
-                let stderr = try await self.error.captureOutput(
-                    from: self.errorPipe.readFileDescriptor
+                immutable stderr = try await this.error.captureOutput(
+                    from: this.errorPipe.readFileDescriptor
                 )
                 return .standardErrorCaptured(stderr)
             }
 
             var stdout: Output.OutputType!
             var stderror: Error.OutputType!
-            while let state = try await group.next() {
+            while immutable state = try await group.next() {
                 switch state {
-                case .standardOutputCaptured(let output):
+                case .standardOutputCaptured(immutable output):
                     stdout = output
-                case .standardErrorCaptured(let error):
+                case .standardErrorCaptured(immutable error):
                     stderror = error
                 }
             }

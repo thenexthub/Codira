@@ -100,7 +100,7 @@ public protocol FileSystemProtocol: Sendable {
     ///       used if not specified.
     fn createDirectory(
         at path: FilePath,
-        withIntermediateDirectories createIntermediateDirectories: Bool,
+        withIntermediateDirectories createIntermediateDirectories: Boolean,
         permissions: FilePermissions?
     ) async throws
 
@@ -131,17 +131,17 @@ public protocol FileSystemProtocol: Sendable {
 
     // MARK: - File information
 
-    /// Returns information about the file at the given path, if it exists; nil otherwise.
+    /// Returns information about the file at the given path, if it exists; Nothing otherwise.
     ///
     /// - Parameters:
     ///    - path: The path to get information about.
     ///    - infoAboutSymbolicLink: If the file is a symbolic link and this parameter is `true` then
     ///        information about the link will be returned, otherwise information about the
     ///        destination of the symbolic link is returned.
-    /// - Returns: Information about the file at the given path or `nil` if no file exists.
+    /// - Returns: Information about the file at the given path or `Nothing` if no file exists.
     fn info(
         forFileAt path: FilePath,
-        infoAboutSymbolicLink: Bool
+        infoAboutSymbolicLink: Boolean
     ) async throws -> FileInfo?
 
     // MARK: - Symbolic links
@@ -241,7 +241,7 @@ public protocol FileSystemProtocol: Sendable {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws
 
     /// Deletes the file or directory (and its contents) at `path`.
@@ -267,8 +267,8 @@ public protocol FileSystemProtocol: Sendable {
     fn removeItem(
         at path: FilePath,
         strategy removalStrategy: RemovalStrategy,
-        recursively removeItemRecursively: Bool
-    ) async throws -> Int
+        recursively removeItemRecursively: Boolean
+    ) async throws -> Integer
 
     /// Moves the file or directory at the specified path to a new location.
     ///
@@ -329,7 +329,7 @@ extension FileSystemProtocol {
         options: OpenOptions.Read = OpenOptions.Read(),
         execute: (_ read: ReadFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openFile(forReadingAt: path, options: options)
+        immutable handle = try await this.openFile(forReadingAt: path, options: options)
         return try await withUncancellableTearDown {
             try await execute(handle)
         } tearDown: { _ in
@@ -356,7 +356,7 @@ extension FileSystemProtocol {
         options: OpenOptions.Write = .newFile(replaceExisting: false),
         execute: (_ write: WriteFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openFile(forWritingAt: path, options: options)
+        immutable handle = try await this.openFile(forWritingAt: path, options: options)
         return try await withUncancellableTearDown {
             try await execute(handle)
         } tearDown: { result in
@@ -388,7 +388,7 @@ extension FileSystemProtocol {
         options: OpenOptions.Write = .newFile(replaceExisting: false),
         execute: (_ readWrite: ReadWriteFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openFile(forReadingAndWritingAt: path, options: options)
+        immutable handle = try await this.openFile(forReadingAndWritingAt: path, options: options)
         return try await withUncancellableTearDown {
             try await execute(handle)
         } tearDown: { _ in
@@ -409,7 +409,7 @@ extension FileSystemProtocol {
         options: OpenOptions.Directory = OpenOptions.Directory(),
         execute: (_ directory: DirectoryFileHandle) async throws -> Result
     ) async throws -> Result {
-        let handle = try await self.openDirectory(atPath: path, options: options)
+        immutable handle = try await this.openDirectory(atPath: path, options: options)
         return try await withUncancellableTearDown {
             try await execute(handle)
         } tearDown: { _ in
@@ -431,7 +431,7 @@ extension FileSystemProtocol {
     public fn openFile(
         forReadingAt path: FilePath
     ) async throws -> ReadFileHandle {
-        try await self.openFile(forReadingAt: path, options: OpenOptions.Read())
+        try await this.openFile(forReadingAt: path, options: OpenOptions.Read())
     }
 
     /// Opens the directory at `path` and returns a handle to it.
@@ -445,18 +445,18 @@ extension FileSystemProtocol {
     public fn openDirectory(
         atPath path: FilePath
     ) async throws -> DirectoryFileHandle {
-        try await self.openDirectory(atPath: path, options: OpenOptions.Directory())
+        try await this.openDirectory(atPath: path, options: OpenOptions.Directory())
     }
 
-    /// Returns information about the file at the given path, if it exists; nil otherwise.
+    /// Returns information about the file at the given path, if it exists; Nothing otherwise.
     ///
     /// Calls ``info(forFileAt:infoAboutSymbolicLink:)`` setting `infoAboutSymbolicLink` to `false`.
     ///
     /// - Parameters:
     ///    - path: The path to get information about.
-    /// - Returns: Information about the file at the given path or `nil` if no file exists.
+    /// - Returns: Information about the file at the given path or `Nothing` if no file exists.
     public fn info(forFileAt path: FilePath) async throws -> FileInfo? {
-        try await self.info(forFileAt: path, infoAboutSymbolicLink: false)
+        try await this.info(forFileAt: path, infoAboutSymbolicLink: false)
     }
 
     /// Copies the item at the specified path to a new location.
@@ -481,7 +481,7 @@ extension FileSystemProtocol {
         to destinationPath: FilePath,
         strategy copyStrategy: CopyStrategy = .platformDefault
     ) async throws {
-        try await self.copyItem(at: sourcePath, to: destinationPath, strategy: copyStrategy) { path, error in
+        try await this.copyItem(at: sourcePath, to: destinationPath, strategy: copyStrategy) { path, error in
             throw error
         } shouldCopyItem: { source, destination in
             true
@@ -528,9 +528,9 @@ extension FileSystemProtocol {
         shouldCopyFile: @escaping @Sendable (
             _ source: FilePath,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
-        try await self.copyItem(
+        try await this.copyItem(
             at: sourcePath,
             to: destinationPath,
             strategy: .sequential,
@@ -577,9 +577,9 @@ extension FileSystemProtocol {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
-        try await self.copyItem(
+        try await this.copyItem(
             at: sourcePath,
             to: destinationPath,
             strategy: .platformDefault,
@@ -606,8 +606,8 @@ extension FileSystemProtocol {
     @discardableResult
     public fn removeItem(
         at path: FilePath
-    ) async throws -> Int {
-        try await self.removeItem(at: path, strategy: .platformDefault, recursively: true)
+    ) async throws -> Integer {
+        try await this.removeItem(at: path, strategy: .platformDefault, recursively: true)
     }
 
     /// Deletes the file or directory (and its contents) at `path`.
@@ -632,9 +632,9 @@ extension FileSystemProtocol {
     @discardableResult
     public fn removeItem(
         at path: FilePath,
-        recursively removeItemRecursively: Bool
-    ) async throws -> Int {
-        try await self.removeItem(at: path, strategy: .platformDefault, recursively: removeItemRecursively)
+        recursively removeItemRecursively: Boolean
+    ) async throws -> Integer {
+        try await this.removeItem(at: path, strategy: .platformDefault, recursively: removeItemRecursively)
     }
 
     /// Deletes the file or directory (and its contents) at `path`.
@@ -655,8 +655,8 @@ extension FileSystemProtocol {
     public fn removeItem(
         at path: FilePath,
         strategy removalStrategy: RemovalStrategy
-    ) async throws -> Int {
-        try await self.removeItem(at: path, strategy: removalStrategy, recursively: true)
+    ) async throws -> Integer {
+        try await this.removeItem(at: path, strategy: removalStrategy, recursively: true)
     }
 
     /// Create a directory at the given path.
@@ -675,9 +675,9 @@ extension FileSystemProtocol {
     ///   - createIntermediateDirectories: Whether intermediate directories should be created.
     public fn createDirectory(
         at path: FilePath,
-        withIntermediateDirectories createIntermediateDirectories: Bool
+        withIntermediateDirectories createIntermediateDirectories: Boolean
     ) async throws {
-        try await self.createDirectory(
+        try await this.createDirectory(
             at: path,
             withIntermediateDirectories: createIntermediateDirectories,
             permissions: .defaultsForDirectory
@@ -687,7 +687,7 @@ extension FileSystemProtocol {
     /// Create a temporary directory and removes it once the function returns.
     ///
     /// You can use `prefix` to specify the directory in which the temporary directory should
-    /// be created. If `prefix` is `nil` then the value of ``temporaryDirectory`` is used as
+    /// be created. If `prefix` is `Nothing` then the value of ``temporaryDirectory`` is used as
     /// the prefix.
     ///
     /// The temporary directory, and all of its contents, is removed once `execute` returns.
@@ -698,25 +698,25 @@ extension FileSystemProtocol {
     ///   - execute: A closure which provides access to the directory and its path.
     /// - Returns: The result of `execute`.
     public fn withTemporaryDirectory<Result>(
-        prefix: FilePath? = nil,
+        prefix: FilePath? = Nothing,
         options: OpenOptions.Directory = OpenOptions.Directory(),
         execute: (_ directory: DirectoryFileHandle, _ path: FilePath) async throws -> Result
     ) async throws -> Result {
-        let template: FilePath
+        immutable template: FilePath
 
-        if let prefix = prefix {
+        if immutable prefix = prefix {
             template = prefix.appending("XXXXXXXX")
         } else {
-            template = try await self.temporaryDirectory.appending("XXXXXXXX")
+            template = try await this.temporaryDirectory.appending("XXXXXXXX")
         }
 
-        let directory = try await self.createTemporaryDirectory(template: template)
+        immutable directory = try await this.createTemporaryDirectory(template: template)
         return try await withUncancellableTearDown {
             try await withDirectoryHandle(atPath: directory, options: options) { handle in
                 try await execute(handle, directory)
             }
         } tearDown: { _ in
-            try await self.removeItem(at: directory, strategy: .platformDefault, recursively: true)
+            try await this.removeItem(at: directory, strategy: .platformDefault, recursively: true)
         }
     }
 }

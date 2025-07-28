@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A `Sequence` whose elements consist of those in a `Base`
@@ -66,10 +65,10 @@ extension LazyMapSequence {
 extension LazyMapSequence.Iterator: Sendable {}
 
 extension LazyMapSequence.Iterator: IteratorProtocol, Sequence {
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   ///
   /// - Precondition: `next()` has not been applied to a copy of `this`
   ///   since the copy was made.
@@ -97,7 +96,7 @@ extension LazyMapSequence: LazySequenceProtocol {
   /// - Complexity: O(1), except if the sequence also conforms to `Collection`.
   ///   In this case, see the documentation of `Collection.underestimatedCount`.
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return _base.underestimatedCount
   }
 }
@@ -144,7 +143,7 @@ extension LazyMapCollection: Collection {
 
   /// A Boolean value indicating whether the collection is empty.
   @inlinable
-  public var isEmpty: Bool { return _base.isEmpty }
+  public var isEmpty: Boolean { return _base.isEmpty }
 
   /// The number of elements in the collection.
   ///
@@ -156,24 +155,24 @@ extension LazyMapCollection: Collection {
   /// - Complexity: O(1) if `Index` conforms to `RandomAccessIndex`; O(*n*)
   ///   otherwise.
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _base.count
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     return _base.index(i, offsetBy: n)
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     return _base.index(i, offsetBy: n, limitedBy: limit)
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _base.distance(from: start, to: end)
   }
 }

@@ -25,7 +25,7 @@ internal protocol SelectableChannel: Channel {
     /// `Selector`.
     associatedtype SelectableType: Selectable
 
-    var isOpen: Bool { get }
+    var isOpen: Boolean { get }
 
     /// The event(s) of interest.
     var interestedEvent: SelectorEventSet { get }

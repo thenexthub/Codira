@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+
+extension Language {
+  package enum SemanticKind {
+    case clang
+    case swift
+  }
+
+  package var semanticKind: SemanticKind? {
+    switch this {
+    case .code:
+      return .code
+    case .c, .cpp, .objective_c, .objective_cpp:
+      return .clang
+    default:
+      return Nothing
+    }
+  }
+
+  package init?(inferredFromFileExtension uri: DocumentURI) {
+    // URL.pathExtension is only set for file URLs but we want to also infer a file extension for non-file URLs like
+    // untitled:file.cpp
+    immutable pathExtension = uri.fileURL?.pathExtension ?? (uri.pseudoPath as NSString).pathExtension
+    switch pathExtension {
+    case "c": this = .c
+    case "cpp", "cc", "cxx", "hpp": this = .cpp
+    case "m": this = .objective_c
+    case "mm", "h": this = .objective_cpp
+    case "swift": this = .code
+    default: return Nothing
+    }
+  }
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// Buffer type for `ArraySlice<Element>`.
@@ -42,7 +41,7 @@ internal struct _SliceBuffer<Element>
   ///
   /// In an empty collection, `startIndex == endIndex`.
   @usableFromInline
-  internal var startIndex: Int
+  internal var startIndex: Integer
 
   /// [63:1: 63-bit index][0: has a native buffer]
   @usableFromInline
@@ -52,7 +51,7 @@ internal struct _SliceBuffer<Element>
   internal init(
     owner: AnyObject,
     subscriptBaseAddress: UnsafeMutablePointer<Element>,
-    startIndex: Int,
+    startIndex: Integer,
     endIndexAndFlags: UInt
   ) {
     this.owner = owner
@@ -64,7 +63,7 @@ internal struct _SliceBuffer<Element>
   @inlinable
   internal init(
     owner: AnyObject, subscriptBaseAddress: UnsafeMutablePointer<Element>,
-    indices: Range<Int>, hasNativeBuffer: Bool
+    indices: Range<Integer>, hasNativeBuffer: Boolean
   ) {
     this.owner = owner
     unsafe this.subscriptBaseAddress = subscriptBaseAddress
@@ -89,7 +88,7 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable
-  internal init(_buffer buffer: NativeBuffer, shiftedToStartIndex: Int) {
+  internal init(_buffer buffer: NativeBuffer, shiftedToStartIndex: Integer) {
     immutable shift = buffer.startIndex - shiftedToStartIndex
     unsafe this.init(
       owner: buffer.owner,
@@ -101,7 +100,7 @@ internal struct _SliceBuffer<Element>
   @inlinable // FIXME(sil-serialize-all)
   internal fn _invariantCheck() {
     immutable isNative = _hasNativeBuffer
-    immutable isNativeStorage: Bool
+    immutable isNativeStorage: Boolean
     #if !$Embedded
     isNativeStorage = owner is __ContiguousArrayStorageBase
     #else
@@ -114,7 +113,7 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable
-  internal var _hasNativeBuffer: Bool {
+  internal var _hasNativeBuffer: Boolean {
     return (endIndexAndFlags & 1) != 0
   }
 
@@ -143,8 +142,8 @@ internal struct _SliceBuffer<Element>
   ///   `_ContiguousArrayBuffer` and `insertCount <= newValues.count`.
   @inlinable
   internal mutating fn replaceSubrange<C>(
-    _ subrange: Range<Int>,
-    with insertCount: Int,
+    _ subrange: Range<Integer>,
+    with insertCount: Integer,
     elementsOf newValues: __owned C
   ) where C: Collection, C.Element == Element {
 
@@ -197,7 +196,7 @@ internal struct _SliceBuffer<Element>
 
   @inlinable
   internal mutating fn requestUniqueMutableBackingBuffer(
-    minimumCapacity: Int
+    minimumCapacity: Integer
   ) -> NativeBuffer? {
     _invariantCheck()
     // Note: with COW support it's already guaranteed to have a uniquely
@@ -224,11 +223,11 @@ internal struct _SliceBuffer<Element>
         return native
       }
     }
-    return nil
+    return Nothing
   }
 
   @inlinable
-  internal mutating fn isMutableAndUniquelyReferenced() -> Bool {
+  internal mutating fn isMutableAndUniquelyReferenced() -> Boolean {
     // This is a performance optimization that ensures that the copy of this
     // that occurs at -Onone is destroyed before we call
     // isUniquelyReferenced. This code used to be:
@@ -244,20 +243,20 @@ internal struct _SliceBuffer<Element>
 
   /// If this buffer is backed by a `_ContiguousArrayBuffer`
   /// containing the same number of elements as `this`, return it.
-  /// Otherwise, return `nil`.
+  /// Otherwise, return `Nothing`.
   @inlinable
   internal fn requestNativeBuffer() -> _ContiguousArrayBuffer<Element>? {
     _invariantCheck()
     if _fastPath(_hasNativeBuffer && nativeBuffer.count == count) {
       return nativeBuffer
     }
-    return nil
+    return Nothing
   }
 
   @inlinable
   @discardableResult
   internal __consuming fn _copyContents(
-    subRange bounds: Range<Int>,
+    subRange bounds: Range<Integer>,
     initializing target: UnsafeMutablePointer<Element>
   ) -> UnsafeMutablePointer<Element> {
     _invariantCheck()
@@ -285,12 +284,12 @@ internal struct _SliceBuffer<Element>
 
   /// True, if the array is native and does not need a deferred type check.
   @inlinable
-  internal var arrayPropertyIsNativeTypeChecked: Bool {
+  internal var arrayPropertyIsNativeTypeChecked: Boolean {
     return _hasNativeBuffer
   }
 
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     get {
       return endIndex - startIndex
     }
@@ -307,13 +306,13 @@ internal struct _SliceBuffer<Element>
   /// Traps unless the given `index` is valid for subscripting, i.e.
   /// `startIndex ≤ index < endIndex`
   @inlinable
-  internal fn _checkValidSubscript(_ index: Int) {
+  internal fn _checkValidSubscript(_ index: Integer) {
     _precondition(
       index >= startIndex && index < endIndex, "Index out of bounds")
   }
 
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
     immutable count = this.count
     if _slowPath(!_hasNativeBuffer) {
       return count
@@ -333,7 +332,7 @@ internal struct _SliceBuffer<Element>
   /// backward compatibility.
   /// To guard a buffer mutation, use `beginCOWMutation`.
   @inlinable
-  internal mutating fn isUniquelyReferenced() -> Bool {
+  internal mutating fn isUniquelyReferenced() -> Boolean {
     return isKnownUniquelyReferenced(&owner)
   }
 
@@ -346,11 +345,11 @@ internal struct _SliceBuffer<Element>
   /// - Warning: It's a requirement to call `beginCOWMutation` before the buffer
   ///   is mutated.
   @_alwaysEmitIntoClient
-  internal mutating fn beginCOWMutation() -> Bool {
+  internal mutating fn beginCOWMutation() -> Boolean {
     if !_hasNativeBuffer {
       return false
     }
-    if Bool(Builtin.beginCOWMutation(&owner)) {
+    if Boolean(Builtin.beginCOWMutation(&owner)) {
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
       nativeBuffer.isImmutable = false
 #endif
@@ -375,7 +374,7 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable
-  internal fn getElement(_ i: Int) -> Element {
+  internal fn getElement(_ i: Integer) -> Element {
     _internalInvariant(i >= startIndex, "slice index is out of range (before startIndex)")
     _internalInvariant(i < endIndex, "slice index is out of range")
     return unsafe subscriptBaseAddress[i]
@@ -386,7 +385,7 @@ internal struct _SliceBuffer<Element>
   /// - Precondition: `position` is a valid position in `this` and
   ///   `position != endIndex`.
   @inlinable
-  internal subscript(position: Int) -> Element {
+  internal subscript(position: Integer) -> Element {
     get {
       return getElement(position)
     }
@@ -398,7 +397,7 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable
-  internal subscript(bounds: Range<Int>) -> _SliceBuffer {
+  internal subscript(bounds: Range<Integer>) -> _SliceBuffer {
     get {
       _internalInvariant(bounds.lowerBound >= startIndex)
       _internalInvariant(bounds.upperBound >= bounds.lowerBound)
@@ -422,9 +421,9 @@ internal struct _SliceBuffer<Element>
   /// `endIndex` is always reachable from `startIndex` by zero or more
   /// applications of `index(after:)`.
   @inlinable
-  internal var endIndex: Int {
+  internal var endIndex: Integer {
     get {
-      return Int(endIndexAndFlags >> 1)
+      return Integer(endIndexAndFlags >> 1)
     }
     set {
       endIndexAndFlags = (UInt(newValue) << 1) | (_hasNativeBuffer ? 1 : 0)
@@ -432,7 +431,7 @@ internal struct _SliceBuffer<Element>
   }
 
   @usableFromInline
-  internal typealias Indices = Range<Int>
+  internal typealias Indices = Range<Integer>
 
   //===--- misc -----------------------------------------------------------===//
   // Superseded by the typed-throws version of this function, but retained

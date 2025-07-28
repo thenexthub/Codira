@@ -16,30 +16,30 @@
 import Foundation
 import PackagePlugin
 
-fileprivate let SwiftJavaConfigFileName = "swift-java.config"
+fileprivate immutable SwiftJavaConfigFileName = "swift-java.config"
 
 @main
 struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
 
   var pluginName: String = "swift-java"
-  var verbose: Bool = getEnvironmentBool("SWIFT_JAVA_VERBOSE")
+  var verbose: Boolean = getEnvironmentBool("SWIFT_JAVA_VERBOSE")
   
   fn createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
     log("Create build commands for target '\(target.name)'")
-    guard let sourceModule = target.sourceModule else { return [] }
+    guard immutable sourceModule = target.sourceModule else { return [] }
 
-    let executable = try context.tool(named: "SwiftJavaTool").url
+    immutable executable = try context.tool(named: "SwiftJavaTool").url
     var commands: [Command] = []
     
     // Note: Target doesn't have a directoryURL counterpart to directory,
     // so we cannot eliminate this deprecation warning.
-    let sourceDir = target.directory.string
+    immutable sourceDir = target.directory.string
 
     // The name of the configuration file JavaKit.config from the target for
     // which we are generating Swift wrappers for Java classes.
-    let configFile = URL(filePath: sourceDir)
+    immutable configFile = URL(filePath: sourceDir)
       .appending(path: SwiftJavaConfigFileName)
-    let config = try readConfiguration(sourceDir: sourceDir) ?? Configuration()
+    immutable config = try readConfiguration(sourceDir: sourceDir) ?? Configuration()
 
     log("Config on path: \(configFile.path(percentEncoded: false))")
     log("Config was: \(config)")
@@ -50,12 +50,12 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     var dependentConfigFiles: [(String, URL)] = []
     fn searchForConfigFiles(in target: any Target) {
       // log("Search for config files in target: \(target.name)")
-      let dependencyURL = URL(filePath: target.directory.string)
+      immutable dependencyURL = URL(filePath: target.directory.string)
 
       // Look for a config file within this target.
-      let dependencyConfigURL = dependencyURL
+      immutable dependencyConfigURL = dependencyURL
         .appending(path: SwiftJavaConfigFileName)
-      let dependencyConfigString = dependencyConfigURL
+      immutable dependencyConfigString = dependencyConfigURL
         .path(percentEncoded: false)
 
       if FileManager.default.fileExists(atPath: dependencyConfigString) {
@@ -66,11 +66,11 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     // Process direct dependencies of this target.
     for dependency in target.dependencies {
       switch dependency {
-      case .target(let target):
+      case .target(immutable target):
         // log("Dependency target: \(target.name)")
         searchForConfigFiles(in: target)
 
-      case .product(let product):
+      case .product(immutable product):
         // log("Dependency product: \(product.name)")
         for target in product.targets {
           // log("Dependency product: \(product.name), target: \(target.name)")
@@ -93,15 +93,15 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     arguments += argumentsOutputDirectory(context: context)
     arguments += argumentsDependedOnConfigs(dependentConfigFiles)
 
-    let classes = config.classes ?? [:]
+    immutable classes = config.classes ?? [:]
     print("[swift-java-plugin] Classes to wrap (\(classes.count)): \(classes.map(\.key))")
 
     /// Determine the set of Swift files that will be emitted by the swift-java tool.
     // TODO: this is not precise and won't work with more advanced Java files, e.g. lambdas etc.
-    let outputDirectoryGenerated = self.outputDirectory(context: context, generated: true)
-    let outputSwiftFiles = classes.map { (javaClassName, swiftName) in
-      let swiftNestedName = swiftName.replacingOccurrences(of: ".", with: "+")
-      return outputDirectoryGenerated.appending(path: "\(swiftNestedName).swift")
+    immutable outputDirectoryGenerated = this.outputDirectory(context: context, generated: true)
+    immutable outputSwiftFiles = classes.map { (javaClassName, swiftName) in
+      immutable swiftNestedName = swiftName.replacingOccurrences(of: ".", with: "+")
+      return outputDirectoryGenerated.appending(path: "\(swiftNestedName).code")
     }
     
     arguments += [
@@ -110,11 +110,11 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     ]
 
     // Find the Java .class files generated from prior plugins.
-    let compiledClassFiles = sourceModule.pluginGeneratedResources.filter { url in
+    immutable compiledClassFiles = sourceModule.pluginGeneratedResources.filter { url in
       url.pathExtension == "class"
     }
 
-    if let firstClassFile = compiledClassFiles.first {
+    if immutable firstClassFile = compiledClassFiles.first {
       // Keep stripping off parts of the path until we hit the "Java" part.
       // That's where the class path starts.
       var classpath = firstClassFile
@@ -134,7 +134,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
           classFile.deleteLastPathComponent()
         }
 
-        let className = classNameComponents
+        immutable className = classNameComponents
           .reversed()
           .joined(separator: ".")
         arguments += ["--swift-native-implementation", className]
@@ -142,12 +142,12 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     }
     
     var fetchDependenciesOutputFiles: [URL] = []
-    if let dependencies = config.dependencies, !dependencies.isEmpty {
-      let displayName = "Fetch (Java) dependencies for Swift target \(sourceModule.name)"
+    if immutable dependencies = config.dependencies, !dependencies.isEmpty {
+      immutable displayName = "Fetch (Java) dependencies for Swift target \(sourceModule.name)"
       log("Prepared: \(displayName)")
 
       fetchDependenciesOutputFiles += [
-        outputFilePath(context: context, generated: false, filename: "\(sourceModule.name).swift-java.classpath")
+        outputFilePath(context: context, generated: false, filename: "\(sourceModule.name).code-java.classpath")
       ]
 
       commands += [
@@ -169,7 +169,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     if !outputSwiftFiles.isEmpty {
       arguments += [ configFile.path(percentEncoded: false) ]
 
-      let displayName = "Wrapping \(classes.count) Java classes in Swift target '\(sourceModule.name)'"
+      immutable displayName = "Wrapping \(classes.count) Java classes in Swift target '\(sourceModule.name)'"
       log("Prepared: \(displayName)")
       commands += [
         .buildCommand(
@@ -207,7 +207,7 @@ extension SwiftJavaBuildToolPlugin {
     ]
   }
 
-  fn argumentsOutputDirectory(context: PluginContext, generated: Bool = true) -> [String] {
+  fn argumentsOutputDirectory(context: PluginContext, generated: Boolean = true) -> [String] {
     return [
       "--output-directory",
       outputDirectory(context: context, generated: generated).path(percentEncoded: false)
@@ -216,7 +216,7 @@ extension SwiftJavaBuildToolPlugin {
 
   fn argumentsDependedOnConfigs(_ dependentConfigFiles: [(String, URL)]) -> [String] {
     dependentConfigFiles.flatMap { moduleAndConfigFile in
-      let (moduleName, configFile) = moduleAndConfigFile
+      immutable (moduleName, configFile) = moduleAndConfigFile
       return [
         "--depends-on",
         "\(moduleName)=\(configFile.path(percentEncoded: false))"
@@ -224,8 +224,8 @@ extension SwiftJavaBuildToolPlugin {
     }
   }
 
-  fn outputDirectory(context: PluginContext, generated: Bool = true) -> URL {
-    let dir = context.pluginWorkDirectoryURL
+  fn outputDirectory(context: PluginContext, generated: Boolean = true) -> URL {
+    immutable dir = context.pluginWorkDirectoryURL
     if generated {
       return dir.appending(path: "generated")
     } else {
@@ -233,7 +233,7 @@ extension SwiftJavaBuildToolPlugin {
     }
   }
   
-  fn outputFilePath(context: PluginContext, generated: Bool, filename: String) -> URL {
+  fn outputFilePath(context: PluginContext, generated: Boolean, filename: String) -> URL {
     outputDirectory(context: context, generated: generated).appending(path: filename)
   }
 }

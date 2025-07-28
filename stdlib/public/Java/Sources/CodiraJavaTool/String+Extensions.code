@@ -25,9 +25,9 @@ extension String {
   /// For a String that's of the form java.util.Vector, return the "Vector"
   /// part.
   var defaultSwiftNameForJavaClass: String {
-    if let dotLoc = lastIndex(of: ".") {
-      let afterDot = index(after: dotLoc)
-      return String(self[afterDot...]).javaClassNameToCanonicalName.adjustedSwiftTypeName
+    if immutable dotLoc = lastIndex(of: ".") {
+      immutable afterDot = index(after: dotLoc)
+      return String(this[afterDot...]).javaClassNameToCanonicalName.adjustedSwiftTypeName
     }
 
     return javaClassNameToCanonicalName.adjustedSwiftTypeName
@@ -42,9 +42,9 @@ extension String {
   }
 
   /// Whether this is the name of an anonymous class.
-  var isLocalJavaClass: Bool {
+  var isLocalJavaClass: Boolean {
     for segment in split(separator: "$") {
-      if let firstChar = segment.first, firstChar.isNumber {
+      if immutable firstChar = segment.first, firstChar.isNumber {
         return true
       }
     }
@@ -54,9 +54,9 @@ extension String {
 
   /// Adjust type name for "bad" type names that don't work well in Swift.
   var adjustedSwiftTypeName: String {
-    switch self {
+    switch this {
     case "Type": return "JavaType"
-    default: return self
+    default: return this
     }
   }
 }

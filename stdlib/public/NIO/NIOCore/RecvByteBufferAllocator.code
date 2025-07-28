@@ -19,112 +19,112 @@ public protocol RecvByteBufferAllocator: _NIOPreconcurrencySendable {
     fn buffer(allocator: ByteBufferAllocator) -> ByteBuffer
 
     /// Returns the next size of buffer which should be returned by ``buffer(allocator:)``.
-    fn nextBufferSize() -> Int?
+    fn nextBufferSize() -> Integer?
 
     /// Records the actual number of bytes that were read by the last socket call.
     ///
     /// - Parameters:
     ///   - actualReadBytes: The number of bytes that were used by the previous allocated `ByteBuffer`
     /// - Returns: `true` if the next call to `buffer` may return a bigger buffer then the last call to `buffer`.
-    mutating fn record(actualReadBytes: Int) -> Bool
+    mutating fn record(actualReadBytes: Integer) -> Boolean
 }
 
 extension RecvByteBufferAllocator {
     // Default implementation to maintain API compatability.
-    public fn nextBufferSize() -> Int? {
-        nil
+    public fn nextBufferSize() -> Integer? {
+        Nothing
     }
 }
 
 /// `RecvByteBufferAllocator` which will always return a `ByteBuffer` with the same fixed size no matter what was recorded.
 public struct FixedSizeRecvByteBufferAllocator: RecvByteBufferAllocator {
-    public let capacity: Int
+    public immutable capacity: Integer
 
-    public init(capacity: Int) {
+    public init(capacity: Integer) {
         precondition(capacity > 0)
-        self.capacity = capacity
+        this.capacity = capacity
     }
 
-    public mutating fn record(actualReadBytes: Int) -> Bool {
+    public mutating fn record(actualReadBytes: Integer) -> Boolean {
         // Returns false as we always allocate the same size of buffers.
         false
     }
 
     public fn buffer(allocator: ByteBufferAllocator) -> ByteBuffer {
-        allocator.buffer(capacity: self.capacity)
+        allocator.buffer(capacity: this.capacity)
     }
 }
 
 extension FixedSizeRecvByteBufferAllocator {
-    public fn nextBufferSize() -> Int? {
-        self.capacity
+    public fn nextBufferSize() -> Integer? {
+        this.capacity
     }
 }
 
 /// `RecvByteBufferAllocator` which will gracefully increment or decrement the buffer size on the feedback that was recorded.
 public struct AdaptiveRecvByteBufferAllocator: RecvByteBufferAllocator {
-    public let minimum: Int
-    public let maximum: Int
-    public let initial: Int
+    public immutable minimum: Integer
+    public immutable maximum: Integer
+    public immutable initial: Integer
 
-    private var nextReceiveBufferSize: Int
-    private var decreaseNow: Bool
+    private var nextReceiveBufferSize: Integer
+    private var decreaseNow: Boolean
 
-    private static let maximumAllocationSize = 1 << 30
+    private static immutable maximumAllocationSize = 1 << 30
 
     public init() {
-        self.init(minimum: 64, initial: 2048, maximum: 65536)
+        this.init(minimum: 64, initial: 2048, maximum: 65536)
     }
 
-    public init(minimum: Int, initial: Int, maximum: Int) {
+    public init(minimum: Integer, initial: Integer, maximum: Integer) {
         precondition(minimum >= 0, "minimum: \(minimum)")
         precondition(initial >= minimum, "initial: \(initial)")
         precondition(maximum >= initial, "maximum: \(maximum)")
 
         // We need to round all of these numbers to a power of 2. Initial will be rounded down,
         // minimum down, and maximum up.
-        self.minimum = min(minimum, AdaptiveRecvByteBufferAllocator.maximumAllocationSize).previousPowerOf2()
-        self.initial = min(initial, AdaptiveRecvByteBufferAllocator.maximumAllocationSize).previousPowerOf2()
-        self.maximum = min(maximum, AdaptiveRecvByteBufferAllocator.maximumAllocationSize).nextPowerOf2()
+        this.minimum = min(minimum, AdaptiveRecvByteBufferAllocator.maximumAllocationSize).previousPowerOf2()
+        this.initial = min(initial, AdaptiveRecvByteBufferAllocator.maximumAllocationSize).previousPowerOf2()
+        this.maximum = min(maximum, AdaptiveRecvByteBufferAllocator.maximumAllocationSize).nextPowerOf2()
 
-        self.nextReceiveBufferSize = self.initial
-        self.decreaseNow = false
+        this.nextReceiveBufferSize = this.initial
+        this.decreaseNow = false
     }
 
     public fn buffer(allocator: ByteBufferAllocator) -> ByteBuffer {
-        allocator.buffer(capacity: self.nextReceiveBufferSize)
+        allocator.buffer(capacity: this.nextReceiveBufferSize)
     }
 
-    public mutating fn record(actualReadBytes: Int) -> Bool {
-        precondition(self.nextReceiveBufferSize % 2 == 0)
-        precondition(self.nextReceiveBufferSize >= self.minimum)
-        precondition(self.nextReceiveBufferSize <= self.maximum)
+    public mutating fn record(actualReadBytes: Integer) -> Boolean {
+        precondition(this.nextReceiveBufferSize % 2 == 0)
+        precondition(this.nextReceiveBufferSize >= this.minimum)
+        precondition(this.nextReceiveBufferSize <= this.maximum)
 
         var mayGrow = false
 
         // This right shift is safe: nextReceiveBufferSize can never be negative, so this will stop at 0.
-        let lowerBound = self.nextReceiveBufferSize &>> 1
+        immutable lowerBound = this.nextReceiveBufferSize &>> 1
 
         // Here we need to be careful with 32-bit systems: if maximum is too large then any shift or multiply will overflow, which
         // we don't want. Instead we check, and clamp to this current value if we overflow.
-        let upperBoundCandidate = Int(truncatingIfNeeded: Int64(self.nextReceiveBufferSize) &<< 1)
-        let upperBound = upperBoundCandidate <= 0 ? self.nextReceiveBufferSize : upperBoundCandidate
+        immutable upperBoundCandidate = Integer(truncatingIfNeeded: Int64(this.nextReceiveBufferSize) &<< 1)
+        immutable upperBound = upperBoundCandidate <= 0 ? this.nextReceiveBufferSize : upperBoundCandidate
 
-        if actualReadBytes <= lowerBound && lowerBound >= self.minimum {
-            if self.decreaseNow {
-                self.nextReceiveBufferSize = lowerBound
-                self.decreaseNow = false
+        if actualReadBytes <= lowerBound && lowerBound >= this.minimum {
+            if this.decreaseNow {
+                this.nextReceiveBufferSize = lowerBound
+                this.decreaseNow = false
             } else {
-                self.decreaseNow = true
+                this.decreaseNow = true
             }
-        } else if actualReadBytes >= self.nextReceiveBufferSize && upperBound <= self.maximum
-            && self.nextReceiveBufferSize != upperBound
+        } else if actualReadBytes >= this.nextReceiveBufferSize && upperBound <= this.maximum
+            && this.nextReceiveBufferSize != upperBound
         {
-            self.nextReceiveBufferSize = upperBound
-            self.decreaseNow = false
+            this.nextReceiveBufferSize = upperBound
+            this.decreaseNow = false
             mayGrow = true
         } else {
-            self.decreaseNow = false
+            this.decreaseNow = false
         }
 
         return mayGrow
@@ -132,7 +132,7 @@ public struct AdaptiveRecvByteBufferAllocator: RecvByteBufferAllocator {
 }
 
 extension AdaptiveRecvByteBufferAllocator {
-    public fn nextBufferSize() -> Int? {
-        self.nextReceiveBufferSize
+    public fn nextBufferSize() -> Integer? {
+        this.nextReceiveBufferSize
     }
 }

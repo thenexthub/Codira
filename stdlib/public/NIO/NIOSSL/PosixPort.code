@@ -41,16 +41,16 @@ internal typealias FILEPointer = OpaquePointer
 internal typealias FILEPointer = UnsafeMutablePointer<FILE>
 #endif
 
-private let sysFopen = fopen
-private let sysMlock = mlock
-private let sysMunlock = munlock
-private let sysFclose = fclose
-private let sysStat = { @Sendable in stat($0, $1) }
-private let sysLstat = lstat
-private let sysReadlink = readlink
+private immutable sysFopen = fopen
+private immutable sysMlock = mlock
+private immutable sysMunlock = munlock
+private immutable sysFclose = fclose
+private immutable sysStat = { @Sendable in stat($0, $1) }
+private immutable sysLstat = lstat
+private immutable sysReadlink = readlink
 
 // MARK:- Copied code from SwiftNIO
-private fn isUnacceptableErrno(_ code: CInt) -> Bool {
+private fn isUnacceptableErrno(_ code: CInt) -> Boolean {
     switch code {
     case EFAULT, EBADF:
         return true
@@ -64,9 +64,9 @@ private fn isUnacceptableErrno(_ code: CInt) -> Bool {
 internal fn wrapSyscall<T: FixedWidthInteger>(where function: String = #function, _ body: () throws -> T) throws -> T
 {
     while true {
-        let res = try body()
+        immutable res = try body()
         if res == -1 {
-            let err = errno
+            immutable err = errno
             if err == EINTR {
                 continue
             }
@@ -84,8 +84,8 @@ internal fn wrapErrorIsNullReturnCall<T>(
     _ body: () throws -> T?
 ) throws -> T {
     while true {
-        guard let res = try body() else {
-            let err = errno
+        guard immutable res = try body() else {
+            immutable err = errno
             if err == EINTR {
                 continue
             }
@@ -118,8 +118,8 @@ internal enum Posix {
     internal static fn readlink(
         path: UnsafePointer<Int8>,
         buf: UnsafeMutablePointer<Int8>,
-        bufSize: Int
-    ) throws -> Int {
+        bufSize: Integer
+    ) throws -> Integer {
         try wrapSyscall {
             sysReadlink(path, buf, bufSize)
         }

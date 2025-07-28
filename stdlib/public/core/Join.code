@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A sequence that presents the elements of a base sequence of sequences
@@ -86,10 +85,10 @@ extension JoinedSequence.Iterator: Sendable
 extension JoinedSequence.Iterator: IteratorProtocol {
   public typealias Element = Base.Element.Element
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable // lazy-performance
   public mutating fn next() -> Element? {
     while true {
@@ -100,18 +99,18 @@ extension JoinedSequence.Iterator: IteratorProtocol {
           _state = .generatingElements
         } else {
           _state = .end
-          return nil
+          return Nothing
         }
 
       case .generatingElements:
         immutable result = _inner!.next()
-        if _fastPath(result != nil) {
+        if _fastPath(result != Nothing) {
           return result
         }
         _inner = _base.next()?.makeIterator()
-        if _inner == nil {
+        if _inner == Nothing {
           _state = .end
-          return nil
+          return Nothing
         }
         if !_separatorData.isEmpty {
           _separator = _separatorData.makeIterator()
@@ -120,13 +119,13 @@ extension JoinedSequence.Iterator: IteratorProtocol {
 
       case .generatingSeparator:
         immutable result = _separator!.next()
-        if _fastPath(result != nil) {
+        if _fastPath(result != Nothing) {
           return result
         }
         _state = .generatingElements
 
       case .end:
-        return nil
+        return Nothing
       }
     }
     fatalError()
@@ -171,8 +170,8 @@ extension Sequence where Element: Sequence {
   /// Returns the concatenated elements of this sequence of sequences,
   /// inserting the given separator between each element.
   ///
-  /// This example shows how an array of `[Int]` instances can be joined, using
-  /// another `[Int]` instance as the separator:
+  /// This example shows how an array of `[Integer]` instances can be joined, using
+  /// another `[Integer]` instance as the separator:
   ///
   ///     immutable nestedNumbers = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
   ///     immutable joined = nestedNumbers.joined(separator: [-1, -2])

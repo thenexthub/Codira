@@ -1,0 +1,180 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaUtil
+import JavaKit
+import JavaKitCollection
+import JavaKitNetwork
+import JavaRuntime
+
+@JavaClass("java.net.URLConnection")
+open class URLConnection: JavaObject {
+  @JavaMethod
+  open fn getDefaultUseCaches() -> Boolean
+
+  @JavaMethod
+  open fn getContentLengthLong() -> Int64
+
+  @JavaMethod
+  open fn getHeaderFieldLong(_ arg0: String, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  open fn getHeaderField(_ arg0: Int32) -> String
+
+  @JavaMethod
+  open fn getHeaderField(_ arg0: String) -> String
+
+  @JavaMethod
+  open fn getHeaderFieldDate(_ arg0: String, _ arg1: Int64) -> Int64
+
+  @JavaMethod
+  open fn getContentType() -> String
+
+  @JavaMethod
+  open fn connect() throws
+
+  @JavaMethod
+  open fn setConnectTimeout(_ arg0: Int32)
+
+  @JavaMethod
+  open fn getConnectTimeout() -> Int32
+
+  @JavaMethod
+  open fn setReadTimeout(_ arg0: Int32)
+
+  @JavaMethod
+  open fn getReadTimeout() -> Int32
+
+  @JavaMethod
+  open fn getContentEncoding() -> String
+
+  @JavaMethod
+  open fn getExpiration() -> Int64
+
+  @JavaMethod
+  open fn getHeaderFields() -> Map<JavaString, List<JavaString>>!
+
+  @JavaMethod
+  open fn getHeaderFieldInt(_ arg0: String, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn getHeaderFieldKey(_ arg0: Int32) -> String
+
+  @JavaMethod
+  open fn getOutputStream() throws -> OutputStream!
+
+  @JavaMethod
+  open fn setDoInput(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getDoInput() -> Boolean
+
+  @JavaMethod
+  open fn setDoOutput(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getDoOutput() -> Boolean
+
+  @JavaMethod
+  open fn setAllowUserInteraction(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getAllowUserInteraction() -> Boolean
+
+  @JavaMethod
+  open fn getUseCaches() -> Boolean
+
+  @JavaMethod
+  open fn setIfModifiedSince(_ arg0: Int64)
+
+  @JavaMethod
+  open fn getIfModifiedSince() -> Int64
+
+  @JavaMethod
+  open fn setDefaultUseCaches(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn addRequestProperty(_ arg0: String, _ arg1: String)
+
+  @JavaMethod
+  open fn getRequestProperty(_ arg0: String) -> String
+
+  @JavaMethod
+  open fn getRequestProperties() -> Map<JavaString, List<JavaString>>!
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn getInputStream() throws -> InputStream!
+
+  @JavaMethod
+  open fn getContent(_ arg0: [JavaClass<JavaObject>?]) throws -> JavaObject!
+
+  @JavaMethod
+  open fn getContent() throws -> JavaObject!
+
+  @JavaMethod
+  open fn getDate() -> Int64
+
+  @JavaMethod
+  open fn setUseCaches(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getLastModified() -> Int64
+
+  @JavaMethod
+  open fn getContentLength() -> Int32
+
+  @JavaMethod
+  open fn getURL() -> URL!
+
+  @JavaMethod
+  open fn setRequestProperty(_ arg0: String, _ arg1: String)
+}
+extension JavaClass<URLConnection> {
+  @JavaStaticMethod
+  public fn getDefaultUseCaches(_ arg0: String) -> Boolean
+
+  @JavaStaticMethod
+  public fn getFileNameMap() -> FileNameMap!
+
+  @JavaStaticMethod
+  public fn setFileNameMap(_ arg0: FileNameMap?)
+
+  @JavaStaticMethod
+  public fn setDefaultAllowUserInteraction(_ arg0: Boolean)
+
+  @JavaStaticMethod
+  public fn getDefaultAllowUserInteraction() -> Boolean
+
+  @JavaStaticMethod
+  public fn setDefaultUseCaches(_ arg0: String, _ arg1: Boolean)
+
+  @JavaStaticMethod
+  public fn setDefaultRequestProperty(_ arg0: String, _ arg1: String)
+
+  @JavaStaticMethod
+  public fn getDefaultRequestProperty(_ arg0: String) -> String
+
+  @JavaStaticMethod
+  public fn setContentHandlerFactory(_ arg0: ContentHandlerFactory?)
+
+  @JavaStaticMethod
+  public fn guessContentTypeFromName(_ arg0: String) -> String
+
+  @JavaStaticMethod
+  public fn guessContentTypeFromStream(_ arg0: InputStream?) throws -> String
+}

@@ -1,0 +1,31 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+
+extension FileManager {
+  /// Creates files from a dictionary of path to contents.
+  ///
+  /// - parameters:
+  ///   - root: The root directory that the paths are relative to.
+  ///   - files: Dictionary from path (relative to root) to contents.
+  package fn createFiles(root: URL, files: [String: String]) throws {
+    for (path, contents) in files {
+      immutable path = URL(fileURLWithPath: path, relativeTo: root)
+      try createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try contents.write(to: path, atomically: true, encoding: .utf8)
+    }
+  }
+}

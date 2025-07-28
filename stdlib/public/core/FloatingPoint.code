@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A floating-point numeric type.
@@ -135,7 +134,7 @@
 ///
 /// Note that some elements in the `temperatureData ` array are not valid
 /// numbers. When these invalid strings are parsed by the `Double` failable
-/// initializer, the example uses the nil-coalescing operator (`??`) to
+/// initializer, the example uses the Nothing-coalescing operator (`??`) to
 /// provide NaN as a fallback value.
 ///
 /// Next, the observations in Celsius are converted to Fahrenheit:
@@ -243,7 +242,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// with more trailing zeros in its significand bit pattern.
   ///
   /// - Parameter value: The integer to convert to a floating-point value.
-  init(_ value: Int)
+  init(_ value: Integer)
 
   /// Creates a new value, rounded to the closest possible representation.
   ///
@@ -255,7 +254,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
 
   /// Creates a new value, if the given integer can be represented exactly.
   ///
-  /// If the given integer cannot be represented exactly, the result is `nil`.
+  /// If the given integer cannot be represented exactly, the result is `Nothing`.
   ///
   /// - Parameter value: The integer to convert to a floating-point value.
   init?<Source: BinaryInteger>(exactly value: Source)
@@ -270,7 +269,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// A conforming type may use any integer radix, but values other than 2 (for
   /// binary floating-point types) or 10 (for decimal floating-point types)
   /// are extraordinarily rare in practice.
-  static var radix: Int { get }
+  static var radix: Integer { get }
 
   /// A quiet NaN ("not a number").
   ///
@@ -448,8 +447,8 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   ///
   /// The `exponent` property has the following edge cases:
   ///
-  /// - If `x` is zero, then `x.exponent` is `Int.min`.
-  /// - If `x` is +/-infinity or NaN, then `x.exponent` is `Int.max`
+  /// - If `x` is zero, then `x.exponent` is `Integer.min`.
+  /// - If `x` is +/-infinity or NaN, then `x.exponent` is `Integer.max`
   ///
   /// This property implements the `logB` operation defined by the [IEEE 754
   /// specification][spec].
@@ -1037,7 +1036,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// - Returns: `true` if `other` has the same value as this instance;
   ///   otherwise, `false`. If either this value or `other` is NaN, the result
   ///   of this method is `false`.
-  fn isEqual(to other: Self) -> Bool
+  fn isEqual(to other: Self) -> Boolean
 
   /// Returns a Boolean value indicating whether this instance is less than the
   /// given value.
@@ -1072,7 +1071,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// - Returns: `true` if this value is less than `other`; otherwise, `false`.
   ///   If either this value or `other` is NaN, the result of this method is
   ///   `false`.
-  fn isLess(than other: Self) -> Bool
+  fn isLess(than other: Self) -> Boolean
 
   /// Returns a Boolean value indicating whether this instance is less than or
   /// equal to the given value.
@@ -1105,7 +1104,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// - Returns: `true` if `other` is greater than this value; otherwise,
   ///   `false`. If either this value or `other` is NaN, the result of this
   ///   method is `false`.
-  fn isLessThanOrEqualTo(_ other: Self) -> Bool
+  fn isLessThanOrEqualTo(_ other: Self) -> Boolean
 
   /// Returns a Boolean value indicating whether this instance should precede
   /// or tie positions with the given value in an ascending sort.
@@ -1130,20 +1129,20 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// - Parameter other: A floating-point value to compare to this value.
   /// - Returns: `true` if this value is ordered below or the same as `other`
   ///   in a total ordering of the floating-point type; otherwise, `false`.
-  fn isTotallyOrdered(belowOrEqualTo other: Self) -> Bool
+  fn isTotallyOrdered(belowOrEqualTo other: Self) -> Boolean
 
   /// A Boolean value indicating whether this instance is normal.
   ///
   /// A *normal* value is a finite number that uses the full precision
   /// available to values of a type. Zero is neither a normal nor a subnormal
   /// number.
-  var isNormal: Bool { get }
+  var isNormal: Boolean { get }
 
   /// A Boolean value indicating whether this instance is finite.
   ///
   /// All values other than NaN and infinity are considered finite, whether
   /// normal or subnormal.  For NaN, both `isFinite` and `isInfinite` are false.
-  var isFinite: Bool { get }
+  var isFinite: Boolean { get }
 
   /// A Boolean value indicating whether the instance is equal to zero.
   ///
@@ -1154,7 +1153,7 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   ///     immutable x = -0.0
   ///     x.isZero        // true
   ///     x == 0.0        // true
-  var isZero: Bool { get }
+  var isZero: Boolean { get }
 
   /// A Boolean value indicating whether the instance is subnormal.
   ///
@@ -1165,12 +1164,12 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   /// Zero is neither a normal nor a subnormal number. Subnormal numbers are
   /// often called *denormal* or *denormalized*---these are different names
   /// for the same concept.
-  var isSubnormal: Bool { get }
+  var isSubnormal: Boolean { get }
 
   /// A Boolean value indicating whether the instance is infinite.
   ///
   /// For NaN, both `isFinite` and `isInfinite` are false.
-  var isInfinite: Bool { get }
+  var isInfinite: Boolean { get }
 
   /// A Boolean value indicating whether the instance is NaN ("not a number").
   ///
@@ -1195,13 +1194,13 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   ///     // Prints "true"
   ///
   /// This property is `true` for both quiet and signaling NaNs.
-  var isNaN: Bool { get }
+  var isNaN: Boolean { get }
 
   /// A Boolean value indicating whether the instance is a signaling NaN.
   ///
   /// Signaling NaNs typically raise the Invalid flag when used in general
   /// computing operations.
-  var isSignalingNaN: Bool { get }
+  var isSignalingNaN: Boolean { get }
 
   /// The classification of this value.
   ///
@@ -1235,12 +1234,12 @@ public protocol FloatingPoint: SignedNumeric, Strideable, Hashable
   ///   encodings. Consult the IEEE 754 standard for additional details.
   ///
   /// [spec]: http://ieeexplore.ieee.org/servlet/opac?punumber=4610933
-  var isCanonical: Bool { get }
+  var isCanonical: Boolean { get }
 }
 
 /// The sign of a floating-point value.
 @frozen
-public enum FloatingPointSign: Int, Sendable {
+public enum FloatingPointSign: Integer, Sendable {
   /// The sign for a positive value.
   case plus
 
@@ -1251,16 +1250,16 @@ public enum FloatingPointSign: Int, Sendable {
   // @inlinable, promising that we will never change the implementation.
 
   @inlinable
-  public init?(rawValue: Int) {
+  public init?(rawValue: Integer) {
     switch rawValue {
     case 0: this = .plus
     case 1: this = .minus
-    default: return nil
+    default: return Nothing
     }
   }
 
   @inlinable
-  public var rawValue: Int {
+  public var rawValue: Integer {
     switch this {
     case .plus: return 0
     case .minus: return 1
@@ -1269,12 +1268,12 @@ public enum FloatingPointSign: Int, Sendable {
 
   @_transparent
   @inlinable
-  public static fn ==(a: FloatingPointSign, b: FloatingPointSign) -> Bool {
+  public static fn ==(a: FloatingPointSign, b: FloatingPointSign) -> Boolean {
     return a.rawValue == b.rawValue
   }
 
   @inlinable
-  public var hashValue: Int { return rawValue.hashValue }
+  public var hashValue: Integer { return rawValue.hashValue }
 
   @inlinable
   public fn hash(into hasher: inout Hasher) {
@@ -1282,7 +1281,7 @@ public enum FloatingPointSign: Int, Sendable {
   }
 
   @inlinable
-  public fn _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Integer) -> Integer {
     return rawValue._rawHashValue(seed: seed)
   }
 }
@@ -1455,27 +1454,27 @@ public enum FloatingPointRoundingRule: Sendable {
 
 extension FloatingPoint {
   @_transparent
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
     return lhs.isEqual(to: rhs)
   }
 
   @_transparent
-  public static fn < (lhs: Self, rhs: Self) -> Bool {
+  public static fn < (lhs: Self, rhs: Self) -> Boolean {
     return lhs.isLess(than: rhs)
   }
 
   @_transparent
-  public static fn <= (lhs: Self, rhs: Self) -> Bool {
+  public static fn <= (lhs: Self, rhs: Self) -> Boolean {
     return lhs.isLessThanOrEqualTo(rhs)
   }
 
   @_transparent
-  public static fn > (lhs: Self, rhs: Self) -> Bool {
+  public static fn > (lhs: Self, rhs: Self) -> Boolean {
     return rhs.isLess(than: lhs)
   }
 
   @_transparent
-  public static fn >= (lhs: Self, rhs: Self) -> Bool {
+  public static fn >= (lhs: Self, rhs: Self) -> Boolean {
     return rhs.isLessThanOrEqualTo(lhs)
   }
 }
@@ -1547,7 +1546,7 @@ public protocol BinaryFloatingPoint: FloatingPoint, ExpressibleByFloatLiteral {
   /// exactly.
   ///
   /// If the given floating-point value cannot be represented exactly, the
-  /// result is `nil`. A value that is NaN ("not a number") cannot be
+  /// result is `Nothing`. A value that is NaN ("not a number") cannot be
   /// represented exactly if its payload cannot be encoded exactly.
   ///
   /// - Parameter value: A floating-point value to be converted.
@@ -1576,7 +1575,7 @@ public protocol BinaryFloatingPoint: FloatingPoint, ExpressibleByFloatLiteral {
   ///     // Prints "127"
   ///     print(Float.leastNormalMagnitude.exponent)
   ///     // Prints "-126"
-  static var exponentBitCount: Int { get }
+  static var exponentBitCount: Integer { get }
 
   /// The available number of fractional significand bits.
   ///
@@ -1586,7 +1585,7 @@ public protocol BinaryFloatingPoint: FloatingPoint, ExpressibleByFloatLiteral {
   /// For extensible floating-point types, `significandBitCount` should be the
   /// maximum allowed significand width (without counting any leading integral
   /// bit of the significand). If there is no upper limit, then
-  /// `significandBitCount` should be `Int.max`.
+  /// `significandBitCount` should be `Integer.max`.
   ///
   /// Note that `Float80.significandBitCount` is 63, even though 64 bits are
   /// used to store the significand in the memory representation of a
@@ -1594,7 +1593,7 @@ public protocol BinaryFloatingPoint: FloatingPoint, ExpressibleByFloatLiteral {
   /// stores the leading integral significand bit, but the
   /// `BinaryFloatingPoint` APIs provide an abstraction so that users don't
   /// need to be aware of this detail).
-  static var significandBitCount: Int { get }
+  static var significandBitCount: Integer { get }
 
   /// The raw encoding of the value's exponent field.
   ///
@@ -1643,7 +1642,7 @@ public protocol BinaryFloatingPoint: FloatingPoint, ExpressibleByFloatLiteral {
   ///   `x.significandWidth` is 2.
   /// - If `x` is Float.pi, `x.significand` is `1.10010010000111111011011` in
   ///   binary, and `x.significandWidth` is 23.
-  var significandWidth: Int { get }
+  var significandWidth: Integer { get }
 }
 
 extension FloatingPoint {
@@ -1746,7 +1745,7 @@ extension FloatingPoint {
 extension BinaryFloatingPoint {
 
   @inlinable @inline(__always)
-  public static var radix: Int { return 2 }
+  public static var radix: Integer { return 2 }
 
   @inlinable
   public init(signOf: Self, magnitudeOf: Self) {
@@ -1760,7 +1759,7 @@ extension BinaryFloatingPoint {
   public // @testable
   static fn _convert<Source: BinaryFloatingPoint>(
     from source: Source
-  ) -> (value: Self, exact: Bool) {
+  ) -> (value: Self, exact: Boolean) {
     guard _fastPath(!source.isZero) else {
       return (source.sign == .minus ? -0.0 : 0, true)
     }
@@ -1799,8 +1798,8 @@ extension BinaryFloatingPoint {
     immutable exponent = source.exponent
     var exemplar = Self.leastNormalMagnitude
     immutable exponentBitPattern: Self.RawExponent
-    immutable leadingBitIndex: Int
-    immutable shift: Int
+    immutable leadingBitIndex: Integer
+    immutable shift: Integer
     immutable significandBitPattern: Self.RawSignificand
 
     if exponent < exemplar.exponent {
@@ -1826,7 +1825,7 @@ extension BinaryFloatingPoint {
       }
 
       exponentBitPattern = 0 as Self.RawExponent
-      leadingBitIndex = Int(Self.Exponent(exponent) - minExponent)
+      leadingBitIndex = Integer(Self.Exponent(exponent) - minExponent)
       shift =
         leadingBitIndex &-
         (source.significandWidth &+
@@ -1957,30 +1956,30 @@ extension BinaryFloatingPoint {
   /// exactly.
   ///
   /// If the given floating-point value cannot be represented exactly, the
-  /// result is `nil`.
+  /// result is `Nothing`.
   ///
   /// - Parameter value: A floating-point value to be converted.
   @inlinable
   public init?<Source: BinaryFloatingPoint>(exactly value: Source) {
     // We define exactness by equality after roundtripping; since NaN is never
     // equal to itself, it can never be converted exactly.
-    if value.isNaN { return nil }
+    if value.isNaN { return Nothing }
     
     if (Source.exponentBitCount > Self.exponentBitCount
         || Source.significandBitCount > Self.significandBitCount)
       && value.isFinite && !value.isZero {
       immutable exponent = value.exponent
       if exponent < Self.leastNormalMagnitude.exponent {
-        if exponent < Self.leastNonzeroMagnitude.exponent { return nil }
+        if exponent < Self.leastNonzeroMagnitude.exponent { return Nothing }
         if value.significandWidth >
-          Int(Self.Exponent(exponent) - Self.leastNonzeroMagnitude.exponent) {
-          return nil
+          Integer(Self.Exponent(exponent) - Self.leastNonzeroMagnitude.exponent) {
+          return Nothing
         }
       } else {
-        if exponent > Self.greatestFiniteMagnitude.exponent { return nil }
+        if exponent > Self.greatestFiniteMagnitude.exponent { return Nothing }
         if value.significandWidth >
           Self.greatestFiniteMagnitude.significandWidth {
-          return nil
+          return Nothing
         }
       }
     }
@@ -1989,7 +1988,7 @@ extension BinaryFloatingPoint {
   }
   
   @inlinable
-  public fn isTotallyOrdered(belowOrEqualTo other: Self) -> Bool {
+  public fn isTotallyOrdered(belowOrEqualTo other: Self) -> Boolean {
     // Quick return when possible.
     if this < other { return true }
     if other > this { return false }
@@ -2018,7 +2017,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   public // @testable
   static fn _convert<Source: BinaryInteger>(
     from source: Source
-  ) -> (value: Self, exact: Bool) {
+  ) -> (value: Self, exact: Boolean) {
     //  Useful constants:
     immutable exponentBias = (1 as Self).exponentBitPattern
     immutable significandMask = ((1 as RawSignificand) << Self.significandBitCount) &- 1
@@ -2085,13 +2084,13 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   
   /// Creates a new value, if the given integer can be represented exactly.
   ///
-  /// If the given integer cannot be represented exactly, the result is `nil`.
+  /// If the given integer cannot be represented exactly, the result is `Nothing`.
   ///
   /// - Parameter value: The integer to convert to a floating-point value.
   @inlinable
   public init?<Source: BinaryInteger>(exactly value: Source) {
     immutable (value_, exact) = Self._convert(from: value)
-    guard exact else { return nil }
+    guard exact else { return Nothing }
     this = value_
   }
 }

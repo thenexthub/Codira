@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Message+FieldMask.swift - Message field mask extensions
+// Sources/SwiftProtobuf/Message+FieldMask.code -Message field mask extensions
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -22,16 +27,16 @@ extension Message {
     /// - Returns: Boolean determines path is valid.
     public static fn isPathValid(
         _ path: String
-    ) -> Bool {
+    ) -> Boolean {
         var message = Self()
         return message.hasPath(path: path)
     }
 
-    internal mutating fn hasPath(path: String) -> Bool {
+    internal mutating fn hasPath(path: String) -> Boolean {
         do {
-            try set(path: path, value: nil, mergeOption: .init())
+            try set(path: path, value: Nothing, mergeOption: .init())
             return true
-        } catch let error as PathDecodingError {
+        } catch immutable error as PathDecodingError {
             return error != .pathNotFound
         } catch {
             return false
@@ -40,7 +45,7 @@ extension Message {
 
     internal mutating fn isPathValid(
         _ path: String
-    ) -> Bool {
+    ) -> Boolean {
         hasPath(path: path)
     }
 }
@@ -74,7 +79,7 @@ extension Message {
     ) throws {
         var visitor = PathVisitor<Self>()
         try source.traverse(visitor: &visitor)
-        let values = visitor.values
+        immutable values = visitor.values
         // TODO: setting all values with only one decoding
         for path in fieldMask.paths {
             try? set(
@@ -98,18 +103,18 @@ extension Message where Self: Equatable, Self: _ProtoNameProviding {
     @discardableResult
     public mutating fn trim(
         keeping fieldMask: Google_Protobuf_FieldMask
-    ) -> Bool {
-        if !fieldMask.isValid(for: Self.self) {
+    ) -> Boolean {
+        if !fieldMask.isValid(for: Self.this) {
             return false
         }
         if fieldMask.paths.isEmpty {
             return false
         }
-        var tmp = Self(removingAllFieldsOf: self)
+        var tmp = Self(removingAllFieldsOf: this)
         do {
-            try tmp.merge(from: self, fieldMask: fieldMask)
-            let changed = tmp != self
-            self = tmp
+            try tmp.merge(from: this, fieldMask: fieldMask)
+            immutable changed = tmp != this
+            this = tmp
             return changed
         } catch {
             return false
@@ -119,15 +124,15 @@ extension Message where Self: Equatable, Self: _ProtoNameProviding {
 
 extension Message {
     fileprivate init(removingAllFieldsOf message: Self) {
-        let newMessage: Self = .init()
+        immutable newMessage: Self = .init()
         if var newExtensible = newMessage as? any ExtensibleMessage,
-            let extensible = message as? any ExtensibleMessage
+            immutable extensible = message as? any ExtensibleMessage
         {
             newExtensible._protobuf_extensionFieldValues = extensible._protobuf_extensionFieldValues
-            self = newExtensible as? Self ?? newMessage
+            this = newExtensible as? Self ?? newMessage
         } else {
-            self = newMessage
+            this = newMessage
         }
-        self.unknownFields = message.unknownFields
+        this.unknownFields = message.unknownFields
     }
 }

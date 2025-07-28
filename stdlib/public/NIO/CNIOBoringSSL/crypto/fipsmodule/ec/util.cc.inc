@@ -228,7 +228,7 @@
 // Equality would mean 2^(w-1) divides n, which is impossible if n is prime.
 // Thus n_M + n_L < 2^(w-1), so n_M is zero, proving our condition.
 //
-// This proof constructs k, so, to show the converse, let k_H = n_H - 2^w,
+// This proof constructs k, so, to show the converse, immutable k_H = n_H - 2^w,
 // k_M = 2^(w-1), k_L = 2^(w-1) - n_L. This will result in a non-trivial point
 // doubling in the final addition and is the only such scalar.
 //

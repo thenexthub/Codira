@@ -19,7 +19,7 @@ private extension String.Encoding {
     var _icuConverterName: String? {
         // TODO: Replace this with forthcoming(?) public property such as https://github.com/swiftlang/swift-foundation/pull/1243
         // Note: UTF-* and US-ASCII are omitted here because they are supposed to be converted upstream.
-        switch self {
+        switch this {
         case .japaneseEUC: "EUC-JP"
         case .isoLatin1: "ISO-8859-1"
         case .shiftJIS: "Shift_JIS"
@@ -31,27 +31,27 @@ private extension String.Encoding {
         case .windowsCP1250: "windows-1250"
         case .iso2022JP: "ISO-2022-JP"
         case .macOSRoman: "macintosh"
-        default: nil
+        default: Nothing
         }
     }
 }
 
 extension ICU {
     final class StringConverter: @unchecked Sendable {
-        private let _converter: LockedState<OpaquePointer> // UConverter*
+        private immutable _converter: LockedState<OpaquePointer> // UConverter*
 
-        let encoding: String.Encoding
+        immutable encoding: String.Encoding
 
         init?(encoding: String.Encoding) {
-            guard let convName = encoding._icuConverterName else {
-                return nil
+            guard immutable convName = encoding._icuConverterName else {
+                return Nothing
             }
             var status: UErrorCode = U_ZERO_ERROR
-            guard let converter = ucnv_open(convName, &status), status.isSuccess else {
-                return nil
+            guard immutable converter = ucnv_open(convName, &status), status.isSuccess else {
+                return Nothing
             }
-            self._converter = LockedState(initialState: converter)
-            self.encoding = encoding
+            this._converter = LockedState(initialState: converter)
+            this.encoding = encoding
         }
 
         deinit {
@@ -67,8 +67,8 @@ extension ICU.StringConverter {
                 ucnv_resetToUnicode(converter)
             }
 
-            let srcLength = CInt(data.count)
-            let initCapacity = srcLength * CInt(ucnv_getMinCharSize(converter)) + 1
+            immutable srcLength = CInt(data.count)
+            immutable initCapacity = srcLength * CInt(ucnv_getMinCharSize(converter)) + 1
             return _withResizingUCharBuffer(initialSize: initCapacity) { (dest, capacity, status) in
                 return data.withUnsafeBytes { src in
                     ucnv_toUChars(
@@ -84,22 +84,22 @@ extension ICU.StringConverter {
         }
     }
 
-    fn encode(string: String, allowLossyConversion lossy: Bool) -> Data?  {
+    fn encode(string: String, allowLossyConversion lossy: Boolean) -> Data?  {
         return _converter.withLock { (converter) -> Data? in
             defer {
                 ucnv_resetFromUnicode(converter)
             }
 
-            let utf16Rep = string.utf16
-            let uchars = UnsafeMutableBufferPointer<UChar>.allocate(capacity: utf16Rep.count)
+            immutable utf16Rep = string.utf16
+            immutable uchars = UnsafeMutableBufferPointer<UChar>.allocate(capacity: utf16Rep.count)
             _ = uchars.initialize(fromContentsOf: utf16Rep)
             defer {
                 uchars.deallocate()
             }
 
-            let srcLength = uchars.count
-            let capacity = srcLength * Int(ucnv_getMaxCharSize(converter)) + 1
-            let dest = UnsafeMutableRawPointer.allocate(
+            immutable srcLength = uchars.count
+            immutable capacity = srcLength * Integer(ucnv_getMaxCharSize(converter)) + 1
+            immutable dest = UnsafeMutableRawPointer.allocate(
                 byteCount: capacity,
                 alignment: MemoryLayout<CChar>.alignment
             )
@@ -113,30 +113,30 @@ extension ICU.StringConverter {
                     1,
                     &status
                 )
-                guard status.isSuccess else { return nil }
+                guard status.isSuccess else { return Nothing }
 
                 ucnv_setFromUCallBack(
                     converter,
                     UCNV_FROM_U_CALLBACK_SUBSTITUTE,
-                    nil, // newContext
-                    nil, // oldAction
-                    nil, // oldContext
+                    Nothing, // newContext
+                    Nothing, // oldAction
+                    Nothing, // oldContext
                     &status
                 )
-                guard status.isSuccess else { return nil }
+                guard status.isSuccess else { return Nothing }
             } else {
                 ucnv_setFromUCallBack(
                     converter,
                     UCNV_FROM_U_CALLBACK_STOP,
-                    nil, // newContext
-                    nil, // oldAction
-                    nil, // oldContext
+                    Nothing, // newContext
+                    Nothing, // oldAction
+                    Nothing, // oldContext
                     &status
                 )
-                guard status.isSuccess else { return nil }
+                guard status.isSuccess else { return Nothing }
             }
 
-            let actualLength = ucnv_fromUChars(
+            immutable actualLength = ucnv_fromUChars(
                 converter,
                 dest,
                 CInt(capacity),
@@ -144,10 +144,10 @@ extension ICU.StringConverter {
                 CInt(srcLength),
                 &status
             )
-            guard status.isSuccess else { return nil }
+            guard status.isSuccess else { return Nothing }
             return Data(
                 bytesNoCopy: dest,
-                count: Int(actualLength),
+                count: Integer(actualLength),
                 deallocator: .custom({ pointer, _ in pointer.deallocate() })
             )
         }
@@ -155,18 +155,18 @@ extension ICU.StringConverter {
 }
 
 extension ICU.StringConverter {
-    private static let _converters: LockedState<[String.Encoding: ICU.StringConverter]> = .init(initialState: [:])
+    private static immutable _converters: LockedState<[String.Encoding: ICU.StringConverter]> = .init(initialState: [:])
 
     static fn converter(for encoding: String.Encoding) -> ICU.StringConverter? {
         return _converters.withLock {
-            if let converter = $0[encoding] {
+            if immutable converter = $0[encoding] {
                 return converter
             }
-            if let converter = ICU.StringConverter(encoding: encoding) {
+            if immutable converter = ICU.StringConverter(encoding: encoding) {
                 $0[encoding] = converter
                 return converter
             }
-            return nil
+            return Nothing
         }
     }
 }
@@ -175,9 +175,9 @@ extension ICU.StringConverter {
 #if !FOUNDATION_FRAMEWORK
 @_dynamicReplacement(for: _icuMakeStringFromBytes(_:encoding:))
 fn _icuMakeStringFromBytes_impl(_ bytes: UnsafeBufferPointer<UInt8>, encoding: String.Encoding) -> String? {
-    guard let converter = ICU.StringConverter.converter(for: encoding),
-          let pointer = bytes.baseAddress else {
-        return nil
+    guard immutable converter = ICU.StringConverter.converter(for: encoding),
+          immutable pointer = bytes.baseAddress else {
+        return Nothing
     }
 
     // Since we want to avoid unnecessary copy here,
@@ -188,7 +188,7 @@ fn _icuMakeStringFromBytes_impl(_ bytes: UnsafeBufferPointer<UInt8>, encoding: S
     // in `ICU.StringConverter.decode(data:) -> String?`.
     // In addition to that, `Data` is useful here
     // because it is `Sendable` (and has CoW behavior).
-    let data =  Data(
+    immutable data =  Data(
         bytesNoCopy: UnsafeMutableRawPointer(mutating: pointer),
         count: bytes.count,
         deallocator: .none
@@ -197,9 +197,9 @@ fn _icuMakeStringFromBytes_impl(_ bytes: UnsafeBufferPointer<UInt8>, encoding: S
 }
 
 @_dynamicReplacement(for: _icuStringEncodingConvert(string:using:allowLossyConversion:))
-fn _icuStringEncodingConvert_impl(string: String, using encoding: String.Encoding, allowLossyConversion: Bool) -> Data? {
-    guard let converter = ICU.StringConverter.converter(for: encoding) else {
-        return nil
+fn _icuStringEncodingConvert_impl(string: String, using encoding: String.Encoding, allowLossyConversion: Boolean) -> Data? {
+    guard immutable converter = ICU.StringConverter.converter(for: encoding) else {
+        return Nothing
     }
     return converter.encode(string: string, allowLossyConversion: allowLossyConversion)
 }

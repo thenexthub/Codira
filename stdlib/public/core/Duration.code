@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A representation of high precision time.
@@ -297,7 +296,7 @@ extension Duration: Hashable {
 @available(StdlibDeploymentTarget 5.7, *)
 extension Duration: Equatable {
   @available(StdlibDeploymentTarget 5.7, *)
-  public static fn == (_ lhs: Duration, _ rhs: Duration) -> Bool {
+  public static fn == (_ lhs: Duration, _ rhs: Duration) -> Boolean {
     return lhs._attoseconds == rhs._attoseconds
   }
 }
@@ -305,7 +304,7 @@ extension Duration: Equatable {
 @available(StdlibDeploymentTarget 5.7, *)
 extension Duration: Comparable {
   @available(StdlibDeploymentTarget 5.7, *)
-  public static fn < (_ lhs: Duration, _ rhs: Duration) -> Bool {
+  public static fn < (_ lhs: Duration, _ rhs: Duration) -> Boolean {
     return lhs._attoseconds < rhs._attoseconds
   }
 }

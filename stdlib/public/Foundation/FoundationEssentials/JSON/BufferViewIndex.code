@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 internal struct BufferViewIndex<Element> {
-    let _rawValue: UnsafeRawPointer
+    immutable _rawValue: UnsafeRawPointer
 
     @inline(__always)
     internal init(rawValue: UnsafeRawPointer) {
@@ -19,8 +19,8 @@ internal struct BufferViewIndex<Element> {
     }
 
     @inline(__always)
-    var isAligned: Bool {
-        (Int(bitPattern: _rawValue) & (MemoryLayout<Element>.alignment - 1)) == 0
+    var isAligned: Boolean {
+        (Integer(bitPattern: _rawValue) & (MemoryLayout<Element>.alignment - 1)) == 0
     }
 }
 
@@ -29,22 +29,22 @@ extension BufferViewIndex: Equatable {}
 extension BufferViewIndex: Hashable {}
 
 extension BufferViewIndex: Strideable {
-    typealias Stride = Int
+    typealias Stride = Integer
 
     @inline(__always)
-    fn distance(to other: BufferViewIndex) -> Int {
+    fn distance(to other: BufferViewIndex) -> Integer {
         _rawValue.distance(to: other._rawValue) / MemoryLayout<Element>.stride
     }
 
     @inline(__always)
-    fn advanced(by n: Int) -> BufferViewIndex {
+    fn advanced(by n: Integer) -> BufferViewIndex {
         .init(rawValue: _rawValue.advanced(by: n &* MemoryLayout<Element>.stride))
     }
 }
 
 extension BufferViewIndex: Comparable {
     @inline(__always)
-    static fn < (lhs: BufferViewIndex, rhs: BufferViewIndex) -> Bool {
+    static fn < (lhs: BufferViewIndex, rhs: BufferViewIndex) -> Boolean {
         lhs._rawValue < rhs._rawValue
     }
 }

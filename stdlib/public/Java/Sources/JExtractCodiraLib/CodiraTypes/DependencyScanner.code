@@ -18,8 +18,8 @@ import SwiftSyntax
 fn importingModuleNames(sourceFile: SourceFileSyntax) -> [String] {
   var importingModuleNames: [String] = []
   for item in sourceFile.statements {
-    if let importDecl = item.item.as(ImportDeclSyntax.self) {
-      guard let moduleName = importDecl.path.first?.name.text else {
+    if immutable importDecl = item.item.as(ImportDeclSyntax.this) {
+      guard immutable moduleName = importDecl.path.first?.name.text else {
         continue
       }
       importingModuleNames.append(moduleName)

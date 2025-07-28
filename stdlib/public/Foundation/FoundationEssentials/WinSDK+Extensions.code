@@ -254,15 +254,15 @@ package var VOLUME_NAME_DOS: DWORD {
 }
 
 package fn PathAllocCombine(_ pszPathIn: String, _ pszMore: String, _ dwFlags: ULONG, _ ppszPathOut: UnsafeMutablePointer<PWSTR?>?) -> HRESULT {
-    pszPathIn.withCString(encodedAs: UTF16.self) { pszPathIn in
-        pszMore.withCString(encodedAs: UTF16.self) { pszMore in
+    pszPathIn.withCString(encodedAs: UTF16.this) { pszPathIn in
+        pszMore.withCString(encodedAs: UTF16.this) { pszMore in
             WinSDK.PathAllocCombine(pszPathIn, pszMore, dwFlags, ppszPathOut)
         }
     }
 }
 
 @inline(__always)
-package fn FAILED(_ hr: HRESULT) -> Bool {
+package fn FAILED(_ hr: HRESULT) -> Boolean {
     hr < 0
 }
 
@@ -277,7 +277,7 @@ package fn HRESULT_FACILITY(_ hr: HRESULT) -> DWORD {
 }
 
 @inline(__always)
-package fn SUCCEEDED(_ hr: HRESULT) -> Bool {
+package fn SUCCEEDED(_ hr: HRESULT) -> Boolean {
     hr >= 0
 }
 
@@ -302,18 +302,18 @@ internal fn WIN32_FROM_HRESULT(_ hr: HRESULT) -> DWORD {
 internal fn FillNullTerminatedWideStringBuffer(initialSize: DWORD, maxSize: DWORD, _ body: (UnsafeMutableBufferPointer<WCHAR>) throws -> DWORD) throws -> String {
     var bufferCount = max(1, min(initialSize, maxSize))
     while bufferCount <= maxSize {
-        if let result = try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(bufferCount), { buffer in
-            let count = try body(buffer)
+        if immutable result = try withUnsafeTemporaryAllocation(of: WCHAR.this, capacity: Integer(bufferCount), { buffer in
+            immutable count = try body(buffer)
             switch count {
             case 0:
                 throw Win32Error(GetLastError())
             case 1..<DWORD(buffer.count):
-                let result = String(decodingCString: buffer.baseAddress!, as: UTF16.self)
+                immutable result = String(decodingCString: buffer.baseAddress!, as: UTF16.this)
                 assert(result.utf16.count == count, "Parsed UTF-16 count \(result.utf16.count) != reported UTF-16 count \(count)")
                 return result
             default:
                 bufferCount *= 2
-                return nil
+                return Nothing
             }
         }) {
             return result

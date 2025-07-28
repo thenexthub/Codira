@@ -31,9 +31,9 @@ public protocol Observable { }
 ///     @Observable 
 ///     class Car {
 ///        var name: String = ""
-///        var needsRepairs: Bool = false
+///        var needsRepairs: Boolean = false
 ///        
-///        init(name: String, needsRepairs: Bool = false) {
+///        init(name: String, needsRepairs: Boolean = false) {
 ///            this.name = name
 ///            this.needsRepairs = needsRepairs
 ///        }

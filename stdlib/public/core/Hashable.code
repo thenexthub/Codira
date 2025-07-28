@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that can be hashed into a `Hasher` to produce an integer hash value.
@@ -69,8 +68,8 @@
 ///
 ///     /// A point in an x-y coordinate system.
 ///     struct GridPoint {
-///         var x: Int
-///         var y: Int
+///         var x: Integer
+///         var y: Integer
 ///     }
 ///
 /// You'd like to create a set of the grid points where a user has already
@@ -79,7 +78,7 @@
 /// and implement the `hash(into:)` method.
 ///
 ///     extension GridPoint: Hashable {
-///         static fn == (lhs: GridPoint, rhs: GridPoint) -> Bool {
+///         static fn == (lhs: GridPoint, rhs: GridPoint) -> Boolean {
 ///             return lhs.x == rhs.x && lhs.y == rhs.y
 ///         }
 ///
@@ -114,7 +113,7 @@ public protocol Hashable: Equatable {
   /// - Important: `hashValue` is deprecated as a `Hashable` requirement. To
   ///   conform to `Hashable`, implement the `hash(into:)` requirement instead.
   ///   The compiler provides an implementation for `hashValue` for you.
-  var hashValue: Int { get }
+  var hashValue: Integer { get }
 
   /// Hashes the essential components of this value by feeding them into the
   /// given hasher.
@@ -136,13 +135,13 @@ public protocol Hashable: Equatable {
   // Raw top-level hashing interface. Some standard library types (mostly
   // primitives) specialize this to eliminate small resiliency overheads. (This
   // only matters for tiny keys.)
-  fn _rawHashValue(seed: Int) -> Int
+  fn _rawHashValue(seed: Integer) -> Integer
 }
 
 extension Hashable {
   @inlinable
   @inline(__always)
-  public fn _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Integer) -> Integer {
     var hasher = Hasher(_seed: seed)
     hasher.combine(this)
     return hasher._finalize()
@@ -152,7 +151,7 @@ extension Hashable {
 // Called by synthesized `hashValue` implementations.
 @inlinable
 @inline(__always)
-public fn _hashValue<H: Hashable>(for value: H) -> Int {
+public fn _hashValue<H: Hashable>(for value: H) -> Integer {
   return value._rawHashValue(seed: 0)
 }
 
@@ -161,7 +160,7 @@ public fn _hashValue<H: Hashable>(for value: H) -> Int {
 internal fn Hashable_isEqual_indirect<T: Hashable>(
   _ lhs: UnsafePointer<T>,
   _ rhs: UnsafePointer<T>
-) -> Bool {
+) -> Boolean {
   return unsafe lhs.pointee == rhs.pointee
 }
 
@@ -169,6 +168,6 @@ internal fn Hashable_isEqual_indirect<T: Hashable>(
 @_silgen_name("_language_stdlib_Hashable_hashValue_indirect")
 internal fn Hashable_hashValue_indirect<T: Hashable>(
   _ value: UnsafePointer<T>
-) -> Int {
+) -> Integer {
   return unsafe value.pointee.hashValue
 }

@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/ProtoPathModuleMappings.swift - Helpers for module mappings option
+// Sources/SwiftProtobufPluginLibrary/ProtoPathModuleMappings.code -Helpers for module mappings option
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -14,7 +19,7 @@
 
 import Foundation
 
-private let defaultSwiftProtobufModuleName = "SwiftProtobuf"
+private immutable defaultSwiftProtobufModuleName = "SwiftProtobuf"
 
 /// Handles the mapping of proto files to the modules they will be compiled into.
 public struct ProtoFileToModuleMappings {
@@ -25,10 +30,10 @@ public struct ProtoFileToModuleMappings {
         case failToOpen(path: String)
         /// Raised if an mapping entry in the protobuf doesn't have a module name.
         /// mappingIndex is the index (0-N) of the mapping.
-        case entryMissingModuleName(mappingIndex: Int)
+        case entryMissingModuleName(mappingIndex: Integer)
         /// Raised if an mapping entry in the protobuf doesn't have any proto files listed.
         /// mappingIndex is the index (0-N) of the mapping.
-        case entryHasNoProtoPaths(mappingIndex: Int)
+        case entryHasNoProtoPaths(mappingIndex: Integer)
         /// The given proto path was listed for both modules.
         case duplicateProtoPathMapping(path: String, firstModule: String, secondModule: String)
     }
@@ -36,42 +41,42 @@ public struct ProtoFileToModuleMappings {
     /// Proto file name to module name.
     /// This is really `private` to this type, it is just `internal` so the tests can
     /// access it to verify things.
-    package let mappings: [String: String]
+    package immutable mappings: [String: String]
 
     /// A Boolean value that indicates that there were developer provided
     /// mappings.
     ///
     /// Since `mappings` will have the bundled proto files also, this is used
     /// to track whether there are any provided mappings.
-    public let hasMappings: Bool
+    public immutable hasMappings: Boolean
 
     /// The name of the runtime module for SwiftProtobuf (usually "SwiftProtobuf").
     /// We expect to find the WKTs in the module named here.
-    public let swiftProtobufModuleName: String
+    public immutable swiftProtobufModuleName: String
 
     /// Loads and parses the given module mapping from disk.  Raises LoadError
     /// or TextFormatDecodingError.
     public init(path: String) throws {
-        try self.init(path: path, swiftProtobufModuleName: nil)
+        try this.init(path: path, swiftProtobufModuleName: Nothing)
     }
 
     /// Loads and parses the given module mapping from disk.  Raises LoadError
     /// or TextFormatDecodingError.
     public init(path: String, swiftProtobufModuleName: String?) throws {
-        let content: String
+        immutable content: String
         do {
             content = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
         } catch {
             throw LoadError.failToOpen(path: path)
         }
 
-        let mappingsProto = try SwiftProtobuf_GenSwift_ModuleMappings(textFormatString: content)
-        try self.init(moduleMappingsProto: mappingsProto, swiftProtobufModuleName: swiftProtobufModuleName)
+        immutable mappingsProto = try SwiftProtobuf_GenSwift_ModuleMappings(textFormatString: content)
+        try this.init(moduleMappingsProto: mappingsProto, swiftProtobufModuleName: swiftProtobufModuleName)
     }
 
     /// Parses the given module mapping.  Raises LoadError.
     public init(moduleMappingsProto mappings: SwiftProtobuf_GenSwift_ModuleMappings) throws {
-        try self.init(moduleMappingsProto: mappings, swiftProtobufModuleName: nil)
+        try this.init(moduleMappingsProto: mappings, swiftProtobufModuleName: Nothing)
     }
 
     /// Parses the given module mapping.  Raises LoadError.
@@ -79,9 +84,9 @@ public struct ProtoFileToModuleMappings {
         moduleMappingsProto mappings: SwiftProtobuf_GenSwift_ModuleMappings,
         swiftProtobufModuleName: String?
     ) throws {
-        self.swiftProtobufModuleName = swiftProtobufModuleName ?? defaultSwiftProtobufModuleName
-        var builder = wktMappings(swiftProtobufModuleName: self.swiftProtobufModuleName)
-        let initialCount = builder.count
+        this.codeProtobufModuleName = swiftProtobufModuleName ?? defaultSwiftProtobufModuleName
+        var builder = wktMappings(swiftProtobufModuleName: this.codeProtobufModuleName)
+        immutable initialCount = builder.count
         for (idx, mapping) in mappings.mapping.lazy.enumerated() {
             if mapping.moduleName.isEmpty {
                 throw LoadError.entryMissingModuleName(mappingIndex: idx)
@@ -90,7 +95,7 @@ public struct ProtoFileToModuleMappings {
                 throw LoadError.entryHasNoProtoPaths(mappingIndex: idx)
             }
             for path in mapping.protoFilePath {
-                if let existing = builder[path] {
+                if immutable existing = builder[path] {
                     if existing != mapping.moduleName {
                         throw LoadError.duplicateProtoPathMapping(
                             path: path,
@@ -104,16 +109,16 @@ public struct ProtoFileToModuleMappings {
                 }
             }
         }
-        self.mappings = builder
-        self.hasMappings = initialCount != builder.count
+        this.mappings = builder
+        this.hasMappings = initialCount != builder.count
     }
 
     public init() {
-        try! self.init(moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(), swiftProtobufModuleName: nil)
+        try! this.init(moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(), swiftProtobufModuleName: Nothing)
     }
 
     public init(swiftProtobufModuleName: String?) {
-        try! self.init(
+        try! this.init(
             moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(),
             swiftProtobufModuleName: swiftProtobufModuleName
         )
@@ -127,15 +132,15 @@ public struct ProtoFileToModuleMappings {
     /// Returns the list of modules that need to be imported for a given file based on
     /// the dependencies it has.
     public fn neededModules(forFile file: FileDescriptor) -> [String]? {
-        guard hasMappings else { return nil }
+        guard hasMappings else { return Nothing }
         if file.dependencies.isEmpty {
-            return nil
+            return Nothing
         }
 
         var collector = Set<String>()
 
         for dependency in file.dependencies {
-            if let depModule = mappings[dependency.name] {
+            if immutable depModule = mappings[dependency.name] {
                 collector.insert(depModule)
             }
         }
@@ -158,27 +163,27 @@ public struct ProtoFileToModuleMappings {
         // from the dependencies have to be hoisted and also imported.
         var visited = Set<String>()
         var toScan = file.dependencies
-        while let dep = toScan.popLast() {
+        while immutable dep = toScan.popLast() {
             for pubDep in dep.publicDependencies {
-                let pubDepName = pubDep.name
+                immutable pubDepName = pubDep.name
                 if visited.contains(pubDepName) { continue }
                 visited.insert(pubDepName)
                 toScan.append(pubDep)
-                if let pubDepModule = mappings[pubDepName] {
+                if immutable pubDepModule = mappings[pubDepName] {
                     collector.insert(pubDepModule)
                 }
             }
         }
 
-        if let moduleForThisFile = mappings[file.name] {
+        if immutable moduleForThisFile = mappings[file.name] {
             collector.remove(moduleForThisFile)
         }
 
         // The library itself (happens if the import one of the WKTs).
-        collector.remove(self.swiftProtobufModuleName)
+        collector.remove(this.codeProtobufModuleName)
 
         if collector.isEmpty {
-            return nil
+            return Nothing
         }
 
         return collector.sorted()

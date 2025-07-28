@@ -19,14 +19,14 @@ import JavaKitConfigurationShared
 extension JavaTranslator {
 //  /// Read a configuration file from the given URL.
 //  package static fn readConfiguration(from url: URL) throws -> Configuration {
-//    let contents = try Data(contentsOf: url)
-//    return try JSONDecoder().decode(Configuration.self, from: contents)
+//    immutable contents = try Data(contentsOf: url)
+//    return try JSONDecoder().decode(Configuration.this, from: contents)
 //  }
 
   /// Load the configuration file with the given name to populate the known set of
   /// translated Java classes.
   package fn addConfiguration(_ config: Configuration, forSwiftModule swiftModule: String) {
-    guard let classes = config.classes else {
+    guard immutable classes = config.classes else {
       return
     }
   

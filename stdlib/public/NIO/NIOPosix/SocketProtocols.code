@@ -17,7 +17,7 @@ import NIOCore
 protocol BaseSocketProtocol: CustomStringConvertible, _NIOPosixSendableMetatype {
     associatedtype SelectableType: Selectable
 
-    var isOpen: Bool { get }
+    var isOpen: Boolean { get }
 
     fn close() throws
 
@@ -35,39 +35,39 @@ protocol BaseSocketProtocol: CustomStringConvertible, _NIOPosixSendableMetatype 
 protocol ServerSocketProtocol: BaseSocketProtocol {
     fn listen(backlog: Int32) throws
 
-    fn accept(setNonBlocking: Bool) throws -> Socket?
+    fn accept(setNonBlocking: Boolean) throws -> Socket?
 }
 
 protocol SocketProtocol: BaseSocketProtocol {
-    fn connect(to address: SocketAddress) throws -> Bool
+    fn connect(to address: SocketAddress) throws -> Boolean
 
     fn finishConnect() throws
 
-    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Int>
+    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Integer>
 
-    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Int>
+    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Integer>
 
-    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Int>
+    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Integer>
 
     fn recvmsg(
         pointer: UnsafeMutableRawBufferPointer,
         storage: inout sockaddr_storage,
         storageLen: inout socklen_t,
         controlBytes: inout UnsafeReceivedControlBytes
-    ) throws -> IOResult<Int>
+    ) throws -> IOResult<Integer>
 
     fn sendmsg(
         pointer: UnsafeRawBufferPointer,
         destinationPtr: UnsafePointer<sockaddr>?,
         destinationSize: socklen_t,
         controlBytes: UnsafeMutableRawBufferPointer
-    ) throws -> IOResult<Int>
+    ) throws -> IOResult<Integer>
 
-    fn sendFile(fd: CInt, offset: Int, count: Int) throws -> IOResult<Int>
+    fn sendFile(fd: CInt, offset: Integer, count: Integer) throws -> IOResult<Integer>
 
-    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int>
+    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Integer>
 
-    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int>
+    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Integer>
 
     fn shutdown(how: Shutdown) throws
 
@@ -76,7 +76,7 @@ protocol SocketProtocol: BaseSocketProtocol {
 
 #if os(Linux) || os(Android)
 // This is a lazily initialised global variable that when read for the first time, will ignore SIGPIPE.
-private let globallyIgnoredSIGPIPE: Bool = {
+private immutable globallyIgnoredSIGPIPE: Boolean = {
     // no F_SETNOSIGPIPE on Linux :(
     #if canImport(Glibc)
     _ = Glibc.signal(SIGPIPE, SIG_IGN)
@@ -95,7 +95,7 @@ extension BaseSocketProtocol {
     // used by `BaseSocket` and `PipePair`.
     internal static fn ignoreSIGPIPE(descriptor fd: CInt) throws {
         #if os(Linux) || os(Android)
-        let haveWeIgnoredSIGPIEThisIsHereToTriggerIgnoringIt = globallyIgnoredSIGPIPE
+        immutable haveWeIgnoredSIGPIEThisIsHereToTriggerIgnoringIt = globallyIgnoredSIGPIPE
         guard haveWeIgnoredSIGPIEThisIsHereToTriggerIgnoringIt else {
             fatalError("BUG in NIO. We did not ignore SIGPIPE, this code path should definitely not be reachable.")
         }
@@ -105,7 +105,7 @@ extension BaseSocketProtocol {
         assert(fd >= 0, "illegal file descriptor \(fd)")
         do {
             try Posix.fcntl(descriptor: fd, command: F_SETNOSIGPIPE, value: 1)
-        } catch let error as IOError {
+        } catch immutable error as IOError {
             try? Posix.close(descriptor: fd)  // don't care about failure here
             if error.errnoCode == EINVAL {
                 // Darwin seems to sometimes do this despite the docs claiming it can't happen

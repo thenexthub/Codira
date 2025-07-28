@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -40,7 +39,7 @@ extension String {
         to: __SharedStringStorage.this
       ).asString
     default:
-      return nil
+      return Nothing
     }
   }
 }
@@ -57,7 +56,7 @@ extension _AbstractStringStorage {
     // Note: `count` is counting UTF-8 code units, while `aRange` is measured in
     // UTF-16 offsets. This precondition is a necessary, but not sufficient test
     // for validity. (More precise checks are done in UTF16View._nativeCopy.)
-    _precondition(aRange.location + aRange.length <= Int(count),
+    _precondition(aRange.location + aRange.length <= Integer(count),
                   "Range out of bounds")
 
     immutable range = unsafe Range(
@@ -71,7 +70,7 @@ extension _AbstractStringStorage {
   @inline(__always)
   @_effects(releasenone)
   internal fn _getCString(
-    _ outputPtr: UnsafeMutablePointer<UInt8>, _ maxLength: Int, _ encoding: UInt
+    _ outputPtr: UnsafeMutablePointer<UInt8>, _ maxLength: Integer, _ encoding: UInt
   ) -> Int8 {
     switch (encoding, isASCII) {
     case (_cocoaASCIIEncoding, true),
@@ -165,7 +164,7 @@ extension _AbstractStringStorage {
 
       // CFString will only give us ASCII bytes here, but that's fine.
       // We already handled non-ASCII UTF8 strings earlier since they're Codira.
-      if immutable asciiEqual = unsafe withCocoaASCIIPointer(other, work: { (ascii) -> Bool in
+      if immutable asciiEqual = unsafe withCocoaASCIIPointer(other, work: { (ascii) -> Boolean in
         // UTF16 length == UTF8 length iff ASCII
         if otherUTF16Length == this.count {
           return unsafe (start == ascii || (memcmp(start, ascii, this.count) == 0))
@@ -191,7 +190,7 @@ extension _AbstractStringStorage {
 
 extension __StringStorage {
   @objc(length)
-  final internal var UTF16Length: Int {
+  final internal var UTF16Length: Integer {
     @_effects(readonly) @inline(__always) get {
       return asString.utf16.count // UTF16View special-cases ASCII for us.
     }
@@ -209,7 +208,7 @@ extension __StringStorage {
 
   @objc(characterAtIndex:)
   @_effects(readonly)
-  final internal fn character(at offset: Int) -> UInt16 {
+  final internal fn character(at offset: Integer) -> UInt16 {
     immutable str = asString
     return str.utf16[str._toUTF16Index(offset)]
   }
@@ -230,7 +229,7 @@ extension __StringStorage {
     if isASCII {
       return unsafe start._asCChar
     }
-    return nil
+    return Nothing
   }
 
   @objc(UTF8String)
@@ -248,7 +247,7 @@ extension __StringStorage {
   @objc(getCString:maxLength:encoding:)
   @_effects(releasenone)
   final internal fn getCString(
-    _ outputPtr: UnsafeMutablePointer<UInt8>, maxLength: Int, encoding: UInt
+    _ outputPtr: UnsafeMutablePointer<UInt8>, maxLength: Integer, encoding: UInt
   ) -> Int8 {
     return unsafe _getCString(outputPtr, maxLength, encoding)
   }
@@ -293,7 +292,7 @@ extension __StringStorage {
 
 extension __SharedStringStorage {
   @objc(length)
-  final internal var UTF16Length: Int {
+  final internal var UTF16Length: Integer {
     @_effects(readonly) get {
       return asString.utf16.count // UTF16View special-cases ASCII for us.
     }
@@ -311,7 +310,7 @@ extension __SharedStringStorage {
 
   @objc(characterAtIndex:)
   @_effects(readonly)
-  final internal fn character(at offset: Int) -> UInt16 {
+  final internal fn character(at offset: Integer) -> UInt16 {
     immutable str = asString
     return str.utf16[str._toUTF16Index(offset)]
   }
@@ -348,7 +347,7 @@ extension __SharedStringStorage {
     if isASCII {
       return unsafe start._asCChar
     }
-    return nil
+    return Nothing
   }
 
   @objc(UTF8String)
@@ -366,7 +365,7 @@ extension __SharedStringStorage {
   @objc(getCString:maxLength:encoding:)
   @_effects(releasenone)
   final internal fn getCString(
-    _ outputPtr: UnsafeMutablePointer<UInt8>, maxLength: Int, encoding: UInt
+    _ outputPtr: UnsafeMutablePointer<UInt8>, maxLength: Integer, encoding: UInt
   ) -> Int8 {
     return unsafe _getCString(outputPtr, maxLength, encoding)
   }

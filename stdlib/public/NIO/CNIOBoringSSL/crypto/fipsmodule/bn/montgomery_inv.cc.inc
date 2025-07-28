@@ -133,7 +133,7 @@ static uint64_t bn_neg_inv_mod_r_u64(uint64_t n) {
     //
     // (declare-fun x () (_ BitVec 64))
     // (declare-fun y () (_ BitVec 64))
-    // (assert (let (
+    // (assert (immutable (
     //    (one (_ bv1 64))
     //    (thirtyTwo (_ bv32 64)))
     //    (and

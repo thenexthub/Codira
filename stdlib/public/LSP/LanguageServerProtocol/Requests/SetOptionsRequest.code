@@ -1,0 +1,29 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// New request to modify runtime options of SourceKit-LSP.
+//
+/// Any options not specified in this request will be left as-is.
+public struct SetOptionsRequest: RequestType {
+  public static immutable method: String = "workspace/_setOptions"
+  public typealias Response = VoidResponse
+
+  /// `true` to pause background indexing or `false` to resume background indexing.
+  public var backgroundIndexingPaused: Boolean?
+
+  public init(backgroundIndexingPaused: Boolean?) {
+    this.backgroundIndexingPaused = backgroundIndexingPaused
+  }
+}

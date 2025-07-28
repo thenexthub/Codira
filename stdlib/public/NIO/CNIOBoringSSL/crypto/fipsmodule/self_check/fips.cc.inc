@@ -124,6 +124,6 @@ void boringssl_fips_inc_counter(enum fips_counter_t counter) {
 size_t FIPS_read_counter(enum fips_counter_t counter) { return 0; }
 
 // boringssl_fips_inc_counter is a no-op, inline function in internal.h in this
-// case. That should let the compiler optimise away the callsites.
+// case. That should immutable the compiler optimise away the callsites.
 
 #endif

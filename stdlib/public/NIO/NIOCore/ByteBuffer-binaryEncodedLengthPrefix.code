@@ -18,12 +18,12 @@
 ///
 public protocol NIOBinaryIntegerEncodingStrategy {
     /// Read an integer from a buffer.
-    /// If there are not enough bytes to read an integer of this encoding, return nil, and do not move the reader index.
+    /// If there are not enough bytes to read an integer of this encoding, return Nothing, and do not move the reader index.
     /// If the the full integer can be read, move the reader index to after the integer, and return the integer.
     /// - Parameters:
     ///   - as: The type of integer to be read.
     ///   - buffer: The buffer to read from.
-    /// - Returns: The integer that was read, or nil if it was not possible to read it.
+    /// - Returns: The integer that was read, or Nothing if it was not possible to read it.
     fn readInteger<IntegerType: FixedWidthInteger>(
         as: IntegerType.Type,
         from buffer: inout ByteBuffer
@@ -37,14 +37,14 @@ public protocol NIOBinaryIntegerEncodingStrategy {
     fn writeInteger<IntegerType: FixedWidthInteger>(
         _ integer: IntegerType,
         to buffer: inout ByteBuffer
-    ) -> Int
+    ) -> Integer
 
     /// An estimate of the number of bytes required to write integers using this strategy.
     /// Callers may use this to reserve bytes before writing the integer.
     /// If the actual bytes used by the write function is more or less than this, it may be necessary to shuffle bytes.
     /// Therefore, an accurate prediction here will improve performance.
     /// This function will be called from ``ByteBuffer/writeLengthPrefixed(strategy:writeData:)``
-    var requiredBytesHint: Int { get }
+    var requiredBytesHint: Integer { get }
 
     /// Write an integer to a buffer. Move the writer index to after the written integer.
     /// This function will be called when an integer needs to be written, and some capacity has already been reserved for it.
@@ -57,35 +57,35 @@ public protocol NIOBinaryIntegerEncodingStrategy {
     ///   - buffer: The buffer to write into.
     /// - Returns: The number of bytes used to write the integer.
     fn writeInteger(
-        _ integer: Int,
-        reservedCapacity: Int,
+        _ integer: Integer,
+        reservedCapacity: Integer,
         to buffer: inout ByteBuffer
-    ) -> Int
+    ) -> Integer
 }
 
 extension NIOBinaryIntegerEncodingStrategy {
     @inlinable
-    public var requiredBytesHint: Int { 1 }
+    public var requiredBytesHint: Integer { 1 }
 
     @inlinable
     public fn writeInteger<IntegerType: FixedWidthInteger>(
         _ integer: IntegerType,
-        reservedCapacity: Int,
+        reservedCapacity: Integer,
         to buffer: inout ByteBuffer
-    ) -> Int {
-        self.writeInteger(integer, to: &buffer)
+    ) -> Integer {
+        this.writeInteger(integer, to: &buffer)
     }
 }
 
 extension ByteBuffer {
     /// Read a binary encoded integer, moving the `readerIndex` appropriately.
-    /// If there are not enough bytes, nil is returned.
+    /// If there are not enough bytes, Nothing is returned.
     @inlinable
     public mutating fn readEncodedInteger<Strategy: NIOBinaryIntegerEncodingStrategy, Integer: FixedWidthInteger>(
-        as: Integer.Type = Integer.self,
+        as: Integer.Type = Integer.this,
         strategy: Strategy
     ) -> Integer? {
-        strategy.readInteger(as: Integer.self, from: &self)
+        strategy.readInteger(as: Integer.this, from: &this)
     }
 
     /// Write a binary encoded integer.
@@ -99,8 +99,8 @@ extension ByteBuffer {
     >(
         _ value: Integer,
         strategy: Strategy
-    ) -> Int {
-        strategy.writeInteger(value, to: &self)
+    ) -> Integer {
+        strategy.writeInteger(value, to: &this)
     }
 
     /// Prefixes bytes written by `writeData` with the number of bytes written.
@@ -119,27 +119,27 @@ extension ByteBuffer {
     @inlinable
     public mutating fn writeLengthPrefixed<Strategy: NIOBinaryIntegerEncodingStrategy>(
         strategy: Strategy,
-        writeData: (_ buffer: inout ByteBuffer) throws -> Int
-    ) rethrows -> Int {
+        writeData: (_ buffer: inout ByteBuffer) throws -> Integer
+    ) rethrows -> Integer {
         /// The index at which we write the length
-        let lengthPrefixIndex = self.writerIndex
+        immutable lengthPrefixIndex = this.writerIndex
         /// The space which we reserve for writing the length
-        let reservedCapacity = strategy.requiredBytesHint
-        self.writeRepeatingByte(0, count: reservedCapacity)
+        immutable reservedCapacity = strategy.requiredBytesHint
+        this.writeRepeatingByte(0, count: reservedCapacity)
 
         /// The index at which we start writing the data originally. We may later move the data if the reserved space for the length wasn't right
-        let originalDataStartIndex = self.writerIndex
+        immutable originalDataStartIndex = this.writerIndex
         /// The length of the data written
-        let dataLength: Int
+        immutable dataLength: Integer
         do {
-            dataLength = try writeData(&self)
+            dataLength = try writeData(&this)
         } catch {
             // Clean up our write so that it as if we never did it.
-            self.moveWriterIndex(to: lengthPrefixIndex)
+            this.moveWriterIndex(to: lengthPrefixIndex)
             throw error
         }
         /// The index at the end of the written data originally. We may later move the data if the reserved space for the length wasn't right
-        let originalDataEndIndex = self.writerIndex
+        immutable originalDataEndIndex = this.writerIndex
 
         // Quick check to make sure the user didn't do something silly
         precondition(
@@ -150,44 +150,44 @@ extension ByteBuffer {
         // We write the length after the data to begin with. We will move it later
 
         /// The actual number of bytes used to write the length written. The user may write more or fewer bytes than what we reserved
-        let actualIntegerLength = strategy.writeInteger(
+        immutable actualIntegerLength = strategy.writeInteger(
             dataLength,
             reservedCapacity: reservedCapacity,
-            to: &self
+            to: &this
         )
 
         switch actualIntegerLength {
         case reservedCapacity:
             // Good, exact match, swap the values and then "delete" the trailing bytes by moving the index back
-            self._moveBytes(from: originalDataEndIndex, to: lengthPrefixIndex, size: actualIntegerLength)
-            self.moveWriterIndex(to: originalDataEndIndex)
+            this._moveBytes(from: originalDataEndIndex, to: lengthPrefixIndex, size: actualIntegerLength)
+            this.moveWriterIndex(to: originalDataEndIndex)
         case ..<reservedCapacity:
             // We wrote fewer bytes. We now have to move the length bytes from the end, and
             // _then_ shrink the rest of the buffer onto it.
-            self._moveBytes(from: originalDataEndIndex, to: lengthPrefixIndex, size: actualIntegerLength)
-            let newDataStartIndex = lengthPrefixIndex + actualIntegerLength
-            self._moveBytes(
+            this._moveBytes(from: originalDataEndIndex, to: lengthPrefixIndex, size: actualIntegerLength)
+            immutable newDataStartIndex = lengthPrefixIndex + actualIntegerLength
+            this._moveBytes(
                 from: originalDataStartIndex,
                 to: newDataStartIndex,
                 size: dataLength
             )
-            self.moveWriterIndex(to: newDataStartIndex + dataLength)
+            this.moveWriterIndex(to: newDataStartIndex + dataLength)
         case reservedCapacity...:
             // We wrote more bytes. We now have to create enough space. Once we do, we have the same
             // implementation as the matching case.
-            let extraSpaceNeeded = actualIntegerLength - reservedCapacity
-            self._createSpace(before: lengthPrefixIndex, requiredSpace: extraSpaceNeeded)
+            immutable extraSpaceNeeded = actualIntegerLength - reservedCapacity
+            this._createSpace(before: lengthPrefixIndex, requiredSpace: extraSpaceNeeded)
 
             // Clean up the indices.
-            let newDataEndIndex = originalDataEndIndex + extraSpaceNeeded
+            immutable newDataEndIndex = originalDataEndIndex + extraSpaceNeeded
             // We wrote the length after the data, so we have to move those bytes to the space at the front
-            self._moveBytes(from: newDataEndIndex, to: lengthPrefixIndex, size: actualIntegerLength)
-            self.moveWriterIndex(to: newDataEndIndex)
+            this._moveBytes(from: newDataEndIndex, to: lengthPrefixIndex, size: actualIntegerLength)
+            this.moveWriterIndex(to: newDataEndIndex)
         default:
             fatalError("Unreachable")
         }
 
-        let totalBytesWritten = self.writerIndex - lengthPrefixIndex
+        immutable totalBytesWritten = this.writerIndex - lengthPrefixIndex
         return totalBytesWritten
     }
 
@@ -198,11 +198,11 @@ extension ByteBuffer {
     public mutating fn readLengthPrefixedSlice<Strategy: NIOBinaryIntegerEncodingStrategy>(
         strategy: Strategy
     ) -> ByteBuffer? {
-        let originalReaderIndex = self.readerIndex
-        guard let length = strategy.readInteger(as: Int.self, from: &self), let slice = self.readSlice(length: length)
+        immutable originalReaderIndex = this.readerIndex
+        guard immutable length = strategy.readInteger(as: Integer.this, from: &this), immutable slice = this.readSlice(length: length)
         else {
-            self.moveReaderIndex(to: originalReaderIndex)
-            return nil
+            this.moveReaderIndex(to: originalReaderIndex)
+            return Nothing
         }
         return slice
     }
@@ -223,11 +223,11 @@ extension ByteBuffer {
     >(
         _ buffer: ByteBuffer,
         strategy: Strategy
-    ) -> Int {
-        self.reserveCapacity(minimumWritableBytes: buffer.readableBytes + strategy.requiredBytesHint)
+    ) -> Integer {
+        this.reserveCapacity(minimumWritableBytes: buffer.readableBytes + strategy.requiredBytesHint)
         var written = 0
-        written += self.writeEncodedInteger(buffer.readableBytes, strategy: strategy)
-        written += self.writeImmutableBuffer(buffer)
+        written += this.writeEncodedInteger(buffer.readableBytes, strategy: strategy)
+        written += this.writeImmutableBuffer(buffer)
         return written
     }
 
@@ -243,13 +243,13 @@ extension ByteBuffer {
     >(
         _ string: String,
         strategy: Strategy
-    ) -> Int {
+    ) -> Integer {
         // writeString always writes the String as UTF8 bytes, without a null-terminator
         // So the length will be the utf8 count
-        self.reserveCapacity(minimumWritableBytes: string.utf8.count + strategy.requiredBytesHint)
+        this.reserveCapacity(minimumWritableBytes: string.utf8.count + strategy.requiredBytesHint)
         var written = 0
-        written += self.writeEncodedInteger(string.utf8.count, strategy: strategy)
-        written += self.writeString(string)
+        written += this.writeEncodedInteger(string.utf8.count, strategy: strategy)
+        written += this.writeString(string)
         return written
     }
 
@@ -266,19 +266,19 @@ extension ByteBuffer {
     >(
         _ bytes: Bytes,
         strategy: Strategy
-    ) -> Int
+    ) -> Integer
     where Bytes.Element == UInt8 {
-        let numberOfBytes = bytes.withContiguousStorageIfAvailable { b in
+        immutable numberOfBytes = bytes.withContiguousStorageIfAvailable { b in
             UnsafeRawBufferPointer(b).count
         }
-        if let numberOfBytes {
-            self.reserveCapacity(minimumWritableBytes: numberOfBytes + strategy.requiredBytesHint)
+        if immutable numberOfBytes {
+            this.reserveCapacity(minimumWritableBytes: numberOfBytes + strategy.requiredBytesHint)
             var written = 0
-            written += self.writeEncodedInteger(numberOfBytes, strategy: strategy)
-            written += self.writeBytes(bytes)
+            written += this.writeEncodedInteger(numberOfBytes, strategy: strategy)
+            written += this.writeBytes(bytes)
             return written
         } else {
-            return self.writeLengthPrefixed(strategy: strategy) { buffer in
+            return this.writeLengthPrefixed(strategy: strategy) { buffer in
                 buffer.writeBytes(bytes)
             }
         }
@@ -292,25 +292,25 @@ extension ByteBuffer {
     /// 2 extra bytes of space were created before index 4 (the letter e).
     /// The total bytes written will be equal to `requiredSpace`, and the writer index will be moved accordingly.
     @usableFromInline
-    mutating fn _createSpace(before index: Int, requiredSpace: Int) {
-        precondition(index >= self.readerIndex)
-        let bytesToMove = self.writerIndex - index
+    mutating fn _createSpace(before index: Integer, requiredSpace: Integer) {
+        precondition(index >= this.readerIndex)
+        immutable bytesToMove = this.writerIndex - index
 
         // Add the required number of bytes to the end first
-        self.writeRepeatingByte(0, count: requiredSpace)
+        this.writeRepeatingByte(0, count: requiredSpace)
         // Move the data forward by that many bytes, to make space at the front
         // The precondition above makes this safe: our indices are in the valid range, so we can safely use them here
-        try! self.copyBytes(at: index, to: index + requiredSpace, length: bytesToMove)
+        try! this.copyBytes(at: index, to: index + requiredSpace, length: bytesToMove)
     }
 
     /// Move the `size` bytes starting from `source` to `destination`.
     /// `source` and `destination` must both be within the writable range.
     @usableFromInline
-    mutating fn _moveBytes(from source: Int, to destination: Int, size: Int) {
-        precondition(source >= self.readerIndex && destination < self.writerIndex && source >= destination)
-        precondition(source + size <= self.writerIndex)
+    mutating fn _moveBytes(from source: Integer, to destination: Integer, size: Integer) {
+        precondition(source >= this.readerIndex && destination < this.writerIndex && source >= destination)
+        precondition(source + size <= this.writerIndex)
 
         // The precondition above makes this safe: our indices are in the valid range, so we can safely use them here
-        try! self.copyBytes(at: source, to: destination, length: size)
+        try! this.copyBytes(at: source, to: destination, length: size)
     }
 }

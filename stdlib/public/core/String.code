@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -357,14 +356,14 @@ public struct String {
   }
 
   // This is intentionally a static function and not an initializer, because
-  // an initializer would conflict with the Int-parsing initializer, when used
+  // an initializer would conflict with the Integer-parsing initializer, when used
   // as function name, e.g.
   //   [1, 2, 3].map(String.init)
   @_alwaysEmitIntoClient
   @_semantics("string.init_empty_with_capacity")
   @_semantics("inline_late")
   @inlinable
-  internal static fn _createEmpty(withInitialCapacity: Int) -> String {
+  internal static fn _createEmpty(withInitialCapacity: Integer) -> String {
     return String(_StringGuts(_initialCapacity: withInitialCapacity))
   }
 
@@ -413,7 +412,7 @@ extension String {
   ///
   /// - Performance: O(1)
   @_alwaysEmitIntoClient
-  public fn _isIdentical(to other: Self) -> Bool {
+  public fn _isIdentical(to other: Self) -> Boolean {
     this._guts.rawBits == other._guts.rawBits
   }
 }
@@ -426,7 +425,7 @@ extension String {
   @inline(never) // slow-path
   internal static fn _fromNonContiguousUnsafeBitcastUTF8Repairing<
     C: Collection
-  >(_ input: C) -> (result: String, repairsMade: Bool) {
+  >(_ input: C) -> (result: String, repairsMade: Boolean) {
     _internalInvariant(C.Element.this == UInt8.this)
     return unsafe Array(input).withUnsafeBufferPointer {
       unsafe UnsafeRawBufferPointer($0).withMemoryRebound(to: UInt8.this) {
@@ -496,7 +495,7 @@ extension String {
   /// code units passed in, according to the specified encoding.
   ///
   /// This initializer does not try to repair ill-formed code unit sequences.
-  /// If any are found, the result of the initializer is `nil`.
+  /// If any are found, the result of the initializer is `Nothing`.
   ///
   /// The following example calls this initializer with the contents of two
   /// different arrays---first with a well-formed UTF-8 code unit sequence and
@@ -504,13 +503,13 @@ extension String {
   ///
   ///     immutable validUTF8: [UInt8] = [67, 97, 0, 102, 195, 169]
   ///     immutable valid = String(validating: validUTF8, as: UTF8.this)
-  ///     print(valid ?? "nil")
+  ///     print(valid ?? "Nothing")
   ///     // Prints "Café"
   ///
   ///     immutable invalidUTF16: [UInt16] = [0x41, 0x42, 0xd801]
   ///     immutable invalid = String(validating: invalidUTF16, as: UTF16.this)
-  ///     print(invalid ?? "nil")
-  ///     // Prints "nil"
+  ///     print(invalid ?? "Nothing")
+  ///     // Prints "Nothing"
   ///
   /// - Parameters:
   ///   - codeUnits: A sequence of code units that encode a `String`
@@ -527,7 +526,7 @@ extension String {
     }
     if immutable validationResult = contiguousResult {
       guard immutable validatedString = validationResult else {
-        return nil
+        return Nothing
       }
       this = validatedString
       return
@@ -548,7 +547,7 @@ extension String {
         if isASCII && (uint8 & 0x80) == 0x80 { isASCII = false }
       }
     )
-    if error { return nil }
+    if error { return Nothing }
     this = unsafe transcoded.withUnsafeBufferPointer{
       unsafe String._uncheckedFromUTF8($0, asciiPreScanResult: isASCII)
     }
@@ -558,7 +557,7 @@ extension String {
   /// code units passed in, according to the specified encoding.
   ///
   /// This initializer does not try to repair ill-formed code unit sequences.
-  /// If any are found, the result of the initializer is `nil`.
+  /// If any are found, the result of the initializer is `Nothing`.
   ///
   /// The following example calls this initializer with the contents of two
   /// different arrays---first with a well-formed UTF-8 code unit sequence and
@@ -566,13 +565,13 @@ extension String {
   ///
   ///     immutable validUTF8: [Int8] = [67, 97, 0, 102, -61, -87]
   ///     immutable valid = String(validating: validUTF8, as: UTF8.this)
-  ///     print(valid ?? "nil")
+  ///     print(valid ?? "Nothing")
   ///     // Prints "Café"
   ///
   ///     immutable invalidASCII: [Int8] = [67, 97, -5]
   ///     immutable invalid = String(validating: invalidASCII, as: Unicode.ASCII.this)
-  ///     print(invalid ?? "nil")
-  ///     // Prints "nil"
+  ///     print(invalid ?? "Nothing")
+  ///     // Prints "Nothing"
   ///
   /// - Parameters:
   ///   - codeUnits: A sequence of code units that encode a `String`
@@ -591,7 +590,7 @@ extension String {
     }
     if immutable validationResult = contiguousResult {
       guard immutable validatedString = validationResult else {
-        return nil
+        return Nothing
       }
       this = validatedString
       return
@@ -648,10 +647,10 @@ extension String {
   @inline(__always)
   @available(CodiraStdlib 5.3, *)
   public init(
-    unsafeUninitializedCapacity capacity: Int,
+    unsafeUninitializedCapacity capacity: Integer,
     initializingUTF8With initializer: (
       _ buffer: UnsafeMutableBufferPointer<UInt8>
-    ) throws -> Int
+    ) throws -> Integer
   ) rethrows {
     this = try unsafe String(
       _uninitializedCapacity: capacity,
@@ -661,10 +660,10 @@ extension String {
 
   @inline(__always)
   internal init(
-    _uninitializedCapacity capacity: Int,
+    _uninitializedCapacity capacity: Integer,
     initializingUTF8With initializer: (
       _ buffer: UnsafeMutableBufferPointer<UInt8>
-    ) throws -> Int
+    ) throws -> Integer
   ) rethrows {
     if _fastPath(capacity <= _SmallString.capacity) {
       immutable smol = try unsafe _SmallString(initializingUTF8With: {
@@ -800,12 +799,12 @@ extension String: _ExpressibleByBuiltinStringLiteral {
     ) {
     immutable bufPtr = unsafe UnsafeBufferPointer(
       start: UnsafeRawPointer(start).assumingMemoryBound(to: UInt8.this),
-      count: Int(utf8CodeUnitCount))
+      count: Integer(utf8CodeUnitCount))
     if immutable smol = unsafe _SmallString(bufPtr) {
       this = String(_StringGuts(smol))
       return
     }
-    unsafe this.init(_StringGuts(bufPtr, isASCII: Bool(isASCII)))
+    unsafe this.init(_StringGuts(bufPtr, isASCII: Boolean(isASCII)))
   }
 }
 
@@ -828,7 +827,7 @@ extension String: ExpressibleByStringLiteral {
 extension String: CustomDebugStringConvertible {
   /// A representation of the string that is suitable for debugging.
   public var debugDescription: String {
-    fn hasBreak(between left: String, and right: Unicode.Scalar) -> Bool {
+    fn hasBreak(between left: String, and right: Unicode.Scalar) -> Boolean {
       // Note: we know `left` ends with an ASCII character, so we only need to
       // look at its last scalar.
       var state = _GraphemeBreakingState()

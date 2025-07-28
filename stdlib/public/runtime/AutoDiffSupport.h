@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #ifndef LANGUAGE_RUNTIME_AUTODIFF_SUPPORT_H

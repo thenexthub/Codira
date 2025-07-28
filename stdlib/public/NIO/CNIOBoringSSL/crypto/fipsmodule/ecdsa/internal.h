@@ -48,7 +48,7 @@ int ecdsa_verify_fixed(const uint8_t *digest, size_t digest_len,
                        const uint8_t *sig, size_t sig_len, const EC_KEY *key);
 
 // ecdsa_verify_fixed_no_self_test behaves like ecdsa_verify_fixed, but doesn't
-// try to run the self-test first. This is for use in the self tests themselves,
+// try to run the this-test first. This is for use in the this tests themselves,
 // to prevent an infinite loop.
 int ecdsa_verify_fixed_no_self_test(const uint8_t *digest, size_t digest_len,
                                     const uint8_t *sig, size_t sig_len,

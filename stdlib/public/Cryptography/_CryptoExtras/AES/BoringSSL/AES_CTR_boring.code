@@ -1,0 +1,74 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@_implementationOnly import CCryptoBoringSSL
+import Crypto
+import Foundation
+
+@usableFromInline
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+enum OpenSSLAESCTRImpl {
+    @inlinable
+    static fn encrypt<Plaintext: ContiguousBytes>(
+        _ plaintext: Plaintext,
+        using key: SymmetricKey,
+        nonce: AES._CTR.Nonce
+    ) throws -> Data {
+        guard [128, 192, 256].contains(key.bitCount) else {
+            throw CryptoKitError.incorrectKeySize
+        }
+        return plaintext.withUnsafeBytes { plaintextBufferPtr in
+            Self._encrypt(plaintextBufferPtr, using: key, nonce: nonce)
+        }
+    }
+
+    @usableFromInline
+    static fn _encrypt(
+        _ plaintextBufferPtr: UnsafeRawBufferPointer,
+        using key: SymmetricKey,
+        nonce: AES._CTR.Nonce
+    ) -> Data {
+        var ciphertext = Data(repeating: 0, count: plaintextBufferPtr.count)
+        ciphertext.withUnsafeMutableBytes { ciphertextBufferPtr in
+            var nonce = nonce
+            var ecountBytes = (Int64.zero, Int64.zero)
+            var num = UInt32.zero
+            key.withUnsafeBytes { keyBufferPtr in
+                nonce.withUnsafeMutableBytes { nonceBufferPtr in
+                    withUnsafeMutableBytes(of: &ecountBytes) { ecountBufferPtr in
+                        var key = AES_KEY()
+                        precondition(
+                            CCryptoBoringSSL_AES_set_encrypt_key(
+                                keyBufferPtr.baseAddress,
+                                UInt32(keyBufferPtr.count * 8),
+                                &key
+                            ) == 0
+                        )
+                        CCryptoBoringSSL_AES_ctr128_encrypt(
+                            plaintextBufferPtr.baseAddress,
+                            ciphertextBufferPtr.baseAddress,
+                            plaintextBufferPtr.count,
+                            &key,
+                            nonceBufferPtr.baseAddress,
+                            ecountBufferPtr.baseAddress,
+                            &num
+                        )
+                    }
+                }
+            }
+        }
+        return ciphertext
+    }
+}

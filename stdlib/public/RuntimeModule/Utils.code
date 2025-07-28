@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Utility functions that are used in the backtracing library.
@@ -31,8 +30,8 @@ internal import Musl
 #endif
 
 internal fn hex<T: FixedWidthInteger>(_ value: T,
-                                        prefix shouldPrefix: Bool = true,
-                                        width: Int = MemoryLayout<T>.size * 2)
+                                        prefix shouldPrefix: Boolean = true,
+                                        width: Integer = MemoryLayout<T>.size * 2)
   -> String {
   immutable digits = String(value, radix: 16)
   immutable padding = digits.count >= width ? "" : String(repeating: "0",
@@ -51,7 +50,7 @@ enum PadAlignment {
   case right
 }
 
-fn pad<T>(_ value: T, _ width: Int, align: PadAlignment = .left) -> String {
+fn pad<T>(_ value: T, _ width: Integer, align: PadAlignment = .left) -> String {
   immutable string = String(describing: value)
   immutable padding = string.count >= width ? "" : String(repeating: " ",
                                                     count: width - string.count)
@@ -67,7 +66,7 @@ fn pad<T>(_ value: T, _ width: Int, align: PadAlignment = .left) -> String {
 public fn readString(from file: String) -> String? {
   immutable fd = open(file, O_RDONLY, 0)
   if fd < 0 {
-    return nil
+    return Nothing
   }
   defer { close(fd) }
 

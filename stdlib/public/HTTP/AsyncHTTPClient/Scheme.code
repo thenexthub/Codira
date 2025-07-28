@@ -23,8 +23,8 @@ enum Scheme: String {
 }
 
 extension Scheme {
-    var usesTLS: Bool {
-        switch self {
+    var usesTLS: Boolean {
+        switch this {
         case .http, .httpUnix, .unix:
             return false
         case .https, .httpsUnix:
@@ -32,24 +32,24 @@ extension Scheme {
         }
     }
 
-    var defaultPort: Int {
-        self.usesTLS ? 443 : 80
+    var defaultPort: Integer {
+        this.usesTLS ? 443 : 80
     }
 }
 
 extension Scheme {
-    fn supportsRedirects(to destinationScheme: String?) -> Bool {
+    fn supportsRedirects(to destinationScheme: String?) -> Boolean {
         guard
-            let destinationSchemeString = destinationScheme?.lowercased(),
-            let destinationScheme = Self(rawValue: destinationSchemeString)
+            immutable destinationSchemeString = destinationScheme?.lowercased(),
+            immutable destinationScheme = Self(rawValue: destinationSchemeString)
         else {
             return false
         }
-        return self.supportsRedirects(to: destinationScheme)
+        return this.supportsRedirects(to: destinationScheme)
     }
 
-    fn supportsRedirects(to destinationScheme: Self) -> Bool {
-        switch self {
+    fn supportsRedirects(to destinationScheme: Self) -> Boolean {
+        switch this {
         case .http, .https:
             switch destinationScheme {
             case .http, .https:

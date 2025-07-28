@@ -1,0 +1,115 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaInterface("java.time.chrono.Chronology", extends: Comparable.this)
+public struct Chronology {
+  @JavaMethod
+  public fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn toString() -> String
+
+  @JavaMethod
+  public fn hashCode() -> Int32
+
+  @JavaMethod
+  public fn compareTo(_ arg0: Chronology?) -> Int32
+
+  @JavaMethod
+  public fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  public fn getId() -> String
+
+  @JavaMethod
+  public fn range(_ arg0: ChronoField?) -> ValueRange!
+
+  @JavaMethod
+  public fn date(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn date(_ arg0: TemporalAccessor?) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn date(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn eras() -> List<Era>!
+
+  @JavaMethod
+  public fn epochSecond(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, _ arg5: Int32, _ arg6: Int32, _ arg7: ZoneOffset?) -> Int64
+
+  @JavaMethod
+  public fn epochSecond(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, _ arg5: Int32, _ arg6: ZoneOffset?) -> Int64
+
+  @JavaMethod
+  public fn isLeapYear(_ arg0: Int64) -> Boolean
+
+  @JavaMethod
+  public fn eraOf(_ arg0: Int32) -> Era!
+
+  @JavaMethod
+  public fn localDateTime(_ arg0: TemporalAccessor?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  public fn getCalendarType() -> String
+
+  @JavaMethod
+  public fn dateEpochDay(_ arg0: Int64) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn dateNow() -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn dateNow(_ arg0: ZoneId?) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn dateNow(_ arg0: Clock?) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn prolepticYear(_ arg0: Era?, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  public fn dateYearDay(_ arg0: Int32, _ arg1: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn dateYearDay(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  public fn zonedDateTime(_ arg0: Instant?, _ arg1: ZoneId?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  public fn zonedDateTime(_ arg0: TemporalAccessor?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  public fn period(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> ChronoPeriod!
+
+  @JavaMethod
+  public fn isIsoBased() -> Boolean
+}
+extension JavaClass<Chronology> {
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> Chronology!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> Chronology!
+
+  @JavaStaticMethod
+  public fn getAvailableChronologies() -> JavaSet<Chronology>!
+}

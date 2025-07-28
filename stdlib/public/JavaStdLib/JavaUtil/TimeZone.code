@@ -1,0 +1,98 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaTime
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.util.TimeZone", implements: Serializable.this, Cloneable.this)
+open class TimeZone: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open override fn clone() -> JavaObject!
+
+  @JavaMethod
+  open fn getOffset(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaMethod
+  open fn getOffset(_ arg0: Int64) -> Int32
+
+  @JavaMethod
+  open fn getDisplayName() -> String
+
+  @JavaMethod
+  open fn getDisplayName(_ arg0: Boolean, _ arg1: Int32) -> String
+
+  @JavaMethod
+  open fn getDisplayName(_ arg0: Boolean, _ arg1: Int32, _ arg2: Locale?) -> String
+
+  @JavaMethod
+  open fn getDisplayName(_ arg0: Locale?) -> String
+
+  @JavaMethod
+  open fn getID() -> String
+
+  @JavaMethod
+  open fn getDSTSavings() -> Int32
+
+  @JavaMethod
+  open fn hasSameRules(_ arg0: TimeZone?) -> Boolean
+
+  @JavaMethod
+  open fn toZoneId() -> ZoneId!
+
+  @JavaMethod
+  open fn getRawOffset() -> Int32
+
+  @JavaMethod
+  open fn useDaylightTime() -> Boolean
+
+  @JavaMethod
+  open fn setID(_ arg0: String)
+
+  @JavaMethod
+  open fn setRawOffset(_ arg0: Int32)
+
+  @JavaMethod
+  open fn observesDaylightTime() -> Boolean
+}
+extension JavaClass<TimeZone> {
+  @JavaStaticField(isFinal: true)
+  public var SHORT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG: Int32
+
+  @JavaStaticMethod
+  public fn getDefault() -> TimeZone!
+
+  @JavaStaticMethod
+  public fn getTimeZone(_ arg0: ZoneId?) -> TimeZone!
+
+  @JavaStaticMethod
+  public fn getTimeZone(_ arg0: String) -> TimeZone!
+
+  @JavaStaticMethod
+  public fn setDefault(_ arg0: TimeZone?)
+
+  @JavaStaticMethod
+  public fn getAvailableIDs() -> [String]
+
+  @JavaStaticMethod
+  public fn getAvailableIDs(_ arg0: Int32) -> [String]
+}

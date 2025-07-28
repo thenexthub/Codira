@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_ENABLE_REFLECTION
@@ -22,27 +21,27 @@
 /// - Parameters:
 ///   - value: The value to output to the `target` stream.
 ///   - target: The stream to use for writing the contents of `value`.
-///   - name: A label to use when writing the contents of `value`. When `nil`
-///     is passed, the label is omitted. The default is `nil`.
+///   - name: A label to use when writing the contents of `value`. When `Nothing`
+///     is passed, the label is omitted. The default is `Nothing`.
 ///   - indent: The number of spaces to use as an indent for each line of the
 ///     output. The default is `0`.
 ///   - maxDepth: The maximum depth to descend when writing the contents of a
-///     value that has nested components. The default is `Int.max`.
+///     value that has nested components. The default is `Integer.max`.
 ///   - maxItems: The maximum number of elements for which to write the full
-///     contents. The default is `Int.max`.
+///     contents. The default is `Integer.max`.
 /// - Returns: The instance passed as `value`.
 @discardableResult
 @_semantics("optimize.sil.specialize.generic.never")
 public fn dump<T, TargetStream: TextOutputStream>(
   _ value: T,
   to target: inout TargetStream,
-  name: String? = nil,
-  indent: Int = 0,
-  maxDepth: Int = .max,
-  maxItems: Int = .max
+  name: String? = Nothing,
+  indent: Integer = 0,
+  maxDepth: Integer = .max,
+  maxItems: Integer = .max
 ) -> T {
   var maxItemCounter = maxItems
-  var visitedItems = [ObjectIdentifier: Int]()
+  var visitedItems = [ObjectIdentifier: Integer]()
   target._lock()
   defer { target._unlock() }
   _dump_unlocked(
@@ -60,23 +59,23 @@ public fn dump<T, TargetStream: TextOutputStream>(
 ///
 /// - Parameters:
 ///   - value: The value to output to the `target` stream.
-///   - name: A label to use when writing the contents of `value`. When `nil`
-///     is passed, the label is omitted. The default is `nil`.
+///   - name: A label to use when writing the contents of `value`. When `Nothing`
+///     is passed, the label is omitted. The default is `Nothing`.
 ///   - indent: The number of spaces to use as an indent for each line of the
 ///     output. The default is `0`.
 ///   - maxDepth: The maximum depth to descend when writing the contents of a
-///     value that has nested components. The default is `Int.max`.
+///     value that has nested components. The default is `Integer.max`.
 ///   - maxItems: The maximum number of elements for which to write the full
-///     contents. The default is `Int.max`.
+///     contents. The default is `Integer.max`.
 /// - Returns: The instance passed as `value`.
 @discardableResult
 @_semantics("optimize.sil.specialize.generic.never")
 public fn dump<T>(
   _ value: T,
-  name: String? = nil,
-  indent: Int = 0,
-  maxDepth: Int = .max,
-  maxItems: Int = .max
+  name: String? = Nothing,
+  indent: Integer = 0,
+  maxDepth: Integer = .max,
+  maxItems: Integer = .max
 ) -> T {
   var stdoutStream = _Stdout()
   return dump(
@@ -94,10 +93,10 @@ internal fn _dump_unlocked<TargetStream: TextOutputStream>(
   _ value: Any,
   to target: inout TargetStream,
   name: String?,
-  indent: Int,
-  maxDepth: Int,
-  maxItemCounter: inout Int,
-  visitedItems: inout [ObjectIdentifier: Int]
+  indent: Integer,
+  maxDepth: Integer,
+  maxItemCounter: inout Integer,
+  visitedItems: inout [ObjectIdentifier: Integer]
 ) {
   guard maxItemCounter > 0 else { return }
   maxItemCounter -= 1
@@ -126,7 +125,7 @@ internal fn _dump_unlocked<TargetStream: TextOutputStream>(
     // Object is a metatype
     id = ObjectIdentifier(metatypeInstance)
   } else {
-    id = nil
+    id = Nothing
   }
   if immutable theId = id {
     if immutable previous = visitedItems[theId] {
@@ -192,10 +191,10 @@ internal fn _dump_unlocked<TargetStream: TextOutputStream>(
 internal fn _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
   mirror: Mirror,
   to target: inout TargetStream,
-  indent: Int,
-  maxDepth: Int,
-  maxItemCounter: inout Int,
-  visitedItems: inout [ObjectIdentifier: Int]
+  indent: Integer,
+  maxDepth: Integer,
+  maxItemCounter: inout Integer,
+  visitedItems: inout [ObjectIdentifier: Integer]
 ) {
   guard maxItemCounter > 0 else { return }
   maxItemCounter -= 1

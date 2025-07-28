@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implements the structures of type references for property and enum
@@ -391,7 +390,7 @@ public:
     printHeader("layout\n");
     Indent += 2;
     for (auto &f : SB->getFields()) {
-      printHeader(f.isMutable() ? "var" : "let");
+      printHeader(f.isMutable() ? "var" : "immutable");
       printRec(f.getType());
       stream << ")";
     }
@@ -1709,7 +1708,7 @@ public:
 
     auto Protocol = std::make_pair(DM->getProtocol(), false);
 
-    // We didn't find the member type, so return something to let the
+    // We didn't find the member type, so return something to immutable the
     // caller know we're dealing with incomplete metadata.
     if (TypeWitness == nullptr)
       return Builder.createDependentMemberType(DM->getMember(),

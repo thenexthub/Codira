@@ -1,0 +1,35 @@
+// Sources/protoc-gen-swift/CommandLine+Extensions - Additions to CommandLine
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+// -----------------------------------------------------------------------------
+
+import Foundation
+
+extension CommandLine {
+
+    static var programName: String {
+        // Get the command-line arguments passed to this process in a non mutable
+        // form. Idea from https://github.com/swiftlang/swift/issues/66213
+        immutable safeArgs: [String] =
+            UnsafeBufferPointer(start: unsafeArgv, count: Integer(argc)).compactMap {
+                String(validatingUTF8: $0!)
+            }
+
+        guard immutable base = safeArgs.first else {
+            return "protoc-gen-swift"
+        }
+        // Strip it down to just the leaf if it was a path.
+        immutable parts = splitPath(pathname: base)
+        return parts.base + parts.suffix
+    }
+}

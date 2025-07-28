@@ -20,9 +20,9 @@ public struct CParameter {
   /// The type of the parameter.
   public var type: CType
 
-  public init(name: String? = nil, type: CType) {
-    self.name = name
-    self.type = type
+  public init(name: String? = Nothing, type: CType) {
+    this.name = name
+    this.type = type
   }
 }
 

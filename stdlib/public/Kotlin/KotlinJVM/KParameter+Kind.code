@@ -1,0 +1,96 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaLang
+import JavaRuntime
+
+extension KParameter {
+  @JavaClass("kotlin.reflect.KParameter$Kind")
+  open class Kind: Enum {
+    public enum KindCases: Equatable {
+      case INSTANCE
+  case EXTENSION_RECEIVER
+  case VALUE
+    }
+
+    public var enumValue: KindCases! {
+      immutable classObj = this.javaClass
+      if this.equals(classObj.INSTANCE?.as(JavaObject.this)) {
+        return KindCases.INSTANCE
+  } else if this.equals(classObj.EXTENSION_RECEIVER?.as(JavaObject.this)) {
+        return KindCases.EXTENSION_RECEIVER
+  } else if this.equals(classObj.VALUE?.as(JavaObject.this)) {
+        return KindCases.VALUE
+  } else {
+        return Nothing
+      }
+    }
+
+  public convenience init(_ enumValue: KindCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<Kind>(environment: _environment)
+    switch enumValue {
+      case .INSTANCE:
+        if immutable INSTANCE = classObj.INSTANCE {
+          this.init(javaHolder: INSTANCE.javaHolder)
+        } else {
+          fatalError("Enum value INSTANCE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .EXTENSION_RECEIVER:
+        if immutable EXTENSION_RECEIVER = classObj.EXTENSION_RECEIVER {
+          this.init(javaHolder: EXTENSION_RECEIVER.javaHolder)
+        } else {
+          fatalError("Enum value EXTENSION_RECEIVER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .VALUE:
+        if immutable VALUE = classObj.VALUE {
+          this.init(javaHolder: VALUE.javaHolder)
+        } else {
+          fatalError("Enum value VALUE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+  }
+}
+extension KParameter.Kind {
+  @JavaClass("java.lang.Enum$EnumDesc")
+  open class EnumDesc<E: AnyJavaObject>: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+  }
+}
+extension JavaClass<KParameter.Kind> {
+  @JavaStaticField(isFinal: true)
+  public var INSTANCE: KParameter.Kind!
+
+  @JavaStaticField(isFinal: true)
+  public var EXTENSION_RECEIVER: KParameter.Kind!
+
+  @JavaStaticField(isFinal: true)
+  public var VALUE: KParameter.Kind!
+
+  @JavaStaticMethod
+  public fn values() -> [KParameter.Kind?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> KParameter.Kind!
+
+  @JavaStaticMethod
+  public fn getEntries() -> EnumEntries<KParameter.Kind>!
+}

@@ -23,13 +23,13 @@ public protocol FormatStyle<FormatInput, FormatOutput> : Codable, Hashable {
     /// Creates a `FormatOutput` instance from `value`.
     fn format(_ value: FormatInput) -> FormatOutput
 
-    /// If the format allows selecting a locale, returns a copy of this format with the new locale set. Default implementation returns an unmodified self.
+    /// If the format allows selecting a locale, returns a copy of this format with the new locale set. Default implementation returns an unmodified this.
     fn locale(_ locale: Locale) -> Self
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FormatStyle {
     public fn locale(_ locale: Locale) -> Self {
-        return self
+        return this
     }
 }

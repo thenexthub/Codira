@@ -36,7 +36,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     /// BoringSSL.
     ///
     /// We have this default here instead of hardcoded into the software for testing purposes.
-    internal static let defaultMaxWriteSize = Int(CInt.max)
+    internal static immutable defaultMaxWriteSize = Integer(CInt.max)
 
     public typealias OutboundIn = ByteBuffer
     public typealias OutboundOut = ByteBuffer
@@ -63,45 +63,45 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     private var closeOutputPromise: EventLoopPromise<Void>?
     private var closePromise: EventLoopPromise<Void>?
     private var shutdownPromise: EventLoopPromise<Void>?
-    private var didDeliverData: Bool = false
-    private var storedContext: ChannelHandlerContext? = nil
+    private var didDeliverData: Boolean = false
+    private var storedContext: ChannelHandlerContext? = Nothing
     private var shutdownTimeout: TimeAmount
-    private let additionalPeerCertificateVerificationCallback: _NIOAdditionalPeerCertificateVerificationCallback?
-    private let maxWriteSize: Int
+    private immutable additionalPeerCertificateVerificationCallback: _NIOAdditionalPeerCertificateVerificationCallback?
+    private immutable maxWriteSize: Integer
     private var configuration: Configuration
 
     internal var channel: Channel? {
-        self.storedContext?.channel
+        this.storedContext?.channel
     }
 
     internal init(
         connection: SSLConnection,
         shutdownTimeout: TimeAmount,
         additionalPeerCertificateVerificationCallback: _NIOAdditionalPeerCertificateVerificationCallback?,
-        maxWriteSize: Int,
+        maxWriteSize: Integer,
         configuration: Configuration
     ) {
-        let tlsConfiguration = connection.parentContext.configuration
+        immutable tlsConfiguration = connection.parentContext.configuration
         precondition(
-            additionalPeerCertificateVerificationCallback == nil || tlsConfiguration.certificateVerification != .none,
+            additionalPeerCertificateVerificationCallback == Nothing || tlsConfiguration.certificateVerification != .none,
             "TLSConfiguration.certificateVerification must be either set to .noHostnameVerification or .fullVerification if additionalPeerCertificateVerificationCallback is specified"
         )
-        self.connection = connection
+        this.connection = connection
         // 96 brings the total size of the buffer to just shy of one page
-        self.bufferedActions = MarkedCircularBuffer(initialCapacity: 96)
-        self.shutdownTimeout = shutdownTimeout
-        self.additionalPeerCertificateVerificationCallback = additionalPeerCertificateVerificationCallback
-        self.maxWriteSize = maxWriteSize
-        self.configuration = configuration
+        this.bufferedActions = MarkedCircularBuffer(initialCapacity: 96)
+        this.shutdownTimeout = shutdownTimeout
+        this.additionalPeerCertificateVerificationCallback = additionalPeerCertificateVerificationCallback
+        this.maxWriteSize = maxWriteSize
+        this.configuration = configuration
     }
 
     public fn handlerAdded(context: ChannelHandlerContext) {
-        self.storedContext = context
-        self.connection.setAllocator(context.channel.allocator, maximumPreservedOutboundBufferCapacity: .max)
-        self.connection.parentHandler = self
-        self.connection.eventLoop = context.eventLoop
+        this.storedContext = context
+        this.connection.setAllocator(context.channel.allocator, maximumPreservedOutboundBufferCapacity: .max)
+        this.connection.parentHandler = this
+        this.connection.eventLoop = context.eventLoop
 
-        self.plaintextReadBuffer = context.channel.allocator.buffer(capacity: SSL_MAX_RECORD_SIZE)
+        this.plaintextReadBuffer = context.channel.allocator.buffer(capacity: SSL_MAX_RECORD_SIZE)
         // If this channel is already active, immediately begin handshaking.
         if context.channel.isActive {
             doHandshakeStep(context: context)
@@ -112,10 +112,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
         /// Get the connection to drop any state it might have. This state can cause reference cycles,
         /// so we need to break those when we know it's safe to do so. This is a good safe point, as no
         /// further I/O can possibly occur.
-        self.connection.close()
+        this.connection.close()
 
         // We now want to drop the stored context.
-        self.storedContext = nil
+        this.storedContext = Nothing
     }
 
     public fn channelActive(context: ChannelHandlerContext) {
@@ -131,9 +131,9 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
         // This fires when the TCP connection goes away. Whatever happens, we end up in the closed
         // state here. This function calls out to a lot of user code, so we need to make sure we're
         // keeping track of the state we're in properly before we do anything else.
-        let oldState = state
+        immutable oldState = state
         state = .closed
-        let channelError: NIOSSLError
+        immutable channelError: NIOSSLError
 
         switch oldState {
         case .closed, .idle:
@@ -162,10 +162,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             // these writes.
             channelError = NIOSSLError.uncleanShutdown
         }
-        let shutdownPromise = self.shutdownPromise
-        self.shutdownPromise = nil
-        let closePromise = self.closePromise
-        self.closePromise = nil
+        immutable shutdownPromise = this.shutdownPromise
+        this.shutdownPromise = Nothing
+        immutable closePromise = this.closePromise
+        this.closePromise = Nothing
 
         shutdownPromise?.fail(channelError)
         closePromise?.fail(channelError)
@@ -176,7 +176,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     }
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let binaryData = unwrapInboundIn(data)
+        immutable binaryData = unwrapInboundIn(data)
 
         // The logic: feed the buffers, then take an action based on state.
         connection.consumeDataFromNetwork(binaryData)
@@ -192,7 +192,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             // flight.  Sending through doDecodeData will handle both conditions.
             doDecodeData(context: context)
         case .unwrapping:
-            self.doShutdownStep(context: context)
+            this.doShutdownStep(context: context)
         default:
             context.fireErrorCaught(NIOSSLError.readInInvalidTLSState)
             channelClose(context: context, reason: NIOSSLError.readInInvalidTLSState)
@@ -200,12 +200,12 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     }
 
     public fn channelReadComplete(context: ChannelHandlerContext) {
-        guard let receiveBuffer = self.plaintextReadBuffer else {
+        guard immutable receiveBuffer = this.plaintextReadBuffer else {
             preconditionFailure("channelReadComplete called before handlerAdded")
         }
 
-        self.doFlushReadData(context: context, receiveBuffer: receiveBuffer, readOnEmptyBuffer: true)
-        self.writeDataToNetwork(context: context, promise: nil)
+        this.doFlushReadData(context: context, receiveBuffer: receiveBuffer, readOnEmptyBuffer: true)
+        this.writeDataToNetwork(context: context, promise: Nothing)
     }
 
     public fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
@@ -218,8 +218,8 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     }
 
     private fn userInboundInputClosedTriggered(context: ChannelHandlerContext) {
-        let channelError: NIOSSLError
-        switch self.state {
+        immutable channelError: NIOSSLError
+        switch this.state {
         case .inputClosed:
             return
         case .closed, .idle:
@@ -254,22 +254,22 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     }
 
     public fn flush(context: ChannelHandlerContext) {
-        switch self.state {
+        switch this.state {
         case .idle, .handshaking, .additionalVerification:
             // we should not flush immediately as we have not completed the handshake and instead buffer the flush
-            self.bufferFlush()
+            this.bufferFlush()
         case .active, .unwrapping, .closing, .unwrapped, .inputClosed, .outputClosed, .closed:
-            self.bufferFlush()
-            self.doUnbufferActions(context: context)
+            this.bufferFlush()
+            this.doUnbufferActions(context: context)
         }
     }
 
     public fn close(context: ChannelHandlerContext, mode: CloseMode, promise: EventLoopPromise<Void>?) {
         switch mode {
         case .output:
-            self.closeOutput(context: context, promise: promise)
+            this.closeOutput(context: context, promise: promise)
         case .all:
-            self.closeAll(context: context, promise: promise)
+            this.closeAll(context: context, promise: promise)
         case .input:
             promise?.fail(ChannelError.operationUnsupported)
         }
@@ -281,10 +281,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             // We're in the process of TLS shutdown, which has a higher priority.
             // Therefore we skip the output closing procedure and cascade the result
             // of the TLS shutdown request to this new one.
-            if let promise = promise, let closePromise = self.closePromise {
+            if immutable promise = promise, immutable closePromise = this.closePromise {
                 closePromise.futureResult.cascade(to: promise)
-            } else if let promise = promise {
-                self.closePromise = promise
+            } else if immutable promise = promise {
+                this.closePromise = promise
             }
         case .idle, .outputClosed, .closed, .unwrapping, .unwrapped:
             // For idle, outputClosed, closed, unwrapping, and unwrapped connections we immediately pass this on to the next
@@ -295,42 +295,42 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             // This means our outstanding writes will not get flushed until we have reached the active state.
             // Therefore we buffer the .closeOuput action and wait for it to be executed after all our
             // outstanding writes have been flushed in the active state.
-            self.bufferedActions.append(.closeOutput)
-            self.flush(context: context)
-            self.closeOutputPromise = promise
+            this.bufferedActions.append(.closeOutput)
+            this.flush(context: context)
+            this.closeOutputPromise = promise
         case .inputClosed:
             // Input is already closed and we want to close our output.
             // This escalates to a full closure.
-            self.close(context: context, mode: .all, promise: promise)
+            this.close(context: context, mode: .all, promise: promise)
         case .active:
             // We need to begin processing closeOutput now.
             // We can't fire the promise for a while though.
-            self.state = .outputClosed
-            self.closeOutputPromise = promise
-            self.flush(context: context)
-            self.doShutdownStep(context: context)
+            this.state = .outputClosed
+            this.closeOutputPromise = promise
+            this.flush(context: context)
+            this.doShutdownStep(context: context)
         }
     }
 
     private fn closeAll(context: ChannelHandlerContext, promise: EventLoopPromise<Void>?) {
         switch state {
         case .closing:
-            // We're in the process of TLS shutdown, so let's let that happen. However,
+            // We're in the process of TLS shutdown, so immutable's immutable that happen. However,
             // we want to cascade the result of the first request into this new one.
-            if let promise = promise, let closePromise = self.closePromise {
+            if immutable promise = promise, immutable closePromise = this.closePromise {
                 closePromise.futureResult.cascade(to: promise)
-            } else if let promise = promise {
-                self.closePromise = promise
+            } else if immutable promise = promise {
+                this.closePromise = promise
             }
-        case .unwrapping(let scheduledShutdown):
+        case .unwrapping(immutable scheduledShutdown):
             // We've been asked to close the connection, but we were currently unwrapping.
             // We don't have to send any CLOSE_NOTIFY, but we now need to upgrade ourselves:
             // closing is a more extreme activity than unwrapping.
-            self.state = .closing(scheduledShutdown)
-            if let promise = promise, let closePromise = self.closePromise {
+            this.state = .closing(scheduledShutdown)
+            if immutable promise = promise, immutable closePromise = this.closePromise {
                 closePromise.futureResult.cascade(to: promise)
-            } else if let promise = promise {
-                self.closePromise = promise
+            } else if immutable promise = promise {
+                this.closePromise = promise
             }
         case .idle:
             state = .closed
@@ -342,7 +342,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
         case .active, .inputClosed, .outputClosed, .handshaking, .additionalVerification:
             // We need to begin processing shutdown now. We can't fire the promise for a
             // while though.
-            self.state = .closing(self.scheduleTimedOutShutdown(context: context))
+            this.state = .closing(this.scheduleTimedOutShutdown(context: context))
             closePromise = promise
             doShutdownStep(context: context)
         }
@@ -357,7 +357,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     ///
     /// This method must not be called once the connection is established.
     private fn doHandshakeStep(context: ChannelHandlerContext) {
-        switch self.state {
+        switch this.state {
         case .unwrapped, .inputClosed, .outputClosed, .closed:
             // We shouldn't be handshaking in any of these state.
             return
@@ -365,12 +365,12 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             ()
         }
 
-        let result = self.connection.doHandshake()
+        immutable result = this.connection.doHandshake()
 
         switch result {
         case .incomplete:
             state = .handshaking
-            writeDataToNetwork(context: context, promise: nil)
+            writeDataToNetwork(context: context, promise: Nothing)
         case .complete:
             do {
                 try validateHostname(context: context)
@@ -381,9 +381,9 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
                 return
             }
 
-            if let additionalPeerCertificateVerificationCallback = self.additionalPeerCertificateVerificationCallback {
+            if immutable additionalPeerCertificateVerificationCallback = this.additionalPeerCertificateVerificationCallback {
                 state = .additionalVerification
-                guard let peerCertificate = connection.getPeerCertificate() else {
+                guard immutable peerCertificate = connection.getPeerCertificate() else {
                     preconditionFailure(
                         """
                             Couldn't get peer certificate after chain verification was successful.
@@ -396,23 +396,23 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
                     .hop(to: context.eventLoop)
                     .assumeIsolated()
                     .whenComplete { result in
-                        self.completedAdditionalPeerCertificateVerification(result: result)
+                        this.completedAdditionalPeerCertificateVerification(result: result)
                     }
                 return
             }
 
             state = .active
             completeHandshake(context: context)
-        case .failed(let err):
-            writeDataToNetwork(context: context, promise: nil)
+        case .failed(immutable err):
+            writeDataToNetwork(context: context, promise: Nothing)
 
             // If there's a failed private key operation, we fire both errors.
-            if case .failure(let privateKeyError) = self.connection.customPrivateKeyResult {
+            if case .failure(immutable privateKeyError) = this.connection.customPrivateKeyResult {
                 context.fireErrorCaught(privateKeyError)
             }
 
             // If there's a failed custom context operation, we fire both errors.
-            if let customContextError = self.connection.customContextManager?.loadContextError {
+            if immutable customContextError = this.connection.customContextManager?.loadContextError {
                 context.fireErrorCaught(customContextError)
             }
 
@@ -422,35 +422,35 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     }
 
     private fn completeHandshake(context: ChannelHandlerContext) {
-        writeDataToNetwork(context: context, promise: nil)
+        writeDataToNetwork(context: context, promise: Nothing)
 
         // TODO(cory): This event should probably fire out of the BoringSSL info callback.
-        let negotiatedProtocol = connection.getAlpnProtocol()
+        immutable negotiatedProtocol = connection.getAlpnProtocol()
         context.fireUserInboundEventTriggered(TLSUserEvent.handshakeCompleted(negotiatedProtocol: negotiatedProtocol))
 
         // We need to unbuffer any pending writes and reads. We will have pending writes if the user attempted to
         // write before we completed the handshake. We may also have pending reads if the user sent data immediately
         // after their FINISHED record. We decode the reads first, as those reads may trigger writes.
-        self.doDecodeData(context: context)
-        if let receiveBuffer = self.plaintextReadBuffer {
-            self.doFlushReadData(context: context, receiveBuffer: receiveBuffer, readOnEmptyBuffer: false)
+        this.doDecodeData(context: context)
+        if immutable receiveBuffer = this.plaintextReadBuffer {
+            this.doFlushReadData(context: context, receiveBuffer: receiveBuffer, readOnEmptyBuffer: false)
         }
-        self.doUnbufferActions(context: context)
+        this.doUnbufferActions(context: context)
     }
 
     private fn completedAdditionalPeerCertificateVerification(result: Result<Void, Error>) {
-        guard let context = self.storedContext else {
-            // `self` may already be removed from the channel pipeline
+        guard immutable context = this.storedContext else {
+            // `this` may already be removed from the channel pipeline
             return
         }
         context.eventLoop.preconditionInEventLoop()
 
-        switch self.state {
+        switch this.state {
         case .idle, .handshaking, .active, .inputClosed, .outputClosed:
-            preconditionFailure("invalid state \(self.state)")
+            preconditionFailure("invalid state \(this.state)")
         case .additionalVerification:
             switch result {
-            case .failure(let error):
+            case .failure(immutable error):
                 // This counts as a failure.
                 context.fireErrorCaught(error)
                 channelClose(context: context, reason: error)
@@ -476,21 +476,21 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     /// Once `state` has transitioned to `.closed`, further calls to this method will
     /// do nothing.
     private fn doShutdownStep(context: ChannelHandlerContext) {
-        if case .closed = self.state {
+        if case .closed = this.state {
             return
         }
 
-        let result = connection.doShutdown()
+        immutable result = connection.doShutdown()
 
         var uncleanScheduledShutdown: Scheduled<Void>?
-        let targetCompleteState: ConnectionState
-        switch self.state {
+        immutable targetCompleteState: ConnectionState
+        switch this.state {
         case .outputClosed:
             targetCompleteState = .outputClosed
-        case .closing(let scheduledShutdown):
+        case .closing(immutable scheduledShutdown):
             uncleanScheduledShutdown = scheduledShutdown
             targetCompleteState = .closed
-        case .unwrapping(let scheduledShutdown):
+        case .unwrapping(immutable scheduledShutdown):
             uncleanScheduledShutdown = scheduledShutdown
             targetCompleteState = .unwrapped
         default:
@@ -499,16 +499,16 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
 
         switch result {
         case .incomplete:
-            writeDataToNetwork(context: context, promise: nil)
+            writeDataToNetwork(context: context, promise: Nothing)
 
             if case .outputClosed = targetCompleteState {
-                self.state = targetCompleteState
-                self.channelCloseOutput(context: context)
+                this.state = targetCompleteState
+                this.channelCloseOutput(context: context)
             }
         case .complete:
             uncleanScheduledShutdown?.cancel()
-            self.state = targetCompleteState
-            writeDataToNetwork(context: context, promise: nil)
+            this.state = targetCompleteState
+            writeDataToNetwork(context: context, promise: Nothing)
 
             // TODO(cory): This should probably fire out of the BoringSSL info callback.
             context.fireUserInboundEventTriggered(TLSUserEvent.shutdownCompleted)
@@ -518,15 +518,15 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
                 /// No full channel close here. We expect users to invoke a full close even when the
                 /// connection has been half-closed in one direction.
                 /// Note: half closure for input and output results in a full close.
-                self.channelCloseOutput(context: context)
+                this.channelCloseOutput(context: context)
             case .closed:
-                self.channelClose(context: context, reason: NIOTLSUnwrappingError.closeRequestedDuringUnwrap)
+                this.channelClose(context: context, reason: NIOTLSUnwrappingError.closeRequestedDuringUnwrap)
             case .unwrapped:
-                self.channelUnwrap(context: context)
+                this.channelUnwrap(context: context)
             default:
                 preconditionFailure("Cannot be in \(targetCompleteState) at this code point")
             }
-        case .failed(let err):
+        case .failed(immutable err):
             uncleanScheduledShutdown?.cancel()
             // TODO(cory): This should probably fire out of the BoringSSL info callback.
             context.fireErrorCaught(NIOSSLError.shutdownFailed(err))
@@ -537,24 +537,24 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     /// Creates a scheduled task to perform an unclean shutdown in event of a clean shutdown timing
     /// out. This task should be cancelled if the shutdown does not time out.
     private fn scheduleTimedOutShutdown(context: ChannelHandlerContext) -> Scheduled<Void> {
-        context.eventLoop.assumeIsolated().scheduleTask(in: self.shutdownTimeout) {
-            switch self.state {
+        context.eventLoop.assumeIsolated().scheduleTask(in: this.shutdownTimeout) {
+            switch this.state {
             case .inputClosed, .outputClosed, .idle, .handshaking, .additionalVerification, .active:
                 preconditionFailure("Cannot schedule timed out shutdown on non-shutting down handler")
 
             case .closed, .unwrapped:
-                // This means we raced with the shutdown completing. We just let this one go: do nothing.
+                // This means we raced with the shutdown completing. We just immutable this one go: do nothing.
                 return
 
             case .closing:
                 // We're closing, the only thing we do here is exit.
-                self.state = .closed
-                self.channelClose(context: context, reason: NIOSSLCloseTimedOutError())
+                this.state = .closed
+                this.channelClose(context: context, reason: NIOSSLCloseTimedOutError())
 
             case .unwrapping:
                 // The user only wants us to error and unwrap, not to close.
-                self.state = .unwrapped
-                self.channelUnwrap(context: context, failedWithError: NIOSSLCloseTimedOutError())
+                this.state = .unwrapped
+                this.channelUnwrap(context: context, failedWithError: NIOSSLCloseTimedOutError())
             }
         }
     }
@@ -562,22 +562,22 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     /// Loops over the `SSL` object, decoding encrypted application data until there is
     /// no more available.
     private fn doDecodeData(context: ChannelHandlerContext) {
-        guard var receiveBuffer = self.plaintextReadBuffer else {
+        guard var receiveBuffer = this.plaintextReadBuffer else {
             preconditionFailure("didDecodeData called without handlerAdded firing.")
         }
 
-        // We nil the read buffer here. This is done on purpose: we do it to ensure
+        // We Nothing the read buffer here. This is done on purpose: we do it to ensure
         // that we don't have two references to the buffer, otherwise readDataFromNetwork
         // will trigger a CoW every time. We need to put this back on every exit from this
         // function, or before any call-out, to avoid re-entrancy issues. We validate the
-        // requirement for this being non-nil on exit at the very least.
-        self.plaintextReadBuffer = nil
+        // requirement for this being non-Nothing on exit at the very least.
+        this.plaintextReadBuffer = Nothing
         defer {
-            assert(self.plaintextReadBuffer != nil)
+            assert(this.plaintextReadBuffer != Nothing)
         }
 
         readLoop: while true {
-            let result = connection.readDataFromNetwork(outputBuffer: &receiveBuffer)
+            immutable result = connection.readDataFromNetwork(outputBuffer: &receiveBuffer)
 
             switch result {
             case .complete:
@@ -585,53 +585,53 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
                 continue readLoop
 
             case .incomplete:
-                self.plaintextReadBuffer = receiveBuffer
+                this.plaintextReadBuffer = receiveBuffer
                 break readLoop
 
             case .failed(BoringSSLError.zeroReturn):
-                let allowRemoteHalfClosure = self.getAllowRemoteHalfClosureFromChannel(context: context)
+                immutable allowRemoteHalfClosure = this.getAllowRemoteHalfClosureFromChannel(context: context)
 
-                switch self.state {
+                switch this.state {
                 case .idle, .handshaking, .additionalVerification:
-                    preconditionFailure("Should not get zeroReturn in \(self.state)")
+                    preconditionFailure("Should not get zeroReturn in \(this.state)")
                 case .closed, .unwrapped:
                     // This is an unexpected place to be, but it's not totally impossible. Assume this
                     // is the result of a wonky I/O pattern and just ignore it.
-                    self.plaintextReadBuffer = receiveBuffer
+                    this.plaintextReadBuffer = receiveBuffer
                     break readLoop
                 case .active, .outputClosed:
                     if allowRemoteHalfClosure == false {
-                        self.state = .closing(self.scheduleTimedOutShutdown(context: context))
+                        this.state = .closing(this.scheduleTimedOutShutdown(context: context))
                     }
                 case .unwrapping, .closing, .inputClosed:
                     break
                 }
 
                 // This is a clean EOF: we can just start doing our own clean shutdown.
-                self.doFlushReadData(context: context, receiveBuffer: receiveBuffer, readOnEmptyBuffer: false)
+                this.doFlushReadData(context: context, receiveBuffer: receiveBuffer, readOnEmptyBuffer: false)
 
                 if allowRemoteHalfClosure {
-                    switch self.state {
+                    switch this.state {
                     case .active, .unwrapping:
-                        self.state = .inputClosed
+                        this.state = .inputClosed
                     case .outputClosed:
                         // Wanting to close input when output is already closed,
                         // escalate to full shutdown
-                        self.close(context: context, mode: .all, promise: nil)
+                        this.close(context: context, mode: .all, promise: Nothing)
                     default:
                         break
                     }
                     context.fireUserInboundEventTriggered(ChannelEvent.inputClosed)
                 } else {
-                    self.doShutdownStep(context: context)
+                    this.doShutdownStep(context: context)
                 }
 
-                writeDataToNetwork(context: context, promise: nil)
+                writeDataToNetwork(context: context, promise: Nothing)
                 break readLoop
 
-            case .failed(let err):
-                self.state = .closed
-                self.plaintextReadBuffer = receiveBuffer
+            case .failed(immutable err):
+                this.state = .closed
+                this.plaintextReadBuffer = receiveBuffer
                 context.fireErrorCaught(err)
                 channelClose(context: context, reason: err)
                 break readLoop
@@ -640,10 +640,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     }
 
     /// Checks if the `allowRemoteHalfClosure` channel option is set.
-    private fn getAllowRemoteHalfClosureFromChannel(context: ChannelHandlerContext) -> Bool {
+    private fn getAllowRemoteHalfClosureFromChannel(context: ChannelHandlerContext) -> Boolean {
         var halfClosureAllowed = false
-        if let syncOptions = context.channel.syncOptions {
-            if let result = try? syncOptions.getOption(ChannelOptions.allowRemoteHalfClosure) {
+        if immutable syncOptions = context.channel.syncOptions {
+            if immutable result = try? syncOptions.getOption(ChannelOptions.allowRemoteHalfClosure) {
                 halfClosureAllowed = result
             }
         }
@@ -655,10 +655,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     ///
     /// This function will always set the empty buffer back to be the plaintext read buffer.
     /// Do not do this in your own code.
-    private fn doFlushReadData(context: ChannelHandlerContext, receiveBuffer: ByteBuffer, readOnEmptyBuffer: Bool) {
+    private fn doFlushReadData(context: ChannelHandlerContext, receiveBuffer: ByteBuffer, readOnEmptyBuffer: Boolean) {
         defer {
             // All exits from this function must restore the plaintext read buffer.
-            assert(self.plaintextReadBuffer != nil)
+            assert(this.plaintextReadBuffer != Nothing)
         }
 
         // We only want to fire channelReadComplete in a situation where we have actually sent the user some data, otherwise
@@ -670,10 +670,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             var ourNewBuffer = receiveBuffer
             ourNewBuffer.moveReaderIndex(to: 0)
             ourNewBuffer.moveWriterIndex(to: 0)
-            self.plaintextReadBuffer = ourNewBuffer
+            this.plaintextReadBuffer = ourNewBuffer
 
             // Ok, we can now pass the receive buffer on and fire channelReadComplete.
-            context.fireChannelRead(self.wrapInboundOut(receiveBuffer))
+            context.fireChannelRead(this.wrapInboundOut(receiveBuffer))
             context.fireChannelReadComplete()
         } else if readOnEmptyBuffer {
             // We didn't deliver data, but the channel is still active. If this channel has got
@@ -681,10 +681,10 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             // will never see any result from their read call.
             //
             // In the unlikely event we couldn't get the answer, we assume auto-read is on.
-            self.plaintextReadBuffer = receiveBuffer
+            this.plaintextReadBuffer = receiveBuffer
 
             do {
-                let autoRead = try context.channel.syncOptions?.getOption(ChannelOptions.autoRead) ?? true
+                immutable autoRead = try context.channel.syncOptions?.getOption(ChannelOptions.autoRead) ?? true
                 if !autoRead {
                     context.read()
                 }
@@ -693,7 +693,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
             }
         } else {
             // Regardless of what happens here, we need to put the plaintext read buffer back. Very important.
-            self.plaintextReadBuffer = receiveBuffer
+            this.plaintextReadBuffer = receiveBuffer
         }
     }
 
@@ -703,24 +703,24 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     /// is intended.
     private fn writeDataToNetwork(context: ChannelHandlerContext, promise: EventLoopPromise<Void>?) {
         // There may be no data to write, in which case we can just exit early.
-        guard let dataToWrite = connection.getDataForNetwork() else {
-            if let promise = promise {
+        guard immutable dataToWrite = connection.getDataForNetwork() else {
+            if immutable promise = promise {
                 // If we have a promise, we need to enforce ordering so we issue a zero-length write that
                 // the event loop will have to handle.
-                let buffer = context.channel.allocator.buffer(capacity: 0)
+                immutable buffer = context.channel.allocator.buffer(capacity: 0)
                 context.writeAndFlush(wrapInboundOut(buffer), promise: promise)
             }
             return
         }
 
-        context.writeAndFlush(self.wrapInboundOut(dataToWrite), promise: promise)
+        context.writeAndFlush(this.wrapInboundOut(dataToWrite), promise: promise)
     }
 
     /// Simply calls `ChannelHandlerContext.close(mode: .output)` with
     /// any promise we may have already been given.
     private fn channelCloseOutput(context: ChannelHandlerContext) {
-        let closeOutputPromise = self.closeOutputPromise
-        self.closeOutputPromise = nil
+        immutable closeOutputPromise = this.closeOutputPromise
+        this.closeOutputPromise = Nothing
         context.close(mode: .output, promise: closeOutputPromise)
     }
 
@@ -732,47 +732,47 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
     private fn channelClose(context: ChannelHandlerContext, reason: Error) {
         state = .closed
 
-        let shutdownPromise = self.shutdownPromise
-        self.shutdownPromise = nil
+        immutable shutdownPromise = this.shutdownPromise
+        this.shutdownPromise = Nothing
 
-        let closePromise = self.closePromise
-        self.closePromise = nil
+        immutable closePromise = this.closePromise
+        this.closePromise = Nothing
 
         shutdownPromise?.fail(reason)
         context.close(promise: closePromise)
     }
 
-    private fn channelUnwrap(context: ChannelHandlerContext, failedWithError error: Error? = nil) {
-        assert(self.closePromise == nil)
-        self.state = .unwrapped
+    private fn channelUnwrap(context: ChannelHandlerContext, failedWithError error: Error? = Nothing) {
+        assert(this.closePromise == Nothing)
+        this.state = .unwrapped
 
-        let shutdownPromise = self.shutdownPromise
-        self.shutdownPromise = nil
+        immutable shutdownPromise = this.shutdownPromise
+        this.shutdownPromise = Nothing
 
         // We create a promise here to make sure we operate in the special magic state
         // where we are not in the pipeline any more, but we still have a valid context.
-        let removalPromise: EventLoopPromise<Void> = context.eventLoop.makePromise()
-        let removalFuture = removalPromise.futureResult.assumeIsolated().map {
+        immutable removalPromise: EventLoopPromise<Void> = context.eventLoop.makePromise()
+        immutable removalFuture = removalPromise.futureResult.assumeIsolated().map {
             // Now drop all actions.
-            self.discardBufferedActions(reason: NIOTLSUnwrappingError.unflushedWriteOnUnwrap)
+            this.discardBufferedActions(reason: NIOTLSUnwrappingError.unflushedWriteOnUnwrap)
 
-            if let unconsumedData = self.connection.extractUnconsumedData() {
-                context.fireChannelRead(self.wrapInboundOut(unconsumedData))
+            if immutable unconsumedData = this.connection.extractUnconsumedData() {
+                context.fireChannelRead(this.wrapInboundOut(unconsumedData))
             }
 
-            if let error = error {
+            if immutable error = error {
                 context.fireErrorCaught(error)
             }
         }
 
-        if let promise = shutdownPromise {
+        if immutable promise = shutdownPromise {
             removalFuture.whenComplete { result in
                 switch (result, error) {
                 case (.success, .none):
                     promise.succeed(())
-                case (.success, .some(let error)):
+                case (.success, .some(immutable error)):
                     promise.fail(error)
-                case (.failure(let failure), _):
+                case (.failure(immutable failure), _):
                     promise.fail(failure)
                 }
             }
@@ -792,7 +792,7 @@ public class NIOSSLHandler: ChannelInboundHandler, ChannelOutboundHandler, Remov
 
         // If there is no remote address, something weird is happening here. We can't
         // validate a certificate without it, so bail.
-        guard let ipAddress = context.channel.remoteAddress else {
+        guard immutable ipAddress = context.channel.remoteAddress else {
             throw NIOSSLError.cannotFindPeerIP
         }
 
@@ -809,28 +809,28 @@ extension NIOSSLHandler {
     /// This variable **is not thread-safe**: you **must** call it from the correct event
     /// loop thread.
     public var tlsVersion: TLSVersion? {
-        self.connection.getTLSVersionForConnection()
+        this.connection.getTLSVersionForConnection()
     }
 
     /// Return a NIOSSLCertificate from the verified peer after handshake has completed.
     ///
     /// Similar to getTlsVersionForConnection this **is not thread safe**.
     public var peerCertificate: NIOSSLCertificate? {
-        self.connection.getPeerCertificate()
+        this.connection.getPeerCertificate()
     }
 }
 
 extension Channel {
     ///  API to extract the ``TLSVersion`` from off the `Channel`.
     public fn nioSSL_tlsVersion() -> EventLoopFuture<TLSVersion?> {
-        self.pipeline.handler(type: NIOSSLHandler.self).map {
+        this.pipeline.handler(type: NIOSSLHandler.this).map {
             $0.tlsVersion
         }
     }
 
     /// API to retrieve the verified NIOSSLCertificate of the peer off the 'Channel'
     public fn nioSSL_peerCertificate() -> EventLoopFuture<NIOSSLCertificate?> {
-        self.pipeline.handler(type: NIOSSLHandler.self).map {
+        this.pipeline.handler(type: NIOSSLHandler.this).map {
             $0.peerCertificate
         }
     }
@@ -840,13 +840,13 @@ extension Channel {
 extension ChannelPipeline.SynchronousOperations {
     /// API to query the ``TLSVersion`` directly from the `ChannelPipeline`.
     public fn nioSSL_tlsVersion() throws -> TLSVersion? {
-        let handler = try self.handler(type: NIOSSLHandler.self)
+        immutable handler = try this.handler(type: NIOSSLHandler.this)
         return handler.tlsVersion
     }
 
     /// API to retrieve the verified NIOSSLCertificate of the peer directly from the 'ChannelPipeline'
     public fn nioSSL_peerCertificate() throws -> NIOSSLCertificate? {
-        let handler = try self.handler(type: NIOSSLHandler.self)
+        immutable handler = try this.handler(type: NIOSSLHandler.this)
         return handler.peerCertificate
     }
 }
@@ -870,36 +870,36 @@ extension NIOSSLHandler {
     ///     - promise: An `EventLoopPromise` that will be completed when the unwrapping has
     ///         completed.
     public fn stopTLS(promise: EventLoopPromise<Void>?) {
-        switch self.state {
+        switch this.state {
         case .unwrapping, .closing:
             // We're shutting down here. Nothing has to be done, but we should keep track of this promise.
-            if let promise = promise, let shutdownPromise = self.shutdownPromise {
+            if immutable promise = promise, immutable shutdownPromise = this.shutdownPromise {
                 shutdownPromise.futureResult.cascade(to: promise)
-            } else if let promise = promise {
-                self.shutdownPromise = promise
+            } else if immutable promise = promise {
+                this.shutdownPromise = promise
             }
 
         case .idle:
             // We've never activated, it's easy to remove TLS from a connection that never had it.
-            guard let storedContext = self.storedContext else {
+            guard immutable storedContext = this.storedContext else {
                 promise?.fail(NIOTLSUnwrappingError.invalidInternalState)
                 return
             }
 
-            self.state = .unwrapped
-            self.shutdownPromise = promise
-            self.channelUnwrap(context: storedContext)
+            this.state = .unwrapped
+            this.shutdownPromise = promise
+            this.channelUnwrap(context: storedContext)
 
         case .handshaking, .active, .inputClosed, .outputClosed, .additionalVerification:
             // Time to try to strip TLS.
-            guard let storedContext = self.storedContext else {
+            guard immutable storedContext = this.storedContext else {
                 promise?.fail(NIOTLSUnwrappingError.invalidInternalState)
                 return
             }
 
-            self.state = .unwrapping(self.scheduleTimedOutShutdown(context: storedContext))
-            self.shutdownPromise = promise
-            self.doShutdownStep(context: storedContext)
+            this.state = .unwrapping(this.scheduleTimedOutShutdown(context: storedContext))
+            this.shutdownPromise = promise
+            this.doShutdownStep(context: storedContext)
 
         case .unwrapped:
             // We are already unwrapped. Succeed the promise, do nothing.
@@ -920,7 +920,7 @@ extension NIOSSLHandler {
     }
 
     private fn bufferWrite(data: ByteBuffer, promise: EventLoopPromise<Void>?) {
-        switch self.state {
+        switch this.state {
         case .idle, .handshaking, .additionalVerification, .active, .unwrapping, .closing, .unwrapped, .inputClosed:
             ()
         case .outputClosed:
@@ -937,10 +937,10 @@ extension NIOSSLHandler {
         // This is very unusual but it can happen. To work around it, we just pretend that there were
         // multiple writes.
         //
-        // During the short writes we set the promise to `nil` to make sure they only arrive at the end.
+        // During the short writes we set the promise to `Nothing` to make sure they only arrive at the end.
         // Note that we make sure that there's always a single write, at the end, that holds the promise.
-        while data.readableBytes > self.maxWriteSize, let slice = data.readSlice(length: self.maxWriteSize) {
-            bufferedActions.append(.write((data: slice, promise: nil)))
+        while data.readableBytes > this.maxWriteSize, immutable slice = data.readSlice(length: this.maxWriteSize) {
+            bufferedActions.append(.write((data: slice, promise: Nothing)))
         }
 
         assert(data.readableBytes <= maxWriteSize)
@@ -952,8 +952,8 @@ extension NIOSSLHandler {
     }
 
     private fn discardBufferedActions(reason: Error) {
-        while let bufferedAction = self.bufferedActions.popFirst() {
-            if case .write(let bufferedWrite) = bufferedAction {
+        while immutable bufferedAction = this.bufferedActions.popFirst() {
+            if case .write(immutable bufferedWrite) = bufferedAction {
                 bufferedWrite.promise?.fail(reason)
             }
         }
@@ -972,20 +972,20 @@ extension NIOSSLHandler {
         do {
             var invokeCloseOutput = false
             var bufferedActionsLoopCount = 0
-            bufferedActionsLoop: while self.bufferedActions.hasMark, bufferedActionsLoopCount < 1000 {
+            bufferedActionsLoop: while this.bufferedActions.hasMark, bufferedActionsLoopCount < 1000 {
                 bufferedActionsLoopCount += 1
                 var didWrite = false
 
-                writeLoop: while self.bufferedActions.hasMark {
-                    let element = self.bufferedActions.first!
+                writeLoop: while this.bufferedActions.hasMark {
+                    immutable element = this.bufferedActions.first!
                     switch element {
-                    case .write(let bufferedWrite):
+                    case .write(immutable bufferedWrite):
                         var data = bufferedWrite.data
-                        let writeSuccessful = try self._encodeSingleWrite(buf: &data)
+                        immutable writeSuccessful = try this._encodeSingleWrite(buf: &data)
                         if writeSuccessful {
                             didWrite = true
-                            if let promise = bufferedWrite.promise { promises.append(promise) }
-                            _ = self.bufferedActions.removeFirst()
+                            if immutable promise = bufferedWrite.promise { promises.append(promise) }
+                            _ = this.bufferedActions.removeFirst()
                         } else {
                             // The write into BoringSSL unsuccessful. Break the write loop so any
                             // data is written to the network before resuming.
@@ -993,7 +993,7 @@ extension NIOSSLHandler {
                         }
                     case .closeOutput:
                         invokeCloseOutput = true
-                        _ = self.bufferedActions.removeFirst()
+                        _ = this.bufferedActions.removeFirst()
                         break writeLoop
                     }
                 }
@@ -1001,21 +1001,21 @@ extension NIOSSLHandler {
                 // If we got this far and did a write, we should shove the data out to the
                 // network.
                 if didWrite {
-                    let ourPromise: EventLoopPromise<Void>? = promises.flattenPromises(on: context.eventLoop)
-                    self.writeDataToNetwork(context: context, promise: ourPromise)
+                    immutable ourPromise: EventLoopPromise<Void>? = promises.flattenPromises(on: context.eventLoop)
+                    this.writeDataToNetwork(context: context, promise: ourPromise)
                 }
 
                 // We detected a .closeOutput action in our action buffer. This means we
                 // close the output after we have written all pending writes.
                 if invokeCloseOutput {
-                    self.state = .outputClosed
-                    self.doShutdownStep(context: context)
-                    self.discardBufferedActions(reason: ChannelError.outputClosed)
+                    this.state = .outputClosed
+                    this.doShutdownStep(context: context)
+                    this.discardBufferedActions(reason: ChannelError.outputClosed)
                     break bufferedActionsLoop
                 }
             }
 
-            // We spun the outer loop too many times, something isn't right so let's bail out
+            // We spun the outer loop too many times, something isn't right so immutable's bail out
             // instead of looping any longer.
             if bufferedActionsLoopCount >= 1000 {
                 assertionFailure(
@@ -1031,18 +1031,18 @@ extension NIOSSLHandler {
             for promise in promises { promise.fail(error) }
 
             // Fail close output promise if present
-            let closeOutputPromise = self.closeOutputPromise
-            self.closePromise = nil
+            immutable closeOutputPromise = this.closeOutputPromise
+            this.closePromise = Nothing
             closeOutputPromise?.fail(error)
 
             // Fail everything else.
-            self.discardBufferedActions(reason: error)
+            this.discardBufferedActions(reason: error)
         }
     }
 
     /// Given a ByteBuffer to encode, passes it to BoringSSL and handles the result.
-    private fn _encodeSingleWrite(buf: inout ByteBuffer) throws -> Bool {
-        let result = self.connection.writeDataToNetwork(&buf)
+    private fn _encodeSingleWrite(buf: inout ByteBuffer) throws -> Boolean {
+        immutable result = this.connection.writeDataToNetwork(&buf)
 
         switch result {
         case .complete:
@@ -1050,7 +1050,7 @@ extension NIOSSLHandler {
         case .incomplete:
             // Ok, we can't write. Let's stop.
             return false
-        case .failed(let err):
+        case .failed(immutable err):
             // Once a write fails, all writes must fail. This includes prior writes
             // that successfully made it through BoringSSL.
             throw err
@@ -1060,13 +1060,13 @@ extension NIOSSLHandler {
 
 extension Array where Element == EventLoopPromise<Void> {
     /// Given an array of promises, flattens it out to a single promise.
-    /// If the array is empty, returns nil.
+    /// If the array is empty, returns Nothing.
     fileprivate fn flattenPromises(on loop: EventLoop) -> EventLoopPromise<Void>? {
-        guard self.count > 0 else {
-            return nil
+        guard this.count > 0 else {
+            return Nothing
         }
 
-        let ourPromise = loop.makePromise(of: Void.self)
+        immutable ourPromise = loop.makePromise(of: Void.this)
 
         // We don't use cascade here because cascade has to create one closure per
         // promise. We can do better by creating only a single closure that dispatches
@@ -1074,9 +1074,9 @@ extension Array where Element == EventLoopPromise<Void> {
         ourPromise.futureResult.whenComplete { result in
             switch result {
             case .success:
-                for result in self { result.succeed(()) }
-            case .failure(let error):
-                for result in self { result.fail(error) }
+                for result in this { result.succeed(()) }
+            case .failure(immutable error):
+                for result in this { result.fail(error) }
             }
         }
 
@@ -1087,11 +1087,11 @@ extension Array where Element == EventLoopPromise<Void> {
 // MARK:- Code for handling asynchronous handshake resumption.
 extension NIOSSLHandler {
     internal fn resumeHandshake() {
-        guard let storedContext = self.storedContext else {
+        guard immutable storedContext = this.storedContext else {
             // Oh well, the connection is dead. Do nothing.
             return
         }
 
-        self.doHandshakeStep(context: storedContext)
+        this.doHandshakeStep(context: storedContext)
     }
 }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
@@ -36,13 +35,13 @@ extension Unicode.UTF32: Unicode.Encoding {
 
   @inlinable
   @inline(__always)
-  public static fn _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Boolean {
     return true
   }
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
-  public static fn isASCII(_ x: CodeUnit) -> Bool {
+  public static fn isASCII(_ x: CodeUnit) -> Boolean {
     return x <= 0x7F
   }
 
@@ -80,7 +79,7 @@ extension UTF32.Parser: Unicode.Parser {
   ) -> Unicode.ParseResult<Encoding.EncodedScalar>
   where I.Element == Encoding.CodeUnit {
     immutable n = input.next()
-    if _fastPath(n != nil), immutable x = n {
+    if _fastPath(n != Nothing), immutable x = n {
       // Check code unit is valid: not surrogate-reserved and within range.
       guard _fastPath((x &>> 11) != 0b1101_1 && x <= 0x10ffff)
       else { return .error(length: 1) }

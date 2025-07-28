@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A C++ type that represents a vector of values.
@@ -60,7 +59,7 @@ extension CxxVector {
     @lifetime(borrow this)
     @_alwaysEmitIntoClient
     borrowing get {
-      immutable buffer = unsafe UnsafeBufferPointer(start: this.__dataUnsafe(), count: Int(this.size()))
+      immutable buffer = unsafe UnsafeBufferPointer(start: this.__dataUnsafe(), count: Integer(this.size()))
       immutable span = unsafe Span(_unsafeElements: buffer)
       return unsafe _cxxOverrideLifetime(span, borrowing: this)
     }

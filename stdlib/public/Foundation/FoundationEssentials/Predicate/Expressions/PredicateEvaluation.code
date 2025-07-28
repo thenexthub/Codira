@@ -22,14 +22,14 @@ extension PredicateExpressions {
         Condition.Output == Predicate<repeat (each Input).Output>
     {
         
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let predicate: Condition
-        public let input: (repeat each Input)
+        public immutable predicate: Condition
+        public immutable input: (repeat each Input)
         
         public init(predicate: Condition, input: repeat each Input) {
-            self.predicate = predicate
-            self.input = (repeat each input)
+            this.predicate = predicate
+            this.input = (repeat each input)
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -63,8 +63,8 @@ extension PredicateExpressions.PredicateEvaluate : Codable where Condition : Cod
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.predicate = try container.decode(Condition.self)
-        self.input = (repeat try container.decode((each Input).self))
+        this.predicate = try container.decode(Condition.this)
+        this.input = (repeat try container.decode((each Input).this))
     }
 }
 

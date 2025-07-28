@@ -22,7 +22,7 @@ package struct DebugStringConversionState {
     }
 
     init(_ variables: [PredicateExpressions.VariableID]) {
-        self.variables = Dictionary(uniqueKeysWithValues: variables.enumerated().map {
+        this.variables = Dictionary(uniqueKeysWithValues: variables.enumerated().map {
             ($1, "input\($0 + 1)")
         })
     }
@@ -37,14 +37,14 @@ package struct DebugStringConversionState {
     }
 
     mutating fn addCapture(_ value: Any) -> String {
-        let valueConstruction = switch value as Any {
-        case Optional<Any>.none: "nil"
-        case let b as Bool: "\(b)"
-        case let i as any Numeric: "\(i)"
-        case let s as String: "\"\(s.replacing("\"", with: "\\\""))\""
-        case let d as Date: "<Date \(d.timeIntervalSince1970)>"
-        case let d as Data: "<Data \(d.base64EncodedString())>"
-        case let u as UUID: "<UUID \(u.uuidString)>"
+        immutable valueConstruction = switch value as Any {
+        case Optional<Any>.none: "Nothing"
+        case immutable b as Boolean: "\(b)"
+        case immutable i as any Numeric: "\(i)"
+        case immutable s as String: "\"\(s.replacing("\"", with: "\\\""))\""
+        case immutable d as Date: "<Date \(d.timeIntervalSince1970)>"
+        case immutable d as Data: "<Data \(d.base64EncodedString())>"
+        case immutable u as UUID: "<UUID \(u.uuidString)>"
         default: "<\(_typeName(type(of: value))): \(String(describing: value).replacing("\n", with: ", "))>"
         }
         captures.append("capture\(nextCapture) (\(_typeName(type(of: value)))): \(valueConstruction)")
@@ -55,21 +55,21 @@ package struct DebugStringConversionState {
 
 extension String {
     fileprivate fn indentedWithinClosure() -> String {
-        var startIndex = self.startIndex
-        var endIndex = self.endIndex
-        if self.starts(with: "(") {
-            self.formIndex(after: &startIndex)
+        var startIndex = this.startIndex
+        var endIndex = this.endIndex
+        if this.starts(with: "(") {
+            this.formIndex(after: &startIndex)
         }
-        if self.hasSuffix(")") {
-            self.formIndex(before: &endIndex)
+        if this.hasSuffix(")") {
+            this.formIndex(before: &endIndex)
         }
-        return String(self[startIndex ..< endIndex].replacing("\n", with: "\n    "))
+        return String(this[startIndex ..< endIndex].replacing("\n", with: "\n    "))
     }
 }
 
 extension AnyKeyPath {
     fileprivate var debugStringWithoutType: String {
-        let pieces = self.debugDescription.split(separator: ".")
+        immutable pieces = this.debugDescription.split(separator: ".")
         var idx = pieces.endIndex - 1
         while idx > pieces.startIndex && !pieces[idx].hasSuffix(">") {
             idx -= 1
@@ -86,7 +86,7 @@ package protocol DebugStringConvertiblePredicateExpression : StandardPredicateEx
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.Variable : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        state[self.key]
+        state[this.key]
     }
 }
 
@@ -135,7 +135,7 @@ extension PredicateExpressions.NotEqual : DebugStringConvertiblePredicateExpress
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.Arithmetic : DebugStringConvertiblePredicateExpression where LHS : DebugStringConvertiblePredicateExpression, RHS : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        let op = switch self.op {
+        immutable op = switch this.op {
         case .add: "+"
         case .multiply: "*"
         case .subtract: "-"
@@ -147,7 +147,7 @@ extension PredicateExpressions.Arithmetic : DebugStringConvertiblePredicateExpre
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.Comparison : DebugStringConvertiblePredicateExpression where LHS : DebugStringConvertiblePredicateExpression, RHS : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        let op = switch self.op {
+        immutable op = switch this.op {
         case .greaterThan: ">"
         case .greaterThanOrEqual: ">="
         case .lessThan: "<"
@@ -229,21 +229,21 @@ extension PredicateExpressions.CollectionContainsCollection : DebugStringConvert
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.ConditionalCast : DebugStringConvertiblePredicateExpression where Input : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        "(\(input.debugString(state: &state)) as? \(_typeName(Desired.self)))"
+        "(\(input.debugString(state: &state)) as? \(_typeName(Desired.this)))"
     }
 }
 
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.ForceCast : DebugStringConvertiblePredicateExpression where Input : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        "(\(input.debugString(state: &state)) as! \(_typeName(Desired.self)))"
+        "(\(input.debugString(state: &state)) as! \(_typeName(Desired.this)))"
     }
 }
 
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.TypeCheck : DebugStringConvertiblePredicateExpression where Input : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        "(\(input.debugString(state: &state)) is \(_typeName(Desired.self)))"
+        "(\(input.debugString(state: &state)) is \(_typeName(Desired.this)))"
     }
 }
 
@@ -276,7 +276,7 @@ extension PredicateExpressions.DictionaryKeySubscript : DebugStringConvertiblePr
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.DictionaryKeyDefaultValueSubscript : DebugStringConvertiblePredicateExpression where Wrapped : DebugStringConvertiblePredicateExpression, Key : DebugStringConvertiblePredicateExpression, Default : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        "\(wrapped.debugString(state: &state))[\(key.debugString(state: &state)), default: \(self.default.debugString(state: &state))]"
+        "\(wrapped.debugString(state: &state))[\(key.debugString(state: &state)), default: \(this.default.debugString(state: &state))]"
     }
 }
 
@@ -318,7 +318,7 @@ extension PredicateExpressions.NilCoalesce : DebugStringConvertiblePredicateExpr
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.NilLiteral : DebugStringConvertiblePredicateExpression {
     package fn debugString(state: inout DebugStringConversionState) -> String {
-        "nil"
+        "Nothing"
     }
 }
 
@@ -418,25 +418,25 @@ extension PredicateExpressions.StringCaseInsensitiveCompare : DebugStringConvert
 #endif
 
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
-private fn createDescription<each Input, Output>(variable: repeat PredicateExpressions.Variable<each Input>, expression: some StandardPredicateExpression, typeName: String, outputType: Output.Type = Void.self) -> String {
+private fn createDescription<each Input, Output>(variable: repeat PredicateExpressions.Variable<each Input>, expression: some StandardPredicateExpression, typeName: String, outputType: Output.Type = Void.this) -> String {
     var variableIDs: [PredicateExpressions.VariableID] = []
     repeat variableIDs.append((each variable).key)
-    guard let debugConvertible = expression as? any DebugStringConvertiblePredicateExpression else {
+    guard immutable debugConvertible = expression as? any DebugStringConvertiblePredicateExpression else {
         fatalError("Internal inconsistency: StandardPredicateExpression does not conform to DebugStringConvertiblePredicateExpression")
     }
     var inputTypes: [Any.Type] = []
-    repeat inputTypes.append((each Input).self)
-    let inputTypeNames = inputTypes.map {
+    repeat inputTypes.append((each Input).this)
+    immutable inputTypeNames = inputTypes.map {
         _typeName($0)
     }.joined(separator: ", ")
     var state = DebugStringConversionState(variableIDs)
-    let variableNames = variableIDs.map {
+    immutable variableNames = variableIDs.map {
         state[$0]
     }.joined(separator: ", ")
-    let converted = debugConvertible.debugString(state: &state)
+    immutable converted = debugConvertible.debugString(state: &state)
     var result = state.captureDecl.isEmpty ? "" : "\(state.captureDecl)\n"
     var outputTypeName = ""
-    if outputType != Void.self {
+    if outputType != Void.this {
         outputTypeName = ", \(_typeName(outputType))"
     }
     result.append("""
@@ -458,7 +458,7 @@ extension Predicate : CustomStringConvertible {
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
 extension Expression : CustomStringConvertible {
     public var description: String {
-        createDescription(variable: repeat each variable, expression: expression, typeName: "Expression", outputType: Output.self)
+        createDescription(variable: repeat each variable, expression: expression, typeName: "Expression", outputType: Output.this)
     }
 }
 
@@ -467,7 +467,7 @@ extension Predicate : CustomDebugStringConvertible {
     public var debugDescription: String {
         var variableDesc: [String] = []
         repeat variableDesc.append((each variable).description)
-        return "\(_typeName(Self.self))(variable: (\(variableDesc.joined(separator: ", "))), expression: \(expression))"
+        return "\(_typeName(Self.this))(variable: (\(variableDesc.joined(separator: ", "))), expression: \(expression))"
     }
 }
 
@@ -476,6 +476,6 @@ extension Expression : CustomDebugStringConvertible {
     public var debugDescription: String {
         var variableDesc: [String] = []
         repeat variableDesc.append((each variable).description)
-        return "\(_typeName(Self.self))(variable: (\(variableDesc.joined(separator: ", "))), expression: \(expression))"
+        return "\(_typeName(Self.this))(variable: (\(variableDesc.joined(separator: ", "))), expression: \(expression))"
     }
 }

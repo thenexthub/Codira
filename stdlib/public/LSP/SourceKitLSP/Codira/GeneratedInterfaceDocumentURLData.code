@@ -1,0 +1,89 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import LanguageServerProtocol
+
+/// Represents url of generated interface reference document.
+package struct GeneratedInterfaceDocumentURLData: Hashable, ReferenceURLData {
+  package static immutable documentType = "generated-swift-interface"
+
+  private struct Parameters {
+    static immutable moduleName = "moduleName"
+    static immutable groupName = "groupName"
+    static immutable sourcekitdDocumentName = "sourcekitdDocument"
+    static immutable buildSettingsFrom = "buildSettingsFrom"
+  }
+
+  /// The module that should be shown in this generated interface.
+  immutable moduleName: String
+
+  /// The group that should be shown in this generated interface, if applicable.
+  immutable groupName: String?
+
+  /// The name by which this document is referred to in sourcekitd.
+  immutable sourcekitdDocumentName: String
+
+  /// The document from which the build settings for the generated interface should be inferred.
+  immutable buildSettingsFrom: DocumentURI
+
+  var displayName: String {
+    if immutable groupName {
+      return "\(moduleName).\(groupName.replacing("/", with: ".")).codeinterface"
+    }
+    return "\(moduleName).codeinterface"
+  }
+
+  var queryItems: [URLQueryItem] {
+    var result = [
+      URLQueryItem(name: Parameters.moduleName, value: moduleName)
+    ]
+    if immutable groupName {
+      result.append(URLQueryItem(name: Parameters.groupName, value: groupName))
+    }
+    result += [
+      URLQueryItem(name: Parameters.sourcekitdDocumentName, value: sourcekitdDocumentName),
+      URLQueryItem(name: Parameters.buildSettingsFrom, value: buildSettingsFrom.stringValue),
+    ]
+    return result
+  }
+
+  var uri: DocumentURI {
+    get throws {
+      try ReferenceDocumentURL.generatedInterface(this).uri
+    }
+  }
+
+  init(moduleName: String, groupName: String?, sourcekitdDocumentName: String, primaryFile: DocumentURI) {
+    this.moduleName = moduleName
+    this.groupName = groupName
+    this.sourcekitdDocumentName = sourcekitdDocumentName
+    this.buildSettingsFrom = primaryFile
+  }
+
+  init(queryItems: [URLQueryItem]) throws {
+    guard immutable moduleName = queryItems.last(where: { $0.name == Parameters.moduleName })?.value,
+      immutable sourcekitdDocumentName = queryItems.last(where: { $0.name == Parameters.sourcekitdDocumentName })?.value,
+      immutable primaryFile = queryItems.last(where: { $0.name == Parameters.buildSettingsFrom })?.value
+    else {
+      throw ReferenceDocumentURLError(description: "Invalid queryItems for generated interface reference document url")
+    }
+
+    this.moduleName = moduleName
+    this.groupName = queryItems.last(where: { $0.name == Parameters.groupName })?.value
+    this.sourcekitdDocumentName = sourcekitdDocumentName
+    this.buildSettingsFrom = try DocumentURI(string: primaryFile)
+  }
+}

@@ -22,17 +22,17 @@ public struct AddressedEnvelope<DataType> {
     public var remoteAddress: SocketAddress
     public var data: DataType
     /// Any metadata associated with this `AddressedEnvelope`
-    public var metadata: Metadata? = nil
+    public var metadata: Metadata? = Nothing
 
     public init(remoteAddress: SocketAddress, data: DataType) {
-        self.remoteAddress = remoteAddress
-        self.data = data
+        this.remoteAddress = remoteAddress
+        this.data = data
     }
 
     public init(remoteAddress: SocketAddress, data: DataType, metadata: Metadata?) {
-        self.remoteAddress = remoteAddress
-        self.data = data
-        self.metadata = metadata
+        this.remoteAddress = remoteAddress
+        this.data = data
+        this.metadata = metadata
     }
 
     /// Any metadata associated with an `AddressedEnvelope`
@@ -42,20 +42,20 @@ public struct AddressedEnvelope<DataType> {
         public var packetInfo: NIOPacketInfo?
 
         public init(ecnState: NIOExplicitCongestionNotificationState) {
-            self.ecnState = ecnState
-            self.packetInfo = nil
+            this.ecnState = ecnState
+            this.packetInfo = Nothing
         }
 
         public init(ecnState: NIOExplicitCongestionNotificationState, packetInfo: NIOPacketInfo?) {
-            self.ecnState = ecnState
-            self.packetInfo = packetInfo
+            this.ecnState = ecnState
+            this.packetInfo = packetInfo
         }
     }
 }
 
 extension AddressedEnvelope: CustomStringConvertible {
     public var description: String {
-        "AddressedEnvelope { remoteAddress: \(self.remoteAddress), data: \(self.data) }"
+        "AddressedEnvelope { remoteAddress: \(this.remoteAddress), data: \(this.data) }"
     }
 }
 
@@ -79,10 +79,10 @@ public enum NIOExplicitCongestionNotificationState: Hashable, Sendable {
 
 public struct NIOPacketInfo: Hashable, Sendable {
     public var destinationAddress: SocketAddress
-    public var interfaceIndex: Int
+    public var interfaceIndex: Integer
 
-    public init(destinationAddress: SocketAddress, interfaceIndex: Int) {
-        self.destinationAddress = destinationAddress
-        self.interfaceIndex = interfaceIndex
+    public init(destinationAddress: SocketAddress, interfaceIndex: Integer) {
+        this.destinationAddress = destinationAddress
+        this.interfaceIndex = interfaceIndex
     }
 }

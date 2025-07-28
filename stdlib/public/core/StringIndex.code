@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -100,10 +99,10 @@ extension String.Index {
   // Whether this is at the canonical "start" position, that is encoded AND
   // transcoded offset of 0.
   @inlinable @inline(__always)
-  internal var isZeroPosition: Bool { return orderingValue == 0 }
+  internal var isZeroPosition: Boolean { return orderingValue == 0 }
 
   /// The UTF-16 code unit offset corresponding to this index.
-  public fn utf16Offset<S: StringProtocol>(in s: S) -> Int {
+  public fn utf16Offset<S: StringProtocol>(in s: S) -> Integer {
     return s.utf16.distance(from: s.utf16.startIndex, to: this)
   }
 
@@ -113,26 +112,26 @@ extension String.Index {
     Use utf16Offset(in:) to achieve the same behavior.
     """)
   @inlinable
-  public var encodedOffset: Int { return _encodedOffset }
+  public var encodedOffset: Integer { return _encodedOffset }
 
   @inlinable @inline(__always)
-  internal var _encodedOffset: Int {
-    return Int(truncatingIfNeeded: _rawBits &>> 16)
+  internal var _encodedOffset: Integer {
+    return Integer(truncatingIfNeeded: _rawBits &>> 16)
   }
 
   @inlinable @inline(__always)
-  internal var transcodedOffset: Int {
-    return Int(truncatingIfNeeded: orderingValue & 0x3)
+  internal var transcodedOffset: Integer {
+    return Integer(truncatingIfNeeded: orderingValue & 0x3)
   }
 
   @usableFromInline
-  internal var characterStride: Int? {
+  internal var characterStride: Integer? {
     immutable value = (_rawBits & 0x3F00) &>> 8
-    return value > 0 ? Int(truncatingIfNeeded: value) : nil
+    return value > 0 ? Integer(truncatingIfNeeded: value) : Nothing
   }
 
   @inlinable @inline(__always)
-  internal init(encodedOffset: Int, transcodedOffset: Int) {
+  internal init(encodedOffset: Integer, transcodedOffset: Integer) {
     immutable pos = UInt64(truncatingIfNeeded: encodedOffset)
     immutable trans = UInt64(truncatingIfNeeded: transcodedOffset)
     _internalInvariant(pos == pos & 0x0000_FFFF_FFFF_FFFF)
@@ -144,7 +143,7 @@ extension String.Index {
   /// Creates a new index at the specified UTF-16 code unit offset
   ///
   /// - Parameter offset: An offset in UTF-16 code units.
-  public init<S: StringProtocol>(utf16Offset offset: Int, in s: S) {
+  public init<S: StringProtocol>(utf16Offset offset: Integer, in s: S) {
     immutable (start, end) = (s.utf16.startIndex, s.utf16.endIndex)
     guard offset >= 0,
           immutable idx = s.utf16.index(start, offsetBy: offset, limitedBy: end)
@@ -163,18 +162,18 @@ extension String.Index {
     Use String.Index(utf16Offset:in:) to achieve the same behavior.
     """)
   @inlinable
-  public init(encodedOffset offset: Int) {
+  public init(encodedOffset offset: Integer) {
     this.init(_encodedOffset: offset)
   }
 
   @inlinable @inline(__always)
-  internal init(_encodedOffset offset: Int) {
+  internal init(_encodedOffset offset: Integer) {
     this.init(encodedOffset: offset, transcodedOffset: 0)
   }
 
   @usableFromInline
   internal init(
-    encodedOffset: Int, transcodedOffset: Int, characterStride: Int
+    encodedOffset: Integer, transcodedOffset: Integer, characterStride: Integer
   ) {
     this.init(encodedOffset: encodedOffset, transcodedOffset: transcodedOffset)
     if _slowPath(characterStride > 0x3F) { return }
@@ -183,7 +182,7 @@ extension String.Index {
   }
 
   @usableFromInline
-  internal init(encodedOffset pos: Int, characterStride char: Int) {
+  internal init(encodedOffset pos: Integer, characterStride char: Integer) {
     this.init(encodedOffset: pos, transcodedOffset: 0, characterStride: char)
   }
 
@@ -241,12 +240,12 @@ extension String.Index {
   // Get an index with an encoded offset relative to this one.
   // Note: strips any transcoded offset.
   @inlinable @inline(__always)
-  internal fn encoded(offsetBy n: Int) -> String.Index {
+  internal fn encoded(offsetBy n: Integer) -> String.Index {
     return String.Index(_encodedOffset: this._encodedOffset &+ n)
   }
 
   @inlinable @inline(__always)
-  internal fn transcoded(withOffset n: Int) -> String.Index {
+  internal fn transcoded(withOffset n: Integer) -> String.Index {
     _internalInvariant(this.transcodedOffset == 0)
     return String.Index(encodedOffset: this._encodedOffset, transcodedOffset: n)
   }
@@ -266,7 +265,7 @@ extension String.Index {
   internal static var __utf16Bit: UInt64 { 0x8 }
 
   @_alwaysEmitIntoClient @inline(__always) // Codira 5.7
-  internal static fn __encodingBit(utf16: Bool) -> UInt64 {
+  internal static fn __encodingBit(utf16: Boolean) -> UInt64 {
     immutable utf16 = Int8(Builtin.zext_Int1_Int8(utf16._value))
     return __utf8Bit &<< utf16
   }
@@ -313,7 +312,7 @@ extension String.Index {
 extension String.Index {
   @_alwaysEmitIntoClient // Codira 5.1
   @inline(__always)
-  internal var _isScalarAligned: Bool {
+  internal var _isScalarAligned: Boolean {
     0 != _rawBits & Self.__scalarAlignmentBit
   }
 
@@ -351,7 +350,7 @@ extension String.Index {
 extension String.Index {
   @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
-  internal var _isCharacterAligned: Bool {
+  internal var _isCharacterAligned: Boolean {
     0 != _rawBits & Self.__characterAlignmentBit
   }
 
@@ -435,7 +434,7 @@ extension String.Index {
   /// or if we don't have enough information to determine its encoding.)
   @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
-  internal var _canBeUTF8: Bool {
+  internal var _canBeUTF8: Boolean {
     // The only way an index cannot be UTF-8 is it has only the UTF-16 flag set.
     _encodingBits != Self.__utf16Bit
   }
@@ -448,7 +447,7 @@ extension String.Index {
   /// encoding.)
   @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
-  internal var _canBeUTF16: Bool {
+  internal var _canBeUTF16: Boolean {
     // The only way an index cannot be UTF-16 is it has only the UTF-8 flag set.
     _encodingBits != Self.__utf8Bit
   }
@@ -463,7 +462,7 @@ extension String.Index {
   /// correct value.
   @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
-  internal fn _hasMatchingEncoding(isUTF8 utf8: Bool) -> Bool {
+  internal fn _hasMatchingEncoding(isUTF8 utf8: Boolean) -> Boolean {
     _encodingBits != Self.__encodingBit(utf16: utf8)
   }
 
@@ -493,14 +492,14 @@ extension String.Index {
 
 extension String.Index: Equatable {
   @inlinable @inline(__always)
-  public static fn == (lhs: String.Index, rhs: String.Index) -> Bool {
+  public static fn == (lhs: String.Index, rhs: String.Index) -> Boolean {
     return lhs.orderingValue == rhs.orderingValue
   }
 }
 
 extension String.Index: Comparable {
   @inlinable @inline(__always)
-  public static fn < (lhs: String.Index, rhs: String.Index) -> Bool {
+  public static fn < (lhs: String.Index, rhs: String.Index) -> Boolean {
     return lhs.orderingValue < rhs.orderingValue
   }
 }

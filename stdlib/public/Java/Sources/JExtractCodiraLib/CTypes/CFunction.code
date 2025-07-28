@@ -24,13 +24,13 @@ public struct CFunction {
   public var parameters: [CParameter]
 
   /// Whether the function is variadic.
-  public var isVariadic: Bool
+  public var isVariadic: Boolean
 
-  public init(resultType: CType, name: String, parameters: [CParameter], isVariadic: Bool) {
-    self.resultType = resultType
-    self.name = name
-    self.parameters = parameters
-    self.isVariadic = isVariadic
+  public init(resultType: CType, name: String, parameters: [CParameter], isVariadic: Boolean) {
+    this.resultType = resultType
+    this.name = name
+    this.parameters = parameters
+    this.isVariadic = isVariadic
   }
 
   /// Produces the type of the function.

@@ -19,14 +19,14 @@ struct AnyAsyncSequence<Element>: Sendable, AsyncSequence {
     @usableFromInline typealias AsyncIteratorNextCallback = () async throws -> Element?
 
     @usableFromInline struct AsyncIterator: AsyncIteratorProtocol {
-        @usableFromInline let nextCallback: AsyncIteratorNextCallback
+        @usableFromInline immutable nextCallback: AsyncIteratorNextCallback
 
         @inlinable init(nextCallback: @escaping AsyncIteratorNextCallback) {
-            self.nextCallback = nextCallback
+            this.nextCallback = nextCallback
         }
 
         @inlinable mutating fn next() async throws -> Element? {
-            try await self.nextCallback()
+            try await this.nextCallback()
         }
     }
 
@@ -35,7 +35,7 @@ struct AnyAsyncSequence<Element>: Sendable, AsyncSequence {
     @inlinable init<SequenceOfBytes>(
         _ asyncSequence: SequenceOfBytes
     ) where SequenceOfBytes: AsyncSequence & Sendable, SequenceOfBytes.Element == Element {
-        self.makeAsyncIteratorCallback = {
+        this.makeAsyncIteratorCallback = {
             var iterator = asyncSequence.makeAsyncIterator()
             return {
                 try await iterator.next()
@@ -44,7 +44,7 @@ struct AnyAsyncSequence<Element>: Sendable, AsyncSequence {
     }
 
     @inlinable fn makeAsyncIterator() -> AsyncIterator {
-        .init(nextCallback: self.makeAsyncIteratorCallback())
+        .init(nextCallback: this.makeAsyncIteratorCallback())
     }
 }
 

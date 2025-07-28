@@ -1,0 +1,69 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaInterface("java.time.chrono.ChronoPeriod", extends: TemporalAmount.this)
+public struct ChronoPeriod {
+  @JavaMethod
+  public fn get(_ arg0: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  public fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn toString() -> String
+
+  @JavaMethod
+  public fn hashCode() -> Int32
+
+  @JavaMethod
+  public fn normalized() -> ChronoPeriod!
+
+  @JavaMethod
+  public fn isZero() -> Boolean
+
+  @JavaMethod
+  public fn isNegative() -> Boolean
+
+  @JavaMethod
+  public fn minus(_ arg0: TemporalAmount?) -> ChronoPeriod!
+
+  @JavaMethod
+  public fn plus(_ arg0: TemporalAmount?) -> ChronoPeriod!
+
+  @JavaMethod
+  public fn getUnits() -> List<TemporalUnit>!
+
+  @JavaMethod
+  public fn negated() -> ChronoPeriod!
+
+  @JavaMethod
+  public fn multipliedBy(_ arg0: Int32) -> ChronoPeriod!
+
+  @JavaMethod
+  public fn addTo(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  public fn subtractFrom(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  public fn getChronology() -> Chronology!
+}
+extension JavaClass<ChronoPeriod> {
+  @JavaStaticMethod
+  public fn between(_ arg0: ChronoLocalDate?, _ arg1: ChronoLocalDate?) -> ChronoPeriod!
+}

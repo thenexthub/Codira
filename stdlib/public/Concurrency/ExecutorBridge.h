@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #ifndef LANGUAGE_EXECUTOR_BRIDGE_H_

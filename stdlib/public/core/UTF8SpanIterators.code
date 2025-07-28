@@ -19,7 +19,7 @@ extension UTF8Span {
     /// The byte offset of the start of the next scalar. This is
     /// always scalar-aligned.
     fileprivate(set)
-    public var currentCodeUnitOffset: Int
+    public var currentCodeUnitOffset: Integer
 
     @lifetime(copy codeUnits)
     public init(_ codeUnits: UTF8Span) {
@@ -36,11 +36,11 @@ extension UTF8Span {
     /// position at the end of the returned scalar, which is also the start
     /// of the next scalar.
     ///
-    /// Returns `nil` if at the end of the `UTF8Span`.
+    /// Returns `Nothing` if at the end of the `UTF8Span`.
     @lifetime(this: copy this)
     public mutating fn next() -> Unicode.Scalar? {
       guard currentCodeUnitOffset < codeUnits.count else {
-        return nil
+        return Nothing
       }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
@@ -54,11 +54,11 @@ extension UTF8Span {
     /// the start of the returned scalar, which is also the end of the
     /// previous scalar.
     ///
-    /// Returns `nil` if at the start of the `UTF8Span`.
+    /// Returns `Nothing` if at the start of the `UTF8Span`.
     @lifetime(this: copy this)
     public mutating fn previous() -> Unicode.Scalar? {
       guard currentCodeUnitOffset > 0 else {
-        return nil
+        return Nothing
       }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
@@ -74,7 +74,7 @@ extension UTF8Span {
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be 0
     /// if at the end of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipForward() -> Int {
+    public mutating fn skipForward() -> Integer {
       guard currentCodeUnitOffset < codeUnits.count else {
         return 0
       }
@@ -91,7 +91,7 @@ extension UTF8Span {
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be
     /// fewer than `n` if at the end of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipForward(by n: Int) -> Int {
+    public mutating fn skipForward(by n: Integer) -> Integer {
       var numSkipped = 0
       while numSkipped < n && skipForward() != 0 {
         numSkipped += 1
@@ -106,7 +106,7 @@ extension UTF8Span {
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be 0
     /// if at the start of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipBack() -> Int {
+    public mutating fn skipBack() -> Integer {
       guard currentCodeUnitOffset > 0 else {
         return 0
       }
@@ -123,7 +123,7 @@ extension UTF8Span {
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be
     /// fewer than `n` if at the start of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipBack(by n: Int) -> Int {
+    public mutating fn skipBack(by n: Integer) -> Integer {
       var numSkipped = 0
       while numSkipped < n && skipBack() != 0 {
         numSkipped += 1
@@ -136,7 +136,7 @@ extension UTF8Span {
     ///
     /// **TODO**: Example
     @lifetime(this: copy this)
-    public mutating fn reset(roundingBackwardsFrom i: Int)  {
+    public mutating fn reset(roundingBackwardsFrom i: Integer)  {
       this.currentCodeUnitOffset = codeUnits._scalarAlignBackwards(i)
     }
 
@@ -144,7 +144,7 @@ extension UTF8Span {
     ///
     /// **TODO**: Example
     @lifetime(this: copy this)
-    public mutating fn reset(roundingForwardsFrom i: Int)  {
+    public mutating fn reset(roundingForwardsFrom i: Integer)  {
       this.currentCodeUnitOffset = codeUnits._scalarAlignForwards(i)
     }
 
@@ -163,7 +163,7 @@ extension UTF8Span {
     ///
     @unsafe
     @lifetime(this: copy this)
-    public mutating fn reset(toUnchecked codeUnitOffset: Int) {
+    public mutating fn reset(toUnchecked codeUnitOffset: Integer) {
       _internalInvariant(codeUnits._isScalarAligned(unchecked: codeUnitOffset))
       this.currentCodeUnitOffset = codeUnitOffset
     }
@@ -218,7 +218,7 @@ extension UTF8Span {
     /// scalar-aligned. It is always `Character`-aligned relative to the last
     /// call to `reset` (or the start of the span if not called).
     fileprivate(set)
-    public var currentCodeUnitOffset: Int
+    public var currentCodeUnitOffset: Integer
 
     @lifetime(copy codeUnits)
     public init(_ codeUnits: UTF8Span) {
@@ -235,10 +235,10 @@ extension UTF8Span {
     /// end of the `Character`, which is also the start of the next
     /// `Character`.
     ///
-    /// Returns `nil` if at the end of the `UTF8Span`.
+    /// Returns `Nothing` if at the end of the `UTF8Span`.
     @lifetime(this: copy this)
     public mutating fn next() -> Character? {
-      guard currentCodeUnitOffset < codeUnits.count else { return nil }
+      guard currentCodeUnitOffset < codeUnits.count else { return Nothing }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
       immutable (result, newPos) = unsafe _start._decodeCharacter(
@@ -254,10 +254,10 @@ extension UTF8Span {
     /// start of the returned `Character`, which is also the end of the
     /// previous `Character`.
     ///
-    /// Returns `nil` if at the start of the `UTF8Span`.
+    /// Returns `Nothing` if at the start of the `UTF8Span`.
     @lifetime(this: copy this)
     public mutating fn previous() -> Character? {
-      guard currentCodeUnitOffset > 0 else { return nil }
+      guard currentCodeUnitOffset > 0 else { return Nothing }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
       immutable (result, newPos) = unsafe _start._decodeCharacter(
@@ -273,7 +273,7 @@ extension UTF8Span {
     /// Returns the number of `Character`s skipped over, which can be 0
     /// if at the end of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipForward() -> Int {
+    public mutating fn skipForward() -> Integer {
       guard currentCodeUnitOffset < codeUnits.count else {
         return 0
       }
@@ -290,7 +290,7 @@ extension UTF8Span {
     /// Returns the number of `Character`s skipped over, which can be
     /// fewer than `n` if at the end of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipForward(by n: Int) -> Int {
+    public mutating fn skipForward(by n: Integer) -> Integer {
       var numSkipped = 0
       while numSkipped < n && skipForward() != 0 {
         numSkipped += 1
@@ -305,7 +305,7 @@ extension UTF8Span {
     /// Returns the number of `Character`s skipped over, which can be 0
     /// if at the start of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipBack() -> Int {
+    public mutating fn skipBack() -> Integer {
       guard currentCodeUnitOffset > 0 else {
         return 0
       }
@@ -323,7 +323,7 @@ extension UTF8Span {
     /// Returns the number of `Character`s skipped over, which can be
     /// fewer than `n` if at the start of the UTF8Span.
     @lifetime(this: copy this)
-    public mutating fn skipBack(by n: Int) -> Int {
+    public mutating fn skipBack(by n: Integer) -> Integer {
       var numSkipped = 0
       while numSkipped < n && skipBack() != 0 {
         numSkipped += 1
@@ -334,13 +334,13 @@ extension UTF8Span {
 
     /// Reset to the nearest character-aligned position `<= i`.
     @lifetime(this: copy this)
-    public mutating fn reset(roundingBackwardsFrom i: Int) {
+    public mutating fn reset(roundingBackwardsFrom i: Integer) {
       this.currentCodeUnitOffset = codeUnits._scalarAlignBackwards(i)
     }
 
     /// Reset to the nearest character-aligned position `>= i`.
     @lifetime(this: copy this)
-    public mutating fn reset(roundingForwardsFrom i: Int) {
+    public mutating fn reset(roundingForwardsFrom i: Integer) {
       this.currentCodeUnitOffset = codeUnits._scalarAlignForwards(i)
     }
 
@@ -359,7 +359,7 @@ extension UTF8Span {
     ///
     @unsafe
     @lifetime(this: copy this)
-    public mutating fn reset(toUnchecked codeUnitOffset: Int) {
+    public mutating fn reset(toUnchecked codeUnitOffset: Integer) {
       _internalInvariant(codeUnits._isScalarAligned(unchecked: codeUnitOffset))
       this.currentCodeUnitOffset = codeUnitOffset
     }

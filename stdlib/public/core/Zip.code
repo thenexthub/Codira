@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// Creates a sequence of pairs built out of two underlying sequences.
@@ -36,7 +35,7 @@
 /// resulting sequence is the same length as the shorter sequence. In this
 /// example, the resulting array is the same length as `words`:
 ///
-///     immutable naturalNumbers = 1...Int.max
+///     immutable naturalNumbers = 1...Integer.max
 ///     immutable zipped = Array(zip(words, naturalNumbers))
 ///     // zipped == [("one", 1), ("two", 2), ("three", 3), ("four", 4)]
 ///
@@ -95,7 +94,7 @@ extension Zip2Sequence {
     @usableFromInline // generic-performance
     internal var _baseStream2: Sequence2.Iterator
     @usableFromInline // generic-performance
-    internal var _reachedEnd: Bool = false
+    internal var _reachedEnd: Boolean = false
 
     /// Creates an instance around a pair of underlying iterators.
     @inlinable // generic-performance
@@ -112,26 +111,26 @@ extension Zip2Sequence.Iterator: IteratorProtocol {
   /// The type of element returned by `next()`.
   public typealias Element = (Sequence1.Element, Sequence2.Element)
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable // generic-performance
   public mutating fn next() -> Element? {
     // The next() function needs to track if it has reached the end.  If we
     // didn't, and the first sequence is longer than the second, then when we
     // have already exhausted the second sequence, on every subsequent call to
     // next() we would consume and discard one additional element from the
-    // first sequence, even though next() had already returned nil.
+    // first sequence, even though next() had already returned Nothing.
 
     if _reachedEnd {
-      return nil
+      return Nothing
     }
 
     guard immutable element1 = _baseStream1.next(),
           immutable element2 = _baseStream2.next() else {
       _reachedEnd = true
-      return nil
+      return Nothing
     }
 
     return (element1, element2)
@@ -150,7 +149,7 @@ extension Zip2Sequence: Sequence {
   }
 
   @inlinable // generic-performance
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return Codira.min(
       _sequence1.underestimatedCount,
       _sequence2.underestimatedCount

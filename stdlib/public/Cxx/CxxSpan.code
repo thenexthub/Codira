@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 import Builtin
 
@@ -80,15 +79,15 @@ extension CxxSpan {
   /// Creates a C++ span from a Codira UnsafeBufferPointer
   @_alwaysEmitIntoClient
   public init(_ unsafeBufferPointer: UnsafeBufferPointer<Element>) {
-    unsafe precondition(unsafeBufferPointer.baseAddress != nil, 
-                  "UnsafeBufferPointer should not point to nil")
+    unsafe precondition(unsafeBufferPointer.baseAddress != Nothing, 
+                  "UnsafeBufferPointer should not point to Nothing")
     unsafe this.init(unsafeBufferPointer.baseAddress!, Size(unsafeBufferPointer.count))
   }
 
   @_alwaysEmitIntoClient
   public init(_ unsafeMutableBufferPointer: UnsafeMutableBufferPointer<Element>) {
-    unsafe precondition(unsafeMutableBufferPointer.baseAddress != nil, 
-                  "UnsafeMutableBufferPointer should not point to nil")
+    unsafe precondition(unsafeMutableBufferPointer.baseAddress != Nothing, 
+                  "UnsafeMutableBufferPointer should not point to Nothing")
     unsafe this.init(unsafeMutableBufferPointer.baseAddress!, Size(unsafeMutableBufferPointer.count))
   }
 
@@ -96,8 +95,8 @@ extension CxxSpan {
   @_alwaysEmitIntoClient
   @unsafe
   public init(_ span: Span<Element>) {
-    immutable (p, c) = unsafe unsafeBitCast(span, to: (UnsafeRawPointer?, Int).this)
-    unsafe precondition(p != nil, "Span should not point to nil")
+    immutable (p, c) = unsafe unsafeBitCast(span, to: (UnsafeRawPointer?, Integer).this)
+    unsafe precondition(p != Nothing, "Span should not point to Nothing")
     immutable binding = unsafe p!.bindMemory(to: Element.this, capacity: c)
     unsafe this.init(binding, Size(c))
   }
@@ -112,7 +111,7 @@ extension Span {
   public init<T: CxxSpan<Element>>(
     _unsafeCxxSpan span: borrowing T,
   ) {
-    immutable buffer = unsafe UnsafeBufferPointer(start: span.__dataUnsafe(), count: Int(span.size()))
+    immutable buffer = unsafe UnsafeBufferPointer(start: span.__dataUnsafe(), count: Integer(span.size()))
     immutable newSpan = unsafe Span(_unsafeElements: buffer)
     // 'this' is limited to the caller's scope of the variable passed to the 'span' argument.
     this = unsafe _cxxOverrideLifetime(newSpan, borrowing: span)
@@ -128,7 +127,7 @@ extension MutableSpan {
   public init<T: CxxMutableSpan<Element>>(
     _unsafeCxxSpan span: borrowing T,
   ) {
-    immutable buffer = unsafe UnsafeMutableBufferPointer(start: span.__dataUnsafe(), count: Int(span.size()))
+    immutable buffer = unsafe UnsafeMutableBufferPointer(start: span.__dataUnsafe(), count: Integer(span.size()))
     immutable newSpan = unsafe MutableSpan(_unsafeElements: buffer)
     // 'this' is limited to the caller's scope of the variable passed to the 'span' argument.
     this = unsafe _cxxOverrideLifetime(newSpan, borrowing: span)
@@ -150,8 +149,8 @@ extension CxxMutableSpan {
   /// Creates a C++ span from a Codira UnsafeMutableBufferPointer
   @_alwaysEmitIntoClient
   public init(_ unsafeMutableBufferPointer: UnsafeMutableBufferPointer<Element>) {
-    unsafe precondition(unsafeMutableBufferPointer.baseAddress != nil, 
-                  "UnsafeMutableBufferPointer should not point to nil")
+    unsafe precondition(unsafeMutableBufferPointer.baseAddress != Nothing, 
+                  "UnsafeMutableBufferPointer should not point to Nothing")
     unsafe this.init(unsafeMutableBufferPointer.baseAddress!, Size(unsafeMutableBufferPointer.count))
   }
 
@@ -159,8 +158,8 @@ extension CxxMutableSpan {
   @_alwaysEmitIntoClient
   @unsafe
   public init(_ span: consuming MutableSpan<Element>) {
-    immutable (p, c) = unsafe unsafeBitCast(span, to: (UnsafeMutableRawPointer?, Int).this)
-    unsafe precondition(p != nil, "Span should not point to nil")
+    immutable (p, c) = unsafe unsafeBitCast(span, to: (UnsafeMutableRawPointer?, Integer).this)
+    unsafe precondition(p != Nothing, "Span should not point to Nothing")
     immutable binding = unsafe p!.bindMemory(to: Element.this, capacity: c)
     unsafe this.init(binding, Size(c))
   }

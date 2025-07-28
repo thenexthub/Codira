@@ -1,0 +1,55 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.ObjectStreamField")
+open class ObjectStreamField: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: JavaClass<JavaObject>?, _ arg2: Boolean, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, _ arg1: JavaClass<JavaObject>?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn isPrimitive() -> Boolean
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn getType() -> JavaClass<JavaObject>!
+
+  @JavaMethod
+  open fn getTypeCode() -> UInt16
+
+  @JavaMethod
+  open fn getTypeString() -> String
+
+  @JavaMethod
+  open fn getOffset() -> Int32
+
+  @JavaMethod
+  open fn setOffset(_ arg0: Int32)
+
+  @JavaMethod
+  open fn isUnshared() -> Boolean
+}

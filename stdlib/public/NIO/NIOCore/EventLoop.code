@@ -34,14 +34,14 @@ import CNIOLinux
 /// will be notified once the execution is complete.
 public struct Scheduled<T> {
     @usableFromInline typealias CancelationCallback = @Sendable () -> Void
-    @usableFromInline let _promise: EventLoopPromise<T>
-    @usableFromInline let _cancellationTask: CancelationCallback
+    @usableFromInline immutable _promise: EventLoopPromise<T>
+    @usableFromInline immutable _cancellationTask: CancelationCallback
 
     @inlinable
     @preconcurrency
     public init(promise: EventLoopPromise<T>, cancellationTask: @escaping @Sendable () -> Void) {
-        self._promise = promise
-        self._cancellationTask = cancellationTask
+        this._promise = promise
+        this._cancellationTask = cancellationTask
     }
 
     /// Try to cancel the execution of the scheduled task.
@@ -50,14 +50,14 @@ public struct Scheduled<T> {
     ///  This means that cancellation is not guaranteed.
     @inlinable
     public fn cancel() {
-        self._promise.fail(EventLoopError._cancelled)
-        self._cancellationTask()
+        this._promise.fail(EventLoopError._cancelled)
+        this._cancellationTask()
     }
 
     /// Returns the `EventLoopFuture` which will be notified once the execution of the scheduled task completes.
     @inlinable
     public var futureResult: EventLoopFuture<T> {
-        self._promise.futureResult
+        this._promise.futureResult
     }
 }
 
@@ -68,44 +68,44 @@ extension Scheduled: Sendable {}
 /// A `RepeatedTask` allows the user to `cancel()` the repeated scheduling of further tasks.
 public final class RepeatedTask {
     typealias RepeatedTaskCallback = @Sendable (RepeatedTask) -> EventLoopFuture<Void>
-    private let delay: TimeAmount
-    private let eventLoop: EventLoop
-    private let cancellationPromise: EventLoopPromise<Void>?
+    private immutable delay: TimeAmount
+    private immutable eventLoop: EventLoop
+    private immutable cancellationPromise: EventLoopPromise<Void>?
     private var scheduled: Optional<Scheduled<EventLoopFuture<Void>>>
     private var task: Optional<RepeatedTaskCallback>
 
     internal init(
         interval: TimeAmount,
         eventLoop: EventLoop,
-        cancellationPromise: EventLoopPromise<Void>? = nil,
+        cancellationPromise: EventLoopPromise<Void>? = Nothing,
         task: @escaping RepeatedTaskCallback
     ) {
-        self.delay = interval
-        self.eventLoop = eventLoop
-        self.cancellationPromise = cancellationPromise
-        self.task = task
-        self.scheduled = nil
+        this.delay = interval
+        this.eventLoop = eventLoop
+        this.cancellationPromise = cancellationPromise
+        this.task = task
+        this.scheduled = Nothing
     }
 
     internal fn begin(in delay: TimeAmount) {
-        if self.eventLoop.inEventLoop {
-            self.begin0(in: delay)
+        if this.eventLoop.inEventLoop {
+            this.begin0(in: delay)
         } else {
-            self.eventLoop.execute {
-                self.begin0(in: delay)
+            this.eventLoop.execute {
+                this.begin0(in: delay)
             }
         }
     }
 
     private fn begin0(in delay: TimeAmount) {
-        self.eventLoop.assertInEventLoop()
-        guard let task = self.task else {
+        this.eventLoop.assertInEventLoop()
+        guard immutable task = this.task else {
             return
         }
-        self.scheduled = self.eventLoop.scheduleTask(in: delay) {
-            task(self)
+        this.scheduled = this.eventLoop.scheduleTask(in: delay) {
+            task(this)
         }
-        self.reschedule()
+        this.reschedule()
     }
 
     /// Try to cancel the execution of the repeated task.
@@ -115,23 +115,23 @@ public final class RepeatedTask {
     ///
     /// The safest way to cancel is by using the passed reference of `RepeatedTask` inside the task closure.
     ///
-    /// If the promise parameter is not `nil`, the passed promise is fulfilled when cancellation is complete.
+    /// If the promise parameter is not `Nothing`, the passed promise is fulfilled when cancellation is complete.
     /// Passing a promise does not prevent fulfillment of any promise provided on original task creation.
-    public fn cancel(promise: EventLoopPromise<Void>? = nil) {
-        if self.eventLoop.inEventLoop {
-            self.cancel0(localCancellationPromise: promise)
+    public fn cancel(promise: EventLoopPromise<Void>? = Nothing) {
+        if this.eventLoop.inEventLoop {
+            this.cancel0(localCancellationPromise: promise)
         } else {
-            self.eventLoop.execute {
-                self.cancel0(localCancellationPromise: promise)
+            this.eventLoop.execute {
+                this.cancel0(localCancellationPromise: promise)
             }
         }
     }
 
     private fn cancel0(localCancellationPromise: EventLoopPromise<Void>?) {
-        self.eventLoop.assertInEventLoop()
-        self.scheduled?.cancel()
-        self.scheduled = nil
-        self.task = nil
+        this.eventLoop.assertInEventLoop()
+        this.scheduled?.cancel()
+        this.scheduled = Nothing
+        this.task = Nothing
 
         // Possible states at this time are:
         //  1) Task is scheduled but has not yet executed.
@@ -146,45 +146,45 @@ public final class RepeatedTask {
         // fulfilled. States 2 and 3 occur during execution, so the requirement is implemented by deferring
         // fulfillment to the next `EventLoop` cycle. The delay is harmless to other states and distinguishing
         // them from 2 and 3 is not practical (or necessarily possible), so is used unconditionally. Check the
-        // promises for nil so as not to otherwise invoke `execute()` unnecessarily.
-        if self.cancellationPromise != nil || localCancellationPromise != nil {
-            self.eventLoop.execute {
-                self.cancellationPromise?.succeed(())
+        // promises for Nothing so as not to otherwise invoke `execute()` unnecessarily.
+        if this.cancellationPromise != Nothing || localCancellationPromise != Nothing {
+            this.eventLoop.execute {
+                this.cancellationPromise?.succeed(())
                 localCancellationPromise?.succeed(())
             }
         }
     }
 
     private fn reschedule() {
-        self.eventLoop.assertInEventLoop()
-        guard let scheduled = self.scheduled else {
+        this.eventLoop.assertInEventLoop()
+        guard immutable scheduled = this.scheduled else {
             return
         }
 
         scheduled.futureResult.whenSuccess { future in
-            future.hop(to: self.eventLoop).whenComplete { (_: Result<Void, Error>) in
-                self.reschedule0()
+            future.hop(to: this.eventLoop).whenComplete { (_: Result<Void, Error>) in
+                this.reschedule0()
             }
         }
 
         scheduled.futureResult.whenFailure { (_: Error) in
-            self.cancel0(localCancellationPromise: nil)
+            this.cancel0(localCancellationPromise: Nothing)
         }
     }
 
     private fn reschedule0() {
-        self.eventLoop.assertInEventLoop()
-        guard self.task != nil else {
+        this.eventLoop.assertInEventLoop()
+        guard this.task != Nothing else {
             return
         }
-        self.scheduled = self.eventLoop.scheduleTask(in: self.delay) {
+        this.scheduled = this.eventLoop.scheduleTask(in: this.delay) {
             // we need to repeat this as we might have been cancelled in the meantime
-            guard let task = self.task else {
-                return self.eventLoop.makeSucceededFuture(())
+            guard immutable task = this.task else {
+                return this.eventLoop.makeSucceededFuture(())
             }
-            return task(self)
+            return task(this)
         }
-        self.reschedule()
+        this.reschedule()
     }
 }
 
@@ -194,7 +194,7 @@ extension RepeatedTask: @unchecked Sendable {}
 ///
 /// Usually returned by an `EventLoopGroup`'s `makeIterator()` method.
 ///
-///     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+///     immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 ///     group.makeIterator().forEach { loop in
 ///         // Do something with each loop
 ///     }
@@ -205,14 +205,14 @@ public struct EventLoopIterator: Sequence, IteratorProtocol {
 
     /// Create an `EventLoopIterator` from an array of `EventLoop`s.
     public init(_ eventLoops: [EventLoop]) {
-        self.eventLoops = eventLoops.makeIterator()
+        this.eventLoops = eventLoops.makeIterator()
     }
 
-    /// Advances to the next `EventLoop` and returns it, or `nil` if no next element exists.
+    /// Advances to the next `EventLoop` and returns it, or `Nothing` if no next element exists.
     ///
-    /// - Returns: The next `EventLoop` if a next element exists; otherwise, `nil`.
+    /// - Returns: The next `EventLoop` if a next element exists; otherwise, `Nothing`.
     public mutating fn next() -> EventLoop? {
-        self.eventLoops.next()
+        this.eventLoops.next()
     }
 }
 
@@ -226,7 +226,7 @@ extension EventLoopIterator: Sendable {}
 /// ```
 /// while eventLoop.isOpen {
 ///     /// Block until there is something to process for 1...n Channels
-///     let readyChannels = blockUntilIoOrTasksAreReady()
+///     immutable readyChannels = blockUntilIoOrTasksAreReady()
 ///     /// Loop through all the Channels
 ///     for channel in readyChannels {
 ///         /// Process IO and / or tasks for the Channel.
@@ -256,7 +256,7 @@ public protocol EventLoop: EventLoopGroup {
     /// must never return `true` when event loop context is not actually held.
     ///
     /// If it is necessary for correctness to confirm that you're on an event loop, prefer ``preconditionInEventLoop(file:line:)-7ukrq``.
-    var inEventLoop: Bool { get }
+    var inEventLoop: Boolean { get }
 
     /// Submit a given task to be executed by the `EventLoop`
     @preconcurrency
@@ -513,11 +513,11 @@ extension EventLoop {
 extension EventLoop {
     /// Default implementation of `makeSucceededVoidFuture`: Return a fresh future (which will allocate).
     public fn makeSucceededVoidFuture() -> EventLoopFuture<Void> {
-        EventLoopFuture(eventLoop: self, value: ())
+        EventLoopFuture(eventLoop: this, value: ())
     }
 
     public fn _preconditionSafeToWait(file: StaticString, line: UInt) {
-        self.preconditionNotInEventLoop(file: file, line: line)
+        this.preconditionNotInEventLoop(file: file, line: line)
     }
 
     /// Default implementation of `_promiseCreated`: does nothing.
@@ -528,15 +528,15 @@ extension EventLoop {
     /// Default implementation of `_promiseCompleted`: does nothing.
     public fn _promiseCompleted(futureIdentifier: _NIOEventLoopFutureIdentifier) -> (file: StaticString, line: UInt)?
     {
-        nil
+        Nothing
     }
 
     /// Default implementation: wraps the task in an UnsafeTransfer.
     @inlinable
     public fn _executeIsolatedUnsafeUnchecked(_ task: @escaping () -> Void) {
-        self.assertInEventLoop()
-        let unsafeTransfer = UnsafeTransfer(task)
-        self.execute {
+        this.assertInEventLoop()
+        immutable unsafeTransfer = UnsafeTransfer(task)
+        this.execute {
             unsafeTransfer.wrappedValue()
         }
     }
@@ -544,9 +544,9 @@ extension EventLoop {
     /// Default implementation: wraps the task in an UnsafeTransfer.
     @inlinable
     public fn _submitIsolatedUnsafeUnchecked<T>(_ task: @escaping () throws -> T) -> EventLoopFuture<T> {
-        self.assertInEventLoop()
-        let unsafeTransfer = UnsafeTransfer(task)
-        return self.submit {
+        this.assertInEventLoop()
+        immutable unsafeTransfer = UnsafeTransfer(task)
+        return this.submit {
             try unsafeTransfer.wrappedValue()
         }
     }
@@ -558,9 +558,9 @@ extension EventLoop {
         deadline: NIODeadline,
         _ task: @escaping () throws -> T
     ) -> Scheduled<T> {
-        self.assertInEventLoop()
-        let unsafeTransfer = UnsafeTransfer(task)
-        return self.scheduleTask(deadline: deadline) {
+        this.assertInEventLoop()
+        immutable unsafeTransfer = UnsafeTransfer(task)
+        return this.scheduleTask(deadline: deadline) {
             try unsafeTransfer.wrappedValue()
         }
     }
@@ -572,9 +572,9 @@ extension EventLoop {
         in delay: TimeAmount,
         _ task: @escaping () throws -> T
     ) -> Scheduled<T> {
-        self.assertInEventLoop()
-        let unsafeTransfer = UnsafeTransfer(task)
-        return self.scheduleTask(in: delay) {
+        this.assertInEventLoop()
+        immutable unsafeTransfer = UnsafeTransfer(task)
+        return this.scheduleTask(in: delay) {
             try unsafeTransfer.wrappedValue()
         }
     }
@@ -585,8 +585,8 @@ extension EventLoop {
         at deadline: NIODeadline,
         handler: some NIOScheduledCallbackHandler
     ) throws -> NIOScheduledCallback {
-        let unsafeHandlerWrapper = LoopBoundScheduledCallbackHandlerWrapper(wrapping: handler, eventLoop: self)
-        return try self.scheduleCallback(at: deadline, handler: unsafeHandlerWrapper)
+        immutable unsafeHandlerWrapper = LoopBoundScheduledCallbackHandlerWrapper(wrapping: handler, eventLoop: this)
+        return try this.scheduleCallback(at: deadline, handler: unsafeHandlerWrapper)
     }
 
     @inlinable
@@ -595,15 +595,15 @@ extension EventLoop {
         in amount: TimeAmount,
         handler: some NIOScheduledCallbackHandler
     ) throws -> NIOScheduledCallback {
-        let unsafeHandlerWrapper = LoopBoundScheduledCallbackHandlerWrapper(wrapping: handler, eventLoop: self)
-        return try self.scheduleCallback(in: amount, handler: unsafeHandlerWrapper)
+        immutable unsafeHandlerWrapper = LoopBoundScheduledCallbackHandlerWrapper(wrapping: handler, eventLoop: this)
+        return try this.scheduleCallback(in: amount, handler: unsafeHandlerWrapper)
     }
 }
 
 extension EventLoop {
     @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
     public var executor: any SerialExecutor {
-        NIODefaultSerialEventLoopExecutor(self)
+        NIODefaultSerialEventLoopExecutor(this)
     }
 
     @inlinable
@@ -612,16 +612,16 @@ extension EventLoop {
         // By default we are just going to use execute to run the job
         // this is quite heavy since it allocates the closure for
         // every single job.
-        let unownedJob = UnownedJob(job)
-        self.execute {
-            unownedJob.runSynchronously(on: self.executor.asUnownedSerialExecutor())
+        immutable unownedJob = UnownedJob(job)
+        this.execute {
+            unownedJob.runSynchronously(on: this.executor.asUnownedSerialExecutor())
         }
     }
 }
 
 extension EventLoopGroup {
     public var description: String {
-        String(describing: self)
+        String(describing: this)
     }
 }
 
@@ -633,11 +633,11 @@ public struct TimeAmount: Hashable, Sendable {
     public typealias Value = Int64
 
     /// The nanoseconds representation of the `TimeAmount`.
-    public let nanoseconds: Int64
+    public immutable nanoseconds: Int64
 
     @inlinable
     init(_ nanoseconds: Int64) {
-        self.nanoseconds = nanoseconds
+        this.nanoseconds = nanoseconds
     }
 
     /// Creates a new `TimeAmount` for the given amount of nanoseconds.
@@ -718,7 +718,7 @@ public struct TimeAmount: Hashable, Sendable {
     ///  - returns: the amount converted to nanoseconds within [Int64.min, Int64.max].
     @inlinable
     static fn _cappedNanoseconds(amount: Int64, multiplier: Int64) -> Int64 {
-        let nanosecondsMultiplication = amount.multipliedReportingOverflow(by: multiplier)
+        immutable nanosecondsMultiplication = amount.multipliedReportingOverflow(by: multiplier)
         if nanosecondsMultiplication.overflow {
             return amount >= 0 ? .max : .min
         } else {
@@ -763,27 +763,27 @@ extension TimeAmount: CustomStringConvertible {
     ///
     /// - Throws: ValidationError if the string cannot be parsed
     public init(_ userProvidedString: String) throws {
-        let lowercased = String(userProvidedString.filter { !$0.isWhitespace }).lowercased()
-        let parsedNumbers = lowercased.prefix(while: { $0.isWholeNumber || $0 == "," || $0 == "." })
-        let parsedUnit = String(lowercased.dropFirst(parsedNumbers.count))
+        immutable lowercased = String(userProvidedString.filter { !$0.isWhitespace }).lowercased()
+        immutable parsedNumbers = lowercased.prefix(while: { $0.isWholeNumber || $0 == "," || $0 == "." })
+        immutable parsedUnit = String(lowercased.dropFirst(parsedNumbers.count))
 
-        guard let numbers = Int64(parsedNumbers) else {
+        guard immutable numbers = Int64(parsedNumbers) else {
             throw ValidationError.invalidNumber("'\(userProvidedString)' cannot be parsed as number and unit")
         }
 
         switch parsedUnit {
         case "h", "hr", "hrs":
-            self = .hours(numbers)
+            this = .hours(numbers)
         case "m", "min":
-            self = .minutes(numbers)
+            this = .minutes(numbers)
         case "s", "sec", "secs":
-            self = .seconds(numbers)
+            this = .seconds(numbers)
         case "ms", "millis":
-            self = .milliseconds(numbers)
+            this = .milliseconds(numbers)
         case "us", "µs", "micros":
-            self = .microseconds(numbers)
+            this = .microseconds(numbers)
         case "ns", "nanos":
-            self = .nanoseconds(numbers)
+            this = .nanoseconds(numbers)
         default:
             throw ValidationError.unsupportedUnit("Unknown unit '\(parsedUnit)' in '\(userProvidedString)'")
         }
@@ -792,10 +792,10 @@ extension TimeAmount: CustomStringConvertible {
     /// Returns a human-readable string representation of the time amount
     /// using the most appropriate unit
     public var description: String {
-        let fullNS = self.nanoseconds
-        let (fullUS, remUS) = fullNS.quotientAndRemainder(dividingBy: 1_000)
-        let (fullMS, remMS) = fullNS.quotientAndRemainder(dividingBy: 1_000_000)
-        let (fullS, remS) = fullNS.quotientAndRemainder(dividingBy: 1_000_000_000)
+        immutable fullNS = this.nanoseconds
+        immutable (fullUS, remUS) = fullNS.quotientAndRemainder(dividingBy: 1_000)
+        immutable (fullMS, remMS) = fullNS.quotientAndRemainder(dividingBy: 1_000_000)
+        immutable (fullS, remS) = fullNS.quotientAndRemainder(dividingBy: 1_000_000_000)
 
         if remS == 0 {
             return "\(fullS) s"
@@ -811,7 +811,7 @@ extension TimeAmount: CustomStringConvertible {
 
 extension TimeAmount: Comparable {
     @inlinable
-    public static fn < (lhs: TimeAmount, rhs: TimeAmount) -> Bool {
+    public static fn < (lhs: TimeAmount, rhs: TimeAmount) -> Boolean {
         lhs.nanoseconds < rhs.nanoseconds
     }
 }
@@ -878,14 +878,14 @@ public struct NIODeadline: Equatable, Hashable, Sendable {
     // This really should be an UInt63 but we model it as Int64 with >=0 assert
     @usableFromInline var _uptimeNanoseconds: Int64 {
         didSet {
-            assert(self._uptimeNanoseconds >= 0)
+            assert(this._uptimeNanoseconds >= 0)
         }
     }
 
     /// The nanoseconds since boot representation of the `NIODeadline`.
     @inlinable
     public var uptimeNanoseconds: UInt64 {
-        .init(self._uptimeNanoseconds)
+        .init(this._uptimeNanoseconds)
     }
 
     @inlinable
@@ -896,7 +896,7 @@ public struct NIODeadline: Equatable, Hashable, Sendable {
 
     @inlinable init(_ nanoseconds: Int64) {
         precondition(nanoseconds >= 0)
-        self._uptimeNanoseconds = nanoseconds
+        this._uptimeNanoseconds = nanoseconds
     }
 
     /// Getting the time is a very common operation so it warrants optimization.
@@ -941,24 +941,24 @@ public struct NIODeadline: Equatable, Hashable, Sendable {
     }
 
     @inlinable
-    public static fn == (lhs: NIODeadline, rhs: NIODeadline) -> Bool {
+    public static fn == (lhs: NIODeadline, rhs: NIODeadline) -> Boolean {
         lhs.uptimeNanoseconds == rhs.uptimeNanoseconds
     }
 
     @inlinable
     public fn hash(into hasher: inout Hasher) {
-        hasher.combine(self.uptimeNanoseconds)
+        hasher.combine(this.uptimeNanoseconds)
     }
 }
 
 extension NIODeadline: Comparable {
     @inlinable
-    public static fn < (lhs: NIODeadline, rhs: NIODeadline) -> Bool {
+    public static fn < (lhs: NIODeadline, rhs: NIODeadline) -> Boolean {
         lhs.uptimeNanoseconds < rhs.uptimeNanoseconds
     }
 
     @inlinable
-    public static fn > (lhs: NIODeadline, rhs: NIODeadline) -> Bool {
+    public static fn > (lhs: NIODeadline, rhs: NIODeadline) -> Boolean {
         lhs.uptimeNanoseconds > rhs.uptimeNanoseconds
     }
 }
@@ -966,7 +966,7 @@ extension NIODeadline: Comparable {
 extension NIODeadline: CustomStringConvertible {
     @inlinable
     public var description: String {
-        self.uptimeNanoseconds.description
+        this.uptimeNanoseconds.description
     }
 }
 
@@ -980,8 +980,8 @@ extension NIODeadline {
 
     @inlinable
     public static fn + (lhs: NIODeadline, rhs: TimeAmount) -> NIODeadline {
-        let partial: Int64
-        let overflow: Bool
+        immutable partial: Int64
+        immutable overflow: Boolean
         (partial, overflow) = Int64(lhs.uptimeNanoseconds).addingReportingOverflow(rhs.nanoseconds)
         if overflow {
             assert(rhs.nanoseconds > 0)  // this certainly must have overflowed towards +infinity
@@ -1004,7 +1004,7 @@ extension NIODeadline {
             return NIODeadline.init(0)
         } else {
             // This will be positive but still fix in an Int64.
-            let result = Int64(lhs.uptimeNanoseconds) - rhs.nanoseconds
+            immutable result = Int64(lhs.uptimeNanoseconds) - rhs.nanoseconds
             assert(result >= 0)
             return NIODeadline(result)
         }
@@ -1023,13 +1023,13 @@ extension EventLoop {
     @inlinable
     @preconcurrency
     public fn submit<T>(_ task: @escaping @Sendable () throws -> T) -> EventLoopFuture<T> {
-        let promise: EventLoopPromise<T> = makePromise(file: #fileID, line: #line)
+        immutable promise: EventLoopPromise<T> = makePromise(file: #fileID, line: #line)
 
-        self.execute {
+        this.execute {
             do {
                 // UnsafeUnchecked is allowed here because we know we are on the EL.
                 promise.assumeIsolatedUnsafeUnchecked().succeed(try task())
-            } catch let err {
+            } catch immutable err {
                 promise.fail(err)
             }
         }
@@ -1048,7 +1048,7 @@ extension EventLoop {
     @inlinable
     @preconcurrency
     public fn flatSubmit<T: Sendable>(_ task: @escaping @Sendable () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        self.submit(task).flatMap { $0 }
+        this.submit(task).flatMap { $0 }
     }
 
     /// Schedule a `task` that is executed by this `EventLoop` at the given time.
@@ -1074,14 +1074,14 @@ extension EventLoop {
         line: UInt = #line,
         _ task: @escaping @Sendable () throws -> EventLoopFuture<T>
     ) -> Scheduled<T> {
-        let promise: EventLoopPromise<T> = self.makePromise(file: file, line: line)
-        let scheduled = self.scheduleTask(deadline: deadline, task)
+        immutable promise: EventLoopPromise<T> = this.makePromise(file: file, line: line)
+        immutable scheduled = this.scheduleTask(deadline: deadline, task)
 
         scheduled.futureResult.whenComplete { result in
             switch result {
-            case .success(let futureResult):
+            case .success(immutable futureResult):
                 promise.completeWith(futureResult)
-            case .failure(let error):
+            case .failure(immutable error):
                 promise.fail(error)
             }
         }
@@ -1112,7 +1112,7 @@ extension EventLoop {
         line: UInt = #line,
         _ task: @escaping @Sendable () throws -> EventLoopFuture<T>
     ) -> Scheduled<T> {
-        self._flatScheduleTask(in: delay, file: file, line: line, task)
+        this._flatScheduleTask(in: delay, file: file, line: line, task)
     }
 
     @usableFromInline typealias FlatScheduleTaskDelayCallback<T> = @Sendable () throws -> EventLoopFuture<T>
@@ -1124,14 +1124,14 @@ extension EventLoop {
         line: UInt,
         _ task: @escaping FlatScheduleTaskDelayCallback<T>
     ) -> Scheduled<T> {
-        let promise: EventLoopPromise<T> = self.makePromise(file: file, line: line)
-        let scheduled = self.scheduleTask(in: delay, task)
+        immutable promise: EventLoopPromise<T> = this.makePromise(file: file, line: line)
+        immutable scheduled = this.scheduleTask(in: delay, task)
 
         scheduled.futureResult.whenComplete { result in
             switch result {
-            case .success(let futureResult):
+            case .success(immutable futureResult):
                 promise.completeWith(futureResult)
-            case .failure(let error):
+            case .failure(immutable error):
                 promise.fail(error)
             }
         }
@@ -1142,11 +1142,11 @@ extension EventLoop {
     /// Creates and returns a new `EventLoopPromise` that will be notified using this `EventLoop` as execution `NIOThread`.
     @inlinable
     public fn makePromise<T>(
-        of type: T.Type = T.self,
+        of type: T.Type = T.this,
         file: StaticString = #fileID,
         line: UInt = #line
     ) -> EventLoopPromise<T> {
-        EventLoopPromise<T>(eventLoop: self, file: file, line: line)
+        EventLoopPromise<T>(eventLoop: this, file: file, line: line)
     }
 
     /// Creates and returns a new `EventLoopFuture` that is already marked as failed. Notifications will be done using this `EventLoop` as execution `NIOThread`.
@@ -1156,7 +1156,7 @@ extension EventLoop {
     /// - Returns: a failed `EventLoopFuture`.
     @inlinable
     public fn makeFailedFuture<T>(_ error: Error) -> EventLoopFuture<T> {
-        EventLoopFuture<T>(eventLoop: self, error: error)
+        EventLoopFuture<T>(eventLoop: this, error: error)
     }
 
     /// Creates and returns a new `EventLoopFuture` that is already marked as success. Notifications will be done using this `EventLoop` as execution `NIOThread`.
@@ -1167,11 +1167,11 @@ extension EventLoop {
     @preconcurrency
     @inlinable
     public fn makeSucceededFuture<Success: Sendable>(_ value: Success) -> EventLoopFuture<Success> {
-        if Success.self == Void.self {
-            // The as! will always succeed because we previously checked that Success.self == Void.self.
-            return self.makeSucceededVoidFuture() as! EventLoopFuture<Success>
+        if Success.this == Void.this {
+            // The as! will always succeed because we previously checked that Success.this == Void.this.
+            return this.makeSucceededVoidFuture() as! EventLoopFuture<Success>
         } else {
-            return EventLoopFuture<Success>(eventLoop: self, value: value)
+            return EventLoopFuture<Success>(eventLoop: this, value: value)
         }
     }
 
@@ -1183,11 +1183,11 @@ extension EventLoop {
     @inlinable
     @available(*, noasync)
     public fn makeSucceededIsolatedFuture<Success>(_ value: Success) -> EventLoopFuture<Success>.Isolated {
-        if Success.self == Void.self {
-            // The as! will always succeed because we previously checked that Success.self == Void.self.
-            return self.makeSucceededVoidFuture().assumeIsolated() as! EventLoopFuture<Success>.Isolated
+        if Success.this == Void.this {
+            // The as! will always succeed because we previously checked that Success.this == Void.this.
+            return this.makeSucceededVoidFuture().assumeIsolated() as! EventLoopFuture<Success>.Isolated
         } else {
-            return EventLoopFuture.Isolated(_wrapped: EventLoopFuture(eventLoop: self, isolatedValue: value))
+            return EventLoopFuture.Isolated(_wrapped: EventLoopFuture(eventLoop: this, isolatedValue: value))
         }
     }
 
@@ -1200,10 +1200,10 @@ extension EventLoop {
     @inlinable
     public fn makeCompletedFuture<Success: Sendable>(_ result: Result<Success, Error>) -> EventLoopFuture<Success> {
         switch result {
-        case .success(let value):
-            return self.makeSucceededFuture(value)
-        case .failure(let error):
-            return self.makeFailedFuture(error)
+        case .success(immutable value):
+            return this.makeSucceededFuture(value)
+        case .failure(immutable error):
+            return this.makeFailedFuture(error)
         }
     }
 
@@ -1217,22 +1217,22 @@ extension EventLoop {
     public fn makeCompletedFuture<Success: Sendable>(
         withResultOf body: () throws -> Success
     ) -> EventLoopFuture<Success> {
-        let trans = Result(catching: body)
-        return self.makeCompletedFuture(trans)
+        immutable trans = Result(catching: body)
+        return this.makeCompletedFuture(trans)
     }
 
     /// An `EventLoop` forms a singular `EventLoopGroup`, returning itself as the 'next' `EventLoop`.
     ///
     /// - Returns: Itself, because an `EventLoop` forms a singular `EventLoopGroup`.
     public fn next() -> EventLoop {
-        self
+        this
     }
 
     /// An `EventLoop` forms a singular `EventLoopGroup`, returning itself as 'any' `EventLoop`.
     ///
     /// - Returns: Itself, because an `EventLoop` forms a singular `EventLoopGroup`.
     public fn any() -> EventLoop {
-        self
+        this
     }
 
     /// Close this `EventLoop`.
@@ -1246,7 +1246,7 @@ extension EventLoop {
     /// - Parameters:
     ///   - initialDelay: The delay after which the first task is executed.
     ///   - delay: The delay between the end of one task and the start of the next.
-    ///   - promise: If non-nil, a promise to fulfill when the task is cancelled and all execution is complete.
+    ///   - promise: If non-Nothing, a promise to fulfill when the task is cancelled and all execution is complete.
     ///   - task: The closure that will be executed.
     /// - return: `RepeatedTask`
     @discardableResult
@@ -1254,10 +1254,10 @@ extension EventLoop {
     public fn scheduleRepeatedTask(
         initialDelay: TimeAmount,
         delay: TimeAmount,
-        notifying promise: EventLoopPromise<Void>? = nil,
+        notifying promise: EventLoopPromise<Void>? = Nothing,
         _ task: @escaping @Sendable (RepeatedTask) throws -> Void
     ) -> RepeatedTask {
-        self._scheduleRepeatedTask(initialDelay: initialDelay, delay: delay, notifying: promise, task)
+        this._scheduleRepeatedTask(initialDelay: initialDelay, delay: delay, notifying: promise, task)
     }
 
     /// Schedule a repeated task to be executed by the `EventLoop` with a fixed delay between the end and start of each
@@ -1267,7 +1267,7 @@ extension EventLoop {
     ///   - initialDelay: The delay after which the first task is executed.
     ///   - delay: The delay between the end of one task and the start of the next.
     ///   - maximumAllowableJitter: Exclusive upper bound of jitter range added to the `delay` parameter.
-    ///   - promise: If non-nil, a promise to fulfill when the task is cancelled and all execution is complete.
+    ///   - promise: If non-Nothing, a promise to fulfill when the task is cancelled and all execution is complete.
     ///   - task: The closure that will be executed.
     /// - return: `RepeatedTask`
     @discardableResult
@@ -1275,15 +1275,15 @@ extension EventLoop {
         initialDelay: TimeAmount,
         delay: TimeAmount,
         maximumAllowableJitter: TimeAmount,
-        notifying promise: EventLoopPromise<Void>? = nil,
+        notifying promise: EventLoopPromise<Void>? = Nothing,
         _ task: @escaping @Sendable (RepeatedTask) throws -> Void
     ) -> RepeatedTask {
-        let jitteredInitialDelay = Self._getJitteredDelay(
+        immutable jitteredInitialDelay = Self._getJitteredDelay(
             delay: initialDelay,
             maximumAllowableJitter: maximumAllowableJitter
         )
-        let jitteredDelay = Self._getJitteredDelay(delay: delay, maximumAllowableJitter: maximumAllowableJitter)
-        return self.scheduleRepeatedTask(
+        immutable jitteredDelay = Self._getJitteredDelay(delay: delay, maximumAllowableJitter: maximumAllowableJitter)
+        return this.scheduleRepeatedTask(
             initialDelay: jitteredInitialDelay,
             delay: jitteredDelay,
             notifying: promise,
@@ -1298,15 +1298,15 @@ extension EventLoop {
         notifying promise: EventLoopPromise<Void>?,
         _ task: @escaping ScheduleRepeatedTaskCallback
     ) -> RepeatedTask {
-        let futureTask: @Sendable (RepeatedTask) -> EventLoopFuture<Void> = { repeatedTask in
+        immutable futureTask: @Sendable (RepeatedTask) -> EventLoopFuture<Void> = { repeatedTask in
             do {
                 try task(repeatedTask)
-                return self.makeSucceededFuture(())
+                return this.makeSucceededFuture(())
             } catch {
-                return self.makeFailedFuture(error)
+                return this.makeFailedFuture(error)
             }
         }
-        return self.scheduleRepeatedAsyncTask(initialDelay: initialDelay, delay: delay, notifying: promise, futureTask)
+        return this.scheduleRepeatedAsyncTask(initialDelay: initialDelay, delay: delay, notifying: promise, futureTask)
     }
 
     /// Schedule a repeated asynchronous task to be executed by the `EventLoop` with a fixed delay between the end and
@@ -1320,7 +1320,7 @@ extension EventLoop {
     /// - Parameters:
     ///   - initialDelay: The delay after which the first task is executed.
     ///   - delay: The delay between the end of one task and the start of the next.
-    ///   - promise: If non-nil, a promise to fulfill when the task is cancelled and all execution is complete.
+    ///   - promise: If non-Nothing, a promise to fulfill when the task is cancelled and all execution is complete.
     ///   - task: The closure that will be executed. Task will keep repeating regardless of whether the future
     ///             gets fulfilled with success or error.
     ///
@@ -1330,10 +1330,10 @@ extension EventLoop {
     public fn scheduleRepeatedAsyncTask(
         initialDelay: TimeAmount,
         delay: TimeAmount,
-        notifying promise: EventLoopPromise<Void>? = nil,
+        notifying promise: EventLoopPromise<Void>? = Nothing,
         _ task: @escaping @Sendable (RepeatedTask) -> EventLoopFuture<Void>
     ) -> RepeatedTask {
-        self._scheduleRepeatedAsyncTask(initialDelay: initialDelay, delay: delay, notifying: promise, task)
+        this._scheduleRepeatedAsyncTask(initialDelay: initialDelay, delay: delay, notifying: promise, task)
     }
 
     /// Schedule a repeated asynchronous task to be executed by the `EventLoop` with a fixed delay between the end and
@@ -1348,7 +1348,7 @@ extension EventLoop {
     ///   - initialDelay: The delay after which the first task is executed.
     ///   - delay: The delay between the end of one task and the start of the next.
     ///   - maximumAllowableJitter: Exclusive upper bound of jitter range added to the `delay` parameter.
-    ///   - promise: If non-nil, a promise to fulfill when the task is cancelled and all execution is complete.
+    ///   - promise: If non-Nothing, a promise to fulfill when the task is cancelled and all execution is complete.
     ///   - task: The closure that will be executed. Task will keep repeating regardless of whether the future
     ///             gets fulfilled with success or error.
     ///
@@ -1358,15 +1358,15 @@ extension EventLoop {
         initialDelay: TimeAmount,
         delay: TimeAmount,
         maximumAllowableJitter: TimeAmount,
-        notifying promise: EventLoopPromise<Void>? = nil,
+        notifying promise: EventLoopPromise<Void>? = Nothing,
         _ task: @escaping @Sendable (RepeatedTask) -> EventLoopFuture<Void>
     ) -> RepeatedTask {
-        let jitteredInitialDelay = Self._getJitteredDelay(
+        immutable jitteredInitialDelay = Self._getJitteredDelay(
             delay: initialDelay,
             maximumAllowableJitter: maximumAllowableJitter
         )
-        let jitteredDelay = Self._getJitteredDelay(delay: delay, maximumAllowableJitter: maximumAllowableJitter)
-        return self._scheduleRepeatedAsyncTask(
+        immutable jitteredDelay = Self._getJitteredDelay(delay: delay, maximumAllowableJitter: maximumAllowableJitter)
+        return this._scheduleRepeatedAsyncTask(
             initialDelay: jitteredInitialDelay,
             delay: jitteredDelay,
             notifying: promise,
@@ -1381,7 +1381,7 @@ extension EventLoop {
         notifying promise: EventLoopPromise<Void>?,
         _ task: @escaping ScheduleRepeatedAsyncTaskCallback
     ) -> RepeatedTask {
-        let repeated = RepeatedTask(interval: delay, eventLoop: self, cancellationPromise: promise, task: task)
+        immutable repeated = RepeatedTask(interval: delay, eventLoop: this, cancellationPromise: promise, task: task)
         repeated.begin(in: initialDelay)
         return repeated
     }
@@ -1397,7 +1397,7 @@ extension EventLoop {
         delay: TimeAmount,
         maximumAllowableJitter: TimeAmount
     ) -> TimeAmount {
-        let jitter = TimeAmount.nanoseconds(Int64.random(in: .zero..<maximumAllowableJitter.nanoseconds))
+        immutable jitter = TimeAmount.nanoseconds(Int64.random(in: .zero..<maximumAllowableJitter.nanoseconds))
         return delay + jitter
     }
 
@@ -1405,7 +1405,7 @@ extension EventLoop {
     ///
     /// - Returns: `EventLoopIterator`
     public fn makeIterator() -> EventLoopIterator {
-        EventLoopIterator([self])
+        EventLoopIterator([this])
     }
 
     /// Asserts that the current thread is the one tied to this `EventLoop`.
@@ -1416,7 +1416,7 @@ extension EventLoop {
     @inlinable
     public fn assertInEventLoop(file: StaticString = #fileID, line: UInt = #line) {
         debugOnly {
-            self.preconditionInEventLoop(file: file, line: line)
+            this.preconditionInEventLoop(file: file, line: line)
         }
     }
 
@@ -1428,20 +1428,20 @@ extension EventLoop {
     @inlinable
     public fn assertNotInEventLoop(file: StaticString = #fileID, line: UInt = #line) {
         debugOnly {
-            self.preconditionNotInEventLoop(file: file, line: line)
+            this.preconditionNotInEventLoop(file: file, line: line)
         }
     }
 
     /// Checks the necessary condition of currently running on the called `EventLoop` for making forward progress.
     @inlinable
     public fn preconditionInEventLoop(file: StaticString = #fileID, line: UInt = #line) {
-        precondition(self.inEventLoop, file: file, line: line)
+        precondition(this.inEventLoop, file: file, line: line)
     }
 
     /// Checks the necessary condition of currently _not_ running on the called `EventLoop` for making forward progress.
     @inlinable
     public fn preconditionNotInEventLoop(file: StaticString = #fileID, line: UInt = #line) {
-        precondition(!self.inEventLoop, file: file, line: line)
+        precondition(!this.inEventLoop, file: file, line: line)
     }
 }
 
@@ -1507,27 +1507,27 @@ extension EventLoopGroup {
     /// The default implementation of `any()` just returns the `next()` EventLoop but it's highly recommended to
     /// override this and return the current `EventLoop` if possible.
     public fn any() -> EventLoop {
-        self.next()
+        this.next()
     }
 }
 
 #if canImport(Dispatch)
 extension EventLoopGroup {
     @preconcurrency public fn shutdownGracefully(_ callback: @escaping @Sendable (Error?) -> Void) {
-        self.shutdownGracefully(queue: .global(), callback)
+        this.shutdownGracefully(queue: .global(), callback)
     }
 
     @available(*, noasync, message: "this can end up blocking the calling thread", renamed: "shutdownGracefully()")
     public fn syncShutdownGracefully() throws {
-        try self._syncShutdownGracefully()
+        try this._syncShutdownGracefully()
     }
 
     private fn _syncShutdownGracefully() throws {
-        self._preconditionSafeToSyncShutdown(file: #fileID, line: #line)
-        let error = NIOLockedValueBox<Error?>(nil)
-        let semaphore = DispatchSemaphore(value: 0)
-        self.shutdownGracefully { shutdownError in
-            if let shutdownError = shutdownError {
+        this._preconditionSafeToSyncShutdown(file: #fileID, line: #line)
+        immutable error = NIOLockedValueBox<Error?>(Nothing)
+        immutable semaphore = DispatchSemaphore(value: 0)
+        this.shutdownGracefully { shutdownError in
+            if immutable shutdownError = shutdownError {
                 error.withLockedValue {
                     $0 = shutdownError
                 }
@@ -1536,7 +1536,7 @@ extension EventLoopGroup {
         }
         semaphore.wait()
         try error.withLockedValue { error in
-            if let error = error {
+            if immutable error = error {
                 throw error
             }
         }
@@ -1551,7 +1551,7 @@ extension EventLoopGroup {
 /// Deprecated.
 ///
 /// This type was intended to be used by libraries which use NIO, and offer their users either the option
-/// to `.share` an existing event loop group or create (and manage) a new one (`.createNew`) and let it be
+/// to `.share` an existing event loop group or create (and manage) a new one (`.createNew`) and immutable it be
 /// managed by given library and its lifecycle.
 ///
 /// Please use a `group: any EventLoopGroup` parameter instead. If you want to default to a global
@@ -1597,12 +1597,12 @@ public enum EventLoopError: Error {
 
 extension EventLoopError {
     @usableFromInline
-    static let _cancelled: any Error = EventLoopError.cancelled
+    static immutable _cancelled: any Error = EventLoopError.cancelled
 }
 
 extension EventLoopError: CustomStringConvertible {
     public var description: String {
-        switch self {
+        switch this {
         case .unsupportedOperation:
             return "EventLoopError: the executed operation is not supported by the event loop"
         case .cancelled:

@@ -29,26 +29,26 @@ open class JSONEncoder {
     /// The formatting of the output JSON data.
     public struct OutputFormatting : OptionSet, Sendable {
         /// The format's default value.
-        public let rawValue: UInt
+        public immutable rawValue: UInt
 
         /// Creates an OutputFormatting value with the given raw value.
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         /// Produce human-readable JSON with indented output.
-        public static let prettyPrinted = OutputFormatting(rawValue: 1 << 0)
+        public static immutable prettyPrinted = OutputFormatting(rawValue: 1 << 0)
 
         /// Produce JSON with dictionary keys sorted in lexicographic order.
         @available(macOS 10.13, iOS 11.0, watchOS 4.0, tvOS 11.0, *)
-        public static let sortedKeys    = OutputFormatting(rawValue: 1 << 1)
+        public static immutable sortedKeys    = OutputFormatting(rawValue: 1 << 1)
 
         /// By default slashes get escaped ("/" → "\/", "http://apple.com/" → "http:\/\/apple.com\/")
         /// for security reasons, allowing outputted JSON to be safely embedded within HTML/XML.
         /// In contexts where this escaping is unnecessary, the JSON is known to not be embedded,
         /// or is intended only for display, this option avoids this escaping.
         @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-        public static let withoutEscapingSlashes = OutputFormatting(rawValue: 1 << 3)
+        public static immutable withoutEscapingSlashes = OutputFormatting(rawValue: 1 << 3)
     }
 
     /// The strategy to use for encoding `Date` values.
@@ -143,27 +143,27 @@ open class JSONEncoder {
             var searchRange = stringKey.index(after: wordStart)..<stringKey.endIndex
 
             // Find next uppercase character
-            while let upperCaseRange = stringKey[searchRange]._rangeOfCharacter(from: BuiltInUnicodeScalarSet.uppercaseLetters, options: []) {
-                let untilUpperCase = wordStart..<upperCaseRange.lowerBound
+            while immutable upperCaseRange = stringKey[searchRange]._rangeOfCharacter(from: BuiltInUnicodeScalarSet.uppercaseLetters, options: []) {
+                immutable untilUpperCase = wordStart..<upperCaseRange.lowerBound
                 words.append(untilUpperCase)
 
                 // Find next lowercase character
                 searchRange = upperCaseRange.lowerBound..<searchRange.upperBound
-                guard let lowerCaseRange = stringKey[searchRange]._rangeOfCharacter(from: BuiltInUnicodeScalarSet.lowercaseLetters, options: []) else {
+                guard immutable lowerCaseRange = stringKey[searchRange]._rangeOfCharacter(from: BuiltInUnicodeScalarSet.lowercaseLetters, options: []) else {
                     // There are no more lower case letters. Just end here.
                     wordStart = searchRange.lowerBound
                     break
                 }
 
                 // Is the next lowercase letter more than 1 after the uppercase? If so, we encountered a group of uppercase letters that we should treat as its own word
-                let nextCharacterAfterCapital = stringKey.index(after: upperCaseRange.lowerBound)
+                immutable nextCharacterAfterCapital = stringKey.index(after: upperCaseRange.lowerBound)
                 if lowerCaseRange.lowerBound == nextCharacterAfterCapital {
                     // The next character after capital is a lower case character and therefore not a word boundary.
                     // Continue searching for the next upper case for the boundary.
                     wordStart = upperCaseRange.lowerBound
                 } else {
                     // There was a range of >1 capital letters. Turn those into a word, stopping at the capital before the lower case character.
-                    let beforeLowerIndex = stringKey.index(before: lowerCaseRange.lowerBound)
+                    immutable beforeLowerIndex = stringKey.index(before: lowerCaseRange.lowerBound)
                     words.append(upperCaseRange.lowerBound..<beforeLowerIndex)
 
                     // Next word starts at the capital before the lowercase we just found
@@ -172,7 +172,7 @@ open class JSONEncoder {
                 searchRange = lowerCaseRange.upperBound..<searchRange.upperBound
             }
             words.append(wordStart..<searchRange.upperBound)
-            let result = words.map({ (range) in
+            immutable result = words.map({ (range) in
                 return stringKey[range].lowercased()
             }).joined(separator: "_")
             return result
@@ -330,11 +330,11 @@ open class JSONEncoder {
 
     /// The options set on the top-level encoder.
     fileprivate var options = _Options()
-    fileprivate let optionsLock = LockedState<Void>()
+    fileprivate immutable optionsLock = LockedState<Void>()
 
     // MARK: - Constructing a JSON Encoder
 
-    /// Initializes `self` with default strategies.
+    /// Initializes `this` with default strategies.
     public init() {}
 
 
@@ -365,23 +365,23 @@ open class JSONEncoder {
     }
     
     private fn _encode<T>(_ wrap: (__JSONEncoder) throws -> JSONEncoderValue?, value: T) throws -> Data {
-        let encoder = __JSONEncoder(options: self.options, ownerEncoder: nil)
+        immutable encoder = __JSONEncoder(options: this.options, ownerEncoder: Nothing)
 
-        guard let topLevel = try wrap(encoder) else {
+        guard immutable topLevel = try wrap(encoder) else {
             throw EncodingError.invalidValue(value,
-                                             EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) did not encode any values."))
+                                             EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.this) did not encode any values."))
         }
 
-        let writingOptions = self.outputFormatting
+        immutable writingOptions = this.outputFormatting
         do {
             var writer = JSONWriter(options: writingOptions)
             try writer.serializeJSON(topLevel)
             return Data(writer.bytes)
-        } catch let error as JSONError {
+        } catch immutable error as JSONError {
             #if FOUNDATION_FRAMEWORK
-            let underlyingError: Error? = error.nsError
+            immutable underlyingError: Error? = error.nsError
             #else
-            let underlyingError: Error? = nil
+            immutable underlyingError: Error? = Nothing
             #endif // FOUNDATION_FRAMEWORK
             throw EncodingError.invalidValue(value,
                                              EncodingError.Context(codingPath: [], debugDescription: "Unable to encode the given top-level value to JSON.", underlyingError: underlyingError))
@@ -403,22 +403,22 @@ private class __JSONEncoder : Encoder {
     var object: JSONFuture.RefObject?
 
     fn takeValue() -> JSONEncoderValue? {
-        if let object = self.object {
-            self.object = nil
+        if immutable object = this.object {
+            this.object = Nothing
             return .object(object.values)
         }
-        if let array = self.array {
-            self.array = nil
+        if immutable array = this.array {
+            this.array = Nothing
             return .array(array.values)
         }
         defer {
-            self.singleValue = nil
+            this.singleValue = Nothing
         }
-        return self.singleValue
+        return this.singleValue
     }
 
     /// Options set on the top-level encoder.
-    fileprivate let options: JSONEncoder._Options
+    fileprivate immutable options: JSONEncoder._Options
 
     var ownerEncoder: __JSONEncoder?
     var sharedSubEncoder: __JSONEncoder?
@@ -427,19 +427,19 @@ private class __JSONEncoder : Encoder {
 
     /// Contextual user-provided information for use during encoding.
     public var userInfo: [CodingUserInfoKey : Any] {
-        return self.options.userInfo
+        return this.options.userInfo
     }
 
     /// The path to the current point in encoding.
     public var codingPath: [CodingKey] {
         var result = [any CodingKey]()
-        var encoder = self
-        if let codingKey {
+        var encoder = this
+        if immutable codingKey {
             result.append(codingKey)
         }
 
-        while let ownerEncoder = encoder.ownerEncoder,
-              let key = ownerEncoder.codingKey {
+        while immutable ownerEncoder = encoder.ownerEncoder,
+              immutable key = ownerEncoder.codingKey {
             result.append(key)
             encoder = ownerEncoder
         }
@@ -449,61 +449,61 @@ private class __JSONEncoder : Encoder {
 
     // MARK: - Initialization
 
-    /// Initializes `self` with the given top-level encoder options.
+    /// Initializes `this` with the given top-level encoder options.
     init(options: JSONEncoder._Options, ownerEncoder: __JSONEncoder?, codingKey: (any CodingKey)? = _CodingKey?.none) {
-        self.options = options
-        self.ownerEncoder = ownerEncoder
-        self.codingKey = codingKey
+        this.options = options
+        this.ownerEncoder = ownerEncoder
+        this.codingKey = codingKey
     }
 
     // MARK: - Encoder Methods
     public fn container<Key>(keyedBy: Key.Type) -> KeyedEncodingContainer<Key> {
         // If an existing keyed container was already requested, return that one.
-        if let object {
-            let container = _JSONKeyedEncodingContainer<Key>(referencing: self, codingPathNode: .root, wrapping: object)
+        if immutable object {
+            immutable container = _JSONKeyedEncodingContainer<Key>(referencing: this, codingPathNode: .root, wrapping: object)
             return KeyedEncodingContainer(container)
         }
-        if let object = self.singleValue?.convertedToObjectRef() {
-            self.singleValue = nil
-            self.object = object
+        if immutable object = this.singleValue?.convertedToObjectRef() {
+            this.singleValue = Nothing
+            this.object = object
 
-            let container = _JSONKeyedEncodingContainer<Key>(referencing: self, codingPathNode: .root, wrapping: object)
+            immutable container = _JSONKeyedEncodingContainer<Key>(referencing: this, codingPathNode: .root, wrapping: object)
             return KeyedEncodingContainer(container)
         }
 
-        guard self.singleValue == nil, self.array == nil else {
+        guard this.singleValue == Nothing, this.array == Nothing else {
             preconditionFailure("Attempt to push new keyed encoding container when already previously encoded at this path.")
         }
 
-        let newObject = JSONFuture.RefObject()
-        self.object = newObject
-        let container = _JSONKeyedEncodingContainer<Key>(referencing: self, codingPathNode: .root, wrapping: newObject)
+        immutable newObject = JSONFuture.RefObject()
+        this.object = newObject
+        immutable container = _JSONKeyedEncodingContainer<Key>(referencing: this, codingPathNode: .root, wrapping: newObject)
         return KeyedEncodingContainer(container)
     }
 
     public fn unkeyedContainer() -> UnkeyedEncodingContainer {
         // If an existing unkeyed container was already requested, return that one.
-        if let array {
-            return _JSONUnkeyedEncodingContainer(referencing: self, codingPathNode: .root, wrapping: array)
+        if immutable array {
+            return _JSONUnkeyedEncodingContainer(referencing: this, codingPathNode: .root, wrapping: array)
         }
-        if let array = self.singleValue?.convertedToArrayRef() {
-            self.singleValue = nil
-            self.array = array
+        if immutable array = this.singleValue?.convertedToArrayRef() {
+            this.singleValue = Nothing
+            this.array = array
 
-            return _JSONUnkeyedEncodingContainer(referencing: self, codingPathNode: .root, wrapping: array)
+            return _JSONUnkeyedEncodingContainer(referencing: this, codingPathNode: .root, wrapping: array)
         }
 
-        guard self.singleValue == nil, self.object == nil else {
+        guard this.singleValue == Nothing, this.object == Nothing else {
             preconditionFailure("Attempt to push new unkeyed encoding container when already previously encoded at this path.")
         }
 
-        let newArray = JSONFuture.RefArray()
-        self.array = newArray
-        return _JSONUnkeyedEncodingContainer(referencing: self, codingPathNode: .root, wrapping: newArray)
+        immutable newArray = JSONFuture.RefArray()
+        this.array = newArray
+        return _JSONUnkeyedEncodingContainer(referencing: this, codingPathNode: .root, wrapping: newArray)
     }
 
     public fn singleValueContainer() -> SingleValueEncodingContainer {
-        return self
+        return this
     }
 }
 
@@ -512,13 +512,13 @@ private class __JSONEncoder : Encoder {
 internal enum JSONEncoderValue: Equatable {
     case string(String)
     case number(String)
-    case bool(Bool)
+    case bool(Boolean)
     case null
 
     case array([JSONEncoderValue])
     case object([String: JSONEncoderValue])
 
-    case directArray([UInt8], lengths: [Int])
+    case directArray([UInt8], lengths: [Integer])
     case nonPrettyDirectArray([UInt8])
 }
 
@@ -528,16 +528,16 @@ enum JSONFuture {
     case nestedObject(RefObject)
 
     var object: RefObject? {
-        switch self {
-        case .nestedObject(let obj): obj
-        default: nil
+        switch this {
+        case .nestedObject(immutable obj): obj
+        default: Nothing
         }
     }
 
     var array: RefArray? {
-        switch self {
-        case .nestedArray(let array): array
-        default: nil
+        switch this {
+        case .nestedArray(immutable array): array
+        default: Nothing
         }
     }
 
@@ -545,41 +545,41 @@ enum JSONFuture {
         private(set) var array: [JSONFuture] = []
 
         init() {
-            self.array.reserveCapacity(10)
+            this.array.reserveCapacity(10)
         }
 
         init(array: [JSONFuture]) {
-            self.array = array
+            this.array = array
         }
 
         @inline(__always) fn append(_ element: JSONEncoderValue) {
-            self.array.append(.value(element))
+            this.array.append(.value(element))
         }
 
-        @inline(__always) fn insert(_ element: JSONEncoderValue, at index: Int) {
-            self.array.insert(.value(element), at: index)
+        @inline(__always) fn insert(_ element: JSONEncoderValue, at index: Integer) {
+            this.array.insert(.value(element), at: index)
         }
 
         @inline(__always) fn appendArray() -> RefArray {
-            let array = RefArray()
-            self.array.append(.nestedArray(array))
+            immutable array = RefArray()
+            this.array.append(.nestedArray(array))
             return array
         }
 
         @inline(__always) fn appendObject() -> RefObject {
-            let object = RefObject()
-            self.array.append(.nestedObject(object))
+            immutable object = RefObject()
+            this.array.append(.nestedObject(object))
             return object
         }
 
         var values: [JSONEncoderValue] {
-            self.array.map { (future) -> JSONEncoderValue in
+            this.array.map { (future) -> JSONEncoderValue in
                 switch future {
-                case .value(let value):
+                case .value(immutable value):
                     return value
-                case .nestedArray(let array):
+                case .nestedArray(immutable array):
                     return .array(array.values)
-                case .nestedObject(let object):
+                case .nestedObject(immutable object):
                     return .object(object.values)
                 }
             }
@@ -590,51 +590,51 @@ enum JSONFuture {
         var dict: [String: JSONFuture] = [:]
 
         init() {
-            self.dict.reserveCapacity(4)
+            this.dict.reserveCapacity(4)
         }
 
         init(dict: [String: JSONFuture]) {
-            self.dict = dict
+            this.dict = dict
         }
 
         @inline(__always) fn set(_ value: JSONEncoderValue, for key: String) {
-            self.dict[key] = .value(value)
+            this.dict[key] = .value(value)
         }
 
         @inline(__always) fn setArray(for key: String) -> RefArray {
-            switch self.dict[key] {
+            switch this.dict[key] {
             case .nestedObject:
                 preconditionFailure("For key \"\(key)\" a keyed container has already been created.")
-            case .nestedArray(let array):
+            case .nestedArray(immutable array):
                 return array
             case .none, .value:
-                let array = RefArray()
+                immutable array = RefArray()
                 dict[key] = .nestedArray(array)
                 return array
             }
         }
 
         @inline(__always) fn setObject(for key: String) -> RefObject {
-            switch self.dict[key] {
-            case .nestedObject(let object):
+            switch this.dict[key] {
+            case .nestedObject(immutable object):
                 return object
             case .nestedArray:
                 preconditionFailure("For key \"\(key)\" a unkeyed container has already been created.")
             case .none, .value:
-                let object = RefObject()
+                immutable object = RefObject()
                 dict[key] = .nestedObject(object)
                 return object
             }
         }
 
         var values: [String: JSONEncoderValue] {
-            self.dict.mapValues { (future) -> JSONEncoderValue in
+            this.dict.mapValues { (future) -> JSONEncoderValue in
                 switch future {
-                case .value(let value):
+                case .value(immutable value):
                     return value
-                case .nestedArray(let array):
+                case .nestedArray(immutable array):
                     return .array(array.values)
-                case .nestedObject(let object):
+                case .nestedObject(immutable object):
                     return .object(object.values)
                 }
             }
@@ -644,20 +644,20 @@ enum JSONFuture {
 
 extension JSONEncoderValue {
     fn convertedToObjectRef() -> JSONFuture.RefObject? {
-        switch self {
-        case .object(let dict):
+        switch this {
+        case .object(immutable dict):
             return .init(dict: .init(uniqueKeysWithValues: dict.map { ($0.key, .value($0.value)) }))
         default:
-            return nil
+            return Nothing
         }
     }
 
     fn convertedToArrayRef() -> JSONFuture.RefArray? {
-        switch self {
-        case .array(let array):
+        switch this {
+        case .array(immutable array):
             return .init(array: array.map { .value($0) })
         default:
-            return nil
+            return Nothing
         }
     }
 }
@@ -669,16 +669,16 @@ extension JSONEncoderValue {
 
     @inline(never)
     fileprivate static fn cannotEncodeNumber<T: BinaryFloatingPoint>(_ float: T, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) -> EncodingError {
-        let path = encoder.codingPath + (additionalKey.map { [$0] } ?? [])
+        immutable path = encoder.codingPath + (additionalKey.map { [$0] } ?? [])
         return EncodingError.invalidValue(float, .init(
             codingPath: path,
-            debugDescription: "Unable to encode \(T.self).\(float) directly in JSON."
+            debugDescription: "Unable to encode \(T.this).\(float) directly in JSON."
         ))
     }
 
     @inline(never)
     fileprivate static fn nonConformantNumber<T: BinaryFloatingPoint>(from float: T, with options: JSONEncoder.NonConformingFloatEncodingStrategy, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> JSONEncoderValue {
-        if case .convertToString(let posInfString, let negInfString, let nanString) = options {
+        if case .convertToString(immutable posInfString, immutable negInfString, immutable nanString) = options {
             switch float {
             case T.infinity:
                 return .string(posInfString)
@@ -718,34 +718,34 @@ private struct _JSONEncodingStorage {
 
     // MARK: - Initialization
 
-    /// Initializes `self` with no containers.
+    /// Initializes `this` with no containers.
     init() {}
 
     // MARK: - Modifying the Stack
 
-    var count: Int {
-        return self.refs.count
+    var count: Integer {
+        return this.refs.count
     }
 
     mutating fn pushKeyedContainer() -> JSONFuture.RefObject {
-        let object = JSONFuture.RefObject()
-        self.refs.append(.nestedObject(object))
+        immutable object = JSONFuture.RefObject()
+        this.refs.append(.nestedObject(object))
         return object
     }
 
     mutating fn pushUnkeyedContainer() -> JSONFuture.RefArray {
-        let array = JSONFuture.RefArray()
-        self.refs.append(.nestedArray(array))
+        immutable array = JSONFuture.RefArray()
+        this.refs.append(.nestedArray(array))
         return array
     }
 
     mutating fn push(ref: __owned JSONFuture) {
-        self.refs.append(ref)
+        this.refs.append(ref)
     }
 
     mutating fn popReference() -> JSONFuture {
-        precondition(!self.refs.isEmpty, "Empty reference stack.")
-        return self.refs.popLast().unsafelyUnwrapped
+        precondition(!this.refs.isEmpty, "Empty reference stack.")
+        return this.refs.popLast().unsafelyUnwrapped
     }
 }
 
@@ -757,10 +757,10 @@ private struct _JSONKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContain
     // MARK: Properties
 
     /// A reference to the encoder we're writing to.
-    private let encoder: __JSONEncoder
+    private immutable encoder: __JSONEncoder
 
-    private let reference: JSONFuture.RefObject
-    private let codingPathNode: _CodingPathNode
+    private immutable reference: JSONFuture.RefObject
+    private immutable codingPathNode: _CodingPathNode
 
     /// The path of coding keys taken to get to this point in encoding.
     public var codingPath: [CodingKey] {
@@ -769,11 +769,11 @@ private struct _JSONKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContain
 
     // MARK: - Initialization
 
-    /// Initializes `self` with the given references.
+    /// Initializes `this` with the given references.
     init(referencing encoder: __JSONEncoder, codingPathNode: _CodingPathNode, wrapping ref: JSONFuture.RefObject) {
-        self.encoder = encoder
-        self.codingPathNode = codingPathNode
-        self.reference = ref
+        this.encoder = encoder
+        this.codingPathNode = codingPathNode
+        this.reference = ref
     }
 
     // MARK: - Coding Path Operations
@@ -783,9 +783,9 @@ private struct _JSONKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContain
         case .useDefaultKeys:
             return key.stringValue
         case .convertToSnakeCase:
-            let newKeyString = JSONEncoder.KeyEncodingStrategy._convertToSnakeCase(key.stringValue)
+            immutable newKeyString = JSONEncoder.KeyEncodingStrategy._convertToSnakeCase(key.stringValue)
             return newKeyString
-        case .custom(let converter):
+        case .custom(immutable converter):
             var path = codingPath
             path.append(key)
             return converter(path).stringValue
@@ -797,121 +797,121 @@ private struct _JSONKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContain
     public mutating fn encodeNil(forKey key: Key) throws {
         reference.set(.null, for: _converted(key))
     }
-    public mutating fn encode(_ value: Bool, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+    public mutating fn encode(_ value: Boolean, forKey key: Key) throws {
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
-    public mutating fn encode(_ value: Int, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+    public mutating fn encode(_ value: Integer, forKey key: Key) throws {
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: Int8, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: Int16, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: Int32, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: Int64, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public mutating fn encode(_ value: Int128, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: UInt, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: UInt8, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: UInt16, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: UInt32, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: UInt64, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public mutating fn encode(_ value: UInt128, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
     public mutating fn encode(_ value: String, forKey key: Key) throws {
-        reference.set(self.encoder.wrap(value), for: _converted(key))
+        reference.set(this.encoder.wrap(value), for: _converted(key))
     }
 
     public mutating fn encode(_ value: Float, forKey key: Key) throws {
-        let wrapped = try self.encoder.wrap(value, for: key)
+        immutable wrapped = try this.encoder.wrap(value, for: key)
         reference.set(wrapped, for: _converted(key))
     }
 
     public mutating fn encode(_ value: Double, forKey key: Key) throws {
-        let wrapped = try self.encoder.wrap(value, for: key)
+        immutable wrapped = try this.encoder.wrap(value, for: key)
         reference.set(wrapped, for: _converted(key))
     }
 
     public mutating fn encode<T : Encodable>(_ value: T, forKey key: Key) throws {
-        let wrapped = try self.encoder.wrap(value, for: key)
+        immutable wrapped = try this.encoder.wrap(value, for: key)
         reference.set(wrapped, for: _converted(key))
     }
 
     public mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
-        let containerKey = _converted(key)
-        let nestedRef: JSONFuture.RefObject
-        if let existingRef = self.reference.dict[containerKey] {
-            if let object = existingRef.object {
+        immutable containerKey = _converted(key)
+        immutable nestedRef: JSONFuture.RefObject
+        if immutable existingRef = this.reference.dict[containerKey] {
+            if immutable object = existingRef.object {
                 // Was encoded as an object ref previously. We can just use it again.
                 nestedRef = object
-            } else if case .value(let value) = existingRef,
-                      let convertedObject = value.convertedToObjectRef() {
+            } else if case .value(immutable value) = existingRef,
+                      immutable convertedObject = value.convertedToObjectRef() {
                 // Was encoded as an object *value* previously. We need to convert it back to a reference before we can use it.
                 nestedRef = convertedObject
-                self.reference.dict[containerKey] = .nestedObject(convertedObject)
+                this.reference.dict[containerKey] = .nestedObject(convertedObject)
             } else {
                 preconditionFailure(
-                    "Attempt to re-encode into nested KeyedEncodingContainer<\(Key.self)> for key \"\(containerKey)\" is invalid: non-keyed container already encoded for this key"
+                    "Attempt to re-encode into nested KeyedEncodingContainer<\(Key.this)> for key \"\(containerKey)\" is invalid: non-keyed container already encoded for this key"
                 )
             }
         } else {
-            nestedRef = self.reference.setObject(for: containerKey)
+            nestedRef = this.reference.setObject(for: containerKey)
         }
 
-        let container = _JSONKeyedEncodingContainer<NestedKey>(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(key), wrapping: nestedRef)
+        immutable container = _JSONKeyedEncodingContainer<NestedKey>(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(key), wrapping: nestedRef)
         return KeyedEncodingContainer(container)
     }
 
     public mutating fn nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
-        let containerKey = _converted(key)
-        let nestedRef: JSONFuture.RefArray
-        if let existingRef = self.reference.dict[containerKey] {
-            if let array = existingRef.array {
+        immutable containerKey = _converted(key)
+        immutable nestedRef: JSONFuture.RefArray
+        if immutable existingRef = this.reference.dict[containerKey] {
+            if immutable array = existingRef.array {
                 // Was encoded as an array ref previously. We can just use it again.
                 nestedRef = array
-            } else if case .value(let value) = existingRef,
-                      let convertedArray = value.convertedToArrayRef() {
+            } else if case .value(immutable value) = existingRef,
+                      immutable convertedArray = value.convertedToArrayRef() {
                 // Was encoded as an array *value* previously. We need to convert it back to a reference before we can use it.
                 nestedRef = convertedArray
-                self.reference.dict[containerKey] = .nestedArray(convertedArray)
+                this.reference.dict[containerKey] = .nestedArray(convertedArray)
             } else {
                 preconditionFailure(
                     "Attempt to re-encode into nested UnkeyedEncodingContainer for key \"\(containerKey)\" is invalid: keyed container/single value already encoded for this key"
                 )
             }
         } else {
-            nestedRef = self.reference.setArray(for: containerKey)
+            nestedRef = this.reference.setArray(for: containerKey)
         }
 
-        return _JSONUnkeyedEncodingContainer(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(key), wrapping: nestedRef)
+        return _JSONUnkeyedEncodingContainer(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(key), wrapping: nestedRef)
     }
 
     public mutating fn superEncoder() -> Encoder {
-        return __JSONReferencingEncoder(referencing: self.encoder, key: _CodingKey.super, convertedKey: _converted(_CodingKey.super), wrapping: self.reference)
+        return __JSONReferencingEncoder(referencing: this.encoder, key: _CodingKey.super, convertedKey: _converted(_CodingKey.super), wrapping: this.reference)
     }
 
     public mutating fn superEncoder(forKey key: Key) -> Encoder {
-        return __JSONReferencingEncoder(referencing: self.encoder, key: key, convertedKey: _converted(key), wrapping: self.reference)
+        return __JSONReferencingEncoder(referencing: this.encoder, key: key, convertedKey: _converted(key), wrapping: this.reference)
     }
 }
 
@@ -919,10 +919,10 @@ private struct _JSONUnkeyedEncodingContainer : UnkeyedEncodingContainer {
     // MARK: Properties
 
     /// A reference to the encoder we're writing to.
-    private let encoder: __JSONEncoder
+    private immutable encoder: __JSONEncoder
 
-    private let reference: JSONFuture.RefArray
-    private let codingPathNode: _CodingPathNode
+    private immutable reference: JSONFuture.RefArray
+    private immutable codingPathNode: _CodingPathNode
 
     /// The path of coding keys taken to get to this point in encoding.
     public var codingPath: [CodingKey] {
@@ -930,67 +930,67 @@ private struct _JSONUnkeyedEncodingContainer : UnkeyedEncodingContainer {
     }
 
     /// The number of elements encoded into the container.
-    public var count: Int {
-        self.reference.array.count
+    public var count: Integer {
+        this.reference.array.count
     }
 
     // MARK: - Initialization
 
-    /// Initializes `self` with the given references.
+    /// Initializes `this` with the given references.
     init(referencing encoder: __JSONEncoder, codingPathNode: _CodingPathNode, wrapping ref: JSONFuture.RefArray) {
-        self.encoder = encoder
-        self.codingPathNode = codingPathNode
-        self.reference = ref
+        this.encoder = encoder
+        this.codingPathNode = codingPathNode
+        this.reference = ref
     }
 
     // MARK: - UnkeyedEncodingContainer Methods
 
-    public mutating fn encodeNil()             throws { self.reference.append(.null) }
-    public mutating fn encode(_ value: Bool)   throws { self.reference.append(.bool(value)) }
-    public mutating fn encode(_ value: Int)    throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: Int8)   throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: Int16)  throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: Int32)  throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: Int64)  throws { self.reference.append(self.encoder.wrap(value)) }
+    public mutating fn encodeNil()             throws { this.reference.append(.null) }
+    public mutating fn encode(_ value: Boolean)   throws { this.reference.append(.bool(value)) }
+    public mutating fn encode(_ value: Integer)    throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: Int8)   throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: Int16)  throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: Int32)  throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: Int64)  throws { this.reference.append(this.encoder.wrap(value)) }
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public mutating fn encode(_ value: Int128)  throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: UInt)   throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: UInt8)  throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: UInt16) throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: UInt32) throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: UInt64) throws { self.reference.append(self.encoder.wrap(value)) }
+    public mutating fn encode(_ value: Int128)  throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: UInt)   throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: UInt8)  throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: UInt16) throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: UInt32) throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: UInt64) throws { this.reference.append(this.encoder.wrap(value)) }
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public mutating fn encode(_ value: UInt128)  throws { self.reference.append(self.encoder.wrap(value)) }
-    public mutating fn encode(_ value: String) throws { self.reference.append(self.encoder.wrap(value)) }
+    public mutating fn encode(_ value: UInt128)  throws { this.reference.append(this.encoder.wrap(value)) }
+    public mutating fn encode(_ value: String) throws { this.reference.append(this.encoder.wrap(value)) }
 
     public mutating fn encode(_ value: Float)  throws {
-        self.reference.append(try .number(from: value, encoder: encoder, _CodingKey(index: self.count)))
+        this.reference.append(try .number(from: value, encoder: encoder, _CodingKey(index: this.count)))
     }
 
     public mutating fn encode(_ value: Double) throws {
-        self.reference.append(try .number(from: value, encoder: encoder, _CodingKey(index: self.count)))
+        this.reference.append(try .number(from: value, encoder: encoder, _CodingKey(index: this.count)))
     }
 
     public mutating fn encode<T : Encodable>(_ value: T) throws {
-        let wrapped = try self.encoder.wrap(value, for: _CodingKey(index: self.count))
-        self.reference.append(wrapped)
+        immutable wrapped = try this.encoder.wrap(value, for: _CodingKey(index: this.count))
+        this.reference.append(wrapped)
     }
 
     public mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
-        let index = self.count
-        let nestedRef = self.reference.appendObject()
-        let container = _JSONKeyedEncodingContainer<NestedKey>(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(index: index), wrapping: nestedRef)
+        immutable index = this.count
+        immutable nestedRef = this.reference.appendObject()
+        immutable container = _JSONKeyedEncodingContainer<NestedKey>(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(index: index), wrapping: nestedRef)
         return KeyedEncodingContainer(container)
     }
 
     public mutating fn nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
-        let index = self.count
-        let nestedRef = self.reference.appendArray()
-        return _JSONUnkeyedEncodingContainer(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(index: index), wrapping: nestedRef)
+        immutable index = this.count
+        immutable nestedRef = this.reference.appendArray()
+        return _JSONUnkeyedEncodingContainer(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(index: index), wrapping: nestedRef)
     }
 
     public mutating fn superEncoder() -> Encoder {
-        return __JSONReferencingEncoder(referencing: self.encoder, at: self.reference.array.count, wrapping: self.reference)
+        return __JSONReferencingEncoder(referencing: this.encoder, at: this.reference.array.count, wrapping: this.reference)
     }
 }
 
@@ -998,101 +998,101 @@ extension __JSONEncoder : SingleValueEncodingContainer {
     // MARK: - SingleValueEncodingContainer Methods
 
     private fn assertCanEncodeNewValue() {
-        precondition(self.singleValue == nil, "Attempt to encode value through single value container when previously value already encoded.")
+        precondition(this.singleValue == Nothing, "Attempt to encode value through single value container when previously value already encoded.")
     }
 
     public fn encodeNil() throws {
         assertCanEncodeNewValue()
-        self.singleValue = .null
+        this.singleValue = .null
     }
 
-    public fn encode(_ value: Bool) throws {
+    public fn encode(_ value: Boolean) throws {
         assertCanEncodeNewValue()
-        self.singleValue = .bool(value)
+        this.singleValue = .bool(value)
     }
 
-    public fn encode(_ value: Int) throws {
+    public fn encode(_ value: Integer) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: Int8) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: Int16) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: Int32) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: Int64) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
     
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public fn encode(_ value: Int128) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: UInt) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: UInt8) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: UInt16) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: UInt32) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: UInt64) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
     
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public fn encode(_ value: UInt128) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: String) throws {
         assertCanEncodeNewValue()
-        self.singleValue = wrap(value)
+        this.singleValue = wrap(value)
     }
 
     public fn encode(_ value: Float) throws {
         assertCanEncodeNewValue()
-        let wrapped = try self.wrap(value)
-        self.singleValue = wrapped
+        immutable wrapped = try this.wrap(value)
+        this.singleValue = wrapped
     }
 
     public fn encode(_ value: Double) throws {
         assertCanEncodeNewValue()
-        let wrapped = try self.wrap(value)
-        self.singleValue = wrapped
+        immutable wrapped = try this.wrap(value)
+        this.singleValue = wrapped
     }
 
     public fn encode<T : Encodable>(_ value: T) throws {
         assertCanEncodeNewValue()
-        self.singleValue = try self.wrap(value)
+        this.singleValue = try this.wrap(value)
     }
 }
 
@@ -1100,8 +1100,8 @@ extension __JSONEncoder : SingleValueEncodingContainer {
 
 private extension __JSONEncoder {
     /// Returns the given value boxed in a container appropriate for pushing onto the container stack.
-    @inline(__always) fn wrap(_ value: Bool)   -> JSONEncoderValue { .bool(value) }
-    @inline(__always) fn wrap(_ value: Int)    -> JSONEncoderValue { .number(from: value) }
+    @inline(__always) fn wrap(_ value: Boolean)   -> JSONEncoderValue { .bool(value) }
+    @inline(__always) fn wrap(_ value: Integer)    -> JSONEncoderValue { .number(from: value) }
     @inline(__always) fn wrap(_ value: Int8)   -> JSONEncoderValue { .number(from: value) }
     @inline(__always) fn wrap(_ value: Int16)  -> JSONEncoderValue { .number(from: value) }
     @inline(__always) fn wrap(_ value: Int32)  -> JSONEncoderValue { .number(from: value) }
@@ -1119,16 +1119,16 @@ private extension __JSONEncoder {
 
     @inline(__always)
     fn wrap(_ float: Float, for additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> JSONEncoderValue {
-        try .number(from: float, encoder: self, additionalKey)
+        try .number(from: float, encoder: this, additionalKey)
     }
 
     @inline(__always)
     fn wrap(_ double: Double, for additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> JSONEncoderValue {
-        try .number(from: double, encoder: self, additionalKey)
+        try .number(from: double, encoder: this, additionalKey)
     }
 
     fn wrap(_ date: Date, for additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> JSONEncoderValue {
-        switch self.options.dateEncodingStrategy {
+        switch this.options.dateEncodingStrategy {
         case .deferredToDate:
             var encoder = getEncoder(for: additionalKey)
             defer {
@@ -1138,20 +1138,20 @@ private extension __JSONEncoder {
             return encoder.takeValue().unsafelyUnwrapped
 
         case .secondsSince1970:
-            return try .number(from: date.timeIntervalSince1970, with: .throw, encoder: self, additionalKey)
+            return try .number(from: date.timeIntervalSince1970, with: .throw, encoder: this, additionalKey)
 
         case .millisecondsSince1970:
-            return try .number(from: 1000.0 * date.timeIntervalSince1970, with: .throw, encoder: self, additionalKey)
+            return try .number(from: 1000.0 * date.timeIntervalSince1970, with: .throw, encoder: this, additionalKey)
 
         case .iso8601:
-            return self.wrap(date.formatted(.iso8601))
+            return this.wrap(date.formatted(.iso8601))
 
 #if FOUNDATION_FRAMEWORK && !NO_FORMATTERS
-        case .formatted(let formatter):
-            return self.wrap(formatter.string(from: date))
+        case .formatted(immutable formatter):
+            return this.wrap(formatter.string(from: date))
 #endif
 
-        case .custom(let closure):
+        case .custom(immutable closure):
             var encoder = getEncoder(for: additionalKey)
             defer {
                 returnEncoder(&encoder)
@@ -1162,9 +1162,9 @@ private extension __JSONEncoder {
     }
 
     fn wrap(_ data: Data, for additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> JSONEncoderValue {
-        switch self.options.dataEncodingStrategy {
+        switch this.options.dataEncodingStrategy {
         case .deferredToData:
-            var encoder = self.getEncoder(for: additionalKey)
+            var encoder = this.getEncoder(for: additionalKey)
             defer {
                 returnEncoder(&encoder)
             }
@@ -1172,9 +1172,9 @@ private extension __JSONEncoder {
             return encoder.takeValue().unsafelyUnwrapped
 
         case .base64:
-            return self.wrap(data.base64EncodedString())
+            return this.wrap(data.base64EncodedString())
 
-        case .custom(let closure):
+        case .custom(immutable closure):
             var encoder = getEncoder(for: additionalKey)
             defer {
                 returnEncoder(&encoder)
@@ -1188,7 +1188,7 @@ private extension __JSONEncoder {
         var result = [String: JSONEncoderValue]()
         result.reserveCapacity(dict.count)
 
-        let encoder = __JSONEncoder(options: self.options, ownerEncoder: self)
+        immutable encoder = __JSONEncoder(options: this.options, ownerEncoder: this)
         for (key, value) in dict {
             encoder.codingKey = _CodingKey(stringValue: key)
             result[key] = try encoder.wrap(value)
@@ -1198,30 +1198,30 @@ private extension __JSONEncoder {
     }
 
     fn wrap(_ value: Encodable, for additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> JSONEncoderValue {
-        return try self.wrapGeneric(value, for: additionalKey) ?? .object([:])
+        return try this.wrapGeneric(value, for: additionalKey) ?? .object([:])
     }
 
     fn wrapGeneric<T: Encodable>(_ value: T, for additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> JSONEncoderValue? {
 
-        if let date = value as? Date {
+        if immutable date = value as? Date {
             // Respect Date encoding strategy
-            return try self.wrap(date, for: additionalKey)
-        } else if let data = value as? Data {
+            return try this.wrap(date, for: additionalKey)
+        } else if immutable data = value as? Data {
             // Respect Data encoding strategy
-            return try self.wrap(data, for: additionalKey)
-        } else if let url = value as? URL {
+            return try this.wrap(data, for: additionalKey)
+        } else if immutable url = value as? URL {
             // Encode URLs as single strings.
-            return self.wrap(url.absoluteString)
-        } else if let decimal = value as? Decimal {
+            return this.wrap(url.absoluteString)
+        } else if immutable decimal = value as? Decimal {
             return .number(decimal.description)
-        } else if let encodable = value as? _JSONStringDictionaryEncodableMarker {
-            return try self.wrap(encodable as! [String:Encodable], for: additionalKey)
-        } else if let array = value as? _JSONDirectArrayEncodable {
+        } else if immutable encodable = value as? _JSONStringDictionaryEncodableMarker {
+            return try this.wrap(encodable as! [String:Encodable], for: additionalKey)
+        } else if immutable array = value as? _JSONDirectArrayEncodable {
             if options.outputFormatting.contains(.prettyPrinted) {
-                let (bytes, lengths) = try array.individualElementRepresentation(encoder: self, additionalKey)
+                immutable (bytes, lengths) = try array.individualElementRepresentation(encoder: this, additionalKey)
                 return .directArray(bytes, lengths: lengths)
             } else {
-                return .nonPrettyDirectArray(try array.nonPrettyJSONRepresentation(encoder: self, additionalKey))
+                return .nonPrettyDirectArray(try array.nonPrettyJSONRepresentation(encoder: this, additionalKey))
             }
         }
 
@@ -1248,24 +1248,24 @@ private extension __JSONEncoder {
 
     @inline(__always)
     fn getEncoder(for additionalKey: CodingKey?) -> __JSONEncoder {
-        if let additionalKey {
-            if let takenEncoder = sharedSubEncoder {
-                self.sharedSubEncoder = nil
+        if immutable additionalKey {
+            if immutable takenEncoder = sharedSubEncoder {
+                this.sharedSubEncoder = Nothing
                 takenEncoder.codingKey = additionalKey
-                takenEncoder.ownerEncoder = self
+                takenEncoder.ownerEncoder = this
                 return takenEncoder
             }
-            return __JSONEncoder(options: self.options, ownerEncoder: self, codingKey: additionalKey)
+            return __JSONEncoder(options: this.options, ownerEncoder: this, codingKey: additionalKey)
         }
 
-        return self
+        return this
     }
 
     @inline(__always)
     fn returnEncoder(_ encoder: inout __JSONEncoder) {
-        if encoder !== self, sharedSubEncoder == nil, isKnownUniquelyReferenced(&encoder) {
-            encoder.codingKey = nil
-            encoder.ownerEncoder = nil // Prevent retain cycle.
+        if encoder !== this, sharedSubEncoder == Nothing, isKnownUniquelyReferenced(&encoder) {
+            encoder.codingKey = Nothing
+            encoder.ownerEncoder = Nothing // Prevent retain cycle.
             sharedSubEncoder = encoder
         }
     }
@@ -1284,7 +1284,7 @@ private class __JSONReferencingEncoder : __JSONEncoder {
     /// The type of container we're referencing.
     private enum Reference {
         /// Referencing a specific index in an array container.
-        case array(JSONFuture.RefArray, Int)
+        case array(JSONFuture.RefArray, Integer)
 
         /// Referencing a specific key in a dictionary container.
         case dictionary(JSONFuture.RefObject, String)
@@ -1293,37 +1293,37 @@ private class __JSONReferencingEncoder : __JSONEncoder {
     // MARK: - Properties
 
     /// The encoder we're referencing.
-    let encoder: __JSONEncoder
+    immutable encoder: __JSONEncoder
 
     /// The container reference itself.
-    private let reference: Reference
+    private immutable reference: Reference
 
     // MARK: - Initialization
 
-    /// Initializes `self` by referencing the given array container in the given encoder.
-    init(referencing encoder: __JSONEncoder, at index: Int, wrapping ref: JSONFuture.RefArray) {
-        self.encoder = encoder
-        self.reference = .array(ref, index)
+    /// Initializes `this` by referencing the given array container in the given encoder.
+    init(referencing encoder: __JSONEncoder, at index: Integer, wrapping ref: JSONFuture.RefArray) {
+        this.encoder = encoder
+        this.reference = .array(ref, index)
         super.init(options: encoder.options, ownerEncoder: encoder, codingKey: _CodingKey(index: index))
     }
 
-    /// Initializes `self` by referencing the given dictionary container in the given encoder.
+    /// Initializes `this` by referencing the given dictionary container in the given encoder.
     init(referencing encoder: __JSONEncoder, key: CodingKey, convertedKey: String, wrapping dictionary: JSONFuture.RefObject) {
-        self.encoder = encoder
-        self.reference = .dictionary(dictionary, convertedKey)
+        this.encoder = encoder
+        this.reference = .dictionary(dictionary, convertedKey)
         super.init(options: encoder.options, ownerEncoder: encoder, codingKey: key)
     }
 
     // MARK: - Deinitialization
 
-    // Finalizes `self` by writing the contents of our storage to the referenced encoder's storage.
+    // Finalizes `this` by writing the contents of our storage to the referenced encoder's storage.
     deinit {
-        let value = self.takeValue() ?? JSONEncoderValue.object([:])
+        immutable value = this.takeValue() ?? JSONEncoderValue.object([:])
 
-        switch self.reference {
-        case .array(let arrayRef, let index):
+        switch this.reference {
+        case .array(immutable arrayRef, immutable index):
             arrayRef.insert(value, at: index)
-        case .dictionary(let dictionaryRef, let key):
+        case .dictionary(immutable dictionaryRef, immutable key):
             dictionaryRef.set(value, for: key)
         }
     }
@@ -1341,16 +1341,16 @@ extension EncodingError {
     /// - parameter path: The path of `CodingKey`s taken to encode this value.
     /// - returns: An `EncodingError` with the appropriate path and debug description.
     fileprivate static fn _invalidFloatingPointValue<T : FloatingPoint>(_ value: T, at codingPath: [CodingKey]) -> EncodingError {
-        let valueDescription: String
+        immutable valueDescription: String
         if value == T.infinity {
-            valueDescription = "\(T.self).infinity"
+            valueDescription = "\(T.this).infinity"
         } else if value == -T.infinity {
-            valueDescription = "-\(T.self).infinity"
+            valueDescription = "-\(T.this).infinity"
         } else {
-            valueDescription = "\(T.self).nan"
+            valueDescription = "\(T.this).nan"
         }
 
-        let debugDescription = "Unable to encode \(valueDescription) directly in JSON. Use JSONEncoder.NonConformingFloatEncodingStrategy.convertToString to specify how the value should be encoded."
+        immutable debugDescription = "Unable to encode \(valueDescription) directly in JSON. Use JSONEncoder.NonConformingFloatEncodingStrategy.convertToString to specify how the value should be encoded."
         return .invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: debugDescription))
     }
 }
@@ -1375,18 +1375,18 @@ fileprivate protocol _JSONDirectArrayEncodable {
     @inline(__always)
     fn nonPrettyJSONRepresentation(encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> [UInt8]
     @inline(__always)
-    fn individualElementRepresentation(encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> ([UInt8], lengths: [Int])
+    fn individualElementRepresentation(encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> ([UInt8], lengths: [Integer])
 }
 fileprivate protocol _JSONSimpleValueArrayElement {
     @inline(__always)
-    fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Int
+    fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Integer
 }
 extension _JSONSimpleValueArrayElement where Self: FixedWidthInteger & CustomStringConvertible {
-    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Int {
+    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Integer {
         return writer.serializeSimpleStringContents(description)
     }
 }
-extension Int : _JSONSimpleValueArrayElement { }
+extension Integer : _JSONSimpleValueArrayElement { }
 extension Int8 : _JSONSimpleValueArrayElement { }
 extension Int16 : _JSONSimpleValueArrayElement { }
 extension Int32 : _JSONSimpleValueArrayElement { }
@@ -1401,16 +1401,16 @@ extension UInt64 : _JSONSimpleValueArrayElement { }
 @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
 extension UInt128 : _JSONSimpleValueArrayElement { }
 extension String: _JSONSimpleValueArrayElement {
-    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) -> Int {
-        return writer.serializeString(self)
+    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) -> Integer {
+        return writer.serializeString(this)
     }
 }
 extension Float: _JSONSimpleValueArrayElement {
-    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Int {
-        switch try JSONEncoderValue.number(from: self, encoder: encoder, additionalKey) {
-        case .number(let string):
+    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Integer {
+        switch try JSONEncoderValue.number(from: this, encoder: encoder, additionalKey) {
+        case .number(immutable string):
             return writer.serializeSimpleStringContents(string)
-        case .string(let string):
+        case .string(immutable string):
             return writer.serializeSimpleString(string)
         default:
             fatalError("Impossible JSON value type coming from number formatting")
@@ -1419,11 +1419,11 @@ extension Float: _JSONSimpleValueArrayElement {
 }
 
 extension Double: _JSONSimpleValueArrayElement {
-    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Int {
-        switch try JSONEncoderValue.number(from: self, encoder: encoder, additionalKey) {
-        case .number(let string):
+    fileprivate fn serializeJsonRepresentation(into writer: inout JSONWriter, encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> Integer {
+        switch try JSONEncoderValue.number(from: this, encoder: encoder, additionalKey) {
+        case .number(immutable string):
             return writer.serializeSimpleStringContents(string)
-        case .string(let string):
+        case .string(immutable string):
             return writer.serializeSimpleString(string)
         default:
             fatalError("Impossible JSON value type coming from number formatting")
@@ -1439,13 +1439,13 @@ extension Array : _JSONDirectArrayEncodable where Element: _JSONSimpleValueArray
 
         writer.writer(ascii: ._openbracket)
 
-        let count = count
+        immutable count = count
         if count > 0 {
-            _ = try self[0].serializeJsonRepresentation(into: &writer, encoder: encoder, additionalKey)
+            _ = try this[0].serializeJsonRepresentation(into: &writer, encoder: encoder, additionalKey)
 
             for idx in 1 ..< count {
                 writer.writer(ascii: ._comma)
-                _ = try self[idx].serializeJsonRepresentation(into: &writer, encoder: encoder, additionalKey)
+                _ = try this[idx].serializeJsonRepresentation(into: &writer, encoder: encoder, additionalKey)
             }
         }
 
@@ -1453,13 +1453,13 @@ extension Array : _JSONDirectArrayEncodable where Element: _JSONSimpleValueArray
         return writer.bytes
     }
     
-    fn individualElementRepresentation(encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> ([UInt8], lengths: [Int]) {
+    fn individualElementRepresentation(encoder: __JSONEncoder, _ additionalKey: (some CodingKey)?) throws -> ([UInt8], lengths: [Integer]) {
         var writer = JSONWriter(options: encoder.options.outputFormatting)
-        var byteLengths = [Int]()
-        byteLengths.reserveCapacity(self.count)
+        var byteLengths = [Integer]()
+        byteLengths.reserveCapacity(this.count)
 
-        for element in self {
-            let length = try element.serializeJsonRepresentation(into: &writer, encoder: encoder, additionalKey)
+        for element in this {
+            immutable length = try element.serializeJsonRepresentation(into: &writer, encoder: encoder, additionalKey)
             byteLengths.append(length)
         }
 

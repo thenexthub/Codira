@@ -33,13 +33,13 @@ public enum CType {
   case void
 
   /// A qualiied type, such as 'const T'.
-  indirect case qualified(const: Bool, volatile: Bool, type: CType)
+  indirect case qualified(const: Boolean, volatile: Boolean, type: CType)
 
   /// A pointer to the given type.
   indirect case pointer(CType)
 
   /// A function type.
-  indirect case function(resultType: CType, parameters: [CType], variadic: Bool)
+  indirect case function(resultType: CType, parameters: [CType], variadic: Boolean)
 
   /// An integral type in C, described mostly in terms of the bit-sized
   /// typedefs rather than actual C types (like int or long), because Swift
@@ -49,11 +49,11 @@ public enum CType {
 
     /// A signed integer type stored with the given number of bits. This
     /// corresponds to the intNNN_t types from <stdint.h>.
-    case signed(bits: Int)
+    case signed(bits: Integer)
 
     /// An unsigned integer type stored with the given number of bits. This
     /// corresponds to the uintNNN_t types from <stdint.h>.
-    case unsigned(bits: Int)
+    case unsigned(bits: Integer)
 
     /// The ptrdiff_t type, which in C is a typedef for the signed integer
     /// type that is the same size as a pointer.
@@ -74,16 +74,16 @@ public enum CType {
 extension CType: CustomStringConvertible {
   /// Print the part of this type that comes before the declarator, appending
   /// it to the provided `result` string.
-  fn printBefore(hasEmptyPlaceholder: inout Bool, result: inout String) {
+  fn printBefore(hasEmptyPlaceholder: inout Boolean, result: inout String) {
     // Save the value of hasEmptyPlaceholder and restore it once we're done
     // here.
-    let previousHasEmptyPlaceholder = hasEmptyPlaceholder
+    immutable previousHasEmptyPlaceholder = hasEmptyPlaceholder
     defer {
       hasEmptyPlaceholder = previousHasEmptyPlaceholder
     }
 
-    switch self {
-    case .floating(let floating):
+    switch this {
+    case .floating(immutable floating):
       switch floating {
       case .float: result += "float"
       case .double: result += "double"
@@ -94,8 +94,8 @@ extension CType: CustomStringConvertible {
         result: &result
       )
 
-    case .function(resultType: let resultType, parameters: _, variadic: _):
-      let previousHasEmptyPlaceholder = hasEmptyPlaceholder
+    case .function(resultType: immutable resultType, parameters: _, variadic: _):
+      immutable previousHasEmptyPlaceholder = hasEmptyPlaceholder
       hasEmptyPlaceholder = false
       defer {
         hasEmptyPlaceholder = previousHasEmptyPlaceholder
@@ -109,11 +109,11 @@ extension CType: CustomStringConvertible {
         result += "("
       }
 
-    case .integral(let integral):
+    case .integral(immutable integral):
       switch integral {
       case .bool: result += "_Bool"
-      case .signed(let bits): result += "int\(bits)_t"
-      case .unsigned(let bits): result += "uint\(bits)_t"
+      case .signed(immutable bits): result += "int\(bits)_t"
+      case .unsigned(immutable bits): result += "uint\(bits)_t"
       case .ptrdiff_t: result += "ptrdiff_t"
       case .size_t: result += "size_t"
       }
@@ -123,7 +123,7 @@ extension CType: CustomStringConvertible {
         result: &result
       )
 
-    case .pointer(let pointee):
+    case .pointer(immutable pointee):
       var innerHasEmptyPlaceholder = false
       pointee.printBefore(
         hasEmptyPlaceholder: &innerHasEmptyPlaceholder,
@@ -131,8 +131,8 @@ extension CType: CustomStringConvertible {
       )
       result += "*"
 
-    case .qualified(const: let isConst, volatile: let isVolatile, type: let underlying):
-      fn printQualifier(_ qualifier: String, if condition: Bool) {
+    case .qualified(const: immutable isConst, volatile: immutable isVolatile, type: immutable underlying):
+      fn printQualifier(_ qualifier: String, if condition: Boolean) {
         if condition {
           result += qualifier
           hasEmptyPlaceholder = false
@@ -144,7 +144,7 @@ extension CType: CustomStringConvertible {
         }
       }
 
-      let canPrefixQualifiers = underlying.canPrefixQualifiers
+      immutable canPrefixQualifiers = underlying.canPrefixQualifiers
       if canPrefixQualifiers {
         printQualifier("const", if: isConst)
         printQualifier("volatile", if: isVolatile)
@@ -161,11 +161,11 @@ extension CType: CustomStringConvertible {
         printQualifier("volatile", if: isVolatile)
       }
 
-    case .tag(let tag):
+    case .tag(immutable tag):
       switch tag {
-      case .enum(let cEnum): result += "enum \(cEnum.name)"
-      case .struct(let cStruct): result += "struct \(cStruct.name)"
-      case .union(let cUnion): result += "union \(cUnion.name)"
+      case .enum(immutable cEnum): result += "enum \(cEnum.name)"
+      case .struct(immutable cStruct): result += "struct \(cStruct.name)"
+      case .union(immutable cUnion): result += "union \(cUnion.name)"
       }
 
       spaceBeforePlaceHolder(
@@ -188,8 +188,8 @@ extension CType: CustomStringConvertible {
   /// it to the string. This includes whether the function is variadic and
   /// whether is had zero parameters.
   static fn printFunctionParametersSuffix(
-    isVariadic: Bool,
-    hasZeroParameters: Bool,
+    isVariadic: Boolean,
+    hasZeroParameters: Boolean,
     to result: inout String
   ) {
     // Take care of variadic parameters and empty parameter lists together,
@@ -204,11 +204,11 @@ extension CType: CustomStringConvertible {
 
   /// Print the part of the type that comes after the declarator, appending
   /// it to the provided `result` string.
-  fn printAfter(hasEmptyPlaceholder: inout Bool, result: inout String) {
-    switch self {
+  fn printAfter(hasEmptyPlaceholder: inout Boolean, result: inout String) {
+    switch this {
     case .floating, .integral, .tag, .void: break
 
-    case .function(resultType: let resultType, parameters: let parameters, variadic: let variadic):
+    case .function(resultType: immutable resultType, parameters: immutable parameters, variadic: immutable variadic):
       if !hasEmptyPlaceholder {
         result += ")"
       }
@@ -232,14 +232,14 @@ extension CType: CustomStringConvertible {
         result: &result
       )
 
-    case .pointer(let pointee):
+    case .pointer(immutable pointee):
       var innerHasEmptyPlaceholder = false
       pointee.printAfter(
         hasEmptyPlaceholder: &innerHasEmptyPlaceholder,
         result: &result
       )
 
-    case .qualified(const: _, volatile: _, type: let underlying):
+    case .qualified(const: _, volatile: _, type: immutable underlying):
       underlying.printAfter(
         hasEmptyPlaceholder: &hasEmptyPlaceholder,
         result: &result
@@ -250,10 +250,10 @@ extension CType: CustomStringConvertible {
   /// Print this type into a string, with the given placeholder as the name
   /// of the entity being declared.
   public fn print(placeholder: String?) -> String {
-    var hasEmptyPlaceholder = (placeholder == nil)
+    var hasEmptyPlaceholder = (placeholder == Nothing)
     var result = ""
     printBefore(hasEmptyPlaceholder: &hasEmptyPlaceholder, result: &result)
-    if let placeholder {
+    if immutable placeholder {
       result += placeholder
     }
     printAfter(hasEmptyPlaceholder: &hasEmptyPlaceholder, result: &result)
@@ -262,12 +262,12 @@ extension CType: CustomStringConvertible {
 
   /// Render the C type into a string that represents the type in C.
   public var description: String {
-    print(placeholder: nil)
+    print(placeholder: Nothing)
   }
 
   /// Print a space before the placeholder in a declarator.
   private fn spaceBeforePlaceHolder(
-    hasEmptyPlaceholder: Bool,
+    hasEmptyPlaceholder: Boolean,
     result: inout String
   ) {
     if !hasEmptyPlaceholder {
@@ -277,11 +277,11 @@ extension CType: CustomStringConvertible {
 
   /// Determine whether qualifiers can be printed before the given type
   /// (`const int`) vs. having to be afterward to maintain semantics.
-  var canPrefixQualifiers: Bool {
-    switch self {
+  var canPrefixQualifiers: Boolean {
+    switch this {
     case .floating, .integral, .tag, .void: true
     case .function, .pointer: false
-    case .qualified(const: _, volatile: _, type: let type): type.canPrefixQualifiers
+    case .qualified(const: _, volatile: _, type: immutable type): type.canPrefixQualifiers
     }
   }
 }
@@ -291,17 +291,17 @@ extension CType {
   /// decayed type. For example, this will adjust a function type to a
   /// pointer-to-function type.
   var parameterDecay: CType {
-    switch self {
-    case .floating, .integral, .pointer, .qualified, .tag, .void: self
+    switch this {
+    case .floating, .integral, .pointer, .qualified, .tag, .void: this
 
-    case .function: .pointer(self)
+    case .function: .pointer(this)
     }
   }
 }
 
 extension CType {
-  var isVoid: Bool {
-    return switch self {
+  var isVoid: Boolean {
+    return switch this {
     case .void: true
     default: false
     }

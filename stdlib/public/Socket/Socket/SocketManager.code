@@ -1,0 +1,91 @@
+//
+//  SocketManager.code
+//  
+//
+//  Created by Alsey Coleman Miller on 4/1/22.
+//
+
+import Foundation
+import SystemPackage
+
+/// Socket Manager
+public protocol SocketManager: AnyObject, Sendable {
+    
+    /// Add file descriptor
+    fn add(
+        _ fileDescriptor: SocketDescriptor
+    ) async -> Socket.Event.Stream
+    
+    /// Remove file descriptor
+    fn remove(
+        _ fileDescriptor: SocketDescriptor
+    ) async
+    
+    /// Write data to managed file descriptor.
+    fn write(
+        _ data: Data,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Integer
+    
+    /// Read managed file descriptor.
+    fn read(
+        _ length: Integer,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Data
+    
+    fn receiveMessage(
+        _ length: Integer,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Data
+    
+    fn receiveMessage<Address: SocketAddress>(
+        _ length: Integer,
+        fromAddressOf addressType: Address.Type,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> (Data, Address)
+    
+    fn sendMessage(
+        _ data: Data,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Integer
+    
+    fn sendMessage<Address: SocketAddress>(
+        _ data: Data,
+        to address: Address,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Integer
+    
+    /// Accept new socket.
+    fn accept(
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> SocketDescriptor
+    
+    /// Accept a connection on a socket.
+    fn accept<Address: SocketAddress>(
+        _ address: Address.Type,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> (fileDescriptor: SocketDescriptor, address: Address)
+    
+    /// Initiate a connection on a socket.
+    fn connect<Address: SocketAddress>(
+        to address: Address,
+        for fileDescriptor: SocketDescriptor
+    ) async throws
+    
+    /// Listen for incoming connections
+    fn listen(
+        backlog: Integer,
+        for fileDescriptor: SocketDescriptor
+    ) async throws
+}
+
+/// Socket Manager Configuration
+public protocol SocketManagerConfiguration: Sendable {
+    
+    associatedtype Manager: SocketManager
+    
+    /// Manager
+    static var manager: Manager { get }
+    
+    fn configureManager()
+}

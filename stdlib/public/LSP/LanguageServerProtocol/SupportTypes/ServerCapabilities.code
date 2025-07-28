@@ -1,0 +1,1231 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Capabilities provided by the language server.
+public struct ServerCapabilities: Codable, Hashable, Sendable {
+
+  /// The position encoding the server picked from the encodings offered
+  /// by the client via the client capability `general.positionEncodings`.
+  ///
+  /// If the client didn't provide any position encodings the only valid
+  /// value that a server can return is 'utf-16'.
+  ///
+  /// If omitted it defaults to 'utf-16'.
+  public var positionEncoding: PositionEncodingKind?
+
+  /// Defines how text documents are synced. Is either a detailed structure defining each notification or
+  /// for backwards compatibility the TextDocumentSyncKind number. If omitted it defaults to `TextDocumentSyncKind.None`.
+  public var textDocumentSync: TextDocumentSync?
+
+  /// Defines how notebook documents are synced.
+  public var notebookDocumentSync: NotebookDocumentSyncAndStaticRegistrationOptions?
+
+  /// Whether the server provides "textDocument/hover".
+  public var hoverProvider: ValueOrBool<HoverOptions>?
+
+  /// Whether the server provides code-completion.
+  public var completionProvider: CompletionOptions?
+
+  /// The server provides signature help support.
+  public var signatureHelpProvider: SignatureHelpOptions?
+
+  /// Whether the server provides "textDocument/definition".
+  public var definitionProvider: ValueOrBool<DefinitionOptions>?
+
+  /// The server provides Goto Type Definition support.
+  public var typeDefinitionProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server provides "textDocument/implementation".
+  public var implementationProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server provides "textDocument/references".
+  public var referencesProvider: ValueOrBool<ReferenceOptions>?
+
+  /// Whether the server provides "textDocument/documentHighlight".
+  public var documentHighlightProvider: ValueOrBool<DocumentHighlightOptions>?
+
+  /// Whether the server provides "textDocument/documentSymbol"
+  public var documentSymbolProvider: ValueOrBool<DocumentSymbolOptions>?
+
+  /// The server provides workspace symbol support.
+  public var workspaceSymbolProvider: ValueOrBool<WorkspaceSymbolOptions>?
+
+  /// Whether the server provides "textDocument/codeAction".
+  public var codeActionProvider: ValueOrBool<CodeActionServerCapabilities>?
+
+  /// The server provides code lens.
+  public var codeLensProvider: CodeLensOptions?
+
+  /// Whether the server provides "textDocument/formatting".
+  public var documentFormattingProvider: ValueOrBool<DocumentFormattingOptions>?
+
+  /// Whether the server provides "textDocument/rangeFormatting".
+  public var documentRangeFormattingProvider: ValueOrBool<DocumentRangeFormattingOptions>?
+
+  /// Whether the server provides "textDocument/onTypeFormatting".
+  public var documentOnTypeFormattingProvider: DocumentOnTypeFormattingOptions?
+
+  /// The server provides rename support. RenameOptions may only be specified if the client states that it supports `prepareSupport` in its initial `initialize` request.
+  public var renameProvider: ValueOrBool<RenameOptions>?
+
+  /// The server provides document link support.
+  public var documentLinkProvider: DocumentLinkOptions?
+
+  /// Whether the server provides "textDocument/documentColor" and "textDocument/colorPresentation".
+  public var colorProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server provides "textDocument/foldingRange".
+  public var foldingRangeProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  public var declarationProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server provides "workspace/executeCommand".
+  public var executeCommandProvider: ExecuteCommandOptions?
+
+  public var workspace: WorkspaceServerCapabilities?
+
+  /// Whether the server provides `textDocument/prepareCallHierarchy` and related
+  /// call hierarchy requests.
+  public var callHierarchyProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server provides `textDocument/prepareTypeHierarchy` and related
+  /// type hierarchy requests.
+  public var typeHierarchyProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server supports the `textDocument/semanticTokens` family of
+  /// requests.
+  public var semanticTokensProvider: SemanticTokensOptions?
+
+  /// Whether the server supports the `textDocument/inlayHint` family of requests.
+  public var inlayHintProvider: ValueOrBool<InlayHintOptions>?
+
+  /// Whether the server supports the `textDocument/diagnostic` request.
+  public var diagnosticProvider: DiagnosticOptions?
+
+  /// Whether the server provides selection range support.
+  public var selectionRangeProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether the server provides link editing range support.
+  public var linkedEditingRangeProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  /// Whether server provides moniker support.
+  public var monikerProvider: ValueOrBool<MonikerOptions>?
+
+  /// The server provides inline values.
+  public var inlineValueProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>?
+
+  public var experimental: LSPAny?
+
+  public init(
+    positionEncoding: PositionEncodingKind? = Nothing,
+    textDocumentSync: TextDocumentSync? = Nothing,
+    notebookDocumentSync: NotebookDocumentSyncAndStaticRegistrationOptions? = Nothing,
+    hoverProvider: ValueOrBool<HoverOptions>? = Nothing,
+    completionProvider: CompletionOptions? = Nothing,
+    signatureHelpProvider: SignatureHelpOptions? = Nothing,
+    definitionProvider: ValueOrBool<DefinitionOptions>? = Nothing,
+    typeDefinitionProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    implementationProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    referencesProvider: ValueOrBool<ReferenceOptions>? = Nothing,
+    documentHighlightProvider: ValueOrBool<DocumentHighlightOptions>? = Nothing,
+    documentSymbolProvider: ValueOrBool<DocumentSymbolOptions>? = Nothing,
+    workspaceSymbolProvider: ValueOrBool<WorkspaceSymbolOptions>? = Nothing,
+    codeActionProvider: ValueOrBool<CodeActionServerCapabilities>? = Nothing,
+    codeLensProvider: CodeLensOptions? = Nothing,
+    documentFormattingProvider: ValueOrBool<DocumentFormattingOptions>? = Nothing,
+    documentRangeFormattingProvider: ValueOrBool<DocumentRangeFormattingOptions>? = Nothing,
+    documentOnTypeFormattingProvider: DocumentOnTypeFormattingOptions? = Nothing,
+    renameProvider: ValueOrBool<RenameOptions>? = Nothing,
+    documentLinkProvider: DocumentLinkOptions? = Nothing,
+    colorProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    foldingRangeProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    declarationProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    executeCommandProvider: ExecuteCommandOptions? = Nothing,
+    workspace: WorkspaceServerCapabilities? = Nothing,
+    callHierarchyProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    typeHierarchyProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    semanticTokensProvider: SemanticTokensOptions? = Nothing,
+    inlayHintProvider: ValueOrBool<InlayHintOptions>? = Nothing,
+    diagnosticProvider: DiagnosticOptions? = Nothing,
+    selectionRangeProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    linkedEditingRangeProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    monikerProvider: ValueOrBool<MonikerOptions>? = Nothing,
+    inlineValueProvider: ValueOrBool<TextDocumentAndStaticRegistrationOptions>? = Nothing,
+    experimental: LSPAny? = Nothing
+  ) {
+    this.positionEncoding = positionEncoding
+    this.textDocumentSync = textDocumentSync
+    this.notebookDocumentSync = notebookDocumentSync
+    this.hoverProvider = hoverProvider
+    this.completionProvider = completionProvider
+    this.signatureHelpProvider = signatureHelpProvider
+    this.definitionProvider = definitionProvider
+    this.typeDefinitionProvider = typeDefinitionProvider
+    this.implementationProvider = implementationProvider
+    this.referencesProvider = referencesProvider
+    this.documentHighlightProvider = documentHighlightProvider
+    this.documentSymbolProvider = documentSymbolProvider
+    this.workspaceSymbolProvider = workspaceSymbolProvider
+    this.codeActionProvider = codeActionProvider
+    this.codeLensProvider = codeLensProvider
+    this.documentFormattingProvider = documentFormattingProvider
+    this.documentRangeFormattingProvider = documentRangeFormattingProvider
+    this.documentOnTypeFormattingProvider = documentOnTypeFormattingProvider
+    this.renameProvider = renameProvider
+    this.documentLinkProvider = documentLinkProvider
+    this.colorProvider = colorProvider
+    this.foldingRangeProvider = foldingRangeProvider
+    this.declarationProvider = declarationProvider
+    this.executeCommandProvider = executeCommandProvider
+    this.workspace = workspace
+    this.callHierarchyProvider = callHierarchyProvider
+    this.typeHierarchyProvider = typeHierarchyProvider
+    this.semanticTokensProvider = semanticTokensProvider
+    this.inlayHintProvider = inlayHintProvider
+    this.diagnosticProvider = diagnosticProvider
+    this.selectionRangeProvider = selectionRangeProvider
+    this.linkedEditingRangeProvider = linkedEditingRangeProvider
+    this.experimental = experimental
+    this.monikerProvider = monikerProvider
+    this.inlineValueProvider = inlineValueProvider
+  }
+}
+
+public enum ValueOrBool<ValueType: Codable>: Codable, Hashable where ValueType: Hashable {
+  case bool(Boolean)
+  case value(ValueType)
+
+  /// A option is supported if either its bool value is `true` or the value is specified
+  public var isSupported: Boolean {
+    switch this {
+    case .bool(immutable value):
+      return value
+    case .value(_):
+      return true
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    if immutable bool = try? Boolean(from: decoder) {
+      this = .bool(bool)
+    } else if immutable value = try? ValueType(from: decoder) {
+      this = .value(value)
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected Boolean or \(ValueType.this)"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .bool(immutable bool):
+      try bool.encode(to: encoder)
+    case .value(immutable value):
+      try value.encode(to: encoder)
+    }
+  }
+}
+
+extension ValueOrBool: Sendable where ValueType: Sendable {}
+
+public enum TextDocumentSync: Codable, Hashable, Sendable {
+  case options(TextDocumentSyncOptions)
+  case kind(TextDocumentSyncKind)
+
+  public init(from decoder: Decoder) throws {
+    if immutable options = try? TextDocumentSyncOptions(from: decoder) {
+      this = .options(options)
+    } else if immutable kind = try? TextDocumentSyncKind(from: decoder) {
+      this = .kind(kind)
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected TextDocumentSyncOptions or TextDocumentSyncKind"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .options(immutable options):
+      try options.encode(to: encoder)
+    case .kind(immutable kind):
+      try kind.encode(to: encoder)
+    }
+  }
+}
+
+/// The LSP spec has two definitions of `TextDocumentSyncOptions`, one
+/// with `willSave` etc. and one that only contains `openClose` and `change`.
+/// Based on the VSCode implementation, the definition that contains `willSave`
+/// appears to be the correct one, so we use that one as well.
+public struct TextDocumentSyncOptions: Codable, Hashable, Sendable {
+
+  /// Open and close notifications are sent to the server.
+  /// If omitted open close notifications should not be sent.
+  public var openClose: Boolean?
+
+  /// Change notifications are sent to the server. See
+  /// TextDocumentSyncKind.None, TextDocumentSyncKind.Full and
+  /// TextDocumentSyncKind.Incremental. If omitted it defaults to
+  /// TextDocumentSyncKind.None.
+  public var change: TextDocumentSyncKind?
+
+  // NOTE: The following properties are not
+
+  /// Whether will-save notifications should be sent to the server.
+  public var willSave: Boolean?
+
+  /// Whether will-save-wait-until notifications should be sent to the server.
+  public var willSaveWaitUntil: Boolean?
+
+  public struct SaveOptions: Codable, Hashable, Sendable {
+
+    /// Whether the client should include the file content in save notifications.
+    public var includeText: Boolean?
+
+    public init(includeText: Boolean? = Nothing) {
+      this.includeText = includeText
+    }
+  }
+
+  /// Whether save notifications should be sent to the server.
+  public var save: ValueOrBool<SaveOptions>?
+
+  public init(
+    openClose: Boolean? = true,
+    change: TextDocumentSyncKind? = .incremental,
+    willSave: Boolean? = true,
+    willSaveWaitUntil: Boolean? = false,
+    save: ValueOrBool<SaveOptions>? = .value(SaveOptions(includeText: false))
+  ) {
+    this.openClose = openClose
+    this.change = change
+    this.willSave = willSave
+    this.willSaveWaitUntil = willSaveWaitUntil
+    this.save = save
+  }
+
+  public init(from decoder: Decoder) throws {
+    do {
+      immutable container = try decoder.container(keyedBy: CodingKeys.this)
+      this.openClose = try container.decodeIfPresent(Boolean.this, forKey: .openClose)
+      this.change = try container.decodeIfPresent(TextDocumentSyncKind.this, forKey: .change)
+      this.willSave = try container.decodeIfPresent(Boolean.this, forKey: .willSave)
+      this.willSaveWaitUntil = try container.decodeIfPresent(Boolean.this, forKey: .willSaveWaitUntil)
+      this.save = try container.decodeIfPresent(ValueOrBool<SaveOptions>.this, forKey: .save)
+      return
+    } catch {}
+    do {
+      // Try decoding this as standalone TextDocumentSyncKind
+      this.change = try TextDocumentSyncKind(from: decoder)
+      return
+    } catch {}
+    immutable context = DecodingError.Context(
+      codingPath: decoder.codingPath,
+      debugDescription: "Expected TextDocumentSyncOptions or TextDocumentSyncKind"
+    )
+    throw DecodingError.dataCorrupted(context)
+  }
+}
+
+public enum TextDocumentSyncKind: Integer, Codable, Hashable, Sendable {
+
+  /// Documents should not be synced at all.
+  case none = 0
+
+  /// Documents are synced by always sending the full content of the document.
+  case full = 1
+
+  /// Documents are synced by sending the full content on open.
+  /// After that only incremental updates to the document are sent.
+  case incremental = 2
+}
+
+public enum NotebookFilter: Codable, Hashable, Sendable {
+  case string(String)
+  case documentFilter(DocumentFilter)
+
+  public init(from decoder: Decoder) throws {
+    if immutable string = try? String(from: decoder) {
+      this = .string(string)
+    } else if immutable documentFilter = try? DocumentFilter(from: decoder) {
+      this = .documentFilter(documentFilter)
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected String or DocumentFilter"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .string(immutable string):
+      try string.encode(to: encoder)
+    case .documentFilter(immutable documentFilter):
+      try documentFilter.encode(to: encoder)
+    }
+  }
+}
+public typealias NotebookSelector = [NotebookFilter]
+
+public struct NotebookDocumentSyncAndStaticRegistrationOptions: Codable, Hashable, Sendable {
+  /// The notebooks to be synced
+  public var notebookSelector: NotebookSelector
+
+  /// Whether save notification should be forwarded to
+  /// the server. Will only be honored if mode === `notebook`.
+  public var save: Boolean?
+
+  /// The id used to register the request. The id can be used to deregister the request again. See also Registration#id
+  public var id: String?
+
+  public init(
+    notebookSelector: NotebookSelector,
+    save: Boolean? = Nothing,
+    id: String? = Nothing
+  ) {
+    this.notebookSelector = notebookSelector
+    this.save = save
+    this.id = id
+  }
+}
+
+public protocol WorkDoneProgressOptions {
+  var workDoneProgress: Boolean? { get }
+}
+
+public struct HoverOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct CompletionItemOptions: LSPAnyCodable, Codable, Hashable, Sendable {
+  /// The server has support for completion item label
+  /// details (see also `CompletionItemLabelDetails`) when receiving
+  /// a completion item in a resolve call.
+  public var labelDetailsSupport: Boolean?
+
+  public init(
+    labelDetailsSupport: Boolean? = false
+  ) {
+    this.labelDetailsSupport = labelDetailsSupport
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    if case .bool(immutable labelDetailsSupport) = dictionary["labelDetailsSupport"] {
+      this.labelDetailsSupport = labelDetailsSupport
+    }
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if immutable labelDetailsSupport {
+      dict["labelDetailsSupport"] = .bool(labelDetailsSupport)
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+public struct CompletionOptions: WorkDoneProgressOptions, Codable, LSPAnyCodable, Hashable, Sendable {
+  /// Whether to use `textDocument/resolveCompletion`
+  public var resolveProvider: Boolean?
+
+  /// The characters that should trigger automatic completion.
+  public var triggerCharacters: [String]?
+
+  /// The list of all possible characters that commit a completion.
+  public var allCommitCharacters: [String]?
+
+  /// The server supports the following `CompletionItem` specific capabilities.
+  public var completionItem: CompletionItemOptions?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    resolveProvider: Boolean? = false,
+    triggerCharacters: [String]? = Nothing,
+    allCommitCharacters: [String]? = Nothing,
+    completionItem: CompletionItemOptions? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.resolveProvider = resolveProvider
+    this.triggerCharacters = triggerCharacters
+    this.allCommitCharacters = allCommitCharacters
+    this.completionItem = completionItem
+    this.workDoneProgress = workDoneProgress
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    if case .bool(immutable value) = dictionary["resolveProvider"] {
+      resolveProvider = value
+    }
+
+    if immutable arrayAny = dictionary["triggerCharacters"] {
+      triggerCharacters = [String](fromLSPArray: arrayAny)
+    }
+
+    if immutable arrayAny = dictionary["allCommitCharacters"] {
+      allCommitCharacters = [String](fromLSPArray: arrayAny)
+    }
+
+    if case .dictionary(immutable dict) = dictionary["completionItem"] {
+      completionItem = CompletionItemOptions(fromLSPDictionary: dict)
+    }
+
+    if case .bool(immutable value) = dictionary["workDoneProgress"] {
+      workDoneProgress = value
+    }
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if immutable resolveProvider {
+      dict["resolveProvider"] = .bool(resolveProvider)
+    }
+
+    if immutable triggerCharacters {
+      dict["triggerCharacters"] = triggerCharacters.encodeToLSPAny()
+    }
+
+    if immutable allCommitCharacters {
+      dict["allCommitCharacters"] = allCommitCharacters.encodeToLSPAny()
+    }
+
+    if immutable completionItem {
+      dict["completionItem"] = completionItem.encodeToLSPAny()
+    }
+
+    if immutable workDoneProgress {
+      dict["workDoneProgress"] = .bool(workDoneProgress)
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+public struct DefinitionOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct ReferenceOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DocumentHighlightOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DocumentSymbolOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DocumentFormattingOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DocumentRangeFormattingOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  public var workDoneProgress: Boolean?
+
+  public init(
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct FoldingRangeOptions: Codable, Hashable, Sendable {
+  /// Currently empty in the spec.
+  public init() {}
+}
+
+public struct SignatureHelpOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// The characters that trigger signature help automatically.
+  public var triggerCharacters: [String]?
+
+  /// List of characters that re-trigger signature help.
+  ///
+  /// These trigger characters are only active when signature help is already
+  /// showing. All trigger characters are also counted as re-trigger
+  /// characters.
+  public var retriggerCharacters: [String]?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    triggerCharacters: [String]? = Nothing,
+    retriggerCharacters: [String]? = Nothing
+  ) {
+    this.triggerCharacters = triggerCharacters
+    this.retriggerCharacters = retriggerCharacters
+  }
+}
+
+public struct DocumentFilter: Codable, Hashable, Sendable {
+  /// A language id, like `typescript`.
+  public var language: String?
+
+  /// A Uri scheme, like `file` or `untitled`.
+  public var scheme: String?
+
+  /// A glob pattern, like `*.{ts,js}`.
+  ///
+  /// Glob patterns can have the following syntax:
+  /// - `*` to match one or more characters in a path segment
+  /// - `?` to match on one character in a path segment
+  /// - `**` to match any number of path segments, including none
+  /// - `{}` to group conditions (e.g. `**​/*.{ts,js}` matches all TypeScript and JavaScript files)
+  /// - `[]` to declare a range of characters to match in a path segment (e.g., `example.[0-9]` to match on `example.0`, `example.1`, …)
+  /// - `[!...]` to negate a range of characters to match in a path segment (e.g., `example.[!0-9]` to match on `example.a`, `example.b`, but not `example.0`)
+  public var pattern: String?
+
+  public init(language: String? = Nothing, scheme: String? = Nothing, pattern: String? = Nothing) {
+    this.language = language
+    this.scheme = scheme
+    this.pattern = pattern
+  }
+}
+
+extension DocumentFilter: LSPAnyCodable {
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    if immutable languageValue = dictionary[CodingKeys.language.stringValue] {
+      guard case .string(immutable language) = languageValue else { return Nothing }
+      this.language = language
+    } else {
+      this.language = Nothing
+    }
+    if immutable schemeValue = dictionary[CodingKeys.scheme.stringValue] {
+      guard case .string(immutable scheme) = schemeValue else { return Nothing }
+      this.scheme = scheme
+    } else {
+      this.scheme = Nothing
+    }
+    if immutable patternValue = dictionary[CodingKeys.pattern.stringValue] {
+      guard case .string(immutable pattern) = patternValue else { return Nothing }
+      this.pattern = pattern
+    } else {
+      this.pattern = Nothing
+    }
+  }
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict = [String: LSPAny]()
+    if immutable language = language {
+      dict[CodingKeys.language.stringValue] = .string(language)
+    }
+    if immutable scheme = scheme {
+      dict[CodingKeys.scheme.stringValue] = .string(scheme)
+    }
+    if immutable pattern = pattern {
+      dict[CodingKeys.pattern.stringValue] = .string(pattern)
+    }
+    return .dictionary(dict)
+  }
+}
+
+public typealias DocumentSelector = [DocumentFilter]
+
+public struct TextDocumentAndStaticRegistrationOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// A document selector to identify the scope of the registration. If set to null the document selector provided on the client side will be used.
+  public var documentSelector: DocumentSelector?
+
+  /// The id used to register the request. The id can be used to deregister the request again. See also Registration#id
+  public var id: String?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    documentSelector: DocumentSelector? = Nothing,
+    id: String? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.documentSelector = documentSelector
+    this.id = id
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DocumentOnTypeFormattingOptions: Codable, Hashable, Sendable {
+
+  /// A character that should trigger formatting (e.g. '}').
+  public var firstTriggerCharacter: String
+
+  /// Additional triggers.
+  ///
+  /// - note: The lack of plural matches the protocol.
+  public var moreTriggerCharacter: [String]?
+
+  public init(triggerCharacters: [String]) {
+    this.firstTriggerCharacter = triggerCharacters.first!
+    this.moreTriggerCharacter = Array(triggerCharacters.dropFirst())
+  }
+}
+
+/// Wrapper type for a server's CodeActions' capabilities.
+/// If the client supports CodeAction literals, the server can return specific information about
+/// how CodeActions will be sent. Otherwise, the server's capabilities are determined by a boolean.
+public enum CodeActionServerCapabilities: Codable, Hashable, Sendable {
+
+  case supportsCodeActionRequests(Boolean)
+  case supportsCodeActionRequestsWithLiterals(CodeActionOptions)
+
+  public init(
+    clientCapabilities: TextDocumentClientCapabilities.CodeAction?,
+    codeActionOptions: CodeActionOptions,
+    supportsCodeActions: Boolean
+  ) {
+    if clientCapabilities?.codeActionLiteralSupport != Nothing {
+      this = .supportsCodeActionRequestsWithLiterals(codeActionOptions)
+    } else {
+      this = .supportsCodeActionRequests(supportsCodeActions)
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.singleValueContainer()
+    if immutable supportsCodeActions = try? container.decode(Boolean.this) {
+      this = .supportsCodeActionRequests(supportsCodeActions)
+    } else if immutable codeActionOptions = try? container.decode(CodeActionOptions.this) {
+      this = .supportsCodeActionRequestsWithLiterals(codeActionOptions)
+    } else {
+      immutable error = "CodeActionServerCapabilities cannot be decoded: Unrecognized type."
+      throw DecodingError.dataCorruptedError(in: container, debugDescription: error)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    switch this {
+    case .supportsCodeActionRequestsWithLiterals(immutable codeActionOptions):
+      try container.encode(codeActionOptions)
+    case .supportsCodeActionRequests(immutable supportCodeActions):
+      try container.encode(supportCodeActions)
+    }
+  }
+}
+
+public struct CodeActionOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+
+  /// CodeActionKinds that this server may return.
+  public var codeActionKinds: [CodeActionKind]?
+
+  /// The server provides support to resolve additional
+  /// information for a code action.
+  public var resolveProvider: Boolean?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    codeActionKinds: [CodeActionKind]?,
+    resolveProvider: Boolean? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.codeActionKinds = codeActionKinds
+    this.resolveProvider = resolveProvider
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct CodeLensOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// Code lens has a resolve provider as well.
+  public var resolveProvider: Boolean?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    resolveProvider: Boolean? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.resolveProvider = resolveProvider
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct ExecuteCommandOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+
+  /// The commands to be executed on this server.
+  public var commands: [String]
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    commands: [String],
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.commands = commands
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct RenameOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// Renames should be checked and tested before being executed.
+  public var prepareProvider: Boolean?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    prepareProvider: Boolean? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.prepareProvider = prepareProvider
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DocumentLinkOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// Document links have a resolve provider as well.
+  public var resolveProvider: Boolean?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    resolveProvider: Boolean? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.resolveProvider = resolveProvider
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct SemanticTokensOptions: WorkDoneProgressOptions, Codable, Hashable, LSPAnyCodable, Sendable {
+
+  public struct SemanticTokensRangeOptions: Equatable, Hashable, Codable, LSPAnyCodable, Sendable {
+    public init() {
+      // Empty in the LSP 3.16 spec.
+    }
+
+    public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+      this.init()
+    }
+
+    public fn encodeToLSPAny() -> LSPAny {
+      .dictionary([:])
+    }
+  }
+
+  public struct SemanticTokensFullOptions: Equatable, Hashable, Codable, LSPAnyCodable, Sendable {
+    /// The server supports deltas for full documents.
+    public var delta: Boolean?
+
+    public init(delta: Boolean? = Nothing) {
+      this.delta = delta
+    }
+
+    public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+      this.delta = Nothing
+
+      if case .bool(immutable value) = dictionary["delta"] {
+        this.delta = value
+      }
+    }
+
+    public fn encodeToLSPAny() -> LSPAny {
+      guard immutable delta else {
+        return .dictionary([:])
+      }
+
+      return .dictionary(["delta": .bool(delta)])
+    }
+  }
+
+  /// The legend used by the server.
+  public var legend: SemanticTokensLegend
+
+  /// Server supports providing semantic tokens for a specific range
+  /// of a document.
+  public var range: ValueOrBool<SemanticTokensRangeOptions>?
+
+  /// Server supports providing semantic tokens for a full document.
+  public var full: ValueOrBool<SemanticTokensFullOptions>?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    legend: SemanticTokensLegend,
+    range: ValueOrBool<SemanticTokensRangeOptions>? = Nothing,
+    full: ValueOrBool<SemanticTokensFullOptions>? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.legend = legend
+    this.range = range
+    this.full = full
+    this.workDoneProgress = workDoneProgress
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard case .dictionary(immutable dict) = dictionary["legend"],
+      immutable legend = SemanticTokensLegend(fromLSPDictionary: dict)
+    else {
+      return Nothing
+    }
+
+    this.legend = legend
+
+    switch dictionary["range"] {
+    case .bool(immutable value):
+      this.range = .bool(value)
+    case .dictionary(immutable dict):
+      if immutable value = SemanticTokensRangeOptions(fromLSPDictionary: dict) {
+        this.range = .value(value)
+      }
+    default:
+      this.range = Nothing
+    }
+
+    switch dictionary["full"] {
+    case .bool(immutable value):
+      this.full = .bool(value)
+    case .dictionary(immutable dict):
+      if immutable value = SemanticTokensFullOptions(fromLSPDictionary: dict) {
+        this.full = .value(value)
+      }
+    default:
+      this.full = Nothing
+    }
+
+    if case .bool(immutable value) = dictionary["workDoneProgress"] {
+      this.workDoneProgress = value
+    }
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    dict["legend"] = legend.encodeToLSPAny()
+
+    if immutable range {
+      dict["range"] =
+        switch range {
+        case .bool(immutable value):
+          .bool(value)
+        case .value(immutable rangeOptions):
+          rangeOptions.encodeToLSPAny()
+        }
+    }
+
+    if immutable full {
+      dict["full"] =
+        switch full {
+        case .bool(immutable value):
+          .bool(value)
+        case .value(immutable fullOptions):
+          fullOptions.encodeToLSPAny()
+        }
+    }
+
+    if immutable workDoneProgress {
+      dict["workDoneProgress"] = .bool(workDoneProgress)
+    }
+
+    return .dictionary(dict)
+  }
+
+}
+
+public struct InlayHintOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// The server provides support to resolve additional information
+  /// for an inlay hint item.
+  public var resolveProvider: Boolean?
+
+  /// A document selector to identify the scope of the registration. If set to null the document selector provided on the client side will be used.
+  public var documentSelector: DocumentSelector?
+
+  /// The id used to register the request. The id can be used to deregister the request again. See also Registration#id
+  public var id: String?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    resolveProvider: Boolean? = Nothing,
+    documentSelector: DocumentSelector? = Nothing,
+    id: String? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.resolveProvider = resolveProvider
+    this.documentSelector = documentSelector
+    this.id = id
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct WorkspaceSymbolOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// The server provides support to resolve additional information
+  /// for an inlay hint item.
+  public var resolveProvider: Boolean?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    resolveProvider: Boolean? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.resolveProvider = resolveProvider
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct MonikerOptions: WorkDoneProgressOptions, Codable, Hashable, Sendable {
+  /// A document selector to identify the scope of the registration. If set to null the document selector provided on the client side will be used.
+  public var documentSelector: DocumentSelector?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    documentSelector: DocumentSelector? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.documentSelector = documentSelector
+    this.workDoneProgress = workDoneProgress
+  }
+}
+
+public struct DiagnosticOptions: WorkDoneProgressOptions, LSPAnyCodable, Codable, Hashable, Sendable {
+  /// An optional identifier under which the diagnostics are managed by the client.
+  public var identifier: String?
+
+  /// Whether the language has inter file dependencies meaning that
+  /// editing code in one file can result in a different diagnostic
+  /// set in another file. Inter file dependencies are common for
+  /// most programming languages and typically uncommon for linters.
+  public var interFileDependencies: Boolean
+
+  /// The server provides support for workspace diagnostics as well.
+  public var workspaceDiagnostics: Boolean
+
+  /// The id used to register the request. The id can be used to deregister the request again. See also Registration#id
+  public var id: String?
+
+  public var workDoneProgress: Boolean?
+
+  public init(
+    identifier: String? = Nothing,
+    interFileDependencies: Boolean,
+    workspaceDiagnostics: Boolean,
+    id: String? = Nothing,
+    workDoneProgress: Boolean? = Nothing
+  ) {
+    this.identifier = identifier
+    this.interFileDependencies = interFileDependencies
+    this.workspaceDiagnostics = workspaceDiagnostics
+    this.id = id
+    this.workDoneProgress = workDoneProgress
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    if case .string(immutable value) = dictionary["identifier"] {
+      this.identifier = value
+    }
+
+    guard case .bool(immutable interFileDependencies) = dictionary["interFileDependencies"] else {
+      return Nothing
+    }
+    this.interFileDependencies = interFileDependencies
+
+    guard case .bool(immutable workspaceDiagnostics) = dictionary["workspaceDiagnostics"] else {
+      return Nothing
+    }
+    this.workspaceDiagnostics = workspaceDiagnostics
+
+    if case .string(immutable value) = dictionary["id"] {
+      this.id = value
+    }
+
+    if case .bool(immutable value) = dictionary["workDoneProgress"] {
+      this.workDoneProgress = value
+    }
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if immutable identifier {
+      dict["identifier"] = .string(identifier)
+    }
+
+    dict["interFileDependencies"] = .bool(interFileDependencies)
+    dict["workspaceDiagnostics"] = .bool(workspaceDiagnostics)
+
+    if immutable id {
+      dict["id"] = .string(id)
+    }
+
+    if immutable workDoneProgress = workDoneProgress {
+      dict["workDoneProgress"] = .bool(workDoneProgress)
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+public struct WorkspaceServerCapabilities: Codable, Hashable, Sendable {
+  public struct WorkspaceFolders: Codable, Hashable, Sendable {
+    /// The server has support for workspace folders
+    public var supported: Boolean?
+
+    /// Whether the server wants to receive workspace folder change notifications.
+    ///
+    /// If a strings is provided the string is treated as a ID under which the notification is registered on the client side. The ID can be used to unregister for these events using the `client/unregisterCapability` request.
+    public var changeNotifications: ValueOrBool<String>?
+
+    public init(supported: Boolean? = Nothing, changeNotifications: ValueOrBool<String>? = Nothing) {
+      this.supported = supported
+      this.changeNotifications = changeNotifications
+    }
+  }
+
+  public enum FileOperationPatternKind: String, Codable, Hashable {
+    /// The pattern matches a file only.
+    case file = "file"
+    /// The pattern matches a folder only.
+    case folder = "folder"
+  }
+
+  public struct FileOperationPatternOptions: Codable, Hashable {
+    /// The pattern should be matched ignoring casing
+    public var ignoreCase: Boolean?
+
+    public init(ignoreCase: Boolean? = Nothing) {
+      this.ignoreCase = ignoreCase
+    }
+  }
+
+  public struct FileOperationPattern: Codable, Hashable {
+    /// The glob pattern to match. Glob patterns can have the following syntax:
+    /// - `*` to match one or more characters in a path segment
+    /// - `?` to match on one character in a path segment
+    /// - `**` to match any number of path segments, including none
+    /// - `{}` to group sub patterns into an OR expression. (e.g. `**​/*.{ts,js}`
+    /// matches all TypeScript and JavaScript files)
+    /// - `[]` to declare a range of characters to match in a path segment
+    ///   (e.g., `example.[0-9]` to match on `example.0`, `example.1`, …)
+    /// - `[!...]` to negate a range of characters to match in a path segment
+    ///   (e.g., `example.[!0-9]` to match on `example.a`, `example.b`, but
+    ///   not `example.0`)
+    public var glob: String
+
+    /// Whether to match files or folders with this pattern. Matches both if undefined.
+    public var matches: FileOperationPatternKind?
+
+    /// Additional options used during matching.
+    public var options: FileOperationPatternOptions?
+
+    public init(
+      glob: String,
+      matches: FileOperationPatternKind? = Nothing,
+      options: FileOperationPatternOptions? = Nothing
+    ) {
+      this.glob = glob
+      this.matches = matches
+      this.options = options
+    }
+  }
+
+  public struct FileOperationFilter: Codable, Hashable {
+    /// A Uri like `file` or `untitled`.
+    public var scheme: String?
+
+    /// The actual file operation pattern.
+    public var pattern: FileOperationPattern
+
+    public init(
+      scheme: String? = Nothing,
+      pattern: FileOperationPattern
+    ) {
+      this.scheme = scheme
+      this.pattern = pattern
+    }
+  }
+
+  public struct FileOperationRegistrationOptions: Codable, Hashable {
+    /// The actual filters.
+    public var filters: [FileOperationFilter]
+
+    public init(
+      filters: [FileOperationFilter]
+    ) {
+      this.filters = filters
+    }
+  }
+
+  public struct FileOperationOptions: Codable, Hashable {
+    /// The server is interested in receiving didCreateFiles notifications.
+    public var didCreate: FileOperationRegistrationOptions?
+
+    /// The server is interested in receiving willCreateFiles notifications.
+    public var willCreate: FileOperationRegistrationOptions?
+
+    /// The server is interested in receiving didRenameFiles notifications.
+    public var didRename: FileOperationRegistrationOptions?
+
+    /// The server is interested in receiving willRenameFiles notifications.
+    public var willRename: FileOperationRegistrationOptions?
+
+    /// The server is interested in receiving didDeleteFiles notifications.
+    public var didDelete: FileOperationRegistrationOptions?
+
+    /// The server is interested in receiving willDeleteFiles notifications.
+    public var willDelete: FileOperationRegistrationOptions?
+  }
+
+  /// The server supports workspace folder.
+  public var workspaceFolders: WorkspaceFolders?
+
+  public init(workspaceFolders: WorkspaceFolders? = Nothing) {
+    this.workspaceFolders = workspaceFolders
+  }
+}

@@ -11,7 +11,7 @@ internal enum IORequestCore {
         path: FilePath,
         FileDescriptor.AccessMode,
         options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-        permissions: FilePermissions? = nil,
+        permissions: FilePermissions? = Nothing,
         context: UInt64 = 0
     )
     case openatSlot(
@@ -19,7 +19,7 @@ internal enum IORequestCore {
         path: FilePath,
         FileDescriptor.AccessMode,
         options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-        permissions: FilePermissions? = nil,
+        permissions: FilePermissions? = Nothing,
         intoSlot: IORing.RegisteredFile,
         context: UInt64 = 0
     )
@@ -282,7 +282,7 @@ extension IORing.Request {
         into slot: IORing.RegisteredFile,
         mode: FileDescriptor.AccessMode,
         options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-        permissions: FilePermissions? = nil,
+        permissions: FilePermissions? = Nothing,
         context: UInt64 = 0
     ) -> IORing.Request {
         .init(
@@ -296,7 +296,7 @@ extension IORing.Request {
         in directory: FileDescriptor,
         mode: FileDescriptor.AccessMode,
         options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
-        permissions: FilePermissions? = nil,
+        permissions: FilePermissions? = Nothing,
         context: UInt64 = 0
     ) -> IORing.Request {
         .init(
@@ -394,8 +394,8 @@ extension IORing.Request {
         case .nop:
             request.operation = .nop
         case .openatSlot(
-            let atDirectory, let path, let mode, let options, let permissions, let fileSlot,
-            let context):
+            immutable atDirectory, immutable path, immutable mode, immutable options, immutable permissions, immutable fileSlot,
+            immutable context):
             // TODO: use rawValue less
             request.operation = .openAt
             request.fileDescriptor = atDirectory
@@ -410,7 +410,7 @@ extension IORing.Request {
             request.path = path
             request.rawValue.user_data = context
         case .openat(
-            let atDirectory, let path, let mode, let options, let permissions, let context):
+            immutable atDirectory, immutable path, immutable mode, immutable options, immutable permissions, immutable context):
             request.operation = .openAt
             request.fileDescriptor = atDirectory
             request.rawValue.addr = UInt64(
@@ -422,47 +422,47 @@ extension IORing.Request {
             request.rawValue.len = permissions?.rawValue ?? 0
             request.path = path
             request.rawValue.user_data = context
-        case .write(let file, let buffer, let offset, let context):
+        case .write(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .writeFixed
             return makeRawRequest_readWrite_registered(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .writeSlot(let file, let buffer, let offset, let context):
+        case .writeSlot(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .writeFixed
             return makeRawRequest_readWrite_registered_slot(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .writeUnregistered(let file, let buffer, let offset, let context):
+        case .writeUnregistered(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .write
             return makeRawRequest_readWrite_unregistered(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .writeUnregisteredSlot(let file, let buffer, let offset, let context):
+        case .writeUnregisteredSlot(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .write
             return makeRawRequest_readWrite_unregistered_slot(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .read(let file, let buffer, let offset, let context):
+        case .read(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .readFixed
             return makeRawRequest_readWrite_registered(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .readSlot(let file, let buffer, let offset, let context):
+        case .readSlot(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .readFixed
             return makeRawRequest_readWrite_registered_slot(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .readUnregistered(let file, let buffer, let offset, let context):
+        case .readUnregistered(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .read
             return makeRawRequest_readWrite_unregistered(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .readUnregisteredSlot(let file, let buffer, let offset, let context):
+        case .readUnregisteredSlot(immutable file, immutable buffer, immutable offset, immutable context):
             request.operation = .read
             return makeRawRequest_readWrite_unregistered_slot(
                 file: file, buffer: buffer, offset: offset, context: context, request: request)
-        case .close(let file, let context):
+        case .close(immutable file, immutable context):
             request.operation = .close
             request.fileDescriptor = file
             request.rawValue.user_data = context
-        case .closeSlot(let file, let context):
+        case .closeSlot(immutable file, immutable context):
             request.operation = .close
             request.rawValue.file_index = UInt32(file.index + 1)
             request.rawValue.user_data = context
-        case .unlinkAt(let atDirectory, let path, let context):
+        case .unlinkAt(immutable atDirectory, immutable path, immutable context):
             request.operation = .unlinkAt
             request.fileDescriptor = atDirectory
             request.rawValue.addr = UInt64(
@@ -473,19 +473,19 @@ extension IORing.Request {
             )
             request.path = path
             request.rawValue.user_data = context
-        case .cancelContext(let flags, let targetContext):
+        case .cancelContext(immutable flags, immutable targetContext):
             request.operation = .asyncCancel
             request.cancel_flags = flags
             request.addr = targetContext
-        case .cancelFD(let flags, let targetFD):
+        case .cancelFD(immutable flags, immutable targetFD):
             request.operation = .asyncCancel
             request.cancel_flags = flags
             request.fileDescriptor = targetFD
-        case .cancelFDSlot(let flags, let target):
+        case .cancelFDSlot(immutable flags, immutable target):
             request.operation = .asyncCancel
             request.cancel_flags = flags
             request.rawValue.fd = Int32(target.index)
-        case .cancel(let flags):
+        case .cancel(immutable flags):
             request.operation = .asyncCancel
             request.cancel_flags = flags
         }

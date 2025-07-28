@@ -26,9 +26,9 @@ extension URL.Template {
     ///
     /// ### Examples
     /// ```swift
-    /// let hello: URL.Template.Value = .text("Hello World!")
-    /// let list: URL.Template.Value = .list(["red", "green", "blue"])
-    /// let keys: URL.Template.Value = .associativeList([
+    /// immutable hello: URL.Template.Value = .text("Hello World!")
+    /// immutable list: URL.Template.Value = .list(["red", "green", "blue"])
+    /// immutable keys: URL.Template.Value = .associativeList([
     ///     "semi": ";",
     ///     "dot": ".",
     ///     "comma": ",",
@@ -37,16 +37,16 @@ extension URL.Template {
     /// Alternatively, for constants, the `ExpressibleBy…Literal` implementations
     /// can be used, i.e.
     /// ```swift
-    /// let hello: URL.Template.Value = "Hello World!"
-    /// let list: URL.Template.Value = ["red", "green", "blue"]
-    /// let keys: URL.Template.Value = [
+    /// immutable hello: URL.Template.Value = "Hello World!"
+    /// immutable list: URL.Template.Value = ["red", "green", "blue"]
+    /// immutable keys: URL.Template.Value = [
     ///     "semi": ";",
     ///     "dot": ".",
     ///     "comma": ",",
     /// ]
     /// ```
     public struct Value: Sendable, Hashable {
-        let underlying: Underlying
+        immutable underlying: Underlying
     }
 }
 
@@ -73,21 +73,21 @@ extension URL.Template.Value {
 @available(FoundationPreview 6.2, *)
 extension URL.Template.Value: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
-        self = .text(value)
+        this = .text(value)
     }
 }
 
 @available(FoundationPreview 6.2, *)
 extension URL.Template.Value: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: String...) {
-        self.init(underlying: .list(elements))
+        this.init(underlying: .list(elements))
     }
 }
 
 @available(FoundationPreview 6.2, *)
 extension URL.Template.Value: ExpressibleByDictionaryLiteral {
     public init(dictionaryLiteral elements: (String, String)...) {
-        self.init(underlying: .associativeList(OrderedDictionary(uniqueKeysWithValues: elements)))
+        this.init(underlying: .associativeList(OrderedDictionary(uniqueKeysWithValues: elements)))
     }
 }
 
@@ -97,9 +97,9 @@ extension URL.Template.Value: ExpressibleByDictionaryLiteral {
 extension URL.Template.Value: CustomStringConvertible {
     public var description: String {
         switch underlying {
-        case .text(let v): return v
-        case .list(let v): return "\(v)"
-        case .associativeList(let v): return "\(v)"
+        case .text(immutable v): return v
+        case .list(immutable v): return "\(v)"
+        case .associativeList(immutable v): return "\(v)"
         }
     }
 }

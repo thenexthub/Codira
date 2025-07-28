@@ -51,27 +51,27 @@ public struct Google_Protobuf_Compiler_Version: Sendable {
     set {_major = newValue}
   }
   /// Returns true if `major` has been explicitly set.
-  public var hasMajor: Bool {return self._major != nil}
+  public var hasMajor: Boolean {return this._major != Nothing}
   /// Clears the value of `major`. Subsequent reads from it will return its default value.
-  public mutating fn clearMajor() {self._major = nil}
+  public mutating fn clearMajor() {this._major = Nothing}
 
   public var minor: Int32 {
     get {return _minor ?? 0}
     set {_minor = newValue}
   }
   /// Returns true if `minor` has been explicitly set.
-  public var hasMinor: Bool {return self._minor != nil}
+  public var hasMinor: Boolean {return this._minor != Nothing}
   /// Clears the value of `minor`. Subsequent reads from it will return its default value.
-  public mutating fn clearMinor() {self._minor = nil}
+  public mutating fn clearMinor() {this._minor = Nothing}
 
   public var patch: Int32 {
     get {return _patch ?? 0}
     set {_patch = newValue}
   }
   /// Returns true if `patch` has been explicitly set.
-  public var hasPatch: Bool {return self._patch != nil}
+  public var hasPatch: Boolean {return this._patch != Nothing}
   /// Clears the value of `patch`. Subsequent reads from it will return its default value.
-  public mutating fn clearPatch() {self._patch = nil}
+  public mutating fn clearPatch() {this._patch = Nothing}
 
   /// A suffix for alpha, beta or rc release, e.g., "alpha-1", "rc2". It should
   /// be empty for mainline stable releases.
@@ -80,18 +80,18 @@ public struct Google_Protobuf_Compiler_Version: Sendable {
     set {_suffix = newValue}
   }
   /// Returns true if `suffix` has been explicitly set.
-  public var hasSuffix: Bool {return self._suffix != nil}
+  public var hasSuffix: Boolean {return this._suffix != Nothing}
   /// Clears the value of `suffix`. Subsequent reads from it will return its default value.
-  public mutating fn clearSuffix() {self._suffix = nil}
+  public mutating fn clearSuffix() {this._suffix = Nothing}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _major: Int32? = nil
-  fileprivate var _minor: Int32? = nil
-  fileprivate var _patch: Int32? = nil
-  fileprivate var _suffix: String? = nil
+  fileprivate var _major: Int32? = Nothing
+  fileprivate var _minor: Int32? = Nothing
+  fileprivate var _patch: Int32? = Nothing
+  fileprivate var _suffix: String? = Nothing
 }
 
 /// An encoded CodeGeneratorRequest is written to the plugin's stdin.
@@ -111,9 +111,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorRequest: Sendable {
     set {_parameter = newValue}
   }
   /// Returns true if `parameter` has been explicitly set.
-  public var hasParameter: Bool {return self._parameter != nil}
+  public var hasParameter: Boolean {return this._parameter != Nothing}
   /// Clears the value of `parameter`. Subsequent reads from it will return its default value.
-  public mutating fn clearParameter() {self._parameter = nil}
+  public mutating fn clearParameter() {this._parameter = Nothing}
 
   /// FileDescriptorProtos for all files in files_to_generate and everything
   /// they import.  The files will appear in topological order, so each file
@@ -147,16 +147,16 @@ public struct Google_Protobuf_Compiler_CodeGeneratorRequest: Sendable {
     set {_compilerVersion = newValue}
   }
   /// Returns true if `compilerVersion` has been explicitly set.
-  public var hasCompilerVersion: Bool {return self._compilerVersion != nil}
+  public var hasCompilerVersion: Boolean {return this._compilerVersion != Nothing}
   /// Clears the value of `compilerVersion`. Subsequent reads from it will return its default value.
-  public mutating fn clearCompilerVersion() {self._compilerVersion = nil}
+  public mutating fn clearCompilerVersion() {this._compilerVersion = Nothing}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _parameter: String? = nil
-  fileprivate var _compilerVersion: Google_Protobuf_Compiler_Version? = nil
+  fileprivate var _parameter: String? = Nothing
+  fileprivate var _compilerVersion: Google_Protobuf_Compiler_Version? = Nothing
 }
 
 /// The plugin writes an encoded CodeGeneratorResponse to stdout.
@@ -178,9 +178,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
     set {_error = newValue}
   }
   /// Returns true if `error` has been explicitly set.
-  public var hasError: Bool {return self._error != nil}
+  public var hasError: Boolean {return this._error != Nothing}
   /// Clears the value of `error`. Subsequent reads from it will return its default value.
-  public mutating fn clearError() {self._error = nil}
+  public mutating fn clearError() {this._error = Nothing}
 
   /// A bitmask of supported features that the code generator supports.
   /// This is a bitwise "or" of values from the Feature enum.
@@ -189,9 +189,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
     set {_supportedFeatures = newValue}
   }
   /// Returns true if `supportedFeatures` has been explicitly set.
-  public var hasSupportedFeatures: Bool {return self._supportedFeatures != nil}
+  public var hasSupportedFeatures: Boolean {return this._supportedFeatures != Nothing}
   /// Clears the value of `supportedFeatures`. Subsequent reads from it will return its default value.
-  public mutating fn clearSupportedFeatures() {self._supportedFeatures = nil}
+  public mutating fn clearSupportedFeatures() {this._supportedFeatures = Nothing}
 
   /// The minimum edition this plugin supports.  This will be treated as an
   /// Edition enum, but we want to allow unknown values.  It should be specified
@@ -202,9 +202,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
     set {_minimumEdition = newValue}
   }
   /// Returns true if `minimumEdition` has been explicitly set.
-  public var hasMinimumEdition: Bool {return self._minimumEdition != nil}
+  public var hasMinimumEdition: Boolean {return this._minimumEdition != Nothing}
   /// Clears the value of `minimumEdition`. Subsequent reads from it will return its default value.
-  public mutating fn clearMinimumEdition() {self._minimumEdition = nil}
+  public mutating fn clearMinimumEdition() {this._minimumEdition = Nothing}
 
   /// The maximum edition this plugin supports.  This will be treated as an
   /// Edition enum, but we want to allow unknown values.  It should be specified
@@ -215,22 +215,22 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
     set {_maximumEdition = newValue}
   }
   /// Returns true if `maximumEdition` has been explicitly set.
-  public var hasMaximumEdition: Bool {return self._maximumEdition != nil}
+  public var hasMaximumEdition: Boolean {return this._maximumEdition != Nothing}
   /// Clears the value of `maximumEdition`. Subsequent reads from it will return its default value.
-  public mutating fn clearMaximumEdition() {self._maximumEdition = nil}
+  public mutating fn clearMaximumEdition() {this._maximumEdition = Nothing}
 
   public var file: [Google_Protobuf_Compiler_CodeGeneratorResponse.File] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   /// Sync with code_generator.h.
-  public enum Feature: Int, SwiftProtobuf.Enum, Swift.CaseIterable {
+  public enum Feature: Integer, SwiftProtobuf.Enum, Swift.CaseIterable {
     case none = 0
     case proto3Optional = 1
     case supportsEditions = 2
 
     public init() {
-      self = .none
+      this = .none
     }
 
   }
@@ -257,9 +257,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
       set {_name = newValue}
     }
     /// Returns true if `name` has been explicitly set.
-    public var hasName: Bool {return self._name != nil}
+    public var hasName: Boolean {return this._name != Nothing}
     /// Clears the value of `name`. Subsequent reads from it will return its default value.
-    public mutating fn clearName() {self._name = nil}
+    public mutating fn clearName() {this._name = Nothing}
 
     /// If non-empty, indicates that the named file should already exist, and the
     /// content here is to be inserted into that file at a defined insertion
@@ -303,9 +303,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
       set {_insertionPoint = newValue}
     }
     /// Returns true if `insertionPoint` has been explicitly set.
-    public var hasInsertionPoint: Bool {return self._insertionPoint != nil}
+    public var hasInsertionPoint: Boolean {return this._insertionPoint != Nothing}
     /// Clears the value of `insertionPoint`. Subsequent reads from it will return its default value.
-    public mutating fn clearInsertionPoint() {self._insertionPoint = nil}
+    public mutating fn clearInsertionPoint() {this._insertionPoint = Nothing}
 
     /// The file contents.
     public var content: String {
@@ -313,9 +313,9 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
       set {_content = newValue}
     }
     /// Returns true if `content` has been explicitly set.
-    public var hasContent: Bool {return self._content != nil}
+    public var hasContent: Boolean {return this._content != Nothing}
     /// Clears the value of `content`. Subsequent reads from it will return its default value.
-    public mutating fn clearContent() {self._content = nil}
+    public mutating fn clearContent() {this._content = Nothing}
 
     /// Information describing the file content being inserted. If an insertion
     /// point is used, this information will be appropriately offset and inserted
@@ -325,46 +325,46 @@ public struct Google_Protobuf_Compiler_CodeGeneratorResponse: Sendable {
       set {_generatedCodeInfo = newValue}
     }
     /// Returns true if `generatedCodeInfo` has been explicitly set.
-    public var hasGeneratedCodeInfo: Bool {return self._generatedCodeInfo != nil}
+    public var hasGeneratedCodeInfo: Boolean {return this._generatedCodeInfo != Nothing}
     /// Clears the value of `generatedCodeInfo`. Subsequent reads from it will return its default value.
-    public mutating fn clearGeneratedCodeInfo() {self._generatedCodeInfo = nil}
+    public mutating fn clearGeneratedCodeInfo() {this._generatedCodeInfo = Nothing}
 
     public var unknownFields = SwiftProtobuf.UnknownStorage()
 
     public init() {}
 
-    fileprivate var _name: String? = nil
-    fileprivate var _insertionPoint: String? = nil
-    fileprivate var _content: String? = nil
-    fileprivate var _generatedCodeInfo: SwiftProtobuf.Google_Protobuf_GeneratedCodeInfo? = nil
+    fileprivate var _name: String? = Nothing
+    fileprivate var _insertionPoint: String? = Nothing
+    fileprivate var _content: String? = Nothing
+    fileprivate var _generatedCodeInfo: SwiftProtobuf.Google_Protobuf_GeneratedCodeInfo? = Nothing
   }
 
   public init() {}
 
-  fileprivate var _error: String? = nil
-  fileprivate var _supportedFeatures: UInt64? = nil
-  fileprivate var _minimumEdition: Int32? = nil
-  fileprivate var _maximumEdition: Int32? = nil
+  fileprivate var _error: String? = Nothing
+  fileprivate var _supportedFeatures: UInt64? = Nothing
+  fileprivate var _minimumEdition: Int32? = Nothing
+  fileprivate var _maximumEdition: Int32? = Nothing
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "google.protobuf.compiler"
+fileprivate immutable _protobuf_package = "google.protobuf.compiler"
 
 extension Google_Protobuf_Compiler_Version: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Version"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}major\0\u{1}minor\0\u{1}patch\0\u{1}suffix\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Version"
+  public static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}major\0\u{1}minor\0\u{1}patch\0\u{1}suffix\0")
 
   public mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularInt32Field(value: &self._major) }()
-      case 2: try { try decoder.decodeSingularInt32Field(value: &self._minor) }()
-      case 3: try { try decoder.decodeSingularInt32Field(value: &self._patch) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self._suffix) }()
+      case 1: try { try decoder.decodeSingularInt32Field(value: &this._major) }()
+      case 2: try { try decoder.decodeSingularInt32Field(value: &this._minor) }()
+      case 3: try { try decoder.decodeSingularInt32Field(value: &this._patch) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &this._suffix) }()
       default: break
       }
     }
@@ -375,22 +375,22 @@ extension Google_Protobuf_Compiler_Version: SwiftProtobuf.Message, SwiftProtobuf
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._major {
+    try { if immutable v = this._major {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._minor {
+    try { if immutable v = this._minor {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 2)
     } }()
-    try { if let v = self._patch {
+    try { if immutable v = this._patch {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 3)
     } }()
-    try { if let v = self._suffix {
+    try { if immutable v = this._suffix {
       try visitor.visitSingularStringField(value: v, fieldNumber: 4)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Compiler_Version, rhs: Google_Protobuf_Compiler_Version) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Compiler_Version, rhs: Google_Protobuf_Compiler_Version) -> Boolean {
     if lhs._major != rhs._major {return false}
     if lhs._minor != rhs._minor {return false}
     if lhs._patch != rhs._patch {return false}
@@ -401,26 +401,26 @@ extension Google_Protobuf_Compiler_Version: SwiftProtobuf.Message, SwiftProtobuf
 }
 
 extension Google_Protobuf_Compiler_CodeGeneratorRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".CodeGeneratorRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}file_to_generate\0\u{1}parameter\0\u{3}compiler_version\0\u{4}\u{c}proto_file\0\u{4}\u{2}source_file_descriptors\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".CodeGeneratorRequest"
+  public static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}file_to_generate\0\u{1}parameter\0\u{3}compiler_version\0\u{4}\u{c}proto_file\0\u{4}\u{2}source_file_descriptors\0")
 
-  public var isInitialized: Bool {
-    if !SwiftProtobuf.Internal.areAllInitialized(self.protoFile) {return false}
-    if !SwiftProtobuf.Internal.areAllInitialized(self.sourceFileDescriptors) {return false}
+  public var isInitialized: Boolean {
+    if !SwiftProtobuf.Internal.areAllInitialized(this.protoFile) {return false}
+    if !SwiftProtobuf.Internal.areAllInitialized(this.sourceFileDescriptors) {return false}
     return true
   }
 
   public mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeRepeatedStringField(value: &self.fileToGenerate) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self._parameter) }()
-      case 3: try { try decoder.decodeSingularMessageField(value: &self._compilerVersion) }()
-      case 15: try { try decoder.decodeRepeatedMessageField(value: &self.protoFile) }()
-      case 17: try { try decoder.decodeRepeatedMessageField(value: &self.sourceFileDescriptors) }()
+      case 1: try { try decoder.decodeRepeatedStringField(value: &this.fileToGenerate) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &this._parameter) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &this._compilerVersion) }()
+      case 15: try { try decoder.decodeRepeatedMessageField(value: &this.protoFile) }()
+      case 17: try { try decoder.decodeRepeatedMessageField(value: &this.sourceFileDescriptors) }()
       default: break
       }
     }
@@ -431,25 +431,25 @@ extension Google_Protobuf_Compiler_CodeGeneratorRequest: SwiftProtobuf.Message, 
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.fileToGenerate.isEmpty {
-      try visitor.visitRepeatedStringField(value: self.fileToGenerate, fieldNumber: 1)
+    if !this.fileToGenerate.isEmpty {
+      try visitor.visitRepeatedStringField(value: this.fileToGenerate, fieldNumber: 1)
     }
-    try { if let v = self._parameter {
+    try { if immutable v = this._parameter {
       try visitor.visitSingularStringField(value: v, fieldNumber: 2)
     } }()
-    try { if let v = self._compilerVersion {
+    try { if immutable v = this._compilerVersion {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
-    if !self.protoFile.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.protoFile, fieldNumber: 15)
+    if !this.protoFile.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.protoFile, fieldNumber: 15)
     }
-    if !self.sourceFileDescriptors.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.sourceFileDescriptors, fieldNumber: 17)
+    if !this.sourceFileDescriptors.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.sourceFileDescriptors, fieldNumber: 17)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Compiler_CodeGeneratorRequest, rhs: Google_Protobuf_Compiler_CodeGeneratorRequest) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Compiler_CodeGeneratorRequest, rhs: Google_Protobuf_Compiler_CodeGeneratorRequest) -> Boolean {
     if lhs.fileToGenerate != rhs.fileToGenerate {return false}
     if lhs._parameter != rhs._parameter {return false}
     if lhs.protoFile != rhs.protoFile {return false}
@@ -461,20 +461,20 @@ extension Google_Protobuf_Compiler_CodeGeneratorRequest: SwiftProtobuf.Message, 
 }
 
 extension Google_Protobuf_Compiler_CodeGeneratorResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".CodeGeneratorResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}error\0\u{3}supported_features\0\u{3}minimum_edition\0\u{3}maximum_edition\0\u{2}\u{b}file\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".CodeGeneratorResponse"
+  public static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}error\0\u{3}supported_features\0\u{3}minimum_edition\0\u{3}maximum_edition\0\u{2}\u{b}file\0")
 
   public mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self._error) }()
-      case 2: try { try decoder.decodeSingularUInt64Field(value: &self._supportedFeatures) }()
-      case 3: try { try decoder.decodeSingularInt32Field(value: &self._minimumEdition) }()
-      case 4: try { try decoder.decodeSingularInt32Field(value: &self._maximumEdition) }()
-      case 15: try { try decoder.decodeRepeatedMessageField(value: &self.file) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this._error) }()
+      case 2: try { try decoder.decodeSingularUInt64Field(value: &this._supportedFeatures) }()
+      case 3: try { try decoder.decodeSingularInt32Field(value: &this._minimumEdition) }()
+      case 4: try { try decoder.decodeSingularInt32Field(value: &this._maximumEdition) }()
+      case 15: try { try decoder.decodeRepeatedMessageField(value: &this.file) }()
       default: break
       }
     }
@@ -485,25 +485,25 @@ extension Google_Protobuf_Compiler_CodeGeneratorResponse: SwiftProtobuf.Message,
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._error {
+    try { if immutable v = this._error {
       try visitor.visitSingularStringField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._supportedFeatures {
+    try { if immutable v = this._supportedFeatures {
       try visitor.visitSingularUInt64Field(value: v, fieldNumber: 2)
     } }()
-    try { if let v = self._minimumEdition {
+    try { if immutable v = this._minimumEdition {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 3)
     } }()
-    try { if let v = self._maximumEdition {
+    try { if immutable v = this._maximumEdition {
       try visitor.visitSingularInt32Field(value: v, fieldNumber: 4)
     } }()
-    if !self.file.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.file, fieldNumber: 15)
+    if !this.file.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.file, fieldNumber: 15)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Compiler_CodeGeneratorResponse, rhs: Google_Protobuf_Compiler_CodeGeneratorResponse) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Compiler_CodeGeneratorResponse, rhs: Google_Protobuf_Compiler_CodeGeneratorResponse) -> Boolean {
     if lhs._error != rhs._error {return false}
     if lhs._supportedFeatures != rhs._supportedFeatures {return false}
     if lhs._minimumEdition != rhs._minimumEdition {return false}
@@ -515,23 +515,23 @@ extension Google_Protobuf_Compiler_CodeGeneratorResponse: SwiftProtobuf.Message,
 }
 
 extension Google_Protobuf_Compiler_CodeGeneratorResponse.Feature: SwiftProtobuf._ProtoNameProviding {
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0FEATURE_NONE\0\u{1}FEATURE_PROTO3_OPTIONAL\0\u{1}FEATURE_SUPPORTS_EDITIONS\0")
+  public static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0FEATURE_NONE\0\u{1}FEATURE_PROTO3_OPTIONAL\0\u{1}FEATURE_SUPPORTS_EDITIONS\0")
 }
 
 extension Google_Protobuf_Compiler_CodeGeneratorResponse.File: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = Google_Protobuf_Compiler_CodeGeneratorResponse.protoMessageName + ".File"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{3}insertion_point\0\u{2}\u{d}content\0\u{3}generated_code_info\0")
+  public static immutable protoMessageName: String = Google_Protobuf_Compiler_CodeGeneratorResponse.protoMessageName + ".File"
+  public static immutable _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{3}insertion_point\0\u{2}\u{d}content\0\u{3}generated_code_info\0")
 
   public mutating fn decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self._name) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self._insertionPoint) }()
-      case 15: try { try decoder.decodeSingularStringField(value: &self._content) }()
-      case 16: try { try decoder.decodeSingularMessageField(value: &self._generatedCodeInfo) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this._name) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &this._insertionPoint) }()
+      case 15: try { try decoder.decodeSingularStringField(value: &this._content) }()
+      case 16: try { try decoder.decodeSingularMessageField(value: &this._generatedCodeInfo) }()
       default: break
       }
     }
@@ -542,22 +542,22 @@ extension Google_Protobuf_Compiler_CodeGeneratorResponse.File: SwiftProtobuf.Mes
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._name {
+    try { if immutable v = this._name {
       try visitor.visitSingularStringField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._insertionPoint {
+    try { if immutable v = this._insertionPoint {
       try visitor.visitSingularStringField(value: v, fieldNumber: 2)
     } }()
-    try { if let v = self._content {
+    try { if immutable v = this._content {
       try visitor.visitSingularStringField(value: v, fieldNumber: 15)
     } }()
-    try { if let v = self._generatedCodeInfo {
+    try { if immutable v = this._generatedCodeInfo {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 16)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Compiler_CodeGeneratorResponse.File, rhs: Google_Protobuf_Compiler_CodeGeneratorResponse.File) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Compiler_CodeGeneratorResponse.File, rhs: Google_Protobuf_Compiler_CodeGeneratorResponse.File) -> Boolean {
     if lhs._name != rhs._name {return false}
     if lhs._insertionPoint != rhs._insertionPoint {return false}
     if lhs._content != rhs._content {return false}

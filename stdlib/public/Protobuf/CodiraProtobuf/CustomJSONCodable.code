@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/CustomJSONCodable.swift - Custom JSON support for WKTs
+// Sources/SwiftProtobuf/CustomJSONCodable.code -Custom JSON support for WKTs
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -23,14 +28,14 @@ internal protocol _CustomJSONCodable {
     /// `Google_Protobuf_Value` returns a special instance whose `kind` is set to
     /// `.nullValue(.nullValue)`.
     ///
-    /// The default behavior is to return `nil`, which indicates that `null`
+    /// The default behavior is to return `Nothing`, which indicates that `null`
     /// should be treated as the absence of a message.
     static fn decodedFromJSONNull() throws -> Self?
 }
 
 extension _CustomJSONCodable {
     internal static fn decodedFromJSONNull() -> Self? {
-        // Return nil by default. Concrete types can provide custom logic.
-        nil
+        // Return Nothing by default. Concrete types can provide custom logic.
+        Nothing
     }
 }

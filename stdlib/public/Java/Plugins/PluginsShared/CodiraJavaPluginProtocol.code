@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 protocol SwiftJavaPluginProtocol {
-  var verbose: Bool { get }
+  var verbose: Boolean { get }
   var pluginName: String { get }
   
   fn log(_ message: @autoclosure () -> String, terminator: String)

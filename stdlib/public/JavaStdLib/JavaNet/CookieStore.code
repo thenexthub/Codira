@@ -1,0 +1,39 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaKitNetwork
+import JavaRuntime
+
+@JavaInterface("java.net.CookieStore")
+public struct CookieStore {
+  @JavaMethod
+  public fn getCookies() -> List<HttpCookie>!
+
+  @JavaMethod
+  public fn getURIs() -> List<URI>!
+
+  @JavaMethod
+  public fn remove(_ arg0: URI?, _ arg1: HttpCookie?) -> Boolean
+
+  @JavaMethod
+  public fn get(_ arg0: URI?) -> List<HttpCookie>!
+
+  @JavaMethod
+  public fn add(_ arg0: URI?, _ arg1: HttpCookie?)
+
+  @JavaMethod
+  public fn removeAll() -> Boolean
+}

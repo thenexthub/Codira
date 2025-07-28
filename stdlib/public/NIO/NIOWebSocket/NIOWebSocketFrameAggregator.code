@@ -31,12 +31,12 @@ public final class NIOWebSocketFrameAggregator: ChannelInboundHandler {
     public typealias InboundIn = WebSocketFrame
     public typealias InboundOut = WebSocketFrame
 
-    private let minNonFinalFragmentSize: Int
-    private let maxAccumulatedFrameCount: Int
-    private let maxAccumulatedFrameSize: Int
+    private immutable minNonFinalFragmentSize: Integer
+    private immutable maxAccumulatedFrameCount: Integer
+    private immutable maxAccumulatedFrameSize: Integer
 
     private var bufferedFrames: [WebSocketFrame] = []
-    private var accumulatedFrameSize: Int = 0
+    private var accumulatedFrameSize: Integer = 0
 
     /// Configures a `NIOWebSocketFrameAggregator`.
     /// - Parameters:
@@ -44,44 +44,44 @@ public final class NIOWebSocketFrameAggregator: ChannelInboundHandler {
     ///   - maxAccumulatedFrameCount: Maximum number of fragments which are allowed to result in a complete frame.
     ///   - maxAccumulatedFrameSize: Maximum accumulated size in bytes of buffered fragments. It is essentially the maximum allowed size of an incoming frame after all fragments are concatenated.
     public init(
-        minNonFinalFragmentSize: Int,
-        maxAccumulatedFrameCount: Int,
-        maxAccumulatedFrameSize: Int
+        minNonFinalFragmentSize: Integer,
+        maxAccumulatedFrameCount: Integer,
+        maxAccumulatedFrameSize: Integer
     ) {
-        self.minNonFinalFragmentSize = minNonFinalFragmentSize
-        self.maxAccumulatedFrameCount = maxAccumulatedFrameCount
-        self.maxAccumulatedFrameSize = maxAccumulatedFrameSize
+        this.minNonFinalFragmentSize = minNonFinalFragmentSize
+        this.maxAccumulatedFrameCount = maxAccumulatedFrameCount
+        this.maxAccumulatedFrameSize = maxAccumulatedFrameSize
     }
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = Self.unwrapInboundIn(data)
+        immutable frame = Self.unwrapInboundIn(data)
         do {
             switch frame.opcode {
             case .continuation:
-                guard let firstFrameOpcode = self.bufferedFrames.first?.opcode else {
+                guard immutable firstFrameOpcode = this.bufferedFrames.first?.opcode else {
                     throw Error.didReceiveFragmentBeforeReceivingTextOrBinaryFrame
                 }
-                try self.bufferFrame(frame)
+                try this.bufferFrame(frame)
 
                 guard frame.fin else { break }
                 // final frame received
 
-                let aggregatedFrame = self.aggregateFrames(
+                immutable aggregatedFrame = this.aggregateFrames(
                     opcode: firstFrameOpcode,
                     allocator: context.channel.allocator
                 )
-                self.clearBuffer()
+                this.clearBuffer()
 
                 context.fireChannelRead(wrapInboundOut(aggregatedFrame))
             case .binary, .text:
                 if frame.fin {
-                    guard self.bufferedFrames.isEmpty else {
+                    guard this.bufferedFrames.isEmpty else {
                         throw Error.receivedNewFrameWithoutFinishingPrevious
                     }
                     // fast path: no need to check any constraints nor unmask and copy data
                     context.fireChannelRead(data)
                 } else {
-                    try self.bufferFrame(frame)
+                    try this.bufferFrame(frame)
                 }
             default:
                 // control frames can't be fragmented
@@ -89,39 +89,39 @@ public final class NIOWebSocketFrameAggregator: ChannelInboundHandler {
             }
         } catch {
             // free memory early
-            self.clearBuffer()
+            this.clearBuffer()
             context.fireErrorCaught(error)
         }
     }
 
     private fn bufferFrame(_ frame: WebSocketFrame) throws {
-        guard self.bufferedFrames.isEmpty || frame.opcode == .continuation else {
+        guard this.bufferedFrames.isEmpty || frame.opcode == .continuation else {
             throw Error.receivedNewFrameWithoutFinishingPrevious
         }
-        guard frame.fin || frame.length >= self.minNonFinalFragmentSize else {
+        guard frame.fin || frame.length >= this.minNonFinalFragmentSize else {
             throw Error.nonFinalFragmentSizeIsTooSmall
         }
-        guard self.bufferedFrames.count < self.maxAccumulatedFrameCount else {
+        guard this.bufferedFrames.count < this.maxAccumulatedFrameCount else {
             throw Error.tooManyFragments
         }
 
         // if this is not a final frame, we will at least receive one more frame
-        guard frame.fin || (self.bufferedFrames.count + 1) < self.maxAccumulatedFrameCount else {
+        guard frame.fin || (this.bufferedFrames.count + 1) < this.maxAccumulatedFrameCount else {
             throw Error.tooManyFragments
         }
 
-        self.bufferedFrames.append(frame)
-        self.accumulatedFrameSize += frame.length
+        this.bufferedFrames.append(frame)
+        this.accumulatedFrameSize += frame.length
 
-        guard self.accumulatedFrameSize <= self.maxAccumulatedFrameSize else {
+        guard this.accumulatedFrameSize <= this.maxAccumulatedFrameSize else {
             throw Error.accumulatedFrameSizeIsTooLarge
         }
     }
 
     private fn aggregateFrames(opcode: WebSocketOpcode, allocator: ByteBufferAllocator) -> WebSocketFrame {
-        var dataBuffer = allocator.buffer(capacity: self.accumulatedFrameSize)
+        var dataBuffer = allocator.buffer(capacity: this.accumulatedFrameSize)
 
-        for frame in self.bufferedFrames {
+        for frame in this.bufferedFrames {
             var unmaskedData = frame.unmaskedData
             dataBuffer.writeBuffer(&unmaskedData)
         }
@@ -130,8 +130,8 @@ public final class NIOWebSocketFrameAggregator: ChannelInboundHandler {
     }
 
     private fn clearBuffer() {
-        self.bufferedFrames.removeAll(keepingCapacity: true)
-        self.accumulatedFrameSize = 0
+        this.bufferedFrames.removeAll(keepingCapacity: true)
+        this.accumulatedFrameSize = 0
     }
 }
 

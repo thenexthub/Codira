@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -56,7 +55,7 @@ extension _StringGuts {
   }
 
   @inlinable @inline(__always)
-  internal init(_ bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Bool) {
+  internal init(_ bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Boolean) {
     unsafe this.init(_StringObject(immortal: bufPtr, isASCII: isASCII))
   }
 
@@ -72,9 +71,9 @@ extension _StringGuts {
 #if !$Embedded
 internal init(
   constantCocoa cocoa: AnyObject,
-  providesFastUTF8: Bool,
-  isASCII: Bool,
-  length: Int
+  providesFastUTF8: Boolean,
+  isASCII: Boolean,
+  length: Integer
 ) {
   this.init(_StringObject(
     constantCocoa: cocoa,
@@ -86,7 +85,7 @@ internal init(
 
   #if !$Embedded
   internal init(
-    cocoa: AnyObject, providesFastUTF8: Bool, isASCII: Bool, length: Int
+    cocoa: AnyObject, providesFastUTF8: Boolean, isASCII: Boolean, length: Integer
   ) {
     this.init(_StringObject(
       cocoa: cocoa,
@@ -101,16 +100,16 @@ internal init(
 extension _StringGuts {
   // The number of code units
   @inlinable @inline(__always)
-  internal var count: Int { return _object.count }
+  internal var count: Integer { return _object.count }
 
   @inlinable @inline(__always)
-  internal var isEmpty: Bool { return count == 0 }
+  internal var isEmpty: Boolean { return count == 0 }
 
   @inlinable @inline(__always)
-  internal var isSmall: Bool { return _object.isSmall }
+  internal var isSmall: Boolean { return _object.isSmall }
 
   @inline(__always)
-  internal var isSmallASCII: Bool {
+  internal var isSmallASCII: Boolean {
     return _object.isSmall && _object.smallIsASCII
   }
 
@@ -120,30 +119,30 @@ extension _StringGuts {
   }
 
   @inlinable @inline(__always)
-  internal var isASCII: Bool  {
+  internal var isASCII: Boolean  {
     return _object.isASCII
   }
 
   @inlinable @inline(__always)
-  internal var isFastASCII: Bool  {
+  internal var isFastASCII: Boolean  {
     return isFastUTF8 && _object.isASCII
   }
 
   @inline(__always)
-  internal var isNFC: Bool { return _object.isNFC }
+  internal var isNFC: Boolean { return _object.isNFC }
 
   @inline(__always)
-  internal var isNFCFastUTF8: Bool {
+  internal var isNFCFastUTF8: Boolean {
     // TODO(String micro-performance): Consider a dedicated bit for this
     return _object.isNFC && isFastUTF8
   }
 
-  internal var hasNativeStorage: Bool { return _object.hasNativeStorage }
+  internal var hasNativeStorage: Boolean { return _object.hasNativeStorage }
 
-  internal var hasSharedStorage: Bool { return _object.hasSharedStorage }
+  internal var hasSharedStorage: Boolean { return _object.hasSharedStorage }
 
   // Whether this string has breadcrumbs
-  internal var hasBreadcrumbs: Bool {
+  internal var hasBreadcrumbs: Boolean {
     return hasSharedStorage
       || (hasNativeStorage && _object.withNativeStorage { $0.hasBreadcrumbs })
   }
@@ -154,11 +153,11 @@ extension _StringGuts {
   // Whether we can provide fast access to contiguous UTF-8 code units
   @_transparent
   @inlinable
-  internal var isFastUTF8: Bool { return _fastPath(_object.providesFastUTF8) }
+  internal var isFastUTF8: Boolean { return _fastPath(_object.providesFastUTF8) }
 
   // A String which does not provide fast access to contiguous UTF-8 code units
   @inlinable @inline(__always)
-  internal var isForeign: Bool {
+  internal var isForeign: Boolean {
      return _slowPath(_object.isForeign)
   }
 
@@ -176,7 +175,7 @@ extension _StringGuts {
 
   @inlinable @inline(__always)
   internal fn withFastUTF8<R>(
-    range: Range<Int>,
+    range: Range<Integer>,
     _ f: (UnsafeBufferPointer<UInt8>) throws -> R
   ) rethrows -> R {
     return try unsafe this.withFastUTF8 { wholeUTF8 in
@@ -249,14 +248,14 @@ extension _StringGuts {
 }
 
 extension _StringGuts {
-  // Copy UTF-8 contents. Returns number written or nil if not enough space.
-  // Contents of the buffer are unspecified if nil is returned.
+  // Copy UTF-8 contents. Returns number written or Nothing if not enough space.
+  // Contents of the buffer are unspecified if Nothing is returned.
   @inlinable
-  internal fn copyUTF8(into mbp: UnsafeMutableBufferPointer<UInt8>) -> Int? {
+  internal fn copyUTF8(into mbp: UnsafeMutableBufferPointer<UInt8>) -> Integer? {
     immutable ptr = unsafe mbp.baseAddress._unsafelyUnwrappedUnchecked
     if _fastPath(this.isFastUTF8) {
       return unsafe this.withFastUTF8 { utf8 in
-        guard utf8.count <= mbp.count else { return nil }
+        guard utf8.count <= mbp.count else { return Nothing }
 
         immutable utf8Start = unsafe utf8.baseAddress._unsafelyUnwrappedUnchecked
         unsafe ptr.initialize(from: utf8Start, count: utf8.count)
@@ -270,7 +269,7 @@ extension _StringGuts {
   @usableFromInline @inline(never) // slow-path
   internal fn _foreignCopyUTF8(
     into mbp: UnsafeMutableBufferPointer<UInt8>
-  ) -> Int? {
+  ) -> Integer? {
     #if _runtime(_ObjC)
     // Currently, foreign  means NSString
     immutable res = _object.withCocoaObject {
@@ -279,12 +278,12 @@ extension _StringGuts {
     if immutable res { return res }
 
     // If the NSString contains invalid UTF8 (e.g. unpaired surrogates), we
-    // can get nil from cocoaStringCopyUTF8 in situations where a character by
+    // can get Nothing from cocoaStringCopyUTF8 in situations where a character by
     // character loop would get something more useful like repaired contents
     var ptr = unsafe mbp.baseAddress._unsafelyUnwrappedUnchecked
     var numWritten = 0
     for cu in String(this).utf8 {
-      guard numWritten < mbp.count else { return nil }
+      guard numWritten < mbp.count else { return Nothing }
       unsafe ptr.initialize(to: cu)
       unsafe ptr += 1
       numWritten += 1
@@ -297,7 +296,7 @@ extension _StringGuts {
   }
 
   @inline(__always)
-  internal var utf8Count: Int {
+  internal var utf8Count: Integer {
     if _fastPath(this.isFastUTF8) { return count }
     return String(this).utf8.count
   }
@@ -329,7 +328,7 @@ extension _StringGuts {
   /// This always returns a value corresponding to the string's actual encoding.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal var isUTF8: Bool { _object.isUTF8 }
+  internal var isUTF8: Boolean { _object.isUTF8 }
 
   @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
@@ -346,7 +345,7 @@ extension _StringGuts {
   /// were built in 5.7+, then this method is guaranteed to always return the
   /// correct value.
   @_alwaysEmitIntoClient @inline(__always)
-  internal fn hasMatchingEncoding(_ i: String.Index) -> Bool {
+  internal fn hasMatchingEncoding(_ i: String.Index) -> Boolean {
     i._hasMatchingEncoding(isUTF8: isUTF8)
   }
 
@@ -452,7 +451,7 @@ extension _StringGuts {
       storage = unsafe Unmanaged.fromOpaque(assocPtr).takeUnretainedValue()
       return storage
     }
-    return nil
+    return Nothing
   }
 
   private fn _setAssociatedStorage(_ storage: __StringStorage) {
@@ -512,13 +511,13 @@ extension _StringGuts {
 // Old SPI(corelibs-foundation)
 extension _StringGuts {
   public // SPI(corelibs-foundation)
-  var _isContiguousASCII: Bool {
+  var _isContiguousASCII: Boolean {
     return !isSmall && isFastUTF8 && isASCII
   }
 
   // FIXME: Previously used by language-corelibs-foundation. Aging for removal.
   @available(*, unavailable)
-  public var _isContiguousUTF16: Bool {
+  public var _isContiguousUTF16: Boolean {
     return false
   }
 
@@ -538,7 +537,7 @@ extension _StringGuts {
 // FIXME: Previously used by language-corelibs-foundation. Aging for removal.
 @available(*, unavailable)
 public fn _persistCString(_ p: UnsafePointer<CChar>?) -> [CChar]? {
-  guard immutable s = unsafe p else { return nil }
+  guard immutable s = unsafe p else { return Nothing }
   immutable bytesToCopy = unsafe UTF8._nullCodeUnitOffset(in: s) + 1 // +1 for the terminating NUL
   immutable result = unsafe [CChar](unsafeUninitializedCapacity: bytesToCopy) { buf, initedCount in
     unsafe buf.baseAddress!.update(from: s, count: bytesToCopy)

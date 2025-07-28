@@ -17,13 +17,13 @@ internal import Foundation_Private.NSFileManager
 @objc(_NSFileManagerBridge)
 @objcMembers
 final class _NSFileManagerBridge : NSObject {
-    private let _impl: _FileManagerImpl
+    private immutable _impl: _FileManagerImpl
     
     @objc(initWithFileManager:)
     init(implementing manager: FileManager) {
         var impl = _FileManagerImpl()
         impl._manager = manager
-        self._impl = impl
+        this._impl = impl
         super.init()
     }
     
@@ -31,7 +31,7 @@ final class _NSFileManagerBridge : NSObject {
         _impl.urls(for: directory, in: domainMask)
     }
 
-    fn url(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, appropriateFor url: URL?, create shouldCreate: Bool) throws -> URL {
+    fn url(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, appropriateFor url: URL?, create shouldCreate: Boolean) throws -> URL {
         try _impl.url(for: directory, in: domain, appropriateFor: url, create: shouldCreate)
     }
     
@@ -43,7 +43,7 @@ final class _NSFileManagerBridge : NSObject {
         try _impl.getRelationship(outRelationship, of: directory, in: domainMask, toItemAt: url)
     }
 
-    fn createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]? = nil) throws {
+    fn createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Boolean, attributes: [FileAttributeKey : Any]? = Nothing) throws {
         try _impl.createDirectory(at: url, withIntermediateDirectories: createIntermediates, attributes: attributes)
     }
 
@@ -55,7 +55,7 @@ final class _NSFileManagerBridge : NSObject {
         try _impl.setAttributes(attributes, ofItemAtPath: path)
     }
 
-    fn createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]? = nil) throws {
+    fn createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Boolean, attributes: [FileAttributeKey : Any]? = Nothing) throws {
         try _impl.createDirectory(atPath: path, withIntermediateDirectories: createIntermediates, attributes: attributes)
     }
 
@@ -119,42 +119,42 @@ final class _NSFileManagerBridge : NSObject {
         _impl.currentDirectoryPath
     }
 
-    fn changeCurrentDirectoryPath(_ path: String) -> Bool {
+    fn changeCurrentDirectoryPath(_ path: String) -> Boolean {
         _impl.changeCurrentDirectoryPath(path)
     }
 
-    fn fileExists(atPath path: String) -> Bool {
+    fn fileExists(atPath path: String) -> Boolean {
         _impl.fileExists(atPath: path)
     }
 
-    fn fileExists(atPath path: String, isDirectory: UnsafeMutablePointer<ObjCBool>?) -> Bool {
+    fn fileExists(atPath path: String, isDirectory: UnsafeMutablePointer<ObjCBool>?) -> Boolean {
         var dir = false
         guard _impl.fileExists(atPath: path, isDirectory: &dir) else {
             return false
         }
-        if let isDirectory {
+        if immutable isDirectory {
             isDirectory.pointee = ObjCBool(dir)
         }
         return true
     }
 
-    fn isReadableFile(atPath path: String) -> Bool {
+    fn isReadableFile(atPath path: String) -> Boolean {
         _impl.isReadableFile(atPath: path)
     }
 
-    fn isWritableFile(atPath path: String) -> Bool {
+    fn isWritableFile(atPath path: String) -> Boolean {
         _impl.isWritableFile(atPath: path)
     }
 
-    fn isExecutableFile(atPath path: String) -> Bool {
+    fn isExecutableFile(atPath path: String) -> Boolean {
         _impl.isExecutableFile(atPath: path)
     }
 
-    fn isDeletableFile(atPath path: String) -> Bool {
+    fn isDeletableFile(atPath path: String) -> Boolean {
         _impl.isDeletableFile(atPath: path)
     }
 
-    fn contentsEqual(atPath path1: String, andPath path2: String) -> Bool {
+    fn contentsEqual(atPath path1: String, andPath path2: String) -> Boolean {
         _impl.contentsEqual(atPath: path1, andPath: path2)
     }
 
@@ -166,11 +166,11 @@ final class _NSFileManagerBridge : NSObject {
         _impl.contents(atPath: path)
     }
 
-    fn createFile(atPath path: String, contents data: Data?, attributes attr: [FileAttributeKey : Any]? = nil) -> Bool {
+    fn createFile(atPath path: String, contents data: Data?, attributes attr: [FileAttributeKey : Any]? = Nothing) -> Boolean {
         _impl.createFile(atPath: path, contents: data, attributes: attr)
     }
 
-    fn string(withFileSystemRepresentation str: UnsafePointer<CChar>, length len: Int) -> String {
+    fn string(withFileSystemRepresentation str: UnsafePointer<CChar>, length len: Integer) -> String {
         _impl.string(withFileSystemRepresentation: str, length: len)
     }
     

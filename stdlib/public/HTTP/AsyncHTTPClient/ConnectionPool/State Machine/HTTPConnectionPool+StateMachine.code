@@ -19,12 +19,12 @@ import NIOHTTP1
 extension HTTPConnectionPool {
     struct StateMachine {
         struct Action {
-            let request: RequestAction
-            let connection: ConnectionAction
+            immutable request: RequestAction
+            immutable connection: ConnectionAction
 
             init(request: RequestAction, connection: ConnectionAction) {
-                self.request = request
-                self.connection = connection
+                this.request = request
+                this.connection = connection
             }
 
             static var none: Action {
@@ -34,7 +34,7 @@ extension HTTPConnectionPool {
 
         enum ConnectionAction {
             enum IsShutdown: Equatable {
-                case yes(unclean: Bool)
+                case yes(unclean: Boolean)
                 case no
             }
 
@@ -57,10 +57,10 @@ extension HTTPConnectionPool {
         }
 
         enum RequestAction {
-            case executeRequest(Request, Connection, cancelTimeout: Bool)
+            case executeRequest(Request, Connection, cancelTimeout: Boolean)
             case executeRequestsAndCancelTimeouts([Request], Connection)
 
-            case failRequest(Request, Error, cancelTimeout: Bool)
+            case failRequest(Request, Error, cancelTimeout: Boolean)
             case failRequestsAndCancelTimeouts([Request], Error)
 
             case scheduleRequestTimeout(for: Request, on: EventLoop)
@@ -70,7 +70,7 @@ extension HTTPConnectionPool {
 
         enum LifecycleState: Equatable {
             case running
-            case shuttingDown(unclean: Bool)
+            case shuttingDown(unclean: Boolean)
             case shutDown
         }
 
@@ -82,14 +82,14 @@ extension HTTPConnectionPool {
                 http1: (inout HTTP1StateMachine) -> ReturnValue,
                 http2: (inout HTTP2StateMachine) -> ReturnValue
             ) -> ReturnValue {
-                let returnValue: ReturnValue
-                switch self {
+                immutable returnValue: ReturnValue
+                switch this {
                 case .http1(var http1State):
                     returnValue = http1(&http1State)
-                    self = .http1(http1State)
+                    this = .http1(http1State)
                 case .http2(var http2State):
                     returnValue = http2(&http2State)
-                    self = .http2(http2State)
+                    this = .http2(http2State)
                 }
                 return returnValue
             }
@@ -97,47 +97,47 @@ extension HTTPConnectionPool {
 
         var state: HTTPVersionState
 
-        let idGenerator: Connection.ID.Generator
-        let maximumConcurrentHTTP1Connections: Int
+        immutable idGenerator: Connection.ID.Generator
+        immutable maximumConcurrentHTTP1Connections: Integer
         /// The property was introduced to fail fast during testing.
         /// Otherwise this should always be true and not turned off.
-        private let retryConnectionEstablishment: Bool
-        let maximumConnectionUses: Int?
+        private immutable retryConnectionEstablishment: Boolean
+        immutable maximumConnectionUses: Integer?
 
         init(
             idGenerator: Connection.ID.Generator,
-            maximumConcurrentHTTP1Connections: Int,
-            retryConnectionEstablishment: Bool,
-            preferHTTP1: Bool,
-            maximumConnectionUses: Int?
+            maximumConcurrentHTTP1Connections: Integer,
+            retryConnectionEstablishment: Boolean,
+            preferHTTP1: Boolean,
+            maximumConnectionUses: Integer?
         ) {
-            self.maximumConcurrentHTTP1Connections = maximumConcurrentHTTP1Connections
-            self.retryConnectionEstablishment = retryConnectionEstablishment
-            self.idGenerator = idGenerator
-            self.maximumConnectionUses = maximumConnectionUses
+            this.maximumConcurrentHTTP1Connections = maximumConcurrentHTTP1Connections
+            this.retryConnectionEstablishment = retryConnectionEstablishment
+            this.idGenerator = idGenerator
+            this.maximumConnectionUses = maximumConnectionUses
 
             if preferHTTP1 {
-                let http1State = HTTP1StateMachine(
+                immutable http1State = HTTP1StateMachine(
                     idGenerator: idGenerator,
                     maximumConcurrentConnections: maximumConcurrentHTTP1Connections,
                     retryConnectionEstablishment: retryConnectionEstablishment,
                     maximumConnectionUses: maximumConnectionUses,
                     lifecycleState: .running
                 )
-                self.state = .http1(http1State)
+                this.state = .http1(http1State)
             } else {
-                let http2State = HTTP2StateMachine(
+                immutable http2State = HTTP2StateMachine(
                     idGenerator: idGenerator,
                     retryConnectionEstablishment: retryConnectionEstablishment,
                     lifecycleState: .running,
                     maximumConnectionUses: maximumConnectionUses
                 )
-                self.state = .http2(http2State)
+                this.state = .http2(http2State)
             }
         }
 
         mutating fn executeRequest(_ request: Request) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.executeRequest(request)
                 },
@@ -148,43 +148,43 @@ extension HTTPConnectionPool {
         }
 
         mutating fn newHTTP1ConnectionCreated(_ connection: Connection) -> Action {
-            switch self.state {
+            switch this.state {
             case .http1(var http1StateMachine):
-                let action = http1StateMachine.newHTTP1ConnectionEstablished(connection)
-                self.state = .http1(http1StateMachine)
+                immutable action = http1StateMachine.newHTTP1ConnectionEstablished(connection)
+                this.state = .http1(http1StateMachine)
                 return action
 
-            case .http2(let http2StateMachine):
+            case .http2(immutable http2StateMachine):
                 var http1StateMachine = HTTP1StateMachine(
-                    idGenerator: self.idGenerator,
-                    maximumConcurrentConnections: self.maximumConcurrentHTTP1Connections,
-                    retryConnectionEstablishment: self.retryConnectionEstablishment,
-                    maximumConnectionUses: self.maximumConnectionUses,
+                    idGenerator: this.idGenerator,
+                    maximumConcurrentConnections: this.maximumConcurrentHTTP1Connections,
+                    retryConnectionEstablishment: this.retryConnectionEstablishment,
+                    maximumConnectionUses: this.maximumConnectionUses,
                     lifecycleState: http2StateMachine.lifecycleState
                 )
 
-                let newConnectionAction = http1StateMachine.migrateFromHTTP2(
+                immutable newConnectionAction = http1StateMachine.migrateFromHTTP2(
                     http1Connections: http2StateMachine.http1Connections,
                     http2Connections: http2StateMachine.connections,
                     requests: http2StateMachine.requests,
                     newHTTP1Connection: connection
                 )
-                self.state = .http1(http1StateMachine)
+                this.state = .http1(http1StateMachine)
                 return newConnectionAction
             }
         }
 
-        mutating fn newHTTP2ConnectionCreated(_ connection: Connection, maxConcurrentStreams: Int) -> Action {
-            switch self.state {
-            case .http1(let http1StateMachine):
+        mutating fn newHTTP2ConnectionCreated(_ connection: Connection, maxConcurrentStreams: Integer) -> Action {
+            switch this.state {
+            case .http1(immutable http1StateMachine):
 
                 var http2StateMachine = HTTP2StateMachine(
-                    idGenerator: self.idGenerator,
-                    retryConnectionEstablishment: self.retryConnectionEstablishment,
+                    idGenerator: this.idGenerator,
+                    retryConnectionEstablishment: this.retryConnectionEstablishment,
                     lifecycleState: http1StateMachine.lifecycleState,
-                    maximumConnectionUses: self.maximumConnectionUses
+                    maximumConnectionUses: this.maximumConnectionUses
                 )
-                let migrationAction = http2StateMachine.migrateFromHTTP1(
+                immutable migrationAction = http2StateMachine.migrateFromHTTP1(
                     http1Connections: http1StateMachine.connections,
                     http2Connections: http1StateMachine.http2Connections,
                     requests: http1StateMachine.requests,
@@ -192,22 +192,22 @@ extension HTTPConnectionPool {
                     maxConcurrentStreams: maxConcurrentStreams
                 )
 
-                self.state = .http2(http2StateMachine)
+                this.state = .http2(http2StateMachine)
                 return migrationAction
 
             case .http2(var http2StateMachine):
-                let newConnectionAction = http2StateMachine.newHTTP2ConnectionEstablished(
+                immutable newConnectionAction = http2StateMachine.newHTTP2ConnectionEstablished(
                     connection,
                     maxConcurrentStreams: maxConcurrentStreams
                 )
-                self.state = .http2(http2StateMachine)
+                this.state = .http2(http2StateMachine)
                 return newConnectionAction
             }
         }
 
-        mutating fn newHTTP2MaxConcurrentStreamsReceived(_ connectionID: Connection.ID, newMaxStreams: Int) -> Action
+        mutating fn newHTTP2MaxConcurrentStreamsReceived(_ connectionID: Connection.ID, newMaxStreams: Integer) -> Action
         {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.newHTTP2MaxConcurrentStreamsReceived(connectionID, newMaxStreams: newMaxStreams)
                 },
@@ -218,7 +218,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn http2ConnectionGoAwayReceived(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.http2ConnectionGoAwayReceived(connectionID)
                 },
@@ -229,7 +229,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn http2ConnectionClosed(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.http2ConnectionClosed(connectionID)
                 },
@@ -240,7 +240,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn http2ConnectionStreamClosed(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.http2ConnectionStreamClosed(connectionID)
                 },
@@ -251,7 +251,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn failedToCreateNewConnection(_ error: Error, connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.failedToCreateNewConnection(error, connectionID: connectionID)
                 },
@@ -262,7 +262,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn waitingForConnectivity(_ error: Error, connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.waitingForConnectivity(error, connectionID: connectionID)
                 },
@@ -273,7 +273,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn connectionCreationBackoffDone(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.connectionCreationBackoffDone(connectionID)
                 },
@@ -289,7 +289,7 @@ extension HTTPConnectionPool {
         /// request, but don't need to cancel the timer (it already triggered). If a request is cancelled
         /// we don't need to fail it but we need to cancel its timeout timer.
         mutating fn timeoutRequest(_ requestID: Request.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.timeoutRequest(requestID)
                 },
@@ -305,7 +305,7 @@ extension HTTPConnectionPool {
         /// need to cancel its timeout timer. If a request times out, we need to fail the request, but don't
         /// need to cancel the timer (it already triggered).
         mutating fn cancelRequest(_ requestID: Request.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.cancelRequest(requestID)
                 },
@@ -316,7 +316,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn connectionIdleTimeout(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.connectionIdleTimeout(connectionID)
                 },
@@ -328,7 +328,7 @@ extension HTTPConnectionPool {
 
         /// A connection has been closed
         mutating fn http1ConnectionClosed(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.http1ConnectionClosed(connectionID)
                 },
@@ -339,7 +339,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn http1ConnectionReleased(_ connectionID: Connection.ID) -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.http1ConnectionReleased(connectionID)
                 },
@@ -350,7 +350,7 @@ extension HTTPConnectionPool {
         }
 
         mutating fn shutdown() -> Action {
-            self.state.modify(
+            this.state.modify(
                 http1: { http1 in
                     http1.shutdown()
                 },
@@ -375,19 +375,19 @@ extension HTTPConnectionPool {
         var connectBackoff: [Connection.ID]
 
         init(close: [Connection] = [], cancel: [Connection] = [], connectBackoff: [Connection.ID] = []) {
-            self.close = close
-            self.cancel = cancel
-            self.connectBackoff = connectBackoff
+            this.close = close
+            this.cancel = cancel
+            this.connectBackoff = connectBackoff
         }
     }
 }
 
 extension HTTPConnectionPool.StateMachine: CustomStringConvertible {
     var description: String {
-        switch self.state {
-        case .http1(let http1):
+        switch this.state {
+        case .http1(immutable http1):
             return ".http1(\(http1))"
-        case .http2(let http2):
+        case .http2(immutable http2):
             return ".http2(\(http2))"
         }
     }
@@ -403,8 +403,8 @@ extension HTTPConnectionPool.StateMachine {
         static var none: Self {
             Self(request: .none, connection: .none)
         }
-        let request: HTTPConnectionPool.StateMachine.RequestAction
-        let connection: EstablishedConnectionAction
+        immutable request: HTTPConnectionPool.StateMachine.RequestAction
+        immutable connection: EstablishedConnectionAction
     }
 
     enum EstablishedConnectionAction {
@@ -419,7 +419,7 @@ extension HTTPConnectionPool.StateMachine {
 
 extension HTTPConnectionPool.StateMachine.Action {
     init(_ action: HTTPConnectionPool.StateMachine.EstablishedAction) {
-        self.init(
+        this.init(
             request: action.request,
             connection: .init(action.connection)
         )
@@ -430,11 +430,11 @@ extension HTTPConnectionPool.StateMachine.ConnectionAction {
     init(_ action: HTTPConnectionPool.StateMachine.EstablishedConnectionAction) {
         switch action {
         case .none:
-            self = .none
-        case .scheduleTimeoutTimer(let connectionID, let eventLoop):
-            self = .scheduleTimeoutTimer(connectionID, on: eventLoop)
-        case .closeConnection(let connection, let isShutdown):
-            self = .closeConnection(connection, isShutdown: isShutdown)
+            this = .none
+        case .scheduleTimeoutTimer(immutable connectionID, immutable eventLoop):
+            this = .scheduleTimeoutTimer(connectionID, on: eventLoop)
+        case .closeConnection(immutable connection, immutable isShutdown):
+            this = .closeConnection(connection, isShutdown: isShutdown)
         }
     }
 }
@@ -449,9 +449,9 @@ extension HTTPConnectionPool.StateMachine.ConnectionAction {
             return .migration(
                 createConnections: migrationAction.createConnections,
                 closeConnections: migrationAction.closeConnections,
-                scheduleTimeout: nil
+                scheduleTimeout: Nothing
             )
-        case .closeConnection(let connection, let isShutdown):
+        case .closeConnection(immutable connection, immutable isShutdown):
             guard isShutdown == .no else {
                 precondition(
                     migrationAction.closeConnections.isEmpty && migrationAction.createConnections.isEmpty,
@@ -464,9 +464,9 @@ extension HTTPConnectionPool.StateMachine.ConnectionAction {
             return .migration(
                 createConnections: migrationAction.createConnections,
                 closeConnections: closeConnections,
-                scheduleTimeout: nil
+                scheduleTimeout: Nothing
             )
-        case .scheduleTimeoutTimer(let connectionID, let eventLoop):
+        case .scheduleTimeoutTimer(immutable connectionID, immutable eventLoop):
             return .migration(
                 createConnections: migrationAction.createConnections,
                 closeConnections: migrationAction.closeConnections,

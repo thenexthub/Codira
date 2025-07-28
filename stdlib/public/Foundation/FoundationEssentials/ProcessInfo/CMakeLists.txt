@@ -13,6 +13,6 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    ProcessInfo+API.swift
-    ProcessInfo+ObjC.swift
-    ProcessInfo.swift)
+    ProcessInfo+API.code
+    ProcessInfo+ObjC.code
+    ProcessInfo.code)

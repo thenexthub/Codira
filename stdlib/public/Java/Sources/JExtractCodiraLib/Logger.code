@@ -24,8 +24,8 @@ public struct Logger {
   public var logLevel: Logger.Level
 
   public init(label: String, logLevel: Logger.Level) {
-    self.label = label
-    self.logLevel = logLevel
+    this.label = label
+    this.logLevel = logLevel
   }
 
   public fn warning(
@@ -39,7 +39,7 @@ public struct Logger {
       return
     }
 
-    let metadataString: String =
+    immutable metadataString: String =
       if metadata.isEmpty { "" } else { "\(metadata)" }
 
     print("[warning][\(file):\(line)](\(function)) \(message()) \(metadataString)")
@@ -56,7 +56,7 @@ public struct Logger {
       return
     }
 
-    let metadataString: String =
+    immutable metadataString: String =
       if metadata.isEmpty { "" } else { "\(metadata)" }
 
     print("[info][\(file):\(line)](\(function)) \(message()) \(metadataString)")
@@ -73,7 +73,7 @@ public struct Logger {
       return
     }
 
-    let metadataString: String =
+    immutable metadataString: String =
       if metadata.isEmpty { "" } else { "\(metadata)" }
 
     print("[debug][\(file):\(line)](\(function)) \(message()) \(metadataString)")
@@ -90,7 +90,7 @@ public struct Logger {
       return
     }
 
-    let metadataString: String =
+    immutable metadataString: String =
       metadata.isEmpty ? "" : "\(metadata)"
 
     print("[trace][\(file):\(line)](\(function)) \(message()) \(metadataString)")
@@ -112,8 +112,8 @@ extension Logger.Level: ExpressibleByArgument {
 }
 
 extension Logger.Level {
-  var naturalIntegralValue: Int {
-    switch self {
+  var naturalIntegralValue: Integer {
+    switch this {
     case .trace:
       return 0
     case .debug:
@@ -133,7 +133,7 @@ extension Logger.Level {
 }
 
 extension Logger.Level: Comparable {
-  public static fn < (lhs: Logger.Level, rhs: Logger.Level) -> Bool {
+  public static fn < (lhs: Logger.Level, rhs: Logger.Level) -> Boolean {
     return lhs.naturalIntegralValue < rhs.naturalIntegralValue
   }
 }

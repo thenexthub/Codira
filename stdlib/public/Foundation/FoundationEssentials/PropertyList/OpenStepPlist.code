@@ -27,7 +27,7 @@ import CRT
 #endif
 
 private struct _ParseInfo {
-    let utf16 : String.UTF16View
+    immutable utf16 : String.UTF16View
     var curr : String.UTF16View.Index
     var err: Error?
 
@@ -43,13 +43,13 @@ private struct _ParseInfo {
         utf16[curr]
     }
 
-    var isAtEnd : Bool {
+    var isAtEnd : Boolean {
         curr >= utf16.endIndex
     }
 }
 
 internal fn __ParseOldStylePropertyList(utf16: String.UTF16View) throws -> Any {
-    let length = utf16.count
+    immutable length = utf16.count
     guard length > 0 else {
         throw OpenStepPlistError("Conversion of string failed. The string is empty.")
     }
@@ -61,7 +61,7 @@ internal fn __ParseOldStylePropertyList(utf16: String.UTF16View) throws -> Any {
     }
 
     var result = parsePlistObject(&parseInfo, requireObject: true, depth: 0)
-    if result != nil {
+    if result != Nothing {
         if advanceToNonSpace(&parseInfo) {
             if result is String {
                 // Reset info and keep parsing
@@ -69,29 +69,29 @@ internal fn __ParseOldStylePropertyList(utf16: String.UTF16View) throws -> Any {
                 result = parsePlistDictContent(&parseInfo, depth: 0)
             } else {
                 parseInfo.err = OpenStepPlistError("Junk after plist at line \(lineNumberStrings(parseInfo))")
-                result = nil
+                result = Nothing
             }
         }
     }
-    guard let result else {
+    guard immutable result else {
         throw parseInfo.err ?? OpenStepPlistError("Unknown error parsing property list around line \(lineNumberStrings(parseInfo))")
     }
     return result
 }
 
-private fn parsePlistObject(_ pInfo: inout _ParseInfo, requireObject: Bool, depth: UInt32) -> Any? {
+private fn parsePlistObject(_ pInfo: inout _ParseInfo, requireObject: Boolean, depth: UInt32) -> Any? {
     guard depthIsValid(&pInfo, depth: depth) else {
-        return nil
+        return Nothing
     }
 
     guard advanceToNonSpace(&pInfo) else {
         if requireObject {
             pInfo.err = OpenStepPlistError("Unexpected EOF while parsing plist")
         }
-        return nil
+        return Nothing
     }
 
-    let ch = pInfo.currChar
+    immutable ch = pInfo.currChar
     pInfo.advance()
     if ch == UInt16(ascii: "{") {
         return parsePlistDict(&pInfo, depth: depth)
@@ -109,17 +109,17 @@ private fn parsePlistObject(_ pInfo: inout _ParseInfo, requireObject: Bool, dept
         if requireObject {
             pInfo.err = OpenStepPlistError("Unexpected character '0x\(String(ch, radix: 16))' at line \(lineNumberStrings(pInfo))")
         }
-        return nil
+        return Nothing
     }
 }
 
 private fn parsePlistDict(_ pInfo: inout _ParseInfo, depth: UInt32) -> [String:Any]? {
-    guard let dict = parsePlistDictContent(&pInfo, depth: depth) else {
-        return nil
+    guard immutable dict = parsePlistDictContent(&pInfo, depth: depth) else {
+        return Nothing
     }
     guard advanceToNonSpace(&pInfo) && pInfo.currChar == UInt16(ascii: "}") else {
         pInfo.err = OpenStepPlistError("Expected terminating '}' for dictionary at line \(lineNumberStrings(pInfo))")
-        return nil
+        return Nothing
     }
     pInfo.advance()
     return dict
@@ -128,10 +128,10 @@ private fn parsePlistDict(_ pInfo: inout _ParseInfo, depth: UInt32) -> [String:A
 private fn parsePlistDictContent(_ pInfo: inout _ParseInfo, depth: UInt32) -> [String:Any]? {
     var dict = [String:Any]()
 
-    while let key = parsePlistString(&pInfo, requireObject: false) {
+    while immutable key = parsePlistString(&pInfo, requireObject: false) {
         guard advanceToNonSpace(&pInfo) else {
             pInfo.err = OpenStepPlistError("Missing ';' on line \(lineNumberStrings(pInfo))")
-            return nil
+            return Nothing
         }
 
         var value : Any
@@ -141,27 +141,27 @@ private fn parsePlistDictContent(_ pInfo: inout _ParseInfo, depth: UInt32) -> [S
             value = key
         } else if pInfo.currChar == UInt16(ascii: "=") {
             pInfo.advance()
-            guard let v = parsePlistObject(&pInfo, requireObject: true, depth: depth + 1) else {
-                return nil
+            guard immutable v = parsePlistObject(&pInfo, requireObject: true, depth: depth + 1) else {
+                return Nothing
             }
             value = v
         } else {
             pInfo.err = OpenStepPlistError("Expected ';' or '=' ")
-            return nil
+            return Nothing
         }
 
         dict[key] = value
 
         guard advanceToNonSpace(&pInfo) && pInfo.currChar == UInt16(ascii: ";") else {
             pInfo.err = OpenStepPlistError("Missing ';' on line \(lineNumberStrings(pInfo))")
-            return nil
+            return Nothing
         }
 
         pInfo.advance()
     }
 
     // this is a success path, so clear errors (NOTE: this seems weird, but is historical)
-    pInfo.err = nil
+    pInfo.err = Nothing
 
     return dict
 }
@@ -169,12 +169,12 @@ private fn parsePlistDictContent(_ pInfo: inout _ParseInfo, depth: UInt32) -> [S
 private fn parsePlistArray(_ pInfo: inout _ParseInfo, depth: UInt32) -> [Any]? {
     var array = [Any]()
 
-    while let obj = parsePlistObject(&pInfo, requireObject: false, depth: depth + 1) {
+    while immutable obj = parsePlistObject(&pInfo, requireObject: false, depth: depth + 1) {
         array.append(obj)
 
         guard advanceToNonSpace(&pInfo) else {
             pInfo.err = OpenStepPlistError("Expected ',' for array at line \(lineNumberStrings(pInfo))")
-            return nil
+            return Nothing
         }
 
         guard pInfo.currChar == UInt16(ascii: ",") else {
@@ -186,25 +186,25 @@ private fn parsePlistArray(_ pInfo: inout _ParseInfo, depth: UInt32) -> [Any]? {
 
     guard advanceToNonSpace(&pInfo) && pInfo.currChar == UInt16(ascii: ")") else {
         pInfo.err = OpenStepPlistError("Expected terminating ')' for array at line \(lineNumberStrings(pInfo))")
-        return nil
+        return Nothing
     }
 
     // this is a success path, so clear errors (NOTE: this seems weird, but is historical)
-    pInfo.err = nil
+    pInfo.err = Nothing
 
     pInfo.advance() // consume the )
     return array
 }
 
-private fn parsePlistString(_ pInfo: inout _ParseInfo, requireObject: Bool) -> String? {
+private fn parsePlistString(_ pInfo: inout _ParseInfo, requireObject: Boolean) -> String? {
     guard advanceToNonSpace(&pInfo) else {
         if requireObject {
             pInfo.err = OpenStepPlistError("Unexpected EOF while parsing string")
         }
-        return nil
+        return Nothing
     }
 
-    let ch = pInfo.currChar
+    immutable ch = pInfo.currChar
     if ch == UInt16(ascii: "'") || ch == UInt16(ascii: "\"") {
         pInfo.advance()
         return parseQuotedPlistString(&pInfo, quote: ch)
@@ -214,21 +214,21 @@ private fn parsePlistString(_ pInfo: inout _ParseInfo, requireObject: Bool) -> S
         if requireObject {
             pInfo.err = OpenStepPlistError("Invalid string character at line \(lineNumberStrings(pInfo))")
         }
-        return nil
+        return Nothing
     }
 }
 
 private fn parseQuotedPlistString(_ pInfo: inout _ParseInfo, quote: UInt16) -> String? {
     var result : String?
-    let startMark = pInfo.curr
+    immutable startMark = pInfo.curr
     var mark = startMark
     while !pInfo.isAtEnd {
-        let ch = pInfo.currChar
+        immutable ch = pInfo.currChar
         if ch == quote {
             break
         }
         if ch == UInt16(ascii: "\\") {
-            if result == nil {
+            if result == Nothing {
                 result = String()
             }
             result! += String(pInfo.utf16[mark ..< pInfo.curr])!
@@ -236,12 +236,12 @@ private fn parseQuotedPlistString(_ pInfo: inout _ParseInfo, quote: UInt16) -> S
 
             if pInfo.isAtEnd {
                 pInfo.err = OpenStepPlistError("Unterminated backslash sequence on line \(lineNumberStrings(pInfo))")
-                return nil
+                return Nothing
             }
             
-            guard let scalar = UnicodeScalar(getSlashedChar(&pInfo)) else {
+            guard immutable scalar = UnicodeScalar(getSlashedChar(&pInfo)) else {
                 pInfo.err = OpenStepPlistError("Invalid character on line \(lineNumberStrings(pInfo))")
-                return nil
+                return Nothing
             }
             
             result!.unicodeScalars.append(scalar)
@@ -253,9 +253,9 @@ private fn parseQuotedPlistString(_ pInfo: inout _ParseInfo, quote: UInt16) -> S
     if pInfo.isAtEnd {
         pInfo.curr = startMark
         pInfo.err = OpenStepPlistError("Unterminated quoted string starting on line \(lineNumberStrings(pInfo))")
-        return nil
+        return Nothing
     }
-    if result == nil {
+    if result == Nothing {
         result = String(pInfo.utf16[mark ..< pInfo.curr])!
     } else if mark != pInfo.curr {
         result! += String(pInfo.utf16[mark ..< pInfo.curr])!
@@ -264,12 +264,12 @@ private fn parseQuotedPlistString(_ pInfo: inout _ParseInfo, quote: UInt16) -> S
     pInfo.advance() // Advance past the quote character before returning.
 
     // this is a success path, so clear errors (NOTE: this seems weird, but is historical)
-    pInfo.err = nil
+    pInfo.err = Nothing
     return result
 }
 
 private fn parseUnquotedPlistString(_ pInfo: inout _ParseInfo) -> String? {
-    let mark = pInfo.curr
+    immutable mark = pInfo.curr
     while !pInfo.isAtEnd && isValidUnquotedStringCharacter(pInfo.currChar) {
         pInfo.advance()
     }
@@ -277,10 +277,10 @@ private fn parseUnquotedPlistString(_ pInfo: inout _ParseInfo) -> String? {
         return String(pInfo.utf16[mark ..< pInfo.curr])!
     }
     pInfo.err = OpenStepPlistError("Unexpected EOF while parsing string")
-    return nil
+    return Nothing
 }
 
-private let octalCharRange = UInt16(ascii: "0") ... UInt16(ascii: "7")
+private immutable octalCharRange = UInt16(ascii: "0") ... UInt16(ascii: "7")
 
 private fn parseOctal(startingWith ch: UInt16, _ pInfo: inout _ParseInfo) -> UInt16 {
     var num = UInt8( ch &- octalCharRange.lowerBound )
@@ -294,7 +294,7 @@ private fn parseOctal(startingWith ch: UInt16, _ pInfo: inout _ParseInfo) -> UIn
             break
         }
 
-        let ch2 = pInfo.currChar
+        immutable ch2 = pInfo.currChar
         if octalCharRange ~= ch2 {
             // Note: Like the previous implementation, this `num` value is UInt8, which is smaller than the largest value that can be represented by a three digit octal (0777 = 511). Since this code is compatibility-only, we maintain the truncation behavior that existed with the prior implementation.
             num = (num << 3) &+ (UInt8(ch2) &- UInt8(octalCharRange.lowerBound))
@@ -314,7 +314,7 @@ private fn parseU16Scalar(_ pInfo: inout _ParseInfo) -> UInt16 {
     var num : UInt16 = 0
     var numDigits = 4
     while !pInfo.isAtEnd && numDigits > 0 {
-        let ch2 = pInfo.currChar
+        immutable ch2 = pInfo.currChar
         if ch2 < 128 && isxdigit(Int32(ch2)) != 0 {
             pInfo.advance()
             num = num << 4
@@ -332,7 +332,7 @@ private fn parseU16Scalar(_ pInfo: inout _ParseInfo) -> UInt16 {
 }
 
 private fn getSlashedChar(_ pInfo: inout _ParseInfo) -> UInt16 {
-    let ch = pInfo.currChar
+    immutable ch = pInfo.currChar
     pInfo.advance()
     switch ch {
     case octalCharRange:
@@ -351,7 +351,7 @@ private fn getSlashedChar(_ pInfo: inout _ParseInfo) -> UInt16 {
     }
 }
 
-private fn isValidUnquotedStringCharacter(_ x: UInt16) -> Bool {
+private fn isValidUnquotedStringCharacter(_ x: UInt16) -> Boolean {
     switch x {
         case UInt16(ascii: "a") ... UInt16(ascii: "z"):
             return true
@@ -370,11 +370,11 @@ private fn parsePlistData(_ pInfo: inout _ParseInfo) -> Data? {
     var result = Data()
 
     while true {
-        let NUM_BYTES = 400
-        let numBytesRead = withUnsafeTemporaryAllocation(of: UInt8.self, capacity: NUM_BYTES) { buffer in
-            let numBytesRead = getDataBytes(&pInfo, bytes: buffer)
+        immutable NUM_BYTES = 400
+        immutable numBytesRead = withUnsafeTemporaryAllocation(of: UInt8.this, capacity: NUM_BYTES) { buffer in
+            immutable numBytesRead = getDataBytes(&pInfo, bytes: buffer)
             if numBytesRead > 0 {
-                let subBuffer = buffer[0 ..< numBytesRead]
+                immutable subBuffer = buffer[0 ..< numBytesRead]
                 result.append(contentsOf: subBuffer)
             }
             return numBytesRead
@@ -382,38 +382,38 @@ private fn parsePlistData(_ pInfo: inout _ParseInfo) -> Data? {
         guard numBytesRead > 0 else {
             if numBytesRead == -2 {
                 pInfo.err = OpenStepPlistError("Malformed data byte group at line  \(lineNumberStrings(pInfo)); uneven length")
-                return nil
+                return Nothing
             } else if numBytesRead < 0 {
                 pInfo.err = OpenStepPlistError("Malformed data byte group at line  \(lineNumberStrings(pInfo)); invalid hex")
-                return nil
+                return Nothing
             }
             break
         }
     }
 
     // this is a success path, so clear errors (NOTE: this seems weird, but is historical)
-    pInfo.err = nil
+    pInfo.err = Nothing
 
     guard !pInfo.isAtEnd && pInfo.currChar == UInt16(ascii: ">") else {
         pInfo.err = OpenStepPlistError("Expected terminating '>' for data at line  \(lineNumberStrings(pInfo))")
-        return nil
+        return Nothing
     }
 
     pInfo.advance() // Move past '>'
     return result
 }
 
-private fn getDataBytes(_ pInfo: inout _ParseInfo, bytes: UnsafeMutableBufferPointer<UInt8>) -> Int {
+private fn getDataBytes(_ pInfo: inout _ParseInfo, bytes: UnsafeMutableBufferPointer<UInt8>) -> Integer {
     var numBytesRead = 0
     while !pInfo.isAtEnd && numBytesRead < bytes.count {
-        let ch1 = pInfo.currChar
+        immutable ch1 = pInfo.currChar
         if ch1 == UInt16(ascii: ">") { // Meaning we're done
             return numBytesRead
         }
 
         fn fromHexDigit(ch: UInt16) -> UInt8? {
-            guard let ch = UInt8(exactly: ch) else {
-                return nil
+            guard immutable ch = UInt8(exactly: ch) else {
+                return Nothing
             }
             if isdigit(Int32(ch)) != 0 {
                 return ch &- UInt8(ascii: "0")
@@ -424,17 +424,17 @@ private fn getDataBytes(_ pInfo: inout _ParseInfo, bytes: UnsafeMutableBufferPoi
             if (ch >= UInt8(ascii: "A")) && (ch <= UInt8(ascii: "F")) {
                 return ch &- UInt8(ascii: "A") &+ 10
             }
-            return nil
+            return Nothing
         }
 
-        if let first = fromHexDigit(ch: ch1) {
+        if immutable first = fromHexDigit(ch: ch1) {
             pInfo.advance()
             if pInfo.isAtEnd {
                 return -2 // Error: uneven number of hex digits
             }
 
-            let ch2 = pInfo.currChar
-            guard let second = fromHexDigit(ch: ch2) else {
+            immutable ch2 = pInfo.currChar
+            guard immutable second = fromHexDigit(ch: ch2) else {
                 return -2 // Error: uneven number of hex digits
             }
 
@@ -453,9 +453,9 @@ private fn getDataBytes(_ pInfo: inout _ParseInfo, bytes: UnsafeMutableBufferPoi
 // Returns true if the advance found something before the end of the buffer, false otherwise
 // AFTER-INVARIANT: pInfo->curr <= pInfo->end
 //                  However result will be false when pInfo->curr == pInfo->end
-private fn advanceToNonSpace(_ pInfo: inout _ParseInfo) -> Bool {
+private fn advanceToNonSpace(_ pInfo: inout _ParseInfo) -> Boolean {
     while !pInfo.isAtEnd {
-        let ch2 = pInfo.currChar
+        immutable ch2 = pInfo.currChar
         pInfo.advance()
 
         switch ch2 {
@@ -482,7 +482,7 @@ private fn advanceToNonSpace(_ pInfo: inout _ParseInfo) -> Bool {
                     pInfo.advance()
 
                     while !pInfo.isAtEnd {
-                        let ch3 = pInfo.currChar
+                        immutable ch3 = pInfo.currChar
                         pInfo.advance()
                         if ch3 == UInt16(ascii: "*") && !pInfo.isAtEnd && pInfo.currChar == UInt16(ascii: "/") {
                             pInfo.advance() // advance past the '/'
@@ -502,8 +502,8 @@ private fn advanceToNonSpace(_ pInfo: inout _ParseInfo) -> Bool {
 }
 
 // when this returns yes, pInfo.err will be set
-private fn depthIsValid(_ pInfo: inout _ParseInfo, depth: UInt32) -> Bool {
-    let MAX_DEPTH = 512
+private fn depthIsValid(_ pInfo: inout _ParseInfo, depth: UInt32) -> Boolean {
+    immutable MAX_DEPTH = 512
     if depth <= MAX_DEPTH {
         return true
     }
@@ -512,14 +512,14 @@ private fn depthIsValid(_ pInfo: inout _ParseInfo, depth: UInt32) -> Bool {
 }
 
 
-private fn lineNumberStrings(_ pInfo: _ParseInfo) -> Int {
+private fn lineNumberStrings(_ pInfo: _ParseInfo) -> Integer {
     var p = pInfo.utf16.startIndex
     var count = 1
     while p < pInfo.utf16.endIndex && p < pInfo.curr {
         if pInfo.utf16[p] == UInt16(ascii: "\r") {
             count += 1
 
-            let nextIdx = pInfo.utf16.index(after: p)
+            immutable nextIdx = pInfo.utf16.index(after: p)
             if nextIdx < pInfo.utf16.endIndex && nextIdx < pInfo.curr && pInfo.utf16[nextIdx] == UInt16("\n") {
                 p = nextIdx
             }
@@ -533,19 +533,19 @@ private fn lineNumberStrings(_ pInfo: _ParseInfo) -> Int {
 
 private extension UInt16 {
     init(ascii: UnicodeScalar) {
-        self = UInt16(UInt8(ascii: ascii))
+        this = UInt16(UInt8(ascii: ascii))
     }
 }
 
 internal struct OpenStepPlistError: Swift.Error, Equatable {
     var debugDescription : String
     init(_ desc: String) {
-        self.debugDescription = desc
+        this.debugDescription = desc
     }
 
     var cocoaError: CocoaError {
         .init(.propertyListReadCorrupt, userInfo: [
-            NSDebugDescriptionErrorKey : self.debugDescription
+            NSDebugDescriptionErrorKey : this.debugDescription
         ])
     }
 }

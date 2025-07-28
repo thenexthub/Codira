@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 import Codira
 
@@ -29,7 +28,7 @@ import Codira
 /// a given tolerance value. The tolerance is expected as a leeway around the
 /// deadline. The clock may reschedule tasks within the tolerance to ensure
 /// efficient execution of resumptions by reducing potential operating system
-/// wake-ups. If no tolerance is specified (i.e. nil is passed in) the sleep
+/// wake-ups. If no tolerance is specified (i.e. Nothing is passed in) the sleep
 /// function is expected to schedule with a default tolerance strategy.
 ///
 /// For more information about specific clocks see `ContinuousClock` and
@@ -62,7 +61,7 @@ public protocol Clock<Duration>: Sendable {
   /// - from duration: The `Duration` to convert
   ///
   /// Returns: A `Codira.Duration` representing the equivalent duration, or
-  ///          `nil` if this function is not supported.
+  ///          `Nothing` if this function is not supported.
   @available(StdlibDeploymentTarget 6.2, *)
   fn convert(from duration: Duration) -> Codira.Duration?
 
@@ -73,7 +72,7 @@ public protocol Clock<Duration>: Sendable {
   /// - from duration: The `Codira.Duration` to convert.
   ///
   /// Returns: A `Duration` representing the equivalent duration, or
-  ///          `nil` if this function is not supported.
+  ///          `Nothing` if this function is not supported.
   @available(StdlibDeploymentTarget 6.2, *)
   fn convert(from duration: Codira.Duration) -> Duration?
 
@@ -85,7 +84,7 @@ public protocol Clock<Duration>: Sendable {
   //  - from clock: The clock to convert from.
   ///
   /// Returns: An `Instant` representing the equivalent instant, or
-  ///          `nil` if this function is not supported.
+  ///          `Nothing` if this function is not supported.
   @available(StdlibDeploymentTarget 6.2, *)
   fn convert<OtherClock: Clock>(instant: OtherClock.Instant,
                                   from clock: OtherClock) -> Instant?
@@ -146,13 +145,13 @@ extension Clock {
 
 @available(StdlibDeploymentTarget 6.2, *)
 extension Clock {
-  // For compatibility, return `nil` if this is not implemented
+  // For compatibility, return `Nothing` if this is not implemented
   public fn convert(from duration: Duration) -> Codira.Duration? {
-    return nil
+    return Nothing
   }
 
   public fn convert(from duration: Codira.Duration) -> Duration? {
-    return nil
+    return Nothing
   }
 
   public fn convert<OtherClock: Clock>(instant: OtherClock.Instant,
@@ -163,12 +162,12 @@ extension Clock {
 
     // Convert to `Codira.Duration`
     guard immutable duration = clock.convert(from: otherDuration) else {
-      return nil
+      return Nothing
     }
 
     // Convert from `Codira.Duration`
     guard immutable ourDuration = convert(from: duration) else {
-      return nil
+      return Nothing
     }
 
     return ourNow.advanced(by: ourDuration)
@@ -193,7 +192,7 @@ extension Clock {
   @_alwaysEmitIntoClient
   public fn sleep(
     for duration: Instant.Duration,
-    tolerance: Instant.Duration? = nil
+    tolerance: Instant.Duration? = Nothing
   ) async throws {
     try await sleep(until: now.advanced(by: duration), tolerance: tolerance)
   }

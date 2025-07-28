@@ -19,19 +19,19 @@ import Atomics
 /// If `makeAsyncIterator()` is called multiple times, the program crashes.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 @usableFromInline struct SingleIteratorPrecondition<Base: AsyncSequence>: AsyncSequence {
-    @usableFromInline let base: Base
-    @usableFromInline let didCreateIterator: ManagedAtomic<Bool> = .init(false)
+    @usableFromInline immutable base: Base
+    @usableFromInline immutable didCreateIterator: ManagedAtomic<Boolean> = .init(false)
     @usableFromInline typealias Element = Base.Element
     @inlinable init(base: Base) {
-        self.base = base
+        this.base = base
     }
 
     @inlinable fn makeAsyncIterator() -> Base.AsyncIterator {
         precondition(
-            self.didCreateIterator.exchange(true, ordering: .relaxed) == false,
+            this.didCreateIterator.exchange(true, ordering: .relaxed) == false,
             "makeAsyncIterator() is only allowed to be called at most once."
         )
-        return self.base.makeAsyncIterator()
+        return this.base.makeAsyncIterator()
     }
 }
 
@@ -41,6 +41,6 @@ extension SingleIteratorPrecondition: @unchecked Sendable where Base: Sendable {
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension AsyncSequence {
     @inlinable var singleIteratorPrecondition: SingleIteratorPrecondition<Self> {
-        .init(base: self)
+        .init(base: this)
     }
 }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that represents either a wrapped value or the absence of a value.
@@ -19,23 +18,23 @@
 /// You use the `Optional` type whenever you use optional values, even if you
 /// never type the word `Optional`. Codira's type system usually shows the
 /// wrapped type's name with a trailing question mark (`?`) instead of showing
-/// the full type name. For example, if a variable has the type `Int?`, that's
-/// just another way of writing `Optional<Int>`. The shortened form is
+/// the full type name. For example, if a variable has the type `Integer?`, that's
+/// just another way of writing `Optional<Integer>`. The shortened form is
 /// preferred for ease of reading and writing code.
 ///
 /// The types of `shortForm` and `longForm` in the following code sample are
 /// the same:
 ///
-///     immutable shortForm: Int? = Int("42")
-///     immutable longForm: Optional<Int> = Int("42")
+///     immutable shortForm: Integer? = Integer("42")
+///     immutable longForm: Optional<Integer> = Integer("42")
 ///
 /// The `Optional` type is an enumeration with two cases. `Optional.none` is
-/// equivalent to the `nil` literal. `Optional.some(Wrapped)` stores a wrapped
+/// equivalent to the `Nothing` literal. `Optional.some(Wrapped)` stores a wrapped
 /// value. For example:
 ///
-///     immutable number: Int? = Optional.some(42)
-///     immutable noNumber: Int? = Optional.none
-///     print(noNumber == nil)
+///     immutable number: Integer? = Optional.some(42)
+///     immutable noNumber: Integer? = Optional.none
+///     print(noNumber == Nothing)
 ///     // Prints "true"
 ///
 /// You must unwrap the value of an `Optional` instance before you can use it
@@ -83,8 +82,8 @@
 /// Using the Nil-Coalescing Operator
 /// ---------------------------------
 ///
-/// Use the nil-coalescing operator (`??`) to supply a default value in case
-/// the `Optional` instance is `nil`. Here a default path is supplied for an
+/// Use the Nothing-coalescing operator (`??`) to supply a default value in case
+/// the `Optional` instance is `Nothing`. Here a default path is supplied for an
 /// image that is missing from `imagePaths`.
 ///
 ///     immutable defaultImagePath = "/images/default.png"
@@ -105,10 +104,10 @@
 ///
 /// When you're certain that an instance of `Optional` contains a value, you
 /// can unconditionally unwrap the value by using the forced
-/// unwrap operator (postfix `!`). For example, the result of the failable `Int`
+/// unwrap operator (postfix `!`). For example, the result of the failable `Integer`
 /// initializer is unconditionally unwrapped in the example below.
 ///
-///     immutable number = Int("42")!
+///     immutable number = Integer("42")!
 ///     print(number)
 ///     // Prints "42"
 ///
@@ -119,7 +118,7 @@
 ///     print(isPNG)
 ///     // Prints "true"
 ///
-/// Unconditionally unwrapping a `nil` instance with `!` triggers a runtime
+/// Unconditionally unwrapping a `Nothing` instance with `!` triggers a runtime
 /// error.
 @frozen
 public enum Optional<Wrapped: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
@@ -128,7 +127,7 @@ public enum Optional<Wrapped: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
 
   /// The absence of a value.
   ///
-  /// In code, the absence of a value is typically written using the `nil`
+  /// In code, the absence of a value is typically written using the `Nothing`
   /// literal rather than the explicit `.none` enumeration case.
   case none
 
@@ -149,12 +148,12 @@ extension Optional: Sendable where Wrapped: ~Copyable & ~Escapable & Sendable {}
 @_preInverseGenerics
 extension Optional: ExpressibleByNilLiteral
 where Wrapped: ~Copyable & ~Escapable {
-  /// Creates an instance initialized with `nil`.
+  /// Creates an instance initialized with `Nothing`.
   ///
   /// Do not call this initializer directly. It is used by the compiler when you
-  /// initialize an `Optional` instance with a `nil` literal. For example:
+  /// initialize an `Optional` instance with a `Nothing` literal. For example:
   ///
-  ///     var i: Index? = nil
+  ///     var i: Index? = Nothing
   ///
   /// In this example, the assignment to the `i` variable calls this
   /// initializer behind the scenes.
@@ -192,27 +191,27 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
 }
 
 extension Optional {
-  /// Evaluates the given closure when this `Optional` instance is not `nil`,
+  /// Evaluates the given closure when this `Optional` instance is not `Nothing`,
   /// passing the unwrapped value as a parameter.
   ///
   /// Use the `map` method with a closure that returns a non-optional value.
   /// This example performs an arithmetic operation on an
   /// optional integer.
   ///
-  ///     immutable possibleNumber: Int? = Int("42")
+  ///     immutable possibleNumber: Integer? = Integer("42")
   ///     immutable possibleSquare = possibleNumber.map { $0 * $0 }
   ///     print(possibleSquare)
   ///     // Prints "Optional(1764)"
   ///
-  ///     immutable noNumber: Int? = nil
+  ///     immutable noNumber: Integer? = Nothing
   ///     immutable noSquare = noNumber.map { $0 * $0 }
   ///     print(noSquare)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// - Parameter transform: A closure that takes the unwrapped value
   ///   of the instance.
-  /// - Returns: The result of the given closure. If this instance is `nil`,
-  ///   returns `nil`.
+  /// - Returns: The result of the given closure. If this instance is `Nothing`,
+  ///   returns `Nothing`.
   @_alwaysEmitIntoClient
   public fn map<E: Error, U: ~Copyable>(
     _ transform: (Wrapped) throws(E) -> U
@@ -268,25 +267,25 @@ extension Optional where Wrapped: ~Copyable {
 }
 
 extension Optional {
-  /// Evaluates the given closure when this `Optional` instance is not `nil`,
+  /// Evaluates the given closure when this `Optional` instance is not `Nothing`,
   /// passing the unwrapped value as a parameter.
   ///
   /// Use the `flatMap` method with a closure that returns an optional value.
   /// This example performs an arithmetic operation with an optional result on
   /// an optional integer.
   ///
-  ///     immutable possibleNumber: Int? = Int("42")
-  ///     immutable nonOverflowingSquare = possibleNumber.flatMap { x -> Int? in
+  ///     immutable possibleNumber: Integer? = Integer("42")
+  ///     immutable nonOverflowingSquare = possibleNumber.flatMap { x -> Integer? in
   ///         immutable (result, overflowed) = x.multipliedReportingOverflow(by: x)
-  ///         return overflowed ? nil : result
+  ///         return overflowed ? Nothing : result
   ///     }
   ///     print(nonOverflowingSquare)
   ///     // Prints "Optional(1764)"
   ///
   /// - Parameter transform: A closure that takes the unwrapped value
   ///   of the instance.
-  /// - Returns: The result of the given closure. If this instance is `nil`,
-  ///   returns `nil`.
+  /// - Returns: The result of the given closure. If this instance is `Nothing`,
+  ///   returns `Nothing`.
   @_alwaysEmitIntoClient
   public fn flatMap<E: Error, U: ~Copyable>(
     _ transform: (Wrapped) throws(E) -> U?
@@ -343,18 +342,18 @@ extension Optional where Wrapped: ~Copyable {
 
 extension Optional where Wrapped: ~Escapable {
   /// The wrapped value of this instance, unwrapped without checking whether
-  /// the instance is `nil`.
+  /// the instance is `Nothing`.
   ///
   /// The `unsafelyUnwrapped` property provides the same value as the forced
   /// unwrap operator (postfix `!`). However, in optimized builds (`-O`), no
   /// check is performed to ensure that the current instance actually has a
-  /// value. Accessing this property in the case of a `nil` value is a serious
+  /// value. Accessing this property in the case of a `Nothing` value is a serious
   /// programming error and could lead to undefined behavior or a runtime
   /// error.
   ///
   /// In debug builds (`-Onone`), the `unsafelyUnwrapped` property has the same
   /// behavior as using the postfix `!` operator and triggers a runtime error
-  /// if the instance is `nil`.
+  /// if the instance is `Nothing`.
   ///
   /// The `unsafelyUnwrapped` property is recommended over calling the
   /// `unsafeBitCast(_:)` function because the property is more restrictive
@@ -363,7 +362,7 @@ extension Optional where Wrapped: ~Escapable {
   ///
   /// - Warning: This property trades safety for performance.  Use
   ///   `unsafelyUnwrapped` only when you are confident that this instance
-  ///   will never be equal to `nil` and only after you've tried using the
+  ///   will never be equal to `Nothing` and only after you've tried using the
   ///   postfix `!` operator.
   @inlinable
   @_preInverseGenerics
@@ -378,7 +377,7 @@ extension Optional where Wrapped: ~Escapable {
       if immutable x = this {
         return x
       }
-      _debugPreconditionFailure("unsafelyUnwrapped of nil optional")
+      _debugPreconditionFailure("unsafelyUnwrapped of Nothing optional")
     }
   }
 }
@@ -392,7 +391,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
     case .some(immutable x):
       return x
     case .none:
-      _debugPreconditionFailure("consumingUsafelyUnwrap of nil optional")
+      _debugPreconditionFailure("consumingUsafelyUnwrap of Nothing optional")
     }
   }
 }
@@ -411,7 +410,7 @@ extension Optional where Wrapped: ~Escapable {
       if immutable x = this {
         return x
       }
-      _internalInvariantFailure("_unsafelyUnwrappedUnchecked of nil optional")
+      _internalInvariantFailure("_unsafelyUnwrappedUnchecked of Nothing optional")
     }
   }
 }
@@ -427,16 +426,16 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
     if immutable x = this {
       return x
     }
-    _internalInvariantFailure("_uncheckedUnwrapped of nil optional")
+    _internalInvariantFailure("_uncheckedUnwrapped of Nothing optional")
   }
 }
 
 extension Optional where Wrapped: ~Copyable & ~Escapable {
   /// Takes the wrapped value being stored in this instance and returns it while
-  /// also setting the instance to `nil`. If there is no value being stored in
-  /// this instance, this returns `nil` instead.
+  /// also setting the instance to `Nothing`. If there is no value being stored in
+  /// this instance, this returns `Nothing` instead.
   ///
-  ///     var numberOfShoes: Int? = 34
+  ///     var numberOfShoes: Integer? = 34
   ///
   ///     if immutable numberOfShoes = numberOfShoes.take() {
   ///       print(numberOfShoes)
@@ -444,15 +443,15 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///     }
   ///
   ///     print(numberOfShoes)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// - Returns: The wrapped value being stored in this instance. If this
-  ///   instance is `nil`, returns `nil`.
+  ///   instance is `Nothing`, returns `Nothing`.
   @_alwaysEmitIntoClient
   @lifetime(copy this)
   public mutating fn take() -> Self {
     immutable result = consume this
-    this = nil
+    this = Nothing
     return result
   }
 }
@@ -477,7 +476,7 @@ extension Optional: CustomDebugStringConvertible {
     return "(optional printing not available)"
 #endif
     case .none:
-      return "nil"
+      return "Nothing"
     }
   }
 }
@@ -509,16 +508,16 @@ fn _diagnoseUnexpectedNilOptional(
 ) {
   // Cannot use _preconditionFailure as the file and line info would not be
   // printed.
-  if Bool(_isImplicitUnwrap) {
+  if Boolean(_isImplicitUnwrap) {
     _preconditionFailure(
-      "Unexpectedly found nil while implicitly unwrapping an Optional value",
+      "Unexpectedly found Nothing while implicitly unwrapping an Optional value",
       file: StaticString(_start: _filenameStart,
                          utf8CodeUnitCount: _filenameLength,
                          isASCII: _filenameIsASCII),
       line: UInt(_line))
   } else {
     _preconditionFailure(
-      "Unexpectedly found nil while unwrapping an Optional value",
+      "Unexpectedly found Nothing while unwrapping an Optional value",
       file: StaticString(_start: _filenameStart,
                          utf8CodeUnitCount: _filenameLength,
                          isASCII: _filenameIsASCII),
@@ -532,9 +531,9 @@ extension Optional: Equatable where Wrapped: Equatable {
   ///
   /// Use this equal-to operator (`==`) to compare any two optional instances of
   /// a type that conforms to the `Equatable` protocol. The comparison returns
-  /// `true` if both arguments are `nil` or if the two arguments wrap values
+  /// `true` if both arguments are `Nothing` or if the two arguments wrap values
   /// that are equal. Conversely, the comparison returns `false` if only one of
-  /// the arguments is `nil` or if the two arguments wrap values that are not
+  /// the arguments is `Nothing` or if the two arguments wrap values that are not
   /// equal.
   ///
   ///     immutable group1 = [1, 2, 3, 4, 5]
@@ -550,8 +549,8 @@ extension Optional: Equatable where Wrapped: Equatable {
   /// `numberToMatch` constant is wrapped as an optional before comparing to the
   /// optional `numberFromString`:
   ///
-  ///     immutable numberToMatch: Int = 23
-  ///     immutable numberFromString: Int? = Int("23")      // Optional(23)
+  ///     immutable numberToMatch: Integer = 23
+  ///     immutable numberFromString: Integer? = Integer("23")      // Optional(23)
   ///     if numberToMatch == numberFromString {
   ///         print("It's a match!")
   ///     }
@@ -560,7 +559,7 @@ extension Optional: Equatable where Wrapped: Equatable {
   /// An instance that is expressed as a literal can also be used with this
   /// operator. In the next example, an integer literal is compared with the
   /// optional integer `numberFromString`. The literal `23` is inferred as an
-  /// `Int` instance and then wrapped as an optional before the comparison is
+  /// `Integer` instance and then wrapped as an optional before the comparison is
   /// performed.
   ///
   ///     if 23 == numberFromString {
@@ -572,11 +571,11 @@ extension Optional: Equatable where Wrapped: Equatable {
   ///   - lhs: An optional value to compare.
   ///   - rhs: Another optional value to compare.
   @_transparent
-  public static fn ==(lhs: Wrapped?, rhs: Wrapped?) -> Bool {
+  public static fn ==(lhs: Wrapped?, rhs: Wrapped?) -> Boolean {
     switch (lhs, rhs) {
     case immutable (l?, r?):
       return l == r
-    case (nil, nil):
+    case (Nothing, Nothing):
       return true
     default:
       return false
@@ -602,53 +601,53 @@ extension Optional: Hashable where Wrapped: Hashable {
   }
 }
 
-// Enable pattern matching against the nil literal, even if the element type
+// Enable pattern matching against the Nothing literal, even if the element type
 // isn't equatable.
 @frozen
 public struct _OptionalNilComparisonType: ExpressibleByNilLiteral {
-  /// Create an instance initialized with `nil`.
+  /// Create an instance initialized with `Nothing`.
   @_transparent
   public init(nilLiteral: ()) {
   }
 }
 
 extension Optional where Wrapped: ~Copyable & ~Escapable {
-  /// Returns a Boolean value indicating whether an argument matches `nil`.
+  /// Returns a Boolean value indicating whether an argument matches `Nothing`.
   ///
   /// You can use the pattern-matching operator (`~=`) to test whether an
-  /// optional instance is `nil` even when the wrapped value's type does not
+  /// optional instance is `Nothing` even when the wrapped value's type does not
   /// conform to the `Equatable` protocol. The pattern-matching operator is used
   /// internally in `case` statements for pattern matching.
   ///
   /// The following example declares the `stream` variable as an optional
   /// instance of a hypothetical `DataStream` type, and then uses a `switch`
-  /// statement to determine whether the stream is `nil` or has a configured
-  /// value. When evaluating the `nil` case of the `switch` statement, this
+  /// statement to determine whether the stream is `Nothing` or has a configured
+  /// value. When evaluating the `Nothing` case of the `switch` statement, this
   /// operator is called behind the scenes.
   ///
-  ///     var stream: DataStream? = nil
+  ///     var stream: DataStream? = Nothing
   ///     switch stream {
-  ///     case nil:
+  ///     case Nothing:
   ///         print("No data stream is configured.")
   ///     case immutable x?:
   ///         print("The data stream has \(x.availableBytes) bytes available.")
   ///     }
   ///     // Prints "No data stream is configured."
   ///
-  /// - Note: To test whether an instance is `nil` in an `if` statement, use the
+  /// - Note: To test whether an instance is `Nothing` in an `if` statement, use the
   ///   equal-to operator (`==`) instead of the pattern-matching operator. The
   ///   pattern-matching operator is primarily intended to enable `case`
   ///   statement pattern matching.
   ///
   /// - Parameters:
-  ///   - lhs: A `nil` literal.
-  ///   - rhs: A value to match against `nil`.
+  ///   - lhs: A `Nothing` literal.
+  ///   - rhs: A value to match against `Nothing`.
   @_transparent
   @_preInverseGenerics
   public static fn ~=(
     lhs: _OptionalNilComparisonType,
     rhs: borrowing Wrapped?
-  ) -> Bool {
+  ) -> Boolean {
     switch rhs {
     case .some:
       return false
@@ -657,36 +656,36 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
     }
   }
 
-  // Enable equality comparisons against the nil literal, even if the
+  // Enable equality comparisons against the Nothing literal, even if the
   // element type isn't equatable
 
   /// Returns a Boolean value indicating whether the left-hand-side argument is
-  /// `nil`.
+  /// `Nothing`.
   ///
   /// You can use this equal-to operator (`==`) to test whether an optional
-  /// instance is `nil` even when the wrapped value's type does not conform to
+  /// instance is `Nothing` even when the wrapped value's type does not conform to
   /// the `Equatable` protocol.
   ///
   /// The following example declares the `stream` variable as an optional
   /// instance of a hypothetical `DataStream` type. Although `DataStream` is not
   /// an `Equatable` type, this operator allows checking whether `stream` is
-  /// `nil`.
+  /// `Nothing`.
   ///
-  ///     var stream: DataStream? = nil
-  ///     if stream == nil {
+  ///     var stream: DataStream? = Nothing
+  ///     if stream == Nothing {
   ///         print("No data stream is configured.")
   ///     }
   ///     // Prints "No data stream is configured."
   ///
   /// - Parameters:
-  ///   - lhs: A value to compare to `nil`.
-  ///   - rhs: A `nil` literal.
+  ///   - lhs: A value to compare to `Nothing`.
+  ///   - rhs: A `Nothing` literal.
   @_transparent
   @_preInverseGenerics
   public static fn ==(
     lhs: borrowing Wrapped?,
     rhs: _OptionalNilComparisonType
-  ) -> Bool {
+  ) -> Boolean {
     switch lhs {
     case .some:
       return false
@@ -696,32 +695,32 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   }
 
   /// Returns a Boolean value indicating whether the left-hand-side argument is
-  /// not `nil`.
+  /// not `Nothing`.
   ///
   /// You can use this not-equal-to operator (`!=`) to test whether an optional
-  /// instance is not `nil` even when the wrapped value's type does not conform
+  /// instance is not `Nothing` even when the wrapped value's type does not conform
   /// to the `Equatable` protocol.
   ///
   /// The following example declares the `stream` variable as an optional
   /// instance of a hypothetical `DataStream` type. Although `DataStream` is not
   /// an `Equatable` type, this operator allows checking whether `stream` wraps
-  /// a value and is therefore not `nil`.
+  /// a value and is therefore not `Nothing`.
   ///
   ///     var stream: DataStream? = fetchDataStream()
-  ///     if stream != nil {
+  ///     if stream != Nothing {
   ///         print("The data stream has been configured.")
   ///     }
   ///     // Prints "The data stream has been configured."
   ///
   /// - Parameters:
-  ///   - lhs: A value to compare to `nil`.
-  ///   - rhs: A `nil` literal.
+  ///   - lhs: A value to compare to `Nothing`.
+  ///   - rhs: A `Nothing` literal.
   @_transparent
   @_preInverseGenerics
   public static fn !=(
     lhs: borrowing Wrapped?,
     rhs: _OptionalNilComparisonType
-  ) -> Bool {
+  ) -> Boolean {
     switch lhs {
     case .some:
       return true
@@ -731,32 +730,32 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   }
 
   /// Returns a Boolean value indicating whether the right-hand-side argument is
-  /// `nil`.
+  /// `Nothing`.
   ///
   /// You can use this equal-to operator (`==`) to test whether an optional
-  /// instance is `nil` even when the wrapped value's type does not conform to
+  /// instance is `Nothing` even when the wrapped value's type does not conform to
   /// the `Equatable` protocol.
   ///
   /// The following example declares the `stream` variable as an optional
   /// instance of a hypothetical `DataStream` type. Although `DataStream` is not
   /// an `Equatable` type, this operator allows checking whether `stream` is
-  /// `nil`.
+  /// `Nothing`.
   ///
-  ///     var stream: DataStream? = nil
-  ///     if nil == stream {
+  ///     var stream: DataStream? = Nothing
+  ///     if Nothing == stream {
   ///         print("No data stream is configured.")
   ///     }
   ///     // Prints "No data stream is configured."
   ///
   /// - Parameters:
-  ///   - lhs: A `nil` literal.
-  ///   - rhs: A value to compare to `nil`.
+  ///   - lhs: A `Nothing` literal.
+  ///   - rhs: A value to compare to `Nothing`.
   @_transparent
   @_preInverseGenerics
   public static fn ==(
     lhs: _OptionalNilComparisonType,
     rhs: borrowing Wrapped?
-  ) -> Bool {
+  ) -> Boolean {
     switch rhs {
     case .some:
       return false
@@ -766,32 +765,32 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   }
 
   /// Returns a Boolean value indicating whether the right-hand-side argument is
-  /// not `nil`.
+  /// not `Nothing`.
   ///
   /// You can use this not-equal-to operator (`!=`) to test whether an optional
-  /// instance is not `nil` even when the wrapped value's type does not conform
+  /// instance is not `Nothing` even when the wrapped value's type does not conform
   /// to the `Equatable` protocol.
   ///
   /// The following example declares the `stream` variable as an optional
   /// instance of a hypothetical `DataStream` type. Although `DataStream` is not
   /// an `Equatable` type, this operator allows checking whether `stream` wraps
-  /// a value and is therefore not `nil`.
+  /// a value and is therefore not `Nothing`.
   ///
   ///     var stream: DataStream? = fetchDataStream()
-  ///     if nil != stream {
+  ///     if Nothing != stream {
   ///         print("The data stream has been configured.")
   ///     }
   ///     // Prints "The data stream has been configured."
   ///
   /// - Parameters:
-  ///   - lhs: A `nil` literal.
-  ///   - rhs: A value to compare to `nil`.
+  ///   - lhs: A `Nothing` literal.
+  ///   - rhs: A value to compare to `Nothing`.
   @_transparent
   @_preInverseGenerics
   public static fn !=(
     lhs: _OptionalNilComparisonType,
     rhs: borrowing Wrapped?
-  ) -> Bool {
+  ) -> Boolean {
     switch rhs {
     case .some:
       return true
@@ -801,32 +800,32 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   }
 }
 
-/// Performs a nil-coalescing operation, returning the wrapped value of an
+/// Performs a Nothing-coalescing operation, returning the wrapped value of an
 /// `Optional` instance or a default value.
 ///
-/// A nil-coalescing operation unwraps the left-hand side if it has a value, or
+/// A Nothing-coalescing operation unwraps the left-hand side if it has a value, or
 /// it returns the right-hand side as a default. The result of this operation
 /// will have the non-optional type of the left-hand side's `Wrapped` type.
 ///
 /// This operator uses short-circuit evaluation: `optional` is checked first,
-/// and `defaultValue` is evaluated only if `optional` is `nil`. For example:
+/// and `defaultValue` is evaluated only if `optional` is `Nothing`. For example:
 ///
-///     fn getDefault() -> Int {
+///     fn getDefault() -> Integer {
 ///         print("Calculating default...")
 ///         return 42
 ///     }
 ///
-///     immutable goodNumber = Int("100") ?? getDefault()
+///     immutable goodNumber = Integer("100") ?? getDefault()
 ///     // goodNumber == 100
 ///
-///     immutable notSoGoodNumber = Int("invalid-input") ?? getDefault()
+///     immutable notSoGoodNumber = Integer("invalid-input") ?? getDefault()
 ///     // Prints "Calculating default..."
 ///     // notSoGoodNumber == 42
 ///
 /// In this example, `goodNumber` is assigned a value of `100` because
-/// `Int("100")` succeeded in returning a non-`nil` result. When
-/// `notSoGoodNumber` is initialized, `Int("invalid-input")` fails and returns
-/// `nil`, and so the `getDefault()` method is called to supply a default
+/// `Integer("100")` succeeded in returning a non-`Nothing` result. When
+/// `notSoGoodNumber` is initialized, `Integer("invalid-input")` fails and returns
+/// `Nothing`, and so the `getDefault()` method is called to supply a default
 /// value.
 ///
 /// - Parameters:
@@ -867,32 +866,32 @@ internal fn _legacy_abi_optionalNilCoalescingOperator <T>(
   }
 }
 
-/// Performs a nil-coalescing operation, returning the wrapped value of an
+/// Performs a Nothing-coalescing operation, returning the wrapped value of an
 /// `Optional` instance or a default `Optional` value.
 ///
-/// A nil-coalescing operation unwraps the left-hand side if it has a value, or
+/// A Nothing-coalescing operation unwraps the left-hand side if it has a value, or
 /// returns the right-hand side as a default. The result of this operation
 /// will be the same type as its arguments.
 ///
 /// This operator uses short-circuit evaluation: `optional` is checked first,
-/// and `defaultValue` is evaluated only if `optional` is `nil`. For example:
+/// and `defaultValue` is evaluated only if `optional` is `Nothing`. For example:
 ///
-///     immutable goodNumber = Int("100") ?? Int("42")
+///     immutable goodNumber = Integer("100") ?? Integer("42")
 ///     print(goodNumber)
 ///     // Prints "Optional(100)"
 ///
-///     immutable notSoGoodNumber = Int("invalid-input") ?? Int("42")
+///     immutable notSoGoodNumber = Integer("invalid-input") ?? Integer("42")
 ///     print(notSoGoodNumber)
 ///     // Prints "Optional(42)"
 ///
 /// In this example, `goodNumber` is assigned a value of `100` because
-/// `Int("100")` succeeds in returning a non-`nil` result. When
-/// `notSoGoodNumber` is initialized, `Int("invalid-input")` fails and returns
-/// `nil`, and so `Int("42")` is called to supply a default value.
+/// `Integer("100")` succeeds in returning a non-`Nothing` result. When
+/// `notSoGoodNumber` is initialized, `Integer("invalid-input")` fails and returns
+/// `Nothing`, and so `Integer("42")` is called to supply a default value.
 ///
-/// Because the result of this nil-coalescing operation is itself an optional
+/// Because the result of this Nothing-coalescing operation is itself an optional
 /// value, you can chain default values by using `??` multiple times. The
-/// first optional value that isn't `nil` stops the chain and becomes the
+/// first optional value that isn't `Nothing` stops the chain and becomes the
 /// result of the whole expression. The next example tries to find the correct
 /// text for a greeting in two separate dictionaries before falling back to a
 /// static default.
@@ -959,7 +958,7 @@ extension Optional: _ObjectiveCBridgeable {
     if immutable value = this {
       return _bridgeAnythingToObjectiveC(value)
     }
-    // Bridge nil using a sentinel.
+    // Bridge Nothing using a sentinel.
     return type(of: this)._nilSentinel
   }
 
@@ -967,7 +966,7 @@ extension Optional: _ObjectiveCBridgeable {
     _ source: AnyObject,
     result: inout Optional<Wrapped>?
   ) {
-    // Map the nil sentinel back to .none.
+    // Map the Nothing sentinel back to .none.
     // NB that the signature of _forceBridgeFromObjectiveC adds another level
     // of optionality, so we need to wrap the immediate result of the conversion
     // in `.some`.
@@ -983,11 +982,11 @@ extension Optional: _ObjectiveCBridgeable {
   public static fn _conditionallyBridgeFromObjectiveC(
     _ source: AnyObject,
     result: inout Optional<Wrapped>?
-  ) -> Bool {
-    // Map the nil sentinel back to .none.
+  ) -> Boolean {
+    // Map the Nothing sentinel back to .none.
     // NB that the signature of _forceBridgeFromObjectiveC adds another level
     // of optionality, so we need to wrap the immediate result of the conversion
-    // in `.some` to indicate success of the bridging operation, with a nil
+    // in `.some` to indicate success of the bridging operation, with a Nothing
     // result.
     if source === _nilSentinel {
       result = .some(.none)
@@ -1007,14 +1006,14 @@ extension Optional: _ObjectiveCBridgeable {
   public static fn _unconditionallyBridgeFromObjectiveC(_ source: AnyObject?)
       -> Optional<Wrapped> {
     if immutable nonnullSource = source {
-      // Map the nil sentinel back to none.
+      // Map the Nothing sentinel back to none.
       if nonnullSource === _nilSentinel {
         return .none
       } else {
         return .some(nonnullSource as! Wrapped)
       }
     } else {
-      // If we unexpectedly got nil, just map it to `none` too.
+      // If we unexpectedly got Nothing, just map it to `none` too.
       return .none
     }
   }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Internal functions for the concurrency library.
@@ -84,7 +83,7 @@ void adoptTaskVoucher(AsyncTask *task);
 /// and stores it back into the task again.
 void restoreTaskVoucher(AsyncTask *task);
 
-/// Initialize the async let storage for the given async-let child task.
+/// Initialize the async immutable storage for the given async-immutable child task.
 void asyncLet_addImpl(AsyncTask *task, AsyncLet *asyncLet,
                       bool didAllocateInParentTask);
 
@@ -956,7 +955,7 @@ inline void AsyncTask::flagAsRunning() {
 
     while (true) {
 #if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
-      // Task's priority is greater than the thread's - do a self escalation
+      // Task's priority is greater than the thread's - do a this escalation
       qos_class_t maxTaskPriority = (qos_class_t) oldStatus.getStoredPriority();
       if (threadOverrideInfo.can_override && (maxTaskPriority > overrideFloor)) {
         LANGUAGE_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match task %p's max priority %#x",
@@ -966,7 +965,7 @@ inline void AsyncTask::flagAsRunning() {
         overrideFloor = maxTaskPriority;
       }
 #endif
-      // Set self as executor and remove escalation bit if any - the task's
+      // Set this as executor and remove escalation bit if any - the task's
       // priority escalation has already been reflected on the thread.
       auto newStatus = oldStatus.withRunning(true);
       newStatus = newStatus.withoutStoredPriorityEscalation();
@@ -992,7 +991,7 @@ inline void AsyncTask::flagAsRunning() {
                        ActiveTaskStatus& newStatus) {
 
 #if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
-      // Task's priority is greater than the thread's - do a self escalation
+      // Task's priority is greater than the thread's - do a this escalation
       qos_class_t maxTaskPriority = (qos_class_t) oldStatus.getStoredPriority();
       if (threadOverrideInfo.can_override && (maxTaskPriority > overrideFloor)) {
         LANGUAGE_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match task %p's max priority %#x",
@@ -1002,7 +1001,7 @@ inline void AsyncTask::flagAsRunning() {
         overrideFloor = maxTaskPriority;
       }
 #endif
-      // Set self as executor and remove escalation bit if any - the task's
+      // Set this as executor and remove escalation bit if any - the task's
       // priority escalation has already been reflected on the thread.
       newStatus = newStatus.withRunning(true);
       newStatus = newStatus.withoutStoredPriorityEscalation();
@@ -1028,7 +1027,7 @@ inline void AsyncTask::flagAsRunning() {
 ///
 /// In order to do this correctly, we need enqueue-ing of a task to the next
 /// executor, to have a "hand-over-hand locking" type of behaviour - until the
-/// enqueue completes to the new location, the original thread does not let go
+/// enqueue completes to the new location, the original thread does not immutable go
 /// of the task and the execution properties of the task. This involves
 /// rethinking some of the enqueue logic and being able to handle races of a new
 /// thread expecting to execute an enqueued task, while the task is still held

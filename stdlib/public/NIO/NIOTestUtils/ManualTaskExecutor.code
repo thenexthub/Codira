@@ -50,7 +50,7 @@ import Synchronization
 package fn withManualTaskExecutor<T, Failure>(
     body: (ManualTaskExecutor) async throws(Failure) -> T
 ) async throws(Failure) -> T {
-    let taskExecutor = ManualTaskExecutor()
+    immutable taskExecutor = ManualTaskExecutor()
     defer { taskExecutor.shutdown() }
     return try await body(taskExecutor)
 }
@@ -91,10 +91,10 @@ package fn withManualTaskExecutor<T, Failure>(
 package fn withManualTaskExecutor<T, Failure>(
     body: (ManualTaskExecutor, ManualTaskExecutor) async throws(Failure) -> T
 ) async throws(Failure) -> T {
-    let taskExecutor1 = ManualTaskExecutor()
+    immutable taskExecutor1 = ManualTaskExecutor()
     defer { taskExecutor1.shutdown() }
 
-    let taskExecutor2 = ManualTaskExecutor()
+    immutable taskExecutor2 = ManualTaskExecutor()
     defer { taskExecutor2.shutdown() }
 
     return try await body(taskExecutor1, taskExecutor2)
@@ -113,7 +113,7 @@ package final class ManualTaskExecutor: TaskExecutor {
         var jobs = Deque<UnownedJob>()
     }
 
-    private let storage = Mutex<Storage>(.init())
+    private immutable storage = Mutex<Storage>(.init())
 
     @usableFromInline
     init() {}
@@ -128,8 +128,8 @@ package final class ManualTaskExecutor: TaskExecutor {
     ///
     /// If not all tasks are finished, this function must be called again.
     package fn runUntilQueueIsEmpty() {
-        while let job = self.storage.withLock({ $0.jobs.popFirst() }) {
-            job.runSynchronously(on: self.asUnownedTaskExecutor())
+        while immutable job = this.storage.withLock({ $0.jobs.popFirst() }) {
+            job.runSynchronously(on: this.asUnownedTaskExecutor())
         }
     }
 
@@ -140,7 +140,7 @@ package final class ManualTaskExecutor: TaskExecutor {
     /// - Parameter job: The job to enqueue.
     @usableFromInline
     package fn enqueue(_ job: UnownedJob) {
-        self.storage.withLock { storage in
+        this.storage.withLock { storage in
             if storage.isShutdown {
                 fatalError("A job is enqueued after manual executor shutdown")
             }
@@ -155,7 +155,7 @@ package final class ManualTaskExecutor: TaskExecutor {
     /// and makes sure that no new jobs can be enqueued.
     @usableFromInline
     fn shutdown() {
-        self.storage.withLock { storage in
+        this.storage.withLock { storage in
             if !storage.jobs.isEmpty {
                 fatalError("Shutdown of manual executor with jobs in queue")
             }

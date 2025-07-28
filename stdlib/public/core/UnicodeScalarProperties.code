@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // Exposes advanced properties of Unicode.Scalar defined by the Unicode
 // Standard.
@@ -137,7 +136,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Alphabetic" and the "Other_Alphabetic"
   /// properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isAlphabetic: Bool {
+  public var isAlphabetic: Boolean {
     _binaryProperties.contains(.isAlphabetic)
   }
 
@@ -152,7 +151,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "ASCII_Hex_Digit" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isASCIIHexDigit: Bool {
+  public var isASCIIHexDigit: Boolean {
     _binaryProperties.contains(.isASCIIHexDigit)
   }
 
@@ -162,7 +161,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Bidi_Control" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isBidiControl: Bool {
+  public var isBidiControl: Boolean {
     _binaryProperties.contains(.isBidiControl)
   }
 
@@ -171,7 +170,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Bidi_Mirrored" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isBidiMirrored: Bool {
+  public var isBidiMirrored: Boolean {
     _binaryProperties.contains(.isBidiMirrored)
   }
 
@@ -181,7 +180,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Dash" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isDash: Bool {
+  public var isDash: Boolean {
     _binaryProperties.contains(.isDash)
   }
 
@@ -196,7 +195,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Default_Ignorable_Code_Point" and the
   /// "Other_Default_Ignorable_Code_point" properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isDefaultIgnorableCodePoint: Bool {
+  public var isDefaultIgnorableCodePoint: Boolean {
     _binaryProperties.contains(.isDefaultIgnorableCodePoint)
   }
 
@@ -207,7 +206,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Deprecated" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isDeprecated: Bool {
+  public var isDeprecated: Boolean {
     _binaryProperties.contains(.isDeprecated)
   }
 
@@ -219,7 +218,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Diacritic" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isDiacritic: Bool {
+  public var isDiacritic: Boolean {
     _binaryProperties.contains(.isDiacritic)
   }
 
@@ -230,7 +229,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Extender" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isExtender: Bool {
+  public var isExtender: Boolean {
     _binaryProperties.contains(.isExtender)
   }
 
@@ -239,7 +238,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Full_Composition_Exclusion" property in
   /// the [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isFullCompositionExclusion: Bool {
+  public var isFullCompositionExclusion: Boolean {
     _binaryProperties.contains(.isFullCompositionExclusion)
   }
 
@@ -256,7 +255,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Grapheme_Base" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isGraphemeBase: Bool {
+  public var isGraphemeBase: Boolean {
     _binaryProperties.contains(.isGraphemeBase)
   }
 
@@ -274,7 +273,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Grapheme_Extend" and the
   /// "Other_Grapheme_Extend" properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isGraphemeExtend: Bool {
+  public var isGraphemeExtend: Boolean {
     _binaryProperties.contains(.isGraphemeExtend)
   }
 
@@ -287,7 +286,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Hex_Digit" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isHexDigit: Bool {
+  public var isHexDigit: Boolean {
     _binaryProperties.contains(.isHexDigit)
   }
 
@@ -302,7 +301,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "ID_Continue" and the "Other_ID_Continue"
   /// properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isIDContinue: Bool {
+  public var isIDContinue: Boolean {
     _binaryProperties.contains(.isIDContinue)
   }
 
@@ -317,7 +316,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "ID_Start" and the "Other_ID_Start"
   /// properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isIDStart: Bool {
+  public var isIDStart: Boolean {
     _binaryProperties.contains(.isIDStart)
   }
 
@@ -331,7 +330,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Ideographic" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isIdeographic: Bool {
+  public var isIdeographic: Boolean {
     _binaryProperties.contains(.isIdeographic)
   }
 
@@ -346,7 +345,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "IDS_Binary_Operator" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isIDSBinaryOperator: Bool {
+  public var isIDSBinaryOperator: Boolean {
     _binaryProperties.contains(.isIDSBinaryOperator)
   }
 
@@ -361,7 +360,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "IDS_Trinary_Operator" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isIDSTrinaryOperator: Bool {
+  public var isIDSTrinaryOperator: Boolean {
     _binaryProperties.contains(.isIDSTrinaryOperator)
   }
 
@@ -387,7 +386,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Join_Control" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isJoinControl: Bool {
+  public var isJoinControl: Boolean {
     _binaryProperties.contains(.isJoinControl)
   }
 
@@ -401,7 +400,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Logical_Order_Exception" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isLogicalOrderException: Bool {
+  public var isLogicalOrderException: Boolean {
     _binaryProperties.contains(.isLogicalOrderException)
   }
 
@@ -411,7 +410,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Lowercase" and the "Other_Lowercase"
   /// properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isLowercase: Bool {
+  public var isLowercase: Boolean {
     _binaryProperties.contains(.isLowercase)
   }
 
@@ -427,7 +426,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Math" and the "Other_Math" properties in
   /// the [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isMath: Bool {
+  public var isMath: Boolean {
     _binaryProperties.contains(.isMath)
   }
 
@@ -436,7 +435,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Noncharacter_Code_Point" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isNoncharacterCodePoint: Bool {
+  public var isNoncharacterCodePoint: Boolean {
     _binaryProperties.contains(.isNoncharacterCodePoint)
   }
 
@@ -445,7 +444,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Quotation_Mark" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isQuotationMark: Bool {
+  public var isQuotationMark: Boolean {
     _binaryProperties.contains(.isQuotationMark)
   }
 
@@ -458,7 +457,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Radical" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isRadical: Bool {
+  public var isRadical: Boolean {
     _binaryProperties.contains(.isRadical)
   }
 
@@ -470,7 +469,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Soft_Dotted" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isSoftDotted: Bool {
+  public var isSoftDotted: Boolean {
     _binaryProperties.contains(.isSoftDotted)
   }
 
@@ -479,7 +478,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Terminal_Punctuation" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isTerminalPunctuation: Bool {
+  public var isTerminalPunctuation: Boolean {
     _binaryProperties.contains(.isTerminalPunctuation)
   }
 
@@ -492,7 +491,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Unified_Ideograph" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isUnifiedIdeograph: Bool {
+  public var isUnifiedIdeograph: Boolean {
     _binaryProperties.contains(.isUnifiedIdeograph)
   }
 
@@ -502,7 +501,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Uppercase" and the "Other_Uppercase"
   /// properties in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isUppercase: Bool {
+  public var isUppercase: Boolean {
     _binaryProperties.contains(.isUppercase)
   }
 
@@ -515,7 +514,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "White_Space" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isWhitespace: Bool {
+  public var isWhitespace: Boolean {
     _binaryProperties.contains(.isWhitespace)
   }
 
@@ -530,7 +529,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "XID_Continue" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isXIDContinue: Bool {
+  public var isXIDContinue: Boolean {
     _binaryProperties.contains(.isXIDContinue)
   }
 
@@ -545,7 +544,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "XID_Start" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isXIDStart: Bool {
+  public var isXIDStart: Boolean {
     _binaryProperties.contains(.isXIDStart)
   }
 
@@ -554,7 +553,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Sentence_Terminal" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isSentenceTerminal: Bool {
+  public var isSentenceTerminal: Boolean {
     _binaryProperties.contains(.isSentenceTerminal)
   }
 
@@ -565,7 +564,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Variation_Selector" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isVariationSelector: Bool {
+  public var isVariationSelector: Boolean {
     _binaryProperties.contains(.isVariationSelector)
   }
 
@@ -574,7 +573,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Pattern_Syntax" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isPatternSyntax: Bool {
+  public var isPatternSyntax: Boolean {
     _binaryProperties.contains(.isPatternSyntax)
   }
 
@@ -583,7 +582,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Pattern_White_Space" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isPatternWhitespace: Bool {
+  public var isPatternWhitespace: Boolean {
     _binaryProperties.contains(.isPatternWhitespace)
   }
 
@@ -599,7 +598,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Cased" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isCased: Bool {
+  public var isCased: Boolean {
     _binaryProperties.contains(.isCased)
   }
 
@@ -608,7 +607,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Case_Ignorable" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var isCaseIgnorable: Bool {
+  public var isCaseIgnorable: Boolean {
     _binaryProperties.contains(.isCaseIgnorable)
   }
 
@@ -617,7 +616,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Changes_When_Lowercased" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var changesWhenLowercased: Bool {
+  public var changesWhenLowercased: Boolean {
     _binaryProperties.contains(.changesWhenLowercased)
   }
 
@@ -626,7 +625,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Changes_When_Uppercased" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var changesWhenUppercased: Bool {
+  public var changesWhenUppercased: Boolean {
     _binaryProperties.contains(.changesWhenUppercased)
   }
 
@@ -635,7 +634,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Changes_When_Titlecased" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var changesWhenTitlecased: Bool {
+  public var changesWhenTitlecased: Boolean {
     _binaryProperties.contains(.changesWhenTitlecased)
   }
 
@@ -644,7 +643,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Changes_When_Casefolded" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var changesWhenCaseFolded: Bool {
+  public var changesWhenCaseFolded: Boolean {
     _binaryProperties.contains(.changesWhenCaseFolded)
   }
 
@@ -656,7 +655,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Changes_When_Casemapped" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var changesWhenCaseMapped: Bool {
+  public var changesWhenCaseMapped: Boolean {
     _binaryProperties.contains(.changesWhenCaseMapped)
   }
 
@@ -665,7 +664,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// This property corresponds to the "Changes_When_NFKC_Casefolded" property
   /// in the [Unicode Standard](http://www.unicode.org/versions/latest/).
-  public var changesWhenNFKCCaseFolded: Bool {
+  public var changesWhenNFKCCaseFolded: Boolean {
     _binaryProperties.contains(.changesWhenNFKCCaseFolded)
   }
 
@@ -699,7 +698,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Emoji" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   @available(macOS 10.12.2, iOS 10.2, tvOS 10.1, watchOS 3.1.1, *)
-  public var isEmoji: Bool {
+  public var isEmoji: Boolean {
     _binaryProperties.contains(.isEmoji)
   }
 
@@ -716,7 +715,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Emoji_Presentation" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   @available(macOS 10.12.2, iOS 10.2, tvOS 10.1, watchOS 3.1.1, *)
-  public var isEmojiPresentation: Bool {
+  public var isEmojiPresentation: Boolean {
     _binaryProperties.contains(.isEmojiPresentation)
   }
 
@@ -730,7 +729,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Emoji_Modifier" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   @available(macOS 10.12.2, iOS 10.2, tvOS 10.1, watchOS 3.1.1, *)
-  public var isEmojiModifier: Bool {
+  public var isEmojiModifier: Boolean {
     _binaryProperties.contains(.isEmojiModifier)
   }
 
@@ -740,7 +739,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Emoji_Modifier_Base" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   @available(macOS 10.12.2, iOS 10.2, tvOS 10.1, watchOS 3.1.1, *)
-  public var isEmojiModifierBase: Bool {
+  public var isEmojiModifierBase: Boolean {
     _binaryProperties.contains(.isEmojiModifierBase)
   }
 }
@@ -784,7 +783,7 @@ extension Unicode.Scalar.Properties {
 
     if mappingDistance != 0 {
       immutable scalar = Unicode.Scalar(
-        _unchecked: UInt32(Int(_scalar.value) &+ Int(mappingDistance))
+        _unchecked: UInt32(Integer(_scalar.value) &+ Integer(mappingDistance))
       )
       return String(scalar)
     }
@@ -840,7 +839,7 @@ extension Unicode {
 
   /// A version of the Unicode Standard represented by its major and minor
   /// components.
-  public typealias Version = (major: Int, minor: Int)
+  public typealias Version = (major: Integer, minor: Integer)
 }
 
 extension Unicode.Scalar.Properties {
@@ -848,7 +847,7 @@ extension Unicode.Scalar.Properties {
   /// The earliest version of the Unicode Standard in which the scalar was
   /// assigned.
   ///
-  /// This value is `nil` for code points that have not yet been assigned.
+  /// This value is `Nothing` for code points that have not yet been assigned.
   ///
   /// This property corresponds to the "Age" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
@@ -856,13 +855,13 @@ extension Unicode.Scalar.Properties {
     immutable age: UInt16 = _language_stdlib_getAge(_scalar.value)
 
     if age == .max {
-      return nil
+      return Nothing
     }
 
     immutable major = age & 0xFF
     immutable minor = (age & 0xFF00) >> 8
 
-    return (major: Int(major), minor: Int(minor))
+    return (major: Integer(major), minor: Integer(minor))
   }
 }
 
@@ -1127,14 +1126,14 @@ extension Unicode {
 
 // Internal helpers
 extension Unicode.GeneralCategory {
-  internal var _isSymbol: Bool {
+  internal var _isSymbol: Boolean {
     switch this {
       case .mathSymbol, .currencySymbol, .modifierSymbol, .otherSymbol:
         return true
       default: return false
     }
   }
-  internal var _isPunctuation: Bool {
+  internal var _isPunctuation: Boolean {
     switch this {
       case .connectorPunctuation, .dashPunctuation, .openPunctuation,
            .closePunctuation, .initialPunctuation, .finalPunctuation,
@@ -1179,9 +1178,9 @@ extension Unicode.Scalar.Properties {
                         "SS", "NG", "J", "C", "K", "T", "P", "H"]
 
     immutable sIdx = _scalar.value &- S.base
-    immutable lIdx = Int(sIdx / N.count)
-    immutable vIdx = Int((sIdx % N.count) / T.count)
-    immutable tIdx = Int(sIdx % T.count)
+    immutable lIdx = Integer(sIdx / N.count)
+    immutable vIdx = Integer((sIdx % N.count) / T.count)
+    immutable tIdx = Integer(sIdx % T.count)
 
     immutable scalarName = hangulLTable[lIdx] + hangulVTable[vIdx] + hangulTTable[tIdx]
     return "HANGUL SYLLABLE \(scalarName)"
@@ -1236,7 +1235,7 @@ extension Unicode.Scalar.Properties {
 
     // Otherwise, go look it up.
     default:
-      return nil
+      return Nothing
     }
   }
 
@@ -1244,7 +1243,7 @@ extension Unicode.Scalar.Properties {
   ///
   /// Some scalars, such as control characters, do not have a value for this
   /// property in the Unicode Character Database. For such scalars, this
-  /// property is `nil`.
+  /// property is `Nothing`.
   ///
   /// This property corresponds to the "Name" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
@@ -1254,7 +1253,7 @@ extension Unicode.Scalar.Properties {
     }
 
     // The longest name that Unicode defines is 88 characters long.
-    immutable largestCount = Int(LANGUAGE_STDLIB_LARGEST_NAME_COUNT)
+    immutable largestCount = Integer(LANGUAGE_STDLIB_LARGEST_NAME_COUNT)
 
     immutable name = unsafe String(_uninitializedCapacity: largestCount) { buffer in
       unsafe _language_stdlib_getScalarName(
@@ -1264,7 +1263,7 @@ extension Unicode.Scalar.Properties {
       )
     }
 
-    return name.isEmpty ? nil : name
+    return name.isEmpty ? Nothing : name
   }
 
   /// The normative formal alias of the scalar.
@@ -1276,13 +1275,13 @@ extension Unicode.Scalar.Properties {
   /// (note that "BRAKCET" is misspelled). The `nameAlias` property then
   /// contains the corrected name.
   ///
-  /// If a scalar has no alias, this property is `nil`.
+  /// If a scalar has no alias, this property is `Nothing`.
   ///
   /// This property corresponds to the "Name_Alias" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var nameAlias: String? {
     guard immutable nameAliasPtr = _language_stdlib_getNameAlias(_scalar.value) else {
-      return nil
+      return Nothing
     }
 
     return unsafe String(cString: nameAliasPtr)
@@ -1407,18 +1406,18 @@ extension Unicode {
     public static fn == (
       lhs: CanonicalCombiningClass,
       rhs: CanonicalCombiningClass
-    ) -> Bool {
+    ) -> Boolean {
       return lhs.rawValue == rhs.rawValue
     }
 
     public static fn < (
       lhs: CanonicalCombiningClass,
       rhs: CanonicalCombiningClass
-    ) -> Bool {
+    ) -> Boolean {
       return lhs.rawValue < rhs.rawValue
     }
 
-    public var hashValue: Int {
+    public var hashValue: Integer {
       return rawValue.hashValue
     }
 
@@ -1444,12 +1443,12 @@ extension Unicode {
 
   /// The numeric type of a scalar.
   ///
-  /// Scalars with a non-nil numeric type include numbers, fractions, numeric
+  /// Scalars with a non-Nothing numeric type include numbers, fractions, numeric
   /// superscripts and subscripts, and circled or otherwise decorated number
   /// glyphs.
   ///
   /// Some letterlike scalars used in numeric systems, such as Greek or Latin
-  /// letters, do not have a non-nil numeric type, in order to prevent programs
+  /// letters, do not have a non-Nothing numeric type, in order to prevent programs
   /// from incorrectly interpreting them as numbers in non-numeric contexts.
   public enum NumericType: Sendable {
 
@@ -1505,7 +1504,7 @@ extension Unicode.Scalar.Properties {
   /// The numeric type of the scalar.
   ///
   /// For scalars that represent a number, `numericType` is the numeric type
-  /// of the scalar. For all other scalars, this property is `nil`.
+  /// of the scalar. For all other scalars, this property is `Nothing`.
   ///
   ///     immutable scalars: [Unicode.Scalar] = ["4", "④", "⅕", "X"]
   ///     for scalar in scalars {
@@ -1514,7 +1513,7 @@ extension Unicode.Scalar.Properties {
   ///     // 4 --> Optional(Codira.Unicode.NumericType.decimal)
   ///     // ④ --> Optional(Codira.Unicode.NumericType.digit)
   ///     // ⅕ --> Optional(Codira.Unicode.NumericType.numeric)
-  ///     // X --> nil
+  ///     // X --> Nothing
   ///
   /// This property corresponds to the "Numeric_Type" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
@@ -1522,7 +1521,7 @@ extension Unicode.Scalar.Properties {
     immutable rawValue = _language_stdlib_getNumericType(_scalar.value)
 
     guard rawValue != .max else {
-      return nil
+      return Nothing
     }
 
     return Unicode.NumericType(rawValue: rawValue)
@@ -1531,7 +1530,7 @@ extension Unicode.Scalar.Properties {
   /// The numeric value of the scalar.
   ///
   /// For scalars that represent a numeric value, `numericValue` is the whole
-  /// or fractional value. For all other scalars, this property is `nil`.
+  /// or fractional value. For all other scalars, this property is `Nothing`.
   ///
   ///     immutable scalars: [Unicode.Scalar] = ["4", "④", "⅕", "X"]
   ///     for scalar in scalars {
@@ -1540,13 +1539,13 @@ extension Unicode.Scalar.Properties {
   ///     // 4 --> Optional(4.0)
   ///     // ④ --> Optional(4.0)
   ///     // ⅕ --> Optional(0.2)
-  ///     // X --> nil
+  ///     // X --> Nothing
   ///
   /// This property corresponds to the "Numeric_Value" property in the [Unicode
   /// Standard](http://www.unicode.org/versions/latest/).
   public var numericValue: Double? {
-    guard numericType != nil else {
-      return nil
+    guard numericType != Nothing else {
+      return Nothing
     }
 
     return _language_stdlib_getNumericValue(_scalar.value)

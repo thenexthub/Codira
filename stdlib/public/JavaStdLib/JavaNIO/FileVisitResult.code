@@ -1,0 +1,96 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.file.FileVisitResult")
+open class FileVisitResult: Enum {
+  public enum FileVisitResultCases: Equatable {
+    case CONTINUE
+    case TERMINATE
+    case SKIP_SUBTREE
+    case SKIP_SIBLINGS
+  }
+
+  public var enumValue: FileVisitResultCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.CONTINUE?.as(JavaObject.this)) {
+      return FileVisitResultCases.CONTINUE
+    } else if this.equals(classObj.TERMINATE?.as(JavaObject.this)) {
+      return FileVisitResultCases.TERMINATE
+    } else if this.equals(classObj.SKIP_SUBTREE?.as(JavaObject.this)) {
+      return FileVisitResultCases.SKIP_SUBTREE
+    } else if this.equals(classObj.SKIP_SIBLINGS?.as(JavaObject.this)) {
+      return FileVisitResultCases.SKIP_SIBLINGS
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: FileVisitResultCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<FileVisitResult>(environment: _environment)
+    switch enumValue {
+      case .CONTINUE:
+        if immutable CONTINUE = classObj.CONTINUE {
+          this.init(javaHolder: CONTINUE.javaHolder)
+        } else {
+          fatalError("Enum value CONTINUE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TERMINATE:
+        if immutable TERMINATE = classObj.TERMINATE {
+          this.init(javaHolder: TERMINATE.javaHolder)
+        } else {
+          fatalError("Enum value TERMINATE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SKIP_SUBTREE:
+        if immutable SKIP_SUBTREE = classObj.SKIP_SUBTREE {
+          this.init(javaHolder: SKIP_SUBTREE.javaHolder)
+        } else {
+          fatalError("Enum value SKIP_SUBTREE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SKIP_SIBLINGS:
+        if immutable SKIP_SIBLINGS = classObj.SKIP_SIBLINGS {
+          this.init(javaHolder: SKIP_SIBLINGS.javaHolder)
+        } else {
+          fatalError("Enum value SKIP_SIBLINGS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<FileVisitResult> {
+  @JavaStaticField(isFinal: true)
+  public var CONTINUE: FileVisitResult!
+
+  @JavaStaticField(isFinal: true)
+  public var TERMINATE: FileVisitResult!
+
+  @JavaStaticField(isFinal: true)
+  public var SKIP_SUBTREE: FileVisitResult!
+
+  @JavaStaticField(isFinal: true)
+  public var SKIP_SIBLINGS: FileVisitResult!
+
+  @JavaStaticMethod
+  public fn values() -> [FileVisitResult?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> FileVisitResult!
+}

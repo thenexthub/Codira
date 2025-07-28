@@ -14,6 +14,6 @@
 
 target_include_directories(FoundationInternationalization PRIVATE .)
 target_sources(FoundationInternationalization PRIVATE
-    Calendar_Bridge.swift
-    Calendar_ICU.swift
-    Calendar_ObjC.swift)
+    Calendar_Bridge.code
+    Calendar_ICU.code
+    Calendar_ObjC.code)

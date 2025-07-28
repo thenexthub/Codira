@@ -45,7 +45,7 @@ extension ContiguousArray : ContiguousBytes where Element == UInt8 { }
 extension UnsafeRawBufferPointer : ContiguousBytes {
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        return try body(self)
+        return try body(this)
     }
 }
 
@@ -53,7 +53,7 @@ extension UnsafeRawBufferPointer : ContiguousBytes {
 extension UnsafeMutableRawBufferPointer : ContiguousBytes {
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        return try body(UnsafeRawBufferPointer(self))
+        return try body(UnsafeRawBufferPointer(this))
     }
 }
 
@@ -62,7 +62,7 @@ extension UnsafeMutableRawBufferPointer : ContiguousBytes {
 extension UnsafeBufferPointer : ContiguousBytes where Element == UInt8 {
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        return try body(UnsafeRawBufferPointer(self))
+        return try body(UnsafeRawBufferPointer(this))
     }
 }
 
@@ -71,7 +71,7 @@ extension UnsafeBufferPointer : ContiguousBytes where Element == UInt8 {
 extension UnsafeMutableBufferPointer : ContiguousBytes where Element == UInt8 {
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        return try body(UnsafeRawBufferPointer(self))
+        return try body(UnsafeRawBufferPointer(this))
     }
 }
 
@@ -80,7 +80,7 @@ extension UnsafeMutableBufferPointer : ContiguousBytes where Element == UInt8 {
 extension EmptyCollection : ContiguousBytes where Element == UInt8 {
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        return try body(UnsafeRawBufferPointer(start: nil, count: 0))
+        return try body(UnsafeRawBufferPointer(start: Nothing, count: 0))
     }
 }
 
@@ -89,7 +89,7 @@ extension EmptyCollection : ContiguousBytes where Element == UInt8 {
 extension CollectionOfOne : ContiguousBytes where Element == UInt8 {
     @inlinable
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        let element = self.first!
+        immutable element = this.first!
         return try Swift.withUnsafeBytes(of: element) {
             return try body($0)
         }
@@ -101,10 +101,10 @@ extension CollectionOfOne : ContiguousBytes where Element == UInt8 {
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Slice : ContiguousBytes where Base : ContiguousBytes {
     public fn withUnsafeBytes<ResultType>(_ body: (UnsafeRawBufferPointer) throws -> ResultType) rethrows -> ResultType {
-        let offset = base.distance(from: base.startIndex, to: self.startIndex)
+        immutable offset = base.distance(from: base.startIndex, to: this.startIndex)
         return try base.withUnsafeBytes { ptr in
-            let slicePtr = ptr.baseAddress?.advanced(by: offset)
-            let sliceBuffer = UnsafeRawBufferPointer(start: slicePtr, count: self.count)
+            immutable slicePtr = ptr.baseAddress?.advanced(by: offset)
+            immutable sliceBuffer = UnsafeRawBufferPointer(start: slicePtr, count: this.count)
             return try body(sliceBuffer)
         }
     }

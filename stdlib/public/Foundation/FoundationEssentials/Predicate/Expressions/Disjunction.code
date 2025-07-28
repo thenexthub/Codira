@@ -17,20 +17,20 @@ extension PredicateExpressions {
         RHS : PredicateExpression
     > : PredicateExpression
     where
-        LHS.Output == Bool,
-        RHS.Output == Bool
+        LHS.Output == Boolean,
+        RHS.Output == Boolean
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let lhs: LHS
-        public let rhs: RHS
+        public immutable lhs: LHS
+        public immutable rhs: RHS
         
         public init(lhs: LHS, rhs: RHS) {
-            self.lhs = lhs
-            self.rhs = rhs
+            this.lhs = lhs
+            this.rhs = rhs
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
             try lhs.evaluate(bindings) || rhs.evaluate(bindings)
         }
     }
@@ -60,8 +60,8 @@ extension PredicateExpressions.Disjunction : Codable where LHS : Codable, RHS : 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lhs = try container.decode(LHS.self)
-        rhs = try container.decode(RHS.self)
+        lhs = try container.decode(LHS.this)
+        rhs = try container.decode(RHS.this)
     }
 }
 

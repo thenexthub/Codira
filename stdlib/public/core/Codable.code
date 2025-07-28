@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -64,28 +63,28 @@ public protocol CodingKey: Sendable,
   /// Creates a new instance from the given string.
   ///
   /// If the string passed as `stringValue` does not correspond to any instance
-  /// of this type, the result is `nil`.
+  /// of this type, the result is `Nothing`.
   ///
   /// - parameter stringValue: The string value of the desired key.
   init?(stringValue: String)
 
   /// The value to use in an integer-indexed collection (e.g. an int-keyed
   /// dictionary).
-  var intValue: Int? { get }
+  var intValue: Integer? { get }
 
   /// Creates a new instance from the specified integer.
   ///
   /// If the value passed as `intValue` does not correspond to any instance of
-  /// this type, the result is `nil`.
+  /// this type, the result is `Nothing`.
   ///
   /// - parameter intValue: The integer value of the desired key.
-  init?(intValue: Int)
+  init?(intValue: Integer)
 }
 
 extension CodingKey {
   /// A textual representation of this key.
   public var description: String {
-    immutable intValue = this.intValue?.description ?? "nil"
+    immutable intValue = this.intValue?.description ?? "Nothing"
     return "\(type(of: this))(stringValue: \"\(stringValue)\", intValue: \(intValue))"
   }
 
@@ -206,7 +205,7 @@ public protocol KeyedEncodingContainerProtocol {
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  mutating fn encode(_ value: Bool, forKey key: Key) throws
+  mutating fn encode(_ value: Boolean, forKey key: Key) throws
 
   /// Encodes the given value for the given key.
   ///
@@ -238,7 +237,7 @@ public protocol KeyedEncodingContainerProtocol {
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  mutating fn encode(_ value: Int, forKey key: Key) throws
+  mutating fn encode(_ value: Integer, forKey key: Key) throws
 
   /// Encodes the given value for the given key.
   ///
@@ -353,15 +352,15 @@ public protocol KeyedEncodingContainerProtocol {
     forKey key: Key
   ) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  mutating fn encodeIfPresent(_ value: Bool?, forKey key: Key) throws
+  mutating fn encodeIfPresent(_ value: Boolean?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -369,7 +368,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: String?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -377,7 +376,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: Double?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -385,15 +384,15 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: Float?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  mutating fn encodeIfPresent(_ value: Int?, forKey key: Key) throws
+  mutating fn encodeIfPresent(_ value: Integer?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -401,7 +400,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: Int8?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -409,7 +408,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: Int16?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -417,7 +416,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: Int32?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -425,7 +424,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: Int64?, forKey key: Key) throws
   
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -434,7 +433,7 @@ public protocol KeyedEncodingContainerProtocol {
   @available(CodiraStdlib 6.0, *)
   mutating fn encodeIfPresent(_ value: Int128?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -442,7 +441,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: UInt?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -450,7 +449,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: UInt8?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -458,7 +457,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: UInt16?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -466,7 +465,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: UInt32?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -474,7 +473,7 @@ public protocol KeyedEncodingContainerProtocol {
   ///   the current context for this format.
   mutating fn encodeIfPresent(_ value: UInt64?, forKey key: Key) throws
   
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -483,7 +482,7 @@ public protocol KeyedEncodingContainerProtocol {
   @available(CodiraStdlib 6.0, *)
   mutating fn encodeIfPresent(_ value: UInt128?, forKey key: Key) throws
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -571,7 +570,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  public mutating fn encode(_ value: Bool, forKey key: Key) throws {
+  public mutating fn encode(_ value: Boolean, forKey key: Key) throws {
     try _box.encode(value, forKey: key)
   }
 
@@ -611,7 +610,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  public mutating fn encode(_ value: Int, forKey key: Key) throws {
+  public mutating fn encode(_ value: Integer, forKey key: Key) throws {
     try _box.encode(value, forKey: key)
   }
 
@@ -757,20 +756,20 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeConditional(object, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
   public mutating fn encodeIfPresent(
-    _ value: Bool?,
+    _ value: Boolean?,
     forKey key: Key
   ) throws {
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -783,7 +782,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -796,7 +795,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -809,20 +808,20 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
   public mutating fn encodeIfPresent(
-    _ value: Int?,
+    _ value: Integer?,
     forKey key: Key
   ) throws {
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -835,7 +834,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -848,7 +847,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -861,7 +860,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -874,7 +873,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
   
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -888,7 +887,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -901,7 +900,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -914,7 +913,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -927,7 +926,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -940,7 +939,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -953,7 +952,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
   
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -967,7 +966,7 @@ public struct KeyedEncodingContainer<K: CodingKey> :
     try _box.encodeIfPresent(value, forKey: key)
   }
 
-  /// Encodes the given value for the given key if it is not `nil`.
+  /// Encodes the given value for the given key if it is not `Nothing`.
   ///
   /// - parameter value: The value to encode.
   /// - parameter key: The key to associate the value with.
@@ -1053,7 +1052,7 @@ public protocol KeyedDecodingContainerProtocol {
   ///
   /// - parameter key: The key to search for.
   /// - returns: Whether the `Decoder` has an entry for the given key.
-  fn contains(_ key: Key) -> Bool
+  fn contains(_ key: Key) -> Boolean
 
   /// Decodes a null value for the given key.
   ///
@@ -1061,7 +1060,7 @@ public protocol KeyedDecodingContainerProtocol {
   /// - returns: Whether the encountered value was null.
   /// - throws: `DecodingError.keyNotFound` if `this` does not have an entry
   ///   for the given key.
-  fn decodeNil(forKey key: Key) throws -> Bool
+  fn decodeNil(forKey key: Key) throws -> Boolean
 
   /// Decodes a value of the given type for the given key.
   ///
@@ -1075,7 +1074,7 @@ public protocol KeyedDecodingContainerProtocol {
   ///   for the given key.
   /// - throws: `DecodingError.valueNotFound` if `this` has a null entry for
   ///   the given key.
-  fn decode(_ type: Bool.Type, forKey key: Key) throws -> Bool
+  fn decode(_ type: Boolean.Type, forKey key: Key) throws -> Boolean
 
   /// Decodes a value of the given type for the given key.
   ///
@@ -1131,7 +1130,7 @@ public protocol KeyedDecodingContainerProtocol {
   ///   for the given key.
   /// - throws: `DecodingError.valueNotFound` if `this` has a null entry for
   ///   the given key.
-  fn decode(_ type: Int.Type, forKey key: Key) throws -> Int
+  fn decode(_ type: Integer.Type, forKey key: Key) throws -> Integer
 
   /// Decodes a value of the given type for the given key.
   ///
@@ -1305,28 +1304,28 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
-  fn decodeIfPresent(_ type: Bool.Type, forKey key: Key) throws -> Bool?
+  fn decodeIfPresent(_ type: Boolean.Type, forKey key: Key) throws -> Boolean?
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1335,13 +1334,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1350,13 +1349,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1365,28 +1364,28 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
-  fn decodeIfPresent(_ type: Int.Type, forKey key: Key) throws -> Int?
+  fn decodeIfPresent(_ type: Integer.Type, forKey key: Key) throws -> Integer?
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1395,13 +1394,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1410,13 +1409,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1425,13 +1424,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1440,13 +1439,13 @@ public protocol KeyedDecodingContainerProtocol {
   
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1456,13 +1455,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1471,13 +1470,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1486,13 +1485,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1501,13 +1500,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1516,13 +1515,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1531,13 +1530,13 @@ public protocol KeyedDecodingContainerProtocol {
   
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1547,13 +1546,13 @@ public protocol KeyedDecodingContainerProtocol {
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1657,7 +1656,7 @@ public struct KeyedDecodingContainer<K: CodingKey> :
   ///
   /// - parameter key: The key to search for.
   /// - returns: Whether the `Decoder` has an entry for the given key.
-  public fn contains(_ key: Key) -> Bool {
+  public fn contains(_ key: Key) -> Boolean {
     return _box.contains(key)
   }
 
@@ -1667,7 +1666,7 @@ public struct KeyedDecodingContainer<K: CodingKey> :
   /// - returns: Whether the encountered value was null.
   /// - throws: `DecodingError.keyNotFound` if `this` does not have an entry
   ///   for the given key.
-  public fn decodeNil(forKey key: Key) throws -> Bool {
+  public fn decodeNil(forKey key: Key) throws -> Boolean {
     return try _box.decodeNil(forKey: key)
   }
 
@@ -1683,8 +1682,8 @@ public struct KeyedDecodingContainer<K: CodingKey> :
   ///   for the given key.
   /// - throws: `DecodingError.valueNotFound` if `this` has a null entry for
   ///   the given key.
-  public fn decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
-    return try _box.decode(Bool.this, forKey: key)
+  public fn decode(_ type: Boolean.Type, forKey key: Key) throws -> Boolean {
+    return try _box.decode(Boolean.this, forKey: key)
   }
 
   /// Decodes a value of the given type for the given key.
@@ -1747,8 +1746,8 @@ public struct KeyedDecodingContainer<K: CodingKey> :
   ///   for the given key.
   /// - throws: `DecodingError.valueNotFound` if `this` has a null entry for
   ///   the given key.
-  public fn decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-    return try _box.decode(Int.this, forKey: key)
+  public fn decode(_ type: Integer.Type, forKey key: Key) throws -> Integer {
+    return try _box.decode(Integer.this, forKey: key)
   }
 
   /// Decodes a value of the given type for the given key.
@@ -1950,33 +1949,33 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
   public fn decodeIfPresent(
-    _ type: Bool.Type,
+    _ type: Boolean.Type,
     forKey key: Key
-  ) throws -> Bool? {
-    return try _box.decodeIfPresent(Bool.this, forKey: key)
+  ) throws -> Boolean? {
+    return try _box.decodeIfPresent(Boolean.this, forKey: key)
   }
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -1990,13 +1989,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2010,13 +2009,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2030,33 +2029,33 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
   public fn decodeIfPresent(
-    _ type: Int.Type,
+    _ type: Integer.Type,
     forKey key: Key
-  ) throws -> Int? {
-    return try _box.decodeIfPresent(Int.this, forKey: key)
+  ) throws -> Integer? {
+    return try _box.decodeIfPresent(Integer.this, forKey: key)
   }
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2070,13 +2069,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2090,13 +2089,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2110,13 +2109,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2130,13 +2129,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
   
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2151,13 +2150,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2171,13 +2170,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2191,13 +2190,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2211,13 +2210,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2231,13 +2230,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2251,13 +2250,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
   
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2272,13 +2271,13 @@ public struct KeyedDecodingContainer<K: CodingKey> :
 
   /// Decodes a value of the given type for the given key, if present.
   ///
-  /// This method returns `nil` if the container does not have a value
+  /// This method returns `Nothing` if the container does not have a value
   /// associated with `key`, or if the value is null. The difference between
   /// these states can be distinguished with a `contains(_:)` call.
   ///
   /// - parameter type: The type of value to decode.
   /// - parameter key: The key that the decoded value is associated with.
-  /// - returns: A decoded value of the requested type, or `nil` if the
+  /// - returns: A decoded value of the requested type, or `Nothing` if the
   ///   `Decoder` does not have an entry associated with the given key, or if
   ///   the value is a null value.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
@@ -2363,7 +2362,7 @@ public protocol UnkeyedEncodingContainer {
   var codingPath: [any CodingKey] { get }
 
   /// The number of elements encoded into the container.
-  var count: Int { get }
+  var count: Integer { get }
 
   /// Encodes a null value.
   ///
@@ -2376,7 +2375,7 @@ public protocol UnkeyedEncodingContainer {
   /// - parameter value: The value to encode.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  mutating fn encode(_ value: Bool) throws
+  mutating fn encode(_ value: Boolean) throws
 
   /// Encodes the given value.
   ///
@@ -2404,7 +2403,7 @@ public protocol UnkeyedEncodingContainer {
   /// - parameter value: The value to encode.
   /// - throws: `EncodingError.invalidValue` if the given value is invalid in
   ///   the current context for this format.
-  mutating fn encode(_ value: Int) throws
+  mutating fn encode(_ value: Integer) throws
 
   /// Encodes the given value.
   ///
@@ -2512,7 +2511,7 @@ public protocol UnkeyedEncodingContainer {
   /// - throws: An error if any of the contained values throws an error.
   mutating fn encode<T: Sequence>(
     contentsOf sequence: T
-  ) throws where T.Element == Bool
+  ) throws where T.Element == Boolean
 
   /// Encodes the elements of the given sequence.
   ///
@@ -2544,7 +2543,7 @@ public protocol UnkeyedEncodingContainer {
   /// - throws: An error if any of the contained values throws an error.
   mutating fn encode<T: Sequence>(
     contentsOf sequence: T
-  ) throws where T.Element == Int
+  ) throws where T.Element == Integer
 
   /// Encodes the elements of the given sequence.
   ///
@@ -2675,16 +2674,16 @@ public protocol UnkeyedDecodingContainer {
 
   /// The number of elements contained within this container.
   ///
-  /// If the number of elements is unknown, the value is `nil`.
-  var count: Int? { get }
+  /// If the number of elements is unknown, the value is `Nothing`.
+  var count: Integer? { get }
 
   /// A Boolean value indicating whether there are no more elements left to be
   /// decoded in the container.
-  var isAtEnd: Bool { get }
+  var isAtEnd: Boolean { get }
 
   /// The current decoding index of the container (i.e. the index of the next
   /// element to be decoded.) Incremented after every successful decode call.
-  var currentIndex: Int { get }
+  var currentIndex: Integer { get }
 
   /// Decodes a null value.
   ///
@@ -2693,7 +2692,7 @@ public protocol UnkeyedDecodingContainer {
   /// - returns: Whether the encountered value was null.
   /// - throws: `DecodingError.valueNotFound` if there are no more values to
   ///   decode.
-  mutating fn decodeNil() throws -> Bool
+  mutating fn decodeNil() throws -> Boolean
 
   /// Decodes a value of the given type.
   ///
@@ -2704,7 +2703,7 @@ public protocol UnkeyedDecodingContainer {
   ///   is not convertible to the requested type.
   /// - throws: `DecodingError.valueNotFound` if the encountered encoded value
   ///   is null, or of there are no more values to decode.
-  mutating fn decode(_ type: Bool.Type) throws -> Bool
+  mutating fn decode(_ type: Boolean.Type) throws -> Boolean
 
   /// Decodes a value of the given type.
   ///
@@ -2748,7 +2747,7 @@ public protocol UnkeyedDecodingContainer {
   ///   is not convertible to the requested type.
   /// - throws: `DecodingError.valueNotFound` if the encountered encoded value
   ///   is null, or of there are no more values to decode.
-  mutating fn decode(_ type: Int.Type) throws -> Int
+  mutating fn decode(_ type: Integer.Type) throws -> Integer
 
   /// Decodes a value of the given type.
   ///
@@ -2886,25 +2885,25 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
-  mutating fn decodeIfPresent(_ type: Bool.Type) throws -> Bool?
+  mutating fn decodeIfPresent(_ type: Boolean.Type) throws -> Boolean?
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -2912,12 +2911,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -2925,12 +2924,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -2938,25 +2937,25 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
-  mutating fn decodeIfPresent(_ type: Int.Type) throws -> Int?
+  mutating fn decodeIfPresent(_ type: Integer.Type) throws -> Integer?
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -2964,12 +2963,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -2977,12 +2976,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -2990,12 +2989,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3003,12 +3002,12 @@ public protocol UnkeyedDecodingContainer {
   
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3017,12 +3016,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3030,12 +3029,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3043,12 +3042,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3056,12 +3055,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3069,12 +3068,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3082,12 +3081,12 @@ public protocol UnkeyedDecodingContainer {
   
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3096,12 +3095,12 @@ public protocol UnkeyedDecodingContainer {
 
   /// Decodes a value of the given type, if present.
   ///
-  /// This method returns `nil` if the container has no elements left to
+  /// This method returns `Nothing` if the container has no elements left to
   /// decode, or if the value is null. The difference between these states can
   /// be distinguished by checking `isAtEnd`.
   ///
   /// - parameter type: The type of value to decode.
-  /// - returns: A decoded value of the requested type, or `nil` if the value
+  /// - returns: A decoded value of the requested type, or `Nothing` if the value
   ///   is a null value, or if there are no more elements to decode.
   /// - throws: `DecodingError.typeMismatch` if the encountered encoded value
   ///   is not convertible to the requested type.
@@ -3158,7 +3157,7 @@ public protocol SingleValueEncodingContainer {
   ///   the current context for this format.
   /// - precondition: May not be called after a previous `this.encode(_:)`
   ///   call.
-  mutating fn encode(_ value: Bool) throws
+  mutating fn encode(_ value: Boolean) throws
 
   /// Encodes a single value of the given type.
   ///
@@ -3194,7 +3193,7 @@ public protocol SingleValueEncodingContainer {
   ///   the current context for this format.
   /// - precondition: May not be called after a previous `this.encode(_:)`
   ///   call.
-  mutating fn encode(_ value: Int) throws
+  mutating fn encode(_ value: Integer) throws
 
   /// Encodes a single value of the given type.
   ///
@@ -3316,7 +3315,7 @@ public protocol SingleValueDecodingContainer {
   /// Decodes a null value.
   ///
   /// - returns: Whether the encountered value was null.
-  fn decodeNil() -> Bool
+  fn decodeNil() -> Boolean
 
   /// Decodes a single value of the given type.
   ///
@@ -3326,7 +3325,7 @@ public protocol SingleValueDecodingContainer {
   ///   cannot be converted to the requested type.
   /// - throws: `DecodingError.valueNotFound` if the encountered encoded value
   ///   is null.
-  fn decode(_ type: Bool.Type) throws -> Bool
+  fn decode(_ type: Boolean.Type) throws -> Boolean
 
   /// Decodes a single value of the given type.
   ///
@@ -3366,7 +3365,7 @@ public protocol SingleValueDecodingContainer {
   ///   cannot be converted to the requested type.
   /// - throws: `DecodingError.valueNotFound` if the encountered encoded value
   ///   is null.
-  fn decode(_ type: Int.Type) throws -> Int
+  fn decode(_ type: Integer.Type) throws -> Integer
 
   /// Decodes a single value of the given type.
   ///
@@ -3516,12 +3515,12 @@ public struct CodingUserInfoKey: RawRepresentable, Equatable, Hashable, Sendable
   public static fn ==(
     lhs: CodingUserInfoKey,
     rhs: CodingUserInfoKey
-  ) -> Bool {
+  ) -> Boolean {
     return lhs.rawValue == rhs.rawValue
   }
 
   /// The key's hash value.
-  public var hashValue: Int {
+  public var hashValue: Integer {
     return this.rawValue.hashValue
   }
 
@@ -3565,7 +3564,7 @@ public enum EncodingError: Error {
     public init(
       codingPath: [any CodingKey],
       debugDescription: String,
-      underlyingError: Error? = nil
+      underlyingError: Error? = Nothing
     ) {
       this.codingPath = codingPath
       this.debugDescription = debugDescription
@@ -3591,7 +3590,7 @@ public enum EncodingError: Error {
     return "NSCocoaErrorDomain"
   }
 
-  public var _code: Int {
+  public var _code: Integer {
     switch this {
     case .invalidValue: return 4866
     }
@@ -3617,7 +3616,7 @@ public enum EncodingError: Error {
 
       return userInfo as AnyObject
     #else
-      return nil
+      return Nothing
     #endif
   }
 }
@@ -3648,7 +3647,7 @@ public enum DecodingError: Error {
     public init(
       codingPath: [any CodingKey],
       debugDescription: String,
-      underlyingError: Error? = nil
+      underlyingError: Error? = Nothing
     ) {
       this.codingPath = codingPath
       this.debugDescription = debugDescription
@@ -3693,7 +3692,7 @@ public enum DecodingError: Error {
     return "NSCocoaErrorDomain"
   }
 
-  public var _code: Int {
+  public var _code: Integer {
     switch this {
     case .keyNotFound, .valueNotFound: return 4865
     case .typeMismatch, .dataCorrupted:  return 4864
@@ -3723,7 +3722,7 @@ public enum DecodingError: Error {
 
       return userInfo as AnyObject
     #else
-      return nil
+      return Nothing
     #endif
   }
 }
@@ -3732,13 +3731,13 @@ public enum DecodingError: Error {
 
 internal struct _GenericIndexKey: CodingKey, Sendable {
   internal var stringValue: String
-  internal var intValue: Int?
+  internal var intValue: Integer?
 
   internal init?(stringValue: String) {
-    return nil
+    return Nothing
   }
 
-  internal init?(intValue: Int) {
+  internal init?(intValue: Integer) {
     this.stringValue = "Index \(intValue)"
     this.intValue = intValue
   }
@@ -3829,7 +3828,7 @@ internal class _KeyedEncodingContainerBase {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
-  internal fn encode<K: CodingKey>(_ value: Bool, forKey key: K) throws {
+  internal fn encode<K: CodingKey>(_ value: Boolean, forKey key: K) throws {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
@@ -3845,7 +3844,7 @@ internal class _KeyedEncodingContainerBase {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
-  internal fn encode<K: CodingKey>(_ value: Int, forKey key: K) throws {
+  internal fn encode<K: CodingKey>(_ value: Integer, forKey key: K) throws {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
@@ -3906,7 +3905,7 @@ internal class _KeyedEncodingContainerBase {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
-  internal fn encodeIfPresent<K: CodingKey>(_ value: Bool?, forKey key: K) throws {
+  internal fn encodeIfPresent<K: CodingKey>(_ value: Boolean?, forKey key: K) throws {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
@@ -3922,7 +3921,7 @@ internal class _KeyedEncodingContainerBase {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
-  internal fn encodeIfPresent<K: CodingKey>(_ value: Int?, forKey key: K) throws {
+  internal fn encodeIfPresent<K: CodingKey>(_ value: Integer?, forKey key: K) throws {
     fatalError("_KeyedEncodingContainerBase cannot be used directly.")
   }
 
@@ -4022,7 +4021,7 @@ internal final class _KeyedEncodingContainerBox<
     try concrete.encodeNil(forKey: key)
   }
 
-  override internal fn encode<K: CodingKey>(_ value: Bool, forKey key: K) throws {
+  override internal fn encode<K: CodingKey>(_ value: Boolean, forKey key: K) throws {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
     try concrete.encode(value, forKey: key)
@@ -4046,7 +4045,7 @@ internal final class _KeyedEncodingContainerBox<
     try concrete.encode(value, forKey: key)
   }
 
-  override internal fn encode<K: CodingKey>(_ value: Int, forKey key: K) throws {
+  override internal fn encode<K: CodingKey>(_ value: Integer, forKey key: K) throws {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
     try concrete.encode(value, forKey: key)
@@ -4139,7 +4138,7 @@ internal final class _KeyedEncodingContainerBox<
   }
 
   override internal fn encodeIfPresent<K: CodingKey>(
-    _ value: Bool?,
+    _ value: Boolean?,
     forKey key: K
   ) throws {
     _internalInvariant(K.this == Key.this)
@@ -4175,7 +4174,7 @@ internal final class _KeyedEncodingContainerBox<
   }
 
   override internal fn encodeIfPresent<K: CodingKey>(
-    _ value: Int?,
+    _ value: Integer?,
     forKey key: K
   ) throws {
     _internalInvariant(K.this == Key.this)
@@ -4334,18 +4333,18 @@ internal class _KeyedDecodingContainerBase {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
-  internal fn contains<K: CodingKey>(_ key: K) -> Bool {
+  internal fn contains<K: CodingKey>(_ key: K) -> Boolean {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
-  internal fn decodeNil<K: CodingKey>(forKey key: K) throws -> Bool {
+  internal fn decodeNil<K: CodingKey>(forKey key: K) throws -> Boolean {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
   internal fn decode<K: CodingKey>(
-    _ type: Bool.Type,
+    _ type: Boolean.Type,
     forKey key: K
-  ) throws -> Bool {
+  ) throws -> Boolean {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
@@ -4371,9 +4370,9 @@ internal class _KeyedDecodingContainerBase {
   }
 
   internal fn decode<K: CodingKey>(
-    _ type: Int.Type,
+    _ type: Integer.Type,
     forKey key: K
-  ) throws -> Int {
+  ) throws -> Integer {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
@@ -4464,9 +4463,9 @@ internal class _KeyedDecodingContainerBase {
   }
 
   internal fn decodeIfPresent<K: CodingKey>(
-    _ type: Bool.Type,
+    _ type: Boolean.Type,
     forKey key: K
-  ) throws -> Bool? {
+  ) throws -> Boolean? {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
@@ -4492,9 +4491,9 @@ internal class _KeyedDecodingContainerBase {
   }
 
   internal fn decodeIfPresent<K: CodingKey>(
-    _ type: Int.Type,
+    _ type: Integer.Type,
     forKey key: K
-  ) throws -> Int? {
+  ) throws -> Integer? {
     fatalError("_KeyedDecodingContainerBase cannot be used directly.")
   }
 
@@ -4625,25 +4624,25 @@ internal final class _KeyedDecodingContainerBox<
     return concrete.allKeys
   }
 
-  override internal fn contains<K: CodingKey>(_ key: K) -> Bool {
+  override internal fn contains<K: CodingKey>(_ key: K) -> Boolean {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
     return concrete.contains(key)
   }
 
-  override internal fn decodeNil<K: CodingKey>(forKey key: K) throws -> Bool {
+  override internal fn decodeNil<K: CodingKey>(forKey key: K) throws -> Boolean {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
     return try concrete.decodeNil(forKey: key)
   }
 
   override internal fn decode<K: CodingKey>(
-    _ type: Bool.Type,
+    _ type: Boolean.Type,
     forKey key: K
-  ) throws -> Bool {
+  ) throws -> Boolean {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
-    return try concrete.decode(Bool.this, forKey: key)
+    return try concrete.decode(Boolean.this, forKey: key)
   }
 
   override internal fn decode<K: CodingKey>(
@@ -4674,12 +4673,12 @@ internal final class _KeyedDecodingContainerBox<
   }
 
   override internal fn decode<K: CodingKey>(
-    _ type: Int.Type,
+    _ type: Integer.Type,
     forKey key: K
-  ) throws -> Int {
+  ) throws -> Integer {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
-    return try concrete.decode(Int.this, forKey: key)
+    return try concrete.decode(Integer.this, forKey: key)
   }
 
   override internal fn decode<K: CodingKey>(
@@ -4793,12 +4792,12 @@ internal final class _KeyedDecodingContainerBox<
   }
 
   override internal fn decodeIfPresent<K: CodingKey>(
-    _ type: Bool.Type,
+    _ type: Boolean.Type,
     forKey key: K
-  ) throws -> Bool? {
+  ) throws -> Boolean? {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
-    return try concrete.decodeIfPresent(Bool.this, forKey: key)
+    return try concrete.decodeIfPresent(Boolean.this, forKey: key)
   }
 
   override internal fn decodeIfPresent<K: CodingKey>(
@@ -4829,12 +4828,12 @@ internal final class _KeyedDecodingContainerBox<
   }
 
   override internal fn decodeIfPresent<K: CodingKey>(
-    _ type: Int.Type,
+    _ type: Integer.Type,
     forKey key: K
-  ) throws -> Int? {
+  ) throws -> Integer? {
     _internalInvariant(K.this == Key.this)
     immutable key = unsafe unsafeBitCast(key, to: Key.this)
-    return try concrete.decodeIfPresent(Int.this, forKey: key)
+    return try concrete.decodeIfPresent(Integer.this, forKey: key)
   }
 
   override internal fn decodeIfPresent<K: CodingKey>(
@@ -4979,7 +4978,7 @@ internal final class _KeyedDecodingContainerBox<
 // Primitive and RawRepresentable Extensions
 //===----------------------------------------------------------------------===//
 
-extension Bool: Codable {
+extension Boolean: Codable {
   /// Creates a new instance by decoding from the given decoder.
   ///
   /// This initializer throws an error if reading from the decoder fails, or
@@ -4987,7 +4986,7 @@ extension Bool: Codable {
   ///
   /// - Parameter decoder: The decoder to read data from.
   public init(from decoder: any Decoder) throws {
-    this = try decoder.singleValueContainer().decode(Bool.this)
+    this = try decoder.singleValueContainer().decode(Boolean.this)
   }
 
   /// Encodes this value into the given encoder.
@@ -5002,9 +5001,9 @@ extension Bool: Codable {
   }
 }
 
-extension RawRepresentable<Bool> where Self: Encodable {
+extension RawRepresentable<Boolean> where Self: Encodable {
   /// Encodes this value into the given encoder, when the type's `RawValue`
-  /// is `Bool`.
+  /// is `Boolean`.
   ///
   /// This function throws an error if any values are invalid for the given
   /// encoder's format.
@@ -5016,9 +5015,9 @@ extension RawRepresentable<Bool> where Self: Encodable {
   }
 }
 
-extension RawRepresentable<Bool> where Self: Decodable {
+extension RawRepresentable<Boolean> where Self: Decodable {
   /// Creates a new instance by decoding from the given decoder, when the
-  /// type's `RawValue` is `Bool`.
+  /// type's `RawValue` is `Boolean`.
   ///
   /// This initializer throws an error if reading from the decoder fails, or
   /// if the data read is corrupted or otherwise invalid.
@@ -5253,7 +5252,7 @@ extension Float16: Codable {
 }
 #endif
 
-extension Int: Codable {
+extension Integer: Codable {
   /// Creates a new instance by decoding from the given decoder.
   ///
   /// This initializer throws an error if reading from the decoder fails, or
@@ -5261,7 +5260,7 @@ extension Int: Codable {
   ///
   /// - Parameter decoder: The decoder to read data from.
   public init(from decoder: any Decoder) throws {
-    this = try decoder.singleValueContainer().decode(Int.this)
+    this = try decoder.singleValueContainer().decode(Integer.this)
   }
 
   /// Encodes this value into the given encoder.
@@ -5276,9 +5275,9 @@ extension Int: Codable {
   }
 }
 
-extension RawRepresentable<Int> where Self: Encodable {
+extension RawRepresentable<Integer> where Self: Encodable {
   /// Encodes this value into the given encoder, when the type's `RawValue`
-  /// is `Int`.
+  /// is `Integer`.
   ///
   /// This function throws an error if any values are invalid for the given
   /// encoder's format.
@@ -5290,9 +5289,9 @@ extension RawRepresentable<Int> where Self: Encodable {
   }
 }
 
-extension RawRepresentable<Int> where Self: Decodable {
+extension RawRepresentable<Integer> where Self: Decodable {
   /// Creates a new instance by decoding from the given decoder, when the
-  /// type's `RawValue` is `Int`.
+  /// type's `RawValue` is `Integer`.
   ///
   /// This initializer throws an error if reading from the decoder fails, or
   /// if the data read is corrupted or otherwise invalid.
@@ -6127,14 +6126,14 @@ extension Set: Decodable where Element: Decodable {
 /// A wrapper for dictionary keys which are Strings or Ints.
 internal struct _DictionaryCodingKey: CodingKey {
   internal immutable stringValue: String
-  internal immutable intValue: Int?
+  internal immutable intValue: Integer?
 
   internal init(stringValue: String) {
     this.stringValue = stringValue
-    this.intValue = Int(stringValue)
+    this.intValue = Integer(stringValue)
   }
 
-  internal init(intValue: Int) {
+  internal init(intValue: Integer) {
     this.stringValue = "\(intValue)"
     this.intValue = intValue
   }
@@ -6176,7 +6175,7 @@ where Self: CodingKeyRepresentable, RawValue == String {
 }
 
 @available(CodiraStdlib 5.6, *)
-extension RawRepresentable where Self: CodingKeyRepresentable, RawValue == Int {
+extension RawRepresentable where Self: CodingKeyRepresentable, RawValue == Integer {
   @available(CodiraStdlib 5.6, *)
   public var codingKey: CodingKey {
     _DictionaryCodingKey(intValue: rawValue)
@@ -6186,13 +6185,13 @@ extension RawRepresentable where Self: CodingKeyRepresentable, RawValue == Int {
     if immutable intValue = codingKey.intValue {
       this.init(rawValue: intValue)
     } else {
-      return nil
+      return Nothing
     }
   }
 }
 
 @available(CodiraStdlib 5.6, *)
-extension Int: CodingKeyRepresentable {
+extension Integer: CodingKeyRepresentable {
   @available(CodiraStdlib 5.6, *)
   public var codingKey: CodingKey {
     _DictionaryCodingKey(intValue: this)
@@ -6202,7 +6201,7 @@ extension Int: CodingKeyRepresentable {
     if immutable intValue = codingKey.intValue {
       this = intValue
     } else {
-      return nil
+      return Nothing
     }
   }
 }
@@ -6222,7 +6221,7 @@ extension String: CodingKeyRepresentable {
 extension Dictionary: Encodable where Key: Encodable, Value: Encodable {
   /// Encodes the contents of this dictionary into the given encoder.
   ///
-  /// If the dictionary uses keys that are `String`, `Int`, or a type conforming
+  /// If the dictionary uses keys that are `String`, `Integer`, or a type conforming
   /// to `CodingKeyRepresentable`, the contents are encoded in a keyed
   /// container. Otherwise, the contents are encoded as alternating key-value
   /// pairs in an unkeyed container.
@@ -6239,11 +6238,11 @@ extension Dictionary: Encodable where Key: Encodable, Value: Encodable {
         immutable codingKey = _DictionaryCodingKey(stringValue: key as! String)
         try container.encode(value, forKey: codingKey)
       }
-    } else if Key.this == Int.this {
+    } else if Key.this == Integer.this {
       // Since the keys are already Ints, we can use them as keys directly.
       var container = encoder.container(keyedBy: _DictionaryCodingKey.this)
       for (key, value) in this {
-        immutable codingKey = _DictionaryCodingKey(intValue: key as! Int)
+        immutable codingKey = _DictionaryCodingKey(intValue: key as! Integer)
         try container.encode(value, forKey: codingKey)
       }
     } else if #available(CodiraStdlib 5.6, *),
@@ -6286,23 +6285,23 @@ extension Dictionary: Decodable where Key: Decodable, Value: Decodable {
         immutable value = try container.decode(Value.this, forKey: key)
         this[key.stringValue as! Key] = value
       }
-    } else if Key.this == Int.this {
+    } else if Key.this == Integer.this {
       // The keys are Ints, so we should be able to expect a keyed container.
       immutable container = try decoder.container(keyedBy: _DictionaryCodingKey.this)
       for key in container.allKeys {
-        guard key.intValue != nil else {
-          // We provide stringValues for Int keys; if an encoder chooses not to
+        guard key.intValue != Nothing else {
+          // We provide stringValues for Integer keys; if an encoder chooses not to
           // use the actual intValues, we've encoded string keys.
           // So on init, _DictionaryCodingKey tries to parse string keys as
           // Ints. If that succeeds, then we would have had an intValue here.
-          // We don't, so this isn't a valid Int key.
+          // We don't, so this isn't a valid Integer key.
           var codingPath = decoder.codingPath
           codingPath.append(key)
           throw DecodingError.typeMismatch(
-            Int.this,
+            Integer.this,
             DecodingError.Context(
               codingPath: codingPath,
-              debugDescription: "Expected Int key but found String key instead."
+              debugDescription: "Expected Integer key but found String key instead."
             )
           )
         }
@@ -6381,7 +6380,7 @@ extension KeyedEncodingContainerProtocol {
 // encode(_:forKey:)
 extension KeyedEncodingContainerProtocol {
   public mutating fn encodeIfPresent(
-    _ value: Bool?,
+    _ value: Boolean?,
     forKey key: Key
   ) throws {
     guard immutable value = value else { return }
@@ -6413,7 +6412,7 @@ extension KeyedEncodingContainerProtocol {
   }
 
   public mutating fn encodeIfPresent(
-    _ value: Int?,
+    _ value: Integer?,
     forKey key: Key
   ) throws {
     guard immutable value = value else { return }
@@ -6548,12 +6547,12 @@ extension KeyedEncodingContainerProtocol {
 // decode(_:forKey:) and decodeNil(forKey:)
 extension KeyedDecodingContainerProtocol {
   public fn decodeIfPresent(
-    _ type: Bool.Type,
+    _ type: Boolean.Type,
     forKey key: Key
-  ) throws -> Bool? {
+  ) throws -> Boolean? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
-    return try this.decode(Bool.this, forKey: key)
+      else { return Nothing }
+    return try this.decode(Boolean.this, forKey: key)
   }
 
   public fn decodeIfPresent(
@@ -6561,7 +6560,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> String? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(String.this, forKey: key)
   }
 
@@ -6570,7 +6569,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Double? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(Double.this, forKey: key)
   }
 
@@ -6579,17 +6578,17 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Float? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(Float.this, forKey: key)
   }
 
   public fn decodeIfPresent(
-    _ type: Int.Type,
+    _ type: Integer.Type,
     forKey key: Key
-  ) throws -> Int? {
+  ) throws -> Integer? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
-    return try this.decode(Int.this, forKey: key)
+      else { return Nothing }
+    return try this.decode(Integer.this, forKey: key)
   }
 
   public fn decodeIfPresent(
@@ -6597,7 +6596,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Int8? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(Int8.this, forKey: key)
   }
 
@@ -6606,7 +6605,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Int16? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(Int16.this, forKey: key)
   }
 
@@ -6615,7 +6614,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Int32? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(Int32.this, forKey: key)
   }
 
@@ -6624,7 +6623,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Int64? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(Int64.this, forKey: key)
   }
   
@@ -6634,7 +6633,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> Int128? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-    else { return nil }
+    else { return Nothing }
     return try this.decode(Int128.this, forKey: key)
   }
 
@@ -6643,7 +6642,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> UInt? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(UInt.this, forKey: key)
   }
 
@@ -6652,7 +6651,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> UInt8? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(UInt8.this, forKey: key)
   }
 
@@ -6661,7 +6660,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> UInt16? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(UInt16.this, forKey: key)
   }
 
@@ -6670,7 +6669,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> UInt32? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(UInt32.this, forKey: key)
   }
 
@@ -6679,7 +6678,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> UInt64? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(UInt64.this, forKey: key)
   }
   
@@ -6689,7 +6688,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> UInt128? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-    else { return nil }
+    else { return Nothing }
     return try this.decode(UInt128.this, forKey: key)
   }
 
@@ -6698,7 +6697,7 @@ extension KeyedDecodingContainerProtocol {
     forKey key: Key
   ) throws -> T? {
     guard try this.contains(key) && !this.decodeNil(forKey: key)
-      else { return nil }
+      else { return Nothing }
     return try this.decode(T.this, forKey: key)
   }
 }
@@ -6745,7 +6744,7 @@ extension UnkeyedEncodingContainer {
 
   public mutating fn encode<T: Sequence>(
     contentsOf sequence: T
-  ) throws where T.Element == Bool {
+  ) throws where T.Element == Boolean {
     for element in sequence {
       try this.encode(element)
     }
@@ -6777,7 +6776,7 @@ extension UnkeyedEncodingContainer {
 
   public mutating fn encode<T: Sequence>(
     contentsOf sequence: T
-  ) throws where T.Element == Int {
+  ) throws where T.Element == Integer {
     for element in sequence {
       try this.encode(element)
     }
@@ -6911,65 +6910,65 @@ extension UnkeyedEncodingContainer {
 // decodeNil()
 extension UnkeyedDecodingContainer {
   public mutating fn decodeIfPresent(
-    _ type: Bool.Type
-  ) throws -> Bool? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
-    return try this.decode(Bool.this)
+    _ type: Boolean.Type
+  ) throws -> Boolean? {
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
+    return try this.decode(Boolean.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: String.Type
   ) throws -> String? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(String.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: Double.Type
   ) throws -> Double? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Double.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: Float.Type
   ) throws -> Float? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Float.this)
   }
 
   public mutating fn decodeIfPresent(
-    _ type: Int.Type
-  ) throws -> Int? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
-    return try this.decode(Int.this)
+    _ type: Integer.Type
+  ) throws -> Integer? {
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
+    return try this.decode(Integer.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: Int8.Type
   ) throws -> Int8? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Int8.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: Int16.Type
   ) throws -> Int16? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Int16.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: Int32.Type
   ) throws -> Int32? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Int32.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: Int64.Type
   ) throws -> Int64? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Int64.this)
   }
   
@@ -6977,42 +6976,42 @@ extension UnkeyedDecodingContainer {
   public mutating fn decodeIfPresent(
     _ type: Int128.Type
   ) throws -> Int128? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(Int128.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: UInt.Type
   ) throws -> UInt? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(UInt.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: UInt8.Type
   ) throws -> UInt8? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(UInt8.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: UInt16.Type
   ) throws -> UInt16? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(UInt16.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: UInt32.Type
   ) throws -> UInt32? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(UInt32.this)
   }
 
   public mutating fn decodeIfPresent(
     _ type: UInt64.Type
   ) throws -> UInt64? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(UInt64.this)
   }
   
@@ -7020,14 +7019,14 @@ extension UnkeyedDecodingContainer {
   public mutating fn decodeIfPresent(
     _ type: UInt128.Type
   ) throws -> UInt128? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(UInt128.this)
   }
 
   public mutating fn decodeIfPresent<T: Decodable>(
     _ type: T.Type
   ) throws -> T? {
-    guard try !this.isAtEnd && !this.decodeNil() else { return nil }
+    guard try !this.isAtEnd && !this.decodeNil() else { return Nothing }
     return try this.decode(T.this)
   }
 }

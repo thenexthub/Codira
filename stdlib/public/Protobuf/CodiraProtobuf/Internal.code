@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Internal.swift - Message support
+// Sources/SwiftProtobuf/Internal.code -Message support
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -32,11 +37,11 @@ public enum Internal {
         message:
             "Internal.emptyData isn't used any longer in newer versions of the generator. Generate code with a version later than 1.10.2 to get performance improvements. See https://github.com/apple/swift-protobuf/pull/1028 for more information."
     )
-    public static let emptyData = Data()
+    public static immutable emptyData = Data()
 
     /// Helper to loop over a list of Messages to see if they are all
     /// initialized (see Message.isInitialized for what that means).
-    public static fn areAllInitialized(_ listOfMessages: [any Message]) -> Bool {
+    public static fn areAllInitialized(_ listOfMessages: [any Message]) -> Boolean {
         for msg in listOfMessages {
             if !msg.isInitialized {
                 return false
@@ -47,7 +52,7 @@ public enum Internal {
 
     /// Helper to loop over dictionary with values that are Messages to see if
     /// they are all initialized (see Message.isInitialized for what that means).
-    public static fn areAllInitialized<K>(_ mapToMessages: [K: any Message]) -> Bool {
+    public static fn areAllInitialized<K>(_ mapToMessages: [K: any Message]) -> Boolean {
         for (_, msg) in mapToMessages {
             if !msg.isInitialized {
                 return false

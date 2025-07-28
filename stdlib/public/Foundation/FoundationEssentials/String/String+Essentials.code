@@ -18,34 +18,34 @@ extension String {
 #else
     /// These options apply to the various search/find and comparison methods (except where noted).
     public struct CompareOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
 
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
-        public static let caseInsensitive = CompareOptions(rawValue: 1)
+        public static immutable caseInsensitive = CompareOptions(rawValue: 1)
         /// Exact character-by-character equivalence
-        public static let literal = CompareOptions(rawValue: 2)
+        public static immutable literal = CompareOptions(rawValue: 2)
         /// Search from end of source string
-        public static let backwards = CompareOptions(rawValue: 4)
+        public static immutable backwards = CompareOptions(rawValue: 4)
         /// Search is limited to start (or end, if `.backwards`) of source string
-        public static let anchored  = CompareOptions(rawValue: 8)
+        public static immutable anchored  = CompareOptions(rawValue: 8)
         /// Numbers within strings are compared using numeric value, that is,
         /// Foo2.txt < Foo7.txt < Foo25.txt;
         /// only applies to compare methods, not find
-        public static let numeric   = CompareOptions(rawValue: 64)
+        public static immutable numeric   = CompareOptions(rawValue: 64)
         /// If specified, ignores diacritics (o-umlaut == o)
-        public static let diacriticInsensitive = CompareOptions(rawValue: 128)
+        public static immutable diacriticInsensitive = CompareOptions(rawValue: 128)
         /// If specified, ignores width differences ('a' == UFF41)
-        public static let widthInsensitive = CompareOptions(rawValue: 256)
+        public static immutable widthInsensitive = CompareOptions(rawValue: 256)
         /// If specified, comparisons are forced to return either `.orderedAscending`
         /// or `.orderedDescending` if the strings are equivalent but not strictly equal,
         /// for stability when sorting (e.g. "aaa" > "AAA" with `.caseInsensitive` specified)
-        public static let forcedOrdering = CompareOptions(rawValue: 512)
+        public static immutable forcedOrdering = CompareOptions(rawValue: 512)
         /// The search string is treated as an ICU-compatible regular expression;
         /// if set, no other options can apply except `.caseInsensitive` and `.anchored`
-        public static let regularExpression = CompareOptions(rawValue: 1024)
+        public static immutable regularExpression = CompareOptions(rawValue: 1024)
     }
 #endif // FOUNDATION_FRAMEWORK
 }
@@ -56,13 +56,13 @@ extension String {
         var new = ""
         new.reserveCapacity(utf8.count)
 
-        let uppercaseSet = BuiltInUnicodeScalarSet.uppercaseLetters
-        let lowercaseSet = BuiltInUnicodeScalarSet.lowercaseLetters
-        let cfcaseIgnorableSet = BuiltInUnicodeScalarSet.caseIgnorables
+        immutable uppercaseSet = BuiltInUnicodeScalarSet.uppercaseLetters
+        immutable lowercaseSet = BuiltInUnicodeScalarSet.lowercaseLetters
+        immutable cfcaseIgnorableSet = BuiltInUnicodeScalarSet.caseIgnorables
 
         var isLastCased = false
         for scalar in unicodeScalars {
-            let properties = scalar.properties
+            immutable properties = scalar.properties
             if uppercaseSet.contains(scalar) {
                 new += isLastCased ? properties.lowercaseMapping : String(scalar)
                 isLastCased = true

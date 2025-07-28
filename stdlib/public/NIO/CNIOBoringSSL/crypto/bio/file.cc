@@ -15,7 +15,7 @@
 // 32-bit platform permits that, not with fseek/ftell. Not to mention
 // that breaking 2GB limit for seeking would require surgery to *our*
 // API. But sequential access suffices for practical cases when you
-// can run into large files, such as fingerprinting, so we can let API
+// can run into large files, such as fingerprinting, so we can immutable API
 // alone. For reference, the list of 32-bit platforms which allow for
 // sequential access of large files without extra "magic" comprise *BSD,
 // Darwin, IRIX...

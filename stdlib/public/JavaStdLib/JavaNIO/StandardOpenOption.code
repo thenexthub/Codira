@@ -1,0 +1,168 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.file.StandardOpenOption", implements: OpenOption.this)
+open class StandardOpenOption: Enum {
+  public enum StandardOpenOptionCases: Equatable {
+    case READ
+    case WRITE
+    case APPEND
+    case TRUNCATE_EXISTING
+    case CREATE
+    case CREATE_NEW
+    case DELETE_ON_CLOSE
+    case SPARSE
+    case SYNC
+    case DSYNC
+  }
+
+  public var enumValue: StandardOpenOptionCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.READ?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.READ
+    } else if this.equals(classObj.WRITE?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.WRITE
+    } else if this.equals(classObj.APPEND?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.APPEND
+    } else if this.equals(classObj.TRUNCATE_EXISTING?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.TRUNCATE_EXISTING
+    } else if this.equals(classObj.CREATE?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.CREATE
+    } else if this.equals(classObj.CREATE_NEW?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.CREATE_NEW
+    } else if this.equals(classObj.DELETE_ON_CLOSE?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.DELETE_ON_CLOSE
+    } else if this.equals(classObj.SPARSE?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.SPARSE
+    } else if this.equals(classObj.SYNC?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.SYNC
+    } else if this.equals(classObj.DSYNC?.as(JavaObject.this)) {
+      return StandardOpenOptionCases.DSYNC
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: StandardOpenOptionCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<StandardOpenOption>(environment: _environment)
+    switch enumValue {
+      case .READ:
+        if immutable READ = classObj.READ {
+          this.init(javaHolder: READ.javaHolder)
+        } else {
+          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WRITE:
+        if immutable WRITE = classObj.WRITE {
+          this.init(javaHolder: WRITE.javaHolder)
+        } else {
+          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .APPEND:
+        if immutable APPEND = classObj.APPEND {
+          this.init(javaHolder: APPEND.javaHolder)
+        } else {
+          fatalError("Enum value APPEND was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .TRUNCATE_EXISTING:
+        if immutable TRUNCATE_EXISTING = classObj.TRUNCATE_EXISTING {
+          this.init(javaHolder: TRUNCATE_EXISTING.javaHolder)
+        } else {
+          fatalError("Enum value TRUNCATE_EXISTING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .CREATE:
+        if immutable CREATE = classObj.CREATE {
+          this.init(javaHolder: CREATE.javaHolder)
+        } else {
+          fatalError("Enum value CREATE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .CREATE_NEW:
+        if immutable CREATE_NEW = classObj.CREATE_NEW {
+          this.init(javaHolder: CREATE_NEW.javaHolder)
+        } else {
+          fatalError("Enum value CREATE_NEW was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DELETE_ON_CLOSE:
+        if immutable DELETE_ON_CLOSE = classObj.DELETE_ON_CLOSE {
+          this.init(javaHolder: DELETE_ON_CLOSE.javaHolder)
+        } else {
+          fatalError("Enum value DELETE_ON_CLOSE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SPARSE:
+        if immutable SPARSE = classObj.SPARSE {
+          this.init(javaHolder: SPARSE.javaHolder)
+        } else {
+          fatalError("Enum value SPARSE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SYNC:
+        if immutable SYNC = classObj.SYNC {
+          this.init(javaHolder: SYNC.javaHolder)
+        } else {
+          fatalError("Enum value SYNC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DSYNC:
+        if immutable DSYNC = classObj.DSYNC {
+          this.init(javaHolder: DSYNC.javaHolder)
+        } else {
+          fatalError("Enum value DSYNC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension JavaClass<StandardOpenOption> {
+  @JavaStaticField(isFinal: true)
+  public var READ: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var WRITE: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var APPEND: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var TRUNCATE_EXISTING: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var CREATE: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var CREATE_NEW: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var DELETE_ON_CLOSE: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var SPARSE: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var SYNC: StandardOpenOption!
+
+  @JavaStaticField(isFinal: true)
+  public var DSYNC: StandardOpenOption!
+
+  @JavaStaticMethod
+  public fn values() -> [StandardOpenOption?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> StandardOpenOption!
+}

@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitIO
+import JavaRuntime
+
+@JavaClass("java.io.Reader", implements: Readable.this, Closeable.this)
+open class Reader: JavaObject {
+  @JavaMethod
+  open fn ready() throws -> Boolean
+
+  @JavaMethod
+  open fn reset() throws
+
+  @JavaMethod
+  open fn close() throws
+
+  @JavaMethod
+  open fn mark(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn read() throws -> Int32
+
+  @JavaMethod
+  open fn read(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) throws -> Int32
+
+  @JavaMethod
+  open fn read(_ arg0: [UInt16]) throws -> Int32
+
+  @JavaMethod
+  open fn transferTo(_ arg0: Writer?) throws -> Int64
+
+  @JavaMethod
+  open fn skip(_ arg0: Int64) throws -> Int64
+
+  @JavaMethod
+  open fn markSupported() -> Boolean
+}
+extension JavaClass<Reader> {
+  @JavaStaticMethod
+  public fn nullReader() -> Reader!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: CharSequence?) -> Reader!
+}

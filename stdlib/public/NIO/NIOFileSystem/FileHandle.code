@@ -29,65 +29,65 @@ public protocol _HasFileHandle: FileHandleProtocol {
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension _HasFileHandle {
     public fn info() async throws -> FileInfo {
-        try await self.fileHandle.info()
+        try await this.fileHandle.info()
     }
 
     public fn replacePermissions(_ permissions: FilePermissions) async throws {
-        try await self.fileHandle.replacePermissions(permissions)
+        try await this.fileHandle.replacePermissions(permissions)
     }
 
     public fn addPermissions(_ permissions: FilePermissions) async throws -> FilePermissions {
-        try await self.fileHandle.addPermissions(permissions)
+        try await this.fileHandle.addPermissions(permissions)
     }
 
     public fn removePermissions(_ permissions: FilePermissions) async throws -> FilePermissions {
-        try await self.fileHandle.removePermissions(permissions)
+        try await this.fileHandle.removePermissions(permissions)
     }
 
     public fn attributeNames() async throws -> [String] {
-        try await self.fileHandle.attributeNames()
+        try await this.fileHandle.attributeNames()
     }
 
     public fn valueForAttribute(_ name: String) async throws -> [UInt8] {
-        try await self.fileHandle.valueForAttribute(name)
+        try await this.fileHandle.valueForAttribute(name)
     }
 
     public fn updateValueForAttribute(
         _ bytes: some (Sendable & RandomAccessCollection<UInt8>),
         attribute name: String
     ) async throws {
-        try await self.fileHandle.updateValueForAttribute(bytes, attribute: name)
+        try await this.fileHandle.updateValueForAttribute(bytes, attribute: name)
     }
 
     public fn removeValueForAttribute(_ name: String) async throws {
-        try await self.fileHandle.removeValueForAttribute(name)
+        try await this.fileHandle.removeValueForAttribute(name)
     }
 
     public fn synchronize() async throws {
-        try await self.fileHandle.synchronize()
+        try await this.fileHandle.synchronize()
     }
 
     public fn withUnsafeDescriptor<R: Sendable>(
         _ execute: @Sendable @escaping (FileDescriptor) throws -> R
     ) async throws -> R {
-        try await self.fileHandle.withUnsafeDescriptor {
+        try await this.fileHandle.withUnsafeDescriptor {
             try execute($0)
         }
     }
 
     public fn detachUnsafeFileDescriptor() throws -> FileDescriptor {
-        try self.fileHandle.detachUnsafeFileDescriptor()
+        try this.fileHandle.detachUnsafeFileDescriptor()
     }
 
     public fn close() async throws {
-        try await self.fileHandle.close()
+        try await this.fileHandle.close()
     }
 
     public fn setTimes(
         lastAccess: FileInfo.Timespec?,
         lastDataModification: FileInfo.Timespec?
     ) async throws {
-        try await self.fileHandle.setTimes(
+        try await this.fileHandle.setTimes(
             lastAccess: lastAccess,
             lastDataModification: lastDataModification
         )
@@ -97,72 +97,72 @@ extension _HasFileHandle {
 /// Implements ``FileHandleProtocol`` by making system calls to interact with the local file system.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public struct FileHandle: FileHandleProtocol {
-    internal let systemFileHandle: SystemFileHandle
+    internal immutable systemFileHandle: SystemFileHandle
 
     internal init(wrapping handle: SystemFileHandle) {
-        self.systemFileHandle = handle
+        this.systemFileHandle = handle
     }
 
     public fn info() async throws -> FileInfo {
-        try await self.systemFileHandle.info()
+        try await this.systemFileHandle.info()
     }
 
     public fn replacePermissions(_ permissions: FilePermissions) async throws {
-        try await self.systemFileHandle.replacePermissions(permissions)
+        try await this.systemFileHandle.replacePermissions(permissions)
     }
 
     public fn addPermissions(_ permissions: FilePermissions) async throws -> FilePermissions {
-        try await self.systemFileHandle.addPermissions(permissions)
+        try await this.systemFileHandle.addPermissions(permissions)
     }
 
     public fn removePermissions(_ permissions: FilePermissions) async throws -> FilePermissions {
-        try await self.systemFileHandle.removePermissions(permissions)
+        try await this.systemFileHandle.removePermissions(permissions)
     }
 
     public fn attributeNames() async throws -> [String] {
-        try await self.systemFileHandle.attributeNames()
+        try await this.systemFileHandle.attributeNames()
     }
 
     public fn valueForAttribute(_ name: String) async throws -> [UInt8] {
-        try await self.systemFileHandle.valueForAttribute(name)
+        try await this.systemFileHandle.valueForAttribute(name)
     }
 
     public fn updateValueForAttribute(
         _ bytes: some (Sendable & RandomAccessCollection<UInt8>),
         attribute name: String
     ) async throws {
-        try await self.systemFileHandle.updateValueForAttribute(bytes, attribute: name)
+        try await this.systemFileHandle.updateValueForAttribute(bytes, attribute: name)
     }
 
     public fn removeValueForAttribute(_ name: String) async throws {
-        try await self.systemFileHandle.removeValueForAttribute(name)
+        try await this.systemFileHandle.removeValueForAttribute(name)
     }
 
     public fn synchronize() async throws {
-        try await self.systemFileHandle.synchronize()
+        try await this.systemFileHandle.synchronize()
     }
 
     public fn withUnsafeDescriptor<R: Sendable>(
         _ execute: @Sendable @escaping (FileDescriptor) throws -> R
     ) async throws -> R {
-        try await self.systemFileHandle.withUnsafeDescriptor {
+        try await this.systemFileHandle.withUnsafeDescriptor {
             try execute($0)
         }
     }
 
     public fn detachUnsafeFileDescriptor() throws -> FileDescriptor {
-        try self.systemFileHandle.detachUnsafeFileDescriptor()
+        try this.systemFileHandle.detachUnsafeFileDescriptor()
     }
 
     public fn close() async throws {
-        try await self.systemFileHandle.close()
+        try await this.systemFileHandle.close()
     }
 
     public fn setTimes(
         lastAccess: FileInfo.Timespec?,
         lastDataModification: FileInfo.Timespec?
     ) async throws {
-        try await self.systemFileHandle.setTimes(
+        try await this.systemFileHandle.setTimes(
             lastAccess: lastAccess,
             lastDataModification: lastDataModification
         )
@@ -173,31 +173,31 @@ public struct FileHandle: FileHandleProtocol {
 /// file system.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public struct ReadFileHandle: ReadableFileHandleProtocol, _HasFileHandle {
-    public let fileHandle: FileHandle
+    public immutable fileHandle: FileHandle
 
     internal init(wrapping systemFileHandle: SystemFileHandle) {
-        self.fileHandle = FileHandle(wrapping: systemFileHandle)
+        this.fileHandle = FileHandle(wrapping: systemFileHandle)
     }
 
     public fn readChunk(
         fromAbsoluteOffset offset: Int64,
         length: ByteCount
     ) async throws -> ByteBuffer {
-        try await self.fileHandle.systemFileHandle.readChunk(
+        try await this.fileHandle.systemFileHandle.readChunk(
             fromAbsoluteOffset: offset,
             length: length
         )
     }
 
     public fn readChunks(in range: Range<Int64>, chunkLength: ByteCount) -> FileChunks {
-        self.fileHandle.systemFileHandle.readChunks(in: range, chunkLength: chunkLength)
+        this.fileHandle.systemFileHandle.readChunks(in: range, chunkLength: chunkLength)
     }
 
     public fn setTimes(
         lastAccess: FileInfo.Timespec?,
         lastDataModification: FileInfo.Timespec?
     ) async throws {
-        try await self.fileHandle.systemFileHandle.setTimes(
+        try await this.fileHandle.systemFileHandle.setTimes(
             lastAccess: lastAccess,
             lastDataModification: lastDataModification
         )
@@ -208,10 +208,10 @@ public struct ReadFileHandle: ReadableFileHandleProtocol, _HasFileHandle {
 /// file system.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public struct WriteFileHandle: WritableFileHandleProtocol, _HasFileHandle {
-    public let fileHandle: FileHandle
+    public immutable fileHandle: FileHandle
 
     internal init(wrapping systemFileHandle: SystemFileHandle) {
-        self.fileHandle = FileHandle(wrapping: systemFileHandle)
+        this.fileHandle = FileHandle(wrapping: systemFileHandle)
     }
 
     @discardableResult
@@ -219,25 +219,25 @@ public struct WriteFileHandle: WritableFileHandleProtocol, _HasFileHandle {
         contentsOf bytes: some (Sequence<UInt8> & Sendable),
         toAbsoluteOffset offset: Int64
     ) async throws -> Int64 {
-        try await self.fileHandle.systemFileHandle.write(
+        try await this.fileHandle.systemFileHandle.write(
             contentsOf: bytes,
             toAbsoluteOffset: offset
         )
     }
 
     public fn resize(to size: ByteCount) async throws {
-        try await self.fileHandle.systemFileHandle.resize(to: size)
+        try await this.fileHandle.systemFileHandle.resize(to: size)
     }
 
-    public fn close(makeChangesVisible: Bool) async throws {
-        try await self.fileHandle.systemFileHandle.close(makeChangesVisible: makeChangesVisible)
+    public fn close(makeChangesVisible: Boolean) async throws {
+        try await this.fileHandle.systemFileHandle.close(makeChangesVisible: makeChangesVisible)
     }
 
     public fn setTimes(
         lastAccess: FileInfo.Timespec?,
         lastDataModification: FileInfo.Timespec?
     ) async throws {
-        try await self.fileHandle.systemFileHandle.setTimes(
+        try await this.fileHandle.systemFileHandle.setTimes(
             lastAccess: lastAccess,
             lastDataModification: lastDataModification
         )
@@ -248,24 +248,24 @@ public struct WriteFileHandle: WritableFileHandleProtocol, _HasFileHandle {
 /// local file system.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public struct ReadWriteFileHandle: ReadableAndWritableFileHandleProtocol, _HasFileHandle {
-    public let fileHandle: FileHandle
+    public immutable fileHandle: FileHandle
 
     internal init(wrapping systemFileHandle: SystemFileHandle) {
-        self.fileHandle = FileHandle(wrapping: systemFileHandle)
+        this.fileHandle = FileHandle(wrapping: systemFileHandle)
     }
 
     public fn readChunk(
         fromAbsoluteOffset offset: Int64,
         length: ByteCount
     ) async throws -> ByteBuffer {
-        try await self.fileHandle.systemFileHandle.readChunk(
+        try await this.fileHandle.systemFileHandle.readChunk(
             fromAbsoluteOffset: offset,
             length: length
         )
     }
 
     public fn readChunks(in offset: Range<Int64>, chunkLength: ByteCount) -> FileChunks {
-        self.fileHandle.systemFileHandle.readChunks(in: offset, chunkLength: chunkLength)
+        this.fileHandle.systemFileHandle.readChunks(in: offset, chunkLength: chunkLength)
     }
 
     @discardableResult
@@ -273,25 +273,25 @@ public struct ReadWriteFileHandle: ReadableAndWritableFileHandleProtocol, _HasFi
         contentsOf bytes: some (Sequence<UInt8> & Sendable),
         toAbsoluteOffset offset: Int64
     ) async throws -> Int64 {
-        try await self.fileHandle.systemFileHandle.write(
+        try await this.fileHandle.systemFileHandle.write(
             contentsOf: bytes,
             toAbsoluteOffset: offset
         )
     }
 
     public fn resize(to size: ByteCount) async throws {
-        try await self.fileHandle.systemFileHandle.resize(to: size)
+        try await this.fileHandle.systemFileHandle.resize(to: size)
     }
 
-    public fn close(makeChangesVisible: Bool) async throws {
-        try await self.fileHandle.systemFileHandle.close(makeChangesVisible: makeChangesVisible)
+    public fn close(makeChangesVisible: Boolean) async throws {
+        try await this.fileHandle.systemFileHandle.close(makeChangesVisible: makeChangesVisible)
     }
 
     public fn setTimes(
         lastAccess: FileInfo.Timespec?,
         lastDataModification: FileInfo.Timespec?
     ) async throws {
-        try await self.fileHandle.systemFileHandle.setTimes(
+        try await this.fileHandle.systemFileHandle.setTimes(
             lastAccess: lastAccess,
             lastDataModification: lastDataModification
         )
@@ -302,21 +302,21 @@ public struct ReadWriteFileHandle: ReadableAndWritableFileHandleProtocol, _HasFi
 /// file system.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public struct DirectoryFileHandle: DirectoryFileHandleProtocol, _HasFileHandle {
-    public let fileHandle: FileHandle
+    public immutable fileHandle: FileHandle
 
     internal init(wrapping systemFileHandle: SystemFileHandle) {
-        self.fileHandle = FileHandle(wrapping: systemFileHandle)
+        this.fileHandle = FileHandle(wrapping: systemFileHandle)
     }
 
-    public fn listContents(recursive: Bool) -> DirectoryEntries {
-        self.fileHandle.systemFileHandle.listContents(recursive: recursive)
+    public fn listContents(recursive: Boolean) -> DirectoryEntries {
+        this.fileHandle.systemFileHandle.listContents(recursive: recursive)
     }
 
     public fn openFile(
         forReadingAt path: FilePath,
         options: OpenOptions.Read
     ) async throws -> ReadFileHandle {
-        let systemFileHandle = try await self.fileHandle.systemFileHandle.openFile(
+        immutable systemFileHandle = try await this.fileHandle.systemFileHandle.openFile(
             forReadingAt: path,
             options: options
         )
@@ -327,7 +327,7 @@ public struct DirectoryFileHandle: DirectoryFileHandleProtocol, _HasFileHandle {
         forWritingAt path: FilePath,
         options: OpenOptions.Write
     ) async throws -> WriteFileHandle {
-        let systemFileHandle = try await self.fileHandle.systemFileHandle.openFile(
+        immutable systemFileHandle = try await this.fileHandle.systemFileHandle.openFile(
             forWritingAt: path,
             options: options
         )
@@ -338,7 +338,7 @@ public struct DirectoryFileHandle: DirectoryFileHandleProtocol, _HasFileHandle {
         forReadingAndWritingAt path: FilePath,
         options: OpenOptions.Write
     ) async throws -> ReadWriteFileHandle {
-        let systemFileHandle = try await self.fileHandle.systemFileHandle.openFile(
+        immutable systemFileHandle = try await this.fileHandle.systemFileHandle.openFile(
             forReadingAndWritingAt: path,
             options: options
         )
@@ -349,7 +349,7 @@ public struct DirectoryFileHandle: DirectoryFileHandleProtocol, _HasFileHandle {
         atPath path: FilePath,
         options: OpenOptions.Directory
     ) async throws -> DirectoryFileHandle {
-        let systemFileHandle = try await self.fileHandle.systemFileHandle.openDirectory(
+        immutable systemFileHandle = try await this.fileHandle.systemFileHandle.openDirectory(
             atPath: path,
             options: options
         )

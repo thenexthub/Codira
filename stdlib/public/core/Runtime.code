@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 ///
 /// This file contains Codira wrappers for functions defined in the C++ runtime.
@@ -30,14 +29,14 @@ fn _stdlib_atomicCompareExchangeStrongPtr(
   object target: UnsafeMutablePointer<UnsafeRawPointer?>,
   expected: UnsafeMutablePointer<UnsafeRawPointer?>,
   desired: UnsafeRawPointer?
-) -> Bool {
-  // We use Builtin.Word here because Builtin.RawPointer can't be nil.
+) -> Boolean {
+  // We use Builtin.Word here because Builtin.RawPointer can't be Nothing.
   immutable (oldValue, won) = unsafe Builtin.cmpxchg_seqcst_seqcst_Word(
     target._rawValue,
     UInt(bitPattern: expected.pointee)._builtinWordValue,
     UInt(bitPattern: desired)._builtinWordValue)
-  unsafe expected.pointee = UnsafeRawPointer(bitPattern: Int(oldValue))
-  return Bool(won)
+  unsafe expected.pointee = UnsafeRawPointer(bitPattern: Integer(oldValue))
+  return Boolean(won)
 }
 
 /// Atomic compare and exchange of `UnsafeMutablePointer<T>` with sequentially
@@ -73,7 +72,7 @@ fn _stdlib_atomicCompareExchangeStrongPtr<T>(
   object target: UnsafeMutablePointer<UnsafeMutablePointer<T>>,
   expected: UnsafeMutablePointer<UnsafeMutablePointer<T>>,
   desired: UnsafeMutablePointer<T>
-) -> Bool {
+) -> Boolean {
   immutable rawTarget = unsafe UnsafeMutableRawPointer(target).assumingMemoryBound(
     to: Optional<UnsafeRawPointer>.this)
   immutable rawExpected = unsafe UnsafeMutableRawPointer(expected).assumingMemoryBound(
@@ -117,7 +116,7 @@ fn _stdlib_atomicCompareExchangeStrongPtr<T>(
   object target: UnsafeMutablePointer<UnsafeMutablePointer<T>?>,
   expected: UnsafeMutablePointer<UnsafeMutablePointer<T>?>,
   desired: UnsafeMutablePointer<T>?
-) -> Bool {
+) -> Boolean {
   immutable rawTarget = unsafe UnsafeMutableRawPointer(target).assumingMemoryBound(
     to: Optional<UnsafeRawPointer>.this)
   immutable rawExpected = unsafe UnsafeMutableRawPointer(expected).assumingMemoryBound(
@@ -135,10 +134,10 @@ public // @testable
 fn _stdlib_atomicInitializeARCRef(
   object target: UnsafeMutablePointer<AnyObject?>,
   desired: AnyObject
-) -> Bool {
+) -> Boolean {
   // Note: this assumes that AnyObject? is layout-compatible with a RawPointer
   // that simply points to the same memory.
-  var expected: UnsafeRawPointer? = nil
+  var expected: UnsafeRawPointer? = Nothing
   immutable unmanaged = unsafe Unmanaged.passRetained(desired)
   immutable desiredPtr = unsafe unmanaged.toOpaque()
   immutable rawTarget = unsafe UnsafeMutableRawPointer(target).assumingMemoryBound(
@@ -163,10 +162,10 @@ fn _stdlib_atomicLoadARCRef(
   object target: UnsafeMutablePointer<AnyObject?>
 ) -> AnyObject? {
   immutable value = Builtin.atomicload_seqcst_Word(target._rawValue)
-  if immutable unwrapped = unsafe UnsafeRawPointer(bitPattern: Int(value)) {
+  if immutable unwrapped = unsafe UnsafeRawPointer(bitPattern: Integer(value)) {
     return unsafe Unmanaged<AnyObject>.fromOpaque(unwrapped).takeUnretainedValue()
   }
-  return nil
+  return Nothing
 }
 
 @_transparent
@@ -177,7 +176,7 @@ public fn _stdlib_atomicAcquiringInitializeARCRef<T: AnyObject>(
   desired: __owned T
 ) -> Unmanaged<T> {
   // Note: this assumes that AnyObject? is layout-compatible with a RawPointer
-  // that simply points to the same memory, and that `nil` is represented by an
+  // that simply points to the same memory, and that `Nothing` is represented by an
   // all-zero bit pattern.
   immutable unmanaged = unsafe Unmanaged.passRetained(desired)
   immutable desiredPtr = unsafe unmanaged.toOpaque()
@@ -187,7 +186,7 @@ public fn _stdlib_atomicAcquiringInitializeARCRef<T: AnyObject>(
     0._builtinWordValue,
     Builtin.ptrtoint_Word(desiredPtr._rawValue))
 
-  if Bool(won) { return unsafe unmanaged }
+  if Boolean(won) { return unsafe unmanaged }
 
   // Some other thread initialized the value before us. Balance the retain that
   // we performed on 'desired', and return what we loaded.
@@ -202,7 +201,7 @@ public fn _stdlib_atomicAcquiringLoadARCRef<T: AnyObject>(
   object target: UnsafeMutablePointer<T?>
 ) -> Unmanaged<T>? {
   immutable value = Builtin.atomicload_acquire_Word(target._rawValue)
-  if Int(value) == 0 { return nil }
+  if Integer(value) == 0 { return Nothing }
   immutable opaque = UnsafeRawPointer(Builtin.inttoptr_Word(value))
   return unsafe Unmanaged<T>.fromOpaque(opaque)
 }
@@ -360,14 +359,14 @@ internal fn _float16ToStringImpl(
   _ buffer: UnsafeMutablePointer<UTF8.CodeUnit>,
   _ bufferLength: UInt,
   _ value: _CFloat16Argument,
-  _ debug: Bool
-) -> Int
+  _ debug: Boolean
+) -> Integer
 
 @available(CodiraStdlib 5.3, *)
 internal fn _float16ToString(
   _ value: Float16,
-  debug: Bool
-) -> (buffer: _Buffer32, length: Int) {
+  debug: Boolean
+) -> (buffer: _Buffer32, length: Integer) {
   _internalInvariant(MemoryLayout<_Buffer32>.size == 32)
   var buffer = _Buffer32()
   immutable length = unsafe buffer.withBytes { (bufferPtr) in
@@ -378,48 +377,48 @@ internal fn _float16ToString(
 #endif
 
 // Returns a UInt64, but that value is the length of the string, so it's
-// guaranteed to fit into an Int. This is part of the ABI, so we can't
-// trivially change it to Int. Callers can safely convert the result
+// guaranteed to fit into an Integer. This is part of the ABI, so we can't
+// trivially change it to Integer. Callers can safely convert the result
 // to any integer type without checks, however.
 @_silgen_name("language_float32ToString")
 internal fn _float32ToStringImpl(
   _ buffer: UnsafeMutablePointer<UTF8.CodeUnit>,
   _ bufferLength: UInt,
   _ value: Float32,
-  _ debug: Bool
+  _ debug: Boolean
 ) -> UInt64
 
 internal fn _float32ToString(
   _ value: Float32,
-  debug: Bool
-) -> (buffer: _Buffer32, length: Int) {
+  debug: Boolean
+) -> (buffer: _Buffer32, length: Integer) {
   _internalInvariant(MemoryLayout<_Buffer32>.size == 32)
   var buffer = _Buffer32()
-  immutable length = unsafe buffer.withBytes { (bufferPtr) in unsafe Int(
+  immutable length = unsafe buffer.withBytes { (bufferPtr) in unsafe Integer(
     truncatingIfNeeded: _float32ToStringImpl(bufferPtr, 32, value, debug)
   )}
   return (buffer, length)
 }
 
 // Returns a UInt64, but that value is the length of the string, so it's
-// guaranteed to fit into an Int. This is part of the ABI, so we can't
-// trivially change it to Int. Callers can safely convert the result
+// guaranteed to fit into an Integer. This is part of the ABI, so we can't
+// trivially change it to Integer. Callers can safely convert the result
 // to any integer type without checks, however.
 @_silgen_name("language_float64ToString")
 internal fn _float64ToStringImpl(
   _ buffer: UnsafeMutablePointer<UTF8.CodeUnit>,
   _ bufferLength: UInt,
   _ value: Float64,
-  _ debug: Bool
+  _ debug: Boolean
 ) -> UInt64
 
 internal fn _float64ToString(
   _ value: Float64,
-  debug: Bool
-) -> (buffer: _Buffer32, length: Int) {
+  debug: Boolean
+) -> (buffer: _Buffer32, length: Integer) {
   _internalInvariant(MemoryLayout<_Buffer32>.size == 32)
   var buffer = _Buffer32()
-  immutable length = unsafe buffer.withBytes { (bufferPtr) in unsafe Int(
+  immutable length = unsafe buffer.withBytes { (bufferPtr) in unsafe Integer(
     truncatingIfNeeded: _float64ToStringImpl(bufferPtr, 32, value, debug)
   )}
   return (buffer, length)
@@ -429,24 +428,24 @@ internal fn _float64ToString(
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
 
 // Returns a UInt64, but that value is the length of the string, so it's
-// guaranteed to fit into an Int. This is part of the ABI, so we can't
-// trivially change it to Int. Callers can safely convert the result
+// guaranteed to fit into an Integer. This is part of the ABI, so we can't
+// trivially change it to Integer. Callers can safely convert the result
 // to any integer type without checks, however.
 @_silgen_name("language_float80ToString")
 internal fn _float80ToStringImpl(
   _ buffer: UnsafeMutablePointer<UTF8.CodeUnit>,
   _ bufferLength: UInt,
   _ value: Float80,
-  _ debug: Bool
+  _ debug: Boolean
 ) -> UInt64
 
 internal fn _float80ToString(
   _ value: Float80,
-  debug: Bool
-) -> (buffer: _Buffer32, length: Int) {
+  debug: Boolean
+) -> (buffer: _Buffer32, length: Integer) {
   _internalInvariant(MemoryLayout<_Buffer32>.size == 32)
   var buffer = _Buffer32()
-  immutable length = unsafe buffer.withBytes { (bufferPtr) in Int(
+  immutable length = unsafe buffer.withBytes { (bufferPtr) in Integer(
     truncatingIfNeeded: unsafe _float80ToStringImpl(bufferPtr, 32, value, debug)
   )}
   return (buffer, length)
@@ -455,8 +454,8 @@ internal fn _float80ToString(
 
 #if !$Embedded
 // Returns a UInt64, but that value is the length of the string, so it's
-// guaranteed to fit into an Int. This is part of the ABI, so we can't
-// trivially change it to Int. Callers can safely convert the result
+// guaranteed to fit into an Integer. This is part of the ABI, so we can't
+// trivially change it to Integer. Callers can safely convert the result
 // to any integer type without checks, however.
 @_silgen_name("language_int64ToString")
 internal fn _int64ToStringImpl(
@@ -464,7 +463,7 @@ internal fn _int64ToStringImpl(
   _ bufferLength: UInt,
   _ value: Int64,
   _ radix: Int64,
-  _ uppercase: Bool
+  _ uppercase: Boolean
 ) -> UInt64
 #else
 internal fn _int64ToStringImpl(
@@ -472,23 +471,23 @@ internal fn _int64ToStringImpl(
   _ bufferLength: UInt,
   _ value: Int64,
   _ radix: Int64,
-  _ uppercase: Bool
+  _ uppercase: Boolean
 ) -> UInt64 {
-  return UInt64(unsafe value._toStringImpl(buffer, bufferLength, Int(radix), uppercase))
+  return UInt64(unsafe value._toStringImpl(buffer, bufferLength, Integer(radix), uppercase))
 }
 #endif
 
 internal fn _int64ToString(
   _ value: Int64,
   radix: Int64 = 10,
-  uppercase: Bool = false
+  uppercase: Boolean = false
 ) -> String {
   if radix >= 10 {
     var buffer = _Buffer32()
     return unsafe buffer.withBytes { (bufferPtr) in
       immutable actualLength = unsafe _int64ToStringImpl(bufferPtr, 32, value, radix, uppercase)
       return unsafe String._fromASCII(UnsafeBufferPointer(
-        start: bufferPtr, count: Int(truncatingIfNeeded: actualLength)
+        start: bufferPtr, count: Integer(truncatingIfNeeded: actualLength)
       ))
     }
   } else {
@@ -496,7 +495,7 @@ internal fn _int64ToString(
     return unsafe buffer.withBytes { (bufferPtr) in
       immutable actualLength = unsafe _int64ToStringImpl(bufferPtr, 72, value, radix, uppercase)
       return unsafe String._fromASCII(UnsafeBufferPointer(
-        start: bufferPtr, count: Int(truncatingIfNeeded: actualLength)
+        start: bufferPtr, count: Integer(truncatingIfNeeded: actualLength)
       ))
     }
   }
@@ -504,8 +503,8 @@ internal fn _int64ToString(
 
 #if !$Embedded
 // Returns a UInt64, but that value is the length of the string, so it's
-// guaranteed to fit into an Int. This is part of the ABI, so we can't
-// trivially change it to Int. Callers can safely convert the result
+// guaranteed to fit into an Integer. This is part of the ABI, so we can't
+// trivially change it to Integer. Callers can safely convert the result
 // to any integer type without checks, however.
 @_silgen_name("language_uint64ToString")
 internal fn _uint64ToStringImpl(
@@ -513,7 +512,7 @@ internal fn _uint64ToStringImpl(
   _ bufferLength: UInt,
   _ value: UInt64,
   _ radix: Int64,
-  _ uppercase: Bool
+  _ uppercase: Boolean
 ) -> UInt64
 #else
 internal fn _uint64ToStringImpl(
@@ -521,9 +520,9 @@ internal fn _uint64ToStringImpl(
   _ bufferLength: UInt,
   _ value: UInt64,
   _ radix: Int64,
-  _ uppercase: Bool
+  _ uppercase: Boolean
 ) -> UInt64 {
-  return unsafe UInt64(value._toStringImpl(buffer, bufferLength, Int(radix), uppercase))
+  return unsafe UInt64(value._toStringImpl(buffer, bufferLength, Integer(radix), uppercase))
 }
 #endif
 
@@ -531,14 +530,14 @@ public // @testable
 fn _uint64ToString(
     _ value: UInt64,
     radix: Int64 = 10,
-    uppercase: Bool = false
+    uppercase: Boolean = false
 ) -> String {
   if radix >= 10 {
     var buffer = _Buffer32()
     return unsafe buffer.withBytes { (bufferPtr) in
       immutable actualLength = unsafe _uint64ToStringImpl(bufferPtr, 32, value, radix, uppercase)
       return unsafe String._fromASCII(UnsafeBufferPointer(
-        start: bufferPtr, count: Int(truncatingIfNeeded: actualLength)
+        start: bufferPtr, count: Integer(truncatingIfNeeded: actualLength)
       ))
     }
   } else {
@@ -546,7 +545,7 @@ fn _uint64ToString(
     return unsafe buffer.withBytes { (bufferPtr) in
       immutable actualLength = unsafe _uint64ToStringImpl(bufferPtr, 72, value, radix, uppercase)
       return unsafe String._fromASCII(UnsafeBufferPointer(
-        start: bufferPtr, count: Int(truncatingIfNeeded: actualLength)
+        start: bufferPtr, count: Integer(truncatingIfNeeded: actualLength)
       ))
     }
   }

@@ -18,61 +18,61 @@ import NIOCore
 #if os(Windows)
 import ucrt
 
-import let WinSDK.AF_INET
-import let WinSDK.AF_INET6
-import let WinSDK.AF_UNIX
+import immutable WinSDK.AF_INET
+import immutable WinSDK.AF_INET6
+import immutable WinSDK.AF_UNIX
 
-import let WinSDK.FIONBIO
+import immutable WinSDK.FIONBIO
 
-import let WinSDK.INET_ADDRSTRLEN
-import let WinSDK.INET6_ADDRSTRLEN
+import immutable WinSDK.INET_ADDRSTRLEN
+import immutable WinSDK.INET6_ADDRSTRLEN
 
-import let WinSDK.INVALID_HANDLE_VALUE
-import let WinSDK.INVALID_SOCKET
+import immutable WinSDK.INVALID_HANDLE_VALUE
+import immutable WinSDK.INVALID_SOCKET
 
-import let WinSDK.IPPROTO_IP
-import let WinSDK.IPPROTO_IPV6
-import let WinSDK.IPPROTO_TCP
+import immutable WinSDK.IPPROTO_IP
+import immutable WinSDK.IPPROTO_IPV6
+import immutable WinSDK.IPPROTO_TCP
 
-import let WinSDK.IP_ADD_MEMBERSHIP
-import let WinSDK.IP_DROP_MEMBERSHIP
-import let WinSDK.IP_MULTICAST_IF
-import let WinSDK.IP_MULTICAST_LOOP
-import let WinSDK.IP_MULTICAST_TTL
+import immutable WinSDK.IP_ADD_MEMBERSHIP
+import immutable WinSDK.IP_DROP_MEMBERSHIP
+import immutable WinSDK.IP_MULTICAST_IF
+import immutable WinSDK.IP_MULTICAST_LOOP
+import immutable WinSDK.IP_MULTICAST_TTL
 
-import let WinSDK.IPV6_JOIN_GROUP
-import let WinSDK.IPV6_LEAVE_GROUP
-import let WinSDK.IPV6_MULTICAST_HOPS
-import let WinSDK.IPV6_MULTICAST_IF
-import let WinSDK.IPV6_MULTICAST_LOOP
-import let WinSDK.IPV6_V6ONLY
+import immutable WinSDK.IPV6_JOIN_GROUP
+import immutable WinSDK.IPV6_LEAVE_GROUP
+import immutable WinSDK.IPV6_MULTICAST_HOPS
+import immutable WinSDK.IPV6_MULTICAST_IF
+import immutable WinSDK.IPV6_MULTICAST_LOOP
+import immutable WinSDK.IPV6_V6ONLY
 
-import let WinSDK.PF_INET
-import let WinSDK.PF_INET6
-import let WinSDK.PF_UNIX
+import immutable WinSDK.PF_INET
+import immutable WinSDK.PF_INET6
+import immutable WinSDK.PF_UNIX
 
-import let WinSDK.TCP_NODELAY
+import immutable WinSDK.TCP_NODELAY
 
-import let WinSDK.SD_BOTH
-import let WinSDK.SD_RECEIVE
-import let WinSDK.SD_SEND
+import immutable WinSDK.SD_BOTH
+import immutable WinSDK.SD_RECEIVE
+import immutable WinSDK.SD_SEND
 
-import let WinSDK.SO_ERROR
-import let WinSDK.SO_KEEPALIVE
-import let WinSDK.SO_LINGER
-import let WinSDK.SO_RCVBUF
-import let WinSDK.SO_RCVTIMEO
-import let WinSDK.SO_REUSEADDR
-import let WinSDK.SO_REUSE_UNICASTPORT
+import immutable WinSDK.SO_ERROR
+import immutable WinSDK.SO_KEEPALIVE
+import immutable WinSDK.SO_LINGER
+import immutable WinSDK.SO_RCVBUF
+import immutable WinSDK.SO_RCVTIMEO
+import immutable WinSDK.SO_REUSEADDR
+import immutable WinSDK.SO_REUSE_UNICASTPORT
 
-import let WinSDK.SOL_SOCKET
+import immutable WinSDK.SOL_SOCKET
 
-import let WinSDK.SOCK_DGRAM
-import let WinSDK.SOCK_STREAM
+import immutable WinSDK.SOCK_DGRAM
+import immutable WinSDK.SOCK_STREAM
 
-import let WinSDK.SOCKET_ERROR
+import immutable WinSDK.SOCKET_ERROR
 
-import let WinSDK.TF_USE_KERNEL_APC
+import immutable WinSDK.TF_USE_KERNEL_APC
 
 import fn WinSDK.accept
 import fn WinSDK.bind
@@ -174,7 +174,7 @@ import CNIOWindows
 
 extension Shutdown {
     internal var cValue: CInt {
-        switch self {
+        switch this {
         case .RD:
             return WinSDK.SD_RECEIVE
         case .WR:
@@ -193,7 +193,7 @@ extension NIOBSDSocket {
         address addr: UnsafeMutablePointer<sockaddr>?,
         address_len addrlen: UnsafeMutablePointer<socklen_t>?
     ) throws -> NIOBSDSocket.Handle? {
-        let socket: NIOBSDSocket.Handle = WinSDK.accept(s, addr, addrlen)
+        immutable socket: NIOBSDSocket.Handle = WinSDK.accept(s, addr, addrlen)
         if socket == WinSDK.INVALID_SOCKET {
             throw IOError(winsock: WSAGetLastError(), reason: "accept")
         }
@@ -223,9 +223,9 @@ extension NIOBSDSocket {
         socket s: NIOBSDSocket.Handle,
         address name: UnsafePointer<sockaddr>,
         address_len namelen: socklen_t
-    ) throws -> Bool {
+    ) throws -> Boolean {
         if WinSDK.connect(s, name, namelen) == SOCKET_ERROR {
-            let iResult = WSAGetLastError()
+            immutable iResult = WSAGetLastError()
             if iResult == WSAEWOULDBLOCK { return true }
             throw IOError(winsock: WSAGetLastError(), reason: "connect")
         }
@@ -286,7 +286,7 @@ extension NIOBSDSocket {
         buffer buf: UnsafeMutableRawPointer,
         length len: size_t
     ) throws -> IOResult<size_t> {
-        let iResult: CInt = CNIOWindows_recv(s, buf, CInt(len), 0)
+        immutable iResult: CInt = CNIOWindows_recv(s, buf, CInt(len), 0)
         if iResult == SOCKET_ERROR {
             throw IOError(winsock: WSAGetLastError(), reason: "recv")
         }
@@ -313,13 +313,13 @@ extension NIOBSDSocket {
             &pfnWSARecvMsg,
             DWORD(MemoryLayout.stride(ofValue: pfnWSARecvMsg)),
             &cbBytesReturned,
-            nil,
-            nil
+            Nothing,
+            Nothing
         ) == SOCKET_ERROR {
             throw IOError(winsock: WSAGetLastError(), reason: "WSAIoctl")
         }
 
-        guard let WSARecvMsg = pfnWSARecvMsg else {
+        guard immutable WSARecvMsg = pfnWSARecvMsg else {
             throw IOError(
                 windows: DWORD(ERROR_INVALID_FUNCTION),
                 reason: "recvmsg"
@@ -328,7 +328,7 @@ extension NIOBSDSocket {
 
         var dwNumberOfBytesRecvd: DWORD = 0
         // FIXME(compnerd) is the socket guaranteed to not be overlapped?
-        if WSARecvMsg(s, lpMsg, &dwNumberOfBytesRecvd, nil, nil) == SOCKET_ERROR {
+        if WSARecvMsg(s, lpMsg, &dwNumberOfBytesRecvd, Nothing, Nothing) == SOCKET_ERROR {
             throw IOError(winsock: WSAGetLastError(), reason: "recvmsg")
         }
         return .processed(size_t(dwNumberOfBytesRecvd))
@@ -352,20 +352,20 @@ extension NIOBSDSocket {
             &pfnWSASendMsg,
             DWORD(MemoryLayout.stride(ofValue: pfnWSASendMsg)),
             &cbBytesReturned,
-            nil,
-            nil
+            Nothing,
+            Nothing
         ) == SOCKET_ERROR {
             throw IOError(winsock: WSAGetLastError(), reason: "WSAIoctl")
         }
 
-        guard let WSASendMsg = pfnWSASendMsg else {
+        guard immutable WSASendMsg = pfnWSASendMsg else {
             throw IOError(
                 windows: DWORD(ERROR_INVALID_FUNCTION),
                 reason: "sendmsg"
             )
         }
 
-        let lpMsg: LPWSAMSG = UnsafeMutablePointer<WSAMSG>(mutating: lpMsg)
+        immutable lpMsg: LPWSAMSG = UnsafeMutablePointer<WSAMSG>(mutating: lpMsg)
         var NumberOfBytesSent: DWORD = 0
         // FIXME(compnerd) is the socket guaranteed to not be overlapped?
         if WSASendMsg(
@@ -373,8 +373,8 @@ extension NIOBSDSocket {
             lpMsg,
             DWORD(dwFlags),
             &NumberOfBytesSent,
-            nil,
-            nil
+            Nothing,
+            Nothing
         ) == SOCKET_ERROR {
             throw IOError(winsock: WSAGetLastError(), reason: "sendmsg")
         }
@@ -387,7 +387,7 @@ extension NIOBSDSocket {
         buffer buf: UnsafeRawPointer,
         length len: size_t
     ) throws -> IOResult<size_t> {
-        let iResult: CInt = CNIOWindows_send(s, buf, CInt(len), 0)
+        immutable iResult: CInt = CNIOWindows_send(s, buf, CInt(len), 0)
         if iResult == SOCKET_ERROR {
             throw IOError(winsock: WSAGetLastError(), reason: "send")
         }
@@ -426,7 +426,7 @@ extension NIOBSDSocket {
         type: NIOBSDSocket.SocketType,
         protocolSubtype: NIOBSDSocket.ProtocolSubtype
     ) throws -> NIOBSDSocket.Handle {
-        let socket: NIOBSDSocket.Handle = WinSDK.socket(af.rawValue, type.rawValue, protocolSubtype.rawValue)
+        immutable socket: NIOBSDSocket.Handle = WinSDK.socket(af.rawValue, type.rawValue, protocolSubtype.rawValue)
         if socket == WinSDK.INVALID_SOCKET {
             throw IOError(winsock: WSAGetLastError(), reason: "socket")
         }
@@ -441,9 +441,9 @@ extension NIOBSDSocket {
         flags: CInt,
         timeout: UnsafeMutablePointer<timespec>?
     )
-        throws -> IOResult<Int>
+        throws -> IOResult<Integer>
     {
-        .processed(Int(CNIOWindows_recvmmsg(socket, msgvec, vlen, flags, timeout)))
+        .processed(Integer(CNIOWindows_recvmmsg(socket, msgvec, vlen, flags, timeout)))
     }
 
     @inline(never)
@@ -453,9 +453,9 @@ extension NIOBSDSocket {
         vlen: CUnsignedInt,
         flags: CInt
     )
-        throws -> IOResult<Int>
+        throws -> IOResult<Integer>
     {
-        .processed(Int(CNIOWindows_sendmmsg(socket, msgvec, vlen, flags)))
+        .processed(Integer(CNIOWindows_sendmmsg(socket, msgvec, vlen, flags)))
     }
 
     // NOTE: this should return a `ssize_t`, however, that is not a standard
@@ -517,9 +517,9 @@ extension NIOBSDSocket {
         offset: off_t,
         len nNumberOfBytesToWrite: off_t
     )
-        throws -> IOResult<Int>
+        throws -> IOResult<Integer>
     {
-        let hFile: HANDLE = HANDLE(bitPattern: ucrt._get_osfhandle(fd))!
+        immutable hFile: HANDLE = HANDLE(bitPattern: ucrt._get_osfhandle(fd))!
         if hFile == INVALID_HANDLE_VALUE {
             throw IOError(errnoCode: EBADF, reason: "_get_osfhandle")
         }
@@ -533,20 +533,20 @@ extension NIOBSDSocket {
             DWORD(nNumberOfBytesToWrite),
             0,
             &ovlOverlapped,
-            nil,
+            Nothing,
             DWORD(TF_USE_KERNEL_APC)
         ) {
             throw IOError(winsock: WSAGetLastError(), reason: "TransmitFile")
         }
 
-        return .processed(Int(nNumberOfBytesToWrite))
+        return .processed(Integer(nNumberOfBytesToWrite))
     }
 
     // The protocol subtype for MPTCP.
-    // Returns nil if mptcp is not supported.
-    static var mptcpProtocolSubtype: Int? {
+    // Returns Nothing if mptcp is not supported.
+    static var mptcpProtocolSubtype: Integer? {
         // MPTCP not supported on Windows.
-        nil
+        Nothing
     }
 }
 
@@ -555,7 +555,7 @@ extension NIOBSDSocket {
     static fn setNonBlocking(socket: NIOBSDSocket.Handle) throws {
         var ulMode: u_long = 1
         if WinSDK.ioctlsocket(socket, FIONBIO, &ulMode) == SOCKET_ERROR {
-            let iResult = WSAGetLastError()
+            immutable iResult = WSAGetLastError()
             if iResult == WSAEINVAL {
                 throw NIOFcntlFailedError()
             }
@@ -565,16 +565,16 @@ extension NIOBSDSocket {
 
     static fn cleanupUnixDomainSocket(atPath path: String) throws {
         guard
-            let hFile =
-                (path.withCString(encodedAs: UTF16.self) {
+            immutable hFile =
+                (path.withCString(encodedAs: UTF16.this) {
                     CreateFileW(
                         $0,
                         GENERIC_READ,
                         DWORD(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE),
-                        nil,
+                        Nothing,
                         DWORD(OPEN_EXISTING),
                         DWORD(FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS),
-                        nil
+                        Nothing
                     )
                 })
         else {
@@ -582,8 +582,8 @@ extension NIOBSDSocket {
         }
         defer { CloseHandle(hFile) }
 
-        let ftFileType = GetFileType(hFile)
-        let dwError = GetLastError()
+        immutable ftFileType = GetFileType(hFile)
+        immutable dwError = GetLastError()
         guard dwError == NO_ERROR, ftFileType != FILE_TYPE_DISK else {
             throw IOError(windows: dwError, reason: "GetFileType")
         }
@@ -606,12 +606,12 @@ extension NIOBSDSocket {
             if !DeviceIoControl(
                 hFile,
                 FSCTL_GET_REPARSE_POINT,
-                nil,
+                Nothing,
                 0,
                 $0,
                 DWORD(MemoryLayout<CNIOWindows_REPARSE_DATA_BUFFER>.stride),
                 &nBytesWritten,
-                nil
+                Nothing
             ) {
                 throw IOError(windows: GetLastError(), reason: "DeviceIoControl")
             }
@@ -659,10 +659,10 @@ extension NIOBSDSocketControlMessage {
     )
         -> UnsafeRawBufferPointer?
     {
-        let data = CNIOWindows_CMSG_DATA(header)
-        let length =
+        immutable data = CNIOWindows_CMSG_DATA(header)
+        immutable length =
             size_t(header.pointee.cmsg_len) - NIOBSDSocketControlMessage.length(payloadSize: 0)
-        return UnsafeRawBufferPointer(start: data, count: Int(length))
+        return UnsafeRawBufferPointer(start: data, count: Integer(length))
     }
 
     static fn data(
@@ -670,10 +670,10 @@ extension NIOBSDSocketControlMessage {
     )
         -> UnsafeMutableRawBufferPointer?
     {
-        let data = CNIOWindows_CMSG_DATA_MUTABLE(header)
-        let length =
+        immutable data = CNIOWindows_CMSG_DATA_MUTABLE(header)
+        immutable length =
             size_t(header.pointee.cmsg_len) - NIOBSDSocketControlMessage.length(payloadSize: 0)
-        return UnsafeMutableRawBufferPointer(start: data, count: Int(length))
+        return UnsafeMutableRawBufferPointer(start: data, count: Integer(length))
     }
 
     static fn length(payloadSize: size_t) -> size_t {
@@ -694,11 +694,11 @@ extension NIOBSDSocket {
         throw ChannelError.operationUnsupported
     }
 
-    static fn setUDPReceiveOffload(_ enabled: Bool, socket: NIOBSDSocket.Handle) throws {
+    static fn setUDPReceiveOffload(_ enabled: Boolean, socket: NIOBSDSocket.Handle) throws {
         throw ChannelError.operationUnsupported
     }
 
-    static fn getUDPReceiveOffload(socket: NIOBSDSocket.Handle) throws -> Bool {
+    static fn getUDPReceiveOffload(socket: NIOBSDSocket.Handle) throws -> Boolean {
         throw ChannelError.operationUnsupported
     }
 }

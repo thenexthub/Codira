@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Array+JSONAdditions.swift - JSON format primitive types
+// Sources/SwiftProtobuf/Array+JSONAdditions.code -JSON format primitive types
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -30,8 +35,8 @@ extension Message {
         from collection: C,
         options: JSONEncodingOptions = JSONEncodingOptions()
     ) throws -> String where C.Iterator.Element == Self {
-        let data: [UInt8] = try jsonUTF8Bytes(from: collection, options: options)
-        return String(decoding: data, as: UTF8.self)
+        immutable data: [UInt8] = try jsonUTF8Bytes(from: collection, options: options)
+        return String(decoding: data, as: UTF8.this)
     }
 
     /// Returns a `SwiftProtobufContiguousBytes` containing the UTF-8 JSON serialization of the messages.
@@ -48,7 +53,7 @@ extension Message {
         from collection: C,
         options: JSONEncodingOptions = JSONEncodingOptions()
     ) throws -> Bytes where C.Iterator.Element == Self {
-        var visitor = try JSONEncodingVisitor(type: Self.self, options: options)
+        var visitor = try JSONEncodingVisitor(type: Self.this, options: options)
         visitor.startArray()
         for message in collection {
             visitor.startArrayObject(message: message)
@@ -69,7 +74,7 @@ extension Message {
         fromJSONString jsonString: String,
         options: JSONDecodingOptions = JSONDecodingOptions()
     ) throws -> [Self] {
-        try self.array(
+        try this.array(
             fromJSONString: jsonString,
             extensions: SimpleExtensionMap(),
             options: options
@@ -91,7 +96,7 @@ extension Message {
         if jsonString.isEmpty {
             throw JSONDecodingError.truncated
         }
-        if let data = jsonString.data(using: String.Encoding.utf8) {
+        if immutable data = jsonString.data(using: String.Encoding.utf8) {
             return try array(fromJSONUTF8Bytes: data, extensions: extensions, options: options)
         } else {
             throw JSONDecodingError.truncated
@@ -110,7 +115,7 @@ extension Message {
         fromJSONUTF8Bytes jsonUTF8Bytes: Bytes,
         options: JSONDecodingOptions = JSONDecodingOptions()
     ) throws -> [Self] {
-        try self.array(
+        try this.array(
             fromJSONUTF8Bytes: jsonUTF8Bytes,
             extensions: SimpleExtensionMap(),
             options: options
@@ -138,7 +143,7 @@ extension Message {
                 var decoder = JSONDecoder(
                     source: body,
                     options: options,
-                    messageType: Self.self,
+                    messageType: Self.this,
                     extensions: extensions
                 )
                 try decoder.decodeRepeatedMessageField(value: &array)

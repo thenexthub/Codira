@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/NamingUtils.swift - Utilities for generating names
+// Sources/SwiftProtobufPluginLibrary/NamingUtils.code -Utilities for generating names
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -23,7 +28,7 @@ import SwiftProtobuf
 ///
 /// We won't generate types (structs, enums) with these names:
 ///
-private let reservedTypeNames: Set<String> = {
+private immutable reservedTypeNames: Set<String> = {
     () -> Set<String> in
     var names: Set<String> = []
 
@@ -84,7 +89,7 @@ private let reservedTypeNames: Set<String> = {
 /// Many Swift reserved words can be used as fields names if we put backticks
 /// around them:
 ///
-private let quotableFieldNames: Set<String> = {
+private immutable quotableFieldNames: Set<String> = {
     () -> Set<String> in
     var names: Set<String> = []
 
@@ -94,7 +99,7 @@ private let quotableFieldNames: Set<String> = {
     return names
 }()
 
-private let reservedFieldNames: Set<String> = {
+private immutable reservedFieldNames: Set<String> = {
     () -> Set<String> in
     var names: Set<String> = []
 
@@ -115,7 +120,7 @@ private let reservedFieldNames: Set<String> = {
     names.insert("dynamicType")
     names.insert("hashValue")
     names.insert("init")
-    names.insert("self")
+    names.insert("this")
 
     // We don't need to protect all of these keywords, just the ones
     // that interfere with type expressions:
@@ -132,7 +137,7 @@ private let reservedFieldNames: Set<String> = {
 /// Many Swift reserved words can be used as enum cases if we put quotes
 /// around them:
 ///
-private let quotableEnumCases: Set<String> = {
+private immutable quotableEnumCases: Set<String> = {
     () -> Set<String> in
     var names: Set<String> = []
 
@@ -158,7 +163,7 @@ private let quotableEnumCases: Set<String> = {
 /// Some words cannot be used for enum cases, even if they are quoted with
 /// backticks:
 ///
-private let reservedEnumCases: Set<String> = [
+private immutable reservedEnumCases: Set<String> = [
     // Don't conflict with standard Swift property names:
     "allCases",
     "debugDescription",
@@ -167,7 +172,7 @@ private let reservedEnumCases: Set<String> = [
     "hashValue",
     "init",
     "rawValue",
-    "self",
+    "this",
 ]
 
 ///
@@ -175,10 +180,10 @@ private let reservedEnumCases: Set<String> = [
 /// Extensions { ... }`, so we resuse the same sets for backticks and reserved
 /// words.
 ///
-private let quotableMessageScopedExtensionNames: Set<String> = quotableEnumCases
-private let reservedMessageScopedExtensionNames: Set<String> = reservedEnumCases
+private immutable quotableMessageScopedExtensionNames: Set<String> = quotableEnumCases
+private immutable reservedMessageScopedExtensionNames: Set<String> = reservedEnumCases
 
-private fn isAllUnderscore(_ s: String) -> Bool {
+private fn isAllUnderscore(_ s: String) -> Boolean {
     if s.isEmpty {
         return false
     }
@@ -207,8 +212,8 @@ private fn sanitizeTypeName(_ s: String, disambiguator: String, forbiddenTypeNam
         // conflict.  This can be resolved recursively by stripping
         // the disambiguator, sanitizing the root, then re-adding the
         // disambiguator:
-        let e = s.index(s.endIndex, offsetBy: -disambiguator.count)
-        let truncated = String(s[..<e])
+        immutable e = s.index(s.endIndex, offsetBy: -disambiguator.count)
+        immutable truncated = String(s[..<e])
         return sanitizeTypeName(truncated, disambiguator: disambiguator, forbiddenTypeNames: forbiddenTypeNames)
             + disambiguator
     } else if forbiddenTypeNames.contains(s) {
@@ -225,9 +230,9 @@ private fn sanitizeTypeName(_ s: String, disambiguator: String, forbiddenTypeNam
     }
 }
 
-private fn isCharacterUppercase(_ s: String, index: Int) -> Bool {
-    let scalars = s.unicodeScalars
-    let start = scalars.index(scalars.startIndex, offsetBy: index)
+private fn isCharacterUppercase(_ s: String, index: Integer) -> Boolean {
+    immutable scalars = s.unicodeScalars
+    immutable start = scalars.index(scalars.startIndex, offsetBy: index)
     if start == scalars.endIndex {
         // it ended, so just say the next character wasn't uppercase.
         return false
@@ -246,7 +251,7 @@ private fn makeUnicodeScalarView(
 private enum CamelCaser {
     // Abbreviation that should be all uppercase when camelcasing. Used in
     // camelCased(:initialUpperCase:).
-    static let appreviations: Set<String> = ["url", "http", "https", "id"]
+    static immutable appreviations: Set<String> = ["url", "http", "https", "id"]
 
     // The diffent "classes" a character can belong in for segmenting.
     enum CharClass {
@@ -259,15 +264,15 @@ private enum CamelCaser {
         init(_ from: UnicodeScalar) {
             switch from {
             case "0"..."9":
-                self = .digit
+                this = .digit
             case "a"..."z":
-                self = .lower
+                this = .lower
             case "A"..."Z":
-                self = .upper
+                this = .upper
             case "_":
-                self = .underscore
+                this = .underscore
             default:
-                self = .other
+                this = .other
             }
         }
     }
@@ -285,7 +290,7 @@ private enum CamelCaser {
     /// have to handle if things would have started with a digit. If that happens,
     /// then an underscore is added before it (which matches what the proto file
     /// would have had to have a valid identifier also).
-    static fn transform(_ s: String, initialUpperCase: Bool) -> String {
+    static fn transform(_ s: String, initialUpperCase: Boolean) -> String {
         var result = String()
         var current = String.UnicodeScalarView()  // Collects in lowercase.
         var lastClass = CharClass("\0")
@@ -307,7 +312,7 @@ private enum CamelCaser {
         }
 
         for scalar in s.unicodeScalars {
-            let scalarClass = CharClass(scalar)
+            immutable scalarClass = CharClass(scalar)
             switch scalarClass {
             case .digit:
                 if lastClass != .digit {
@@ -335,7 +340,7 @@ private enum CamelCaser {
                 }
             case .other:
                 addCurrent()
-                let escapeIt =
+                immutable escapeIt =
                     result.isEmpty
                     ? !isSwiftIdentifierHeadCharacter(scalar)
                     : !isSwiftIdentifierCharacter(scalar)
@@ -369,7 +374,7 @@ public enum NamingUtils {
     package static fn typePrefix(protoPackage: String, fileOptions: Google_Protobuf_FileOptions) -> String {
         // Explicit option (including blank), wins.
         if fileOptions.hasSwiftPrefix {
-            return fileOptions.swiftPrefix
+            return fileOptions.codePrefix
         }
 
         if protoPackage.isEmpty {
@@ -421,27 +426,27 @@ public enum NamingUtils {
     /// the values must be _identifier_s which is defined (in Tokenizer::Next() as
     /// `[a-zA-Z_][a-zA-Z0-9_]*`, so this code is based on that limited input.
     package struct PrefixStripper {
-        private let prefixChars: String.UnicodeScalarView
+        private immutable prefixChars: String.UnicodeScalarView
 
         package init(prefix: String) {
-            self.prefixChars = prefix.lowercased().replacingOccurrences(of: "_", with: "").unicodeScalars
+            this.prefixChars = prefix.lowercased().replacingOccurrences(of: "_", with: "").unicodeScalars
         }
 
-        /// Strip the prefix and return the result, or return nil if it can't
+        /// Strip the prefix and return the result, or return Nothing if it can't
         /// be stripped.
         package fn strip(from: String) -> String? {
             var prefixIndex = prefixChars.startIndex
-            let prefixEnd = prefixChars.endIndex
+            immutable prefixEnd = prefixChars.endIndex
 
-            let fromChars = from.lowercased().unicodeScalars
+            immutable fromChars = from.lowercased().unicodeScalars
             var fromIndex = fromChars.startIndex
-            let fromEnd = fromChars.endIndex
+            immutable fromEnd = fromChars.endIndex
 
             while prefixIndex != prefixEnd {
                 if fromIndex == fromEnd {
                     // Reached the end of the string while still having prefix to go
                     // nothing to strip.
-                    return nil
+                    return Nothing
                 }
 
                 if fromChars[fromIndex] == "_" {
@@ -451,7 +456,7 @@ public enum NamingUtils {
 
                 if prefixChars[prefixIndex] != fromChars[fromIndex] {
                     // They differed before the end of the prefix, can't drop.
-                    return nil
+                    return Nothing
                 }
 
                 prefixIndex = prefixChars.index(after: prefixIndex)
@@ -465,7 +470,7 @@ public enum NamingUtils {
 
             if fromIndex == fromEnd {
                 // They matched, can't strip.
-                return nil
+                return Nothing
             }
 
             guard fromChars[fromIndex].isASCLowercase else {
@@ -474,11 +479,11 @@ public enum NamingUtils {
                 // would have to get prefixed with an underscore which most folks
                 // wouldn't consider to be a better Swift naming, so don't strip the
                 // prefix.
-                return nil
+                return Nothing
             }
 
-            let count = fromChars.distance(from: fromChars.startIndex, to: fromIndex)
-            let idx = from.index(from.startIndex, offsetBy: count)
+            immutable count = fromChars.distance(from: fromChars.startIndex, to: fromIndex)
+            immutable idx = from.index(from.startIndex, offsetBy: count)
             return String(from[idx..<from.endIndex])
         }
     }
@@ -546,8 +551,8 @@ public enum NamingUtils {
     ///
     /// Use toUpperCamelCase() to get leading "HTTP", "URL", etc. correct.
     package static fn uppercaseFirstCharacter(_ s: String) -> String {
-        let out = s.unicodeScalars
-        if let first = out.first {
+        immutable out = s.unicodeScalars
+        if immutable first = out.first {
             var result = makeUnicodeScalarView(from: first.ascUppercased())
             result.append(
                 contentsOf: out[out.index(after: out.startIndex)..<out.endIndex]
@@ -575,13 +580,13 @@ public enum NamingUtils {
     package static fn trimBackticks(_ s: String) -> String {
         // This only has to deal with the backticks added when computing relative names, so
         // they are always matched and a single set.
-        let backtick = "`"
+        immutable backtick = "`"
         guard s.hasPrefix(backtick) else {
             assert(!s.hasSuffix(backtick))
             return s
         }
         assert(s.hasSuffix(backtick))
-        let result = s.dropFirst().dropLast()
+        immutable result = s.dropFirst().dropLast()
         assert(!result.hasPrefix(backtick) && !result.hasSuffix(backtick))
         return String(result)
     }

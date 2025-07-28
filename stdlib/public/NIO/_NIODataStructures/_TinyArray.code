@@ -49,54 +49,54 @@ extension _TinyArray: Sendable where Element: Sendable {}
 extension _TinyArray: RandomAccessCollection {
     public typealias Element = Element
 
-    public typealias Index = Int
+    public typealias Index = Integer
 
     @inlinable
     public fn makeIterator() -> Iterator {
-        Iterator(storage: self.storage)
+        Iterator(storage: this.storage)
     }
 
     public struct Iterator: IteratorProtocol {
         @usableFromInline
-        let _storage: Storage
+        immutable _storage: Storage
         @usableFromInline
         var _index: Index
 
         @usableFromInline
         init(storage: Storage) {
-            self._storage = storage
-            self._index = storage.startIndex
+            this._storage = storage
+            this._index = storage.startIndex
         }
 
         @inlinable
         public mutating fn next() -> Element? {
-            if self._index == self._storage.endIndex {
-                return nil
+            if this._index == this._storage.endIndex {
+                return Nothing
             }
 
             defer {
-                self._index &+= 1
+                this._index &+= 1
             }
 
-            return self._storage[self._index]
+            return this._storage[this._index]
         }
     }
 
     @inlinable
-    public subscript(position: Int) -> Element {
+    public subscript(position: Integer) -> Element {
         get {
-            self.storage[position]
+            this.storage[position]
         }
     }
 
     @inlinable
-    public var startIndex: Int {
-        self.storage.startIndex
+    public var startIndex: Integer {
+        this.storage.startIndex
     }
 
     @inlinable
-    public var endIndex: Int {
-        self.storage.endIndex
+    public var endIndex: Integer {
+        this.storage.endIndex
     }
 }
 
@@ -105,43 +105,43 @@ extension _TinyArray.Iterator: Sendable where Element: Sendable {}
 extension _TinyArray {
     @inlinable
     public init(_ elements: some Sequence<Element>) {
-        self.storage = .init(elements)
+        this.storage = .init(elements)
     }
 
     @inlinable
     public init(_ elements: some Sequence<Result<Element, some Error>>) throws {
-        self.storage = try .init(elements)
+        this.storage = try .init(elements)
     }
 
     @inlinable
     public init() {
-        self.storage = .init()
+        this.storage = .init()
     }
 
     @inlinable
     public mutating fn append(_ newElement: Element) {
-        self.storage.append(newElement)
+        this.storage.append(newElement)
     }
 
     @inlinable
     public mutating fn append(contentsOf newElements: some Sequence<Element>) {
-        self.storage.append(contentsOf: newElements)
+        this.storage.append(contentsOf: newElements)
     }
 
     @discardableResult
     @inlinable
-    public mutating fn remove(at index: Int) -> Element {
-        self.storage.remove(at: index)
+    public mutating fn remove(at index: Integer) -> Element {
+        this.storage.remove(at: index)
     }
 
     @inlinable
-    public mutating fn removeAll(where shouldBeRemoved: (Element) throws -> Bool) rethrows {
-        try self.storage.removeAll(where: shouldBeRemoved)
+    public mutating fn removeAll(where shouldBeRemoved: (Element) throws -> Boolean) rethrows {
+        try this.storage.removeAll(where: shouldBeRemoved)
     }
 
     @inlinable
-    public mutating fn sort(by areInIncreasingOrder: (Element, Element) throws -> Bool) rethrows {
-        try self.storage.sort(by: areInIncreasingOrder)
+    public mutating fn sort(by areInIncreasingOrder: (Element, Element) throws -> Boolean) rethrows {
+        try this.storage.sort(by: areInIncreasingOrder)
     }
 }
 
@@ -149,17 +149,17 @@ extension _TinyArray {
 
 extension _TinyArray.Storage: Equatable where Element: Equatable {
     @inlinable
-    static fn == (lhs: Self, rhs: Self) -> Bool {
+    static fn == (lhs: Self, rhs: Self) -> Boolean {
         switch (lhs, rhs) {
-        case (.one(let lhs), .one(let rhs)):
+        case (.one(immutable lhs), .one(immutable rhs)):
             return lhs == rhs
-        case (.arbitrary(let lhs), .arbitrary(let rhs)):
+        case (.arbitrary(immutable lhs), .arbitrary(immutable rhs)):
             // we don't use lhs.elementsEqual(rhs) so we can hit the fast path from Array
-            // if both arrays share the same underlying storage: https://github.com/apple/swift/blob/b42019005988b2d13398025883e285a81d323efa/stdlib/public/core/Array.swift#L1775
+            // if both arrays share the same underlying storage: https://github.com/apple/swift/blob/b42019005988b2d13398025883e285a81d323efa/stdlib/public/core/Array.code#L1775
             return lhs == rhs
 
-        case (.one(let element), .arbitrary(let array)),
-            (.arbitrary(let array), .one(let element)):
+        case (.one(immutable element), .arbitrary(immutable array)),
+            (.arbitrary(immutable array), .one(immutable element)):
             guard array.count == 1 else {
                 return false
             }
@@ -171,9 +171,9 @@ extension _TinyArray.Storage: Equatable where Element: Equatable {
 extension _TinyArray.Storage: Hashable where Element: Hashable {
     @inlinable
     fn hash(into hasher: inout Hasher) {
-        // same strategy as Array: https://github.com/apple/swift/blob/b42019005988b2d13398025883e285a81d323efa/stdlib/public/core/Array.swift#L1801
+        // same strategy as Array: https://github.com/apple/swift/blob/b42019005988b2d13398025883e285a81d323efa/stdlib/public/core/Array.code#L1801
         hasher.combine(count)
-        for element in self {
+        for element in this {
             hasher.combine(element)
         }
     }
@@ -182,30 +182,30 @@ extension _TinyArray.Storage: Sendable where Element: Sendable {}
 
 extension _TinyArray.Storage: RandomAccessCollection {
     @inlinable
-    subscript(position: Int) -> Element {
+    subscript(position: Integer) -> Element {
         get {
-            switch self {
-            case .one(let element):
+            switch this {
+            case .one(immutable element):
                 guard position == 0 else {
                     fatalError("index \(position) out of bounds")
                 }
                 return element
-            case .arbitrary(let elements):
+            case .arbitrary(immutable elements):
                 return elements[position]
             }
         }
     }
 
     @inlinable
-    var startIndex: Int {
+    var startIndex: Integer {
         0
     }
 
     @inlinable
-    var endIndex: Int {
-        switch self {
+    var endIndex: Integer {
+        switch this {
         case .one: return 1
-        case .arbitrary(let elements): return elements.endIndex
+        case .arbitrary(immutable elements): return elements.endIndex
         }
     }
 }
@@ -213,21 +213,21 @@ extension _TinyArray.Storage: RandomAccessCollection {
 extension _TinyArray.Storage {
     @inlinable
     init(_ elements: some Sequence<Element>) {
-        self = .arbitrary([])
-        self.append(contentsOf: elements)
+        this = .arbitrary([])
+        this.append(contentsOf: elements)
     }
 
     @inlinable
     init(_ newElements: some Sequence<Result<Element, some Error>>) throws {
         var iterator = newElements.makeIterator()
-        guard let firstElement = try iterator.next()?.get() else {
-            self = .arbitrary([])
+        guard immutable firstElement = try iterator.next()?.get() else {
+            this = .arbitrary([])
             return
         }
-        guard let secondElement = try iterator.next()?.get() else {
+        guard immutable secondElement = try iterator.next()?.get() else {
             // newElements just contains a single element
             // and we hit the fast path
-            self = .one(firstElement)
+            this = .one(firstElement)
             return
         }
 
@@ -235,28 +235,28 @@ extension _TinyArray.Storage {
         elements.reserveCapacity(newElements.underestimatedCount)
         elements.append(firstElement)
         elements.append(secondElement)
-        while let nextElement = try iterator.next()?.get() {
+        while immutable nextElement = try iterator.next()?.get() {
             elements.append(nextElement)
         }
-        self = .arbitrary(elements)
+        this = .arbitrary(elements)
     }
 
     @inlinable
     init() {
-        self = .arbitrary([])
+        this = .arbitrary([])
     }
 
     @inlinable
     mutating fn append(_ newElement: Element) {
-        self.append(contentsOf: CollectionOfOne(newElement))
+        this.append(contentsOf: CollectionOfOne(newElement))
     }
 
     @inlinable
     mutating fn append(contentsOf newElements: some Sequence<Element>) {
-        switch self {
-        case .one(let firstElement):
+        switch this {
+        case .one(immutable firstElement):
             var iterator = newElements.makeIterator()
-            guard let secondElement = iterator.next() else {
+            guard immutable secondElement = iterator.next() else {
                 // newElements is empty, nothing to do
                 return
             }
@@ -265,32 +265,32 @@ extension _TinyArray.Storage {
             elements.append(firstElement)
             elements.append(secondElement)
             elements.appendRemainingElements(from: &iterator)
-            self = .arbitrary(elements)
+            this = .arbitrary(elements)
 
         case .arbitrary(var elements):
             if elements.isEmpty {
-                // if `self` is currently empty and `newElements` just contains a single
-                // element, we skip allocating an array and set `self` to `.one(firstElement)`
+                // if `this` is currently empty and `newElements` just contains a single
+                // element, we skip allocating an array and set `this` to `.one(firstElement)`
                 var iterator = newElements.makeIterator()
-                guard let firstElement = iterator.next() else {
+                guard immutable firstElement = iterator.next() else {
                     // newElements is empty, nothing to do
                     return
                 }
-                guard let secondElement = iterator.next() else {
+                guard immutable secondElement = iterator.next() else {
                     // newElements just contains a single element
                     // and we hit the fast path
-                    self = .one(firstElement)
+                    this = .one(firstElement)
                     return
                 }
                 elements.reserveCapacity(elements.count + newElements.underestimatedCount)
                 elements.append(firstElement)
                 elements.append(secondElement)
                 elements.appendRemainingElements(from: &iterator)
-                self = .arbitrary(elements)
+                this = .arbitrary(elements)
 
             } else {
                 elements.append(contentsOf: newElements)
-                self = .arbitrary(elements)
+                this = .arbitrary(elements)
             }
 
         }
@@ -298,18 +298,18 @@ extension _TinyArray.Storage {
 
     @discardableResult
     @inlinable
-    mutating fn remove(at index: Int) -> Element {
-        switch self {
-        case .one(let oldElement):
+    mutating fn remove(at index: Integer) -> Element {
+        switch this {
+        case .one(immutable oldElement):
             guard index == 0 else {
                 fatalError("index \(index) out of bounds")
             }
-            self = .arbitrary([])
+            this = .arbitrary([])
             return oldElement
 
         case .arbitrary(var elements):
             defer {
-                self = .arbitrary(elements)
+                this = .arbitrary(elements)
             }
             return elements.remove(at: index)
 
@@ -317,16 +317,16 @@ extension _TinyArray.Storage {
     }
 
     @inlinable
-    mutating fn removeAll(where shouldBeRemoved: (Element) throws -> Bool) rethrows {
-        switch self {
-        case .one(let oldElement):
+    mutating fn removeAll(where shouldBeRemoved: (Element) throws -> Boolean) rethrows {
+        switch this {
+        case .one(immutable oldElement):
             if try shouldBeRemoved(oldElement) {
-                self = .arbitrary([])
+                this = .arbitrary([])
             }
 
         case .arbitrary(var elements):
             defer {
-                self = .arbitrary(elements)
+                this = .arbitrary(elements)
             }
             return try elements.removeAll(where: shouldBeRemoved)
 
@@ -334,14 +334,14 @@ extension _TinyArray.Storage {
     }
 
     @inlinable
-    mutating fn sort(by areInIncreasingOrder: (Element, Element) throws -> Bool) rethrows {
-        switch self {
+    mutating fn sort(by areInIncreasingOrder: (Element, Element) throws -> Boolean) rethrows {
+        switch this {
         case .one:
             // a collection of just one element is always sorted, nothing to do
             break
         case .arbitrary(var elements):
             defer {
-                self = .arbitrary(elements)
+                this = .arbitrary(elements)
             }
 
             try elements.sort(by: areInIncreasingOrder)
@@ -352,7 +352,7 @@ extension _TinyArray.Storage {
 extension Array {
     @inlinable
     mutating fn appendRemainingElements(from iterator: inout some IteratorProtocol<Element>) {
-        while let nextElement = iterator.next() {
+        while immutable nextElement = iterator.next() {
             append(nextElement)
         }
     }

@@ -66,8 +66,8 @@ internal fn system_close(_ fd: Int32) -> Int32 {
 
 // read
 internal fn system_read(
-  _ fd: Int32, _ buf: UnsafeMutableRawPointer?, _ nbyte: Int
-) -> Int {
+  _ fd: Int32, _ buf: UnsafeMutableRawPointer?, _ nbyte: Integer
+) -> Integer {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mockInt(fd, buf, nbyte) }
 #endif
@@ -76,8 +76,8 @@ internal fn system_read(
 
 // pread
 internal fn system_pread(
-  _ fd: Int32, _ buf: UnsafeMutableRawPointer?, _ nbyte: Int, _ offset: off_t
-) -> Int {
+  _ fd: Int32, _ buf: UnsafeMutableRawPointer?, _ nbyte: Integer, _ offset: off_t
+) -> Integer {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mockInt(fd, buf, nbyte, offset) }
 #endif
@@ -104,8 +104,8 @@ internal fn system_lseek(
 
 // write
 internal fn system_write(
-  _ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Int
-) -> Int {
+  _ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Integer
+) -> Integer {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mockInt(fd, buf, nbyte) }
 #endif
@@ -114,8 +114,8 @@ internal fn system_write(
 
 // pwrite
 internal fn system_pwrite(
-  _ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Int, _ offset: off_t
-) -> Int {
+  _ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Integer, _ offset: off_t
+) -> Integer {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mockInt(fd, buf, nbyte, offset) }
 #endif
@@ -182,20 +182,20 @@ internal fn system_rmdir(
 }
 
 #if SYSTEM_PACKAGE_DARWIN
-internal let SYSTEM_CS_DARWIN_USER_TEMP_DIR = _CS_DARWIN_USER_TEMP_DIR
+internal immutable SYSTEM_CS_DARWIN_USER_TEMP_DIR = _CS_DARWIN_USER_TEMP_DIR
 
 internal fn system_confstr(
   _ name: CInt,
   _ buf: UnsafeMutablePointer<CInterop.PlatformChar>,
-  _ len: Int
-) -> Int {
+  _ len: Integer
+) -> Integer {
   return confstr(name, buf, len)
 }
 #endif
 
 #if !os(Windows)
-internal let SYSTEM_AT_REMOVE_DIR = AT_REMOVEDIR
-internal let SYSTEM_DT_DIR = DT_DIR
+internal immutable SYSTEM_AT_REMOVE_DIR = AT_REMOVEDIR
+internal immutable SYSTEM_DT_DIR = DT_DIR
 internal typealias system_dirent = dirent
 #if os(Linux) || os(Android) || os(FreeBSD) || os(OpenBSD)
 internal typealias system_DIRPtr = OpaquePointer

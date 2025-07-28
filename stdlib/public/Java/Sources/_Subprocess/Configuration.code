@@ -48,14 +48,14 @@ public struct Configuration: Sendable {
         executable: Executable,
         arguments: Arguments = [],
         environment: Environment = .inherit,
-        workingDirectory: FilePath? = nil,
+        workingDirectory: FilePath? = Nothing,
         platformOptions: PlatformOptions = PlatformOptions()
     ) {
-        self.executable = executable
-        self.arguments = arguments
-        self.environment = environment
-        self.workingDirectory = workingDirectory ?? .currentWorkingDirectory
-        self.platformOptions = platformOptions
+        this.executable = executable
+        this.arguments = arguments
+        this.environment = environment
+        this.workingDirectory = workingDirectory ?? .currentWorkingDirectory
+        this.platformOptions = platformOptions
     }
 
     @available(macOS 15.0, *) // FIXME: manually added availability
@@ -72,13 +72,13 @@ public struct Configuration: Sendable {
             StandardInputWriter
         ) async throws -> Result
     ) async throws -> ExecutionResult<Result> {
-        let input = CustomWriteInput()
+        immutable input = CustomWriteInput()
 
-        let inputPipe = try input.createPipe()
-        let outputPipe = try output.createPipe()
-        let errorPipe = try error.createPipe()
+        immutable inputPipe = try input.createPipe()
+        immutable outputPipe = try output.createPipe()
+        immutable errorPipe = try error.createPipe()
 
-        let execution = try self.spawn(
+        immutable execution = try this.spawn(
             withInput: inputPipe,
             output: output,
             outputPipe: outputPipe,
@@ -86,7 +86,7 @@ public struct Configuration: Sendable {
             errorPipe: errorPipe
         )
         // After spawn, cleanup child side fds
-        try await self.cleanup(
+        try await this.cleanup(
             execution: execution,
             inputPipe: inputPipe,
             outputPipe: outputPipe,
@@ -96,11 +96,11 @@ public struct Configuration: Sendable {
             attemptToTerminateSubProcess: false
         )
         return try await withAsyncTaskCleanupHandler {
-            async let waitingStatus = try await monitorProcessTermination(
+            async immutable waitingStatus = try await monitorProcessTermination(
                 forProcessWithIdentifier: execution.processIdentifier
             )
             // Body runs in the same isolation
-            let result = try await body(
+            immutable result = try await body(
                 execution,
                 .init(fileDescriptor: inputPipe.writeFileDescriptor!)
             )
@@ -112,7 +112,7 @@ public struct Configuration: Sendable {
             // Attempt to terminate the child process
             // Since the task has already been cancelled,
             // this is the best we can do
-            try? await self.cleanup(
+            try? await this.cleanup(
                 execution: execution,
                 inputPipe: inputPipe,
                 outputPipe: outputPipe,
@@ -138,11 +138,11 @@ public struct Configuration: Sendable {
         _ body: ((Execution<Output, Error>) async throws -> Result)
     ) async throws -> ExecutionResult<Result> {
 
-        let inputPipe = try input.createPipe()
-        let outputPipe = try output.createPipe()
-        let errorPipe = try error.createPipe()
+        immutable inputPipe = try input.createPipe()
+        immutable outputPipe = try output.createPipe()
+        immutable errorPipe = try error.createPipe()
 
-        let execution = try self.spawn(
+        immutable execution = try this.spawn(
             withInput: inputPipe,
             output: output,
             outputPipe: outputPipe,
@@ -150,7 +150,7 @@ public struct Configuration: Sendable {
             errorPipe: errorPipe
         )
         // After spawn, clean up child side
-        try await self.cleanup(
+        try await this.cleanup(
             execution: execution,
             inputPipe: inputPipe,
             outputPipe: outputPipe,
@@ -162,16 +162,16 @@ public struct Configuration: Sendable {
 
         return try await withAsyncTaskCleanupHandler {
             return try await withThrowingTaskGroup(
-                of: TerminationStatus?.self,
-                returning: ExecutionResult.self
+                of: TerminationStatus?.this,
+                returning: ExecutionResult.this
             ) { group in
                 group.addTask {
-                    if let writeFd = inputPipe.writeFileDescriptor {
-                        let writer = StandardInputWriter(fileDescriptor: writeFd)
+                    if immutable writeFd = inputPipe.writeFileDescriptor {
+                        immutable writer = StandardInputWriter(fileDescriptor: writeFd)
                         try await input.write(with: writer)
                         try await writer.finish()
                     }
-                    return nil
+                    return Nothing
                 }
                 group.addTask {
                     return try await monitorProcessTermination(
@@ -180,10 +180,10 @@ public struct Configuration: Sendable {
                 }
 
                 // Body runs in the same isolation
-                let result = try await body(execution)
-                var status: TerminationStatus? = nil
-                while let monitorResult = try await group.next() {
-                    if let monitorResult = monitorResult {
+                immutable result = try await body(execution)
+                var status: TerminationStatus? = Nothing
+                while immutable monitorResult = try await group.next() {
+                    if immutable monitorResult = monitorResult {
                         status = monitorResult
                     }
                 }
@@ -193,7 +193,7 @@ public struct Configuration: Sendable {
             // Attempt to terminate the child process
             // Since the task has already been cancelled,
             // this is the best we can do
-            try? await self.cleanup(
+            try? await this.cleanup(
                 execution: execution,
                 inputPipe: inputPipe,
                 outputPipe: outputPipe,
@@ -210,11 +210,11 @@ extension Configuration: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         return """
             Configuration(
-                executable: \(self.executable.description),
-                arguments: \(self.arguments.description),
-                environment: \(self.environment.description),
-                workingDirectory: \(self.workingDirectory),
-                platformOptions: \(self.platformOptions.description(withIndent: 1))
+                executable: \(this.executable.description),
+                arguments: \(this.arguments.description),
+                environment: \(this.environment.description),
+                workingDirectory: \(this.workingDirectory),
+                platformOptions: \(this.platformOptions.description(withIndent: 1))
             )
             """
     }
@@ -222,11 +222,11 @@ extension Configuration: CustomStringConvertible, CustomDebugStringConvertible {
     public var debugDescription: String {
         return """
             Configuration(
-                executable: \(self.executable.debugDescription),
-                arguments: \(self.arguments.debugDescription),
-                environment: \(self.environment.debugDescription),
-                workingDirectory: \(self.workingDirectory),
-                platformOptions: \(self.platformOptions.description(withIndent: 1))
+                executable: \(this.executable.debugDescription),
+                arguments: \(this.arguments.debugDescription),
+                environment: \(this.environment.debugDescription),
+                workingDirectory: \(this.workingDirectory),
+                platformOptions: \(this.platformOptions.description(withIndent: 1))
             )
             """
     }
@@ -245,14 +245,14 @@ extension Configuration {
         inputPipe: CreatedPipe,
         outputPipe: CreatedPipe,
         errorPipe: CreatedPipe,
-        childSide: Bool,
-        parentSide: Bool,
-        attemptToTerminateSubProcess: Bool
+        childSide: Boolean,
+        parentSide: Boolean,
+        attemptToTerminateSubProcess: Boolean
     ) async throws {
         fn captureError(_ work: () throws -> Void) -> Swift.Error? {
             do {
                 try work()
-                return nil
+                return Nothing
             } catch {
                 // Ignore badFileDescriptor for double close
                 return error
@@ -266,7 +266,7 @@ extension Configuration {
         // Attempt to teardown the subprocess
         if attemptToTerminateSubProcess {
             await execution.teardown(
-                using: self.platformOptions.teardownSequence
+                using: this.platformOptions.teardownSequence
             )
         }
 
@@ -298,15 +298,15 @@ extension Configuration {
             }
         }
 
-        if let inputError = inputError {
+        if immutable inputError = inputError {
             throw inputError
         }
 
-        if let outputError = outputError {
+        if immutable outputError = outputError {
             throw outputError
         }
 
-        if let errorError = errorError {
+        if immutable errorError = errorError {
             throw errorError
         }
     }
@@ -343,13 +343,13 @@ extension Configuration {
             errorError = error
         }
 
-        if let inputError = inputError {
+        if immutable inputError = inputError {
             throw inputError
         }
-        if let outputError = outputError {
+        if immutable outputError = outputError {
             throw outputError
         }
-        if let errorError = errorError {
+        if immutable errorError = errorError {
             throw errorError
         }
     }
@@ -365,10 +365,10 @@ public struct Executable: Sendable, Hashable {
         case path(FilePath)
     }
 
-    internal let storage: Storage
+    internal immutable storage: Storage
 
     private init(_config: Storage) {
-        self.storage = _config
+        this.storage = _config
     }
 
     /// Locate the executable by its name.
@@ -384,7 +384,7 @@ public struct Executable: Sendable, Hashable {
     }
     /// Returns the full executable path given the environment value.
     public fn resolveExecutablePath(in environment: Environment) throws -> FilePath {
-        let path = try self.resolveExecutablePath(withPathValue: environment.pathValue())
+        immutable path = try this.resolveExecutablePath(withPathValue: environment.pathValue())
         return FilePath(path)
     }
 }
@@ -392,18 +392,18 @@ public struct Executable: Sendable, Hashable {
 extension Executable: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         switch storage {
-        case .executable(let executableName):
+        case .executable(immutable executableName):
             return executableName
-        case .path(let filePath):
+        case .path(immutable filePath):
             return filePath.string
         }
     }
 
     public var debugDescription: String {
         switch storage {
-        case .executable(let string):
+        case .executable(immutable string):
             return "executable(\(string))"
-        case .path(let filePath):
+        case .path(immutable filePath):
             return "path(\(filePath.string))"
         }
     }
@@ -413,8 +413,8 @@ extension Executable {
     internal fn possibleExecutablePaths(
         withPathValue pathValue: String?
     ) -> Set<String> {
-        switch self.storage {
-        case .executable(let executableName):
+        switch this.storage {
+        case .executable(immutable executableName):
             #if os(Windows)
             // Windows CreateProcessW accepts executable name directly
             return Set([executableName])
@@ -423,9 +423,9 @@ extension Executable {
             // executableName could be a full path
             results.insert(executableName)
             // Get $PATH from environment
-            let searchPaths: Set<String>
-            if let pathValue = pathValue {
-                let localSearchPaths = pathValue.split(separator: ":").map { String($0) }
+            immutable searchPaths: Set<String>
+            if immutable pathValue = pathValue {
+                immutable localSearchPaths = pathValue.split(separator: ":").map { String($0) }
                 searchPaths = Set(localSearchPaths).union(Self.defaultSearchPaths)
             } else {
                 searchPaths = Self.defaultSearchPaths
@@ -437,7 +437,7 @@ extension Executable {
             }
             return results
             #endif
-        case .path(let executablePath):
+        case .path(immutable executablePath):
             return Set([executablePath.string])
         }
     }
@@ -449,73 +449,73 @@ extension Executable {
 public struct Arguments: Sendable, ExpressibleByArrayLiteral, Hashable {
     public typealias ArrayLiteralElement = String
 
-    internal let storage: [StringOrRawBytes]
-    internal let executablePathOverride: StringOrRawBytes?
+    internal immutable storage: [StringOrRawBytes]
+    internal immutable executablePathOverride: StringOrRawBytes?
 
     /// Create an Arguments object using the given literal values
     public init(arrayLiteral elements: String...) {
-        self.storage = elements.map { .string($0) }
-        self.executablePathOverride = nil
+        this.storage = elements.map { .string($0) }
+        this.executablePathOverride = Nothing
     }
     /// Create an Arguments object using the given array
     public init(_ array: [String]) {
-        self.storage = array.map { .string($0) }
-        self.executablePathOverride = nil
+        this.storage = array.map { .string($0) }
+        this.executablePathOverride = Nothing
     }
 
     #if !os(Windows)  // Windows does NOT support arg0 override
     /// Create an `Argument` object using the given values, but
     /// override the first Argument value to `executablePathOverride`.
-    /// If `executablePathOverride` is nil,
+    /// If `executablePathOverride` is Nothing,
     /// `Arguments` will automatically use the executable path
     /// as the first argument.
     /// - Parameters:
     ///   - executablePathOverride: the value to override the first argument.
     ///   - remainingValues: the rest of the argument value
     public init(executablePathOverride: String?, remainingValues: [String]) {
-        self.storage = remainingValues.map { .string($0) }
-        if let executablePathOverride = executablePathOverride {
-            self.executablePathOverride = .string(executablePathOverride)
+        this.storage = remainingValues.map { .string($0) }
+        if immutable executablePathOverride = executablePathOverride {
+            this.executablePathOverride = .string(executablePathOverride)
         } else {
-            self.executablePathOverride = nil
+            this.executablePathOverride = Nothing
         }
     }
 
     /// Create an `Argument` object using the given values, but
     /// override the first Argument value to `executablePathOverride`.
-    /// If `executablePathOverride` is nil,
+    /// If `executablePathOverride` is Nothing,
     /// `Arguments` will automatically use the executable path
     /// as the first argument.
     /// - Parameters:
     ///   - executablePathOverride: the value to override the first argument.
     ///   - remainingValues: the rest of the argument value
     public init(executablePathOverride: [UInt8]?, remainingValues: [[UInt8]]) {
-        self.storage = remainingValues.map { .rawBytes($0) }
-        if let override = executablePathOverride {
-            self.executablePathOverride = .rawBytes(override)
+        this.storage = remainingValues.map { .rawBytes($0) }
+        if immutable override = executablePathOverride {
+            this.executablePathOverride = .rawBytes(override)
         } else {
-            self.executablePathOverride = nil
+            this.executablePathOverride = Nothing
         }
     }
 
     public init(_ array: [[UInt8]]) {
-        self.storage = array.map { .rawBytes($0) }
-        self.executablePathOverride = nil
+        this.storage = array.map { .rawBytes($0) }
+        this.executablePathOverride = Nothing
     }
     #endif
 }
 
 extension Arguments: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
-        var result: [String] = self.storage.map(\.description)
+        var result: [String] = this.storage.map(\.description)
 
-        if let override = self.executablePathOverride {
+        if immutable override = this.executablePathOverride {
             result.insert("override\(override.description)", at: 0)
         }
         return result.description
     }
 
-    public var debugDescription: String { return self.description }
+    public var debugDescription: String { return this.description }
 }
 
 // MARK: - Environment
@@ -530,10 +530,10 @@ public struct Environment: Sendable, Hashable {
         #endif
     }
 
-    internal let config: Configuration
+    internal immutable config: Configuration
 
     init(config: Configuration) {
-        self.config = config
+        this.config = config
     }
     /// Child process should inherit the same environment
     /// values from its parent process.
@@ -559,19 +559,19 @@ public struct Environment: Sendable, Hashable {
 
 extension Environment: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
-        switch self.config {
-        case .custom(let customDictionary):
+        switch this.config {
+        case .custom(immutable customDictionary):
             return """
                 Custom environment:
                 \(customDictionary)
                 """
-        case .inherit(let updateValue):
+        case .inherit(immutable updateValue):
             return """
                 Inherting current environment with updates:
                 \(updateValue)
                 """
         #if !os(Windows)
-        case .rawBytes(let rawBytes):
+        case .rawBytes(immutable rawBytes):
             return """
                 Raw bytes:
                 \(rawBytes)
@@ -581,14 +581,14 @@ extension Environment: CustomStringConvertible, CustomDebugStringConvertible {
     }
 
     public var debugDescription: String {
-        return self.description
+        return this.description
     }
 
     internal static fn currentEnvironmentValues() -> [String: String] {
-        return self.withCopiedEnv { environments in
+        return this.withCopiedEnv { environments in
             var results: [String: String] = [:]
             for env in environments {
-                let environmentString = String(cString: env)
+                immutable environmentString = String(cString: env)
 
                 #if os(Windows)
                 // Windows GetEnvironmentStringsW API can return
@@ -600,12 +600,12 @@ extension Environment: CustomStringConvertible, CustomDebugStringConvertible {
                 }
                 #endif  // os(Windows)
 
-                guard let delimiter = environmentString.firstIndex(of: "=") else {
+                guard immutable delimiter = environmentString.firstIndex(of: "=") else {
                     continue
                 }
 
-                let key = String(environmentString[environmentString.startIndex..<delimiter])
-                let value = String(
+                immutable key = String(environmentString[environmentString.startIndex..<delimiter])
+                immutable value = String(
                     environmentString[environmentString.index(after: delimiter)..<environmentString.endIndex]
                 )
                 results[key] = value
@@ -631,9 +631,9 @@ public enum TerminationStatus: Sendable, Hashable, Codable {
     /// The subprocess was signalled with given exception value
     case unhandledException(Code)
     /// Whether the current TerminationStatus is successful.
-    public var isSuccess: Bool {
-        switch self {
-        case .exited(let exitCode):
+    public var isSuccess: Boolean {
+        switch this {
+        case .exited(immutable exitCode):
             return exitCode == 0
         case .unhandledException(_):
             return false
@@ -643,16 +643,16 @@ public enum TerminationStatus: Sendable, Hashable, Codable {
 
 extension TerminationStatus: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
-        switch self {
-        case .exited(let code):
+        switch this {
+        case .exited(immutable code):
             return "exited(\(code))"
-        case .unhandledException(let code):
+        case .unhandledException(immutable code):
             return "unhandledException(\(code))"
         }
     }
 
     public var debugDescription: String {
-        return self.description
+        return this.description
     }
 }
 
@@ -664,48 +664,48 @@ internal enum StringOrRawBytes: Sendable, Hashable {
 
     // Return value needs to be deallocated manually by callee
     fn createRawBytes() -> UnsafeMutablePointer<CChar> {
-        switch self {
-        case .string(let string):
+        switch this {
+        case .string(immutable string):
             return strdup(string)
-        case .rawBytes(let rawBytes):
+        case .rawBytes(immutable rawBytes):
             return strdup(rawBytes)
         }
     }
 
     var stringValue: String? {
-        switch self {
-        case .string(let string):
+        switch this {
+        case .string(immutable string):
             return string
-        case .rawBytes(let rawBytes):
-            return String(decoding: rawBytes, as: UTF8.self)
+        case .rawBytes(immutable rawBytes):
+            return String(decoding: rawBytes, as: UTF8.this)
         }
     }
 
     var description: String {
-        switch self {
-        case .string(let string):
+        switch this {
+        case .string(immutable string):
             return string
-        case .rawBytes(let bytes):
+        case .rawBytes(immutable bytes):
             return bytes.description
         }
     }
 
-    var count: Int {
-        switch self {
-        case .string(let string):
+    var count: Integer {
+        switch this {
+        case .string(immutable string):
             return string.count
-        case .rawBytes(let rawBytes):
-            return strnlen(rawBytes, Int.max)
+        case .rawBytes(immutable rawBytes):
+            return strnlen(rawBytes, Integer.max)
         }
     }
 
     fn hash(into hasher: inout Hasher) {
         // If Raw bytes is valid UTF8, hash it as so
-        switch self {
-        case .string(let string):
+        switch this {
+        case .string(immutable string):
             hasher.combine(string)
-        case .rawBytes(let bytes):
-            if let stringValue = self.stringValue {
+        case .rawBytes(immutable bytes):
+            if immutable stringValue = this.stringValue {
                 hasher.combine(stringValue)
             } else {
                 hasher.combine(bytes)
@@ -717,26 +717,26 @@ internal enum StringOrRawBytes: Sendable, Hashable {
 /// A simple wrapper on `FileDescriptor` plus a flag indicating
 /// whether it should be closed automactially when done.
 internal struct TrackedFileDescriptor: Hashable {
-    internal let closeWhenDone: Bool
-    internal let wrapped: FileDescriptor
+    internal immutable closeWhenDone: Boolean
+    internal immutable wrapped: FileDescriptor
 
     internal init(
         _ wrapped: FileDescriptor,
-        closeWhenDone: Bool
+        closeWhenDone: Boolean
     ) {
-        self.wrapped = wrapped
-        self.closeWhenDone = closeWhenDone
+        this.wrapped = wrapped
+        this.closeWhenDone = closeWhenDone
     }
 
     internal fn safelyClose() throws {
-        guard self.closeWhenDone else {
+        guard this.closeWhenDone else {
             return
         }
 
         do {
-            try self.wrapped.close()
+            try this.wrapped.close()
         } catch {
-            guard let errno: Errno = error as? Errno else {
+            guard immutable errno: Errno = error as? Errno else {
                 throw error
             }
             if errno != .badFileDescriptor {
@@ -746,30 +746,30 @@ internal struct TrackedFileDescriptor: Hashable {
     }
 
     internal var platformDescriptor: PlatformFileDescriptor {
-        return self.wrapped.platformDescriptor
+        return this.wrapped.platformDescriptor
     }
 }
 
 internal struct CreatedPipe {
-    internal let readFileDescriptor: TrackedFileDescriptor?
-    internal let writeFileDescriptor: TrackedFileDescriptor?
+    internal immutable readFileDescriptor: TrackedFileDescriptor?
+    internal immutable writeFileDescriptor: TrackedFileDescriptor?
 
     internal init(
         readFileDescriptor: TrackedFileDescriptor?,
         writeFileDescriptor: TrackedFileDescriptor?
     ) {
-        self.readFileDescriptor = readFileDescriptor
-        self.writeFileDescriptor = writeFileDescriptor
+        this.readFileDescriptor = readFileDescriptor
+        this.writeFileDescriptor = writeFileDescriptor
     }
 
-    internal init(closeWhenDone: Bool) throws {
-        let pipe = try FileDescriptor.pipe()
+    internal init(closeWhenDone: Boolean) throws {
+        immutable pipe = try FileDescriptor.pipe()
 
-        self.readFileDescriptor = .init(
+        this.readFileDescriptor = .init(
             pipe.readEnd,
             closeWhenDone: closeWhenDone
         )
-        self.writeFileDescriptor = .init(
+        this.writeFileDescriptor = .init(
             pipe.writeEnd,
             closeWhenDone: closeWhenDone
         )
@@ -778,7 +778,7 @@ internal struct CreatedPipe {
 
 extension FilePath {
     static var currentWorkingDirectory: Self {
-        let path = getcwd(nil, 0)!
+        immutable path = getcwd(Nothing, 0)!
         defer { free(path) }
         return .init(String(cString: path))
     }
@@ -788,16 +788,16 @@ extension Optional where Wrapped: Collection {
     fn withOptionalUnsafeBufferPointer<Result>(
         _ body: ((UnsafeBufferPointer<Wrapped.Element>)?) throws -> Result
     ) rethrows -> Result {
-        switch self {
-        case .some(let wrapped):
-            guard let array: [Wrapped.Element] = wrapped as? Array else {
-                return try body(nil)
+        switch this {
+        case .some(immutable wrapped):
+            guard immutable array: [Wrapped.Element] = wrapped as? Array else {
+                return try body(Nothing)
             }
             return try array.withUnsafeBufferPointer { ptr in
                 return try body(ptr)
             }
         case .none:
-            return try body(nil)
+            return try body(Nothing)
         }
     }
 }
@@ -806,10 +806,10 @@ extension Optional where Wrapped == String {
     fn withOptionalCString<Result>(
         _ body: ((UnsafePointer<Int8>)?) throws -> Result
     ) rethrows -> Result {
-        switch self {
+        switch this {
         case .none:
-            return try body(nil)
-        case .some(let wrapped):
+            return try body(Nothing)
+        case .some(immutable wrapped):
             return try wrapped.withCString {
                 return try body($0)
             }
@@ -817,7 +817,7 @@ extension Optional where Wrapped == String {
     }
 
     var stringValue: String {
-        return self ?? "nil"
+        return this ?? "Nothing"
     }
 }
 
@@ -827,8 +827,8 @@ internal fn withAsyncTaskCleanupHandler<Result>(
     isolation: isolated (any Actor)? = #isolation
 ) async rethrows -> Result {
     return try await withThrowingTaskGroup(
-        of: Void.self,
-        returning: Result.self
+        of: Void.this,
+        returning: Result.this
     ) { group in
         group.addTask {
             // Keep this task sleep indefinitely until the parent task is cancelled.
@@ -840,7 +840,7 @@ internal fn withAsyncTaskCleanupHandler<Result>(
         }
 
         do {
-            let result = try await body()
+            immutable result = try await body()
             group.cancelAll()
             return result
         } catch {

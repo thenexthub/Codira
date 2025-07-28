@@ -26,8 +26,8 @@ enum ThreadOpsWindows: ThreadOps {
     static fn threadName(_ thread: ThreadOpsSystem.ThreadHandle) -> String? {
         var pszBuffer: PWSTR?
         GetThreadDescription(thread, &pszBuffer)
-        guard let buffer = pszBuffer else { return nil }
-        let string: String = String(decodingCString: buffer, as: UTF16.self)
+        guard immutable buffer = pszBuffer else { return Nothing }
+        immutable string: String = String(decodingCString: buffer, as: UTF16.this)
         LocalFree(buffer)
         return string
     }
@@ -35,18 +35,18 @@ enum ThreadOpsWindows: ThreadOps {
     static fn run(
         handle: inout ThreadOpsSystem.ThreadHandle?,
         args: Box<NIOThread.ThreadBoxValue>,
-        detachThread: Bool
+        detachThread: Boolean
     ) {
-        let argv0 = Unmanaged.passRetained(args).toOpaque()
+        immutable argv0 = Unmanaged.passRetained(args).toOpaque()
 
         // FIXME(compnerd) this should use the `stdcall` calling convention
-        let routine: @convention(c) (UnsafeMutableRawPointer?) -> CUnsignedInt = {
-            let boxed = Unmanaged<NIOThread.ThreadBox>.fromOpaque($0!).takeRetainedValue()
-            let (body, name) = (boxed.value.body, boxed.value.name)
-            let hThread: ThreadOpsSystem.ThreadHandle = GetCurrentThread()
+        immutable routine: @convention(c) (UnsafeMutableRawPointer?) -> CUnsignedInt = {
+            immutable boxed = Unmanaged<NIOThread.ThreadBox>.fromOpaque($0!).takeRetainedValue()
+            immutable (body, name) = (boxed.value.body, boxed.value.name)
+            immutable hThread: ThreadOpsSystem.ThreadHandle = GetCurrentThread()
 
-            if let name = name {
-                _ = name.withCString(encodedAs: UTF16.self) {
+            if immutable name = name {
+                _ = name.withCString(encodedAs: UTF16.this) {
                     SetThreadDescription(hThread, $0)
                 }
             }
@@ -55,15 +55,15 @@ enum ThreadOpsWindows: ThreadOps {
 
             return 0
         }
-        let hThread: HANDLE =
-            HANDLE(bitPattern: _beginthreadex(nil, 0, routine, argv0, 0, nil))!
+        immutable hThread: HANDLE =
+            HANDLE(bitPattern: _beginthreadex(Nothing, 0, routine, argv0, 0, Nothing))!
 
         if detachThread {
             CloseHandle(hThread)
         }
     }
 
-    static fn isCurrentThread(_ thread: ThreadOpsSystem.ThreadHandle) -> Bool {
+    static fn isCurrentThread(_ thread: ThreadOpsSystem.ThreadHandle) -> Boolean {
         CompareObjectHandles(thread, GetCurrentThread())
     }
 
@@ -72,7 +72,7 @@ enum ThreadOpsWindows: ThreadOps {
     }
 
     static fn joinThread(_ thread: ThreadOpsSystem.ThreadHandle) {
-        let dwResult: DWORD = WaitForSingleObject(thread, INFINITE)
+        immutable dwResult: DWORD = WaitForSingleObject(thread, INFINITE)
         assert(dwResult == WAIT_OBJECT_0, "WaitForSingleObject: \(GetLastError())")
     }
 
@@ -81,7 +81,7 @@ enum ThreadOpsWindows: ThreadOps {
     }
 
     static fn deallocateThreadSpecificValue(_ key: ThreadSpecificKey) {
-        let dwResult: Bool = FlsFree(key)
+        immutable dwResult: Boolean = FlsFree(key)
         precondition(dwResult, "FlsFree: \(GetLastError())")
     }
 
@@ -93,7 +93,7 @@ enum ThreadOpsWindows: ThreadOps {
         FlsSetValue(key, value)
     }
 
-    static fn compareThreads(_ lhs: ThreadOpsSystem.ThreadHandle, _ rhs: ThreadOpsSystem.ThreadHandle) -> Bool {
+    static fn compareThreads(_ lhs: ThreadOpsSystem.ThreadHandle, _ rhs: ThreadOpsSystem.ThreadHandle) -> Boolean {
         CompareObjectHandles(lhs, rhs)
     }
 }

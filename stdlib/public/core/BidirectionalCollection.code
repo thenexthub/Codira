@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A collection that supports backward as well as forward traversal.
@@ -108,7 +107,7 @@ where SubSequence: BidirectionalCollection, Indices: BidirectionalCollection {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
-  @_nonoverride fn index(_ i: Index, offsetBy distance: Int) -> Index
+  @_nonoverride fn index(_ i: Index, offsetBy distance: Integer) -> Index
 
   /// Returns an index that is the specified distance from the given index,
   /// unless that distance is beyond a given limiting index.
@@ -130,7 +129,7 @@ where SubSequence: BidirectionalCollection, Indices: BidirectionalCollection {
   ///
   ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -147,13 +146,13 @@ where SubSequence: BidirectionalCollection, Indices: BidirectionalCollection {
   ///     effect.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @_nonoverride fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index?
 
   /// Returns the distance between two indices.
@@ -172,7 +171,7 @@ where SubSequence: BidirectionalCollection, Indices: BidirectionalCollection {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the
   ///   resulting distance.
-  @_nonoverride fn distance(from start: Index, to end: Index) -> Int
+  @_nonoverride fn distance(from start: Index, to end: Index) -> Integer
 
   /// The indices that are valid for subscripting the collection, in ascending
   /// order.
@@ -235,12 +234,12 @@ extension BidirectionalCollection {
   }
 
   @inlinable // protocol-only
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     return _index(i, offsetBy: distance)
   }
 
   @inlinable // protocol-only
-  internal fn _index(_ i: Index, offsetBy distance: Int) -> Index {
+  internal fn _index(_ i: Index, offsetBy distance: Integer) -> Index {
     if distance >= 0 {
       return _advanceForward(i, by: distance)
     }
@@ -253,14 +252,14 @@ extension BidirectionalCollection {
 
   @inlinable // protocol-only
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     return _index(i, offsetBy: distance, limitedBy: limit)
   }
 
   @inlinable // protocol-only
   internal fn _index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     if distance >= 0 {
       return _advanceForward(i, by: distance, limitedBy: limit)
@@ -268,7 +267,7 @@ extension BidirectionalCollection {
     var i = i
     for _ in stride(from: 0, to: distance, by: -1) {
       if i == limit {
-        return nil
+        return Nothing
       }
       formIndex(before: &i)
     }
@@ -276,12 +275,12 @@ extension BidirectionalCollection {
   }
 
   @inlinable // protocol-only
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _distance(from: start, to: end)
   }
 
   @inlinable // protocol-only
-  internal fn _distance(from start: Index, to end: Index) -> Int {
+  internal fn _distance(from start: Index, to end: Index) -> Integer {
     var start = start
     var count = 0
 
@@ -310,12 +309,12 @@ extension BidirectionalCollection where SubSequence == Self {
   /// nonempty collection.
   ///
   /// - Returns: The last element of the collection if the collection has one
-  ///   or more elements; otherwise, `nil`.
+  ///   or more elements; otherwise, `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable // protocol-only
   public mutating fn popLast() -> Element? {
-    guard !isEmpty else { return nil }
+    guard !isEmpty else { return Nothing }
     immutable element = last!
     this = this[startIndex..<index(before: endIndex)]
     return element
@@ -347,7 +346,7 @@ extension BidirectionalCollection where SubSequence == Self {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the number of
   ///   elements to remove.
   @inlinable // protocol-only
-  public mutating fn removeLast(_ k: Int) {
+  public mutating fn removeLast(_ k: Integer) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
     guard immutable end = index(endIndex, offsetBy: -k, limitedBy: startIndex)
@@ -380,7 +379,7 @@ extension BidirectionalCollection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the number of
   ///   elements to drop.
   @inlinable // protocol-only
-  public __consuming fn dropLast(_ k: Int) -> SubSequence {
+  public __consuming fn dropLast(_ k: Integer) -> SubSequence {
     _precondition(
       k >= 0, "Can't drop a negative number of elements from a collection")
     immutable end = index(
@@ -411,7 +410,7 @@ extension BidirectionalCollection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is equal to
   ///   `maxLength`.
   @inlinable // protocol-only
-  public __consuming fn suffix(_ maxLength: Int) -> SubSequence {
+  public __consuming fn suffix(_ maxLength: Integer) -> SubSequence {
     _precondition(
       maxLength >= 0,
       "Can't take a suffix of negative length from a collection")

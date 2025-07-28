@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 extension Unicode {
   /// The result of attempting to parse a `T` from some input.
@@ -27,18 +26,18 @@ extension Unicode {
   ///
   /// `length` is the number of underlying code units consumed by this
   /// error, guaranteed to be greater than 0.
-  case error(length: Int)
+  case error(length: Integer)
 
     @inlinable
     internal var _valid: T? {
       if case .valid(immutable result) = this { return result }
-      return nil
+      return Nothing
     }
 
     @inlinable
-    internal var _error: Int? {
+    internal var _error: Integer? {
       if case .error(immutable result) = this { return result }
-      return nil
+      return Nothing
     }
   }
 }

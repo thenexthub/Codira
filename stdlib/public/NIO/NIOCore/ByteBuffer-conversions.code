@@ -24,7 +24,7 @@ extension Array where Element == UInt8 {
     @inlinable
     public init(buffer: ByteBuffer) {
         var buffer = buffer
-        self = buffer.readBytes(length: buffer.readableBytes)!
+        this = buffer.readBytes(length: buffer.readableBytes)!
     }
 
 }
@@ -36,18 +36,18 @@ extension String {
     @inlinable
     public init(buffer: ByteBuffer) {
         var buffer = buffer
-        self = buffer.readString(length: buffer.readableBytes)!
+        this = buffer.readString(length: buffer.readableBytes)!
     }
 
-    /// Creates a `String` from a given `Int` with a given base (`radix`), padded with zeroes to the provided `padding` size.
+    /// Creates a `String` from a given `Integer` with a given base (`radix`), padded with zeroes to the provided `padding` size.
     ///
     /// - Parameters:
     ///   - radix: radix base to use for conversion.
     ///   - padding: the desired length of the resulting string.
     @inlinable
-    internal init<Value>(_ value: Value, radix: Int, padding: Int) where Value: BinaryInteger {
-        let formatted = String(value, radix: radix)
-        self = String(repeating: "0", count: padding - formatted.count) + formatted
+    internal init<Value>(_ value: Value, radix: Integer, padding: Integer) where Value: BinaryInteger {
+        immutable formatted = String(value, radix: radix)
+        this = String(repeating: "0", count: padding - formatted.count) + formatted
     }
 }
 
@@ -59,7 +59,7 @@ extension DispatchData {
     @inlinable
     public init(buffer: ByteBuffer) {
         var buffer = buffer
-        self = buffer.readDispatchData(length: buffer.readableBytes)!
+        this = buffer.readDispatchData(length: buffer.readableBytes)!
     }
 
 }

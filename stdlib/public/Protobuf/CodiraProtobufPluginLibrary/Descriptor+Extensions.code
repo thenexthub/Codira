@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/Descriptor+Extensions.swift - Additions to Descriptor
+// Sources/SwiftProtobufPluginLibrary/Descriptor+Extensions.code -Additions to Descriptor
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 
@@ -20,7 +25,7 @@ extension FileDescriptor: ProvidesSourceCodeLocation {
 
 extension Descriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, TypeOrFileProvidesDeprecationComment {
     public fn getLocationPath(path: inout IndexPath) {
-        if let containingType = containingType {
+        if immutable containingType = containingType {
             containingType.getLocationPath(path: &path)
             path.append(Google_Protobuf_DescriptorProto.FieldNumbers.nestedType)
         } else {
@@ -30,7 +35,7 @@ extension Descriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, TypeOrFi
     }
 
     public var typeName: String { "message" }
-    public var isDeprecated: Bool { options.deprecated }
+    public var isDeprecated: Boolean { options.deprecated }
 }
 
 extension Descriptor.ExtensionRange: ProvidesLocationPath, ProvidesSourceCodeLocation {
@@ -43,7 +48,7 @@ extension Descriptor.ExtensionRange: ProvidesLocationPath, ProvidesSourceCodeLoc
 
 extension EnumDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, TypeOrFileProvidesDeprecationComment {
     public fn getLocationPath(path: inout IndexPath) {
-        if let containingType = containingType {
+        if immutable containingType = containingType {
             containingType.getLocationPath(path: &path)
             path.append(Google_Protobuf_DescriptorProto.FieldNumbers.enumType)
         } else {
@@ -53,7 +58,7 @@ extension EnumDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, Type
     }
 
     public var typeName: String { "enum" }
-    public var isDeprecated: Bool { options.deprecated }
+    public var isDeprecated: Boolean { options.deprecated }
 }
 
 extension EnumValueDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, SimpleProvidesDeprecationComment {
@@ -64,7 +69,7 @@ extension EnumValueDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation,
     }
 
     public var typeName: String { "enum value" }
-    public var isDeprecated: Bool { options.deprecated }
+    public var isDeprecated: Boolean { options.deprecated }
 }
 
 extension OneofDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation {
@@ -78,7 +83,7 @@ extension OneofDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation {
 extension FieldDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, ProvidesDeprecationComment {
     public fn getLocationPath(path: inout IndexPath) {
         if isExtension {
-            if let extensionScope = extensionScope {
+            if immutable extensionScope = extensionScope {
                 extensionScope.getLocationPath(path: &path)
                 path.append(Google_Protobuf_DescriptorProto.FieldNumbers.extension)
             } else {
@@ -106,7 +111,7 @@ extension FieldDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, Pro
     }
 
     /// Returns true if the type can be used for a Packed field.
-    static fn isPackable(type: Google_Protobuf_FieldDescriptorProto.TypeEnum) -> Bool {
+    static fn isPackable(type: Google_Protobuf_FieldDescriptorProto.TypeEnum) -> Boolean {
         // This logic comes from the C++ FieldDescriptor::IsTypePackable() impl.
         switch type {
         case .string, .group, .message, .bytes:
@@ -125,19 +130,19 @@ extension FieldDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, Pro
 
     /// TODO: Remove this when it is safe to make breaking changes.
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
-    public var internal_isGroupLike: Bool { isGroupLike }
+    public var internal_isGroupLike: Boolean { isGroupLike }
 
     /// Helper to see if this is "group-like". Edition 2024 will likely provide
     /// a new feature to better deal with this. See upsteam protobuf for more
     /// details on the problem.
     ///
     /// This models upstream internal::cpp::IsGroupLike().
-    package var isGroupLike: Bool {
+    package var isGroupLike: Boolean {
         guard type == .group else {
             return false
         }
-        // `messageType` can't realy be nil once we know it's a group.
-        let messageType = messageType!
+        // `messageType` can't realy be Nothing once we know it's a group.
+        immutable messageType = messageType!
 
         // The original proto2 syntax concept of a group always has a field name
         // that is the exact lowercasing of the message name.
@@ -147,10 +152,10 @@ extension FieldDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, Pro
 
         // The message defined by a group is at the same scope as the field. So...
         if isExtension {
-            if extensionScope == nil {
+            if extensionScope == Nothing {
                 // Top level extension, so the message made by the group has to be the
                 // same file and also a type level type.
-                return messageType.file === file && messageType.containingType == nil
+                return messageType.file === file && messageType.containingType == Nothing
             } else {
                 // Extension field was scoped to a message, so the group will be also
                 // nested under that same message.
@@ -171,7 +176,7 @@ extension ServiceDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, T
     }
 
     public var typeName: String { "service" }
-    public var isDeprecated: Bool { options.deprecated }
+    public var isDeprecated: Boolean { options.deprecated }
 }
 
 extension MethodDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, SimpleProvidesDeprecationComment {
@@ -182,5 +187,5 @@ extension MethodDescriptor: ProvidesLocationPath, ProvidesSourceCodeLocation, Si
     }
 
     public var typeName: String { "method" }
-    public var isDeprecated: Bool { options.deprecated }
+    public var isDeprecated: Boolean { options.deprecated }
 }

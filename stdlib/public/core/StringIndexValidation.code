@@ -11,18 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // Index validation
 extension _StringGuts {
   @_alwaysEmitIntoClient @inline(__always)
-  internal fn isFastScalarIndex(_ i: String.Index) -> Bool {
+  internal fn isFastScalarIndex(_ i: String.Index) -> Boolean {
     hasMatchingEncoding(i) && i._isScalarAligned
   }
 
   @_alwaysEmitIntoClient @inline(__always)
-  internal fn isFastCharacterIndex(_ i: String.Index) -> Bool {
+  internal fn isFastCharacterIndex(_ i: String.Index) -> Boolean {
     hasMatchingEncoding(i) && i._isCharacterAligned
   }
 }

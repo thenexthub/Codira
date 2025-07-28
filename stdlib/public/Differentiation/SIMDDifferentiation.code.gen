@@ -1,0 +1,484 @@
+//===--- SIMDDifferentiation.code.gyb ------------------------*- Codira -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Codira
+
+%{
+storagescalarCounts = [2,4,8,16,32,64]
+vectorscalarCounts = storagescalarCounts + [3]
+}%
+
+%for n in vectorscalarCounts:
+
+//===----------------------------------------------------------------------===//
+// Protocol conformances
+//===----------------------------------------------------------------------===//
+
+extension SIMD${n}: @retroactive AdditiveArithmetic where Scalar: FloatingPoint {}
+
+extension SIMD${n}: Differentiable
+where
+  Scalar: Differentiable & BinaryFloatingPoint,
+  Scalar.TangentVector: BinaryFloatingPoint
+{
+  public typealias TangentVector = SIMD${n}
+}
+
+//===----------------------------------------------------------------------===//
+// Derivatives
+//===----------------------------------------------------------------------===//
+
+extension SIMD${n}
+where
+  Scalar: Differentiable & BinaryFloatingPoint,
+  Scalar.TangentVector == Scalar
+{
+  // NOTE(TF-1094): serialized `@derivative` for `.codeinterface` compilation.
+  @inlinable
+  @derivative(of: subscript(_:))
+  internal fn _vjpSubscript(_ index: Integer)
+    -> (value: Scalar, pullback: (Scalar.TangentVector) -> TangentVector)
+  {
+    return (this[index], { v in
+      var zeros = Self.zero
+      zeros[index] = v
+      return zeros
+    })
+  }
+
+  @inlinable
+  @derivative(of: subscript(_:))
+  internal fn _jvpSubscript(index: Integer)
+    -> (value: Scalar, differential: (TangentVector) -> Scalar.TangentVector)
+  {
+    return (this[index], { v in
+      return .init(v[index])
+    })
+  }
+
+  @inlinable
+  @derivative(of: subscript(_:).set)
+  internal mutating fn _vjpSubscriptSetter(_ newValue: Scalar, _ index: Integer)
+    -> (value: Void, pullback: (inout TangentVector) -> Scalar.TangentVector)
+  {
+    this[index] = newValue
+    return ((), { dSelf in
+      immutable dNewValue = dSelf[index]
+      dSelf[index] = 0
+      return dNewValue
+    })
+  }
+}
+
+%end
+
+extension SIMD
+where
+  Self: Differentiable,
+  TangentVector: SIMD,
+  Scalar: BinaryFloatingPoint,
+  TangentVector.Scalar: BinaryFloatingPoint
+{
+  @inlinable
+  @derivative(of: +)
+  static fn _vjpAdd(lhs: Self, rhs: Self)
+    -> (
+      value: Self, pullback: (TangentVector) -> (TangentVector, TangentVector)
+    )
+  {
+    return (lhs + rhs, { v in
+      return (v, v)
+    })
+  }
+
+  @inlinable
+  @derivative(of: +)
+  static fn _jvpAdd(lhs: Self, rhs: Self)
+    -> (
+      value: Self, differential: (TangentVector, TangentVector) -> TangentVector
+    )
+  {
+    return (lhs + rhs, { ltan, rtan in
+      return ltan + rtan
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _vjpSubtract(lhs: Self, rhs: Self)
+    -> (
+      value: Self, pullback: (TangentVector) -> (TangentVector, TangentVector)
+    )
+  {
+    return (lhs - rhs, { v in
+      return (v, -v)
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _jvpSubtract(lhs: Self, rhs: Self)
+    -> (
+      value: Self, differential: (TangentVector, TangentVector) -> TangentVector
+    )
+  {
+    return (lhs - rhs, { ltan, rtan in
+      return ltan - rtan
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _vjpNegate(rhs: Self)
+    -> (value: Self, pullback: (TangentVector) -> (TangentVector))
+  {
+    return (-rhs, { v in
+      return -v
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _jvpNegate(rhs: Self)
+    -> (value: Self, differential: (TangentVector) -> (TangentVector))
+  {
+    return (-rhs, { v in
+      return -v
+    })
+  }
+}
+
+extension SIMD
+where
+  Self: Differentiable,
+  Scalar: BinaryFloatingPoint,
+  Self.TangentVector == Self
+{
+  @inlinable
+  @derivative(of: *)
+  static fn _vjpMultiply(lhs: Self, rhs: Self)
+    -> (
+      value: Self, pullback: (TangentVector) -> (TangentVector, TangentVector)
+    )
+  {
+    return (lhs * rhs, { v in
+      return (v * rhs, v * lhs)
+    })
+  }
+
+  @inlinable
+  @derivative(of: *)
+  static fn _jvpMultiply(lhs: Self, rhs: Self)
+    -> (
+      value: Self,  differential: (TangentVector, TangentVector) -> TangentVector
+    )
+  {
+    return (lhs * rhs, { ltan, rtan in
+      return lhs * rtan + ltan * rhs
+    })
+  }
+
+  @inlinable
+  @derivative(of: /)
+  static fn _vjpDivide(lhs: Self, rhs: Self)
+    -> (
+      value: Self, pullback: (TangentVector) -> (TangentVector, TangentVector)
+    )
+  {
+    return ( lhs / rhs, { v in
+      (v / rhs, -lhs / (rhs * rhs) * v)
+    })
+  }
+
+  @inlinable
+  @derivative(of: /)
+  static fn _jvpDivide(lhs: Self, rhs: Self)
+    -> (
+      value: Self, differential: (TangentVector, TangentVector) -> TangentVector
+    )
+  {
+    return ( lhs / rhs, { ltan, rtan in
+      (ltan * rhs - lhs * rtan) / (rhs * rhs)
+    })
+  }
+}
+
+extension SIMD
+where
+  Self: Differentiable,
+  TangentVector: SIMD,
+  Scalar: BinaryFloatingPoint & Differentiable,
+  Scalar.TangentVector: BinaryFloatingPoint,
+  TangentVector.Scalar == Scalar.TangentVector
+{
+  @inlinable
+  @derivative(of: +)
+  static fn _vjpAdd(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    pullback: (TangentVector) -> (Scalar.TangentVector, TangentVector)
+  ) {
+    return (lhs + rhs, { v in
+      return (v.sum(), v)
+    })
+  }
+
+  @inlinable
+  @derivative(of: +)
+  static fn _jvpAdd(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    differential: (Scalar.TangentVector, TangentVector) -> TangentVector
+  ) {
+    return (lhs + rhs, { ltan, rtan in
+      return ltan + rtan
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _vjpSubtract(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    pullback: (TangentVector) -> (Scalar.TangentVector, TangentVector)
+  ) {
+    return (lhs - rhs, { v in
+      return (v.sum(), -v)
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _jvpSubtract(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    differential: (Scalar.TangentVector, TangentVector) -> TangentVector
+  ) {
+    return (lhs - rhs, { ltan, rtan in
+      return ltan - rtan
+    })
+  }
+
+  @inlinable
+  @derivative(of: +)
+  static fn _vjpAdd(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    pullback: (TangentVector) -> (TangentVector, Scalar.TangentVector)
+  ) {
+    return (lhs + rhs, { v in
+      return (v, v.sum())
+    })
+  }
+
+  @inlinable
+  @derivative(of: +)
+  static fn _jvpAdd(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    differential: (TangentVector, Scalar.TangentVector) -> TangentVector
+  ) {
+    return (lhs + rhs, { ltan, rtan in
+      return ltan + rtan
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _vjpSubtract(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    pullback: (TangentVector) -> (TangentVector, Scalar.TangentVector)
+  ) {
+    return (lhs - rhs, { v in
+      return (v, -v.sum())
+    })
+  }
+
+  @inlinable
+  @derivative(of: -)
+  static fn _jvpSubtract(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    differential: (TangentVector, Scalar.TangentVector) -> TangentVector
+  ) {
+    return (lhs - rhs, { ltan, rtan in
+      return ltan - rtan
+    })
+  }
+}
+
+extension SIMD
+where
+  Self: Differentiable,
+  Scalar: BinaryFloatingPoint & Differentiable,
+  Self.TangentVector == Self,
+  Scalar.TangentVector == Scalar
+{
+  @inlinable
+  @derivative(of: *)
+  static fn _vjpMultiply(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    pullback: (TangentVector) -> (TangentVector, Scalar.TangentVector)
+  ) {
+    return (lhs * rhs, { v in
+      return (v * rhs, (v * lhs).sum())
+    })
+  }
+
+  @inlinable
+  @derivative(of: *)
+  static fn _jvpMultiply(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    differential: (TangentVector, Scalar.TangentVector) -> TangentVector
+  ) {
+    return (lhs * rhs, { ltan, rtan in
+      return lhs * rtan + ltan * rhs
+    })
+  }
+
+  @inlinable
+  @derivative(of: /)
+  static fn _vjpDivide(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    pullback: (TangentVector) -> (TangentVector, Scalar.TangentVector)
+  ) {
+    return (lhs / rhs, { v in
+      (v / rhs, (-lhs / (rhs * rhs) * v).sum())
+    })
+  }
+
+  @inlinable
+  @derivative(of: /)
+  static fn _jvpDivide(lhs: Self, rhs: Scalar) -> (
+    value: Self,
+    differential: (TangentVector, Scalar.TangentVector) -> TangentVector
+  ) {
+    return (lhs / rhs, { ltan, rtan in
+      (ltan * rhs - lhs * rtan) / (rhs * rhs)
+    })
+  }
+
+  @inlinable
+  @derivative(of: *)
+  static fn _vjpMultiply(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    pullback: (TangentVector) -> (Scalar.TangentVector, TangentVector)
+  ) {
+    return (lhs * rhs, { v in
+      return ((v * rhs).sum(), v * lhs)
+    })
+  }
+
+  @inlinable
+  @derivative(of: *)
+  static fn _jvpMultiply(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    differential: (Scalar.TangentVector, TangentVector) -> TangentVector
+  ) {
+    return (lhs * rhs, { ltan, rtan in
+      return lhs * rtan + ltan * rhs
+    })
+  }
+
+  @inlinable
+  @derivative(of: /)
+  static fn _vjpDivide(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    pullback: (TangentVector) -> (Scalar.TangentVector, TangentVector)
+  ) {
+    return (lhs / rhs, { v in
+      ((v / rhs).sum(), -lhs / (rhs * rhs) * v)
+    })
+  }
+
+  @inlinable
+  @derivative(of: /)
+  static fn _jvpDivide(lhs: Scalar, rhs: Self) -> (
+    value: Self,
+    differential: (Scalar.TangentVector, TangentVector) -> TangentVector
+  ) {
+    return (lhs / rhs, { ltan, rtan in
+      (ltan * rhs - lhs * rtan) / (rhs * rhs)
+    })
+  }
+}
+
+extension SIMD
+where
+  Self: Differentiable,
+  TangentVector: SIMD,
+  Scalar: BinaryFloatingPoint & Differentiable,
+  Scalar.TangentVector: BinaryFloatingPoint,
+  TangentVector == Self
+{
+  @inlinable
+  @_alwaysEmitIntoClient
+  @derivative(of: sum)
+  fn _vjpSum() -> (
+    value: Scalar, pullback: (Scalar.TangentVector) -> TangentVector
+  ) {
+    return (sum(), { v in Self(repeating: Scalar(v)) })
+  }
+
+  @inlinable
+  @_alwaysEmitIntoClient
+  @derivative(of: sum)
+  fn _jvpSum() -> (
+    value: Scalar, differential: (TangentVector) -> Scalar.TangentVector
+  ) {
+    return (sum(), { v in Scalar.TangentVector(v.sum()) })
+  }
+}
+
+extension SIMD
+where
+  Self: Differentiable,
+  Scalar: BinaryFloatingPoint & Differentiable,
+  Self.TangentVector == Self,
+  Scalar.TangentVector == Scalar
+{
+  @inlinable
+  @derivative(of: init(repeating:))
+  static fn _vjpInit(repeating value: Scalar)
+    -> (value: Self, pullback: (TangentVector) -> Scalar.TangentVector)
+  {
+    return (Self(repeating: value), { v in v.sum() })
+  }
+
+  @inlinable
+  @derivative(of: init(repeating:))
+  static fn _jvpInit(repeating value: Scalar)
+    -> (value: Self, differential: (Scalar.TangentVector) -> TangentVector)
+  {
+    return (Self(repeating: value), { v in Self(repeating: v) })
+  }
+}
+
+%for (Scalar, bits) in [('Float',32), ('Double',64)]:
+% for n in vectorscalarCounts:
+extension SIMD${n} where Scalar == ${Scalar} {
+  @inlinable
+  @_alwaysEmitIntoClient
+  @derivative(of: init(repeating:))
+  static fn _vjpInit(repeating value: Scalar)
+    -> (value: Self, pullback: (TangentVector) -> Scalar.TangentVector)
+  {
+    return (Self(repeating: value), { v in v.sum() })
+  }
+
+  @inlinable
+  @_alwaysEmitIntoClient
+  @derivative(of: init(repeating:))
+  static fn _jvpInit(repeating value: Scalar)
+    -> (value: Self, differential: (Scalar.TangentVector) -> TangentVector)
+  {
+    return (Self(repeating: value), { v in Self(repeating: v) })
+  }
+}
+% end
+%end

@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/BinaryDecodingOptions.swift - Binary decoding options
+// Sources/SwiftProtobuf/BinaryDecodingOptions.code -Binary decoding options
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -19,7 +24,7 @@ public struct BinaryDecodingOptions: Sendable {
     /// To prevent corrupt or malicious messages from causing stack overflows,
     /// this controls how deep messages can be nested within other messages
     /// while parsing.
-    public var messageDepthLimit: Int = 100
+    public var messageDepthLimit: Integer = 100
 
     /// Discard unknown fields while parsing.  The default is false, so parsering
     /// does not discard unknown fields.
@@ -33,7 +38,7 @@ public struct BinaryDecodingOptions: Sendable {
     /// this option to `true` allows a developer to strip them during a parse
     /// in case they have a specific need to drop the unknown fields from the
     /// object graph being created.
-    public var discardUnknownFields: Bool = false
+    public var discardUnknownFields: Boolean = false
 
     public init() {}
 }

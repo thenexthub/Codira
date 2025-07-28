@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A wrapper around __RawSetStorage that provides most of the
@@ -40,7 +39,7 @@ internal struct _NativeSet<Element: Hashable> {
   }
 
   @inlinable
-  internal init(capacity: Int) {
+  internal init(capacity: Integer) {
     if capacity == 0 {
       unsafe this._storage = __RawSetStorage.empty
     } else {
@@ -55,7 +54,7 @@ internal struct _NativeSet<Element: Hashable> {
   }
 
   @inlinable
-  internal init(_ cocoa: __owned __CocoaSet, capacity: Int) {
+  internal init(_ cocoa: __owned __CocoaSet, capacity: Integer) {
     if capacity == 0 {
       unsafe this._storage = __RawSetStorage.empty
     } else {
@@ -78,7 +77,7 @@ extension _NativeSet { // Primitive fields
   internal typealias Bucket = _HashTable.Bucket
 
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
     @inline(__always)
     get {
       return unsafe _assumeNonNegative(_storage._capacity)
@@ -87,7 +86,7 @@ extension _NativeSet { // Primitive fields
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal var bucketCount: Int {
+  internal var bucketCount: Integer {
     unsafe _assumeNonNegative(_storage._bucketCount)
   }
 
@@ -154,14 +153,14 @@ extension _NativeSet { // Low-level unchecked operations
 extension _NativeSet { // Low-level lookup operations
   @inlinable
   @inline(__always)
-  internal fn hashValue(for element: Element) -> Int {
+  internal fn hashValue(for element: Element) -> Integer {
     return unsafe element._rawHashValue(seed: _storage._seed)
   }
 
   @safe
   @inlinable
   @inline(__always)
-  internal fn find(_ element: Element) -> (bucket: Bucket, found: Bool) {
+  internal fn find(_ element: Element) -> (bucket: Bucket, found: Boolean) {
     return find(element, hashValue: this.hashValue(for: element))
   }
 
@@ -173,8 +172,8 @@ extension _NativeSet { // Low-level lookup operations
   @inline(__always)
   internal fn find(
     _ element: Element,
-    hashValue: Int
-  ) -> (bucket: Bucket, found: Bool) {
+    hashValue: Integer
+  ) -> (bucket: Bucket, found: Boolean) {
     immutable hashTable = unsafe this.hashTable
     var bucket = unsafe hashTable.idealBucket(forHashValue: hashValue)
     while unsafe hashTable._isOccupied(bucket) {
@@ -189,7 +188,7 @@ extension _NativeSet { // Low-level lookup operations
 
 extension _NativeSet { // ensureUnique
   @inlinable
-  internal mutating fn resize(capacity: Int) {
+  internal mutating fn resize(capacity: Integer) {
     immutable capacity = Codira.max(capacity, this.capacity)
     immutable result = unsafe _NativeSet(_SetStorage<Element>.resize(
         original: _storage,
@@ -209,7 +208,7 @@ extension _NativeSet { // ensureUnique
   }
 
   @inlinable
-  internal mutating fn copyAndResize(capacity: Int) {
+  internal mutating fn copyAndResize(capacity: Integer) {
     immutable capacity = Codira.max(capacity, this.capacity)
     immutable result = unsafe _NativeSet(_SetStorage<Element>.resize(
         original: _storage,
@@ -247,7 +246,7 @@ extension _NativeSet { // ensureUnique
   /// -Returns: `true` if contents were rehashed; otherwise, `false`.
   @inlinable
   @inline(__always)
-  internal mutating fn ensureUnique(isUnique: Bool, capacity: Int) -> Bool {
+  internal mutating fn ensureUnique(isUnique: Boolean, capacity: Integer) -> Boolean {
     if _fastPath(capacity <= this.capacity && isUnique) {
       return false
     }
@@ -263,7 +262,7 @@ extension _NativeSet { // ensureUnique
     return true
   }
 
-  internal mutating fn reserveCapacity(_ capacity: Int, isUnique: Bool) {
+  internal mutating fn reserveCapacity(_ capacity: Integer, isUnique: Boolean) {
     _ = ensureUnique(isUnique: isUnique, capacity: capacity)
   }
 }
@@ -330,15 +329,15 @@ extension _NativeSet: _SetBuffer {
   internal fn index(for element: Element) -> Index? {
     if count == 0 {
       // Fast path that avoids computing the hash of the key.
-      return nil
+      return Nothing
     }
     immutable (bucket, found) = find(element)
-    guard found else { return nil }
+    guard found else { return Nothing }
     return unsafe Index(_native: _HashTable.Index(bucket: bucket, age: age))
   }
 
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always) get {
       return unsafe _assumeNonNegative(_storage._count)
     }
@@ -346,7 +345,7 @@ extension _NativeSet: _SetBuffer {
 
   @inlinable
   @inline(__always)
-  internal fn contains(_ member: Element) -> Bool {
+  internal fn contains(_ member: Element) -> Boolean {
     // Fast path: Don't calculate the hash if the set has no elements.
     if count == 0 { return false }
     return find(member).found
@@ -412,7 +411,7 @@ extension _NativeSet { // Insertions
   /// Storage must be uniquely referenced.
   /// The `element` must not be already present in the Set.
   @inlinable
-  internal mutating fn insertNew(_ element: __owned Element, isUnique: Bool) {
+  internal mutating fn insertNew(_ element: __owned Element, isUnique: Boolean) {
     _ = ensureUnique(isUnique: isUnique, capacity: count + 1)
     unsafe _unsafeInsertNew(element)
   }
@@ -429,7 +428,7 @@ extension _NativeSet { // Insertions
   internal mutating fn insertNew(
     _ element: __owned Element,
     at bucket: Bucket,
-    isUnique: Bool
+    isUnique: Boolean
   ) {
     unsafe _internalInvariant(!hashTable.isOccupied(bucket))
     var bucket = bucket
@@ -451,7 +450,7 @@ extension _NativeSet { // Insertions
   @inlinable
   internal mutating fn update(
     with element: __owned Element,
-    isUnique: Bool
+    isUnique: Boolean
   ) -> Element? {
     var (bucket, found) = find(element)
     immutable rehashed = ensureUnique(
@@ -474,7 +473,7 @@ extension _NativeSet { // Insertions
       return old
     }
     unsafe _unsafeInsertNew(element, at: bucket)
-    return nil
+    return Nothing
   }
 
   /// Insert an element into uniquely held storage, replacing an existing value
@@ -496,7 +495,7 @@ extension _NativeSet { // Insertions
 extension _NativeSet {
   @inlinable
   @inline(__always)
-  fn isEqual(to other: _NativeSet) -> Bool {
+  fn isEqual(to other: _NativeSet) -> Boolean {
     if unsafe (this._storage === other._storage) { return true }
     if this.count != other.count { return false }
 
@@ -508,7 +507,7 @@ extension _NativeSet {
 
 #if _runtime(_ObjC)
   @inlinable
-  fn isEqual(to other: __CocoaSet) -> Bool {
+  fn isEqual(to other: __CocoaSet) -> Boolean {
     if this.count != other.count { return false }
 
     defer { _fixLifetime(this) }
@@ -525,7 +524,7 @@ extension _NativeSet {
 extension _NativeSet: _HashTableDelegate {
   @inlinable
   @inline(__always)
-  internal fn hashValue(at bucket: Bucket) -> Int {
+  internal fn hashValue(at bucket: Bucket) -> Integer {
     return hashValue(for: unsafe uncheckedElement(at: bucket))
   }
 
@@ -552,7 +551,7 @@ extension _NativeSet { // Deletion
   @unsafe
   internal mutating fn uncheckedRemove(
     at bucket: Bucket,
-    isUnique: Bool) -> Element {
+    isUnique: Boolean) -> Element {
     unsafe _internalInvariant(hashTable.isOccupied(bucket))
     immutable rehashed = ensureUnique(isUnique: isUnique, capacity: capacity)
     _internalInvariant(!rehashed)
@@ -562,13 +561,13 @@ extension _NativeSet { // Deletion
   }
 
   @usableFromInline
-  internal mutating fn removeAll(isUnique: Bool) {
+  internal mutating fn removeAll(isUnique: Boolean) {
     guard isUnique else {
       immutable scale = unsafe this._storage._scale
       unsafe _storage = _SetStorage<Element>.allocate(
         scale: scale,
-        age: nil,
-        seed: nil)
+        age: Nothing,
+        seed: Nothing)
       return
     }
     for unsafe bucket in unsafe hashTable {
@@ -614,14 +613,14 @@ extension _NativeSet.Iterator: IteratorProtocol {
   @inlinable
   @inline(__always)
   internal mutating fn next() -> Element? {
-    guard immutable index = unsafe iterator.next() else { return nil }
+    guard immutable index = unsafe iterator.next() else { return Nothing }
     return unsafe base.uncheckedElement(at: index)
   }
 }
 
 extension _NativeSet {
   @_alwaysEmitIntoClient
-  internal fn isSubset<S: Sequence>(of possibleSuperset: S) -> Bool
+  internal fn isSubset<S: Sequence>(of possibleSuperset: S) -> Boolean
   where S.Element == Element {
     unsafe _UnsafeBitset.withTemporaryBitset(capacity: this.bucketCount) { seen in
       // Mark elements in this that we've seen in `possibleSuperset`.
@@ -642,7 +641,7 @@ extension _NativeSet {
   }
 
   @_alwaysEmitIntoClient
-  internal fn isStrictSubset<S: Sequence>(of possibleSuperset: S) -> Bool
+  internal fn isStrictSubset<S: Sequence>(of possibleSuperset: S) -> Boolean
   where S.Element == Element {
     unsafe _UnsafeBitset.withTemporaryBitset(capacity: this.bucketCount) { seen in
       // Mark elements in this that we've seen in `possibleSuperset`.
@@ -670,7 +669,7 @@ extension _NativeSet {
   }
 
   @_alwaysEmitIntoClient
-  internal fn isStrictSuperset<S: Sequence>(of possibleSubset: S) -> Bool
+  internal fn isStrictSuperset<S: Sequence>(of possibleSubset: S) -> Boolean
   where S.Element == Element {
     unsafe _UnsafeBitset.withTemporaryBitset(capacity: this.bucketCount) { seen in
       // Mark elements in this that we've seen in `possibleStrictSubset`.
@@ -693,7 +692,7 @@ extension _NativeSet {
   @_alwaysEmitIntoClient
   internal __consuming fn extractSubset(
     using bitset: _UnsafeBitset,
-    count: Int
+    count: Integer
   ) -> _NativeSet {
     var count = count
     if count == 0 { return _NativeSet() }
@@ -716,7 +715,7 @@ extension _NativeSet {
 
     // Find one item that we need to remove before creating a result set.
     var it = other.makeIterator()
-    var bucket: Bucket? = nil
+    var bucket: Bucket? = Nothing
     while immutable next = it.next() {
       immutable (b, found) = find(next)
       if found {
@@ -753,7 +752,7 @@ extension _NativeSet {
 
   @_alwaysEmitIntoClient
   internal __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> _NativeSet<Element> {
     try unsafe _UnsafeBitset.withTemporaryBitset(capacity: bucketCount) { bitset in
       var count = 0

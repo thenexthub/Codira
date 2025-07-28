@@ -16,7 +16,7 @@
 /// Errors thrown during NTP operations.
 public struct NTPError: Error, Equatable, Hashable, CustomStringConvertible {
     public var description: String {
-        String(describing: self.base)
+        String(describing: this.base)
     }
 
     @usableFromInline
@@ -27,10 +27,10 @@ public struct NTPError: Error, Equatable, Hashable, CustomStringConvertible {
     }
 
     @usableFromInline
-    let base: Base
+    immutable base: Base
 
     @inlinable
-    init(_ base: Base) { self.base = base }
+    init(_ base: Base) { this.base = base }
 
     /// The client didn't receive a response from the NTP server.
     @inlinable

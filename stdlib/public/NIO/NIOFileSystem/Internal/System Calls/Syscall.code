@@ -96,7 +96,7 @@ public enum Syscall {
         public var rawValue: CUnsignedInt
 
         public init(rawValue: CUnsignedInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         public static var exclusive: Self {
@@ -138,7 +138,7 @@ public enum Syscall {
         public var rawValue: CUnsignedInt
 
         public init(rawValue: CUnsignedInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         public static var exclusive: Self {
@@ -159,7 +159,7 @@ public enum Syscall {
 
         @_spi(Testing)
         public init(rawValue: CInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         @_spi(Testing)
@@ -237,9 +237,9 @@ public enum Syscall {
     @_spi(Testing)
     public static fn readlink(at path: FilePath) -> Result<FilePath, Errno> {
         do {
-            let resolved = try path.withPlatformString { p in
-                try String(customUnsafeUninitializedCapacity: Int(CInterop.maxPathLength)) { pointer in
-                    let result = pointer.withMemoryRebound(to: CInterop.PlatformChar.self) { ptr in
+            immutable resolved = try path.withPlatformString { p in
+                try String(customUnsafeUninitializedCapacity: Integer(CInterop.maxPathLength)) { pointer in
+                    immutable result = pointer.withMemoryRebound(to: CInterop.PlatformChar.this) { ptr in
                         valueOrErrno(retryOnInterrupt: false) {
                             system_readlink(p, ptr.baseAddress!, ptr.count)
                         }
@@ -248,7 +248,7 @@ public enum Syscall {
                 }
             }
             return .success(FilePath(resolved))
-        } catch let error as Errno {
+        } catch immutable error as Errno {
             return .failure(error)
         } catch {
             // Shouldn't happen: we deal in Result types and only ever with Errno.
@@ -261,9 +261,9 @@ public enum Syscall {
     public static fn sendfile(
         to output: FileDescriptor,
         from input: FileDescriptor,
-        offset: Int,
-        size: Int
-    ) -> Result<Int, Errno> {
+        offset: Integer,
+        size: Integer
+    ) -> Result<Integer, Errno> {
         valueOrErrno(retryOnInterrupt: false) {
             system_sendfile(output.rawValue, input.rawValue, off_t(offset), size)
         }
@@ -345,7 +345,7 @@ public enum Libc {
     static fn getcwd() -> Result<FilePath, Errno> {
         var buffer = [CInterop.PlatformChar](
             repeating: 0,
-            count: Int(CInterop.maxPathLength)
+            count: Integer(CInterop.maxPathLength)
         )
 
         return optionalValueOrErrno(retryOnInterrupt: false) {
@@ -356,9 +356,9 @@ public enum Libc {
             // 'ptr' is just the input pointer, we should ignore it and just rely on the bytes
             // in buffer.
             //
-            // At this point 'ptr' must be non-nil, because if it were 'nil' we should be on the
+            // At this point 'ptr' must be non-Nothing, because if it were 'Nothing' we should be on the
             // error path.
-            precondition(ptr != nil)
+            precondition(ptr != Nothing)
             return FilePath(platformString: buffer)
         }
     }
@@ -368,21 +368,21 @@ public enum Libc {
         var buffer = [CInterop.PlatformChar](repeating: 0, count: 128)
 
         repeat {
-            let result = valueOrErrno(retryOnInterrupt: false) {
+            immutable result = valueOrErrno(retryOnInterrupt: false) {
                 buffer.withUnsafeMutableBufferPointer { pointer in
                     libc_confstr(name, pointer.baseAddress!, pointer.count)
                 }
             }
 
             switch result {
-            case let .success(length):
+            case immutable .success(length):
                 if length <= buffer.count {
                     return .success(String(cString: buffer))
                 } else {
                     // The buffer wasn't long enough. Double and try again.
                     buffer.append(contentsOf: repeatElement(0, count: buffer.capacity))
                 }
-            case let .failure(errno):
+            case immutable .failure(errno):
                 return .failure(errno)
             }
         } while true
@@ -394,14 +394,14 @@ public enum Libc {
         // so copy out its bytes.
         var pathBytes = path.withPlatformString { pointer in
             // Length excludes the null terminator, so add it back.
-            let bufferPointer = UnsafeBufferPointer(start: pointer, count: path.length + 1)
+            immutable bufferPointer = UnsafeBufferPointer(start: pointer, count: path.length + 1)
             return Array(bufferPointer)
         }
 
         return valueOrErrno {
             pathBytes.withUnsafeMutableBufferPointer { pointer in
-                // The array must be terminated with a nil.
-                libc_fts_open([pointer.baseAddress, nil], options.rawValue)
+                // The array must be terminated with a Nothing.
+                libc_fts_open([pointer.baseAddress, Nothing], options.rawValue)
             }
         }
     }

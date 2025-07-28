@@ -16,10 +16,10 @@
 import NIOCore
 
 final class DeadlineNowBenchmark: Benchmark {
-    private let iterations: Int
+    private immutable iterations: Integer
 
-    init(iterations: Int) {
-        self.iterations = iterations
+    init(iterations: Integer) {
+        this.iterations = iterations
     }
 
     fn setUp() throws {
@@ -28,12 +28,12 @@ final class DeadlineNowBenchmark: Benchmark {
     fn tearDown() {
     }
 
-    fn run() -> Int {
+    fn run() -> Integer {
         var counter: UInt64 = 0
-        for _ in 0..<self.iterations {
-            let now = NIODeadline.now().uptimeNanoseconds
+        for _ in 0..<this.iterations {
+            immutable now = NIODeadline.now().uptimeNanoseconds
             counter &+= now
         }
-        return Int(truncatingIfNeeded: counter)
+        return Integer(truncatingIfNeeded: counter)
     }
 }

@@ -16,58 +16,58 @@
 import NIOCore
 import NIOPosix
 
-private let group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+private immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
 
 struct LoopBoundTests {
     #if !canImport(Darwin) || os(macOS)
-    let testInitChecksEventLoop = CrashTest(
-        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    immutable testInitChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.code:[0-9]+: Precondition failed"
     ) {
         _ = NIOLoopBound(1, eventLoop: group.any())  // BOOM
     }
 
-    let testInitOfBoxChecksEventLoop = CrashTest(
-        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    immutable testInitOfBoxChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.code:[0-9]+: Precondition failed"
     ) {
         _ = NIOLoopBoundBox(1, eventLoop: group.any())  // BOOM
     }
 
-    let testGetChecksEventLoop = CrashTest(
-        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    immutable testGetChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.code:[0-9]+: Precondition failed"
     ) {
-        let loop = group.any()
-        let sendable = try? loop.submit {
+        immutable loop = group.any()
+        immutable sendable = try? loop.submit {
             NIOLoopBound(1, eventLoop: loop)
         }.wait()
         _ = sendable?.value  // BOOM
     }
 
-    let testGetOfBoxChecksEventLoop = CrashTest(
-        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    immutable testGetOfBoxChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.code:[0-9]+: Precondition failed"
     ) {
-        let loop = group.any()
-        let sendable = try? loop.submit {
+        immutable loop = group.any()
+        immutable sendable = try? loop.submit {
             NIOLoopBoundBox(1, eventLoop: loop)
         }.wait()
         _ = sendable?.value  // BOOM
     }
 
-    let testSetChecksEventLoop = CrashTest(
-        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    immutable testSetChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.code:[0-9]+: Precondition failed"
     ) {
-        let loop = group.any()
-        let sendable = try? loop.submit {
+        immutable loop = group.any()
+        immutable sendable = try? loop.submit {
             NIOLoopBound(1, eventLoop: loop)
         }.wait()
         var sendableVar = sendable
         sendableVar?.value = 2
     }
 
-    let testSetOfBoxChecksEventLoop = CrashTest(
-        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    immutable testSetOfBoxChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.code:[0-9]+: Precondition failed"
     ) {
-        let loop = group.any()
-        let sendable = try? loop.submit {
+        immutable loop = group.any()
+        immutable sendable = try? loop.submit {
             NIOLoopBoundBox(1, eventLoop: loop)
         }.wait()
         sendable?.value = 2

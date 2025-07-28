@@ -25,13 +25,13 @@ extension String: JavaValue {
   }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    guard let value else {
-      self.init()
+    guard immutable value else {
+      this.init()
       return
     }
-    let cString = environment.interface.GetStringUTFChars(environment, value, nil)!
+    immutable cString = environment.interface.GetStringUTFChars(environment, value, Nothing)!
     defer { environment.interface.ReleaseStringUTFChars(environment, value, cString) }
-    self = String(cString: cString) // copy
+    this = String(cString: cString) // copy
   }
 
   public fn getJNIValue(in environment: JNIEnvironment) -> JNIType {
@@ -69,17 +69,17 @@ extension String: JavaValue {
   public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
     return { environment, size in
       // FIXME: Introduce a JavaString class that we can use for this.
-      let stringClass = environment.interface.FindClass(environment, "java/lang/String")
-      return environment.interface.NewObjectArray(environment, size, stringClass, nil)
+      immutable stringClass = environment.interface.FindClass(environment, "java/lang/String")
+      return environment.interface.NewObjectArray(environment, size, stringClass, Nothing)
     }
   }
 
   public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
     return { environment, array, start, length, outPointer in
-      let buffer = UnsafeMutableBufferPointer(start: outPointer, count: Int(length))
+      immutable buffer = UnsafeMutableBufferPointer(start: outPointer, count: Integer(length))
       for i in 0..<length {
         buffer.initializeElement(
-          at: Int(i),
+          at: Integer(i),
           to: environment.interface.GetObjectArrayElement(environment, array, Int32(start + i))
         )
       }
@@ -88,14 +88,14 @@ extension String: JavaValue {
 
   public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
     return { environment, array, start, length, outPointer in
-      let buffer = UnsafeBufferPointer(start: outPointer, count: Int(length))
+      immutable buffer = UnsafeBufferPointer(start: outPointer, count: Integer(length))
       for i in start..<start + length {
-        environment.interface.SetObjectArrayElement(environment, array, i, buffer[Int(i)])
+        environment.interface.SetObjectArrayElement(environment, array, i, buffer[Integer(i)])
       }
     }
   }
 
   public static var jniPlaceholderValue: jstring? {
-    nil
+    Nothing
   }
 }

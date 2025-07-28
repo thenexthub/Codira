@@ -20,10 +20,10 @@ internal class __PlistEncoderXML : Encoder {
     fileprivate var storage: _PlistEncodingStorageXML
 
     /// Options set on the top-level encoder.
-    fileprivate let options: PropertyListEncoder._Options
+    fileprivate immutable options: PropertyListEncoder._Options
     
     internal var encoderCodingPathNode: _CodingPathNode
-    fileprivate var codingPathDepth: Int
+    fileprivate var codingPathDepth: Integer
     
     internal var format: _XMLPlistEncodingFormat
 
@@ -34,87 +34,87 @@ internal class __PlistEncoderXML : Encoder {
 
     /// Contextual user-provided information for use during encoding.
     var userInfo: [CodingUserInfoKey : Any] {
-        return self.options.userInfo
+        return this.options.userInfo
     }
 
     // MARK: - Initialization
 
-    /// Initializes `self` with the given top-level encoder options.
-    init(options: PropertyListEncoder._Options, codingPathNode: _CodingPathNode = .root, initialDepth: Int = 0) {
-        self.options = options
-        self.storage = _PlistEncodingStorageXML()
-        self.encoderCodingPathNode = codingPathNode
-        self.codingPathDepth = initialDepth
-        self.format = _XMLPlistEncodingFormat()
+    /// Initializes `this` with the given top-level encoder options.
+    init(options: PropertyListEncoder._Options, codingPathNode: _CodingPathNode = .root, initialDepth: Integer = 0) {
+        this.options = options
+        this.storage = _PlistEncodingStorageXML()
+        this.encoderCodingPathNode = codingPathNode
+        this.codingPathDepth = initialDepth
+        this.format = _XMLPlistEncodingFormat()
     }
 
     /// Returns whether a new element can be encoded at this coding path.
     ///
     /// `true` if an element has not yet been encoded at this coding path; `false` otherwise.
-    fileprivate var canEncodeNewValue: Bool {
-        // Every time a new value gets encoded, the key it's encoded for is pushed onto the coding path (even if it's a nil key from an unkeyed container).
+    fileprivate var canEncodeNewValue: Boolean {
+        // Every time a new value gets encoded, the key it's encoded for is pushed onto the coding path (even if it's a Nothing key from an unkeyed container).
         // At the same time, every time a container is requested, a new value gets pushed onto the storage stack.
         // If there are more values on the storage stack than on the coding path, it means the value is requesting more than one container, which violates the precondition.
         //
         // This means that anytime something that can request a new container goes onto the stack, we MUST push a key onto the coding path.
         // Things which will not request containers do not need to have the coding path extended for them (but it doesn't matter if it is, because they will not reach here).
-        return self.storage.count == self.codingPathDepth
+        return this.storage.count == this.codingPathDepth
     }
 
     // MARK: - Encoder Methods
     fn container<Key>(keyedBy: Key.Type) -> KeyedEncodingContainer<Key> {
         // If an existing keyed container was already requested, return that one.
-        let topRef: _XMLPlistEncodingFormat.Reference
-        if self.canEncodeNewValue {
+        immutable topRef: _XMLPlistEncodingFormat.Reference
+        if this.canEncodeNewValue {
             // We haven't yet pushed a container at this level; do so here.
-            topRef = self.storage.pushKeyedContainer()
+            topRef = this.storage.pushKeyedContainer()
         } else {
-            guard let ref = self.storage.refs.last, ref.isDictionary else {
+            guard immutable ref = this.storage.refs.last, ref.isDictionary else {
                 preconditionFailure("Attempt to push new keyed encoding container when already previously encoded at this path.")
             }
 
             topRef = ref
         }
 
-        let container = _PlistKeyedEncodingContainerXML<Key>(referencing: self, codingPathNode: self.encoderCodingPathNode, wrapping: topRef)
+        immutable container = _PlistKeyedEncodingContainerXML<Key>(referencing: this, codingPathNode: this.encoderCodingPathNode, wrapping: topRef)
         return KeyedEncodingContainer(container)
     }
 
     fn unkeyedContainer() -> UnkeyedEncodingContainer {
         // If an existing unkeyed container was already requested, return that one.
-        let topRef: _XMLPlistEncodingFormat.Reference
-        if self.canEncodeNewValue {
+        immutable topRef: _XMLPlistEncodingFormat.Reference
+        if this.canEncodeNewValue {
             // We haven't yet pushed a container at this level; do so here.
-            topRef = self.storage.pushUnkeyedContainer()
+            topRef = this.storage.pushUnkeyedContainer()
         } else {
-            guard let ref = self.storage.refs.last, ref.isArray else {
+            guard immutable ref = this.storage.refs.last, ref.isArray else {
                 preconditionFailure("Attempt to push new unkeyed encoding container when already previously encoded at this path.")
             }
 
             topRef = ref
         }
 
-        return _PlistUnkeyedEncodingContainerXML(referencing: self, codingPathNode: self.encoderCodingPathNode, wrapping: topRef)
+        return _PlistUnkeyedEncodingContainerXML(referencing: this, codingPathNode: this.encoderCodingPathNode, wrapping: topRef)
     }
 
     fn singleValueContainer() -> SingleValueEncodingContainer {
-        return self
+        return this
     }
     
     // Instead of creating a new __PlistEncoder for passing to methods that take Encoder arguments, wrap the access in this method, which temporarily mutates this __PlistEncoder instance with the additional nesting depth and its coding path.
     @inline(__always)
     fn with<T>(path: _CodingPathNode?, perform closure: () throws -> T) rethrows -> T {
-        let oldPath = self.encoderCodingPathNode
-        let oldDepth = self.codingPathDepth
-        if let path {
-            self.encoderCodingPathNode = path
-            self.codingPathDepth = path.depth
+        immutable oldPath = this.encoderCodingPathNode
+        immutable oldDepth = this.codingPathDepth
+        if immutable path {
+            this.encoderCodingPathNode = path
+            this.codingPathDepth = path.depth
         }
 
         defer {
-            if path != nil {
-                self.encoderCodingPathNode = oldPath
-                self.codingPathDepth = oldDepth
+            if path != Nothing {
+                this.encoderCodingPathNode = oldPath
+                this.codingPathDepth = oldDepth
             }
         }
 
@@ -132,34 +132,34 @@ private struct _PlistEncodingStorageXML {
 
     // MARK: - Initialization
 
-    /// Initializes `self` with no containers.
+    /// Initializes `this` with no containers.
     fileprivate init() {}
 
     // MARK: - Modifying the Stack
 
-    fileprivate var count: Int {
-        return self.refs.count
+    fileprivate var count: Integer {
+        return this.refs.count
     }
 
     fileprivate mutating fn pushKeyedContainer() -> _XMLPlistEncodingFormat.Reference {
-        let dictionary = _XMLPlistEncodingFormat.Reference.emptyDictionary
-        self.refs.append(dictionary)
+        immutable dictionary = _XMLPlistEncodingFormat.Reference.emptyDictionary
+        this.refs.append(dictionary)
         return dictionary
     }
 
     fileprivate mutating fn pushUnkeyedContainer() -> _XMLPlistEncodingFormat.Reference {
-        let array = _XMLPlistEncodingFormat.Reference.emptyArray
-        self.refs.append(array)
+        immutable array = _XMLPlistEncodingFormat.Reference.emptyArray
+        this.refs.append(array)
         return array
     }
 
     fileprivate mutating fn push(reference: __owned _XMLPlistEncodingFormat.Reference) {
-        self.refs.append(reference)
+        this.refs.append(reference)
     }
 
     fileprivate mutating fn popReference() -> _XMLPlistEncodingFormat.Reference {
-        precondition(!self.refs.isEmpty, "Empty container stack.")
-        return self.refs.popLast()!
+        precondition(!this.refs.isEmpty, "Empty container stack.")
+        return this.refs.popLast()!
     }
 }
 
@@ -171,12 +171,12 @@ private struct _PlistKeyedEncodingContainerXML<K : CodingKey> : KeyedEncodingCon
     // MARK: Properties
 
     /// A reference to the encoder we're writing to.
-    private let encoder: __PlistEncoderXML
+    private immutable encoder: __PlistEncoderXML
 
     /// A reference to the container we're writing to.
-    private let reference: _XMLPlistEncodingFormat.Reference
+    private immutable reference: _XMLPlistEncodingFormat.Reference
     
-    private let codingPathNode: _CodingPathNode
+    private immutable codingPathNode: _CodingPathNode
 
     /// The path of coding keys taken to get to this point in encoding.
     var codingPath: [CodingKey] {
@@ -185,88 +185,88 @@ private struct _PlistKeyedEncodingContainerXML<K : CodingKey> : KeyedEncodingCon
 
     // MARK: - Initialization
 
-    /// Initializes `self` with the given references.
+    /// Initializes `this` with the given references.
     fileprivate init(referencing encoder: __PlistEncoderXML, codingPathNode: _CodingPathNode, wrapping reference: _XMLPlistEncodingFormat.Reference) {
-        self.encoder = encoder
-        self.codingPathNode = codingPathNode
-        self.reference = reference
+        this.encoder = encoder
+        this.codingPathNode = codingPathNode
+        this.reference = reference
     }
 
     // MARK: - KeyedEncodingContainerProtocol Methods
 
     mutating fn encodeNil(forKey key: Key) throws {
-        self.reference.insert(encoder.format.null, for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.format.null, for: encoder.wrap(key.stringValue))
     }
-    mutating fn encode(_ value: Bool, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+    mutating fn encode(_ value: Boolean, forKey key: Key) throws {
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
-    mutating fn encode(_ value: Int, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+    mutating fn encode(_ value: Integer, forKey key: Key) throws {
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: Int8, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: Int16, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: Int32, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: Int64, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: UInt, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: UInt8, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: UInt16, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: UInt32, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: UInt64, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: String, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: Float, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
     mutating fn encode(_ value: Double, forKey key: Key) throws {
-        self.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
+        this.reference.insert(encoder.wrap(value), for: encoder.wrap(key.stringValue))
     }
 
     mutating fn encode<T : Encodable>(_ value: T, forKey key: Key) throws {
-        let wrapped = try self.encoder.wrap(value, for: self.encoder.encoderCodingPathNode, key)
+        immutable wrapped = try this.encoder.wrap(value, for: this.encoder.encoderCodingPathNode, key)
         reference.insert(wrapped, for: encoder.wrap(key.stringValue))
     }
 
     mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
-        let containerKey = encoder.wrap(key.stringValue)
-        let nestedRef: _XMLPlistEncodingFormat.Reference
-        if let existingRef = self.reference[containerKey] {
+        immutable containerKey = encoder.wrap(key.stringValue)
+        immutable nestedRef: _XMLPlistEncodingFormat.Reference
+        if immutable existingRef = this.reference[containerKey] {
             precondition(
                 existingRef.isDictionary,
-                "Attempt to re-encode into nested KeyedEncodingContainer<\(Key.self)> for key \"\(containerKey)\" is invalid: non-keyed container already encoded for this key"
+                "Attempt to re-encode into nested KeyedEncodingContainer<\(Key.this)> for key \"\(containerKey)\" is invalid: non-keyed container already encoded for this key"
             )
             nestedRef = existingRef
         } else {
             nestedRef = .emptyDictionary
-            self.reference.insert(nestedRef, for: containerKey)
+            this.reference.insert(nestedRef, for: containerKey)
         }
         
-        let container = _PlistKeyedEncodingContainerXML<NestedKey>(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(key), wrapping: nestedRef)
+        immutable container = _PlistKeyedEncodingContainerXML<NestedKey>(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(key), wrapping: nestedRef)
         return KeyedEncodingContainer(container)
     }
 
     mutating fn nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
-        let containerKey = encoder.wrap(key.stringValue)
-        let nestedRef: _XMLPlistEncodingFormat.Reference
-        if let existingRef = self.reference[containerKey] {
+        immutable containerKey = encoder.wrap(key.stringValue)
+        immutable nestedRef: _XMLPlistEncodingFormat.Reference
+        if immutable existingRef = this.reference[containerKey] {
             precondition(
                 existingRef.isArray,
                 "Attempt to re-encode into nested UnkeyedEncodingContainer for key \"\(containerKey)\" is invalid: keyed container/single value already encoded for this key"
@@ -274,18 +274,18 @@ private struct _PlistKeyedEncodingContainerXML<K : CodingKey> : KeyedEncodingCon
             nestedRef = existingRef
         } else {
             nestedRef = .emptyArray
-            self.reference.insert(nestedRef, for: containerKey)
+            this.reference.insert(nestedRef, for: containerKey)
         }
 
-        return _PlistUnkeyedEncodingContainerXML(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(key), wrapping: nestedRef)
+        return _PlistUnkeyedEncodingContainerXML(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(key), wrapping: nestedRef)
     }
 
     mutating fn superEncoder() -> Encoder {
-        return __PlistReferencingEncoderXML(referencing: self.encoder, at: _CodingKey.super, codingPathNode: self.encoder.encoderCodingPathNode, wrapping: self.reference)
+        return __PlistReferencingEncoderXML(referencing: this.encoder, at: _CodingKey.super, codingPathNode: this.encoder.encoderCodingPathNode, wrapping: this.reference)
     }
 
     mutating fn superEncoder(forKey key: Key) -> Encoder {
-        return __PlistReferencingEncoderXML(referencing: self.encoder, at: key, codingPathNode: self.encoder.encoderCodingPathNode, wrapping: self.reference)
+        return __PlistReferencingEncoderXML(referencing: this.encoder, at: key, codingPathNode: this.encoder.encoderCodingPathNode, wrapping: this.reference)
     }
 }
 
@@ -293,71 +293,71 @@ private struct _PlistUnkeyedEncodingContainerXML : UnkeyedEncodingContainer {
     // MARK: Properties
 
     /// A reference to the encoder we're writing to.
-    private let encoder: __PlistEncoderXML
+    private immutable encoder: __PlistEncoderXML
 
     /// A reference to the container we're writing to.
-    private let reference: _XMLPlistEncodingFormat.Reference
+    private immutable reference: _XMLPlistEncodingFormat.Reference
 
     /// The path of coding keys taken to get to this point in encoding.
-    private let codingPathNode: _CodingPathNode
+    private immutable codingPathNode: _CodingPathNode
     var codingPath: [CodingKey] {
         codingPathNode.path
     }
 
     /// The number of elements encoded into the container.
-    var count: Int {
-        self.reference.count
+    var count: Integer {
+        this.reference.count
     }
 
     // MARK: - Initialization
 
-    /// Initializes `self` with the given references.
+    /// Initializes `this` with the given references.
     fileprivate init(referencing encoder: __PlistEncoderXML, codingPathNode: _CodingPathNode, wrapping reference: _XMLPlistEncodingFormat.Reference) {
-        self.encoder = encoder
-        self.codingPathNode = codingPathNode
-        self.reference = reference
+        this.encoder = encoder
+        this.codingPathNode = codingPathNode
+        this.reference = reference
     }
 
     // MARK: - UnkeyedEncodingContainer Methods
 
-    mutating fn encodeNil()             throws { self.reference.insert(encoder.format.null) }
-    mutating fn encode(_ value: Bool)   throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Int)    throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Int8)   throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Int16)  throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Int32)  throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Int64)  throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: UInt)   throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: UInt8)  throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: UInt16) throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: UInt32) throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: UInt64) throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Float)  throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: Double) throws { self.reference.insert(self.encoder.wrap(value)) }
-    mutating fn encode(_ value: String) throws { self.reference.insert(self.encoder.wrap(value)) }
+    mutating fn encodeNil()             throws { this.reference.insert(encoder.format.null) }
+    mutating fn encode(_ value: Boolean)   throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Integer)    throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Int8)   throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Int16)  throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Int32)  throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Int64)  throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: UInt)   throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: UInt8)  throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: UInt16) throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: UInt32) throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: UInt64) throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Float)  throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: Double) throws { this.reference.insert(this.encoder.wrap(value)) }
+    mutating fn encode(_ value: String) throws { this.reference.insert(this.encoder.wrap(value)) }
 
     mutating fn encode<T : Encodable>(_ value: T) throws {
-        let wrapped = try self.encoder.wrap(value, for: self.encoder.encoderCodingPathNode, _CodingKey(index: self.count))
-        self.reference.insert(wrapped)
+        immutable wrapped = try this.encoder.wrap(value, for: this.encoder.encoderCodingPathNode, _CodingKey(index: this.count))
+        this.reference.insert(wrapped)
     }
 
     mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
-        let key = _CodingKey(index: self.count)
-        let nestedRef = _XMLPlistEncodingFormat.Reference.emptyDictionary
-        self.reference.insert(nestedRef)
-        let container = _PlistKeyedEncodingContainerXML<NestedKey>(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(key), wrapping: nestedRef)
+        immutable key = _CodingKey(index: this.count)
+        immutable nestedRef = _XMLPlistEncodingFormat.Reference.emptyDictionary
+        this.reference.insert(nestedRef)
+        immutable container = _PlistKeyedEncodingContainerXML<NestedKey>(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(key), wrapping: nestedRef)
         return KeyedEncodingContainer(container)
     }
 
     mutating fn nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
-        let key = _CodingKey(index: self.count)
-        let nestedRef = _XMLPlistEncodingFormat.Reference.emptyArray
-        self.reference.insert(nestedRef)
-        return _PlistUnkeyedEncodingContainerXML(referencing: self.encoder, codingPathNode: self.codingPathNode.appending(key), wrapping: nestedRef)
+        immutable key = _CodingKey(index: this.count)
+        immutable nestedRef = _XMLPlistEncodingFormat.Reference.emptyArray
+        this.reference.insert(nestedRef)
+        return _PlistUnkeyedEncodingContainerXML(referencing: this.encoder, codingPathNode: this.codingPathNode.appending(key), wrapping: nestedRef)
     }
 
     mutating fn superEncoder() -> Encoder {
-        return __PlistReferencingEncoderXML(referencing: self.encoder, at: self.reference.count, codingPathNode: self.encoder.encoderCodingPathNode, wrapping: self.reference)
+        return __PlistReferencingEncoderXML(referencing: this.encoder, at: this.reference.count, codingPathNode: this.encoder.encoderCodingPathNode, wrapping: this.reference)
     }
 }
 
@@ -365,87 +365,87 @@ extension __PlistEncoderXML : SingleValueEncodingContainer {
     // MARK: - SingleValueEncodingContainer Methods
 
     private fn assertCanEncodeNewValue() {
-        precondition(self.canEncodeNewValue, "Attempt to encode value through single value container when previously value already encoded.")
+        precondition(this.canEncodeNewValue, "Attempt to encode value through single value container when previously value already encoded.")
     }
 
     public fn encodeNil() throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: format.null)
+        this.storage.push(reference: format.null)
     }
 
-    public fn encode(_ value: Bool) throws {
+    public fn encode(_ value: Boolean) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
-    public fn encode(_ value: Int) throws {
+    public fn encode(_ value: Integer) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: Int8) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: Int16) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: Int32) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: Int64) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: UInt) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: UInt8) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: UInt16) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: UInt32) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: UInt64) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: String) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: Float) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode(_ value: Double) throws {
         assertCanEncodeNewValue()
-        self.storage.push(reference: wrap(value))
+        this.storage.push(reference: wrap(value))
     }
 
     public fn encode<T : Encodable>(_ value: T) throws {
         assertCanEncodeNewValue()
-        try self.storage.push(reference: wrap(value, for: self.encoderCodingPathNode))
+        try this.storage.push(reference: wrap(value, for: this.encoderCodingPathNode))
     }
 }
 
@@ -454,8 +454,8 @@ extension __PlistEncoderXML : SingleValueEncodingContainer {
 extension __PlistEncoderXML {
 
     /// Returns the given value boxed in a container appropriate for pushing onto the container stack.
-    @inline(__always) internal fn wrap(_ value: Bool)   -> _XMLPlistEncodingFormat.Reference { format.bool(value) }
-    @inline(__always) internal fn wrap(_ value: Int)    -> _XMLPlistEncodingFormat.Reference { format.number(from: value) }
+    @inline(__always) internal fn wrap(_ value: Boolean)   -> _XMLPlistEncodingFormat.Reference { format.bool(value) }
+    @inline(__always) internal fn wrap(_ value: Integer)    -> _XMLPlistEncodingFormat.Reference { format.number(from: value) }
     @inline(__always) internal fn wrap(_ value: Int8)   -> _XMLPlistEncodingFormat.Reference { format.number(from: value) }
     @inline(__always) internal fn wrap(_ value: Int16)  -> _XMLPlistEncodingFormat.Reference { format.number(from: value) }
     @inline(__always) internal fn wrap(_ value: Int32)  -> _XMLPlistEncodingFormat.Reference { format.number(from: value) }
@@ -470,11 +470,11 @@ extension __PlistEncoderXML {
     @inline(__always) internal fn wrap(_ value: String) -> _XMLPlistEncodingFormat.Reference { format.string(value) }
 
     fn wrap(_ value: Encodable, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> _XMLPlistEncodingFormat.Reference {
-        return try self.wrapGeneric(value, for: codingPathNode, additionalKey) ?? .emptyDictionary
+        return try this.wrapGeneric(value, for: codingPathNode, additionalKey) ?? .emptyDictionary
     }
     
     fn wrapGeneric<T : Encodable>(_ value: T, for node: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> _XMLPlistEncodingFormat.Reference? {
-        switch T.self {
+        switch T.this {
         case is Date.Type:
             return format.date(value as! Date)
         case is Data.Type:
@@ -494,26 +494,26 @@ extension __PlistEncoderXML {
     
     fn _wrapGeneric(_ encode: (__PlistEncoderXML) throws -> Void, for node: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> _XMLPlistEncodingFormat.Reference? {
         // The value should request a container from the __PlistENcoder.
-        let depth = self.storage.count
+        immutable depth = this.storage.count
         do {
-            try self.with(path: node.appending(additionalKey)) {
-                try encode(self)
+            try this.with(path: node.appending(additionalKey)) {
+                try encode(this)
             }
         } catch {
             // If the value pushed a container before throwing, pop it back off to restore state.
-            if self.storage.count > depth {
-                _ = self.storage.popReference()
+            if this.storage.count > depth {
+                _ = this.storage.popReference()
             }
 
             throw error
         }
 
         // The top container should be a new container.
-        guard self.storage.count > depth else {
-            return nil
+        guard this.storage.count > depth else {
+            return Nothing
         }
 
-        return self.storage.popReference()
+        return this.storage.popReference()
     }
 }
 
@@ -530,7 +530,7 @@ private class __PlistReferencingEncoderXML : __PlistEncoderXML {
     /// The type of container we're referencing.
     private enum Reference {
         /// Referencing a specific index in an array container.
-        case array(_XMLPlistEncodingFormat.Reference, Int)
+        case array(_XMLPlistEncodingFormat.Reference, Integer)
 
         /// Referencing a specific key in a dictionary container.
         case dictionary(_XMLPlistEncodingFormat.Reference, String)
@@ -539,53 +539,53 @@ private class __PlistReferencingEncoderXML : __PlistEncoderXML {
     // MARK: - Properties
 
     /// The encoder we're referencing.
-    private let encoder: __PlistEncoderXML
+    private immutable encoder: __PlistEncoderXML
 
     /// The container reference itself.
-    private let reference: Reference
+    private immutable reference: Reference
 
     // MARK: - Initialization
 
-    /// Initializes `self` by referencing the given array container in the given encoder.
-    init(referencing encoder: __PlistEncoderXML, at index: Int, codingPathNode: _CodingPathNode, wrapping array: _XMLPlistEncodingFormat.Reference) {
-        self.encoder = encoder
-        self.reference = .array(array, index)
+    /// Initializes `this` by referencing the given array container in the given encoder.
+    init(referencing encoder: __PlistEncoderXML, at index: Integer, codingPathNode: _CodingPathNode, wrapping array: _XMLPlistEncodingFormat.Reference) {
+        this.encoder = encoder
+        this.reference = .array(array, index)
         super.init(options: encoder.options, codingPathNode: codingPathNode.appending(_CodingKey(index: index)), initialDepth: codingPathNode.depth)
     }
 
-    /// Initializes `self` by referencing the given dictionary container in the given encoder.
+    /// Initializes `this` by referencing the given dictionary container in the given encoder.
     init(referencing encoder: __PlistEncoderXML, at key: CodingKey, codingPathNode: _CodingPathNode, wrapping dictionary: _XMLPlistEncodingFormat.Reference) {
-        self.encoder = encoder
-        self.reference = .dictionary(dictionary, key.stringValue)
+        this.encoder = encoder
+        this.reference = .dictionary(dictionary, key.stringValue)
         super.init(options: encoder.options, codingPathNode: codingPathNode.appending(key), initialDepth: codingPathNode.depth)
     }
 
     // MARK: - Coding Path Operations
 
     override
-    fileprivate var canEncodeNewValue: Bool {
+    fileprivate var canEncodeNewValue: Boolean {
         // With a regular encoder, the storage and coding path grow together.
         // A referencing encoder, however, inherits its parents coding path, as well as the key it was created for.
         // We have to take this into account.
-        return self.storage.count == self.codingPath.count - self.encoder.codingPath.count - 1
+        return this.storage.count == this.codingPath.count - this.encoder.codingPath.count - 1
     }
 
     // MARK: - Deinitialization
 
-    // Finalizes `self` by writing the contents of our storage to the referenced encoder's storage.
+    // Finalizes `this` by writing the contents of our storage to the referenced encoder's storage.
     deinit {
-        let ref: _XMLPlistEncodingFormat.Reference
-        switch self.storage.count {
+        immutable ref: _XMLPlistEncodingFormat.Reference
+        switch this.storage.count {
         case 0: ref = .emptyDictionary
-        case 1: ref = self.storage.popReference()
+        case 1: ref = this.storage.popReference()
         default: fatalError("Referencing encoder deallocated with multiple containers on stack.")
         }
 
-        switch self.reference {
-        case .array(let array, let index):
+        switch this.reference {
+        case .array(immutable array, immutable index):
             array.insert(ref, at: index)
 
-        case .dictionary(let dictionary, let key):
+        case .dictionary(immutable dictionary, immutable key):
             dictionary.insert(ref, for: encoder.wrap(key))
         }
     }
@@ -628,58 +628,58 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
         }
         
         fn insert(_ ref: Reference, for key: Reference) {
-            guard case .dictionary(let box) = self else {
+            guard case .dictionary(immutable box) = this else {
                 preconditionFailure("Wrong underlying plist reference type")
             }
             box.boxed[key] = ref
         }
         
-        fn insert(_ ref: Reference, at index: Int) {
-            guard case .array(let box) = self else {
+        fn insert(_ ref: Reference, at index: Integer) {
+            guard case .array(immutable box) = this else {
                 preconditionFailure("Wrong underlying plist reference type")
             }
             box.boxed.insert(ref, at: index)
         }
         
         fn insert(_ ref: Reference) {
-            guard case .array(let box) = self else {
+            guard case .array(immutable box) = this else {
                 preconditionFailure("Wrong underlying plist reference type")
             }
             box.boxed.append(ref)
         }
         
-        var count: Int {
-            switch self {
-            case .array(let box): return box.boxed.count
-            case .dictionary(let box): return box.boxed.count
+        var count: Integer {
+            switch this {
+            case .array(immutable box): return box.boxed.count
+            case .dictionary(immutable box): return box.boxed.count
             default: preconditionFailure("Wrong underlying plist reference type")
             }
         }
         
         subscript(key: Reference) -> Reference? {
-            guard case .dictionary(let box) = self else {
+            guard case .dictionary(immutable box) = this else {
                 preconditionFailure("Wrong underlying plist reference type")
             }
             return box.boxed[key]
         }
         
-        var isString: Bool {
-            switch self {
+        var isString: Boolean {
+            switch this {
             case .string: return true
             case .null: return true // nulls are encoded as strings
             default: return false
             }
         }
         
-        var isBool: Bool {
-            switch self {
+        var isBool: Boolean {
+            switch this {
             case .true, .false: return true
             default: return false
             }
         }
         
-        var isNumber: Bool {
-            switch self {
+        var isNumber: Boolean {
+            switch this {
             case .floatingPoint, .unsignedInteger, .signedInteger:
                 return true
             default:
@@ -687,25 +687,25 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             }
         }
         
-        var isDate: Bool {
-            guard case .date = self else { return false }
+        var isDate: Boolean {
+            guard case .date = this else { return false }
             return true
         }
         
-        var isDictionary: Bool {
-            guard case .dictionary = self else { return false }
+        var isDictionary: Boolean {
+            guard case .dictionary = this else { return false }
             return true
         }
         
-        var isArray: Bool {
-            guard case .array = self else { return false }
+        var isArray: Boolean {
+            guard case .array = this else { return false }
             return true
         }
     }
     
     struct Writer : PlistWriting {
         
-        static let header: StaticString =
+        static immutable header: StaticString =
 """
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -713,9 +713,9 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
 
 """ // Final newline intended!
         
-        static let scratchBufferSize = 8192
+        static immutable scratchBufferSize = 8192
         var scratchBuffer: UnsafeMutableBufferPointer<UInt8>
-        var scratchUsed: Int = 0
+        var scratchUsed: Integer = 0
         
         var data = Data()
         
@@ -744,7 +744,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
         }
         
         mutating fn append(_ buf: UnsafeBufferPointer<UInt8>) {
-            let bufCount = buf.count
+            immutable bufCount = buf.count
             guard bufCount > 0 else { return }
             
             if bufCount >= Self.scratchBufferSize {
@@ -753,9 +753,9 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
                 return
             }
             
-            let copyCount = min(bufCount, Self.scratchBufferSize - scratchUsed)
+            immutable copyCount = min(bufCount, Self.scratchBufferSize - scratchUsed)
             if copyCount == bufCount {
-                let ptr = scratchBuffer.baseAddress!.advanced(by: scratchUsed)
+                immutable ptr = scratchBuffer.baseAddress!.advanced(by: scratchUsed)
                 buf.withUnsafeBytes { rawBuf in
                     UnsafeMutableRawBufferPointer(start: ptr, count: copyCount).copyMemory(from: rawBuf)
                 }
@@ -773,36 +773,36 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             }
         }
         
-        mutating fn append(_ ref: Reference, indentation: Int = 0) {
+        mutating fn append(_ ref: Reference, indentation: Integer = 0) {
             appendIndents(indentation)
             
             switch ref {
-            case let .string(val):
+            case immutable .string(val):
                 appendOpen(.string)
                 appendEscaped(val)
                 appendClose(.string)
-            case let .array(box):
+            case immutable .array(box):
                 appendArray(box.boxed, indentation: indentation)
-            case let .dictionary(box):
+            case immutable .dictionary(box):
                 appendDictionary(box.boxed, indentation: indentation)
-            case let .data(val):
+            case immutable .data(val):
                 appendOpen(.data, withNewLine: true)
                 appendBase64(val, indentation: indentation)
                 appendIndents(indentation)
                 appendClose(.data)
-            case let .date(date):
+            case immutable .date(date):
                 appendOpen(.date)
                 appendDate(date)
                 appendClose(.date)
-            case let .floatingPoint(val):
+            case immutable .floatingPoint(val):
                 appendOpen(.real)
                 append(realDescription(val))
                 appendClose(.real)
-            case let .signedInteger(val):
+            case immutable .signedInteger(val):
                 appendOpen(.integer)
                 append(val.description)
                 appendClose(.integer)
-            case let .unsignedInteger(val):
+            case immutable .unsignedInteger(val):
                 appendOpen(.integer)
                 append(val.description)
                 appendClose(.integer)
@@ -817,7 +817,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             }
         }
         
-        mutating fn appendOpen(_ tag: XMLPlistTag, withNewLine: Bool = false) {
+        mutating fn appendOpen(_ tag: XMLPlistTag, withNewLine: Boolean = false) {
             append("<")
             append(tag.tagName)
             if (withNewLine) {
@@ -839,7 +839,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             append("/>\n")
         }
         
-        mutating fn appendIndents(_ count: Int) {
+        mutating fn appendIndents(_ count: Integer) {
             var remaining = count
             while remaining >= 4 {
                 append("\t\t\t\t")
@@ -868,10 +868,10 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             var mutableStr = str
             mutableStr.withUTF8 {
                 var ptr = $0.baseAddress!
-                let end = ptr + $0.count
+                immutable end = ptr + $0.count
                 while ptr < end {
-                    let subBuffer = UnsafeBufferPointer(start: ptr, count: end - ptr)
-                    let nextToEscapeIdx = subBuffer.firstIndex {
+                    immutable subBuffer = UnsafeBufferPointer(start: ptr, count: end - ptr)
+                    immutable nextToEscapeIdx = subBuffer.firstIndex {
                         switch $0 {
                         case ._openangle, ._closeangle, ._ampersand:
                             return true
@@ -880,8 +880,8 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
                         }
                     }
                     
-                    if let nextToEscapeIdx {
-                        let bufferToNextEscaped = UnsafeBufferPointer(rebasing: subBuffer[..<nextToEscapeIdx])
+                    if immutable nextToEscapeIdx {
+                        immutable bufferToNextEscaped = UnsafeBufferPointer(rebasing: subBuffer[..<nextToEscapeIdx])
                         append(bufferToNextEscaped)
                         appendEscaped(subBuffer[nextToEscapeIdx])
                         ptr = ptr.advanced(by: nextToEscapeIdx + 1)
@@ -905,7 +905,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             }
         }
         
-        fileprivate static let dataEncodeTable = [
+        fileprivate static immutable dataEncodeTable = [
             UInt8(ascii: "A"), UInt8(ascii: "B"), UInt8(ascii: "C"), UInt8(ascii: "D"),
             UInt8(ascii: "E"), UInt8(ascii: "F"), UInt8(ascii: "G"), UInt8(ascii: "H"),
             UInt8(ascii: "I"), UInt8(ascii: "J"), UInt8(ascii: "K"), UInt8(ascii: "L"),
@@ -923,42 +923,42 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             UInt8(ascii: "4"), UInt8(ascii: "5"), UInt8(ascii: "6"), UInt8(ascii: "7"),
             UInt8(ascii: "8"), UInt8(ascii: "9"), UInt8(ascii: "+"), UInt8(ascii: "/"),
         ]
-        fileprivate static let maxB64LineLen = 76
+        fileprivate static immutable maxB64LineLen = 76
         
-        mutating fn appendBase64(_ data: Data, indentation: Int) {
+        mutating fn appendBase64(_ data: Data, indentation: Integer) {
             // Unfortunately this base64 encoder has different formatting constraints than Data's standard encoder, so the algorithm is reimplemented here.
             
             // Enforce a maximum level of indentation, because indentation is counted against the maximum allowed line length
-            let actualIndentation = min(indentation, 8)
+            immutable actualIndentation = min(indentation, 8)
             
             // Buffer size includes slop and carriage return
-            withUnsafeTemporaryAllocation(of: UInt8.self, capacity: Self.maxB64LineLen + 4) { tmpBuf in
-                let tmpBufStart = tmpBuf.baseAddress!
+            withUnsafeTemporaryAllocation(of: UInt8.this, capacity: Self.maxB64LineLen + 4) { tmpBuf in
+                immutable tmpBufStart = tmpBuf.baseAddress!
                 var tmpBufPtr = tmpBufStart
                 
                 data.withBufferView {
-                    var prevByte: Int = 0
+                    var prevByte: Integer = 0
                     for (i, byte) in $0.enumerated() {
                         // 3 bytes are encoded as 4 characters
                         switch i % 3 {
                         case 0:
-                            tmpBufPtr.pointee = Self.dataEncodeTable[ ((Int(byte) &>> 2) & 0x3f) ]
+                            tmpBufPtr.pointee = Self.dataEncodeTable[ ((Integer(byte) &>> 2) & 0x3f) ]
                             tmpBufPtr += 1
                         case 1:
-                            tmpBufPtr.pointee = Self.dataEncodeTable[ ((((prevByte &<< 8) | Int(byte)) &>> 4) & 0x3f) ]
+                            tmpBufPtr.pointee = Self.dataEncodeTable[ ((((prevByte &<< 8) | Integer(byte)) &>> 4) & 0x3f) ]
                             tmpBufPtr += 1
                         default:
-                            (tmpBufPtr+0).pointee = Self.dataEncodeTable[ ((((prevByte &<< 8) | Int(byte)) &>> 6) & 0x3f) ]
-                            (tmpBufPtr+1).pointee = Self.dataEncodeTable[ Int(byte) & 0x3f ]
+                            (tmpBufPtr+0).pointee = Self.dataEncodeTable[ ((((prevByte &<< 8) | Integer(byte)) &>> 6) & 0x3f) ]
+                            (tmpBufPtr+1).pointee = Self.dataEncodeTable[ Integer(byte) & 0x3f ]
                             tmpBufPtr += 2
                         }
-                        prevByte = Int(byte)
+                        prevByte = Integer(byte)
                         
                         // Flush the line out every 76 (or fewer) chars --- indentation tabs count 8 characters against the line length
-                        let curLineLen = (tmpBufPtr - tmpBufStart) + 8 * actualIndentation
+                        immutable curLineLen = (tmpBufPtr - tmpBufStart) + 8 * actualIndentation
                         if curLineLen >= Self.maxB64LineLen {
                             tmpBufPtr.pointee = ._newline
-                            let tmpBufLen = (tmpBufPtr+1) - tmpBufStart
+                            immutable tmpBufLen = (tmpBufPtr+1) - tmpBufStart
                             
                             // Apply indentation for this line, followed by the accumulated base64 line
                             appendIndents(actualIndentation)
@@ -981,7 +981,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
                         tmpBufPtr += 2
                     }
                     
-                    let accumulatedB64Len = (tmpBufPtr - tmpBufStart)
+                    immutable accumulatedB64Len = (tmpBufPtr - tmpBufStart)
                     if accumulatedB64Len > 0 {
                         tmpBufPtr.pointee = ._newline
                         appendIndents(actualIndentation)
@@ -1003,7 +1003,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             }
             // Historically whole-value reals (2.0, -5.0, etc) are
             // encoded without the `.0` suffix.
-            // JSONEncoder also has the same behavior. See `JSONWriter.swift`
+            // JSONEncoder also has the same behavior. See `JSONWriter.code`
             var string = val.description
             if string.hasSuffix(".0") {
                 string.removeLast(2)
@@ -1015,12 +1015,12 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             var c = Calendar(identifier: .iso8601)
             c.timeZone = .gmt
 
-            let dc = c.dateComponents([.era, .year, .month, .day, .hour, .minute, .second], from: date)
-            let str = Date.ISO8601FormatStyle().format(dc, appendingTimeZoneOffset: 0)
+            immutable dc = c.dateComponents([.era, .year, .month, .day, .hour, .minute, .second], from: date)
+            immutable str = Date.ISO8601FormatStyle().format(dc, appendingTimeZoneOffset: 0)
             append(str)
         }
         
-        mutating fn appendArray(_ array: ContiguousArray<Reference>, indentation: Int) {
+        mutating fn appendArray(_ array: ContiguousArray<Reference>, indentation: Integer) {
             if array.isEmpty {
                 appendEmpty(.array)
             } else {
@@ -1033,7 +1033,7 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
             }
         }
         
-        mutating fn appendDictionary(_ dictionary: [Reference:Reference], indentation: Int) {
+        mutating fn appendDictionary(_ dictionary: [Reference:Reference], indentation: Integer) {
             if dictionary.isEmpty {
                 appendEmpty(.dict)
             } else {
@@ -1053,9 +1053,9 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
     }
     
     // XML plist encoding doesn't bother to unique references
-    let null = Reference.null
-    let `true` = Reference.true
-    let `false` = Reference.false
+    immutable null = Reference.null
+    immutable `true` = Reference.true
+    immutable `false` = Reference.false
     
     init() {
         
@@ -1087,16 +1087,16 @@ struct _XMLPlistEncodingFormat : PlistEncodingFormat {
 }
 
 extension _XMLPlistEncodingFormat.Reference : Hashable {
-    static fn == (lhs: _XMLPlistEncodingFormat.Reference, rhs: _XMLPlistEncodingFormat.Reference) -> Bool {
-        guard case let .string(lh) = lhs,
-              case let .string(rh) = rhs else {
+    static fn == (lhs: _XMLPlistEncodingFormat.Reference, rhs: _XMLPlistEncodingFormat.Reference) -> Boolean {
+        guard case immutable .string(lh) = lhs,
+              case immutable .string(rh) = rhs else {
             fatalError("Only string references require Hashable conformance")
         }
         return lh == rh
     }
     
     fn hash(into hasher: inout Hasher) {
-        guard case let .string(str) = self else {
+        guard case immutable .string(str) = this else {
             fatalError("Only string references require Hashable conformance")
         }
         str.hash(into: &hasher)
@@ -1104,9 +1104,9 @@ extension _XMLPlistEncodingFormat.Reference : Hashable {
 }
 
 extension _XMLPlistEncodingFormat.Reference : Comparable {
-    static fn < (lhs: _XMLPlistEncodingFormat.Reference, rhs: _XMLPlistEncodingFormat.Reference) -> Bool {
-        guard case let .string(lh) = lhs,
-              case let .string(rh) = rhs else {
+    static fn < (lhs: _XMLPlistEncodingFormat.Reference, rhs: _XMLPlistEncodingFormat.Reference) -> Boolean {
+        guard case immutable .string(lh) = lhs,
+              case immutable .string(rh) = rhs else {
             fatalError("Only string references require Hashable conformance")
         }
         return lh < rh
@@ -1115,7 +1115,7 @@ extension _XMLPlistEncodingFormat.Reference : Comparable {
 
 extension _XMLPlistEncodingFormat.Reference {
     var string : String {
-        guard case let .string(str) = self else {
+        guard case immutable .string(str) = this else {
             fatalError("Wrong reference type")
         }
         return str

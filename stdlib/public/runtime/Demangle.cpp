@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #include "Private.h"
@@ -84,7 +83,7 @@ language::_buildDemanglingForContext(const ContextDescriptor *context,
     
     case ContextDescriptorKind::Extension: {
       auto extension = toolchain::cast<ExtensionContextDescriptor>(component);
-      // Demangle the extension self type.
+      // Demangle the extension this type.
       auto selfType = Dem.demangleType(extension->getMangledExtendedContext(),
                                        ResolveToDemanglingForContext(Dem));
       if (selfType->getKind() == Node::Kind::Type)
@@ -274,7 +273,7 @@ static Demangle::NodePointer
 _buildDemanglingForValue(intptr_t value, GenericValueDescriptor valueDescriptor,
                          Demangle::Demangler &Dem) {
   switch (valueDescriptor.Type) {
-  case GenericValueType::Int: {
+  case GenericValueType::Integer: {
     if (value < 0) {
       return Dem.createNode(Node::Kind::NegativeInteger, value);
     }
@@ -383,7 +382,7 @@ static bool _buildDemanglingForGenericArgs(
       // we lose the value header. May need to do extra work to walk up parents
       // and find this parameter's specific value descriptor.
 
-      auto valueDescriptor = GenericValueDescriptor{GenericValueType::Int};
+      auto valueDescriptor = GenericValueDescriptor{GenericValueType::Integer};
       auto value = genericArg.getValue();
       auto genericArgDemangling = _buildDemanglingForValue(value,
                                                            valueDescriptor,

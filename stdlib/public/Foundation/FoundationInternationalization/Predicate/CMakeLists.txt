@@ -13,4 +13,4 @@
 ##===----------------------------------------------------------------------===##
 
 target_include_directories(FoundationInternationalization PRIVATE .)
-target_sources(FoundationInternationalization PRIVATE LocalizedString.swift)
+target_sources(FoundationInternationalization PRIVATE LocalizedString.code)

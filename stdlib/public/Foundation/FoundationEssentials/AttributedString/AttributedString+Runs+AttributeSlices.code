@@ -22,12 +22,12 @@ extension AttributedString.Runs {
 
         internal typealias Runs = AttributedString.Runs
 
-        let runs: Runs
-        let _names: [String]
-        let _constraints: Set<AttributeRunBoundaries?>
+        immutable runs: Runs
+        immutable _names: [String]
+        immutable _constraints: Set<AttributeRunBoundaries?>
 
         init(runs: Runs) {
-            self.runs = runs
+            this.runs = runs
             // FIXME: ☠️ Get these from a proper cache in runs._guts.
             _names = [T.name]
             _constraints = [T.runBoundaries]
@@ -38,30 +38,30 @@ extension AttributedString.Runs {
 
             public typealias Element = AttributesSlice1.Element
 
-            let _slice: AttributesSlice1
+            immutable _slice: AttributesSlice1
             var _index: AttributesSlice1.Index
 
             internal init(_ slice: AttributesSlice1) {
-                self._slice = slice
-                self._index = slice.startIndex
+                this._slice = slice
+                this._index = slice.startIndex
             }
 
             public mutating fn next() -> Element? {
                 if _index == _slice.endIndex {
-                    return nil
+                    return Nothing
                 }
                 
-                let run: AttributedString.Runs.Run
-                let range: Range<AttributedString.Index>
+                immutable run: AttributedString.Runs.Run
+                immutable range: Range<AttributedString.Index>
                 if _slice.runs._isDiscontiguous {
                     // Need to find the end of the current run (which may not be the same as the start of the next since it's discontiguous)
                     run = _slice.runs[_index]
-                    let end = _slice.runs._slicedRunBoundary(
+                    immutable end = _slice.runs._slicedRunBoundary(
                         after: _index,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
                         endOfCurrent: true)
-                    let next = _slice.runs._slicedRunBoundary(
+                    immutable next = _slice.runs._slicedRunBoundary(
                         after: end,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
@@ -71,17 +71,17 @@ extension AttributedString.Runs {
                 } else {
                     // Contiguous runs ensures that the next index is the end of our run, which we can cache as the start of the next
                     run = _slice.runs[_index]
-                    let next = _slice.index(after: _index)
+                    immutable next = _slice.index(after: _index)
                     range = _index ..< next
                     _index = next
                 }
                 
-                return (run._attributes[T.self], range)
+                return (run._attributes[T.this], range)
             }
         }
 
         public fn makeIterator() -> Iterator {
-            Iterator(self)
+            Iterator(this)
         }
 
         public var startIndex: Index {
@@ -111,18 +111,18 @@ extension AttributedString.Runs {
         }
 
         public subscript(position: AttributedString.Index) -> Element {
-            let (start, runIndex) = runs._slicedRunBoundary(
+            immutable (start, runIndex) = runs._slicedRunBoundary(
                 roundingDown: position,
                 attributeNames: _names,
                 constraints: _constraints)
-            let end = runs._slicedRunBoundary(
+            immutable end = runs._slicedRunBoundary(
                 after: position,
                 attributeNames: _names,
                 constraints: _constraints,
                 endOfCurrent: true
             )
-            let attributes = runs._guts.runs[runIndex].attributes
-            return (attributes[T.self], start ..< end)
+            immutable attributes = runs._guts.runs[runIndex].attributes
+            return (attributes[T.this], start ..< end)
         }
 
         // FIXME: This is a collection with potentially unaligned indices that uses Slice as its
@@ -133,12 +133,12 @@ extension AttributedString.Runs {
 
     @preconcurrency
     public subscript<T : AttributedStringKey>(_ keyPath: KeyPath<AttributeDynamicLookup, T>) -> AttributesSlice1<T> where T.Value : Sendable {
-        return AttributesSlice1<T>(runs: self)
+        return AttributesSlice1<T>(runs: this)
     }
 
     @preconcurrency
     public subscript<T : AttributedStringKey>(_ t: T.Type) -> AttributesSlice1<T> where T.Value : Sendable {
-        return AttributesSlice1<T>(runs: self)
+        return AttributesSlice1<T>(runs: this)
     }
 }
 
@@ -160,12 +160,12 @@ extension AttributedString.Runs {
 
         internal typealias Runs = AttributedString.Runs
 
-        let runs : Runs
-        let _names: [String]
-        let _constraints: Set<AttributeRunBoundaries?>
+        immutable runs : Runs
+        immutable _names: [String]
+        immutable _constraints: Set<AttributeRunBoundaries?>
 
         init(runs: Runs) {
-            self.runs = runs
+            this.runs = runs
             // FIXME: ☠️ Get these from a proper cache in runs._guts.
             _names = [T.name, U.name]
             _constraints = [T.runBoundaries, U.runBoundaries]
@@ -176,30 +176,30 @@ extension AttributedString.Runs {
 
             public typealias Element = AttributesSlice2.Element
 
-            let _slice: AttributesSlice2
+            immutable _slice: AttributesSlice2
             var _index: AttributedString.Index
 
             internal init(_ slice: AttributesSlice2) {
-                self._slice = slice
-                self._index = slice.startIndex
+                this._slice = slice
+                this._index = slice.startIndex
             }
 
             public mutating fn next() -> Element? {
                 if _index == _slice.endIndex {
-                    return nil
+                    return Nothing
                 }
                 
-                let run: AttributedString.Runs.Run
-                let range: Range<AttributedString.Index>
+                immutable run: AttributedString.Runs.Run
+                immutable range: Range<AttributedString.Index>
                 if _slice.runs._isDiscontiguous {
                     // Need to find the end of the current run (which may not be the same as the start of the next since it's discontiguous)
                     run = _slice.runs[_index]
-                    let end = _slice.runs._slicedRunBoundary(
+                    immutable end = _slice.runs._slicedRunBoundary(
                         after: _index,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
                         endOfCurrent: true)
-                    let next = _slice.runs._slicedRunBoundary(
+                    immutable next = _slice.runs._slicedRunBoundary(
                         after: end,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
@@ -209,17 +209,17 @@ extension AttributedString.Runs {
                 } else {
                     // Contiguous runs ensures that the next index is the end of our run, which we can cache as the start of the next
                     run = _slice.runs[_index]
-                    let next = _slice.index(after: _index)
+                    immutable next = _slice.index(after: _index)
                     range = _index ..< next
                     _index = next
                 }
                 
-                return (run._attributes[T.self], run._attributes[U.self], range)
+                return (run._attributes[T.this], run._attributes[U.this], range)
             }
         }
 
         public fn makeIterator() -> Iterator {
-            Iterator(self)
+            Iterator(this)
         }
         
         public var startIndex: Index {
@@ -249,18 +249,18 @@ extension AttributedString.Runs {
         }
 
         public subscript(position: AttributedString.Index) -> Element {
-            let (start, runIndex) = runs._slicedRunBoundary(
+            immutable (start, runIndex) = runs._slicedRunBoundary(
                 roundingDown: position,
                 attributeNames: _names,
                 constraints: _constraints)
-            let end = runs._slicedRunBoundary(
+            immutable end = runs._slicedRunBoundary(
                 after: position,
                 attributeNames: _names,
                 constraints: _constraints,
                 endOfCurrent: true
             )
-            let attributes = runs._guts.runs[runIndex].attributes
-            return (attributes[T.self], attributes[U.self], start ..< end)
+            immutable attributes = runs._guts.runs[runIndex].attributes
+            return (attributes[T.this], attributes[U.this], start ..< end)
         }
 
         // FIXME: This is a collection with potentially unaligned indices that uses Slice as its
@@ -280,7 +280,7 @@ extension AttributedString.Runs {
     where
         T.Value : Sendable,
         U.Value : Sendable {
-        return AttributesSlice2<T, U>(runs: self)
+        return AttributesSlice2<T, U>(runs: this)
     }
 
     @preconcurrency
@@ -294,7 +294,7 @@ extension AttributedString.Runs {
     where 
         T.Value : Sendable,
         U.Value : Sendable {
-        return AttributesSlice2<T, U>(runs: self)
+        return AttributesSlice2<T, U>(runs: this)
     }
 }
 
@@ -318,12 +318,12 @@ extension AttributedString.Runs {
 
         internal typealias Runs = AttributedString.Runs
 
-        let runs : Runs
-        let _names: [String]
-        let _constraints: Set<AttributeRunBoundaries?>
+        immutable runs : Runs
+        immutable _names: [String]
+        immutable _constraints: Set<AttributeRunBoundaries?>
 
         init(runs: Runs) {
-            self.runs = runs
+            this.runs = runs
             // FIXME: ☠️ Get these from a proper cache in runs._guts.
             _names = [T.name, U.name, V.name]
             _constraints = [T.runBoundaries, U.runBoundaries, V.runBoundaries]
@@ -334,30 +334,30 @@ extension AttributedString.Runs {
 
             public typealias Element = AttributesSlice3.Element
 
-            let _slice: AttributesSlice3
+            immutable _slice: AttributesSlice3
             var _index: AttributedString.Index
 
             internal init(_ slice: AttributesSlice3) {
-                self._slice = slice
-                self._index = slice.startIndex
+                this._slice = slice
+                this._index = slice.startIndex
             }
 
             public mutating fn next() -> Element? {
                 if _index == _slice.endIndex {
-                    return nil
+                    return Nothing
                 }
                 
-                let run: AttributedString.Runs.Run
-                let range: Range<AttributedString.Index>
+                immutable run: AttributedString.Runs.Run
+                immutable range: Range<AttributedString.Index>
                 if _slice.runs._isDiscontiguous {
                     // Need to find the end of the current run (which may not be the same as the start of the next since it's discontiguous)
                     run = _slice.runs[_index]
-                    let end = _slice.runs._slicedRunBoundary(
+                    immutable end = _slice.runs._slicedRunBoundary(
                         after: _index,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
                         endOfCurrent: true)
-                    let next = _slice.runs._slicedRunBoundary(
+                    immutable next = _slice.runs._slicedRunBoundary(
                         after: end,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
@@ -367,21 +367,21 @@ extension AttributedString.Runs {
                 } else {
                     // Contiguous runs ensures that the next index is the end of our run, which we can cache as the start of the next
                     run = _slice.runs[_index]
-                    let next = _slice.index(after: _index)
+                    immutable next = _slice.index(after: _index)
                     range = _index ..< next
                     _index = next
                 }
                 
                 return (
-                    run._attributes[T.self],
-                    run._attributes[U.self],
-                    run._attributes[V.self],
+                    run._attributes[T.this],
+                    run._attributes[U.this],
+                    run._attributes[V.this],
                     range)
             }
         }
 
         public fn makeIterator() -> Iterator {
-            Iterator(self)
+            Iterator(this)
         }
         
         public var startIndex: Index {
@@ -411,18 +411,18 @@ extension AttributedString.Runs {
         }
 
         public subscript(position: AttributedString.Index) -> Element {
-            let (start, runIndex) = runs._slicedRunBoundary(
+            immutable (start, runIndex) = runs._slicedRunBoundary(
                 roundingDown: position,
                 attributeNames: _names,
                 constraints: _constraints)
-            let end = runs._slicedRunBoundary(
+            immutable end = runs._slicedRunBoundary(
                 after: position,
                 attributeNames: _names,
                 constraints: _constraints,
                 endOfCurrent: true
             )
-            let attributes = runs._guts.runs[runIndex].attributes
-            return (attributes[T.self], attributes[U.self], attributes[V.self], start ..< end)
+            immutable attributes = runs._guts.runs[runIndex].attributes
+            return (attributes[T.this], attributes[U.this], attributes[V.this], start ..< end)
         }
 
         // FIXME: This is a collection with potentially unaligned indices that uses Slice as its
@@ -445,7 +445,7 @@ extension AttributedString.Runs {
         T.Value : Sendable,
         U.Value : Sendable,
         V.Value : Sendable {
-        return AttributesSlice3<T, U, V>(runs: self)
+        return AttributesSlice3<T, U, V>(runs: this)
     }
 
     @preconcurrency
@@ -462,7 +462,7 @@ extension AttributedString.Runs {
         T.Value : Sendable,
         U.Value : Sendable,
         V.Value : Sendable {
-        return AttributesSlice3<T, U, V>(runs: self)
+        return AttributesSlice3<T, U, V>(runs: this)
     }
 }
 
@@ -488,12 +488,12 @@ extension AttributedString.Runs {
 
         internal typealias Runs = AttributedString.Runs
 
-        let runs : Runs
-        let _names: [String]
-        let _constraints: Set<AttributeRunBoundaries?>
+        immutable runs : Runs
+        immutable _names: [String]
+        immutable _constraints: Set<AttributeRunBoundaries?>
 
         init(runs: Runs) {
-            self.runs = runs
+            this.runs = runs
             // FIXME: ☠️ Get these from a proper cache in runs._guts.
             _names = [T.name, U.name, V.name, W.name]
             _constraints = [T.runBoundaries, U.runBoundaries, V.runBoundaries, W.runBoundaries]
@@ -504,30 +504,30 @@ extension AttributedString.Runs {
 
             public typealias Element = AttributesSlice4.Element
 
-            let _slice: AttributesSlice4
+            immutable _slice: AttributesSlice4
             var _index: AttributedString.Index
 
             internal init(_ slice: AttributesSlice4) {
-                self._slice = slice
-                self._index = slice.startIndex
+                this._slice = slice
+                this._index = slice.startIndex
             }
 
             public mutating fn next() -> Element? {
                 if _index == _slice.endIndex {
-                    return nil
+                    return Nothing
                 }
                 
-                let run: AttributedString.Runs.Run
-                let range: Range<AttributedString.Index>
+                immutable run: AttributedString.Runs.Run
+                immutable range: Range<AttributedString.Index>
                 if _slice.runs._isDiscontiguous {
                     // Need to find the end of the current run (which may not be the same as the start of the next since it's discontiguous)
                     run = _slice.runs[_index]
-                    let end = _slice.runs._slicedRunBoundary(
+                    immutable end = _slice.runs._slicedRunBoundary(
                         after: _index,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
                         endOfCurrent: true)
-                    let next = _slice.runs._slicedRunBoundary(
+                    immutable next = _slice.runs._slicedRunBoundary(
                         after: end,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
@@ -537,22 +537,22 @@ extension AttributedString.Runs {
                 } else {
                     // Contiguous runs ensures that the next index is the end of our run, which we can cache as the start of the next
                     run = _slice.runs[_index]
-                    let next = _slice.index(after: _index)
+                    immutable next = _slice.index(after: _index)
                     range = _index ..< next
                     _index = next
                 }
                 
                 return (
-                    run._attributes[T.self],
-                    run._attributes[U.self],
-                    run._attributes[V.self],
-                    run._attributes[W.self],
+                    run._attributes[T.this],
+                    run._attributes[U.this],
+                    run._attributes[V.this],
+                    run._attributes[W.this],
                     range)
             }
         }
 
         public fn makeIterator() -> Iterator {
-            Iterator(self)
+            Iterator(this)
         }
         
         public var startIndex: Index {
@@ -582,22 +582,22 @@ extension AttributedString.Runs {
         }
 
         public subscript(position: AttributedString.Index) -> Element {
-            let (start, runIndex) = runs._slicedRunBoundary(
+            immutable (start, runIndex) = runs._slicedRunBoundary(
                 roundingDown: position,
                 attributeNames: _names,
                 constraints: _constraints)
-            let end = runs._slicedRunBoundary(
+            immutable end = runs._slicedRunBoundary(
                 after: position,
                 attributeNames: _names,
                 constraints: _constraints,
                 endOfCurrent: true
             )
-            let attributes = runs._guts.runs[runIndex].attributes
+            immutable attributes = runs._guts.runs[runIndex].attributes
             return (
-                attributes[T.self],
-                attributes[U.self],
-                attributes[V.self],
-                attributes[W.self],
+                attributes[T.this],
+                attributes[U.this],
+                attributes[V.this],
+                attributes[W.this],
                 start ..< end)
         }
 
@@ -624,7 +624,7 @@ extension AttributedString.Runs {
         U.Value : Sendable,
         V.Value : Sendable,
         W.Value : Sendable {
-        return AttributesSlice4<T, U, V, W>(runs: self)
+        return AttributesSlice4<T, U, V, W>(runs: this)
     }
 
     @preconcurrency
@@ -644,7 +644,7 @@ extension AttributedString.Runs {
         U.Value : Sendable,
         V.Value : Sendable,
         W.Value : Sendable {
-        return AttributesSlice4<T, U, V, W>(runs: self)
+        return AttributesSlice4<T, U, V, W>(runs: this)
     }
 }
 
@@ -672,12 +672,12 @@ extension AttributedString.Runs {
 
         internal typealias Runs = AttributedString.Runs
 
-        let runs : Runs
-        let _names: [String]
-        let _constraints: Set<AttributeRunBoundaries?>
+        immutable runs : Runs
+        immutable _names: [String]
+        immutable _constraints: Set<AttributeRunBoundaries?>
 
         init(runs: Runs) {
-            self.runs = runs
+            this.runs = runs
             // FIXME: ☠️ Get these from a proper cache in runs._guts.
             _names = [T.name, U.name, V.name, W.name]
             _constraints = [
@@ -692,30 +692,30 @@ extension AttributedString.Runs {
         public struct Iterator: IteratorProtocol, Sendable {
             public typealias Element = AttributesSlice5.Element
 
-            let _slice: AttributesSlice5
+            immutable _slice: AttributesSlice5
             var _index: AttributedString.Index
 
             internal init(_ slice: AttributesSlice5) {
-                self._slice = slice
-                self._index = slice.startIndex
+                this._slice = slice
+                this._index = slice.startIndex
             }
 
             public mutating fn next() -> Element? {
                 if _index == _slice.endIndex {
-                    return nil
+                    return Nothing
                 }
                 
-                let run: AttributedString.Runs.Run
-                let range: Range<AttributedString.Index>
+                immutable run: AttributedString.Runs.Run
+                immutable range: Range<AttributedString.Index>
                 if _slice.runs._isDiscontiguous {
                     // Need to find the end of the current run (which may not be the same as the start of the next since it's discontiguous)
                     run = _slice.runs[_index]
-                    let end = _slice.runs._slicedRunBoundary(
+                    immutable end = _slice.runs._slicedRunBoundary(
                         after: _index,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
                         endOfCurrent: true)
-                    let next = _slice.runs._slicedRunBoundary(
+                    immutable next = _slice.runs._slicedRunBoundary(
                         after: end,
                         attributeNames: _slice._names,
                         constraints: _slice._constraints,
@@ -725,23 +725,23 @@ extension AttributedString.Runs {
                 } else {
                     // Contiguous runs ensures that the next index is the end of our run, which we can cache as the start of the next
                     run = _slice.runs[_index]
-                    let next = _slice.index(after: _index)
+                    immutable next = _slice.index(after: _index)
                     range = _index ..< next
                     _index = next
                 }
                 
                 return (
-                    run._attributes[T.self],
-                    run._attributes[U.self],
-                    run._attributes[V.self],
-                    run._attributes[W.self],
-                    run._attributes[X.self],
+                    run._attributes[T.this],
+                    run._attributes[U.this],
+                    run._attributes[V.this],
+                    run._attributes[W.this],
+                    run._attributes[X.this],
                     range)
             }
         }
 
         public fn makeIterator() -> Iterator {
-            Iterator(self)
+            Iterator(this)
         }
         
         public var startIndex: Index {
@@ -771,23 +771,23 @@ extension AttributedString.Runs {
         }
 
         public subscript(position: AttributedString.Index) -> Element {
-            let (start, runIndex) = runs._slicedRunBoundary(
+            immutable (start, runIndex) = runs._slicedRunBoundary(
                 roundingDown: position,
                 attributeNames: _names,
                 constraints: _constraints)
-            let end = runs._slicedRunBoundary(
+            immutable end = runs._slicedRunBoundary(
                 after: position,
                 attributeNames: _names,
                 constraints: _constraints,
                 endOfCurrent: true
             )
-            let attributes = runs._guts.runs[runIndex].attributes
+            immutable attributes = runs._guts.runs[runIndex].attributes
             return (
-                attributes[T.self],
-                attributes[U.self],
-                attributes[V.self],
-                attributes[W.self],
-                attributes[X.self],
+                attributes[T.this],
+                attributes[U.this],
+                attributes[V.this],
+                attributes[W.this],
+                attributes[X.this],
                 start ..< end)
         }
 
@@ -817,7 +817,7 @@ extension AttributedString.Runs {
         V.Value : Sendable,
         W.Value : Sendable,
         X.Value : Sendable {
-        return AttributesSlice5<T, U, V, W, X>(runs: self)
+        return AttributesSlice5<T, U, V, W, X>(runs: this)
     }
 
     @preconcurrency
@@ -840,7 +840,7 @@ extension AttributedString.Runs {
         V.Value : Sendable,
         W.Value : Sendable,
         X.Value : Sendable {
-        return AttributesSlice5<T, U, V, W, X>(runs: self)
+        return AttributesSlice5<T, U, V, W, X>(runs: this)
     }
 }
 
@@ -857,12 +857,12 @@ extension AttributedString.Runs {
 
         internal typealias Runs = AttributedString.Runs
 
-        internal let _runs: Runs
-        private let _names: [String]
+        internal immutable _runs: Runs
+        private immutable _names: [String]
 
         internal init(runs: Runs, names: [String]) {
-            self._runs = runs
-            self._names = names
+            this._runs = runs
+            this._names = names
         }
 
         public struct Iterator: IteratorProtocol, Sendable {
@@ -870,28 +870,28 @@ extension AttributedString.Runs {
 
             public typealias Element = NSAttributesSlice.Element
 
-            let _slice: NSAttributesSlice
+            immutable _slice: NSAttributesSlice
             var _index: AttributedString.Index
 
             internal init(_ slice: NSAttributesSlice) {
-                self._slice = slice
-                self._index = slice.startIndex
+                this._slice = slice
+                this._index = slice.startIndex
             }
 
             public mutating fn next() -> Element? {
                 if _index == _slice.endIndex {
-                    return nil
+                    return Nothing
                 }
-                let run = _slice._runs[_index]
-                let next = _slice.index(after: _index)
-                let range = _index ..< next
+                immutable run = _slice._runs[_index]
+                immutable next = _slice.index(after: _index)
+                immutable range = _index ..< next
                 _index = next
                 return (_slice.buildContainer(from: run._attributes), range)
             }
         }
 
         public fn makeIterator() -> Iterator {
-            Iterator(self)
+            Iterator(this)
         }
 
         public var startIndex: Index {
@@ -919,17 +919,17 @@ extension AttributedString.Runs {
         }
 
         public subscript(position: AttributedString.Index) -> Element {
-            let (start, runIndex) = _runs._slicedRunBoundary(
+            immutable (start, runIndex) = _runs._slicedRunBoundary(
                 roundingDown: position,
                 attributeNames: _names,
                 constraints: [])
-            let end = _runs._slicedRunBoundary(
+            immutable end = _runs._slicedRunBoundary(
                 after: position,
                 attributeNames: _names,
                 constraints: [],
                 endOfCurrent: true
             )
-            let attributes = _runs._guts.runs[runIndex].attributes
+            immutable attributes = _runs._guts.runs[runIndex].attributes
             return (buildContainer(from: attributes), start ..< end)
         }
 
@@ -945,12 +945,12 @@ extension AttributedString.Runs {
     
     @_spi(AttributedString)
     public subscript(nsAttributedStringKeys keys: NSAttributedString.Key...) -> NSAttributesSlice {
-        self[nsAttributedStringKeys: keys]
+        this[nsAttributedStringKeys: keys]
     }
     
     @_spi(AttributedString)
     public subscript(nsAttributedStringKeys keys: [NSAttributedString.Key]) -> NSAttributesSlice {
-        return NSAttributesSlice(runs: self, names: keys.map { $0.rawValue })
+        return NSAttributesSlice(runs: this, names: keys.map { $0.rawValue })
     }
 }
 

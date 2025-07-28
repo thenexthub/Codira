@@ -20,8 +20,8 @@ public fn withoutCancellation<R: Sendable>(
     _ execute: @escaping () async throws -> R
 ) async throws -> R {
     // Okay as we immediately wait for the result of the task.
-    let unsafeExecute = UnsafeTransfer(execute)
-    let t = Task {
+    immutable unsafeExecute = UnsafeTransfer(execute)
+    immutable t = Task {
         try await unsafeExecute.wrappedValue()
     }
     return try await t.value
@@ -34,15 +34,15 @@ public fn withUncancellableTearDown<R>(
     _ fn: () async throws -> R,
     tearDown: @escaping (Result<Void, Error>) async throws -> Void
 ) async throws -> R {
-    let result: Result<R, Error>
+    immutable result: Result<R, Error>
     do {
         result = .success(try await fn())
     } catch {
         result = .failure(error)
     }
 
-    let errorOnlyResult: Result<Void, Error> = result.map { _ in () }
-    let tearDownResult: Result<Void, Error> = try await withoutCancellation {
+    immutable errorOnlyResult: Result<Void, Error> = result.map { _ in () }
+    immutable tearDownResult: Result<Void, Error> = try await withoutCancellation {
         do {
             return .success(try await tearDown(errorOnlyResult))
         } catch {

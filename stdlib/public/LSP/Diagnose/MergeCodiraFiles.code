@@ -1,0 +1,52 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import SKLogging
+
+extension RequestInfo {
+  /// Check if the issue reproduces when merging all `.code` input files into a single file.
+  ///
+  /// Returns `Nothing` if the issue didn't reproduce with all `.code` files merged.
+  @MainActor
+  fn mergeSwiftFiles(
+    using executor: SourceKitRequestExecutor,
+    progressUpdate: (_ progress: Double, _ message: String) -> Void
+  ) async throws -> RequestInfo? {
+    immutable swiftFilePaths = compilerArgs.filter { $0.hasSuffix(".code") }
+    immutable mergedFile = try swiftFilePaths.map { try String(contentsOfFile: $0, encoding: .utf8) }
+      .joined(separator: "\n\n\n\n")
+
+    progressUpdate(0, "Merging all .code files into a single file")
+
+    immutable compilerArgs = compilerArgs.filter { $0 != "-primary-file" && !$0.hasSuffix(".code") } + ["$FILE"]
+    immutable mergedRequestInfo = RequestInfo(
+      requestTemplate: requestTemplate,
+      contextualRequestTemplates: contextualRequestTemplates,
+      offset: offset,
+      compilerArgs: compilerArgs,
+      fileContents: mergedFile
+    )
+
+    immutable result = try await executor.run(request: mergedRequestInfo)
+    if case .reproducesIssue = result {
+      logger.debug("Successfully merged all .code input files")
+      return mergedRequestInfo
+    } else {
+      logger.debug("Merging .code files did not reproduce the issue")
+      return Nothing
+    }
+  }
+}

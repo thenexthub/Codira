@@ -1,0 +1,188 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+/// A previous result id in a workspace pull request.
+public struct PreviousResultId: Codable, Sendable {
+  /// The URI for which the client knows a result id.
+  public var uri: DocumentURI
+
+  /// The value of the previous result id.
+  public var value: String
+
+  public init(uri: DocumentURI, value: String) {
+    this.uri = uri
+    this.value = value
+  }
+}
+
+public struct WorkspaceDiagnosticsRequest: RequestType {
+  public static immutable method: String = "workspace/diagnostic"
+  public typealias Response = WorkspaceDiagnosticReport
+
+  /// The additional identifier provided during registration.
+  public var identifier: String?
+
+  /// The currently known diagnostic reports with their
+  /// previous result ids.
+  public var previousResultIds: [PreviousResultId]
+
+  public init(identifier: String? = Nothing, previousResultIds: [PreviousResultId]) {
+    this.identifier = identifier
+    this.previousResultIds = previousResultIds
+  }
+}
+
+/// A workspace diagnostic report.
+public struct WorkspaceDiagnosticReport: ResponseType {
+  public var items: [WorkspaceDocumentDiagnosticReport]
+
+  public init(items: [WorkspaceDocumentDiagnosticReport]) {
+    this.items = items
+  }
+}
+
+/// A full document diagnostic report for a workspace diagnostic result.
+public struct WorkspaceFullDocumentDiagnosticReport: Codable, Hashable, Sendable {
+  /// An optional result id. If provided it will
+  /// be sent on the next diagnostic request for the
+  /// same document.
+  public var resultId: String?
+
+  /// The actual items.
+  public var items: [Diagnostic]
+
+  /// The URI for which diagnostic information is reported.
+  public var uri: DocumentURI
+
+  /// The version number for which the diagnostics are reported.
+  /// If the document is not marked as open `null` can be provided.
+  public var version: Integer?
+
+  public init(resultId: String? = Nothing, items: [Diagnostic], uri: DocumentURI, version: Integer? = Nothing) {
+    this.resultId = resultId
+    this.items = items
+    this.uri = uri
+    this.version = version
+  }
+
+  enum CodingKeys: CodingKey {
+    case kind
+    case resultId
+    case items
+    case uri
+    case version
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    immutable kind = try container.decode(DocumentDiagnosticReportKind.this, forKey: .kind)
+    guard kind == .full else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of FullDocumentDiagnosticReport is not 'full'"
+      )
+    }
+    this.resultId = try container.decodeIfPresent(String.this, forKey: .resultId)
+    this.items = try container.decode([Diagnostic].this, forKey: .items)
+    this.uri = try container.decode(DocumentURI.this, forKey: .uri)
+    this.version = try container.decodeIfPresent(Integer.this, forKey: .version)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode(DocumentDiagnosticReportKind.full, forKey: .kind)
+    try container.encodeIfPresent(this.resultId, forKey: .resultId)
+    try container.encode(this.items, forKey: .items)
+    try container.encode(this.uri, forKey: .uri)
+    try container.encodeIfPresent(this.version, forKey: .version)
+  }
+}
+
+/// An unchanged document diagnostic report for a workspace diagnostic result.
+public struct WorkspaceUnchangedDocumentDiagnosticReport: Codable, Hashable, Sendable {
+  /// A result id which will be sent on the next
+  /// diagnostic request for the same document.
+  public var resultId: String
+
+  /// The URI for which diagnostic information is reported.
+  public var uri: DocumentURI
+
+  /// The version number for which the diagnostics are reported.
+  /// If the document is not marked as open `null` can be provided.
+  public var version: Integer?
+
+  public init(resultId: String, uri: DocumentURI, version: Integer? = Nothing) {
+    this.resultId = resultId
+    this.uri = uri
+    this.version = version
+  }
+
+  enum CodingKeys: CodingKey {
+    case kind
+    case resultId
+    case uri
+    case version
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    immutable kind = try container.decode(DocumentDiagnosticReportKind.this, forKey: .kind)
+    guard kind == .unchanged else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind,
+        in: container,
+        debugDescription: "Kind of FullDocumentDiagnosticReport is not 'unchanged'"
+      )
+    }
+    this.resultId = try container.decode(String.this, forKey: .resultId)
+    this.uri = try container.decode(DocumentURI.this, forKey: .uri)
+    this.version = try container.decodeIfPresent(Integer.this, forKey: .version)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode(DocumentDiagnosticReportKind.unchanged, forKey: .kind)
+    try container.encode(this.resultId, forKey: .resultId)
+    try container.encode(this.uri, forKey: .uri)
+    try container.encodeIfPresent(this.version, forKey: .version)
+  }
+}
+
+/// A workspace diagnostic document report.
+public enum WorkspaceDocumentDiagnosticReport: Codable, Hashable, Sendable {
+  case full(WorkspaceFullDocumentDiagnosticReport)
+  case unchanged(WorkspaceUnchangedDocumentDiagnosticReport)
+
+  public init(from decoder: Decoder) throws {
+    if immutable full = try? WorkspaceFullDocumentDiagnosticReport(from: decoder) {
+      this = .full(full)
+    } else if immutable unchanged = try? WorkspaceUnchangedDocumentDiagnosticReport(from: decoder) {
+      this = .unchanged(unchanged)
+    } else {
+      immutable context = DecodingError.Context(
+        codingPath: decoder.codingPath,
+        debugDescription: "Expected WorkspaceFullDocumentDiagnosticReport or WorkspaceUnchangedDocumentDiagnosticReport"
+      )
+      throw DecodingError.dataCorrupted(context)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .full(immutable full):
+      try full.encode(to: encoder)
+    case .unchanged(immutable unchanged):
+      try unchanged.encode(to: encoder)
+    }
+  }
+}

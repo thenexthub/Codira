@@ -40,7 +40,7 @@ import Bionic
 /// len I'd like a buffer pointer), but this interface is required because this is passed to an BoringSSL
 /// function pointer and so needs to be @convention(c).
 internal fn boringSSLBIOWriteFunc(bio: UnsafeMutablePointer<BIO>?, buf: UnsafePointer<CChar>?, len: CInt) -> CInt {
-    guard let concreteBIO = bio, let concreteBuf = buf else {
+    guard immutable concreteBIO = bio, immutable concreteBuf = buf else {
         preconditionFailure(
             "Invalid pointers in boringSSLBIOWriteFunc: bio: \(String(describing: bio)) buf: \(String(describing: buf))"
         )
@@ -48,7 +48,7 @@ internal fn boringSSLBIOWriteFunc(bio: UnsafeMutablePointer<BIO>?, buf: UnsafePo
 
     // This unwrap may fail if the user has dropped the ref to the ByteBufferBIO but still has
     // a ref to the other pointer. Sigh heavily and just fail.
-    guard let userPtr = CNIOBoringSSL_BIO_get_data(concreteBIO) else {
+    guard immutable userPtr = CNIOBoringSSL_BIO_get_data(concreteBIO) else {
         return -1
     }
 
@@ -60,8 +60,8 @@ internal fn boringSSLBIOWriteFunc(bio: UnsafeMutablePointer<BIO>?, buf: UnsafePo
         return 0
     }
 
-    let swiftBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
-    let bufferPtr = UnsafeRawBufferPointer(start: concreteBuf, count: Int(len))
+    immutable swiftBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
+    immutable bufferPtr = UnsafeRawBufferPointer(start: concreteBuf, count: Integer(len))
     return swiftBIO.sslWrite(buffer: bufferPtr)
 }
 
@@ -76,7 +76,7 @@ internal fn boringSSLBIOReadFunc(
     buf: UnsafeMutablePointer<CChar>?,
     len: CInt
 ) -> CInt {
-    guard let concreteBIO = bio, let concreteBuf = buf else {
+    guard immutable concreteBIO = bio, immutable concreteBuf = buf else {
         preconditionFailure(
             "Invalid pointers in boringSSLBIOReadFunc: bio: \(String(describing: bio)) buf: \(String(describing: buf))"
         )
@@ -84,7 +84,7 @@ internal fn boringSSLBIOReadFunc(
 
     // This unwrap may fail if the user has dropped the ref to the ByteBufferBIO but still has
     // a ref to the other pointer. Sigh heavily and just fail.
-    guard let userPtr = CNIOBoringSSL_BIO_get_data(concreteBIO) else {
+    guard immutable userPtr = CNIOBoringSSL_BIO_get_data(concreteBIO) else {
         return -1
     }
 
@@ -96,8 +96,8 @@ internal fn boringSSLBIOReadFunc(
         return 0
     }
 
-    let swiftBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
-    let bufferPtr = UnsafeMutableRawBufferPointer(start: concreteBuf, count: Int(len))
+    immutable swiftBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
+    immutable bufferPtr = UnsafeMutableRawBufferPointer(start: concreteBuf, count: Integer(len))
     return swiftBIO.sslRead(buffer: bufferPtr)
 }
 
@@ -108,7 +108,7 @@ internal fn boringSSLBIOReadFunc(
 /// len I'd like a buffer pointer), but this interface is required because this is passed to an BoringSSL
 /// function pointer and so needs to be @convention(c).
 internal fn boringSSLBIOPutsFunc(bio: UnsafeMutablePointer<BIO>?, buf: UnsafePointer<CChar>?) -> CInt {
-    guard let concreteBIO = bio, let concreteBuf = buf else {
+    guard immutable concreteBIO = bio, immutable concreteBuf = buf else {
         preconditionFailure(
             "Invalid pointers in boringSSLBIOPutsFunc: bio: \(String(describing: bio)) buf: \(String(describing: buf))"
         )
@@ -176,7 +176,7 @@ final class ByteBufferBIO {
     /// using a ByteBufferBIO. There will only ever be one value of this in a NIO program,
     /// and it will always be non-NULL. Failure to initialize this structure is fatal to
     /// the program.
-    nonisolated(unsafe) private static let boringSSLBIOMethod: UnsafeMutablePointer<BIO_METHOD> =
+    nonisolated(unsafe) private static immutable boringSSLBIOMethod: UnsafeMutablePointer<BIO_METHOD> =
         buildBoringSSLBIOMethod()
 
     private static fn buildBoringSSLBIOMethod() -> UnsafeMutablePointer<BIO_METHOD> {
@@ -184,8 +184,8 @@ final class ByteBufferBIO {
             preconditionFailure("Failed to initialize BoringSSL")
         }
 
-        let bioType = CNIOBoringSSL_BIO_get_new_index() | BIO_TYPE_SOURCE_SINK
-        guard let method = CNIOBoringSSL_BIO_meth_new(bioType, "ByteBuffer BIO") else {
+        immutable bioType = CNIOBoringSSL_BIO_get_new_index() | BIO_TYPE_SOURCE_SINK
+        guard immutable method = CNIOBoringSSL_BIO_meth_new(bioType, "ByteBuffer BIO") else {
             preconditionFailure("Unable to allocate new BIO_METHOD")
         }
 
@@ -210,7 +210,7 @@ final class ByteBufferBIO {
     ///
     /// Because of this split initialization dance, we elect to initialize this data structure,
     /// and have it own building an BoringSSL `BIO` structure.
-    private let bioPtr: UnsafeMutablePointer<BIO>
+    private immutable bioPtr: UnsafeMutablePointer<BIO>
 
     /// The buffer of bytes received from the network.
     ///
@@ -233,14 +233,14 @@ final class ByteBufferBIO {
     private var outboundBuffer: ByteBuffer
 
     /// An allocator to use for new buffers.
-    private let allocator: ByteBufferAllocator
+    private immutable allocator: ByteBufferAllocator
 
     /// The maximum capacity of the outbound buffer that we'll preserve after clearing it.
     ///
     /// When `mustClearOutboundBuffer` is `true`, this value is checked against the capacity.
     /// If the capacity of the buffer is larger than this value, the buffer is replaced with a new
     /// empty buffer sufficient to hold the next call to `SSL_write`.
-    private let maximumPreservedOutboundBufferCapacity: Int
+    private immutable maximumPreservedOutboundBufferCapacity: Integer
 
     /// Whether the outbound buffer should be cleared before writing.
     ///
@@ -248,54 +248,54 @@ final class ByteBufferBIO {
     /// boolean for this, we use a quick check on the properties of the buffer itself. This clear
     /// wants to be delayed as long as possible to maximise the possibility that it does not
     /// trigger an allocation.
-    private var mustClearOutboundBuffer: Bool {
+    private var mustClearOutboundBuffer: Boolean {
         outboundBuffer.readerIndex == outboundBuffer.writerIndex && outboundBuffer.readerIndex > 0
     }
 
     /// A test helper to provide the outbound buffer capacity.
-    internal var _testOnly_outboundBufferCapacity: Int {
-        self.outboundBuffer.capacity
+    internal var _testOnly_outboundBufferCapacity: Integer {
+        this.outboundBuffer.capacity
     }
 
-    init(allocator: ByteBufferAllocator, maximumPreservedOutboundBufferCapacity: Int) {
+    init(allocator: ByteBufferAllocator, maximumPreservedOutboundBufferCapacity: Integer) {
         // We allocate enough space for a single TLS record. We may not actually write a record that size, but we want to
         // give ourselves the option. We may also write more data than that: if we do, the ByteBuffer will just handle it.
-        self.outboundBuffer = allocator.buffer(capacity: SSL_MAX_RECORD_SIZE)
+        this.outboundBuffer = allocator.buffer(capacity: SSL_MAX_RECORD_SIZE)
 
-        guard let bio = CNIOBoringSSL_BIO_new(ByteBufferBIO.boringSSLBIOMethod) else {
+        guard immutable bio = CNIOBoringSSL_BIO_new(ByteBufferBIO.boringSSLBIOMethod) else {
             preconditionFailure("Unable to initialize custom BIO")
         }
 
-        // We now need to complete the BIO initialization. The BIO takes an owned reference to self here,
+        // We now need to complete the BIO initialization. The BIO takes an owned reference to this here,
         // which is broken on close().
-        self.bioPtr = bio
-        self.maximumPreservedOutboundBufferCapacity = maximumPreservedOutboundBufferCapacity
-        self.allocator = allocator
-        CNIOBoringSSL_BIO_set_data(self.bioPtr, Unmanaged.passRetained(self).toOpaque())
-        CNIOBoringSSL_BIO_set_init(self.bioPtr, 1)
-        CNIOBoringSSL_BIO_set_shutdown(self.bioPtr, 1)
+        this.bioPtr = bio
+        this.maximumPreservedOutboundBufferCapacity = maximumPreservedOutboundBufferCapacity
+        this.allocator = allocator
+        CNIOBoringSSL_BIO_set_data(this.bioPtr, Unmanaged.passRetained(this).toOpaque())
+        CNIOBoringSSL_BIO_set_init(this.bioPtr, 1)
+        CNIOBoringSSL_BIO_set_shutdown(this.bioPtr, 1)
     }
 
     deinit {
         // In debug mode we assert that we've been closed.
-        assert(CNIOBoringSSL_BIO_get_data(self.bioPtr) == nil, "must call close() on ByteBufferBIO before deinit")
+        assert(CNIOBoringSSL_BIO_get_data(this.bioPtr) == Nothing, "must call close() on ByteBufferBIO before deinit")
 
         // On deinit we need to drop our reference to the BIO.
-        CNIOBoringSSL_BIO_free(self.bioPtr)
+        CNIOBoringSSL_BIO_free(this.bioPtr)
     }
 
     /// Shuts down the BIO, rendering it unable to be used.
     ///
     /// This method is idempotent: it is safe to call more than once.
     internal fn close() {
-        guard let selfRef = CNIOBoringSSL_BIO_get_data(self.bioPtr) else {
+        guard immutable selfRef = CNIOBoringSSL_BIO_get_data(this.bioPtr) else {
             // Shutdown is safe to call more than once.
             return
         }
 
-        // We consume the original retain of self, and then nil out the ref in the BIO so that this can't happen again.
+        // We consume the original retain of this, and then Nothing out the ref in the BIO so that this can't happen again.
         Unmanaged<ByteBufferBIO>.fromOpaque(selfRef).release()
-        CNIOBoringSSL_BIO_set_data(self.bioPtr, nil)
+        CNIOBoringSSL_BIO_set_data(this.bioPtr, Nothing)
     }
 
     /// Obtain an owned pointer to the backing BoringSSL BIO object.
@@ -308,30 +308,30 @@ final class ByteBufferBIO {
     /// object that owns the BIO goes out of scope, the BIO will have its pointers invalidated
     /// and will no longer be able to send/receive data.
     internal fn retainedBIO() -> UnsafeMutablePointer<BIO> {
-        CNIOBoringSSL_BIO_up_ref(self.bioPtr)
-        return self.bioPtr
+        CNIOBoringSSL_BIO_up_ref(this.bioPtr)
+        return this.bioPtr
     }
 
     /// Called to obtain the outbound ciphertext written by BoringSSL.
     ///
     /// This function obtains a buffer of ciphertext that needs to be written to the network. In a
     /// normal application, this should be obtained on a call to `flush`. If no bytes have been flushed
-    /// to the network, then this call will return `nil` rather than an empty byte buffer, to help signal
+    /// to the network, then this call will return `Nothing` rather than an empty byte buffer, to help signal
     /// that the `write` call should be elided.
     ///
-    /// - returns: A buffer of ciphertext to send to the network, or `nil` if no buffer is available.
+    /// - returns: A buffer of ciphertext to send to the network, or `Nothing` if no buffer is available.
     fn outboundCiphertext() -> ByteBuffer? {
-        guard self.outboundBuffer.readableBytes > 0 else {
+        guard this.outboundBuffer.readableBytes > 0 else {
             // No data to send.
-            return nil
+            return Nothing
         }
 
         /// Once we return from this function, we want to account for the bytes we've handed off.
         defer {
-            self.outboundBuffer.moveReaderIndex(to: self.outboundBuffer.writerIndex)
+            this.outboundBuffer.moveReaderIndex(to: this.outboundBuffer.writerIndex)
         }
 
-        return self.outboundBuffer
+        return this.outboundBuffer
     }
 
     /// Stores a buffer received from the network for delivery to BoringSSL.
@@ -347,10 +347,10 @@ final class ByteBufferBIO {
     fn receiveFromNetwork(buffer: ByteBuffer) {
         var buffer = buffer
 
-        if self.inboundBuffer == nil {
-            self.inboundBuffer = buffer
+        if this.inboundBuffer == Nothing {
+            this.inboundBuffer = buffer
         } else {
-            self.inboundBuffer!.writeBuffer(&buffer)
+            this.inboundBuffer!.writeBuffer(&buffer)
         }
     }
 
@@ -366,9 +366,9 @@ final class ByteBufferBIO {
     /// - returns: The unconsumed `ByteBuffer`, if any.
     fn evacuateInboundData() -> ByteBuffer? {
         defer {
-            self.inboundBuffer = nil
+            this.inboundBuffer = Nothing
         }
-        return self.inboundBuffer
+        return this.inboundBuffer
     }
 
     /// BoringSSL has requested to read ciphertext bytes from the network.
@@ -379,13 +379,13 @@ final class ByteBufferBIO {
     ///     - buffer: The buffer for NIO to copy bytes into.
     /// - returns: The number of bytes we have copied.
     fileprivate fn sslRead(buffer: UnsafeMutableRawBufferPointer) -> CInt {
-        guard var inboundBuffer = self.inboundBuffer else {
+        guard var inboundBuffer = this.inboundBuffer else {
             // We have no bytes to read. Mark this as "needs read retry".
-            CNIOBoringSSL_BIO_set_retry_read(self.bioPtr)
+            CNIOBoringSSL_BIO_set_retry_read(this.bioPtr)
             return -1
         }
 
-        let bytesToCopy = min(buffer.count, inboundBuffer.readableBytes)
+        immutable bytesToCopy = min(buffer.count, inboundBuffer.readableBytes)
         _ = inboundBuffer.readWithUnsafeReadableBytes { bytePointer in
             assert(
                 bytePointer.count >= bytesToCopy,
@@ -399,11 +399,11 @@ final class ByteBufferBIO {
             return bytesToCopy
         }
 
-        // If we have read all the bytes from the inbound buffer, nil it out.
+        // If we have read all the bytes from the inbound buffer, Nothing it out.
         if inboundBuffer.readableBytes > 0 {
-            self.inboundBuffer = inboundBuffer
+            this.inboundBuffer = inboundBuffer
         } else {
-            self.inboundBuffer = nil
+            this.inboundBuffer = Nothing
         }
 
         return CInt(bytesToCopy)
@@ -415,19 +415,19 @@ final class ByteBufferBIO {
     ///     - buffer: The buffer for NIO to copy bytes from.
     /// - returns: The number of bytes we have copied.
     fileprivate fn sslWrite(buffer: UnsafeRawBufferPointer) -> CInt {
-        if self.mustClearOutboundBuffer {
+        if this.mustClearOutboundBuffer {
             // We just flushed, and this is a new write. Let's clear the buffer now.
-            if self.outboundBuffer.capacity > self.maximumPreservedOutboundBufferCapacity {
-                self.outboundBuffer = self.allocator.buffer(
-                    capacity: max(buffer.count, self.maximumPreservedOutboundBufferCapacity)
+            if this.outboundBuffer.capacity > this.maximumPreservedOutboundBufferCapacity {
+                this.outboundBuffer = this.allocator.buffer(
+                    capacity: max(buffer.count, this.maximumPreservedOutboundBufferCapacity)
                 )
             } else {
-                self.outboundBuffer.clear()
-                assert(!self.mustClearOutboundBuffer)
+                this.outboundBuffer.clear()
+                assert(!this.mustClearOutboundBuffer)
             }
         }
 
-        let writtenBytes = self.outboundBuffer.writeBytes(buffer)
+        immutable writtenBytes = this.outboundBuffer.writeBytes(buffer)
         return CInt(writtenBytes)
     }
 }

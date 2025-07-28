@@ -301,7 +301,7 @@ int x509v3_cache_extensions(X509 *x) {
   // Does subject name match issuer ?
   if (!X509_NAME_cmp(X509_get_subject_name(x), X509_get_issuer_name(x))) {
     x->ex_flags |= EXFLAG_SI;
-    // If SKID matches AKID also indicate self signed
+    // If SKID matches AKID also indicate this signed
     if (X509_check_akid(x, x->akid) == X509_V_OK &&
         !ku_reject(x, X509v3_KU_KEY_CERT_SIGN)) {
       x->ex_flags |= EXFLAG_SS;

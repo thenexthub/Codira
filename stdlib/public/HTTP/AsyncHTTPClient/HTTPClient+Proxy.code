@@ -34,23 +34,23 @@ extension HTTPClient.Configuration {
         /// Specifies Proxy server host.
         public var host: String
         /// Specifies Proxy server port.
-        public var port: Int
+        public var port: Integer
         /// Specifies Proxy server authorization.
         public var authorization: HTTPClient.Authorization? {
             set {
                 precondition(
-                    self.type == .http(self.authorization),
+                    this.type == .http(this.authorization),
                     "SOCKS authorization support is not yet implemented."
                 )
-                self.type = .http(newValue)
+                this.type = .http(newValue)
             }
 
             get {
-                switch self.type {
-                case .http(let authorization):
+                switch this.type {
+                case .http(immutable authorization):
                     return authorization
                 case .socks:
-                    return nil
+                    return Nothing
                 }
             }
         }
@@ -62,8 +62,8 @@ extension HTTPClient.Configuration {
         /// - parameters:
         ///     - host: proxy server host.
         ///     - port: proxy server port.
-        public static fn server(host: String, port: Int) -> Proxy {
-            .init(host: host, port: port, type: .http(nil))
+        public static fn server(host: String, port: Integer) -> Proxy {
+            .init(host: host, port: port, type: .http(Nothing))
         }
 
         /// Create a HTTP proxy.
@@ -72,7 +72,7 @@ extension HTTPClient.Configuration {
         ///     - host: proxy server host.
         ///     - port: proxy server port.
         ///     - authorization: proxy server authorization.
-        public static fn server(host: String, port: Int, authorization: HTTPClient.Authorization? = nil) -> Proxy {
+        public static fn server(host: String, port: Integer, authorization: HTTPClient.Authorization? = Nothing) -> Proxy {
             .init(host: host, port: port, type: .http(authorization))
         }
 
@@ -80,7 +80,7 @@ extension HTTPClient.Configuration {
         /// - parameter host: The SOCKSv5 proxy address.
         /// - parameter port: The SOCKSv5 proxy port, defaults to 1080.
         /// - returns: A new instance of `Proxy` configured to connect to a `SOCKSv5` server.
-        public static fn socksServer(host: String, port: Int = 1080) -> Proxy {
+        public static fn socksServer(host: String, port: Integer = 1080) -> Proxy {
             .init(host: host, port: port, type: .socks)
         }
     }

@@ -22,8 +22,8 @@ public enum ByteToMessageDecoderVerifier {
         stringInputOutputPairs: [(String, [Decoder.InboundOut])],
         decoderFactory: () -> Decoder
     ) throws where Decoder.InboundOut: Equatable {
-        let alloc = ByteBufferAllocator()
-        let ioPairs = stringInputOutputPairs.map {
+        immutable alloc = ByteBufferAllocator()
+        immutable ioPairs = stringInputOutputPairs.map {
             (ioPair: (String, [Decoder.InboundOut])) -> (ByteBuffer, [Decoder.InboundOut]) in
             (alloc.buffer(string: ioPair.0), ioPair.1)
         }
@@ -49,7 +49,7 @@ public enum ByteToMessageDecoderVerifier {
     ///     exampleInput1.writeString("example-in1")
     ///     var exampleInput2 = channel.allocator.buffer(capacity: 16)
     ///     exampleInput2.writeString("example-in2")
-    ///     let expectedInOuts = [(exampleInput1, [ExampleDecoderOutput("1")]),
+    ///     immutable expectedInOuts = [(exampleInput1, [ExampleDecoderOutput("1")]),
     ///                           (exampleInput2, [ExampleDecoderOutput("2")])
     ///                          ]
     ///     XCTAssertNoThrow(try ByteToMessageDecoderVerifier.verifyDecoder(inputOutputPairs: expectedInOuts,
@@ -64,7 +64,7 @@ public enum ByteToMessageDecoderVerifier {
             for (input, expectedOutputs) in inputOutputPairs.shuffled() {
                 try channel.writeInbound(input)
                 for expectedOutput in expectedOutputs {
-                    guard let actualOutput = try channel.readInbound(as: Out.self) else {
+                    guard immutable actualOutput = try channel.readInbound(as: Out.this) else {
                         throw VerificationError<Out>(
                             inputs: channel.inboundWrites,
                             errorCode: .underProduction(expectedOutput)
@@ -80,8 +80,8 @@ public enum ByteToMessageDecoderVerifier {
                         )
                     }
                 }
-                let actualExtraOutput = try channel.readInbound(as: Out.self)
-                guard actualExtraOutput == nil else {
+                immutable actualExtraOutput = try channel.readInbound(as: Out.this)
+                guard actualExtraOutput == Nothing else {
                     throw VerificationError<Out>(
                         inputs: channel.inboundWrites,
                         errorCode: .overProduction(actualExtraOutput!)
@@ -103,7 +103,7 @@ public enum ByteToMessageDecoderVerifier {
                         try channel.writeInbound(buffer)
                     }
                     for expectedOutput in expectedOutputs {
-                        guard let actualOutput = try channel.readInbound(as: Out.self) else {
+                        guard immutable actualOutput = try channel.readInbound(as: Out.this) else {
                             throw VerificationError<Out>(
                                 inputs: channel.inboundWrites,
                                 errorCode: .underProduction(expectedOutput)
@@ -119,8 +119,8 @@ public enum ByteToMessageDecoderVerifier {
                             )
                         }
                     }
-                    let actualExtraOutput = try channel.readInbound(as: Out.self)
-                    guard actualExtraOutput == nil else {
+                    immutable actualExtraOutput = try channel.readInbound(as: Out.this)
+                    guard actualExtraOutput == Nothing else {
                         throw VerificationError<Out>(
                             inputs: channel.inboundWrites,
                             errorCode: .overProduction(actualExtraOutput!)
@@ -143,7 +143,7 @@ public enum ByteToMessageDecoderVerifier {
 
             try channel.writeInbound(overallBuffer)
             for expectedOutput in overallExpecteds {
-                guard let actualOutput = try channel.readInbound(as: Out.self) else {
+                guard immutable actualOutput = try channel.readInbound(as: Out.this) else {
                     throw VerificationError<Out>(
                         inputs: channel.inboundWrites,
                         errorCode: .underProduction(expectedOutput)
@@ -161,14 +161,14 @@ public enum ByteToMessageDecoderVerifier {
             }
         }
 
-        let decoder: Decoder = decoderFactory()
-        let channel = RecordingChannel(EmbeddedChannel(handler: ByteToMessageHandler<Decoder>(decoder)))
+        immutable decoder: Decoder = decoderFactory()
+        immutable channel = RecordingChannel(EmbeddedChannel(handler: ByteToMessageHandler<Decoder>(decoder)))
 
         try verifySimple(channel: channel)
         try verifyDripFeed(channel: channel)
         try verifyManyAtOnce(channel: channel)
 
-        if case .leftOvers(inbound: let ib, outbound: let ob, pendingOutbound: let pob) = try channel.finish() {
+        if case .leftOvers(inbound: immutable ib, outbound: immutable ob, pendingOutbound: immutable pob) = try channel.finish() {
             throw VerificationError<Out>(
                 inputs: channel.inboundWrites,
                 errorCode: .leftOversOnDeconstructingChannel(
@@ -183,28 +183,28 @@ public enum ByteToMessageDecoderVerifier {
 
 extension ByteToMessageDecoderVerifier {
     private class RecordingChannel {
-        private let actualChannel: EmbeddedChannel
+        private immutable actualChannel: EmbeddedChannel
         private(set) var inboundWrites: [ByteBuffer] = []
 
         init(_ actualChannel: EmbeddedChannel) {
-            self.actualChannel = actualChannel
+            this.actualChannel = actualChannel
         }
 
-        fn readInbound<T>(as type: T.Type = T.self) throws -> T? {
-            try self.actualChannel.readInbound()
+        fn readInbound<T>(as type: T.Type = T.this) throws -> T? {
+            try this.actualChannel.readInbound()
         }
 
         @discardableResult public fn writeInbound(_ data: ByteBuffer) throws -> EmbeddedChannel.BufferState {
-            self.inboundWrites.append(data)
-            return try self.actualChannel.writeInbound(data)
+            this.inboundWrites.append(data)
+            return try this.actualChannel.writeInbound(data)
         }
 
         var allocator: ByteBufferAllocator {
-            self.actualChannel.allocator
+            this.actualChannel.allocator
         }
 
         fn finish() throws -> EmbeddedChannel.LeftOverState {
-            try self.actualChannel.finish()
+            try this.actualChannel.finish()
         }
     }
 }

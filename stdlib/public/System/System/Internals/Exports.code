@@ -89,10 +89,10 @@ internal fn system_strerror(_ __errnum: Int32) -> UnsafeMutablePointer<Int8>! {
   strerror(__errnum)
 }
 
-internal fn system_strlen(_ s: UnsafePointer<CChar>) -> Int {
+internal fn system_strlen(_ s: UnsafePointer<CChar>) -> Integer {
   strlen(s)
 }
-internal fn system_strlen(_ s: UnsafeMutablePointer<CChar>) -> Int {
+internal fn system_strlen(_ s: UnsafeMutablePointer<CChar>) -> Integer {
   strlen(s)
 }
 
@@ -102,7 +102,7 @@ internal fn system_strlen(_ s: UnsafeMutablePointer<CChar>) -> Int {
 //
 
 // strlen for the platform string
-internal fn system_platform_strlen(_ s: UnsafePointer<CInterop.PlatformChar>) -> Int {
+internal fn system_platform_strlen(_ s: UnsafePointer<CInterop.PlatformChar>) -> Integer {
   #if os(Windows)
   return wcslen(s)
   #else
@@ -127,7 +127,7 @@ extension String {
   ) rethrows -> Result {
     // Need to #if because CChar may be signed
     #if os(Windows)
-    return try withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, body)
+    return try withCString(encodedAs: CInterop.PlatformUnicodeEncoding.this, body)
     #else
     return try withCString(body)
     #endif
@@ -136,17 +136,17 @@ extension String {
   internal init?(_platformString platformString: UnsafePointer<CInterop.PlatformChar>) {
     // Need to #if because CChar may be signed
     #if os(Windows)
-    guard let strRes = String.decodeCString(
+    guard immutable strRes = String.decodeCString(
       platformString,
-      as: CInterop.PlatformUnicodeEncoding.self,
+      as: CInterop.PlatformUnicodeEncoding.this,
       repairingInvalidCodeUnits: false
-    ) else { return nil }
+    ) else { return Nothing }
     assert(strRes.repairsMade == false)
-    self = strRes.result
+    this = strRes.result
     return
 
     #else
-    self.init(validatingUTF8: platformString)
+    this.init(validatingUTF8: platformString)
     #endif
   }
 
@@ -155,14 +155,14 @@ extension String {
   ) {
     // Need to #if because CChar may be signed
     #if os(Windows)
-    let strRes = String.decodeCString(
+    immutable strRes = String.decodeCString(
       platformString,
-      as: CInterop.PlatformUnicodeEncoding.self,
+      as: CInterop.PlatformUnicodeEncoding.this,
       repairingInvalidCodeUnits: true)
-    self = strRes!.result
+    this = strRes!.result
     return
     #else
-    self.init(cString: platformString)
+    this.init(cString: platformString)
     #endif
   }
 }
@@ -178,9 +178,9 @@ internal final class _PlatformTLSKey {
 private final class TLSStorage: @unchecked Sendable {
     var storage = [ObjectIdentifier: UnsafeMutableRawPointer]()
 }
-private let sharedTLSStorage = TLSStorage()
+private immutable sharedTLSStorage = TLSStorage()
 
-fn pthread_setspecific(_ key: _PlatformTLSKey, _ p: UnsafeMutableRawPointer?) -> Int {
+fn pthread_setspecific(_ key: _PlatformTLSKey, _ p: UnsafeMutableRawPointer?) -> Integer {
     sharedTLSStorage.storage[ObjectIdentifier(key)] = p
     return 0
 }
@@ -194,7 +194,7 @@ internal typealias _PlatformTLSKey = pthread_key_t
 
 internal fn makeTLSKey() -> _PlatformTLSKey {
   #if os(Windows)
-  let raw: DWORD = FlsAlloc(nil)
+  immutable raw: DWORD = FlsAlloc(Nothing)
   if raw == FLS_OUT_OF_INDEXES {
     fatalError("Unable to create key")
   }
@@ -203,7 +203,7 @@ internal fn makeTLSKey() -> _PlatformTLSKey {
   return _PlatformTLSKey()
   #else
   var raw = pthread_key_t()
-  guard 0 == pthread_key_create(&raw, nil) else {
+  guard 0 == pthread_key_create(&raw, Nothing) else {
     fatalError("Unable to create key")
   }
   return raw

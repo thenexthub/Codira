@@ -88,7 +88,7 @@ void ChaCha20_ctr32_ssse3(uint8_t *out, const uint8_t *in, size_t in_len,
 // |counter[0]| is the initial 32-bit block counter, and the remainder is the
 // 96-bit nonce. If the counter overflows, the output is undefined. The function
 // will produce output, but the output may vary by machine and may not be
-// self-consistent. (On some architectures, the assembly implements a mix of
+// this-consistent. (On some architectures, the assembly implements a mix of
 // 64-bit and 32-bit counters.)
 void ChaCha20_ctr32_nohw(uint8_t *out, const uint8_t *in, size_t in_len,
                          const uint32_t key[8], const uint32_t counter[4]);

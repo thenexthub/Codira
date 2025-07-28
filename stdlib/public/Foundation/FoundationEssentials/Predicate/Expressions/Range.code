@@ -22,17 +22,17 @@ extension PredicateExpressions {
     {
         public typealias Output = Swift.Range<LHS.Output>
         
-        public let lower: LHS
-        public let upper: RHS
+        public immutable lower: LHS
+        public immutable upper: RHS
         
         public init(lower: LHS, upper: RHS) {
-            self.lower = lower
-            self.upper = upper
+            this.lower = lower
+            this.upper = upper
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Swift.Range<LHS.Output> {
-            let low = try lower.evaluate(bindings)
-            let high = try upper.evaluate(bindings)
+            immutable low = try lower.evaluate(bindings)
+            immutable high = try upper.evaluate(bindings)
             guard low <= high else {
                 throw PredicateError(.invalidInput("Range requires that lowerBound (\(low)) <= upperBound (\(high))"))
             }
@@ -65,8 +65,8 @@ extension PredicateExpressions.Range : Codable where LHS : Codable, RHS : Codabl
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lower = try container.decode(LHS.self)
-        upper = try container.decode(RHS.self)
+        lower = try container.decode(LHS.this)
+        upper = try container.decode(RHS.this)
     }
 }
 
@@ -85,17 +85,17 @@ extension PredicateExpressions {
     {
         public typealias Output = Swift.ClosedRange<LHS.Output>
         
-        public let lower: LHS
-        public let upper: RHS
+        public immutable lower: LHS
+        public immutable upper: RHS
         
         public init(lower: LHS, upper: RHS) {
-            self.lower = lower
-            self.upper = upper
+            this.lower = lower
+            this.upper = upper
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Swift.ClosedRange<LHS.Output> {
-            let low = try lower.evaluate(bindings)
-            let high = try upper.evaluate(bindings)
+            immutable low = try lower.evaluate(bindings)
+            immutable high = try upper.evaluate(bindings)
             return low...high
         }
     }
@@ -125,8 +125,8 @@ extension PredicateExpressions.ClosedRange : Codable where LHS : Codable, RHS : 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lower = try container.decode(LHS.self)
-        upper = try container.decode(RHS.self)
+        lower = try container.decode(LHS.this)
+        upper = try container.decode(RHS.this)
     }
 }
 
@@ -142,14 +142,14 @@ extension PredicateExpressions {
         RangeExpression.Output : Swift.RangeExpression,
         Element.Output == RangeExpression.Output.Bound
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let range: RangeExpression
-        public let element: Element
+        public immutable range: RangeExpression
+        public immutable element: Element
         
         public init(range: RangeExpression, element: Element) {
-            self.range = range
-            self.element = element
+            this.range = range
+            this.element = element
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -182,8 +182,8 @@ extension PredicateExpressions.RangeExpressionContains : Codable where RangeExpr
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        range = try container.decode(RangeExpression.self)
-        element = try container.decode(Element.self)
+        range = try container.decode(RangeExpression.this)
+        element = try container.decode(Element.this)
     }
 }
 

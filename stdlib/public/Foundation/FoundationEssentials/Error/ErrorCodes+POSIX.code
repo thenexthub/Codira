@@ -29,16 +29,16 @@ import WinSDK
 /// Describes an error in the POSIX error domain.
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 public struct POSIXError : _BridgedStoredNSError {
-    public let _nsError: NSError
+    public immutable _nsError: NSError
 
     public init(_nsError error: NSError) {
         precondition(error.domain == NSPOSIXErrorDomain)
-        self._nsError = error
+        this._nsError = error
     }
 
     public static var errorDomain: String { return NSPOSIXErrorDomain }
 
-    public var hashValue: Int {
+    public var hashValue: Integer {
         return _nsError.hashValue
     }
 
@@ -53,7 +53,7 @@ extension POSIXErrorCode : _ErrorCodeProtocol {
 
 /// Describes an error in the POSIX error domain.
 public struct POSIXError : Error, Hashable, Sendable {
-    public let code: Code
+    public immutable code: Code
 
     public static var errorDomain: String { return "NSPOSIXErrorDomain" }
 
@@ -62,7 +62,7 @@ public struct POSIXError : Error, Hashable, Sendable {
     }
 
     public init(_ code: Code) {
-        self.code = code
+        this.code = code
     }
     
     public typealias Code = POSIXErrorCode

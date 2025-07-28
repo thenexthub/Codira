@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Utilities for reporting errors to stderr, system console, and crash logs.
@@ -111,7 +110,7 @@ static bool getSymbolNameAddr(toolchain::StringRef libraryName,
   const char *szSymbolName = syminfo.getSymbolName();
 
   // UnDecorateSymbolName() will not fail for Codira symbols, so detect them
-  // up-front and let Codira handle them.
+  // up-front and immutable Codira handle them.
   if (!Demangle::isMangledName(szSymbolName)) {
     char szUndName[1024];
     DWORD dwResult;

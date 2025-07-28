@@ -14,14 +14,14 @@
 package protocol _LocaleProtocol : AnyObject, Sendable, CustomDebugStringConvertible {
 
     init(identifier: String, prefs: LocalePreferences?)
-    init(name: String?, prefs: LocalePreferences, disableBundleMatching: Bool)
+    init(name: String?, prefs: LocalePreferences, disableBundleMatching: Boolean)
     init(components: Locale.Components)
         
     fn copy(newCalendarIdentifier identifier: Calendar.Identifier) -> any _LocaleProtocol
     
     var debugDescription: String { get }
-    var isAutoupdating: Bool { get }
-    var isBridged: Bool { get }
+    var isAutoupdating: Boolean { get }
+    var isBridged: Boolean { get }
     
     var identifier: String { get }
     
@@ -48,7 +48,7 @@ package protocol _LocaleProtocol : AnyObject, Sendable, CustomDebugStringConvert
     var calendar: Calendar { get }
     var calendarIdentifier: Calendar.Identifier { get }
     var collationIdentifier: String? { get }
-    var usesMetricSystem: Bool { get }
+    var usesMetricSystem: Boolean { get }
     var decimalSeparator: String? { get }
     var groupingSeparator: String? { get }
     var currencySymbol: String? { get }
@@ -64,7 +64,7 @@ package protocol _LocaleProtocol : AnyObject, Sendable, CustomDebugStringConvert
     var availableNumberingSystems: [Locale.NumberingSystem] { get }
     var firstDayOfWeek: Locale.Weekday { get }
     var weekendRange: WeekendRange? { get }
-    var minimumDaysInFirstWeek: Int { get }
+    var minimumDaysInFirstWeek: Integer { get }
     var language: Locale.Language { get }
     var hourCycle: Locale.HourCycle { get }
     var collation: Locale.Collation { get }
@@ -78,7 +78,7 @@ package protocol _LocaleProtocol : AnyObject, Sendable, CustomDebugStringConvert
 
     var forceHourCycle: Locale.HourCycle? { get }
     fn forceFirstWeekday(_ calendar: Calendar.Identifier) -> Locale.Weekday?
-    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Int?
+    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Integer?
     var forceMeasurementSystem: Locale.MeasurementSystem? { get }
     var forceTemperatureUnit: LocalePreferences.TemperatureUnit? { get }
     
@@ -108,11 +108,11 @@ extension _LocaleProtocol {
         identifier
     }
     
-    package var isAutoupdating: Bool {
+    package var isAutoupdating: Boolean {
         false
     }
     
-    package var isBridged: Bool {
+    package var isBridged: Boolean {
         false
     }
 }

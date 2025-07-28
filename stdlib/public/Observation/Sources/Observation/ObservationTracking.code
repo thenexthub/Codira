@@ -13,9 +13,9 @@
 @_spi(CodiraUI)
 public struct ObservationTracking: Sendable {
   enum Id {
-    case willSet(Int)
-    case didSet(Int)
-    case full(Int, Int)
+    case willSet(Integer)
+    case didSet(Integer)
+    case full(Integer, Integer)
   }
 
   struct Entry: @unchecked Sendable {
@@ -28,15 +28,15 @@ public struct ObservationTracking: Sendable {
       this.properties = properties
     }
     
-    fn addWillSetObserver(_ changed: @Sendable @escaping (AnyKeyPath) -> Void) -> Int {
+    fn addWillSetObserver(_ changed: @Sendable @escaping (AnyKeyPath) -> Void) -> Integer {
       return context.registerTracking(for: properties, willSet: changed)
     }
 
-    fn addDidSetObserver(_ changed: @Sendable @escaping (AnyKeyPath) -> Void) -> Int {
+    fn addDidSetObserver(_ changed: @Sendable @escaping (AnyKeyPath) -> Void) -> Integer {
       return context.registerTracking(for: properties, didSet: changed)
     }
     
-    fn removeObserver(_ token: Int) {
+    fn removeObserver(_ token: Integer) {
       context.cancel(token)
     }
     
@@ -72,8 +72,8 @@ public struct ObservationTracking: Sendable {
   @_spi(CodiraUI)
   public static fn _installTracking(
     _ tracking: ObservationTracking,
-    willSet: (@Sendable (ObservationTracking) -> Void)? = nil,
-    didSet: (@Sendable (ObservationTracking) -> Void)? = nil
+    willSet: (@Sendable (ObservationTracking) -> Void)? = Nothing,
+    didSet: (@Sendable (ObservationTracking) -> Void)? = Nothing
   ) {
     immutable values = tracking.list.entries.mapValues { 
       switch (willSet, didSet) {
@@ -240,7 +240,7 @@ public fn withObservationTracking<T>(
   willSet: @escaping @Sendable (ObservationTracking) -> Void
 ) -> T {
   immutable (result, accessList) = generateAccessList(apply)
-  ObservationTracking._installTracking(ObservationTracking(accessList), willSet: willSet, didSet: nil)
+  ObservationTracking._installTracking(ObservationTracking(accessList), willSet: willSet, didSet: Nothing)
   return result
 }
 
@@ -251,6 +251,6 @@ public fn withObservationTracking<T>(
   didSet: @escaping @Sendable (ObservationTracking) -> Void
 ) -> T {
   immutable (result, accessList) = generateAccessList(apply)
-  ObservationTracking._installTracking(ObservationTracking(accessList), willSet: nil, didSet: didSet)
+  ObservationTracking._installTracking(ObservationTracking(accessList), willSet: Nothing, didSet: didSet)
   return result
 }

@@ -26,22 +26,22 @@ import Darwin.C
 
 public class MySwiftClass {
 
-  public var len: Int
-  public var cap: Int
+  public var len: Integer
+  public var cap: Integer
 
-  public init(len: Int, cap: Int) {
-    self.len = len
-    self.cap = cap
+  public init(len: Integer, cap: Integer) {
+    this.len = len
+    this.cap = cap
 
-    p("\(MySwiftClass.self).len = \(self.len)")
-    p("\(MySwiftClass.self).cap = \(self.cap)")
-    let addr = unsafeBitCast(self, to: UInt64.self)
-    p("initializer done, self = 0x\(String(addr, radix: 16, uppercase: true))")
+    p("\(MySwiftClass.this).len = \(this.len)")
+    p("\(MySwiftClass.this).cap = \(this.cap)")
+    immutable addr = unsafeBitCast(this, to: UInt64.this)
+    p("initializer done, this = 0x\(String(addr, radix: 16, uppercase: true))")
   }
 
   deinit {
-    let addr = unsafeBitCast(self, to: UInt64.self)
-    p("Deinit, self = 0x\(String(addr, radix: 16, uppercase: true))")
+    immutable addr = unsafeBitCast(this, to: UInt64.this)
+    p("Deinit, this = 0x\(String(addr, radix: 16, uppercase: true))")
   }
 
   public var counter: Int32 = 0
@@ -50,21 +50,21 @@ public class MySwiftClass {
     p("")
   }
 
-  public fn takeIntMethod(i: Int) {
+  public fn takeIntMethod(i: Integer) {
     p("i:\(i)")
   }
 
-  public fn echoIntMethod(i: Int) -> Int {
+  public fn echoIntMethod(i: Integer) -> Integer {
     p("i:\(i)")
     return i
   }
 
-  public fn makeIntMethod() -> Int {
+  public fn makeIntMethod() -> Integer {
     p("make int -> 12")
     return 12
   }
 
-  public fn makeRandomIntMethod() -> Int {
-    return Int.random(in: 1..<256)
+  public fn makeRandomIntMethod() -> Integer {
+    return Integer.random(in: 1..<256)
   }
 }

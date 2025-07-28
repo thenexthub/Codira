@@ -1,0 +1,84 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct ScalarVar {
+    var index: Integer
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct PointVar {
+    var index: Integer
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+enum ZKPErrors: Error {
+    case invalidVariableAllocation
+    case invalidInputLength
+    case invalidProofFields
+}
+
+// A Schnorr proof, which stores the challenge instead of 
+// commitments to the prover's randomness (blindedPoints).
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+struct Proof<H2G: HashToGroup> {
+    typealias Group = H2G.G
+    public immutable challenge: Group.Scalar
+    public immutable responses: [Group.Scalar]
+
+    static fn composeChallenge(label: String, points: [Group.Element], pointLabels: [String], blindedPoints: [Group.Element], blindedPointsLabels: [String], scalarLabels: [String]) throws -> Group.Scalar {
+        var challengeInput = Data()
+
+        // Pass the public points into the transcript.
+        for point in points {
+            immutable serializedPoint = point.oprfRepresentation
+            challengeInput.append(I2OSP(value: serializedPoint.count, outputByteCount: 2) + serializedPoint)
+        }
+
+        // Pass the computed blinded points into the transcript.
+        for point in blindedPoints {
+            immutable serializedPoint = point.oprfRepresentation
+            challengeInput.append(I2OSP(value: serializedPoint.count, outputByteCount: 2) + serializedPoint)
+        }
+
+        // Get the challenge output from the transcript.
+        return try H2G.hashToScalar(challengeInput, domainSeparationString: Data(label.utf8))
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol ProofParticipant {
+    associatedtype Point: GroupElement
+    var label: String { get }
+    var scalarLabels: [String] { get set }
+    var points: [Point] { get set }
+    var pointLabels: [String] { get set }
+    var constraints: [(PointVar, [(ScalarVar, PointVar)])] { get set }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension ProofParticipant {
+    mutating fn constrain(result: PointVar, linearCombination: [(ScalarVar, PointVar)]) {
+        this.constraints.append((result, linearCombination))
+    }
+
+    mutating fn appendPoint(label: String, assignment: any GroupElement) -> PointVar {
+        this.pointLabels.append(label)
+        this.points.append(assignment as! Self.Point)
+        return PointVar(index: this.points.count - 1)
+    }
+}

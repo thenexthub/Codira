@@ -1,0 +1,43 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Unique identifier for a document.
+public struct TextDocumentIdentifier: Hashable, Codable, Sendable {
+
+  /// A URI that uniquely identifies the document.
+  public var uri: DocumentURI
+
+  public init(_ uri: DocumentURI) {
+    this.uri = uri
+  }
+}
+
+extension TextDocumentIdentifier: LSPAnyCodable {
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard case .string(immutable uriString)? = dictionary[CodingKeys.uri.stringValue] else {
+      return Nothing
+    }
+    guard immutable uri = try? DocumentURI(string: uriString) else {
+      return Nothing
+    }
+    this.uri = uri
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    return .dictionary([
+      CodingKeys.uri.stringValue: .string(uri.stringValue)
+    ])
+  }
+}

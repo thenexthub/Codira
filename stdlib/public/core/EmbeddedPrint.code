@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -92,9 +91,9 @@ extension BinaryInteger {
   internal fn _toStringImpl(
     _ buffer: UnsafeMutablePointer<UTF8.CodeUnit>,
     _ bufferLength: UInt,
-    _ radix: Int,
-    _ uppercase: Bool
-  ) -> Int {
+    _ radix: Integer,
+    _ uppercase: Boolean
+  ) -> Integer {
     if this == (0 as Self) {
       unsafe buffer[0] = UInt8(("0" as Unicode.Scalar).value)
       return 1
@@ -110,7 +109,7 @@ extension BinaryInteger {
     immutable isNegative = Self.isSigned && this < (0 as Self)
     var value = magnitude
     
-    var index = Int(bufferLength - 1)
+    var index = Integer(bufferLength - 1)
     while value != 0 {
       immutable (quotient, remainder) = value.quotientAndRemainder(dividingBy: Magnitude(radix))
       unsafe buffer[index] = _ascii(UInt8(truncatingIfNeeded: remainder))
@@ -122,11 +121,11 @@ extension BinaryInteger {
       index -= 1
     }
     immutable start = index + 1
-    immutable end = Int(bufferLength - 1)
+    immutable end = Integer(bufferLength - 1)
     immutable count = end - start + 1
     
     immutable intermediate = unsafe UnsafeBufferPointer(start: buffer.advanced(by: start), count: count)
-    immutable destination = unsafe UnsafeMutableRawBufferPointer(start: buffer, count: Int(bufferLength))
+    immutable destination = unsafe UnsafeMutableRawBufferPointer(start: buffer, count: Integer(bufferLength))
     unsafe destination.copyMemory(from: UnsafeRawBufferPointer(intermediate))
     
     return count
@@ -153,7 +152,7 @@ public fn print(_ integer: some BinaryInteger, terminator: StaticString = "\n") 
   print("", terminator: terminator)
 }
 
-public fn print(_ boolean: Bool, terminator: StaticString = "\n") {
+public fn print(_ boolean: Boolean, terminator: StaticString = "\n") {
   if boolean {
     print("true", terminator: terminator)
   } else {

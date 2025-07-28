@@ -1,0 +1,172 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.Instant", implements: Temporal.this, TemporalAdjuster.this, Comparable.this, Serializable.this)
+open class Instant: JavaObject {
+  @JavaMethod
+  open fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: Instant?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalUnit?) -> Boolean
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Instant!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Instant!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  open fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open fn getEpochSecond() -> Int64
+
+  @JavaMethod
+  open fn getNano() -> Int32
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Instant!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Instant!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn toEpochMilli() -> Int64
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Instant!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Instant!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open fn until(_ arg0: Instant?) -> Duration!
+
+  @JavaMethod
+  open fn plusNanos(_ arg0: Int64) -> Instant!
+
+  @JavaMethod
+  open fn plusSeconds(_ arg0: Int64) -> Instant!
+
+  @JavaMethod
+  open fn plusMillis(_ arg0: Int64) -> Instant!
+
+  @JavaMethod
+  open fn minusSeconds(_ arg0: Int64) -> Instant!
+
+  @JavaMethod
+  open fn minusMillis(_ arg0: Int64) -> Instant!
+
+  @JavaMethod
+  open fn minusNanos(_ arg0: Int64) -> Instant!
+
+  @JavaMethod
+  open fn truncatedTo(_ arg0: TemporalUnit?) -> Instant!
+
+  @JavaMethod
+  open fn adjustInto(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn atOffset(_ arg0: ZoneOffset?) -> OffsetDateTime!
+
+  @JavaMethod
+  open fn atZone(_ arg0: ZoneId?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn isAfter(_ arg0: Instant?) -> Boolean
+
+  @JavaMethod
+  open fn isBefore(_ arg0: Instant?) -> Boolean
+}
+extension JavaClass<Instant> {
+  @JavaStaticField(isFinal: true)
+  public var EPOCH: Instant!
+
+  @JavaStaticField(isFinal: true)
+  public var MIN: Instant!
+
+  @JavaStaticField(isFinal: true)
+  public var MAX: Instant!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> Instant!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?) -> Instant!
+
+  @JavaStaticMethod
+  public fn now() -> Instant!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: Clock?) -> Instant!
+
+  @JavaStaticMethod
+  public fn ofEpochSecond(_ arg0: Int64, _ arg1: Int64) -> Instant!
+
+  @JavaStaticMethod
+  public fn ofEpochSecond(_ arg0: Int64) -> Instant!
+
+  @JavaStaticMethod
+  public fn ofEpochMilli(_ arg0: Int64) -> Instant!
+}

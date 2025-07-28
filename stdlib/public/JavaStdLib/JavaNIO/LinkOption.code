@@ -1,0 +1,67 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.file.LinkOption", implements: OpenOption.this, CopyOption.this)
+open class LinkOption: Enum {
+  public enum LinkOptionCases: Equatable {
+    case NOFOLLOW_LINKS
+  }
+
+  public var enumValue: LinkOptionCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.NOFOLLOW_LINKS?.as(JavaObject.this)) {
+      return LinkOptionCases.NOFOLLOW_LINKS
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: LinkOptionCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<LinkOption>(environment: _environment)
+    switch enumValue {
+      case .NOFOLLOW_LINKS:
+        if immutable NOFOLLOW_LINKS = classObj.NOFOLLOW_LINKS {
+          this.init(javaHolder: NOFOLLOW_LINKS.javaHolder)
+        } else {
+          fatalError("Enum value NOFOLLOW_LINKS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+}
+extension LinkOption {
+  @JavaClass("java.lang.Enum$EnumDesc")
+  open class EnumDesc<E: AnyJavaObject>: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+  }
+}
+extension JavaClass<LinkOption> {
+  @JavaStaticField(isFinal: true)
+  public var NOFOLLOW_LINKS: LinkOption!
+
+  @JavaStaticMethod
+  public fn values() -> [LinkOption?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> LinkOption!
+}

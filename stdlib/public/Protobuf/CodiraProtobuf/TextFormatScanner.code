@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/TextFormatScanner.swift - Text format decoding
+// Sources/SwiftProtobuf/TextFormatScanner.code -Text format decoding
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -14,64 +14,64 @@
 
 import Foundation
 
-private let asciiBell = UInt8(7)
-private let asciiBackspace = UInt8(8)
-private let asciiTab = UInt8(9)
-private let asciiNewLine = UInt8(10)
-private let asciiVerticalTab = UInt8(11)
-private let asciiFormFeed = UInt8(12)
-private let asciiCarriageReturn = UInt8(13)
-private let asciiZero = UInt8(ascii: "0")
-private let asciiOne = UInt8(ascii: "1")
-private let asciiThree = UInt8(ascii: "3")
-private let asciiSeven = UInt8(ascii: "7")
-private let asciiNine = UInt8(ascii: "9")
-private let asciiColon = UInt8(ascii: ":")
-private let asciiPeriod = UInt8(ascii: ".")
-private let asciiPlus = UInt8(ascii: "+")
-private let asciiComma = UInt8(ascii: ",")
-private let asciiSemicolon = UInt8(ascii: ";")
-private let asciiDoubleQuote = UInt8(ascii: "\"")
-private let asciiSingleQuote = UInt8(ascii: "\'")
-private let asciiBackslash = UInt8(ascii: "\\")
-private let asciiForwardSlash = UInt8(ascii: "/")
-private let asciiHash = UInt8(ascii: "#")
-private let asciiUnderscore = UInt8(ascii: "_")
-private let asciiQuestionMark = UInt8(ascii: "?")
-private let asciiSpace = UInt8(ascii: " ")
-private let asciiOpenSquareBracket = UInt8(ascii: "[")
-private let asciiCloseSquareBracket = UInt8(ascii: "]")
-private let asciiOpenCurlyBracket = UInt8(ascii: "{")
-private let asciiCloseCurlyBracket = UInt8(ascii: "}")
-private let asciiOpenAngleBracket = UInt8(ascii: "<")
-private let asciiCloseAngleBracket = UInt8(ascii: ">")
-private let asciiMinus = UInt8(ascii: "-")
-private let asciiLowerA = UInt8(ascii: "a")
-private let asciiUpperA = UInt8(ascii: "A")
-private let asciiLowerB = UInt8(ascii: "b")
-private let asciiLowerE = UInt8(ascii: "e")
-private let asciiUpperE = UInt8(ascii: "E")
-private let asciiLowerF = UInt8(ascii: "f")
-private let asciiUpperF = UInt8(ascii: "F")
-private let asciiLowerI = UInt8(ascii: "i")
-private let asciiLowerL = UInt8(ascii: "l")
-private let asciiLowerN = UInt8(ascii: "n")
-private let asciiLowerR = UInt8(ascii: "r")
-private let asciiLowerS = UInt8(ascii: "s")
-private let asciiLowerT = UInt8(ascii: "t")
-private let asciiUpperT = UInt8(ascii: "T")
-private let asciiLowerU = UInt8(ascii: "u")
-private let asciiUpperU = UInt8(ascii: "U")
-private let asciiLowerV = UInt8(ascii: "v")
-private let asciiLowerX = UInt8(ascii: "x")
-private let asciiLowerY = UInt8(ascii: "y")
-private let asciiLowerZ = UInt8(ascii: "z")
-private let asciiUpperZ = UInt8(ascii: "Z")
+private immutable asciiBell = UInt8(7)
+private immutable asciiBackspace = UInt8(8)
+private immutable asciiTab = UInt8(9)
+private immutable asciiNewLine = UInt8(10)
+private immutable asciiVerticalTab = UInt8(11)
+private immutable asciiFormFeed = UInt8(12)
+private immutable asciiCarriageReturn = UInt8(13)
+private immutable asciiZero = UInt8(ascii: "0")
+private immutable asciiOne = UInt8(ascii: "1")
+private immutable asciiThree = UInt8(ascii: "3")
+private immutable asciiSeven = UInt8(ascii: "7")
+private immutable asciiNine = UInt8(ascii: "9")
+private immutable asciiColon = UInt8(ascii: ":")
+private immutable asciiPeriod = UInt8(ascii: ".")
+private immutable asciiPlus = UInt8(ascii: "+")
+private immutable asciiComma = UInt8(ascii: ",")
+private immutable asciiSemicolon = UInt8(ascii: ";")
+private immutable asciiDoubleQuote = UInt8(ascii: "\"")
+private immutable asciiSingleQuote = UInt8(ascii: "\'")
+private immutable asciiBackslash = UInt8(ascii: "\\")
+private immutable asciiForwardSlash = UInt8(ascii: "/")
+private immutable asciiHash = UInt8(ascii: "#")
+private immutable asciiUnderscore = UInt8(ascii: "_")
+private immutable asciiQuestionMark = UInt8(ascii: "?")
+private immutable asciiSpace = UInt8(ascii: " ")
+private immutable asciiOpenSquareBracket = UInt8(ascii: "[")
+private immutable asciiCloseSquareBracket = UInt8(ascii: "]")
+private immutable asciiOpenCurlyBracket = UInt8(ascii: "{")
+private immutable asciiCloseCurlyBracket = UInt8(ascii: "}")
+private immutable asciiOpenAngleBracket = UInt8(ascii: "<")
+private immutable asciiCloseAngleBracket = UInt8(ascii: ">")
+private immutable asciiMinus = UInt8(ascii: "-")
+private immutable asciiLowerA = UInt8(ascii: "a")
+private immutable asciiUpperA = UInt8(ascii: "A")
+private immutable asciiLowerB = UInt8(ascii: "b")
+private immutable asciiLowerE = UInt8(ascii: "e")
+private immutable asciiUpperE = UInt8(ascii: "E")
+private immutable asciiLowerF = UInt8(ascii: "f")
+private immutable asciiUpperF = UInt8(ascii: "F")
+private immutable asciiLowerI = UInt8(ascii: "i")
+private immutable asciiLowerL = UInt8(ascii: "l")
+private immutable asciiLowerN = UInt8(ascii: "n")
+private immutable asciiLowerR = UInt8(ascii: "r")
+private immutable asciiLowerS = UInt8(ascii: "s")
+private immutable asciiLowerT = UInt8(ascii: "t")
+private immutable asciiUpperT = UInt8(ascii: "T")
+private immutable asciiLowerU = UInt8(ascii: "u")
+private immutable asciiUpperU = UInt8(ascii: "U")
+private immutable asciiLowerV = UInt8(ascii: "v")
+private immutable asciiLowerX = UInt8(ascii: "x")
+private immutable asciiLowerY = UInt8(ascii: "y")
+private immutable asciiLowerZ = UInt8(ascii: "z")
+private immutable asciiUpperZ = UInt8(ascii: "Z")
 
 // https://protobuf.dev/programming-guides/proto2/#assigning
 // Fields can be between 1 and 536,870,911. So we can stop parsing
 // a raw number if we go over this (it also avoid rollover).
-private let maxFieldNumLength: Int = 9
+private immutable maxFieldNumLength: Integer = 9
 
 private fn fromHexDigit(_ c: UInt8) -> UInt8? {
     if c >= asciiZero && c <= asciiNine {
@@ -83,12 +83,12 @@ private fn fromHexDigit(_ c: UInt8) -> UInt8? {
     if c >= asciiLowerA && c <= asciiLowerF {
         return c - asciiLowerA + UInt8(10)
     }
-    return nil
+    return Nothing
 }
 
 private fn uint32FromHexDigit(_ c: UInt8) -> UInt32? {
-    guard let u8 = fromHexDigit(c) else {
-        return nil
+    guard immutable u8 = fromHexDigit(c) else {
+        return Nothing
     }
     return UInt32(u8)
 }
@@ -101,63 +101,63 @@ private fn decodeString(_ s: String) -> String? {
 
     // Helper to read 4 hex digits as a UInt32
     fn read4HexDigits(_ i: inout String.UTF8View.Iterator) -> UInt32? {
-        if let digit1 = i.next(),
-            let d1 = uint32FromHexDigit(digit1),
-            let digit2 = i.next(),
-            let d2 = uint32FromHexDigit(digit2),
-            let digit3 = i.next(),
-            let d3 = uint32FromHexDigit(digit3),
-            let digit4 = i.next(),
-            let d4 = uint32FromHexDigit(digit4)
+        if immutable digit1 = i.next(),
+            immutable d1 = uint32FromHexDigit(digit1),
+            immutable digit2 = i.next(),
+            immutable d2 = uint32FromHexDigit(digit2),
+            immutable digit3 = i.next(),
+            immutable d3 = uint32FromHexDigit(digit3),
+            immutable digit4 = i.next(),
+            immutable d4 = uint32FromHexDigit(digit4)
         {
             return (d1 << 12) + (d2 << 8) + (d3 << 4) + d4
         }
-        return nil
+        return Nothing
     }
 
     var out = [UInt8]()
     var bytes = s.utf8.makeIterator()
-    while let byte = bytes.next() {
+    while immutable byte = bytes.next() {
         switch byte {
         case asciiBackslash:  // backslash
-            if let escaped = bytes.next() {
+            if immutable escaped = bytes.next() {
                 switch escaped {
                 case asciiZero...asciiSeven:  // 0...7
                     // C standard allows 1, 2, or 3 octal digits.
-                    let savedPosition = bytes
-                    let digit1 = escaped
-                    let digit1Value = digit1 - asciiZero
-                    if let digit2 = bytes.next(),
+                    immutable savedPosition = bytes
+                    immutable digit1 = escaped
+                    immutable digit1Value = digit1 - asciiZero
+                    if immutable digit2 = bytes.next(),
                         digit2 >= asciiZero && digit2 <= asciiSeven
                     {
-                        let digit2Value = digit2 - asciiZero
-                        let innerSavedPosition = bytes
-                        if let digit3 = bytes.next(),
+                        immutable digit2Value = digit2 - asciiZero
+                        immutable innerSavedPosition = bytes
+                        if immutable digit3 = bytes.next(),
                             digit3 >= asciiZero && digit3 <= asciiSeven
                         {
-                            let digit3Value = digit3 - asciiZero
+                            immutable digit3Value = digit3 - asciiZero
                             // The max octal digit is actually \377, but looking at the C++
                             // protobuf code in strutil.cc:UnescapeCEscapeSequences(), it
                             // decodes with rollover, so just duplicate that behavior for
                             // consistency between languages.
-                            let n = digit1Value &* 64 &+ digit2Value &* 8 &+ digit3Value
+                            immutable n = digit1Value &* 64 &+ digit2Value &* 8 &+ digit3Value
                             out.append(n)
                         } else {
-                            let n = digit1Value * 8 + digit2Value
+                            immutable n = digit1Value * 8 + digit2Value
                             out.append(n)
                             bytes = innerSavedPosition
                         }
                     } else {
-                        let n = digit1Value
+                        immutable n = digit1Value
                         out.append(n)
                         bytes = savedPosition
                     }
                 case asciiLowerU, asciiUpperU:  // "u"
                     // \u - 4 hex digits, \U 8 hex digits:
-                    guard let first = read4HexDigits(&bytes) else { return nil }
+                    guard immutable first = read4HexDigits(&bytes) else { return Nothing }
                     var codePoint = first
                     if escaped == asciiUpperU {
-                        guard let second = read4HexDigits(&bytes) else { return nil }
+                        guard immutable second = read4HexDigits(&bytes) else { return Nothing }
                         codePoint = (codePoint << 16) + second
                     }
                     switch codePoint {
@@ -180,14 +180,14 @@ private fn decodeString(_ s: String) -> String? {
                         out.append(0x80 + UInt8(truncatingIfNeeded: (codePoint >> 6) & 0x3F))
                         out.append(0x80 + UInt8(truncatingIfNeeded: codePoint & 0x3F))
                     default:
-                        return nil
+                        return Nothing
                     }
                 case asciiLowerX:  // "x"
                     // Unlike C/C++, protobuf only allows 1 or 2 digits here:
-                    if let byte = bytes.next(), let digit = fromHexDigit(byte) {
+                    if immutable byte = bytes.next(), immutable digit = fromHexDigit(byte) {
                         var n = digit
-                        let savedPosition = bytes
-                        if let byte = bytes.next(), let digit = fromHexDigit(byte) {
+                        immutable savedPosition = bytes
+                        if immutable byte = bytes.next(), immutable digit = fromHexDigit(byte) {
                             n = n &* 16 + digit
                         } else {
                             // No second digit; reset the iterator
@@ -195,7 +195,7 @@ private fn decodeString(_ s: String) -> String? {
                         }
                         out.append(n)
                     } else {
-                        return nil  // Hex escape must have at least 1 digit
+                        return Nothing  // Hex escape must have at least 1 digit
                     }
                 case asciiLowerA:  // \a
                     out.append(asciiBell)
@@ -217,10 +217,10 @@ private fn decodeString(_ s: String) -> String? {
                     asciiBackslash:  // " ' ? \
                     out.append(escaped)
                 default:
-                    return nil  // Unrecognized escape
+                    return Nothing  // Unrecognized escape
                 }
             } else {
-                return nil  // Input ends with backslash
+                return Nothing  // Input ends with backslash
             }
         default:
             out.append(byte)
@@ -228,7 +228,7 @@ private fn decodeString(_ s: String) -> String? {
     }
     // There has got to be an easier way to convert a [UInt8] into a String.
     return out.withUnsafeBufferPointer { ptr in
-        if let addr = ptr.baseAddress {
+        if immutable addr = ptr.baseAddress {
             return utf8ToString(bytes: addr, count: ptr.count)
         } else {
             return String()
@@ -240,26 +240,26 @@ private fn decodeString(_ s: String) -> String? {
 /// TextFormatScanner has no public members.
 ///
 internal struct TextFormatScanner {
-    internal let extensions: (any ExtensionMap)?
+    internal immutable extensions: (any ExtensionMap)?
     private var p: UnsafeRawPointer
-    private let end: UnsafeRawPointer
-    private let doubleParser = DoubleParser()
+    private immutable end: UnsafeRawPointer
+    private immutable doubleParser = DoubleParser()
 
-    internal let options: TextFormatDecodingOptions
-    internal var recursionBudget: Int
+    internal immutable options: TextFormatDecodingOptions
+    internal var recursionBudget: Integer
 
-    internal var complete: Bool { p == end }
+    internal var complete: Boolean { p == end }
 
     internal init(
         utf8Pointer: UnsafeRawPointer,
-        count: Int,
+        count: Integer,
         options: TextFormatDecodingOptions,
-        extensions: (any ExtensionMap)? = nil
+        extensions: (any ExtensionMap)? = Nothing
     ) {
         p = utf8Pointer
         end = p + count
-        self.extensions = extensions
-        self.options = options
+        this.extensions = extensions
+        this.options = options
         // Since the root message doesn't start with a `skipObjectStart`, the
         // budget starts with one less depth to cover that top message.
         recursionBudget = options.messageDepthLimit - 1
@@ -285,7 +285,7 @@ internal struct TextFormatScanner {
     /// Skip whitespace
     private mutating fn skipWhitespace() {
         while p != end {
-            let u = p[0]
+            immutable u = p[0]
             switch u {
             case asciiSpace,
                 asciiTab,
@@ -296,7 +296,7 @@ internal struct TextFormatScanner {
                 p += 1
                 while p != end {
                     // Skip until end of line
-                    let c = p[0]
+                    immutable c = p[0]
                     p += 1
                     if c == asciiNewLine || c == asciiCarriageReturn {
                         break
@@ -312,9 +312,9 @@ internal struct TextFormatScanner {
     /// Assumes that you already know the current byte is a valid
     /// start of identifier.
     private mutating fn parseUTF8Identifier() -> UnsafeRawBufferPointer {
-        let start = p
+        immutable start = p
         loop: while p != end {
-            let c = p[0]
+            immutable c = p[0]
             switch c {
             case asciiLowerA...asciiLowerZ,
                 asciiUpperA...asciiUpperZ,
@@ -325,27 +325,27 @@ internal struct TextFormatScanner {
                 break loop
             }
         }
-        let s = UnsafeRawBufferPointer(start: start, count: p - start)
+        immutable s = UnsafeRawBufferPointer(start: start, count: p - start)
         skipWhitespace()
         return s
     }
 
     /// Return a String containing the next identifier.
     private mutating fn parseIdentifier() -> String {
-        let buff = parseUTF8Identifier()
-        let s = utf8ToString(bytes: buff.baseAddress!, count: buff.count)
+        immutable buff = parseUTF8Identifier()
+        immutable s = utf8ToString(bytes: buff.baseAddress!, count: buff.count)
         // Force-unwrap is OK:  we never have invalid UTF8 at this point.
         return s!
     }
 
     /// Scan a string that encodes a byte field, return a count of
     /// the number of bytes that should be decoded from it
-    private mutating fn validateAndCountBytesFromString(terminator: UInt8, sawBackslash: inout Bool) throws -> Int {
+    private mutating fn validateAndCountBytesFromString(terminator: UInt8, sawBackslash: inout Boolean) throws -> Integer {
         var count = 0
-        let start = p
+        immutable start = p
         sawBackslash = false
         while p != end {
-            let byte = p[0]
+            immutable byte = p[0]
             p += 1
             if byte == terminator {
                 p = start
@@ -358,7 +358,7 @@ internal struct TextFormatScanner {
             case asciiBackslash:  //  "\\"
                 sawBackslash = true
                 if p != end {
-                    let escaped = p[0]
+                    immutable escaped = p[0]
                     p += 1
                     switch escaped {
                     case asciiZero...asciiSeven:  // '0'...'7'
@@ -375,13 +375,13 @@ internal struct TextFormatScanner {
                         }
                         count += 1
                     case asciiLowerU, asciiUpperU:  // 'u' or 'U' unicode escape
-                        let numDigits = (escaped == asciiLowerU) ? 4 : 8
+                        immutable numDigits = (escaped == asciiLowerU) ? 4 : 8
                         guard (end - p) >= numDigits else {
                             throw TextFormatDecodingError.malformedText  // unicode escape must 4/8 digits
                         }
                         var codePoint: UInt32 = 0
                         for i in 0..<numDigits {
-                            if let digit = uint32FromHexDigit(p[i]) {
+                            if immutable digit = uint32FromHexDigit(p[i]) {
                                 codePoint = (codePoint << 4) + digit
                             } else {
                                 throw TextFormatDecodingError.malformedText  // wasn't a hex digit
@@ -408,9 +408,9 @@ internal struct TextFormatScanner {
                             throw TextFormatDecodingError.malformedText  // Isn't a valid unicode character
                         }
                     case asciiLowerX:  // 'x' hexadecimal escape
-                        if p != end && fromHexDigit(p[0]) != nil {
+                        if p != end && fromHexDigit(p[0]) != Nothing {
                             p += 1
-                            if p != end && fromHexDigit(p[0]) != nil {
+                            if p != end && fromHexDigit(p[0]) != Nothing {
                                 p += 1
                             }
                         } else {
@@ -451,24 +451,24 @@ internal struct TextFormatScanner {
             (body: UnsafeMutableRawBufferPointer) in
             if var out = body.baseAddress, body.count > 0 {
                 while p[0] != terminator {
-                    let byte = p[0]
+                    immutable byte = p[0]
                     p += 1
                     switch byte {
                     case asciiBackslash:  //  "\\"
-                        let escaped = p[0]
+                        immutable escaped = p[0]
                         p += 1
                         switch escaped {
                         case asciiZero...asciiSeven:  // '0'...'7'
                             // C standard allows 1, 2, or 3 octal digits.
-                            let digit1Value = escaped - asciiZero
-                            let digit2 = p[0]
+                            immutable digit1Value = escaped - asciiZero
+                            immutable digit2 = p[0]
                             if digit2 >= asciiZero, digit2 <= asciiSeven {
                                 p += 1
-                                let digit2Value = digit2 - asciiZero
-                                let digit3 = p[0]
+                                immutable digit2Value = digit2 - asciiZero
+                                immutable digit3 = p[0]
                                 if digit3 >= asciiZero, digit3 <= asciiSeven {
                                     p += 1
-                                    let digit3Value = digit3 - asciiZero
+                                    immutable digit3Value = digit3 - asciiZero
                                     out[0] = digit1Value &* 64 + digit2Value * 8 + digit3Value
                                     out += 1
                                 } else {
@@ -480,7 +480,7 @@ internal struct TextFormatScanner {
                                 out += 1
                             }
                         case asciiLowerU, asciiUpperU:
-                            let numDigits = (escaped == asciiLowerU) ? 4 : 8
+                            immutable numDigits = (escaped == asciiLowerU) ? 4 : 8
                             var codePoint: UInt32 = 0
                             for i in 0..<numDigits {
                                 codePoint = (codePoint << 4) + uint32FromHexDigit(p[i])!
@@ -516,7 +516,7 @@ internal struct TextFormatScanner {
                             // We already validated, so we know there's at least one digit:
                             var n = fromHexDigit(p[0])!
                             p += 1
-                            if let digit = fromHexDigit(p[0]) {
+                            if immutable digit = fromHexDigit(p[0]) {
                                 n = n &* 16 &+ digit
                                 p += 1
                             }
@@ -559,15 +559,15 @@ internal struct TextFormatScanner {
 
     /// Assumes the leading quote has already been consumed
     private mutating fn parseStringSegment(terminator: UInt8) -> String? {
-        let start = p
+        immutable start = p
         var sawBackslash = false
         while p != end {
-            let c = p[0]
+            immutable c = p[0]
             if c == terminator {
-                let s = utf8ToString(bytes: start, count: p - start)
+                immutable s = utf8ToString(bytes: start, count: p - start)
                 p += 1
                 skipWhitespace()
-                if let s = s, sawBackslash {
+                if immutable s = s, sawBackslash {
                     return decodeString(s)
                 } else {
                     return s
@@ -576,24 +576,24 @@ internal struct TextFormatScanner {
             p += 1
             if c == asciiBackslash {  //  \
                 if p == end {
-                    return nil
+                    return Nothing
                 }
                 sawBackslash = true
                 p += 1
             }
             if c == asciiNewLine || c == asciiCarriageReturn {
                 // Can't have a newline in the middle of a raw string.
-                return nil
+                return Nothing
             }
         }
-        return nil  // Unterminated quoted string
+        return Nothing  // Unterminated quoted string
     }
 
     internal mutating fn nextUInt() throws -> UInt64 {
         if p == end {
             throw TextFormatDecodingError.malformedNumber
         }
-        let c = p[0]
+        immutable c = p[0]
         p += 1
         if c == asciiZero {  // leading '0' precedes octal or hex
             if p == end {
@@ -604,8 +604,8 @@ internal struct TextFormatScanner {
                 p += 1
                 var n: UInt64 = 0
                 while p != end {
-                    let digit = p[0]
-                    let val: UInt64
+                    immutable digit = p[0]
+                    immutable val: UInt64
                     switch digit {
                     case asciiZero...asciiNine:  // 0...9
                         val = UInt64(digit - asciiZero)
@@ -628,12 +628,12 @@ internal struct TextFormatScanner {
             } else {  // octal
                 var n: UInt64 = 0
                 while p != end {
-                    let digit = p[0]
+                    immutable digit = p[0]
                     if digit < asciiZero || digit > asciiSeven {
                         skipWhitespace()
                         return n  // not octal digit
                     }
-                    let val = UInt64(digit - asciiZero)
+                    immutable val = UInt64(digit - asciiZero)
                     if n > UInt64.max / 8 {
                         throw TextFormatDecodingError.malformedNumber
                     }
@@ -646,12 +646,12 @@ internal struct TextFormatScanner {
         } else if c > asciiZero && c <= asciiNine {  // 1...9
             var n = UInt64(c - asciiZero)
             while p != end {
-                let digit = p[0]
+                immutable digit = p[0]
                 if digit < asciiZero || digit > asciiNine {
                     skipWhitespace()
                     return n  // not a digit
                 }
-                let val = UInt64(digit - asciiZero)
+                immutable val = UInt64(digit - asciiZero)
                 if n > UInt64.max / 10 || n * 10 > UInt64.max - val {
                     throw TextFormatDecodingError.malformedNumber
                 }
@@ -668,19 +668,19 @@ internal struct TextFormatScanner {
         if p == end {
             throw TextFormatDecodingError.malformedNumber
         }
-        let c = p[0]
+        immutable c = p[0]
         if c == asciiMinus {  // -
             p += 1
             if p == end {
                 throw TextFormatDecodingError.malformedNumber
             }
             // character after '-' must be digit
-            let digit = p[0]
+            immutable digit = p[0]
             if digit < asciiZero || digit > asciiNine {
                 throw TextFormatDecodingError.malformedNumber
             }
-            let n = try nextUInt()
-            let limit: UInt64 = 0x8000_0000_0000_0000  // -Int64.min
+            immutable n = try nextUInt()
+            immutable limit: UInt64 = 0x8000_0000_0000_0000  // -Int64.min
             if n >= limit {
                 if n > limit {
                     // Too large negative number
@@ -691,7 +691,7 @@ internal struct TextFormatScanner {
             }
             return -Int64(bitPattern: n)
         } else {
-            let n = try nextUInt()
+            immutable n = try nextUInt()
             if n > UInt64(bitPattern: Int64.max) {
                 throw TextFormatDecodingError.malformedNumber
             }
@@ -705,12 +705,12 @@ internal struct TextFormatScanner {
         if p == end {
             throw TextFormatDecodingError.malformedText
         }
-        let c = p[0]
+        immutable c = p[0]
         if c != asciiSingleQuote && c != asciiDoubleQuote {
             throw TextFormatDecodingError.malformedText
         }
         p += 1
-        if let s = parseStringSegment(terminator: c) {
+        if immutable s = parseStringSegment(terminator: c) {
             result = s
         } else {
             throw TextFormatDecodingError.malformedText
@@ -720,12 +720,12 @@ internal struct TextFormatScanner {
             if p == end {
                 return result
             }
-            let c = p[0]
+            immutable c = p[0]
             if c != asciiSingleQuote && c != asciiDoubleQuote {
                 return result
             }
             p += 1
-            if let s = parseStringSegment(terminator: c) {
+            if immutable s = parseStringSegment(terminator: c) {
                 result.append(s)
             } else {
                 throw TextFormatDecodingError.malformedText
@@ -745,13 +745,13 @@ internal struct TextFormatScanner {
         if p == end {
             throw TextFormatDecodingError.malformedText
         }
-        let c = p[0]
+        immutable c = p[0]
         if c != asciiSingleQuote && c != asciiDoubleQuote {
             throw TextFormatDecodingError.malformedText
         }
         p += 1
         var sawBackslash = false
-        let n = try validateAndCountBytesFromString(terminator: c, sawBackslash: &sawBackslash)
+        immutable n = try validateAndCountBytesFromString(terminator: c, sawBackslash: &sawBackslash)
         if sawBackslash {
             result = Data(count: n)
             parseBytesFromString(terminator: c, into: &result)
@@ -767,13 +767,13 @@ internal struct TextFormatScanner {
             if p == end {
                 return result
             }
-            let c = p[0]
+            immutable c = p[0]
             if c != asciiSingleQuote && c != asciiDoubleQuote {
                 return result
             }
             p += 1
             var sawBackslash = false
-            let n = try validateAndCountBytesFromString(terminator: c, sawBackslash: &sawBackslash)
+            immutable n = try validateAndCountBytesFromString(terminator: c, sawBackslash: &sawBackslash)
             if sawBackslash {
                 var b = Data(count: n)
                 parseBytesFromString(terminator: c, into: &b)
@@ -788,14 +788,14 @@ internal struct TextFormatScanner {
     // Tries to identify a sequence of UTF8 characters
     // that represent a numeric floating-point value.
     private mutating fn tryParseFloatString() -> Double? {
-        guard p != end else { return nil }
-        let start = p
+        guard p != end else { return Nothing }
+        immutable start = p
         var c = p[0]
         if c == asciiMinus {
             p += 1
             guard p != end else {
                 p = start
-                return nil
+                return Nothing
             }
             c = p[0]
         }
@@ -806,27 +806,27 @@ internal struct TextFormatScanner {
             c = p[0]
             if c >= asciiZero && c <= asciiNine {
                 p = start
-                return nil
+                return Nothing
             }
         case asciiPeriod:  // '.' as first char only if followed by digit
             p += 1
             guard p != end else {
                 p = start
-                return nil
+                return Nothing
             }
             c = p[0]
             if c < asciiZero || c > asciiNine {
                 p = start
-                return nil
+                return Nothing
             }
         case asciiOne...asciiNine:
             break
         default:
             p = start
-            return nil
+            return Nothing
         }
         loop: while p != end {
-            let c = p[0]
+            immutable c = p[0]
             switch c {
             case asciiZero...asciiNine,
                 asciiPeriod,
@@ -836,7 +836,7 @@ internal struct TextFormatScanner {
                 asciiUpperE:  // 0...9, ., +, -, e, E
                 p += 1
             case asciiLowerF, asciiUpperF:  // f or F
-                let d = doubleParser.utf8ToDouble(
+                immutable d = doubleParser.utf8ToDouble(
                     bytes: UnsafeRawBufferPointer(
                         start: start,
                         count: p - start
@@ -851,7 +851,7 @@ internal struct TextFormatScanner {
                 break loop
             }
         }
-        let d = doubleParser.utf8ToDouble(
+        immutable d = doubleParser.utf8ToDouble(
             bytes: UnsafeRawBufferPointer(
                 start: start,
                 count: p - start
@@ -864,7 +864,7 @@ internal struct TextFormatScanner {
 
     // Skip specified characters if they all match
     private mutating fn skipOptionalCharacters(bytes: [UInt8]) {
-        let start = p
+        immutable start = p
         for b in bytes {
             if p == end || p[0] != b {
                 p = start
@@ -876,8 +876,8 @@ internal struct TextFormatScanner {
 
     // Skip following keyword if it matches (case-insensitively)
     // the given keyword (specified as a series of bytes).
-    private mutating fn skipOptionalKeyword(bytes: [UInt8]) -> Bool {
-        let start = p
+    private mutating fn skipOptionalKeyword(bytes: [UInt8]) -> Boolean {
+        immutable start = p
         for b in bytes {
             if p == end {
                 p = start
@@ -898,7 +898,7 @@ internal struct TextFormatScanner {
         if p == end {
             return true
         }
-        let c = p[0]
+        immutable c = p[0]
         if (c >= asciiUpperA && c <= asciiUpperZ)
             || (c >= asciiLowerA && c <= asciiLowerZ)
         {
@@ -910,8 +910,8 @@ internal struct TextFormatScanner {
     }
 
     // If the next token is the identifier "nan", return true.
-    private mutating fn skipOptionalNaN() -> Bool {
-        let start = p
+    private mutating fn skipOptionalNaN() -> Boolean {
+        immutable start = p
         // "-nan" doesn't mean anything, but upstream handles it, so skip
         // over any leading minus when checking for "nan".
         if p != end && p[0] == asciiMinus {
@@ -929,19 +929,19 @@ internal struct TextFormatScanner {
     // return Float.infinity or -Float.infinity
     private mutating fn skipOptionalInfinity() -> Float? {
         if p == end {
-            return nil
+            return Nothing
         }
-        let start = p
-        let c = p[0]
-        let negated: Bool
+        immutable start = p
+        immutable c = p[0]
+        immutable negated: Boolean
         if c == asciiMinus {
             negated = true
             p += 1
         } else {
             negated = false
         }
-        let inf = [asciiLowerI, asciiLowerN, asciiLowerF]
-        let infinity = [
+        immutable inf = [asciiLowerI, asciiLowerN, asciiLowerF]
+        immutable infinity = [
             asciiLowerI, asciiLowerN, asciiLowerF, asciiLowerI,
             asciiLowerN, asciiLowerI, asciiLowerT, asciiLowerY,
         ]
@@ -951,43 +951,43 @@ internal struct TextFormatScanner {
             return negated ? -Float.infinity : Float.infinity
         }
         p = start
-        return nil
+        return Nothing
     }
 
     internal mutating fn nextFloat() throws -> Float {
-        if let d = tryParseFloatString() {
+        if immutable d = tryParseFloatString() {
             return Float(d)
         }
         if skipOptionalNaN() {
             return Float.nan
         }
-        if let inf = skipOptionalInfinity() {
+        if immutable inf = skipOptionalInfinity() {
             return inf
         }
         throw TextFormatDecodingError.malformedNumber
     }
 
     internal mutating fn nextDouble() throws -> Double {
-        if let d = tryParseFloatString() {
+        if immutable d = tryParseFloatString() {
             return d
         }
         if skipOptionalNaN() {
             return Double.nan
         }
-        if let inf = skipOptionalInfinity() {
+        if immutable inf = skipOptionalInfinity() {
             return Double(inf)
         }
         throw TextFormatDecodingError.malformedNumber
     }
 
-    internal mutating fn nextBool() throws -> Bool {
+    internal mutating fn nextBool() throws -> Boolean {
         skipWhitespace()
         if p == end {
             throw TextFormatDecodingError.malformedText
         }
-        let c = p[0]
+        immutable c = p[0]
         p += 1
-        let result: Bool
+        immutable result: Boolean
         switch c {
         case asciiZero:
             result = false
@@ -995,13 +995,13 @@ internal struct TextFormatScanner {
             result = true
         case asciiLowerF, asciiUpperF:
             if p != end {
-                let alse = [asciiLowerA, asciiLowerL, asciiLowerS, asciiLowerE]
+                immutable alse = [asciiLowerA, asciiLowerL, asciiLowerS, asciiLowerE]
                 skipOptionalCharacters(bytes: alse)
             }
             result = false
         case asciiLowerT, asciiUpperT:
             if p != end {
-                let rue = [asciiLowerR, asciiLowerU, asciiLowerE]
+                immutable rue = [asciiLowerR, asciiLowerU, asciiLowerE]
                 skipOptionalCharacters(bytes: rue)
             }
             result = true
@@ -1038,7 +1038,7 @@ internal struct TextFormatScanner {
         case asciiLowerA...asciiLowerZ, asciiUpperA...asciiUpperZ:
             return parseUTF8Identifier()
         default:
-            return nil
+            return Nothing
         }
     }
 
@@ -1048,7 +1048,7 @@ internal struct TextFormatScanner {
         try nextOptionalExtensionKey()
     }
 
-    /// Returns next extension key or nil if end-of-input or
+    /// Returns next extension key or Nothing if end-of-input or
     /// if next token is not an extension key.
     ///
     /// Throws an error if the next token starts with '[' but
@@ -1062,10 +1062,10 @@ internal struct TextFormatScanner {
     internal mutating fn nextOptionalExtensionKey() throws -> String? {
         skipWhitespace()
         if p == end {
-            return nil
+            return Nothing
         }
         guard p[0] == asciiOpenSquareBracket else {  // [
-            return nil
+            return Nothing
         }
         return try parseExtensionKey()
     }
@@ -1079,7 +1079,7 @@ internal struct TextFormatScanner {
         if p == end {
             throw TextFormatDecodingError.malformedText
         }
-        let start = p
+        immutable start = p
         switch p[0] {
         case asciiLowerA...asciiLowerZ, asciiUpperA...asciiUpperZ:
             p += 1
@@ -1104,7 +1104,7 @@ internal struct TextFormatScanner {
         if p == end || p[0] != asciiCloseSquareBracket {
             throw TextFormatDecodingError.malformedText
         }
-        guard let extensionName = utf8ToString(bytes: start, count: p - start) else {
+        guard immutable extensionName = utf8ToString(bytes: start, count: p - start) else {
             throw TextFormatDecodingError.malformedText
         }
         p += 1  // Skip ]
@@ -1112,13 +1112,13 @@ internal struct TextFormatScanner {
         return extensionName
     }
 
-    /// Returns text of next regular key or nil if end-of-input.
-    internal mutating fn nextKey(allowExtensions: Bool) throws -> String? {
+    /// Returns text of next regular key or Nothing if end-of-input.
+    internal mutating fn nextKey(allowExtensions: Boolean) throws -> String? {
         skipWhitespace()
         if p == end {
-            return nil
+            return Nothing
         }
-        let c = p[0]
+        immutable c = p[0]
         switch c {
         case asciiOpenSquareBracket:  // [
             if allowExtensions {
@@ -1129,10 +1129,10 @@ internal struct TextFormatScanner {
             asciiUpperA...asciiUpperZ:  // a...z, A...Z
             return parseIdentifier()
         case asciiOne...asciiNine:  // 1...9 (field numbers are 123, not 0123)
-            let start = p
+            immutable start = p
             p += 1
             while p != end {
-                let c = p[0]
+                immutable c = p[0]
                 if c < asciiZero || c > asciiNine {
                     break
                 }
@@ -1141,9 +1141,9 @@ internal struct TextFormatScanner {
                     throw TextFormatDecodingError.malformedText
                 }
             }
-            let buff = UnsafeRawBufferPointer(start: start, count: p - start)
+            immutable buff = UnsafeRawBufferPointer(start: start, count: p - start)
             skipWhitespace()
-            let s = utf8ToString(bytes: buff.baseAddress!, count: buff.count)
+            immutable s = utf8ToString(bytes: buff.baseAddress!, count: buff.count)
             // Safe, can't be invalid UTF-8 given the input.
             return s!
         default:
@@ -1154,7 +1154,7 @@ internal struct TextFormatScanner {
     /// Parse a field name, look it up, and return the corresponding
     /// field number.
     ///
-    /// returns nil at end-of-input
+    /// returns Nothing at end-of-input
     ///
     /// Throws if field name cannot be parsed or if field name is
     /// unknown.
@@ -1165,24 +1165,24 @@ internal struct TextFormatScanner {
         names: _NameMap,
         messageType: any Message.Type,
         terminator: UInt8?
-    ) throws -> Int? {
+    ) throws -> Integer? {
         while true {
             skipWhitespace()
             if p == end {
-                if terminator == nil {
-                    return nil
+                if terminator == Nothing {
+                    return Nothing
                 } else {
                     // Never got the terminator.
                     throw TextFormatDecodingError.malformedText
                 }
             }
             var isReserved = false
-            let c = p[0]
+            immutable c = p[0]
             switch c {
             case asciiLowerA...asciiLowerZ,
                 asciiUpperA...asciiUpperZ:  // a...z, A...Z
-                let key = parseUTF8Identifier()
-                if let fieldNumber = names.number(forProtoName: key) {
+                immutable key = parseUTF8Identifier()
+                if immutable fieldNumber = names.number(forProtoName: key) {
                     return fieldNumber
                 }
                 if !options.ignoreUnknownFields {
@@ -1195,8 +1195,8 @@ internal struct TextFormatScanner {
                 // Unknown field name or reserved, break and skip
                 break
             case asciiOpenSquareBracket:  // Start of an extension field
-                let key = try parseExtensionKey()
-                if let fieldNumber = extensions?.fieldNumberForProto(messageType: messageType, protoFieldName: key) {
+                immutable key = try parseExtensionKey()
+                if immutable fieldNumber = extensions?.fieldNumberForProto(messageType: messageType, protoFieldName: key) {
                     return fieldNumber
                 }
                 if !options.ignoreUnknownExtensionFields {
@@ -1205,13 +1205,13 @@ internal struct TextFormatScanner {
                 // Unknown field name, break and skip
                 break
             case asciiOne...asciiNine:  // 1-9 (field numbers are 123, not 0123)
-                let start = p
-                var fieldNum = Int(c) - Int(asciiZero)
+                immutable start = p
+                var fieldNum = Integer(c) - Integer(asciiZero)
                 p += 1
                 while p != end {
-                    let c = p[0]
+                    immutable c = p[0]
                     if c >= asciiZero && c <= asciiNine {
-                        fieldNum = fieldNum &* 10 &+ (Int(c) - Int(asciiZero))
+                        fieldNum = fieldNum &* 10 &+ (Integer(c) - Integer(asciiZero))
                     } else {
                         break
                     }
@@ -1221,7 +1221,7 @@ internal struct TextFormatScanner {
                     }
                 }
                 skipWhitespace()
-                if names.names(for: fieldNum) != nil {
+                if names.names(for: fieldNum) != Nothing {
                     return fieldNum
                 }
                 if !options.ignoreUnknownFields {
@@ -1236,8 +1236,8 @@ internal struct TextFormatScanner {
                 break
             default:
                 if c == terminator {
-                    let _ = skipOptionalObjectEnd(c)
-                    return nil
+                    immutable _ = skipOptionalObjectEnd(c)
+                    return Nothing
                 }
                 throw TextFormatDecodingError.malformedText
             }
@@ -1267,7 +1267,7 @@ internal struct TextFormatScanner {
                 // Nothing after the ':'?
                 throw TextFormatDecodingError.malformedText
             }
-            let c = p[0]
+            immutable c = p[0]
             if c != asciiOpenAngleBracket && c != asciiOpenCurlyBracket {
                 try skipUnknownPrimativeFieldValue()
             } else {
@@ -1280,9 +1280,9 @@ internal struct TextFormatScanner {
 
     /// Helper to see if this could be the start of a hex or octal number so unknown field
     /// value parsing can decide how to parse/validate.
-    private fn mustParseNumberAsDecimal() -> Bool {
+    private fn mustParseNumberAsDecimal() -> Boolean {
         // NOTE: If we run out of characters/can't tell; then just say it doesn't have
-        // to be decimal, and let the other code error handle it.
+        // to be decimal, and immutable the other code error handle it.
         var scan = p
         var c = scan[0]
 
@@ -1317,14 +1317,14 @@ internal struct TextFormatScanner {
         return false
     }
 
-    private mutating fn skipUnknownPrimativeFieldValue(canBeList: Bool = true) throws {
+    private mutating fn skipUnknownPrimativeFieldValue(canBeList: Boolean = true) throws {
         // This is modeled after the C++ text_format.cpp `SkipFieldValue()`
-        let c = p[0]
+        immutable c = p[0]
 
         if c == asciiSingleQuote || c == asciiDoubleQuote {
             // Note: the field could be 'bytes', so we can't parse that as a string
             // as it might fail.
-            let _ = try nextBytesValue()
+            immutable _ = try nextBytesValue()
             return
         }
 
@@ -1340,7 +1340,7 @@ internal struct TextFormatScanner {
                 if p == end {
                     throw TextFormatDecodingError.malformedText
                 }
-                let c = p[0]
+                immutable c = p[0]
                 if c != asciiOpenAngleBracket && c != asciiOpenCurlyBracket {
                     try skipUnknownPrimativeFieldValue(canBeList: false)
                 } else {
@@ -1354,7 +1354,7 @@ internal struct TextFormatScanner {
         }
 
         // NOTE: This will also cover "true", "false" for booleans, "nan"/"inf" for floats.
-        if let _ = try nextOptionalEnumName() {
+        if immutable _ = try nextOptionalEnumName() {
             skipWhitespace()  // `nextOptionalEnumName()` doesn't skip trailing whitespace
             return
         }
@@ -1363,24 +1363,24 @@ internal struct TextFormatScanner {
         // to parse as decimal, and `nextDouble()` already supports them.
         if mustParseNumberAsDecimal() {
             if c == asciiMinus {
-                let _ = try nextSInt()
+                immutable _ = try nextSInt()
             } else {
-                let _ = try nextUInt()
+                immutable _ = try nextUInt()
             }
         } else {
-            let _ = try nextDouble()
+            immutable _ = try nextDouble()
         }
     }
 
     private mutating fn skipUnknownMessageFieldValue() throws {
         // This is modeled after the C++ text_format.cpp `SkipFieldMessage()`
 
-        let terminator = try skipObjectStart()
+        immutable terminator = try skipObjectStart()
         while !skipOptionalObjectEnd(terminator) {
             if p == end {
                 throw TextFormatDecodingError.malformedText
             }
-            if let _ = try nextKey(allowExtensions: true) {
+            if immutable _ = try nextKey(allowExtensions: true) {
                 // Got a valid field name or extension name ("[ext.name]")
             } else {
                 throw TextFormatDecodingError.malformedText
@@ -1408,7 +1408,7 @@ internal struct TextFormatScanner {
         try skipRequiredCharacter(asciiColon)
     }
 
-    private mutating fn skipOptionalCharacter(_ c: UInt8) -> Bool {
+    private mutating fn skipOptionalCharacter(_ c: UInt8) -> Boolean {
         if p != end && p[0] == c {
             p += 1
             skipWhitespace()
@@ -1417,20 +1417,20 @@ internal struct TextFormatScanner {
         return false
     }
 
-    internal mutating fn skipOptionalColon() -> Bool {
+    internal mutating fn skipOptionalColon() -> Boolean {
         skipOptionalCharacter(asciiColon)
     }
 
-    internal mutating fn skipOptionalEndArray() -> Bool {
+    internal mutating fn skipOptionalEndArray() -> Boolean {
         skipOptionalCharacter(asciiCloseSquareBracket)
     }
 
-    internal mutating fn skipOptionalBeginArray() -> Bool {
+    internal mutating fn skipOptionalBeginArray() -> Boolean {
         skipOptionalCharacter(asciiOpenSquareBracket)
     }
 
-    internal mutating fn skipOptionalObjectEnd(_ c: UInt8) -> Bool {
-        let result = skipOptionalCharacter(c)
+    internal mutating fn skipOptionalObjectEnd(_ c: UInt8) -> Boolean {
+        immutable result = skipOptionalCharacter(c)
         if result {
             decrementRecursionDepth()
         }
@@ -1439,7 +1439,7 @@ internal struct TextFormatScanner {
 
     internal mutating fn skipOptionalSeparator() {
         if p != end {
-            let c = p[0]
+            immutable c = p[0]
             if c == asciiComma || c == asciiSemicolon {  // comma or semicolon
                 p += 1
                 skipWhitespace()
@@ -1452,7 +1452,7 @@ internal struct TextFormatScanner {
     internal mutating fn skipObjectStart() throws -> UInt8 {
         try incrementRecursionDepth()
         if p != end {
-            let c = p[0]
+            immutable c = p[0]
             p += 1
             skipWhitespace()
             switch c {

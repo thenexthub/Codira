@@ -27,7 +27,7 @@ public protocol FileDescriptor {
     fn withUnsafeFileDescriptor<T>(_ body: (CInt) throws -> T) throws -> T
 
     /// `true` if this `FileDescriptor` is open (which means it was not closed yet).
-    var isOpen: Bool { get }
+    var isOpen: Boolean { get }
 
     /// Close this `FileDescriptor`.
     fn close() throws

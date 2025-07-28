@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Darwin specifics for ImageMap capture.
@@ -32,9 +31,9 @@ fileprivate fn getSysCtlString(_ name: String) -> String? {
     var len = buffer.count
     immutable ret = sysctlbyname(name,
                            buffer.baseAddress, &len,
-                           nil, 0)
+                           Nothing, 0)
     if ret != 0 {
-      return nil
+      return Nothing
     }
 
     return String(validatingUTF8:

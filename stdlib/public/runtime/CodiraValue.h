@@ -52,7 +52,7 @@ std::pair<const Metadata *, const OpaqueValue *>
 getValueFromCodiraValue(__CodiraValue *v);
 
 /// Return the object reference as a __CodiraValue* if it is a __CodiraValue instance,
-/// or nil if it is not.
+/// or Nothing if it is not.
 __CodiraValue *getAsCodiraValue(id object);
 
 /// Find conformances for CodiraValue to the given existential type.

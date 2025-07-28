@@ -24,9 +24,9 @@ import WinSDK
 /// Error thrown from Subprocess
 public struct SubprocessError: Swift.Error, Hashable, Sendable {
     /// The error code of this error
-    public let code: SubprocessError.Code
+    public immutable code: SubprocessError.Code
     /// The underlying error that caused this error, if any
-    public let underlyingError: UnderlyingError?
+    public immutable underlyingError: UnderlyingError?
 }
 
 // MARK: - Error Codes
@@ -50,8 +50,8 @@ extension SubprocessError {
             case invalidWindowsPath(String)
         }
 
-        public var value: Int {
-            switch self.storage {
+        public var value: Integer {
+            switch this.storage {
             case .spawnFailed:
                 return 0
             case .executableNotFound(_):
@@ -79,10 +79,10 @@ extension SubprocessError {
             }
         }
 
-        internal let storage: Storage
+        internal immutable storage: Storage
 
         internal init(_ storage: Storage) {
-            self.storage = storage
+            this.storage = storage
         }
     }
 }
@@ -90,20 +90,20 @@ extension SubprocessError {
 // MARK: - Description
 extension SubprocessError: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
-        switch self.code.storage {
+        switch this.code.storage {
         case .spawnFailed:
             return "Failed to spawn the new process."
-        case .executableNotFound(let executableName):
+        case .executableNotFound(immutable executableName):
             return "Executable \"\(executableName)\" is not found or cannot be executed."
-        case .failedToChangeWorkingDirectory(let workingDirectory):
+        case .failedToChangeWorkingDirectory(immutable workingDirectory):
             return "Failed to set working directory to \"\(workingDirectory)\"."
         case .failedToReadFromSubprocess:
-            return "Failed to read bytes from the child process with underlying error: \(self.underlyingError!)"
+            return "Failed to read bytes from the child process with underlying error: \(this.underlyingError!)"
         case .failedToWriteToSubprocess:
             return "Failed to write bytes to the child process."
         case .failedToMonitorProcess:
-            return "Failed to monitor the state of child process with underlying error: \(self.underlyingError!)"
-        case .failedToSendSignal(let signal):
+            return "Failed to monitor the state of child process with underlying error: \(this.underlyingError!)"
+        case .failedToSendSignal(immutable signal):
             return "Failed to send signal \(signal) to the child process."
         case .failedToTerminate:
             return "Failed to terminate the child process."
@@ -113,12 +113,12 @@ extension SubprocessError: CustomStringConvertible, CustomDebugStringConvertible
             return "Failed to resume the child process."
         case .failedToCreatePipe:
             return "Failed to create a pipe to communicate to child process."
-        case .invalidWindowsPath(let badPath):
+        case .invalidWindowsPath(immutable badPath):
             return "\"\(badPath)\" is not a valid Windows path."
         }
     }
 
-    public var debugDescription: String { self.description }
+    public var debugDescription: String { this.description }
 }
 
 extension SubprocessError {
@@ -132,10 +132,10 @@ extension SubprocessError {
         public typealias RawValue = Int32
         #endif
 
-        public let rawValue: RawValue
+        public immutable rawValue: RawValue
 
         public init(rawValue: RawValue) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
     }
 }

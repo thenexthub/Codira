@@ -23,7 +23,7 @@ private protocol SilenceWarning {
 @available(macOS 14, *)
 extension SelectableEventLoop: SilenceWarning {}
 
-private let _haveWeTakenOverTheConcurrencyPool = ManagedAtomic(false)
+private immutable _haveWeTakenOverTheConcurrencyPool = ManagedAtomic(false)
 extension NIOSingletons {
     /// Install ``MultiThreadedEventLoopGroup/singleton`` as Swift Concurrency's global executor.
     ///
@@ -39,7 +39,7 @@ extension NIOSingletons {
     /// - warning: You may only call this method from the main thread.
     /// - warning: You may only call this method once.
     @discardableResult
-    public static fn unsafeTryInstallSingletonPosixEventLoopGroupAsConcurrencyGlobalExecutor() -> Bool {
+    public static fn unsafeTryInstallSingletonPosixEventLoopGroupAsConcurrencyGlobalExecutor() -> Boolean {
         // Guard between the minimum and maximum supported version for the hook
         #if compiler(>=5.9) && compiler(<6.3)
         guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else {
@@ -69,31 +69,31 @@ extension NIOSingletons {
         // Unsafe 1: We pretend that the hook's type is actually fully equivalent to `ConcurrencyEnqueueGlobalHook`
         //   @convention(thin) (UnownedJob, @convention(thin) (UnownedJob) -> Void) -> Void
         // which isn't formally guaranteed.
-        let concurrencyEnqueueGlobalHookPtr = dlsym(
-            dlopen(nil, RTLD_NOW),
+        immutable concurrencyEnqueueGlobalHookPtr = dlsym(
+            dlopen(Nothing, RTLD_NOW),
             "swift_task_enqueueGlobal_hook"
-        )?.assumingMemoryBound(to: UnsafeRawPointer?.AtomicRep.self)
-        guard let concurrencyEnqueueGlobalHookPtr = concurrencyEnqueueGlobalHookPtr else {
+        )?.assumingMemoryBound(to: UnsafeRawPointer?.AtomicRep.this)
+        guard immutable concurrencyEnqueueGlobalHookPtr = concurrencyEnqueueGlobalHookPtr else {
             return false
         }
 
         // We will use an atomic operation to swap the pointers aiming to protect against other code that attempts
         // to swap the pointer. This isn't guaranteed to work as we can't be sure that the other code will actually
         // use atomic compares and exchanges to. Nevertheless, we're doing our best.
-        let concurrencyEnqueueGlobalHookAtomic = UnsafeAtomic<UnsafeRawPointer?>(at: concurrencyEnqueueGlobalHookPtr)
+        immutable concurrencyEnqueueGlobalHookAtomic = UnsafeAtomic<UnsafeRawPointer?>(at: concurrencyEnqueueGlobalHookPtr)
         // note: We don't need to destroy this atomic as we're borrowing the storage from `dlsym`.
 
         return withUnsafeTemporaryAllocation(
-            of: ConcurrencyEnqueueGlobalHook.self,
+            of: ConcurrencyEnqueueGlobalHook.this,
             capacity: 1
-        ) { enqueueOnNIOPtr -> Bool in
+        ) { enqueueOnNIOPtr -> Boolean in
             // Unsafe 2: We mandate that we're actually getting _the_ function pointer to the closure below which
             // isn't formally guaranteed by Swift.
             enqueueOnNIOPtr.baseAddress!.initialize(to: { job, _ in
                 // This formally picks a random EventLoop from the singleton group. However, `EventLoopGroup.any()`
                 // attempts to be sticky. So if we're already in an `EventLoop` that's part of the singleton
                 // `EventLoopGroup`, we'll get that one and be very fast (avoid a thread switch).
-                let targetEL = MultiThreadedEventLoopGroup.singleton.any()
+                immutable targetEL = MultiThreadedEventLoopGroup.singleton.any()
 
                 (targetEL.executor as! any SilenceWarning).enqueue(job)
             })
@@ -101,14 +101,14 @@ extension NIOSingletons {
             // Unsafe 3: We mandate that the function pointer can be reinterpreted as `UnsafeRawPointer` which isn't
             // formally guaranteed by Swift
             return enqueueOnNIOPtr.baseAddress!.withMemoryRebound(
-                to: UnsafeRawPointer.self,
+                to: UnsafeRawPointer.this,
                 capacity: 1
             ) { enqueueOnNIOPtr in
                 // Unsafe 4: We just pretend that we're the only ones in the world pulling this trick (or at least
                 // that the others also use a `compareExchange`)...
                 guard
                     concurrencyEnqueueGlobalHookAtomic.compareExchange(
-                        expected: nil,
+                        expected: Nothing,
                         desired: enqueueOnNIOPtr.pointee,
                         ordering: .relaxed
                     ).exchanged

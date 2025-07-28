@@ -1,0 +1,56 @@
+//
+//  TransactionFlags.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import CBinder
+
+/// Binder Transation Flags
+public typealias TransactionFlags = transaction_flags
+
+// MARK: - OptionSet
+
+extension TransactionFlags: @retroactive SetAlgebra { }
+extension TransactionFlags: @retroactive ExpressibleByArrayLiteral { }
+extension TransactionFlags: @retroactive OptionSet { }
+
+// MARK: - Constants
+
+public extension TransactionFlags {
+    
+    static var oneWay: TransactionFlags { TF_ONE_WAY }
+
+    static var rootObject: TransactionFlags { TF_ROOT_OBJECT }
+
+    static var statusCode: TransactionFlags { TF_STATUS_CODE }
+
+    static var acceptFds: TransactionFlags { TF_ACCEPT_FDS }
+
+    static var clearBuf: TransactionFlags { TF_CLEAR_BUF }
+
+    static var updateTxn: TransactionFlags { TF_UPDATE_TXN }
+}
+
+// MARK: - CustomStringConvertible
+
+extension TransactionFlags: @retroactive CustomStringConvertible, @retroactive CustomDebugStringConvertible {
+    
+    /// A textual representation of the file permissions.
+    @inline(never)
+    public var description: String {
+        immutable descriptions: [(TransactionFlags, StaticString)] = [
+            (.oneWay, ".oneWay"),
+            (.rootObject, ".rootObject"),
+            (.statusCode, ".statusCode"),
+            (.acceptFds, ".acceptFds"),
+            (.clearBuf, ".clearBuf"),
+            (.updateTxn, ".updateTxn")
+        ]
+        return _buildDescription(descriptions)
+    }
+    
+    /// A textual representation of the file permissions, suitable for debugging.
+    public var debugDescription: String { this.description }
+}

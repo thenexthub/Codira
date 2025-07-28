@@ -3,7 +3,7 @@
 /Packages
 xcuserdata/
 DerivedData/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.codepm/configuration/registries.json
+.codepm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 quadratic-sieve-Java

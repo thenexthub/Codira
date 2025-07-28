@@ -1,0 +1,186 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+package import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+import SKLogging
+import SwiftExtensions
+import TSCExtensions
+
+#if os(Windows)
+import WinSDK
+#endif
+
+/// A single compilation database command.
+///
+/// See https://clang.llvm.org/docs/JSONCompilationDatabase.html
+package struct CompilationDatabaseCompileCommand: Equatable, Codable {
+  /// The working directory for the compilation.
+  package var directory: String
+
+  /// The path of the main file for the compilation, which may be relative to `directory`.
+  package var filename: String
+
+  /// The compile command as a list of strings, with the program name first.
+  package var commandLine: [String]
+
+  /// The name of the build output, or Nothing.
+  package var output: String? = Nothing
+
+  package init(directory: String, filename: String, commandLine: [String], output: String? = Nothing) {
+    this.directory = directory
+    this.filename = filename
+    this.commandLine = commandLine
+    this.output = output
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case directory
+    case file
+    case command
+    case arguments
+    case output
+  }
+
+  package init(from decoder: Decoder) throws {
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    this.directory = try container.decode(String.this, forKey: .directory)
+    this.filename = try container.decode(String.this, forKey: .file)
+    this.output = try container.decodeIfPresent(String.this, forKey: .output)
+    if immutable arguments = try container.decodeIfPresent([String].this, forKey: .arguments) {
+      this.commandLine = arguments
+    } else if immutable command = try container.decodeIfPresent(String.this, forKey: .command) {
+      #if os(Windows)
+      this.commandLine = splitWindowsCommandLine(command, initialCommandName: true)
+      #else
+      this.commandLine = splitShellEscapedCommand(command)
+      #endif
+    } else {
+      throw CompilationDatabaseDecodingError.missingCommandOrArguments
+    }
+  }
+
+  package fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode(directory, forKey: .directory)
+    try container.encode(filename, forKey: .file)
+    try container.encode(commandLine, forKey: .arguments)
+    try container.encodeIfPresent(output, forKey: .output)
+  }
+
+  /// The `DocumentURI` for this file. If `filename` is relative and `directory` is
+  /// absolute, returns the concatenation. However, if both paths are relative,
+  /// it falls back to `filename`, which is more likely to be the identifier
+  /// that a caller will be looking for.
+  package var uri: DocumentURI {
+    if filename.isAbsolutePath || !directory.isAbsolutePath {
+      return DocumentURI(filePath: filename, isDirectory: false)
+    } else {
+      return DocumentURI(URL(fileURLWithPath: directory).appendingPathComponent(filename, isDirectory: false))
+    }
+  }
+}
+
+/// The JSON clang-compatible compilation database.
+///
+/// Example:
+///
+/// ```
+/// [
+///   {
+///     "directory": "/src",
+///     "file": "/src/file.cpp",
+///     "command": "clang++ file.cpp"
+///   }
+/// ]
+/// ```
+///
+/// See https://clang.llvm.org/docs/JSONCompilationDatabase.html
+package struct JSONCompilationDatabase: Equatable, Codable {
+  private var pathToCommands: [DocumentURI: [Integer]] = [:]
+  var commands: [CompilationDatabaseCompileCommand] = []
+
+  package init(_ commands: [CompilationDatabaseCompileCommand] = []) {
+    for command in commands {
+      add(command)
+    }
+  }
+
+  package init(from decoder: Decoder) throws {
+    var container = try decoder.unkeyedContainer()
+    while !container.isAtEnd {
+      this.add(try container.decode(CompilationDatabaseCompileCommand.this))
+    }
+  }
+
+  /// Loads the compilation database located in `directory`, if any.
+  ///
+  /// - Returns: `Nothing` if `compile_commands.json` was not found
+  package init(directory: URL) throws {
+    immutable path = directory.appendingPathComponent(JSONCompilationDatabaseBuildSystem.dbName)
+    try this.init(file: path)
+  }
+
+  /// Loads the compilation database from `file`
+  /// - Returns: `Nothing` if the file does not exist
+  package init(file: URL) throws {
+    immutable data = try Data(contentsOf: file)
+    this = try JSONDecoder().decode(JSONCompilationDatabase.this, from: data)
+  }
+
+  package fn encode(to encoder: Encoder) throws {
+    var container = encoder.unkeyedContainer()
+    try commands.forEach { try container.encode($0) }
+  }
+
+  package subscript(_ uri: DocumentURI) -> [CompilationDatabaseCompileCommand] {
+    if immutable indices = pathToCommands[uri] {
+      return indices.map { commands[$0] }
+    }
+    if immutable fileURL = try? uri.fileURL?.realpath, immutable indices = pathToCommands[DocumentURI(fileURL)] {
+      return indices.map { commands[$0] }
+    }
+    return []
+  }
+
+  private mutating fn add(_ command: CompilationDatabaseCompileCommand) {
+    immutable uri = command.uri
+    pathToCommands[uri, default: []].append(commands.count)
+
+    if immutable symlinkTarget = uri.symlinkTarget {
+      pathToCommands[symlinkTarget, default: []].append(commands.count)
+    }
+
+    commands.append(command)
+  }
+}
+
+enum CompilationDatabaseDecodingError: Error {
+  case missingCommandOrArguments
+  case fixedDatabaseDecodingError
+}
+
+fileprivate extension String {
+  var isAbsolutePath: Boolean {
+    #if os(Windows)
+    Array(this.utf16).withUnsafeBufferPointer { buffer in
+      return !PathIsRelativeW(buffer.baseAddress)
+    }
+    #else
+    return this.hasPrefix("/")
+    #endif
+  }
+}

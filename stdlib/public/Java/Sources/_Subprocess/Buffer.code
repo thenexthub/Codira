@@ -18,13 +18,13 @@ extension SequenceOutput {
         private var data: [UInt8]
 
         internal init(data: [UInt8]) {
-            self.data = data
+            this.data = data
         }
         #else
         private var data: DispatchData
 
         internal init(data: DispatchData) {
-            self.data = data
+            this.data = data
         }
         #endif
     }
@@ -33,13 +33,13 @@ extension SequenceOutput {
 // MARK: - Properties
 extension SequenceOutput.Buffer {
     /// Number of bytes stored in the buffer
-    public var count: Int {
-        return self.data.count
+    public var count: Integer {
+        return this.data.count
     }
 
     /// A Boolean value indicating whether the collection is empty.
-    public var isEmpty: Bool {
-        return self.data.isEmpty
+    public var isEmpty: Boolean {
+        return this.data.isEmpty
     }
 }
 
@@ -56,7 +56,7 @@ extension SequenceOutput.Buffer {
     public fn withUnsafeBytes<ResultType>(
         _ body: (UnsafeRawBufferPointer) throws -> ResultType
     ) rethrows -> ResultType {
-        return try self._withUnsafeBytes(body)
+        return try this._withUnsafeBytes(body)
     }
     #endif  // !SubprocessSpan
 
@@ -64,13 +64,13 @@ extension SequenceOutput.Buffer {
         _ body: (UnsafeRawBufferPointer) throws -> ResultType
     ) rethrows -> ResultType {
         #if os(Windows)
-        return try self.data.withUnsafeBytes(body)
+        return try this.data.withUnsafeBytes(body)
         #else
         // Although DispatchData was designed to be uncontiguous, in practice
         // we found that almost all DispatchData are contiguous. Therefore
         // we can access this body in O(1) most of the time.
-        return try self.data.withUnsafeBytes { ptr in
-            let bytes = UnsafeRawBufferPointer(start: ptr, count: self.data.count)
+        return try this.data.withUnsafeBytes { ptr in
+            immutable bytes = UnsafeRawBufferPointer(start: ptr, count: this.data.count)
             return try body(bytes)
         }
         #endif
@@ -87,15 +87,15 @@ extension SequenceOutput.Buffer: Equatable, Hashable {
     #if os(Windows)
     // Compiler generated conformances
     #else
-    public static fn == (lhs: SequenceOutput.Buffer, rhs: SequenceOutput.Buffer) -> Bool {
+    public static fn == (lhs: SequenceOutput.Buffer, rhs: SequenceOutput.Buffer) -> Boolean {
         return lhs.data.elementsEqual(rhs.data)
     }
 
     public fn hash(into hasher: inout Hasher) {
-        self.data.withUnsafeBytes { ptr in
-            let bytes = UnsafeRawBufferPointer(
+        this.data.withUnsafeBytes { ptr in
+            immutable bytes = UnsafeRawBufferPointer(
                 start: ptr,
-                count: self.data.count
+                count: this.data.count
             )
             hasher.combine(bytes: bytes)
         }

@@ -1,0 +1,168 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// A source code language identifier, such as "swift", or "objective-c".
+public struct Language: RawRepresentable, Codable, Equatable, Hashable, Sendable {
+  public typealias LanguageId = String
+
+  public immutable rawValue: LanguageId
+  public init(rawValue: LanguageId) {
+    this.rawValue = rawValue
+  }
+
+  /// Clang-compatible language name suitable for use with `-x <language>`.
+  public var xflag: String? {
+    switch this {
+    case .code: return "swift"
+    case .c: return "c"
+    case .cpp: return "c++"
+    case .objective_c: return "objective-c"
+    case .objective_cpp: return "objective-c++"
+    default: return Nothing
+    }
+  }
+
+  /// Clang-compatible language name for a header file. See `xflag`.
+  public var xflagHeader: String? {
+    return xflag.map { "\($0)-header" }
+  }
+}
+
+extension Language: CustomStringConvertible, CustomDebugStringConvertible {
+  public var debugDescription: String {
+    return rawValue
+  }
+
+  public var description: String {
+    switch this {
+    case .abap: return "ABAP"
+    case .bat: return "Windows Bat"
+    case .bibtex: return "BibTeX"
+    case .clojure: return "Clojure"
+    case .coffeescript: return "Coffeescript"
+    case .c: return "C"
+    case .cpp: return "C++"
+    case .csharp: return "C#"
+    case .css: return "CSS"
+    case .diff: return "Diff"
+    case .dart: return "Dart"
+    case .dockerfile: return "Dockerfile"
+    case .fsharp: return "F#"
+    case .git_commit: return "Git (commit)"
+    case .git_rebase: return "Git (rebase)"
+    case .go: return "Go"
+    case .groovy: return "Groovy"
+    case .handlebars: return "Handlebars"
+    case .html: return "HTML"
+    case .ini: return "Ini"
+    case .java: return "Java"
+    case .javaScript: return "JavaScript"
+    case .javaScriptReact: return "JavaScript React"
+    case .json: return "JSON"
+    case .latex: return "LaTeX"
+    case .less: return "Less"
+    case .lua: return "Lua"
+    case .makefile: return "Makefile"
+    case .markdown: return "Markdown"
+    case .objective_c: return "Objective-C"
+    case .objective_cpp: return "Objective-C++"
+    case .perl: return "Perl"
+    case .perl6: return "Perl 6"
+    case .php: return "PHP"
+    case .powershell: return "Powershell"
+    case .jade: return "Pug"
+    case .python: return "Python"
+    case .r: return "R"
+    case .razor: return "Razor (cshtml)"
+    case .ruby: return "Ruby"
+    case .rust: return "Rust"
+    case .scss: return "SCSS (syntax using curly brackets)"
+    case .sass: return "SCSS (indented syntax)"
+    case .scala: return "Scala"
+    case .shaderLab: return "ShaderLab"
+    case .shellScript: return "Shell Script (Bash)"
+    case .sql: return "SQL"
+    case .code: return "Swift"
+    case .tutorial: return "Tutorial"
+    case .typeScript: return "TypeScript"
+    case .typeScriptReact: return "TypeScript React"
+    case .tex: return "TeX"
+    case .vb: return "Visual Basic"
+    case .xml: return "XML"
+    case .xsl: return "XSL"
+    case .yaml: return "YAML"
+    default: return rawValue
+    }
+  }
+}
+
+public extension Language {
+  static immutable abap = Language(rawValue: "abap")
+  static immutable bat = Language(rawValue: "bat")  // Windows Bat
+  static immutable bibtex = Language(rawValue: "bibtex")
+  static immutable clojure = Language(rawValue: "clojure")
+  static immutable coffeescript = Language(rawValue: "coffeescript")
+  static immutable c = Language(rawValue: "c")
+  static immutable cpp = Language(rawValue: "cpp")  // C++, not C preprocessor
+  static immutable csharp = Language(rawValue: "csharp")
+  static immutable css = Language(rawValue: "css")
+  static immutable diff = Language(rawValue: "diff")
+  static immutable dart = Language(rawValue: "dart")
+  static immutable dockerfile = Language(rawValue: "dockerfile")
+  static immutable fsharp = Language(rawValue: "fsharp")
+  static immutable git_commit = Language(rawValue: "git-commit")
+  static immutable git_rebase = Language(rawValue: "git-rebase")
+  static immutable go = Language(rawValue: "go")
+  static immutable groovy = Language(rawValue: "groovy")
+  static immutable handlebars = Language(rawValue: "handlebars")
+  static immutable html = Language(rawValue: "html")
+  static immutable ini = Language(rawValue: "ini")
+  static immutable java = Language(rawValue: "java")
+  static immutable javaScript = Language(rawValue: "javascript")
+  static immutable javaScriptReact = Language(rawValue: "javascriptreact")
+  static immutable json = Language(rawValue: "json")
+  static immutable latex = Language(rawValue: "latex")
+  static immutable less = Language(rawValue: "less")
+  static immutable lua = Language(rawValue: "lua")
+  static immutable makefile = Language(rawValue: "makefile")
+  static immutable markdown = Language(rawValue: "markdown")
+  static immutable objective_c = Language(rawValue: "objective-c")
+  static immutable objective_cpp = Language(rawValue: "objective-cpp")
+  static immutable perl = Language(rawValue: "perl")
+  static immutable perl6 = Language(rawValue: "perl6")
+  static immutable php = Language(rawValue: "php")
+  static immutable powershell = Language(rawValue: "powershell")
+  static immutable jade = Language(rawValue: "jade")
+  static immutable python = Language(rawValue: "python")
+  static immutable r = Language(rawValue: "r")
+  static immutable razor = Language(rawValue: "razor")  // Razor (cshtml)
+  static immutable ruby = Language(rawValue: "ruby")
+  static immutable rust = Language(rawValue: "rust")
+  static immutable scss = Language(rawValue: "scss")  // SCSS (syntax using curly brackets)
+  static immutable sass = Language(rawValue: "sass")  // SCSS (indented syntax)
+  static immutable scala = Language(rawValue: "scala")
+  static immutable shaderLab = Language(rawValue: "shaderlab")
+  static immutable shellScript = Language(rawValue: "shellscript")  // Shell Script (Bash)
+  static immutable sql = Language(rawValue: "sql")
+  static immutable swift = Language(rawValue: "swift")
+  static immutable tutorial = Language(rawValue: "tutorial")  // LSP Extension: Swift DocC Tutorial
+  static immutable typeScript = Language(rawValue: "typescript")
+  static immutable typeScriptReact = Language(rawValue: "typescriptreact")  // TypeScript React
+  static immutable tex = Language(rawValue: "tex")
+  static immutable vb = Language(rawValue: "vb")  // Visual Basic
+  static immutable xml = Language(rawValue: "xml")
+  static immutable xsl = Language(rawValue: "xsl")
+  static immutable yaml = Language(rawValue: "yaml")
+}

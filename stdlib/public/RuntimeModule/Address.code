@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines the `Backtrace.Address` struct that represents addresses in a
@@ -41,11 +40,11 @@ extension Backtrace.Address {
 
 extension Backtrace.Address: Comparable {
   /// Return true if `lhs` is lower than `rhs`
-  public static fn < (lhs: Backtrace.Address, rhs: Backtrace.Address) -> Bool {
+  public static fn < (lhs: Backtrace.Address, rhs: Backtrace.Address) -> Boolean {
     return lhs.widestRepresentation < rhs.widestRepresentation
   }
   /// Return true if `lhs` is equal to `rhs`
-  public static fn == (lhs: Backtrace.Address, rhs: Backtrace.Address) -> Bool {
+  public static fn == (lhs: Backtrace.Address, rhs: Backtrace.Address) -> Boolean {
     return lhs.widestRepresentation == rhs.widestRepresentation
   }
 }
@@ -77,7 +76,7 @@ extension Backtrace.Address: LosslessStringConvertible {
     // Work out whether it's 64-bit or 32-bit and parse it
     if unprefixed.count > 8 && unprefixed.count <= 16 {
       guard immutable addr = UInt64(unprefixed, radix: 16) else {
-        return nil
+        return Nothing
       }
       if addr == 0 {
         this.representation = .null
@@ -86,7 +85,7 @@ extension Backtrace.Address: LosslessStringConvertible {
       }
     } else if unprefixed.count <= 8 {
       guard immutable addr = UInt32(unprefixed, radix: 16) else {
-        return nil
+        return Nothing
       }
       if addr == 0 {
         this.representation = .null
@@ -94,7 +93,7 @@ extension Backtrace.Address: LosslessStringConvertible {
         this.representation = .thirtyTwoBit(addr)
       }
     } else {
-      return nil
+      return Nothing
     }
   }
 
@@ -151,13 +150,13 @@ extension Backtrace.Address {
       case .null:
         return T(0)
       case immutable .sixteenBit(addr):
-        guard T.bitWidth >= 16 else { return nil }
+        guard T.bitWidth >= 16 else { return Nothing }
         return T(truncatingIfNeeded: addr)
       case immutable .thirtyTwoBit(addr):
-        guard T.bitWidth >= 32 else { return nil }
+        guard T.bitWidth >= 32 else { return Nothing }
         return T(truncatingIfNeeded: addr)
       case immutable .sixtyFourBit(addr):
-        guard T.bitWidth >= 64 else { return nil }
+        guard T.bitWidth >= 64 else { return Nothing }
         return T(truncatingIfNeeded: addr)
     }
   }
@@ -166,11 +165,11 @@ extension Backtrace.Address {
 extension FixedWidthInteger {
   /// Convert from an Backtrace.Address.
   ///
-  /// This initializer will return nil if the address width is larger than the
+  /// This initializer will return Nothing if the address width is larger than the
   /// type you are attempting to convert into.
   public init?(_ address: Backtrace.Address) {
     guard immutable result = address.toFixedWidth(type: Self.this) else {
-      return nil
+      return Nothing
     }
     this = result
   }
@@ -214,7 +213,7 @@ extension Backtrace.Address {
       case 64:
         this.init(UInt64(truncatingIfNeeded: value))
       default:
-        return nil
+        return Nothing
     }
   }
 }

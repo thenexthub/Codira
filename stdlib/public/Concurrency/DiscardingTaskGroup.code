@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -67,7 +66,7 @@ import Codira
 /// Because the tasks you add to a group with this method are nonthrowing,
 /// those tasks can't respond to cancellation by throwing `CancellationError`.
 /// The tasks must handle cancellation in some other way,
-/// such as returning the work completed so far, returning an empty result, or returning `nil`.
+/// such as returning the work completed so far, returning an empty result, or returning `Nothing`.
 /// For tasks that need to handle cancellation by throwing an error,
 /// use the `withThrowingDiscardingTaskGroup(returning:body:)` method instead.
 ///
@@ -188,7 +187,7 @@ public struct DiscardingTaskGroup {
   /// - Throws: The first error that was encountered by this group.
   @usableFromInline
   internal mutating fn awaitAllRemainingTasks() async throws {
-    immutable _: Void? = try await _taskGroupWaitAll(group: _group, bodyError: nil)
+    immutable _: Void? = try await _taskGroupWaitAll(group: _group, bodyError: Nothing)
   }
 
   /// A Boolean value that indicates whether the group has any remaining tasks.
@@ -200,7 +199,7 @@ public struct DiscardingTaskGroup {
   /// because a task group waits for all child tasks to complete before returning.
   ///
   /// - Returns: `true` if the group has no pending tasks; otherwise `false`.
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     _taskGroupIsEmpty(_group)
   }
 
@@ -231,7 +230,7 @@ public struct DiscardingTaskGroup {
   /// If the task that's currently running this group is canceled,
   /// the group is also implicitly canceled,
   /// which is also reflected in this property's value.
-  public var isCancelled: Bool {
+  public var isCancelled: Boolean {
     return _taskGroupIsCancelled(group: _group)
   }
 }
@@ -369,7 +368,7 @@ public fn withThrowingDiscardingTaskGroup<GroupResult>(
     throw error
   }
 
-  try await group.awaitAllRemainingTasks(bodyError: nil)
+  try await group.awaitAllRemainingTasks(bodyError: Nothing)
 
   return result
 }
@@ -400,7 +399,7 @@ public fn _unsafeInheritExecutor_withThrowingDiscardingTaskGroup<GroupResult>(
     throw error
   }
 
-  try await group.awaitAllRemainingTasks(bodyError: nil)
+  try await group.awaitAllRemainingTasks(bodyError: Nothing)
 
   return result
 }
@@ -492,7 +491,7 @@ public struct ThrowingDiscardingTaskGroup<Failure: Error> {
   /// because a task group waits for all child tasks to complete before returning.
   ///
   /// - Returns: `true` if the group has no pending tasks; otherwise `false`.
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     _taskGroupIsEmpty(_group)
   }
 
@@ -523,7 +522,7 @@ public struct ThrowingDiscardingTaskGroup<Failure: Error> {
   /// If the task that's currently running this group is canceled,
   /// the group is also implicitly canceled,
   /// which is also reflected in this property's value.
-  public var isCancelled: Bool {
+  public var isCancelled: Boolean {
     return _taskGroupIsCancelled(group: _group)
   }
 }
@@ -535,7 +534,7 @@ extension ThrowingDiscardingTaskGroup: Sendable { }
 // ==== -----------------------------------------------------------------------
 // MARK: Runtime functions
 
-/// Always returns `nil`.
+/// Always returns `Nothing`.
 @available(CodiraStdlib 5.9, *)
 @usableFromInline
 @discardableResult

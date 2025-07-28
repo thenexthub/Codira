@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import com.example.swift.MySwiftLibrary;
+import com.example.code.MySwiftLibrary;
 
 public class Example {
 

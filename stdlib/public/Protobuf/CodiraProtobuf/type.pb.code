@@ -52,7 +52,7 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: ProtobufAPIVersionCheck 
 
 /// The syntax in which a protocol buffer element is defined.
 public enum Google_Protobuf_Syntax: Enum, Swift.CaseIterable {
-  public typealias RawValue = Int
+  public typealias RawValue = Integer
 
   /// Syntax `proto2`.
   case proto2 // = 0
@@ -62,32 +62,32 @@ public enum Google_Protobuf_Syntax: Enum, Swift.CaseIterable {
 
   /// Syntax `editions`.
   case editions // = 2
-  case UNRECOGNIZED(Int)
+  case UNRECOGNIZED(Integer)
 
   public init() {
-    self = .proto2
+    this = .proto2
   }
 
-  public init?(rawValue: Int) {
+  public init?(rawValue: Integer) {
     switch rawValue {
-    case 0: self = .proto2
-    case 1: self = .proto3
-    case 2: self = .editions
-    default: self = .UNRECOGNIZED(rawValue)
+    case 0: this = .proto2
+    case 1: this = .proto3
+    case 2: this = .editions
+    default: this = .UNRECOGNIZED(rawValue)
     }
   }
 
-  public var rawValue: Int {
-    switch self {
+  public var rawValue: Integer {
+    switch this {
     case .proto2: return 0
     case .proto3: return 1
     case .editions: return 2
-    case .UNRECOGNIZED(let i): return i
+    case .UNRECOGNIZED(immutable i): return i
     }
   }
 
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static let allCases: [Google_Protobuf_Syntax] = [
+  public static immutable allCases: [Google_Protobuf_Syntax] = [
     .proto2,
     .proto3,
     .editions,
@@ -119,9 +119,9 @@ public struct Google_Protobuf_Type: Sendable {
     set {_sourceContext = newValue}
   }
   /// Returns true if `sourceContext` has been explicitly set.
-  public var hasSourceContext: Bool {return self._sourceContext != nil}
+  public var hasSourceContext: Boolean {return this._sourceContext != Nothing}
   /// Clears the value of `sourceContext`. Subsequent reads from it will return its default value.
-  public mutating fn clearSourceContext() {self._sourceContext = nil}
+  public mutating fn clearSourceContext() {this._sourceContext = Nothing}
 
   /// The source syntax.
   public var syntax: Google_Protobuf_Syntax = .proto2
@@ -133,7 +133,7 @@ public struct Google_Protobuf_Type: Sendable {
 
   public init() {}
 
-  fileprivate var _sourceContext: Google_Protobuf_SourceContext? = nil
+  fileprivate var _sourceContext: Google_Protobuf_SourceContext? = Nothing
 }
 
 /// A single field of a message type.
@@ -163,7 +163,7 @@ public struct Google_Protobuf_Field: Sendable {
   public var oneofIndex: Int32 = 0
 
   /// Whether to use alternative packed wire representation.
-  public var packed: Bool = false
+  public var packed: Boolean = false
 
   /// The protocol buffer options.
   public var options: [Google_Protobuf_Option] = []
@@ -178,7 +178,7 @@ public struct Google_Protobuf_Field: Sendable {
 
   /// Basic field types.
   public enum Kind: Enum, Swift.CaseIterable {
-    public typealias RawValue = Int
+    public typealias RawValue = Integer
 
     /// Field type unknown.
     case typeUnknown // = 0
@@ -236,39 +236,39 @@ public struct Google_Protobuf_Field: Sendable {
 
     /// Field type sint64.
     case typeSint64 // = 18
-    case UNRECOGNIZED(Int)
+    case UNRECOGNIZED(Integer)
 
     public init() {
-      self = .typeUnknown
+      this = .typeUnknown
     }
 
-    public init?(rawValue: Int) {
+    public init?(rawValue: Integer) {
       switch rawValue {
-      case 0: self = .typeUnknown
-      case 1: self = .typeDouble
-      case 2: self = .typeFloat
-      case 3: self = .typeInt64
-      case 4: self = .typeUint64
-      case 5: self = .typeInt32
-      case 6: self = .typeFixed64
-      case 7: self = .typeFixed32
-      case 8: self = .typeBool
-      case 9: self = .typeString
-      case 10: self = .typeGroup
-      case 11: self = .typeMessage
-      case 12: self = .typeBytes
-      case 13: self = .typeUint32
-      case 14: self = .typeEnum
-      case 15: self = .typeSfixed32
-      case 16: self = .typeSfixed64
-      case 17: self = .typeSint32
-      case 18: self = .typeSint64
-      default: self = .UNRECOGNIZED(rawValue)
+      case 0: this = .typeUnknown
+      case 1: this = .typeDouble
+      case 2: this = .typeFloat
+      case 3: this = .typeInt64
+      case 4: this = .typeUint64
+      case 5: this = .typeInt32
+      case 6: this = .typeFixed64
+      case 7: this = .typeFixed32
+      case 8: this = .typeBool
+      case 9: this = .typeString
+      case 10: this = .typeGroup
+      case 11: this = .typeMessage
+      case 12: this = .typeBytes
+      case 13: this = .typeUint32
+      case 14: this = .typeEnum
+      case 15: this = .typeSfixed32
+      case 16: this = .typeSfixed64
+      case 17: this = .typeSint32
+      case 18: this = .typeSint64
+      default: this = .UNRECOGNIZED(rawValue)
       }
     }
 
-    public var rawValue: Int {
-      switch self {
+    public var rawValue: Integer {
+      switch this {
       case .typeUnknown: return 0
       case .typeDouble: return 1
       case .typeFloat: return 2
@@ -288,12 +288,12 @@ public struct Google_Protobuf_Field: Sendable {
       case .typeSfixed64: return 16
       case .typeSint32: return 17
       case .typeSint64: return 18
-      case .UNRECOGNIZED(let i): return i
+      case .UNRECOGNIZED(immutable i): return i
       }
     }
 
     // The compiler won't synthesize support with the UNRECOGNIZED case.
-    public static let allCases: [Google_Protobuf_Field.Kind] = [
+    public static immutable allCases: [Google_Protobuf_Field.Kind] = [
       .typeUnknown,
       .typeDouble,
       .typeFloat,
@@ -319,7 +319,7 @@ public struct Google_Protobuf_Field: Sendable {
 
   /// Whether a field is optional, required, or repeated.
   public enum Cardinality: Enum, Swift.CaseIterable {
-    public typealias RawValue = Int
+    public typealias RawValue = Integer
 
     /// For fields with unknown cardinality.
     case unknown // = 0
@@ -332,34 +332,34 @@ public struct Google_Protobuf_Field: Sendable {
 
     /// For repeated fields.
     case repeated // = 3
-    case UNRECOGNIZED(Int)
+    case UNRECOGNIZED(Integer)
 
     public init() {
-      self = .unknown
+      this = .unknown
     }
 
-    public init?(rawValue: Int) {
+    public init?(rawValue: Integer) {
       switch rawValue {
-      case 0: self = .unknown
-      case 1: self = .optional
-      case 2: self = .required
-      case 3: self = .repeated
-      default: self = .UNRECOGNIZED(rawValue)
+      case 0: this = .unknown
+      case 1: this = .optional
+      case 2: this = .required
+      case 3: this = .repeated
+      default: this = .UNRECOGNIZED(rawValue)
       }
     }
 
-    public var rawValue: Int {
-      switch self {
+    public var rawValue: Integer {
+      switch this {
       case .unknown: return 0
       case .optional: return 1
       case .required: return 2
       case .repeated: return 3
-      case .UNRECOGNIZED(let i): return i
+      case .UNRECOGNIZED(immutable i): return i
       }
     }
 
     // The compiler won't synthesize support with the UNRECOGNIZED case.
-    public static let allCases: [Google_Protobuf_Field.Cardinality] = [
+    public static immutable allCases: [Google_Protobuf_Field.Cardinality] = [
       .unknown,
       .optional,
       .required,
@@ -392,9 +392,9 @@ public struct Google_Protobuf_Enum: Sendable {
     set {_sourceContext = newValue}
   }
   /// Returns true if `sourceContext` has been explicitly set.
-  public var hasSourceContext: Bool {return self._sourceContext != nil}
+  public var hasSourceContext: Boolean {return this._sourceContext != Nothing}
   /// Clears the value of `sourceContext`. Subsequent reads from it will return its default value.
-  public mutating fn clearSourceContext() {self._sourceContext = nil}
+  public mutating fn clearSourceContext() {this._sourceContext = Nothing}
 
   /// The source syntax.
   public var syntax: Google_Protobuf_Syntax = .proto2
@@ -406,7 +406,7 @@ public struct Google_Protobuf_Enum: Sendable {
 
   public init() {}
 
-  fileprivate var _sourceContext: Google_Protobuf_SourceContext? = nil
+  fileprivate var _sourceContext: Google_Protobuf_SourceContext? = Nothing
 }
 
 /// Enum value definition.
@@ -451,42 +451,42 @@ public struct Google_Protobuf_Option: Sendable {
     set {_value = newValue}
   }
   /// Returns true if `value` has been explicitly set.
-  public var hasValue: Bool {return self._value != nil}
+  public var hasValue: Boolean {return this._value != Nothing}
   /// Clears the value of `value`. Subsequent reads from it will return its default value.
-  public mutating fn clearValue() {self._value = nil}
+  public mutating fn clearValue() {this._value = Nothing}
 
   public var unknownFields = UnknownStorage()
 
   public init() {}
 
-  fileprivate var _value: Google_Protobuf_Any? = nil
+  fileprivate var _value: Google_Protobuf_Any? = Nothing
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "google.protobuf"
+fileprivate immutable _protobuf_package = "google.protobuf"
 
 extension Google_Protobuf_Syntax: _ProtoNameProviding {
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0SYNTAX_PROTO2\0\u{1}SYNTAX_PROTO3\0\u{1}SYNTAX_EDITIONS\0")
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0SYNTAX_PROTO2\0\u{1}SYNTAX_PROTO3\0\u{1}SYNTAX_EDITIONS\0")
 }
 
 extension Google_Protobuf_Type: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Type"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}fields\0\u{1}oneofs\0\u{1}options\0\u{3}source_context\0\u{1}syntax\0\u{1}edition\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Type"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}fields\0\u{1}oneofs\0\u{1}options\0\u{3}source_context\0\u{1}syntax\0\u{1}edition\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.fields) }()
-      case 3: try { try decoder.decodeRepeatedStringField(value: &self.oneofs) }()
-      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.options) }()
-      case 5: try { try decoder.decodeSingularMessageField(value: &self._sourceContext) }()
-      case 6: try { try decoder.decodeSingularEnumField(value: &self.syntax) }()
-      case 7: try { try decoder.decodeSingularStringField(value: &self.edition) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this.name) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &this.fields) }()
+      case 3: try { try decoder.decodeRepeatedStringField(value: &this.oneofs) }()
+      case 4: try { try decoder.decodeRepeatedMessageField(value: &this.options) }()
+      case 5: try { try decoder.decodeSingularMessageField(value: &this._sourceContext) }()
+      case 6: try { try decoder.decodeSingularEnumField(value: &this.syntax) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &this.edition) }()
       default: break
       }
     }
@@ -497,31 +497,31 @@ extension Google_Protobuf_Type: Message, _MessageImplementationBase, _ProtoNameP
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    if !this.name.isEmpty {
+      try visitor.visitSingularStringField(value: this.name, fieldNumber: 1)
     }
-    if !self.fields.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.fields, fieldNumber: 2)
+    if !this.fields.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.fields, fieldNumber: 2)
     }
-    if !self.oneofs.isEmpty {
-      try visitor.visitRepeatedStringField(value: self.oneofs, fieldNumber: 3)
+    if !this.oneofs.isEmpty {
+      try visitor.visitRepeatedStringField(value: this.oneofs, fieldNumber: 3)
     }
-    if !self.options.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.options, fieldNumber: 4)
+    if !this.options.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.options, fieldNumber: 4)
     }
-    try { if let v = self._sourceContext {
+    try { if immutable v = this._sourceContext {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     } }()
-    if self.syntax != .proto2 {
-      try visitor.visitSingularEnumField(value: self.syntax, fieldNumber: 6)
+    if this.syntax != .proto2 {
+      try visitor.visitSingularEnumField(value: this.syntax, fieldNumber: 6)
     }
-    if !self.edition.isEmpty {
-      try visitor.visitSingularStringField(value: self.edition, fieldNumber: 7)
+    if !this.edition.isEmpty {
+      try visitor.visitSingularStringField(value: this.edition, fieldNumber: 7)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Type, rhs: Google_Protobuf_Type) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Type, rhs: Google_Protobuf_Type) -> Boolean {
     if lhs.name != rhs.name {return false}
     if lhs.fields != rhs.fields {return false}
     if lhs.oneofs != rhs.oneofs {return false}
@@ -535,65 +535,65 @@ extension Google_Protobuf_Type: Message, _MessageImplementationBase, _ProtoNameP
 }
 
 extension Google_Protobuf_Field: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Field"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}kind\0\u{1}cardinality\0\u{1}number\0\u{1}name\0\u{4}\u{2}type_url\0\u{3}oneof_index\0\u{1}packed\0\u{1}options\0\u{3}json_name\0\u{3}default_value\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Field"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}kind\0\u{1}cardinality\0\u{1}number\0\u{1}name\0\u{4}\u{2}type_url\0\u{3}oneof_index\0\u{1}packed\0\u{1}options\0\u{3}json_name\0\u{3}default_value\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularEnumField(value: &self.kind) }()
-      case 2: try { try decoder.decodeSingularEnumField(value: &self.cardinality) }()
-      case 3: try { try decoder.decodeSingularInt32Field(value: &self.number) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.typeURL) }()
-      case 7: try { try decoder.decodeSingularInt32Field(value: &self.oneofIndex) }()
-      case 8: try { try decoder.decodeSingularBoolField(value: &self.packed) }()
-      case 9: try { try decoder.decodeRepeatedMessageField(value: &self.options) }()
-      case 10: try { try decoder.decodeSingularStringField(value: &self.jsonName) }()
-      case 11: try { try decoder.decodeSingularStringField(value: &self.defaultValue) }()
+      case 1: try { try decoder.decodeSingularEnumField(value: &this.kind) }()
+      case 2: try { try decoder.decodeSingularEnumField(value: &this.cardinality) }()
+      case 3: try { try decoder.decodeSingularInt32Field(value: &this.number) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &this.name) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &this.typeURL) }()
+      case 7: try { try decoder.decodeSingularInt32Field(value: &this.oneofIndex) }()
+      case 8: try { try decoder.decodeSingularBoolField(value: &this.packed) }()
+      case 9: try { try decoder.decodeRepeatedMessageField(value: &this.options) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &this.jsonName) }()
+      case 11: try { try decoder.decodeSingularStringField(value: &this.defaultValue) }()
       default: break
       }
     }
   }
 
   public fn traverse<V: Visitor>(visitor: inout V) throws {
-    if self.kind != .typeUnknown {
-      try visitor.visitSingularEnumField(value: self.kind, fieldNumber: 1)
+    if this.kind != .typeUnknown {
+      try visitor.visitSingularEnumField(value: this.kind, fieldNumber: 1)
     }
-    if self.cardinality != .unknown {
-      try visitor.visitSingularEnumField(value: self.cardinality, fieldNumber: 2)
+    if this.cardinality != .unknown {
+      try visitor.visitSingularEnumField(value: this.cardinality, fieldNumber: 2)
     }
-    if self.number != 0 {
-      try visitor.visitSingularInt32Field(value: self.number, fieldNumber: 3)
+    if this.number != 0 {
+      try visitor.visitSingularInt32Field(value: this.number, fieldNumber: 3)
     }
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 4)
+    if !this.name.isEmpty {
+      try visitor.visitSingularStringField(value: this.name, fieldNumber: 4)
     }
-    if !self.typeURL.isEmpty {
-      try visitor.visitSingularStringField(value: self.typeURL, fieldNumber: 6)
+    if !this.typeURL.isEmpty {
+      try visitor.visitSingularStringField(value: this.typeURL, fieldNumber: 6)
     }
-    if self.oneofIndex != 0 {
-      try visitor.visitSingularInt32Field(value: self.oneofIndex, fieldNumber: 7)
+    if this.oneofIndex != 0 {
+      try visitor.visitSingularInt32Field(value: this.oneofIndex, fieldNumber: 7)
     }
-    if self.packed != false {
-      try visitor.visitSingularBoolField(value: self.packed, fieldNumber: 8)
+    if this.packed != false {
+      try visitor.visitSingularBoolField(value: this.packed, fieldNumber: 8)
     }
-    if !self.options.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.options, fieldNumber: 9)
+    if !this.options.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.options, fieldNumber: 9)
     }
-    if !self.jsonName.isEmpty {
-      try visitor.visitSingularStringField(value: self.jsonName, fieldNumber: 10)
+    if !this.jsonName.isEmpty {
+      try visitor.visitSingularStringField(value: this.jsonName, fieldNumber: 10)
     }
-    if !self.defaultValue.isEmpty {
-      try visitor.visitSingularStringField(value: self.defaultValue, fieldNumber: 11)
+    if !this.defaultValue.isEmpty {
+      try visitor.visitSingularStringField(value: this.defaultValue, fieldNumber: 11)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Field, rhs: Google_Protobuf_Field) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Field, rhs: Google_Protobuf_Field) -> Boolean {
     if lhs.kind != rhs.kind {return false}
     if lhs.cardinality != rhs.cardinality {return false}
     if lhs.number != rhs.number {return false}
@@ -610,29 +610,29 @@ extension Google_Protobuf_Field: Message, _MessageImplementationBase, _ProtoName
 }
 
 extension Google_Protobuf_Field.Kind: _ProtoNameProviding {
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0TYPE_UNKNOWN\0\u{1}TYPE_DOUBLE\0\u{1}TYPE_FLOAT\0\u{1}TYPE_INT64\0\u{1}TYPE_UINT64\0\u{1}TYPE_INT32\0\u{1}TYPE_FIXED64\0\u{1}TYPE_FIXED32\0\u{1}TYPE_BOOL\0\u{1}TYPE_STRING\0\u{1}TYPE_GROUP\0\u{1}TYPE_MESSAGE\0\u{1}TYPE_BYTES\0\u{1}TYPE_UINT32\0\u{1}TYPE_ENUM\0\u{1}TYPE_SFIXED32\0\u{1}TYPE_SFIXED64\0\u{1}TYPE_SINT32\0\u{1}TYPE_SINT64\0")
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0TYPE_UNKNOWN\0\u{1}TYPE_DOUBLE\0\u{1}TYPE_FLOAT\0\u{1}TYPE_INT64\0\u{1}TYPE_UINT64\0\u{1}TYPE_INT32\0\u{1}TYPE_FIXED64\0\u{1}TYPE_FIXED32\0\u{1}TYPE_BOOL\0\u{1}TYPE_STRING\0\u{1}TYPE_GROUP\0\u{1}TYPE_MESSAGE\0\u{1}TYPE_BYTES\0\u{1}TYPE_UINT32\0\u{1}TYPE_ENUM\0\u{1}TYPE_SFIXED32\0\u{1}TYPE_SFIXED64\0\u{1}TYPE_SINT32\0\u{1}TYPE_SINT64\0")
 }
 
 extension Google_Protobuf_Field.Cardinality: _ProtoNameProviding {
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0CARDINALITY_UNKNOWN\0\u{1}CARDINALITY_OPTIONAL\0\u{1}CARDINALITY_REQUIRED\0\u{1}CARDINALITY_REPEATED\0")
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{2}\0CARDINALITY_UNKNOWN\0\u{1}CARDINALITY_OPTIONAL\0\u{1}CARDINALITY_REQUIRED\0\u{1}CARDINALITY_REPEATED\0")
 }
 
 extension Google_Protobuf_Enum: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Enum"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}enumvalue\0\u{1}options\0\u{3}source_context\0\u{1}syntax\0\u{1}edition\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Enum"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}enumvalue\0\u{1}options\0\u{3}source_context\0\u{1}syntax\0\u{1}edition\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.enumvalue) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.options) }()
-      case 4: try { try decoder.decodeSingularMessageField(value: &self._sourceContext) }()
-      case 5: try { try decoder.decodeSingularEnumField(value: &self.syntax) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.edition) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this.name) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &this.enumvalue) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &this.options) }()
+      case 4: try { try decoder.decodeSingularMessageField(value: &this._sourceContext) }()
+      case 5: try { try decoder.decodeSingularEnumField(value: &this.syntax) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &this.edition) }()
       default: break
       }
     }
@@ -643,28 +643,28 @@ extension Google_Protobuf_Enum: Message, _MessageImplementationBase, _ProtoNameP
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    if !this.name.isEmpty {
+      try visitor.visitSingularStringField(value: this.name, fieldNumber: 1)
     }
-    if !self.enumvalue.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.enumvalue, fieldNumber: 2)
+    if !this.enumvalue.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.enumvalue, fieldNumber: 2)
     }
-    if !self.options.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.options, fieldNumber: 3)
+    if !this.options.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.options, fieldNumber: 3)
     }
-    try { if let v = self._sourceContext {
+    try { if immutable v = this._sourceContext {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
     } }()
-    if self.syntax != .proto2 {
-      try visitor.visitSingularEnumField(value: self.syntax, fieldNumber: 5)
+    if this.syntax != .proto2 {
+      try visitor.visitSingularEnumField(value: this.syntax, fieldNumber: 5)
     }
-    if !self.edition.isEmpty {
-      try visitor.visitSingularStringField(value: self.edition, fieldNumber: 6)
+    if !this.edition.isEmpty {
+      try visitor.visitSingularStringField(value: this.edition, fieldNumber: 6)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Enum, rhs: Google_Protobuf_Enum) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Enum, rhs: Google_Protobuf_Enum) -> Boolean {
     if lhs.name != rhs.name {return false}
     if lhs.enumvalue != rhs.enumvalue {return false}
     if lhs.options != rhs.options {return false}
@@ -677,37 +677,37 @@ extension Google_Protobuf_Enum: Message, _MessageImplementationBase, _ProtoNameP
 }
 
 extension Google_Protobuf_EnumValue: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".EnumValue"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}number\0\u{1}options\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".EnumValue"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}number\0\u{1}options\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeSingularInt32Field(value: &self.number) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.options) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this.name) }()
+      case 2: try { try decoder.decodeSingularInt32Field(value: &this.number) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &this.options) }()
       default: break
       }
     }
   }
 
   public fn traverse<V: Visitor>(visitor: inout V) throws {
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    if !this.name.isEmpty {
+      try visitor.visitSingularStringField(value: this.name, fieldNumber: 1)
     }
-    if self.number != 0 {
-      try visitor.visitSingularInt32Field(value: self.number, fieldNumber: 2)
+    if this.number != 0 {
+      try visitor.visitSingularInt32Field(value: this.number, fieldNumber: 2)
     }
-    if !self.options.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.options, fieldNumber: 3)
+    if !this.options.isEmpty {
+      try visitor.visitRepeatedMessageField(value: this.options, fieldNumber: 3)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_EnumValue, rhs: Google_Protobuf_EnumValue) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_EnumValue, rhs: Google_Protobuf_EnumValue) -> Boolean {
     if lhs.name != rhs.name {return false}
     if lhs.number != rhs.number {return false}
     if lhs.options != rhs.options {return false}
@@ -717,17 +717,17 @@ extension Google_Protobuf_EnumValue: Message, _MessageImplementationBase, _Proto
 }
 
 extension Google_Protobuf_Option: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Option"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}value\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Option"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{1}name\0\u{1}value\0")
 
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
+    while immutable fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._value) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &this.name) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &this._value) }()
       default: break
       }
     }
@@ -738,16 +738,16 @@ extension Google_Protobuf_Option: Message, _MessageImplementationBase, _ProtoNam
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    if !this.name.isEmpty {
+      try visitor.visitSingularStringField(value: this.name, fieldNumber: 1)
     }
-    try { if let v = self._value {
+    try { if immutable v = this._value {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Option, rhs: Google_Protobuf_Option) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Option, rhs: Google_Protobuf_Option) -> Boolean {
     if lhs.name != rhs.name {return false}
     if lhs._value != rhs._value {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}

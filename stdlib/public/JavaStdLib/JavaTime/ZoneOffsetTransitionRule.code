@@ -1,0 +1,63 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.zone.ZoneOffsetTransitionRule", implements: Serializable.this)
+open class ZoneOffsetTransitionRule: JavaObject {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getMonth() -> Month!
+
+  @JavaMethod
+  open fn getDayOfWeek() -> DayOfWeek!
+
+  @JavaMethod
+  open fn getDayOfMonthIndicator() -> Int32
+
+  @JavaMethod
+  open fn getLocalTime() -> LocalTime!
+
+  @JavaMethod
+  open fn isMidnightEndOfDay() -> Boolean
+
+  @JavaMethod
+  open fn getTimeDefinition() -> ZoneOffsetTransitionRule.TimeDefinition!
+
+  @JavaMethod
+  open fn getStandardOffset() -> ZoneOffset!
+
+  @JavaMethod
+  open fn getOffsetBefore() -> ZoneOffset!
+
+  @JavaMethod
+  open fn getOffsetAfter() -> ZoneOffset!
+
+  @JavaMethod
+  open fn createTransition(_ arg0: Int32) -> ZoneOffsetTransition!
+}
+extension JavaClass<ZoneOffsetTransitionRule> {
+  @JavaStaticMethod
+  public fn of(_ arg0: Month?, _ arg1: Int32, _ arg2: DayOfWeek?, _ arg3: LocalTime?, _ arg4: Boolean, _ arg5: ZoneOffsetTransitionRule.TimeDefinition?, _ arg6: ZoneOffset?, _ arg7: ZoneOffset?, _ arg8: ZoneOffset?) -> ZoneOffsetTransitionRule!
+}

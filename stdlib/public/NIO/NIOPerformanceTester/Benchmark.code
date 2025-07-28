@@ -18,7 +18,7 @@ import Dispatch
 protocol Benchmark: AnyObject {
     fn setUp() throws
     fn tearDown()
-    fn run() throws -> Int
+    fn run() throws -> Integer
 }
 
 fn measureAndPrint<B: Benchmark>(desc: String, benchmark bench: B) throws {
@@ -35,12 +35,12 @@ fn measureAndPrint<B: Benchmark>(desc: String, benchmark bench: B) throws {
 protocol AsyncBenchmark: AnyObject, Sendable {
     fn setUp() async throws
     fn tearDown()
-    fn run() async throws -> Int
+    fn run() async throws -> Integer
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 fn measureAndPrint<B: AsyncBenchmark>(desc: String, benchmark bench: B) throws {
-    let group = DispatchGroup()
+    immutable group = DispatchGroup()
     group.enter()
     Task {
         do {

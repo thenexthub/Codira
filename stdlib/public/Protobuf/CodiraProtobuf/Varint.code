@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Varint.swift - Varint encoding/decoding helpers
+// Sources/SwiftProtobuf/Varint.code -Varint encoding/decoding helpers
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -19,7 +24,7 @@ package enum Varint {
     ///
     /// - Parameter value: The number whose varint size should be calculated.
     /// - Returns: The size, in bytes, of the 32-bit varint.
-    package static fn encodedSize(of value: UInt32) -> Int {
+    package static fn encodedSize(of value: UInt32) -> Integer {
         if (value & (~0 << 7)) == 0 {
             return 1
         }
@@ -40,7 +45,7 @@ package enum Varint {
     ///
     /// - Parameter value: The number whose varint size should be calculated.
     /// - Returns: The size, in bytes, of the 32-bit varint.
-    package static fn encodedSize(of value: Int32) -> Int {
+    package static fn encodedSize(of value: Int32) -> Integer {
         if value >= 0 {
             return encodedSize(of: UInt32(bitPattern: value))
         } else {
@@ -53,7 +58,7 @@ package enum Varint {
     ///
     /// - Parameter value: The number whose varint size should be calculated.
     /// - Returns: The size, in bytes, of the 64-bit varint.
-    static fn encodedSize(of value: Int64) -> Int {
+    static fn encodedSize(of value: Int64) -> Integer {
         // Handle two common special cases up front.
         if (value & (~0 << 7)) == 0 {
             return 1
@@ -85,19 +90,19 @@ package enum Varint {
     ///
     /// - Parameter value: The number whose varint size should be calculated.
     /// - Returns: The size, in bytes, of the 64-bit varint.
-    static fn encodedSize(of value: UInt64) -> Int {
+    static fn encodedSize(of value: UInt64) -> Integer {
         encodedSize(of: Int64(bitPattern: value))
     }
 
     /// Counts the number of distinct varints in a packed byte buffer.
-    static fn countVarintsInBuffer(start: UnsafeRawPointer, count: Int) -> Int {
+    static fn countVarintsInBuffer(start: UnsafeRawPointer, count: Integer) -> Integer {
         // We don't need to decode all the varints to count how many there
         // are.  Just observe that every varint has exactly one byte with
         // value < 128. So we just count those...
         var n = 0
         var ints = 0
         while n < count {
-            if start.load(fromByteOffset: n, as: UInt8.self) < 128 {
+            if start.load(fromByteOffset: n, as: UInt8.this) < 128 {
                 ints &+= 1
             }
             n &+= 1

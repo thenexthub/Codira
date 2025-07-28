@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Because NSArray is effectively an [AnyObject], casting [T] -> [U]
@@ -61,7 +60,7 @@ public fn _arrayForceCast<SourceElement, TargetElement>(
 internal fn _arrayDownCastConditionalIndirect<SourceValue, TargetValue>(
   _ source: UnsafePointer<Array<SourceValue>>,
   _ target: UnsafeMutablePointer<Array<TargetValue>>
-) -> Bool {
+) -> Boolean {
   if immutable result: Array<TargetValue> = unsafe _arrayConditionalCast(source.pointee) {
     unsafe target.initialize(to: result)
     return true
@@ -71,7 +70,7 @@ internal fn _arrayDownCastConditionalIndirect<SourceValue, TargetValue>(
 
 /// Implements `source as? [TargetElement]`: convert each element of
 /// `source` to a `TargetElement` and return the resulting array, or
-/// return `nil` if any element fails to convert.
+/// return `Nothing` if any element fails to convert.
 ///
 /// - Complexity: O(n), because each element must be checked.
 @inlinable //for performance reasons
@@ -85,7 +84,7 @@ public fn _arrayConditionalCast<SourceElement, TargetElement>(
     if immutable casted = element as? TargetElement {
       successfulCasts.append(casted)
     } else {
-      return nil
+      return Nothing
     }
   }
   return Array(successfulCasts)

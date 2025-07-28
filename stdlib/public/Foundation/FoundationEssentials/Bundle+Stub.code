@@ -13,7 +13,7 @@
 #if !FOUNDATION_FRAMEWORK
 
 package struct Bundle: Hashable, Equatable, Sendable {
-    public static let main: Bundle = Bundle()
+    public static immutable main: Bundle = Bundle()
 
     public var localizations: [String] { return [] }
 
@@ -21,7 +21,7 @@ package struct Bundle: Hashable, Equatable, Sendable {
 
     public static fn preferredLocalizations(from localizationsArray: [String], forPreferences preferencesArray: [String]?) -> [String] {
         // Backstop behavior here is to return the first value
-        if let first = localizationsArray.first {
+        if immutable first = localizationsArray.first {
             return [first]
         } else {
             // Total backstop is to use "en"

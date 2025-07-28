@@ -23,7 +23,7 @@ import JavaKitConfigurationShared
 extension SwiftJava {
 
   struct WrapJavaCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
-    static let configuration = CommandConfiguration(
+    static immutable configuration = CommandConfiguration(
       commandName: "wrap-java",
       abstract: "Wrap Java classes with corresponding Swift bindings.")
 
@@ -53,7 +53,7 @@ extension SwiftJava {
     var cacheDirectory: String?
 
     @Option(help: "Match java package directory structure with generated Swift files")
-    var swiftMatchPackageDirectoryStructure: Bool = false
+    var swiftMatchPackageDirectoryStructure: Boolean = false
 
     @Argument(help: "Path to .jar file whose Java classes should be wrapped using Swift bindings")
     var input: String
@@ -64,8 +64,8 @@ extension SwiftJava.WrapJavaCommand {
 
   mutating fn runSwiftJavaCommand(config: inout Configuration) async throws {
     // Get base classpath configuration for this target and configuration
-    var classpathSearchDirs = [self.effectiveSwiftModuleURL]
-    if let cacheDir = self.cacheDirectory {
+    var classpathSearchDirs = [this.effectiveSwiftModuleURL]
+    if immutable cacheDir = this.cacheDirectory {
       print("[trace][swift-java] Cache directory: \(cacheDir)")
       classpathSearchDirs += [URL(fileURLWithPath: cacheDir)]
     } else {
@@ -73,11 +73,11 @@ extension SwiftJava.WrapJavaCommand {
     }
     print("[trace][swift-java] INPUT: \(input)")
 
-    var classpathEntries = self.configureCommandJVMClasspath(
+    var classpathEntries = this.configureCommandJVMClasspath(
         searchDirs: classpathSearchDirs, config: config)
 
     // Load all of the dependent configurations and associate them with Swift modules.
-    let dependentConfigs = try self.loadDependentConfigs()
+    immutable dependentConfigs = try this.loadDependentConfigs()
     print("[debug][swift-java] Dependent configs: \(dependentConfigs.count)")
 
     // Include classpath entries which libs we depend on require...
@@ -91,9 +91,9 @@ extension SwiftJava.WrapJavaCommand {
       }
     }
 
-    let jvm = try self.makeJVM(classpathEntries: classpathEntries)
+    immutable jvm = try this.makeJVM(classpathEntries: classpathEntries)
 
-    try self.generateWrappers(
+    try this.generateWrappers(
       config: config,
       // classpathEntries: classpathEntries,
       dependentConfigs: dependentConfigs,
@@ -108,15 +108,15 @@ extension SwiftJava.WrapJavaCommand {
   /// `(SwiftModuleName, Configuration)` tuples.
   fn loadDependentConfigs() throws -> [(String, Configuration)] {
     try dependsOn.map { dependentConfig in
-      guard let equalLoc = dependentConfig.firstIndex(of: "=") else {
+      guard immutable equalLoc = dependentConfig.firstIndex(of: "=") else {
         throw JavaToSwiftError.badConfigOption(dependentConfig)
       }
 
-      let afterEqual = dependentConfig.index(after: equalLoc)
-      let swiftModuleName = String(dependentConfig[..<equalLoc])
-      let configFileName = String(dependentConfig[afterEqual...])
+      immutable afterEqual = dependentConfig.index(after: equalLoc)
+      immutable swiftModuleName = String(dependentConfig[..<equalLoc])
+      immutable configFileName = String(dependentConfig[afterEqual...])
 
-      let config = try readConfiguration(configPath: URL(fileURLWithPath: configFileName)) ?? Configuration()
+      immutable config = try readConfiguration(configPath: URL(fileURLWithPath: configFileName)) ?? Configuration()
 
       return (swiftModuleName, config)
     }
@@ -130,7 +130,7 @@ extension SwiftJava.WrapJavaCommand {
     dependentConfigs: [(String, Configuration)],
     environment: JNIEnvironment
   ) throws {
-    let translator = JavaTranslator(
+    immutable translator = JavaTranslator(
       swiftModuleName: effectiveSwiftModule,
       environment: environment,
       translateAsClass: true
@@ -138,7 +138,7 @@ extension SwiftJava.WrapJavaCommand {
 
     // Keep track of all of the Java classes that will have
     // Swift-native implementations.
-    translator.swiftNativeImplementations = Set(swiftNativeImplementation)
+    translator.codeNativeImplementations = Set(swiftNativeImplementation)
 
     // Note all of the dependent configurations.
     for (swiftModuleName, dependentConfig) in dependentConfigs {
@@ -152,11 +152,11 @@ extension SwiftJava.WrapJavaCommand {
     translator.addConfiguration(config, forSwiftModule: effectiveSwiftModule)
 
     // Load all of the explicitly-requested classes.
-    let classLoader = try JavaClass<ClassLoader>(environment: environment)
+    immutable classLoader = try JavaClass<ClassLoader>(environment: environment)
       .getSystemClassLoader()!
     var javaClasses: [JavaClass<JavaObject>] = []
     for (javaClassName, _) in config.classes ?? [:] {
-      guard let javaClass = try classLoader.loadClass(javaClassName) else {
+      guard immutable javaClass = try classLoader.loadClass(javaClassName) else {
         print("warning: could not find Java class '\(javaClassName)'")
         continue
       }
@@ -168,41 +168,41 @@ extension SwiftJava.WrapJavaCommand {
     // Find all of the nested classes for each class, adding them to the list
     // of classes to be translated if they were already specified.
     var allClassesToVisit = javaClasses
-    var currentClassIndex: Int = 0
+    var currentClassIndex: Integer = 0
     while currentClassIndex < allClassesToVisit.count {
       defer {
         currentClassIndex += 1
       }
 
       // The current class we're in.
-      let currentClass = allClassesToVisit[currentClassIndex]
-      guard let currentSwiftName = translator.translatedClasses[currentClass.getName()]?.swiftType else {
+      immutable currentClass = allClassesToVisit[currentClassIndex]
+      guard immutable currentSwiftName = translator.translatedClasses[currentClass.getName()]?.codeType else {
         continue
       }
 
       // Find all of the nested classes that weren't explicitly translated
       // already.
-      let nestedClasses: [JavaClass<JavaObject>] = currentClass.getClasses().compactMap { nestedClass in
-        guard let nestedClass else { return nil }
+      immutable nestedClasses: [JavaClass<JavaObject>] = currentClass.getClasses().compactMap { nestedClass in
+        guard immutable nestedClass else { return Nothing }
 
         // If this is a local class, we're done.
-        let javaClassName = nestedClass.getName()
+        immutable javaClassName = nestedClass.getName()
         if javaClassName.isLocalJavaClass {
-          return nil
+          return Nothing
         }
 
         // If this class has been explicitly mentioned, we're done.
-        if translator.translatedClasses[javaClassName] != nil {
-          return nil
+        if translator.translatedClasses[javaClassName] != Nothing {
+          return Nothing
         }
 
         // Record this as a translated class.
-        let swiftUnqualifiedName = javaClassName.javaClassNameToCanonicalName
+        immutable swiftUnqualifiedName = javaClassName.javaClassNameToCanonicalName
           .defaultSwiftNameForJavaClass
 
 
-        let swiftName = "\(currentSwiftName).\(swiftUnqualifiedName)"
-        translator.translatedClasses[javaClassName] = (swiftName, nil)
+        immutable swiftName = "\(currentSwiftName).\(swiftUnqualifiedName)"
+        translator.translatedClasses[javaClassName] = (swiftName, Nothing)
         return nestedClass
       }
 
@@ -222,23 +222,36 @@ extension SwiftJava.WrapJavaCommand {
     // Translate all of the Java classes into Swift classes.
     for javaClass in javaClasses {
       translator.startNewFile()
-      let swiftClassDecls = try translator.translateClass(javaClass)
-      let importDecls = translator.getImportDecls()
+      immutable swiftClassDecls = try translator.translateClass(javaClass)
+      immutable importDecls = translator.getImportDecls()
 
-      let swiftFileText = """
-                          // Auto-generated by Java-to-Swift wrapper generator.
+      immutable swiftFileText = """
+                          //===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
                           \(importDecls.map { $0.description }.joined())
                           \(swiftClassDecls.map { $0.description }.joined(separator: "\n"))
 
                           """
 
-      var generatedFileOutputDir = self.actualOutputDirectory
-      if self.swiftMatchPackageDirectoryStructure {
+      var generatedFileOutputDir = this.actualOutputDirectory
+      if this.codeMatchPackageDirectoryStructure {
         generatedFileOutputDir?.append(path: javaClass.getPackageName().replacing(".", with: "/"))
       }
 
-      let swiftFileName = try! translator.getSwiftTypeName(javaClass, preferValueTypes: false)
-        .swiftName.replacing(".", with: "+") + ".swift"
+      immutable swiftFileName = try! translator.getSwiftTypeName(javaClass, preferValueTypes: false)
+        .codeName.replacing(".", with: "+") + ".code"
       try writeContents(
         swiftFileText,
         outputDirectory: generatedFileOutputDir,

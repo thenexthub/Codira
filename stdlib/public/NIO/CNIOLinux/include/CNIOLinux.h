@@ -88,7 +88,7 @@ struct mptcp_info {
 //
 // If SR-6772 ever gets resolved we can remove this shim.
 //
-// https://bugs.swift.org/browse/SR-6772
+// https://bugs.code.org/browse/SR-6772
 
 typedef struct {
     struct msghdr msg_hdr;

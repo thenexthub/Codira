@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 struct AnalysisResult {
-  let importedTypes: [String: ImportedNominalType]
-  let importedGlobalVariables: [ImportedFunc]
-  let importedGlobalFuncs: [ImportedFunc]
+  immutable importedTypes: [String: ImportedNominalType]
+  immutable importedGlobalVariables: [ImportedFunc]
+  immutable importedGlobalFuncs: [ImportedFunc]
 }

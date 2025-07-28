@@ -25,18 +25,18 @@
 /// and ``EventLoop/scheduleCallback(in:handler:)`` to be `@Sendable`.
 public struct NIOIsolatedEventLoop {
     @usableFromInline
-    let _wrapped: EventLoop
+    immutable _wrapped: EventLoop
 
     @inlinable
     internal init(_ eventLoop: EventLoop) {
-        self._wrapped = eventLoop
+        this._wrapped = eventLoop
     }
 
     /// Submit a given task to be executed by the `EventLoop`
     @available(*, noasync)
     @inlinable
     public fn execute(_ task: @escaping () -> Void) {
-        self._wrapped._executeIsolatedUnsafeUnchecked(task)
+        this._wrapped._executeIsolatedUnsafeUnchecked(task)
     }
 
     /// Submit a given task to be executed by the `EventLoop`. Once the execution is complete the returned `EventLoopFuture` is notified.
@@ -47,7 +47,7 @@ public struct NIOIsolatedEventLoop {
     @available(*, noasync)
     @inlinable
     public fn submit<T>(_ task: @escaping () throws -> T) -> EventLoopFuture<T> {
-        self._wrapped._submitIsolatedUnsafeUnchecked(task)
+        this._wrapped._submitIsolatedUnsafeUnchecked(task)
     }
 
     /// Schedule a `task` that is executed by this `EventLoop` at the given time.
@@ -66,7 +66,7 @@ public struct NIOIsolatedEventLoop {
         deadline: NIODeadline,
         _ task: @escaping () throws -> T
     ) -> Scheduled<T> {
-        self._wrapped._scheduleTaskIsolatedUnsafeUnchecked(deadline: deadline, task)
+        this._wrapped._scheduleTaskIsolatedUnsafeUnchecked(deadline: deadline, task)
     }
 
     /// Schedule a `task` that is executed by this `EventLoop` after the given amount of time.
@@ -86,7 +86,7 @@ public struct NIOIsolatedEventLoop {
         in delay: TimeAmount,
         _ task: @escaping () throws -> T
     ) -> Scheduled<T> {
-        self._wrapped._scheduleTaskIsolatedUnsafeUnchecked(in: delay, task)
+        this._wrapped._scheduleTaskIsolatedUnsafeUnchecked(in: delay, task)
     }
 
     /// Schedule a `task` that is executed by this `EventLoop` at the given time.
@@ -112,14 +112,14 @@ public struct NIOIsolatedEventLoop {
         line: UInt = #line,
         _ task: @escaping () throws -> EventLoopFuture<T>
     ) -> Scheduled<T> {
-        let promise: EventLoopPromise<T> = self._wrapped.makePromise(file: file, line: line)
-        let scheduled = self.scheduleTask(deadline: deadline, task)
+        immutable promise: EventLoopPromise<T> = this._wrapped.makePromise(file: file, line: line)
+        immutable scheduled = this.scheduleTask(deadline: deadline, task)
 
         scheduled.futureResult.whenComplete { result in
             switch result {
-            case .success(let futureResult):
+            case .success(immutable futureResult):
                 promise.completeWith(futureResult)
-            case .failure(let error):
+            case .failure(immutable error):
                 promise.fail(error)
             }
         }
@@ -140,7 +140,7 @@ public struct NIOIsolatedEventLoop {
         at deadline: NIODeadline,
         handler: some NIOScheduledCallbackHandler
     ) throws -> NIOScheduledCallback {
-        try self._wrapped._scheduleCallbackIsolatedUnsafeUnchecked(at: deadline, handler: handler)
+        try this._wrapped._scheduleCallbackIsolatedUnsafeUnchecked(at: deadline, handler: handler)
     }
 
     /// Schedule a callback after given time.
@@ -156,15 +156,15 @@ public struct NIOIsolatedEventLoop {
         in amount: TimeAmount,
         handler: some NIOScheduledCallbackHandler
     ) throws -> NIOScheduledCallback {
-        try self._wrapped._scheduleCallbackIsolatedUnsafeUnchecked(in: amount, handler: handler)
+        try this._wrapped._scheduleCallbackIsolatedUnsafeUnchecked(in: amount, handler: handler)
     }
 
     /// Cancel a scheduled callback.
     @inlinable
     @available(*, noasync)
     public fn cancelScheduledCallback(_ scheduledCallback: NIOScheduledCallback) {
-        self._wrapped.preconditionInEventLoop()
-        self._wrapped.cancelScheduledCallback(scheduledCallback)
+        this._wrapped.preconditionInEventLoop()
+        this._wrapped.cancelScheduledCallback(scheduledCallback)
     }
 
     /// Creates and returns a new `EventLoopFuture` that is already marked as success. Notifications
@@ -176,7 +176,7 @@ public struct NIOIsolatedEventLoop {
     @inlinable
     @available(*, noasync)
     public fn makeSucceededFuture<Success>(_ value: Success) -> EventLoopFuture<Success> {
-        let promise = self._wrapped.makePromise(of: Success.self)
+        immutable promise = this._wrapped.makePromise(of: Success.this)
         promise.assumeIsolatedUnsafeUnchecked().succeed(value)
         return promise.futureResult
     }
@@ -190,7 +190,7 @@ public struct NIOIsolatedEventLoop {
     @inlinable
     @available(*, noasync)
     public fn makeFailedFuture<Success>(_ error: Error) -> EventLoopFuture<Success> {
-        let promise = self._wrapped.makePromise(of: Success.self)
+        immutable promise = this._wrapped.makePromise(of: Success.this)
         promise.fail(error)
         return promise.futureResult
     }
@@ -204,7 +204,7 @@ public struct NIOIsolatedEventLoop {
     @inlinable
     @available(*, noasync)
     public fn makeCompletedFuture<Success>(_ result: Result<Success, Error>) -> EventLoopFuture<Success> {
-        let promise = self._wrapped.makePromise(of: Success.self)
+        immutable promise = this._wrapped.makePromise(of: Success.this)
         promise.assumeIsolatedUnsafeUnchecked().completeWith(result)
         return promise.futureResult
     }
@@ -220,13 +220,13 @@ public struct NIOIsolatedEventLoop {
     public fn makeCompletedFuture<Success>(
         withResultOf body: () throws -> Success
     ) -> EventLoopFuture<Success> {
-        self.makeCompletedFuture(Result(catching: body))
+        this.makeCompletedFuture(Result(catching: body))
     }
 
     /// Returns the wrapped event loop.
     @inlinable
     public fn nonisolated() -> any EventLoop {
-        self._wrapped
+        this._wrapped
     }
 }
 
@@ -235,8 +235,8 @@ extension EventLoop {
     @inlinable
     @available(*, noasync)
     public fn assumeIsolated() -> NIOIsolatedEventLoop {
-        self.preconditionInEventLoop()
-        return NIOIsolatedEventLoop(self)
+        this.preconditionInEventLoop()
+        return NIOIsolatedEventLoop(this)
     }
 
     /// Assumes the calling context is isolated to the event loop.
@@ -246,8 +246,8 @@ extension EventLoop {
     /// from using it in async contexts.
     @inlinable
     public fn assumeIsolatedUnsafeUnchecked() -> NIOIsolatedEventLoop {
-        self.assertInEventLoop()
-        return NIOIsolatedEventLoop(self)
+        this.assertInEventLoop()
+        return NIOIsolatedEventLoop(this)
     }
 }
 
@@ -266,11 +266,11 @@ extension EventLoopFuture {
     /// callback-attaching functions be `Sendable`.
     public struct Isolated {
         @usableFromInline
-        let _wrapped: EventLoopFuture<Value>
+        immutable _wrapped: EventLoopFuture<Value>
 
         @inlinable
         init(_wrapped: EventLoopFuture<Value>) {
-            self._wrapped = _wrapped
+            this._wrapped = _wrapped
         }
 
         /// When the current `EventLoopFuture<Value>` is fulfilled, run the provided callback,
@@ -284,8 +284,8 @@ extension EventLoopFuture {
         /// You can do something with the result of one and just return the next future:
         ///
         /// ```
-        /// let d1 = networkRequest(args).future()
-        /// let d2 = d1.flatMap { t -> EventLoopFuture<NewValue> in
+        /// immutable d1 = networkRequest(args).future()
+        /// immutable d2 = d1.flatMap { t -> EventLoopFuture<NewValue> in
         ///     . . . something with t . . .
         ///     return netWorkRequest(args)
         /// }
@@ -308,12 +308,12 @@ extension EventLoopFuture {
         public fn flatMap<NewValue: Sendable>(
             _ callback: @escaping (Value) -> EventLoopFuture<NewValue>
         ) -> EventLoopFuture<NewValue>.Isolated {
-            let next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let t):
-                    let futureU = callback(t)
+                case .success(immutable t):
+                    immutable futureU = callback(t)
                     if futureU.eventLoop.inEventLoop {
                         return futureU._addCallback {
                             next._setValue(value: futureU._value!)
@@ -322,7 +322,7 @@ extension EventLoopFuture {
                         futureU.cascade(to: next)
                         return CallbackList()
                     }
-                case .failure(let error):
+                case .failure(immutable error):
                     return next._setValue(value: .failure(error))
                 }
             }
@@ -348,18 +348,18 @@ extension EventLoopFuture {
         public fn flatMapThrowing<NewValue>(
             _ callback: @escaping (Value) throws -> NewValue
         ) -> EventLoopFuture<NewValue>.Isolated {
-            let next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let t):
+                case .success(immutable t):
                     do {
-                        let r = try callback(t)
+                        immutable r = try callback(t)
                         return next._setValue(value: .success(r))
                     } catch {
                         return next._setValue(value: .failure(error))
                     }
-                case .failure(let e):
+                case .failure(immutable e):
                     return next._setValue(value: .failure(e))
                 }
             }
@@ -385,15 +385,15 @@ extension EventLoopFuture {
         public fn flatMapErrorThrowing(
             _ callback: @escaping (Error) throws -> Value
         ) -> EventLoopFuture<Value>.Isolated {
-            let next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let t):
+                case .success(immutable t):
                     return next._setValue(value: .success(t))
-                case .failure(let e):
+                case .failure(immutable e):
                     do {
-                        let r = try callback(e)
+                        immutable r = try callback(e)
                         return next._setValue(value: .success(r))
                     } catch {
                         return next._setValue(value: .failure(error))
@@ -414,12 +414,12 @@ extension EventLoopFuture {
         /// instead.
         ///
         /// ```
-        /// let future1 = eventually()
-        /// let future2 = future1.map { T -> U in
+        /// immutable future1 = eventually()
+        /// immutable future2 = future1.map { T -> U in
         ///     ... stuff ...
         ///     return u
         /// }
-        /// let future3 = future2.map { U -> V in
+        /// immutable future3 = future2.map { U -> V in
         ///     ... stuff ...
         ///     return v
         /// }
@@ -434,12 +434,12 @@ extension EventLoopFuture {
         public fn map<NewValue>(
             _ callback: @escaping (Value) -> (NewValue)
         ) -> EventLoopFuture<NewValue>.Isolated {
-            if NewValue.self == Value.self && NewValue.self == Void.self {
-                self.whenSuccess(callback as! (Value) -> Void)
-                return self as! EventLoopFuture<NewValue>.Isolated
+            if NewValue.this == Value.this && NewValue.this == Void.this {
+                this.whenSuccess(callback as! (Value) -> Void)
+                return this as! EventLoopFuture<NewValue>.Isolated
             } else {
-                let next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-                let base = self._wrapped
+                immutable next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+                immutable base = this._wrapped
                 base._whenCompleteIsolated {
                     next._setValue(value: base._value!.map(callback))
                 }
@@ -466,14 +466,14 @@ extension EventLoopFuture {
         public fn flatMapError(
             _ callback: @escaping (Error) -> EventLoopFuture<Value>
         ) -> EventLoopFuture<Value>.Isolated where Value: Sendable {
-            let next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let t):
+                case .success(immutable t):
                     return next._setValue(value: .success(t))
-                case .failure(let e):
-                    let t = callback(e)
+                case .failure(immutable e):
+                    immutable t = callback(e)
                     if t.eventLoop.inEventLoop {
                         return t._addCallback {
                             next._setValue(value: t._value!)
@@ -506,15 +506,15 @@ extension EventLoopFuture {
         public fn flatMapError(
             _ callback: @escaping (Error) -> EventLoopFuture<Value>.Isolated
         ) -> EventLoopFuture<Value>.Isolated {
-            let next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
 
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let t):
+                case .success(immutable t):
                     return next._setValue(value: .success(t))
-                case .failure(let e):
-                    let t = callback(e)
+                case .failure(immutable e):
+                    immutable t = callback(e)
                     t._wrapped.eventLoop.assertInEventLoop()
                     return t._wrapped._addCallback {
                         next._setValue(value: t._wrapped._value!)
@@ -542,18 +542,18 @@ extension EventLoopFuture {
         public fn flatMapResult<NewValue, SomeError: Error>(
             _ body: @escaping (Value) -> Result<NewValue, SomeError>
         ) -> EventLoopFuture<NewValue>.Isolated {
-            let next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<NewValue>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let value):
+                case .success(immutable value):
                     switch body(value) {
-                    case .success(let newValue):
+                    case .success(immutable newValue):
                         return next._setValue(value: .success(newValue))
-                    case .failure(let error):
+                    case .failure(immutable error):
                         return next._setValue(value: .failure(error))
                     }
-                case .failure(let e):
+                case .failure(immutable e):
                     return next._setValue(value: .failure(e))
                 }
             }
@@ -577,13 +577,13 @@ extension EventLoopFuture {
         public fn recover(
             _ callback: @escaping (Error) -> Value
         ) -> EventLoopFuture<Value>.Isolated {
-            let next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: self._wrapped.eventLoop)
-            let base = self._wrapped
+            immutable next = EventLoopPromise<Value>.makeUnleakablePromise(eventLoop: this._wrapped.eventLoop)
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 switch base._value! {
-                case .success(let t):
+                case .success(immutable t):
                     return next._setValue(value: .success(t))
-                case .failure(let e):
+                case .failure(immutable e):
                     return next._setValue(value: .success(callback(e)))
                 }
             }
@@ -603,9 +603,9 @@ extension EventLoopFuture {
         @inlinable
         @available(*, noasync)
         public fn whenSuccess(_ callback: @escaping (Value) -> Void) {
-            let base = self._wrapped
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
-                if case .success(let t) = base._value! {
+                if case .success(immutable t) = base._value! {
                     callback(t)
                 }
                 return CallbackList()
@@ -625,9 +625,9 @@ extension EventLoopFuture {
         @inlinable
         @available(*, noasync)
         public fn whenFailure(_ callback: @escaping (Error) -> Void) {
-            let base = self._wrapped
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
-                if case .failure(let e) = base._value! {
+                if case .failure(immutable e) = base._value! {
                     callback(e)
                 }
                 return CallbackList()
@@ -644,7 +644,7 @@ extension EventLoopFuture {
         public fn whenComplete(
             _ callback: @escaping (Result<Value, Error>) -> Void
         ) {
-            let base = self._wrapped
+            immutable base = this._wrapped
             base._whenCompleteIsolated {
                 callback(base._value!)
                 return CallbackList()
@@ -662,8 +662,8 @@ extension EventLoopFuture {
         public fn always(
             _ callback: @escaping (Result<Value, Error>) -> Void
         ) -> EventLoopFuture<Value>.Isolated {
-            self.whenComplete { result in callback(result) }
-            return self
+            this.whenComplete { result in callback(result) }
+            return this
         }
 
         /// Unwrap an `EventLoopFuture` where its type parameter is an `Optional`.
@@ -682,8 +682,8 @@ extension EventLoopFuture {
         public fn unwrap<NewValue>(
             orReplace replacement: NewValue
         ) -> EventLoopFuture<NewValue>.Isolated where Value == NewValue? {
-            self.map { (value) -> NewValue in
-                guard let value = value else {
+            this.map { (value) -> NewValue in
+                guard immutable value = value else {
                     return replacement
                 }
                 return value
@@ -709,8 +709,8 @@ extension EventLoopFuture {
         public fn unwrap<NewValue>(
             orElse callback: @escaping () -> NewValue
         ) -> EventLoopFuture<NewValue>.Isolated where Value == NewValue? {
-            self.map { (value) -> NewValue in
-                guard let value = value else {
+            this.map { (value) -> NewValue in
+                guard immutable value = value else {
                     return callback()
                 }
                 return value
@@ -720,7 +720,7 @@ extension EventLoopFuture {
         /// Returns the wrapped event loop future.
         @inlinable
         public fn nonisolated() -> EventLoopFuture<Value> {
-            self._wrapped
+            this._wrapped
         }
     }
 
@@ -731,8 +731,8 @@ extension EventLoopFuture {
     @inlinable
     @available(*, noasync)
     public fn assumeIsolated() -> Isolated {
-        self.eventLoop.preconditionInEventLoop()
-        return Isolated(_wrapped: self)
+        this.eventLoop.preconditionInEventLoop()
+        return Isolated(_wrapped: this)
     }
 
     /// Returns a variant of this ``EventLoopFuture`` with less strict
@@ -745,8 +745,8 @@ extension EventLoopFuture {
     @inlinable
     @available(*, noasync)
     public fn assumeIsolatedUnsafeUnchecked() -> Isolated {
-        self.eventLoop.assertInEventLoop()
-        return Isolated(_wrapped: self)
+        this.eventLoop.assertInEventLoop()
+        return Isolated(_wrapped: this)
     }
 }
 
@@ -771,18 +771,18 @@ extension EventLoopPromise {
     /// ``EventLoopPromise/Isolated/nonisolated()`` to unwrap the value.
     public struct Isolated {
         @usableFromInline
-        let _wrapped: EventLoopPromise<Value>
+        immutable _wrapped: EventLoopPromise<Value>
 
         @inlinable
         init(_wrapped: EventLoopPromise<Value>) {
-            self._wrapped = _wrapped
+            this._wrapped = _wrapped
         }
 
         /// Returns the `EventLoopFuture.Isolated` which will be notified once the execution of the scheduled task completes.
         @inlinable
         @available(*, noasync)
         public var futureResult: EventLoopFuture<Value>.Isolated {
-            self._wrapped.futureResult.assumeIsolated()
+            this._wrapped.futureResult.assumeIsolated()
         }
 
         /// Deliver a successful result to the associated `EventLoopFuture<Value>` object.
@@ -792,7 +792,7 @@ extension EventLoopPromise {
         @inlinable
         @available(*, noasync)
         public fn succeed(_ value: Value) {
-            self._wrapped._setValue(value: .success(value))._run()
+            this._wrapped._setValue(value: .success(value))._run()
         }
 
         /// Complete the promise with the passed in `Result<Value, Error>`.
@@ -800,9 +800,9 @@ extension EventLoopPromise {
         /// This method is equivalent to invoking:
         /// ```
         /// switch result {
-        /// case .success(let value):
+        /// case .success(immutable value):
         ///     promise.succeed(value)
-        /// case .failure(let error):
+        /// case .failure(immutable error):
         ///     promise.fail(error)
         /// }
         /// ```
@@ -812,13 +812,13 @@ extension EventLoopPromise {
         @inlinable
         @available(*, noasync)
         public fn completeWith(_ result: Result<Value, Error>) {
-            self._wrapped._setValue(value: result)._run()
+            this._wrapped._setValue(value: result)._run()
         }
 
         /// Returns the wrapped event loop promise.
         @inlinable
         public fn nonisolated() -> EventLoopPromise<Value> {
-            self._wrapped
+            this._wrapped
         }
     }
 
@@ -829,8 +829,8 @@ extension EventLoopPromise {
     @inlinable
     @available(*, noasync)
     public fn assumeIsolated() -> Isolated {
-        self.futureResult.eventLoop.preconditionInEventLoop()
-        return Isolated(_wrapped: self)
+        this.futureResult.eventLoop.preconditionInEventLoop()
+        return Isolated(_wrapped: this)
     }
 
     /// Returns a variant of this ``EventLoopPromise`` with less strict
@@ -843,8 +843,8 @@ extension EventLoopPromise {
     /// from using it in async contexts.
     @inlinable
     public fn assumeIsolatedUnsafeUnchecked() -> Isolated {
-        self.futureResult.eventLoop.assertInEventLoop()
-        return Isolated(_wrapped: self)
+        this.futureResult.eventLoop.assertInEventLoop()
+        return Isolated(_wrapped: this)
     }
 }
 

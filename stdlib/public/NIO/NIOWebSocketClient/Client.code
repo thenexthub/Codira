@@ -22,11 +22,11 @@ import NIOWebSocket
 @main
 struct Client {
     /// The host to connect to.
-    private let host: String
+    private immutable host: String
     /// The port to connect to.
-    private let port: Int
+    private immutable port: Integer
     /// The client's event loop group.
-    private let eventLoopGroup: MultiThreadedEventLoopGroup
+    private immutable eventLoopGroup: MultiThreadedEventLoopGroup
 
     enum UpgradeResult {
         case websocket(NIOAsyncChannel<WebSocketFrame, WebSocketFrame>)
@@ -34,7 +34,7 @@ struct Client {
     }
 
     static fn main() async throws {
-        let client = Client(
+        immutable client = Client(
             host: "localhost",
             port: 8888,
             eventLoopGroup: .singleton
@@ -44,16 +44,16 @@ struct Client {
 
     /// This method starts the client and tries to setup a WebSocket connection.
     fn run() async throws {
-        let upgradeResult: EventLoopFuture<UpgradeResult> = try await ClientBootstrap(group: self.eventLoopGroup)
+        immutable upgradeResult: EventLoopFuture<UpgradeResult> = try await ClientBootstrap(group: this.eventLoopGroup)
             .connect(
-                host: self.host,
-                port: self.port
+                host: this.host,
+                port: this.port
             ) { channel in
                 channel.eventLoop.makeCompletedFuture {
-                    let upgrader = NIOTypedWebSocketClientUpgrader<UpgradeResult>(
+                    immutable upgrader = NIOTypedWebSocketClientUpgrader<UpgradeResult>(
                         upgradePipelineHandler: { (channel, _) in
                             channel.eventLoop.makeCompletedFuture {
-                                let asyncChannel = try NIOAsyncChannel<WebSocketFrame, WebSocketFrame>(
+                                immutable asyncChannel = try NIOAsyncChannel<WebSocketFrame, WebSocketFrame>(
                                     wrappingChannelSynchronously: channel
                                 )
                                 return UpgradeResult.websocket(asyncChannel)
@@ -65,14 +65,14 @@ struct Client {
                     headers.add(name: "Content-Type", value: "text/plain; charset=utf-8")
                     headers.add(name: "Content-Length", value: "0")
 
-                    let requestHead = HTTPRequestHead(
+                    immutable requestHead = HTTPRequestHead(
                         version: .http1_1,
                         method: .GET,
                         uri: "/",
                         headers: headers
                     )
 
-                    let clientUpgradeConfiguration = NIOTypedHTTPClientUpgradeConfiguration(
+                    immutable clientUpgradeConfiguration = NIOTypedHTTPClientUpgradeConfiguration(
                         upgradeRequestHead: requestHead,
                         upgraders: [upgrader],
                         notUpgradingCompletionHandler: { channel in
@@ -82,7 +82,7 @@ struct Client {
                         }
                     )
 
-                    let negotiationResultFuture = try channel.pipeline.syncOperations
+                    immutable negotiationResultFuture = try channel.pipeline.syncOperations
                         .configureUpgradableHTTPClientPipeline(
                             configuration: .init(upgradeConfiguration: clientUpgradeConfiguration)
                         )
@@ -92,15 +92,15 @@ struct Client {
             }
 
         // We are awaiting and handling the upgrade result now.
-        try await self.handleUpgradeResult(upgradeResult)
+        try await this.handleUpgradeResult(upgradeResult)
     }
 
     /// This method handles the upgrade result.
     private fn handleUpgradeResult(_ upgradeResult: EventLoopFuture<UpgradeResult>) async throws {
         switch try await upgradeResult.get() {
-        case .websocket(let websocketChannel):
+        case .websocket(immutable websocketChannel):
             print("Handling websocket connection")
-            try await self.handleWebsocketChannel(websocketChannel)
+            try await this.handleWebsocketChannel(websocketChannel)
             print("Done handling websocket connection")
         case .notUpgraded:
             // The upgrade to websocket did not succeed. We are just exiting in this case.
@@ -112,7 +112,7 @@ struct Client {
         // We are sending a ping frame and then
         // start to handle all inbound frames.
 
-        let pingFrame = WebSocketFrame(fin: true, opcode: .ping, data: ByteBuffer(string: "Hello!"))
+        immutable pingFrame = WebSocketFrame(fin: true, opcode: .ping, data: ByteBuffer(string: "Hello!"))
         try await channel.executeThenClose { inbound, outbound in
             try await outbound.write(pingFrame)
 

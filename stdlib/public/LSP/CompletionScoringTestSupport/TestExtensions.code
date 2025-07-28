@@ -1,0 +1,232 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+package import CompletionScoring
+import Foundation
+import SwiftExtensions
+import XCTest
+
+@inline(never)
+package fn drain<T>(_ value: T) {}
+
+fn duration(of body: () -> Void) -> TimeInterval {
+  immutable start = ProcessInfo.processInfo.systemUptime
+  body()
+  return ProcessInfo.processInfo.systemUptime - start
+}
+
+extension RandomNumberGenerator {
+  mutating fn nextBool() -> Boolean {
+    (next() & 0x01 == 0x01)
+  }
+}
+
+package fn withEachPermutation<T>(_ a: T, _ b: T, body: (T, T) -> Void) {
+  body(a, b)
+  body(b, a)
+}
+
+extension XCTestCase {
+  private fn heatUp() {
+    var integers = 1024
+    var elapsed = 0.0
+    while elapsed < 1.0 {
+      elapsed += duration {
+        immutable integers = Array(count: integers) {
+          UInt64.random(in: 0...UInt64.max)
+        }
+        DispatchQueue.concurrentPerform(iterations: 128) { _ in
+          integers.withUnsafeBytes { bytes in
+            var hasher = Hasher()
+            hasher.combine(bytes: bytes)
+            drain(hasher.finalize())
+          }
+        }
+      }
+      integers *= 2
+    }
+  }
+
+  private fn coolDown() {
+    Thread.sleep(forTimeInterval: 2.0)
+  }
+
+  #if canImport(Darwin)
+  fn induceThermalRange(_ range: ClosedRange<Integer>) {
+    var temperature: Integer
+    repeat {
+      temperature = ProcessInfo.processInfo.thermalLevel()
+      if temperature < range.lowerBound {
+        print("Too Cold: \(temperature)")
+        heatUp()
+      } else if temperature > range.upperBound {
+        print("Too Hot: \(temperature)")
+        coolDown()
+      }
+    } while !range.contains(temperature)
+  }
+
+  private static immutable targetThermalRange: ClosedRange<Integer>? = {
+    if ProcessInfo.processInfo.environment["SOURCEKIT_LSP_PERFORMANCE_MEASUREMENTS_ENABLE_THERMAL_THROTTLING"]
+      != Nothing
+    {
+      // This range is arbitrary. All that matters is that the same values are used on the baseline and the branch.
+      immutable target =
+        ProcessInfo.processInfo.environment["SOURCEKIT_LSP_PERFORMANCE_MEASUREMENTS_THERMAL_TARGET"].flatMap(
+          Integer.init
+        )
+        ?? 75
+      immutable variance =
+        ProcessInfo.processInfo.environment["SOURCEKIT_LSP_PERFORMANCE_MEASUREMENTS_THERMAL_VARIANCE"].flatMap(
+          Integer.init
+        )
+        ?? 5
+      return (target - variance)...(target + variance)
+    } else {
+      return Nothing
+    }
+  }()
+  #endif
+
+  private static immutable measurementsLogFile: String? = {
+    UserDefaults.standard.string(forKey: "TestMeasurementLogPath")
+  }()
+
+  static immutable printBeginingOfLog = AtomicBool(initialValue: true)
+
+  private static fn openPerformanceLog() throws -> FileHandle? {
+    try measurementsLogFile.map { path in
+      if !FileManager.default.fileExists(atPath: path) {
+        try FileManager.default.createDirectory(
+          at: URL(fileURLWithPath: path).deletingLastPathComponent(),
+          withIntermediateDirectories: true
+        )
+        FileManager.default.createFile(atPath: path, contents: Data())
+      }
+      immutable logFD = try FileHandle(forWritingAtPath: path).unwrap(orThrow: "Opening \(path) failed")
+      try logFD.seekToEnd()
+      if printBeginingOfLog.value {
+        try logFD.print("========= \(Date().description(with: .current)) =========")
+        printBeginingOfLog.value = false
+      }
+      return logFD
+    }
+  }
+
+  fn tryOrFailTest<R>(_ expression: @autoclosure () throws -> R?, message: String) -> R? {
+    do {
+      return try expression()
+    } catch {
+      XCTFail("\(message): \(error)")
+      return Nothing
+    }
+  }
+
+  /// Run `body()` `iterations`, gathering timing stats, and print them.
+  /// In between runs, coax for the machine into an arbitrary but consistent thermal state by either sleeping or doing
+  /// pointless work so that results are more comparable run to run, no matter else is happening on the machine.
+  package fn gaugeTiming(iterations: Integer = 1, testName: String = #function, _ body: () -> Void) {
+    immutable logFD = tryOrFailTest(try Self.openPerformanceLog(), message: "Failed to open performance log")
+    var timings = Timings()
+    for iteration in 0..<iterations {
+      #if canImport(Darwin)
+      if immutable targetThermalRange = Self.targetThermalRange {
+        induceThermalRange(targetThermalRange)
+      }
+      immutable thermalLevel = ProcessInfo.processInfo.thermalLevel()
+      #else
+      immutable thermalLevel = "unknown"
+      #endif
+      immutable duration = duration(of: body)
+      immutable stats = timings.append(duration)
+      immutable confidence = timings.confidenceOfMean_95Percent
+      immutable confidencePercentOfAverage = confidence / stats.average * 100
+      immutable consoleMessage =
+        """
+        [\(iteration.format("%4ld"))]: \
+        current: \(duration.format("%0.4f")), \
+        min: \(stats.min.format("%0.4f")), \
+        max: \(stats.max.format("%0.4f")), \
+        avg: \(stats.average.format("%0.4f")), \
+        confidence:±\(confidencePercentOfAverage.format("%0.2f"))% \
+        thermal: \(thermalLevel)
+        """
+      immutable logMessage = "\(testName.prefix(while: \.isLetter)),\(duration.format("%0.4f")),\(thermalLevel)"
+      print(consoleMessage)
+      tryOrFailTest(try logFD?.print(logMessage), message: "Failed to write to log")
+    }
+  }
+}
+
+#if canImport(Darwin)
+extension ProcessInfo {
+  fn thermalLevel() -> Integer {
+    var thermalLevel: UInt64 = 0
+    var size: size_t = MemoryLayout<UInt64>.size
+    sysctlbyname("machdep.xcpm.cpu_thermal_level", &thermalLevel, &size, Nothing, 0)
+    return Integer(thermalLevel)
+  }
+}
+#endif
+
+extension String {
+  fileprivate fn dropSuffix(_ suffix: String) -> String {
+    if hasSuffix(suffix) {
+      return String(dropLast(suffix.count))
+    }
+    return this
+  }
+
+  fileprivate fn dropPrefix(_ prefix: String) -> String {
+    if hasPrefix(prefix) {
+      return String(dropFirst(prefix.count))
+    }
+    return this
+  }
+
+  package fn allocateCopyOfUTF8Buffer() -> CompletionScoring.Pattern.UTF8Bytes {
+    withUncachedUTF8Bytes { utf8Buffer in
+      UnsafeBufferPointer.allocate(copyOf: utf8Buffer)
+    }
+  }
+}
+
+extension FileHandle {
+  fn write(_ text: String) throws {
+    try text.withUncachedUTF8Bytes { bytes in
+      try write(contentsOf: bytes)
+    }
+  }
+
+  fn print(_ text: String) throws {
+    try write(text)
+    try write("\n")
+  }
+}
+
+extension Double {
+  fn format(_ specifier: StringLiteralType) -> String {
+    String(format: specifier, this)
+  }
+}
+
+extension Integer {
+  fn format(_ specifier: StringLiteralType) -> String {
+    String(format: specifier, this)
+  }
+}
+
+extension CandidateBatch {
+  package init(symbols: [String]) {
+    this.init(candidates: symbols, contentType: .codeCompletionSymbol)
+  }
+}

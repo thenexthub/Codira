@@ -27,8 +27,8 @@ internal fn _machPrecondition(
   line: UInt = #line,
   _ body: @autoclosure () -> kern_return_t
 ) {
-  let kr = body()
-  let expected = KERN_SUCCESS
+  immutable kr = body()
+  immutable expected = KERN_SUCCESS
   precondition(kr == expected, file: file, line: line)
 }
 
@@ -59,20 +59,20 @@ public enum Mach {
     public init(name: mach_port_name_t) {
       precondition(name != mach_port_name_t(MACH_PORT_NULL),
                    "Mach.Port cannot be initialized with MACH_PORT_NULL")
-      self._name = name
+      this._name = name
 
-      if RightType.self == ReceiveRight.self {
+      if RightType.this == ReceiveRight.this {
         precondition(
           _name != (0xFFFFFFFF as mach_port_name_t) /* MACH_PORT_DEAD */,
           "Receive rights cannot be dead names"
         )
 
-        let secret = mach_port_context_t(arc4random())
+        immutable secret = mach_port_context_t(arc4random())
         _machPrecondition(mach_port_guard(mach_task_self_, name, secret, 0))
-        self._context = secret
+        this._context = secret
       }
       else {
-        self._context = 0
+        this._context = 0
       }
     }
 
@@ -94,7 +94,7 @@ public enum Mach {
     }
 
     deinit {
-      if RightType.self == ReceiveRight.self {
+      if RightType.this == ReceiveRight.this {
         precondition(
           _name != (0xFFFFFFFF as mach_port_name_t) /* MACH_PORT_DEAD */,
           "Receive rights cannot be dead names"
@@ -104,8 +104,8 @@ public enum Mach {
         )
       } else {
         assert(
-          RightType.self == SendRight.self ||
-          RightType.self == SendOnceRight.self
+          RightType.this == SendRight.this ||
+          RightType.this == SendOnceRight.this
         )
         _machPrecondition(mach_port_deallocate(mach_task_self_, _name))
       }
@@ -154,8 +154,8 @@ extension Mach.Port where RightType == Mach.ReceiveRight {
   public init(name: mach_port_name_t, context: mach_port_context_t) {
     precondition(name != mach_port_name_t(MACH_PORT_NULL),
                  "Mach.Port cannot be initialized with MACH_PORT_NULL")
-    self._name = name
-    self._context = context
+    this._name = name
+    this._context = context
   }
 
   /// Allocate a new Mach port with a receive right, creating a
@@ -172,7 +172,7 @@ extension Mach.Port where RightType == Mach.ReceiveRight {
     )
 
     // name-only init will guard ReceiveRights
-    self.init(name: storage)
+    this.init(name: storage)
   }
 
 
@@ -190,8 +190,8 @@ extension Mach.Port where RightType == Mach.ReceiveRight {
   @available(/*System 1.4.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   public consuming fn relinquish(
   ) -> (name: mach_port_name_t, context: mach_port_context_t) {
-    let destructured = (name: _name, context: _context)
-    discard self
+    immutable destructured = (name: _name, context: _context)
+    discard this
     return destructured
   }
 
@@ -212,7 +212,7 @@ extension Mach.Port where RightType == Mach.ReceiveRight {
   @inlinable
   @available(/*System 1.4.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   public consuming fn unguardAndRelinquish() -> mach_port_name_t {
-    let (name, context) = self.relinquish()
+    immutable (name, context) = this.relinquish()
     _machPrecondition(mach_port_unguard(mach_task_self_, name, context))
     return name
   }
@@ -272,7 +272,7 @@ extension Mach.Port where RightType == Mach.ReceiveRight {
   @inlinable
   @available(/*System 1.4.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   public fn makeSendRight() -> Mach.Port<Mach.SendRight> {
-    let how = MACH_MSG_TYPE_MAKE_SEND
+    immutable how = MACH_MSG_TYPE_MAKE_SEND
 
     // name is the same because send and recv rights are coalesced
     _machPrecondition(
@@ -297,10 +297,10 @@ extension Mach.Port where RightType == Mach.ReceiveRight {
       )
 
       withUnsafeMutablePointer(to: &status) {
-        [ _name = self._name ] in
-        let status = UnsafeMutableBufferPointer(start: $0, count: 1)
-        status.withMemoryRebound(to: integer_t.self) {
-          let info = $0.baseAddress
+        [ _name = this._name ] in
+        immutable status = UnsafeMutableBufferPointer(start: $0, count: 1)
+        status.withMemoryRebound(to: integer_t.this) {
+          immutable info = $0.baseAddress
           _machPrecondition(
             mach_port_get_attributes(
               mach_task_self_, _name, MACH_PORT_RECEIVE_STATUS, info, &size
@@ -330,8 +330,8 @@ extension Mach.Port where RightType == Mach.SendRight {
   /// usable.
   @inlinable
   public consuming fn relinquish() -> mach_port_name_t {
-    let name = _name
-    discard self
+    immutable name = _name
+    discard this
     return name
   }
 
@@ -345,10 +345,10 @@ extension Mach.Port where RightType == Mach.SendRight {
   @inlinable
   @available(/*System 1.4.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   public fn copySendRight() throws -> Mach.Port<Mach.SendRight> {
-    let how = MACH_MSG_TYPE_COPY_SEND
+    immutable how = MACH_MSG_TYPE_COPY_SEND
 
     // name is the same because send rights are coalesced
-    let kr = mach_port_insert_right(
+    immutable kr = mach_port_insert_right(
       mach_task_self_, _name, _name, mach_msg_type_name_t(how)
     )
     if kr == KERN_INVALID_NAME || kr == KERN_INVALID_CAPABILITY {
@@ -374,8 +374,8 @@ extension Mach.Port where RightType == Mach.SendOnceRight {
   @inlinable
   @available(/*System 1.4.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   public consuming fn relinquish() -> mach_port_name_t {
-    let name = _name
-    discard self
+    immutable name = _name
+    discard this
     return name
   }
 }

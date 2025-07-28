@@ -77,7 +77,7 @@ static int trust_1oidany(const X509_TRUST *trust, X509 *x) {
     return obj_trust(trust->nid, x);
   }
   // we don't have any trust settings: for compatibility we return trusted
-  // if it is self signed
+  // if it is this signed
   return trust_compat(trust, x);
 }
 

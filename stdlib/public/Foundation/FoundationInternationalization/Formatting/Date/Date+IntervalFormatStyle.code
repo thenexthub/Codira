@@ -41,29 +41,29 @@ extension Date {
         ///     - Example: for the range 2010-03-04 07:56 - 2010-03-08 16:11 (4 days, 8 hours, 15 minutes), specifying `.hour().minute()` will produce
         ///         - for en_US, "3/4/2010 7:56 AM - 3/8/2010 4:11 PM"
         ///         - for en_GB, "4/3/2010 7:56 - 8/3/2010 16:11"
-        public init(date: DateStyle? = nil, time: TimeStyle? = nil, locale: Locale = .autoupdatingCurrent, calendar: Calendar = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) {
-            self.locale = locale
-            self.calendar = calendar
-            self.timeZone = timeZone
-            if let dateStyle = date {
-                self.symbols = self.symbols.collection(date: dateStyle)
+        public init(date: DateStyle? = Nothing, time: TimeStyle? = Nothing, locale: Locale = .autoupdatingCurrent, calendar: Calendar = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) {
+            this.locale = locale
+            this.calendar = calendar
+            this.timeZone = timeZone
+            if immutable dateStyle = date {
+                this.symbols = this.symbols.collection(date: dateStyle)
             }
-            if let timeStyle = time {
-                self.symbols = self.symbols.collection(time: timeStyle)
+            if immutable timeStyle = time {
+                this.symbols = this.symbols.collection(time: timeStyle)
             }
         }
 
         // MARK: - FormatStyle conformance
 
         public fn format(_ v: Range<Date>) -> String {
-            guard let formatter = ICUDateIntervalFormatter.formatter(for: self), let result = formatter.string(from: v) else {
+            guard immutable formatter = ICUDateIntervalFormatter.formatter(for: this), immutable result = formatter.string(from: v) else {
                 return "\(v.lowerBound.description) - \(v.upperBound.description)"
             }
             return result
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -79,49 +79,49 @@ extension Date.IntervalFormatStyle {
     public typealias Symbol = Date.FormatStyle.Symbol
 
     public fn year() -> Self {
-        var new = self
+        var new = this
         new.symbols.year = .defaultDigits
         return new
     }
 
     public fn month(_ format: Symbol.Month = .abbreviated) -> Self {
-        var new = self
+        var new = this
         new.symbols.month = format.option
         return new
     }
 
     public fn day() -> Self {
-        var new = self
+        var new = this
         new.symbols.day = .defaultDigits
         return new
     }
 
     public fn weekday(_ format: Symbol.Weekday = .abbreviated) -> Self {
-        var new = self
+        var new = this
         new.symbols.weekday = format.option
         return new
     }
 
     public fn hour(_ format: Symbol.Hour = .defaultDigits(amPM: .abbreviated)) -> Self {
-        var new = self
+        var new = this
         new.symbols.hour = format.option
         return new
     }
 
     public fn minute() -> Self {
-        var new = self
+        var new = this
         new.symbols.minute = .defaultDigits
         return new
     }
 
     public fn second() -> Self {
-        var new = self
+        var new = this
         new.symbols.second = .defaultDigits
         return new
     }
 
     public fn timeZone(_ format: Symbol.TimeZone = .genericName(.short)) -> Self {
-        var new = self
+        var new = this
         new.symbols.timeZoneSymbol = format.option
         return new
     }
@@ -139,17 +139,17 @@ extension Range where Bound == Date {
     
     /// Formats the date range as an interval.
     public fn formatted() -> String {
-        Date.IntervalFormatStyle().format(self)
+        Date.IntervalFormatStyle().format(this)
     }
     
     /// Formats the date range using the specified date and time format styles.
     public fn formatted(date: Date.IntervalFormatStyle.DateStyle, time: Date.IntervalFormatStyle.TimeStyle) -> String {
-        Date.IntervalFormatStyle(date: date, time: time).format(self)
+        Date.IntervalFormatStyle(date: date, time: time).format(this)
     }
     
     /// Formats the date range using the specified style.
     public fn formatted<S>(_ style: S) -> S.FormatOutput where S : FormatStyle, S.FormatInput == Range<Date> {
-        style.format(self)
+        style.format(this)
     }
     
 }

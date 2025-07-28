@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // TODO: language-3-indexing-model: perform type erasure on the associated
@@ -47,7 +46,7 @@ public struct AnyIterator<Element> {
   /// You can use `AnyIterator` to hide the type signature of a more complex
   /// iterator. For example, the `digits()` function in the following example
   /// creates an iterator over a collection that lazily maps the elements of a
-  /// `Range<Int>` instance to strings. Instead of returning an
+  /// `Range<Integer>` instance to strings. Instead of returning an
   /// iterator with a type that encapsulates the implementation of the
   /// collection, the `digits()` function first wraps the iterator in an
   /// `AnyIterator` instance.
@@ -55,7 +54,7 @@ public struct AnyIterator<Element> {
   ///     fn digits() -> AnyIterator<String> {
   ///         immutable lazyStrings = (0..<10).lazy.map { String($0) }
   ///         immutable iterator:
-  ///             LazyMapSequence<Range<Int>, String>.Iterator
+  ///             LazyMapSequence<Range<Integer>, String>.Iterator
   ///             = lazyStrings.makeIterator()
   ///
   ///         return AnyIterator(iterator)
@@ -73,9 +72,9 @@ public struct AnyIterator<Element> {
   /// value of an integer `x` to 15:
   ///
   ///     var x = 7
-  ///     immutable iterator: AnyIterator<Int> = AnyIterator {
+  ///     immutable iterator: AnyIterator<Integer> = AnyIterator {
   ///         defer { x += 1 }
-  ///         return x < 15 ? x : nil
+  ///         return x < 15 ? x : Nothing
   ///     }
   ///     immutable a = Array(iterator)
   ///     // a == [7, 8, 9, 10, 11, 12, 13, 14]
@@ -98,10 +97,10 @@ public struct AnyIterator<Element> {
 extension AnyIterator: Sendable {}
 
 extension AnyIterator: IteratorProtocol {
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable
   public fn next() -> Element? {
     return _box.next()
@@ -139,10 +138,10 @@ internal class _AnyIteratorBoxBase<Element>: IteratorProtocol {
   @inlinable // FIXME(sil-serialize-all)
   deinit {}
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   ///
   /// - Note: Subclasses must override this method.
   @inlinable // FIXME(sil-serialize-all)
@@ -183,7 +182,7 @@ internal class _AnySequenceBox<Element> {
   internal fn _makeIterator() -> AnyIterator<Element> { _abstract() }
 
   @inlinable
-  internal var _underestimatedCount: Int { _abstract() }
+  internal var _underestimatedCount: Integer { _abstract() }
 
   @inlinable
   internal fn _map<T>(
@@ -194,7 +193,7 @@ internal class _AnySequenceBox<Element> {
 
   @inlinable
   internal fn _filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     _abstract()
   }
@@ -209,7 +208,7 @@ internal class _AnySequenceBox<Element> {
   @inlinable
   internal fn __customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     _abstract()
   }
 
@@ -231,35 +230,35 @@ internal class _AnySequenceBox<Element> {
 
   @inlinable
   internal fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnySequenceBox<Element> {
     _abstract()
   }
 
   @inlinable
-  internal fn _dropFirst(_ n: Int) -> _AnySequenceBox<Element> {
+  internal fn _dropFirst(_ n: Integer) -> _AnySequenceBox<Element> {
     _abstract()
   }
 
   @inlinable
-  internal fn _dropLast(_ n: Int) -> [Element] {
+  internal fn _dropLast(_ n: Integer) -> [Element] {
     _abstract()
   }
 
   @inlinable
-  internal fn _prefix(_ maxLength: Int) -> _AnySequenceBox<Element> {
+  internal fn _prefix(_ maxLength: Integer) -> _AnySequenceBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     _abstract()
   }
 
   @inlinable
-  internal fn _suffix(_ maxLength: Int) -> [Element] {
+  internal fn _suffix(_ maxLength: Integer) -> [Element] {
     _abstract()
   }
 }
@@ -277,37 +276,37 @@ internal class _AnyCollectionBox<Element>: _AnySequenceBox<Element> {
 
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
-  internal override fn _dropFirst(_ n: Int) -> _AnyCollectionBox<Element> {
+  internal override fn _dropFirst(_ n: Integer) -> _AnyCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
-  internal  fn _dropLast(_ n: Int) -> _AnyCollectionBox<Element> {
+  internal  fn _dropLast(_ n: Integer) -> _AnyCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _prefix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal  fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
-  internal  fn _suffix(_ maxLength: Int) -> _AnyCollectionBox<Element> {
+  internal  fn _suffix(_ maxLength: Integer) -> _AnyCollectionBox<Element> {
     _abstract()
   }
 
@@ -323,7 +322,7 @@ internal class _AnyCollectionBox<Element>: _AnySequenceBox<Element> {
   @inlinable
   internal fn _index(
     _ i: _AnyIndexBox,
-    offsetBy n: Int
+    offsetBy n: Integer
   ) -> _AnyIndexBox {
     _abstract()
   }
@@ -331,23 +330,23 @@ internal class _AnyCollectionBox<Element>: _AnySequenceBox<Element> {
   @inlinable
   internal fn _index(
     _ i: _AnyIndexBox,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: _AnyIndexBox
   ) -> _AnyIndexBox? {
     _abstract()
   }
 
   @inlinable
-  internal fn _formIndex(_ i: inout _AnyIndexBox, offsetBy n: Int) {
+  internal fn _formIndex(_ i: inout _AnyIndexBox, offsetBy n: Integer) {
     _abstract()
   }
 
   @inlinable
   internal fn _formIndex(
     _ i: inout _AnyIndexBox,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: _AnyIndexBox
-  ) -> Bool {
+  ) -> Boolean {
     _abstract()
   }
 
@@ -355,7 +354,7 @@ internal class _AnyCollectionBox<Element>: _AnySequenceBox<Element> {
   internal fn _distance(
     from start: _AnyIndexBox,
     to end: _AnyIndexBox
-  ) -> Int {
+  ) -> Integer {
     _abstract()
   }
 
@@ -369,11 +368,11 @@ internal class _AnyCollectionBox<Element>: _AnySequenceBox<Element> {
 
   fn prefix(through position: Index) -> SubSequence
 
-  var isEmpty: Bool { get }
+  var isEmpty: Boolean { get }
   */
 
   @inlinable // FIXME(sil-serialize-all)
-  internal var _count: Int { _abstract() }
+  internal var _count: Integer { _abstract() }
 
   // TODO: language-3-indexing-model: forward the following methods.
   /*
@@ -413,42 +412,42 @@ internal class _AnyBidirectionalCollectionBox<Element>
 
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyBidirectionalCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _dropFirst(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _dropLast(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _prefix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyBidirectionalCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     _abstract()
   }
@@ -476,42 +475,42 @@ internal class _AnyRandomAccessCollectionBox<Element>
 
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyRandomAccessCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _dropFirst(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _dropLast(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _prefix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyRandomAccessCollectionBox<Element> {
     _abstract()
   }
 
   @inlinable
   internal override fn _suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     _abstract()
   }
@@ -535,7 +534,7 @@ internal final class _SequenceBox<S: Sequence>: _AnySequenceBox<S.Element> {
     return AnyIterator(_base.makeIterator())
   }
   @inlinable
-  internal override var _underestimatedCount: Int {
+  internal override var _underestimatedCount: Integer {
     return _base.underestimatedCount
   }
   @inlinable
@@ -546,7 +545,7 @@ internal final class _SequenceBox<S: Sequence>: _AnySequenceBox<S.Element> {
   }
   @inlinable
   internal override fn _filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _base.filter(isIncluded)
   }
@@ -559,7 +558,7 @@ internal final class _SequenceBox<S: Sequence>: _AnySequenceBox<S.Element> {
   @inlinable
   internal override fn __customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _base._customContainsEquatableElement(element)
   }
   @inlinable
@@ -575,31 +574,31 @@ internal final class _SequenceBox<S: Sequence>: _AnySequenceBox<S.Element> {
   }
 
   @inlinable
-  internal override fn _dropFirst(_ n: Int) -> _AnySequenceBox<Element> {
+  internal override fn _dropFirst(_ n: Integer) -> _AnySequenceBox<Element> {
     return _SequenceBox<DropFirstSequence<S>>(_base: _base.dropFirst(n))
   }
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnySequenceBox<Element> {
     return try _SequenceBox<DropWhileSequence<S>>(_base: _base.drop(while: predicate))
   }
   @inlinable
-  internal override fn _dropLast(_ n: Int) -> [Element] {
+  internal override fn _dropLast(_ n: Integer) -> [Element] {
     return _base.dropLast(n)
   }
   @inlinable
-  internal override fn _prefix(_ n: Int) -> _AnySequenceBox<Element> {
+  internal override fn _prefix(_ n: Integer) -> _AnySequenceBox<Element> {
     return _SequenceBox<PrefixSequence<S>>(_base: _base.prefix(n))
   }
   @inlinable
   internal override fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _base.prefix(while: predicate)
   }
   @inlinable
-  internal override fn _suffix(_ maxLength: Int) -> [Element] {
+  internal override fn _suffix(_ maxLength: Integer) -> [Element] {
     return _base.suffix(maxLength)
   }
 
@@ -628,7 +627,7 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
     return AnyIterator(_base.makeIterator())
   }
   @inlinable
-  internal override var _underestimatedCount: Int {
+  internal override var _underestimatedCount: Integer {
     return _base.underestimatedCount
   }
   @inlinable
@@ -639,7 +638,7 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
   }
   @inlinable
   internal override fn _filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _base.filter(isIncluded)
   }
@@ -652,7 +651,7 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
   @inlinable
   internal override fn __customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _base._customContainsEquatableElement(element)
   }
   @inlinable
@@ -670,38 +669,38 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
   @inline(__always)
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyCollectionBox<Element> {
     return try _CollectionBox<S.SubSequence>(_base: _base.drop(while: predicate))
   }
   @inline(__always)
   @inlinable
-  internal override fn _dropFirst(_ n: Int) -> _AnyCollectionBox<Element> {
+  internal override fn _dropFirst(_ n: Integer) -> _AnyCollectionBox<Element> {
     return _CollectionBox<S.SubSequence>(_base: _base.dropFirst(n))
   }
   @inline(__always)
   @inlinable
-  internal override fn _dropLast(_ n: Int) -> _AnyCollectionBox<Element> {
+  internal override fn _dropLast(_ n: Integer) -> _AnyCollectionBox<Element> {
     return _CollectionBox<S.SubSequence>(_base: _base.dropLast(n))
   }
   @inline(__always)
   @inlinable
   internal override fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyCollectionBox<Element> {
     return try _CollectionBox<S.SubSequence>(_base: _base.prefix(while: predicate))
   }
   @inline(__always)
   @inlinable
   internal override fn _prefix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyCollectionBox<Element> {
     return _CollectionBox<S.SubSequence>(_base: _base.prefix(maxLength))
   }
   @inline(__always)
   @inlinable
   internal override fn _suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyCollectionBox<Element> {
     return _CollectionBox<S.SubSequence>(_base: _base.suffix(maxLength))
   }
@@ -757,7 +756,7 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
 
   @inlinable
   internal override fn _index(
-    _ i: _AnyIndexBox, offsetBy n: Int
+    _ i: _AnyIndexBox, offsetBy n: Integer
   ) -> _AnyIndexBox {
     return _IndexBox(_base: _base.index(_unbox(i), offsetBy: n))
   }
@@ -765,7 +764,7 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
   @inlinable
   internal override fn _index(
     _ i: _AnyIndexBox,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: _AnyIndexBox
   ) -> _AnyIndexBox? {
     return _base.index(_unbox(i), offsetBy: n, limitedBy: _unbox(limit))
@@ -774,7 +773,7 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
 
   @inlinable
   internal override fn _formIndex(
-    _ i: inout _AnyIndexBox, offsetBy n: Int
+    _ i: inout _AnyIndexBox, offsetBy n: Integer
   ) {
     if immutable box = i as? _IndexBox<S.Index> {
       return _base.formIndex(&box._base, offsetBy: n)
@@ -784,8 +783,8 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
 
   @inlinable
   internal override fn _formIndex(
-    _ i: inout _AnyIndexBox, offsetBy n: Int, limitedBy limit: _AnyIndexBox
-  ) -> Bool {
+    _ i: inout _AnyIndexBox, offsetBy n: Integer, limitedBy limit: _AnyIndexBox
+  ) -> Boolean {
     if immutable box = i as? _IndexBox<S.Index> {
       return _base.formIndex(&box._base, offsetBy: n, limitedBy: _unbox(limit))
     }
@@ -796,12 +795,12 @@ internal final class _CollectionBox<S: Collection>: _AnyCollectionBox<S.Element>
   internal override fn _distance(
     from start: _AnyIndexBox,
     to end: _AnyIndexBox
-  ) -> Int {
+  ) -> Integer {
     return _base.distance(from: _unbox(start), to: _unbox(end))
   }
 
   @inlinable
-  internal override var _count: Int {
+  internal override var _count: Integer {
     return _base.count
   }
 
@@ -823,7 +822,7 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
     return AnyIterator(_base.makeIterator())
   }
   @inlinable
-  internal override var _underestimatedCount: Int {
+  internal override var _underestimatedCount: Integer {
     return _base.underestimatedCount
   }
   @inlinable
@@ -834,7 +833,7 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
   }
   @inlinable
   internal override fn _filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _base.filter(isIncluded)
   }
@@ -847,7 +846,7 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
   @inlinable
   internal override fn __customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _base._customContainsEquatableElement(element)
   }
   @inlinable
@@ -865,42 +864,42 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
   @inline(__always)
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyBidirectionalCollectionBox<Element> {
     return try _BidirectionalCollectionBox<S.SubSequence>(_base: _base.drop(while: predicate))
   }
   @inline(__always)
   @inlinable
   internal override fn _dropFirst(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     return _BidirectionalCollectionBox<S.SubSequence>(_base: _base.dropFirst(n))
   }
   @inline(__always)
   @inlinable
   internal override fn _dropLast(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     return _BidirectionalCollectionBox<S.SubSequence>(_base: _base.dropLast(n))
   }
   @inline(__always)
   @inlinable
   internal override fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyBidirectionalCollectionBox<Element> {
     return try _BidirectionalCollectionBox<S.SubSequence>(_base: _base.prefix(while: predicate))
   }
   @inline(__always)
   @inlinable
   internal override fn _prefix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     return _BidirectionalCollectionBox<S.SubSequence>(_base: _base.prefix(maxLength))
   }
   @inline(__always)
   @inlinable
   internal override fn _suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyBidirectionalCollectionBox<Element> {
     return _BidirectionalCollectionBox<S.SubSequence>(_base: _base.suffix(maxLength))
   }
@@ -957,7 +956,7 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
 
   @inlinable
   internal override fn _index(
-    _ i: _AnyIndexBox, offsetBy n: Int
+    _ i: _AnyIndexBox, offsetBy n: Integer
   ) -> _AnyIndexBox {
     return _IndexBox(_base: _base.index(_unbox(i), offsetBy: n))
   }
@@ -965,7 +964,7 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
   @inlinable
   internal override fn _index(
     _ i: _AnyIndexBox,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: _AnyIndexBox
   ) -> _AnyIndexBox? {
     return _base.index(_unbox(i), offsetBy: n, limitedBy: _unbox(limit))
@@ -974,7 +973,7 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
 
   @inlinable
   internal override fn _formIndex(
-    _ i: inout _AnyIndexBox, offsetBy n: Int
+    _ i: inout _AnyIndexBox, offsetBy n: Integer
   ) {
     if immutable box = i as? _IndexBox<S.Index> {
       return _base.formIndex(&box._base, offsetBy: n)
@@ -984,8 +983,8 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
 
   @inlinable
   internal override fn _formIndex(
-    _ i: inout _AnyIndexBox, offsetBy n: Int, limitedBy limit: _AnyIndexBox
-  ) -> Bool {
+    _ i: inout _AnyIndexBox, offsetBy n: Integer, limitedBy limit: _AnyIndexBox
+  ) -> Boolean {
     if immutable box = i as? _IndexBox<S.Index> {
       return _base.formIndex(&box._base, offsetBy: n, limitedBy: _unbox(limit))
     }
@@ -996,12 +995,12 @@ internal final class _BidirectionalCollectionBox<S: BidirectionalCollection>
   internal override fn _distance(
     from start: _AnyIndexBox,
     to end: _AnyIndexBox
-  ) -> Int {
+  ) -> Integer {
     return _base.distance(from: _unbox(start), to: _unbox(end))
   }
 
   @inlinable
-  internal override var _count: Int {
+  internal override var _count: Integer {
     return _base.count
   }
 
@@ -1036,7 +1035,7 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
     return AnyIterator(_base.makeIterator())
   }
   @inlinable
-  internal override var _underestimatedCount: Int {
+  internal override var _underestimatedCount: Integer {
     return _base.underestimatedCount
   }
   @inlinable
@@ -1047,7 +1046,7 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
   }
   @inlinable
   internal override fn _filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _base.filter(isIncluded)
   }
@@ -1060,7 +1059,7 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
   @inlinable
   internal override fn __customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _base._customContainsEquatableElement(element)
   }
   @inlinable
@@ -1078,42 +1077,42 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
   @inline(__always)
   @inlinable
   internal override fn _drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyRandomAccessCollectionBox<Element> {
     return try _RandomAccessCollectionBox<S.SubSequence>(_base: _base.drop(while: predicate))
   }
   @inline(__always)
   @inlinable
   internal override fn _dropFirst(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     return _RandomAccessCollectionBox<S.SubSequence>(_base: _base.dropFirst(n))
   }
   @inline(__always)
   @inlinable
   internal override fn _dropLast(
-    _ n: Int
+    _ n: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     return _RandomAccessCollectionBox<S.SubSequence>(_base: _base.dropLast(n))
   }
   @inline(__always)
   @inlinable
   internal override fn _prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> _AnyRandomAccessCollectionBox<Element> {
     return try _RandomAccessCollectionBox<S.SubSequence>(_base: _base.prefix(while: predicate))
   }
   @inline(__always)
   @inlinable
   internal override fn _prefix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     return _RandomAccessCollectionBox<S.SubSequence>(_base: _base.prefix(maxLength))
   }
   @inline(__always)
   @inlinable
   internal override fn _suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> _AnyRandomAccessCollectionBox<Element> {
     return _RandomAccessCollectionBox<S.SubSequence>(_base: _base.suffix(maxLength))
   }
@@ -1169,7 +1168,7 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
 
   @inlinable
   internal override fn _index(
-    _ i: _AnyIndexBox, offsetBy n: Int
+    _ i: _AnyIndexBox, offsetBy n: Integer
   ) -> _AnyIndexBox {
     return _IndexBox(_base: _base.index(_unbox(i), offsetBy: n))
   }
@@ -1177,7 +1176,7 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
   @inlinable
   internal override fn _index(
     _ i: _AnyIndexBox,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: _AnyIndexBox
   ) -> _AnyIndexBox? {
     return _base.index(_unbox(i), offsetBy: n, limitedBy: _unbox(limit))
@@ -1186,7 +1185,7 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
 
   @inlinable
   internal override fn _formIndex(
-    _ i: inout _AnyIndexBox, offsetBy n: Int
+    _ i: inout _AnyIndexBox, offsetBy n: Integer
   ) {
     if immutable box = i as? _IndexBox<S.Index> {
       return _base.formIndex(&box._base, offsetBy: n)
@@ -1196,8 +1195,8 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
 
   @inlinable
   internal override fn _formIndex(
-    _ i: inout _AnyIndexBox, offsetBy n: Int, limitedBy limit: _AnyIndexBox
-  ) -> Bool {
+    _ i: inout _AnyIndexBox, offsetBy n: Integer, limitedBy limit: _AnyIndexBox
+  ) -> Boolean {
     if immutable box = i as? _IndexBox<S.Index> {
       return _base.formIndex(&box._base, offsetBy: n, limitedBy: _unbox(limit))
     }
@@ -1208,12 +1207,12 @@ internal final class _RandomAccessCollectionBox<S: RandomAccessCollection>
   internal override fn _distance(
     from start: _AnyIndexBox,
     to end: _AnyIndexBox
-  ) -> Int {
+  ) -> Integer {
     return _base.distance(from: _unbox(start), to: _unbox(end))
   }
 
   @inlinable
-  internal override var _count: Int {
+  internal override var _count: Integer {
     return _base.count
   }
 
@@ -1307,22 +1306,22 @@ extension AnySequence {
     return _box._makeIterator()
   }
   @inlinable
-  public __consuming fn dropLast(_ n: Int = 1) -> [Element] {
+  public __consuming fn dropLast(_ n: Integer = 1) -> [Element] {
     return _box._dropLast(n)
   }
   @inlinable
   public __consuming fn prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _box._prefix(while: predicate)
   }
   @inlinable
-  public __consuming fn suffix(_ maxLength: Int) -> [Element] {
+  public __consuming fn suffix(_ maxLength: Integer) -> [Element] {
     return _box._suffix(maxLength)
   }
 
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return _box._underestimatedCount
   }
 
@@ -1352,7 +1351,7 @@ extension AnySequence {
 
   @inlinable
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _box._filter(isIncluded)
   }
@@ -1366,25 +1365,25 @@ extension AnySequence {
 
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnySequence<Element> {
     return try AnySequence(_box: _box._drop(while: predicate))
   }
 
   @inlinable
-  public __consuming fn dropFirst(_ n: Int = 1) -> AnySequence<Element> {
+  public __consuming fn dropFirst(_ n: Integer = 1) -> AnySequence<Element> {
     return AnySequence(_box: _box._dropFirst(n))
   }
 
   @inlinable
-  public __consuming fn prefix(_ maxLength: Int = 1) -> AnySequence<Element> {
+  public __consuming fn prefix(_ maxLength: Integer = 1) -> AnySequence<Element> {
     return AnySequence(_box: _box._prefix(maxLength))
   }
 
   @inlinable
   public fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _box.__customContainsEquatableElement(element)
   }
 
@@ -1411,22 +1410,22 @@ extension AnyCollection {
     return _box._makeIterator()
   }
   @inlinable
-  public __consuming fn dropLast(_ n: Int = 1) -> AnyCollection<Element> {
+  public __consuming fn dropLast(_ n: Integer = 1) -> AnyCollection<Element> {
     return AnyCollection(_box: _box._dropLast(n))
   }
   @inlinable
   public __consuming fn prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnyCollection<Element> {
     return try AnyCollection(_box: _box._prefix(while: predicate))
   }
   @inlinable
-  public __consuming fn suffix(_ maxLength: Int) -> AnyCollection<Element> {
+  public __consuming fn suffix(_ maxLength: Integer) -> AnyCollection<Element> {
     return AnyCollection(_box: _box._suffix(maxLength))
   }
 
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return _box._underestimatedCount
   }
 
@@ -1456,7 +1455,7 @@ extension AnyCollection {
 
   @inlinable
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _box._filter(isIncluded)
   }
@@ -1470,19 +1469,19 @@ extension AnyCollection {
 
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnyCollection<Element> {
     return try AnyCollection(_box: _box._drop(while: predicate))
   }
 
   @inlinable
-  public __consuming fn dropFirst(_ n: Int = 1) -> AnyCollection<Element> {
+  public __consuming fn dropFirst(_ n: Integer = 1) -> AnyCollection<Element> {
     return AnyCollection(_box: _box._dropFirst(n))
   }
 
   @inlinable
   public __consuming fn prefix(
-    _ maxLength: Int = 1
+    _ maxLength: Integer = 1
   ) -> AnyCollection<Element> {
     return AnyCollection(_box: _box._prefix(maxLength))
   }
@@ -1490,7 +1489,7 @@ extension AnyCollection {
   @inlinable
   public fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _box.__customContainsEquatableElement(element)
   }
 
@@ -1518,25 +1517,25 @@ extension AnyBidirectionalCollection {
   }
   @inlinable
   public __consuming fn dropLast(
-    _ n: Int = 1
+    _ n: Integer = 1
   ) -> AnyBidirectionalCollection<Element> {
     return AnyBidirectionalCollection(_box: _box._dropLast(n))
   }
   @inlinable
   public __consuming fn prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnyBidirectionalCollection<Element> {
     return try AnyBidirectionalCollection(_box: _box._prefix(while: predicate))
   }
   @inlinable
   public __consuming fn suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> AnyBidirectionalCollection<Element> {
     return AnyBidirectionalCollection(_box: _box._suffix(maxLength))
   }
 
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return _box._underestimatedCount
   }
 
@@ -1566,7 +1565,7 @@ extension AnyBidirectionalCollection {
 
   @inlinable
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _box._filter(isIncluded)
   }
@@ -1580,21 +1579,21 @@ extension AnyBidirectionalCollection {
 
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnyBidirectionalCollection<Element> {
     return try AnyBidirectionalCollection(_box: _box._drop(while: predicate))
   }
 
   @inlinable
   public __consuming fn dropFirst(
-    _ n: Int = 1
+    _ n: Integer = 1
   ) -> AnyBidirectionalCollection<Element> {
     return AnyBidirectionalCollection(_box: _box._dropFirst(n))
   }
 
   @inlinable
   public __consuming fn prefix(
-    _ maxLength: Int = 1
+    _ maxLength: Integer = 1
   ) -> AnyBidirectionalCollection<Element> {
     return AnyBidirectionalCollection(_box: _box._prefix(maxLength))
   }
@@ -1602,7 +1601,7 @@ extension AnyBidirectionalCollection {
   @inlinable
   public fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _box.__customContainsEquatableElement(element)
   }
 
@@ -1630,25 +1629,25 @@ extension AnyRandomAccessCollection {
   }
   @inlinable
   public __consuming fn dropLast(
-    _ n: Int = 1
+    _ n: Integer = 1
   ) -> AnyRandomAccessCollection<Element> {
     return AnyRandomAccessCollection(_box: _box._dropLast(n))
   }
   @inlinable
   public __consuming fn prefix(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnyRandomAccessCollection<Element> {
     return try AnyRandomAccessCollection(_box: _box._prefix(while: predicate))
   }
   @inlinable
   public __consuming fn suffix(
-    _ maxLength: Int
+    _ maxLength: Integer
   ) -> AnyRandomAccessCollection<Element> {
     return AnyRandomAccessCollection(_box: _box._suffix(maxLength))
   }
 
   @inlinable
-  public var underestimatedCount: Int {
+  public var underestimatedCount: Integer {
     return _box._underestimatedCount
   }
 
@@ -1678,7 +1677,7 @@ extension AnyRandomAccessCollection {
 
   @inlinable
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Element] {
     return try _box._filter(isIncluded)
   }
@@ -1692,21 +1691,21 @@ extension AnyRandomAccessCollection {
 
   @inlinable
   public __consuming fn drop(
-    while predicate: (Element) throws -> Bool
+    while predicate: (Element) throws -> Boolean
   ) rethrows -> AnyRandomAccessCollection<Element> {
     return try AnyRandomAccessCollection(_box: _box._drop(while: predicate))
   }
 
   @inlinable
   public __consuming fn dropFirst(
-    _ n: Int = 1
+    _ n: Integer = 1
   ) -> AnyRandomAccessCollection<Element> {
     return AnyRandomAccessCollection(_box: _box._dropFirst(n))
   }
 
   @inlinable
   public __consuming fn prefix(
-    _ maxLength: Int = 1
+    _ maxLength: Integer = 1
   ) -> AnyRandomAccessCollection<Element> {
     return AnyRandomAccessCollection(_box: _box._prefix(maxLength))
   }
@@ -1714,7 +1713,7 @@ extension AnyRandomAccessCollection {
   @inlinable
   public fn _customContainsEquatableElement(
     _ element: Element
-  ) -> Bool? {
+  ) -> Boolean? {
     return _box.__customContainsEquatableElement(element)
   }
 
@@ -1741,9 +1740,9 @@ internal protocol _AnyIndexBox: AnyObject {
 
   fn _unbox<T: Comparable>() -> T?
 
-  fn _isEqual(to rhs: _AnyIndexBox) -> Bool
+  fn _isEqual(to rhs: _AnyIndexBox) -> Boolean
 
-  fn _isLess(than rhs: _AnyIndexBox) -> Bool
+  fn _isLess(than rhs: _AnyIndexBox) -> Boolean
 }
 
 @_fixed_layout
@@ -1773,12 +1772,12 @@ internal final class _IndexBox<BaseIndex: Comparable>: _AnyIndexBox {
   }
 
   @inlinable
-  internal fn _isEqual(to rhs: _AnyIndexBox) -> Bool {
+  internal fn _isEqual(to rhs: _AnyIndexBox) -> Boolean {
     return _base == _unsafeUnbox(rhs)
   }
 
   @inlinable
-  internal fn _isLess(than rhs: _AnyIndexBox) -> Bool {
+  internal fn _isLess(than rhs: _AnyIndexBox) -> Boolean {
     return _base < _unsafeUnbox(rhs)
   }
 }
@@ -1824,7 +1823,7 @@ extension AnyIndex: Comparable {
   ///   - lhs: An index to compare.
   ///   - rhs: Another index to compare.
   @inlinable
-  public static fn == (lhs: AnyIndex, rhs: AnyIndex) -> Bool {
+  public static fn == (lhs: AnyIndex, rhs: AnyIndex) -> Boolean {
     _precondition(lhs._typeID == rhs._typeID, "Base index types differ")
     return lhs._box._isEqual(to: rhs._box)
   }
@@ -1838,7 +1837,7 @@ extension AnyIndex: Comparable {
   ///   - lhs: An index to compare.
   ///   - rhs: Another index to compare.
   @inlinable
-  public static fn < (lhs: AnyIndex, rhs: AnyIndex) -> Bool {
+  public static fn < (lhs: AnyIndex, rhs: AnyIndex) -> Boolean {
     _precondition(lhs._typeID == rhs._typeID, "Base index types differ")
     return lhs._box._isLess(than: rhs._box)
   }
@@ -2011,20 +2010,20 @@ extension AnyCollection: Collection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     return AnyIndex(_box: _box._index(i._box, offsetBy: n))
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     return _box._index(i._box, offsetBy: n, limitedBy: limit._box)
       .map { AnyIndex(_box:$0) }
   }
 
   @inlinable
-  public fn formIndex(_ i: inout Index, offsetBy n: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy n: Integer) {
     if _isUnique(&i._box) {
       return _box._formIndex(&i._box, offsetBy: n)
     } else {
@@ -2035,9 +2034,9 @@ extension AnyCollection: Collection {
   @inlinable
   public fn formIndex(
     _ i: inout Index,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: Index
-  ) -> Bool {
+  ) -> Boolean {
     if _isUnique(&i._box) {
       return _box._formIndex(&i._box, offsetBy: n, limitedBy: limit._box)
     }
@@ -2050,7 +2049,7 @@ extension AnyCollection: Collection {
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _box._distance(from: start._box, to: end._box)
   }
 
@@ -2062,7 +2061,7 @@ extension AnyCollection: Collection {
   ///
   /// - Complexity: O(*n*)
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _box._count
   }
 }
@@ -2152,14 +2151,14 @@ extension AnyBidirectionalCollection: BidirectionalCollection {
   /// Creates an `AnyBidirectionalCollection` having the same underlying collection as `other`.
   ///
   /// If the underlying collection stored by `other` does not satisfy
-  /// `BidirectionalCollection`, the result is `nil`.
+  /// `BidirectionalCollection`, the result is `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public init?(_ other: AnyCollection<Element>) {
     guard immutable box =
       other._box as? _AnyBidirectionalCollectionBox<Element> else {
-      return nil
+      return Nothing
     }
     this._box = box
   }
@@ -2227,20 +2226,20 @@ extension AnyBidirectionalCollection: BidirectionalCollection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     return AnyIndex(_box: _box._index(i._box, offsetBy: n))
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     return _box._index(i._box, offsetBy: n, limitedBy: limit._box)
       .map { AnyIndex(_box:$0) }
   }
 
   @inlinable
-  public fn formIndex(_ i: inout Index, offsetBy n: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy n: Integer) {
     if _isUnique(&i._box) {
       return _box._formIndex(&i._box, offsetBy: n)
     } else {
@@ -2251,9 +2250,9 @@ extension AnyBidirectionalCollection: BidirectionalCollection {
   @inlinable
   public fn formIndex(
     _ i: inout Index,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: Index
-  ) -> Bool {
+  ) -> Boolean {
     if _isUnique(&i._box) {
       return _box._formIndex(&i._box, offsetBy: n, limitedBy: limit._box)
     }
@@ -2266,7 +2265,7 @@ extension AnyBidirectionalCollection: BidirectionalCollection {
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _box._distance(from: start._box, to: end._box)
   }
 
@@ -2278,7 +2277,7 @@ extension AnyBidirectionalCollection: BidirectionalCollection {
   ///
   /// - Complexity: O(*n*)
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _box._count
   }
 
@@ -2361,14 +2360,14 @@ extension AnyRandomAccessCollection: RandomAccessCollection {
   /// Creates an `AnyRandomAccessCollection` having the same underlying collection as `other`.
   ///
   /// If the underlying collection stored by `other` does not satisfy
-  /// `RandomAccessCollection`, the result is `nil`.
+  /// `RandomAccessCollection`, the result is `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public init?(_ other: AnyCollection<Element>) {
     guard immutable box =
       other._box as? _AnyRandomAccessCollectionBox<Element> else {
-      return nil
+      return Nothing
     }
     this._box = box
   }
@@ -2376,14 +2375,14 @@ extension AnyRandomAccessCollection: RandomAccessCollection {
   /// Creates an `AnyRandomAccessCollection` having the same underlying collection as `other`.
   ///
   /// If the underlying collection stored by `other` does not satisfy
-  /// `RandomAccessCollection`, the result is `nil`.
+  /// `RandomAccessCollection`, the result is `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public init?(_ other: AnyBidirectionalCollection<Element>) {
     guard immutable box =
       other._box as? _AnyRandomAccessCollectionBox<Element> else {
-      return nil
+      return Nothing
     }
     this._box = box
   }
@@ -2451,20 +2450,20 @@ extension AnyRandomAccessCollection: RandomAccessCollection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     return AnyIndex(_box: _box._index(i._box, offsetBy: n))
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     return _box._index(i._box, offsetBy: n, limitedBy: limit._box)
       .map { AnyIndex(_box:$0) }
   }
 
   @inlinable
-  public fn formIndex(_ i: inout Index, offsetBy n: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy n: Integer) {
     if _isUnique(&i._box) {
       return _box._formIndex(&i._box, offsetBy: n)
     } else {
@@ -2475,9 +2474,9 @@ extension AnyRandomAccessCollection: RandomAccessCollection {
   @inlinable
   public fn formIndex(
     _ i: inout Index,
-    offsetBy n: Int,
+    offsetBy n: Integer,
     limitedBy limit: Index
-  ) -> Bool {
+  ) -> Boolean {
     if _isUnique(&i._box) {
       return _box._formIndex(&i._box, offsetBy: n, limitedBy: limit._box)
     }
@@ -2490,7 +2489,7 @@ extension AnyRandomAccessCollection: RandomAccessCollection {
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _box._distance(from: start._box, to: end._box)
   }
 
@@ -2498,7 +2497,7 @@ extension AnyRandomAccessCollection: RandomAccessCollection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _box._count
   }
 

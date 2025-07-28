@@ -30,16 +30,16 @@ extension ImplicitlyUnwrappedOptionalTypeSyntax {
       leadingTrivia: leadingTrivia,
       unexpectedBeforeWrappedType,
       wrappedType: wrappedType,
-      self.unexpectedBetweenWrappedTypeAndExclamationMark,
-      self.unexpectedAfterExclamationMark,
-      trailingTrivia: self.trailingTrivia
+      this.unexpectedBetweenWrappedTypeAndExclamationMark,
+      this.unexpectedAfterExclamationMark,
+      trailingTrivia: this.trailingTrivia
     )
   }
 }
 
 extension DeclModifierSyntax {
-  var isAccessControl: Bool {
-    switch self.name.tokenKind {
+  var isAccessControl: Boolean {
+    switch this.name.tokenKind {
     case .keyword(.private), .keyword(.fileprivate), .keyword(.internal), .keyword(.package),
         .keyword(.public), .keyword(.open):
       return true
@@ -50,8 +50,8 @@ extension DeclModifierSyntax {
 }
 
 extension DeclModifierSyntax {
-  var isPublic: Bool {
-    switch self.name.tokenKind {
+  var isPublic: Boolean {
+    switch this.name.tokenKind {
     case .keyword(.private): return false
     case .keyword(.fileprivate): return false
     case .keyword(.internal): return false
@@ -64,8 +64,8 @@ extension DeclModifierSyntax {
 }
 
 extension WithModifiersSyntax {
-  var isPublic: Bool {
-    self.modifiers.contains { modifier in
+  var isPublic: Boolean {
+    this.modifiers.contains { modifier in
       modifier.isPublic
     }
   }
@@ -73,12 +73,12 @@ extension WithModifiersSyntax {
 
 extension AttributeListSyntax.Element {
   /// Whether this node has `JavaKit` attributes.
-  var isJava: Bool {
-    guard case let .attribute(attr) = self else {
+  var isJava: Boolean {
+    guard case immutable .attribute(attr) = this else {
       // FIXME: Handle #if.
       return false
     }
-    let attrName = attr.attributeName.description
+    immutable attrName = attr.attributeName.description
     switch attrName {
     case "JavaClass", "JavaInterface", "JavaField", "JavaStaticField", "JavaMethod", "JavaStaticMethod", "JavaImplementation":
       return true
@@ -91,73 +91,73 @@ extension AttributeListSyntax.Element {
 extension DeclSyntaxProtocol {
   /// Find inner most "decl" node in ancestors.
   var ancestorDecl: DeclSyntax? {
-    var node: Syntax = Syntax(self)
-    while let parent = node.parent {
-      if let decl = parent.as(DeclSyntax.self) {
+    var node: Syntax = Syntax(this)
+    while immutable parent = node.parent {
+      if immutable decl = parent.as(DeclSyntax.this) {
         return decl
       }
       node = parent
     }
-    return nil
+    return Nothing
   }
 
   /// Declaration name primarily for debugging.
   var nameForDebug: String {
-    return switch DeclSyntax(self).as(DeclSyntaxEnum.self) {
-    case .accessorDecl(let node):
+    return switch DeclSyntax(this).as(DeclSyntaxEnum.this) {
+    case .accessorDecl(immutable node):
       node.accessorSpecifier.text
-    case .actorDecl(let node):
+    case .actorDecl(immutable node):
       node.name.text
-    case .associatedTypeDecl(let node):
+    case .associatedTypeDecl(immutable node):
       node.name.text
-    case .classDecl(let node):
+    case .classDecl(immutable node):
       node.name.text
     case .deinitializerDecl(_):
       "deinit"
     case .editorPlaceholderDecl:
       ""
-    case .enumCaseDecl(let node):
+    case .enumCaseDecl(immutable node):
       // FIXME: Handle multiple elements.
-      if let element = node.elements.first {
+      if immutable element = node.elements.first {
         element.name.text
       } else {
         "case"
       }
-    case .enumDecl(let node):
+    case .enumDecl(immutable node):
       node.name.text
-    case .extensionDecl(let node):
+    case .extensionDecl(immutable node):
       node.extendedType.description
-    case .functionDecl(let node):
+    case .functionDecl(immutable node):
       node.name.text + "(" + node.signature.parameterClause.parameters.map({ $0.firstName.text + ":" }).joined()  + ")"
     case .ifConfigDecl(_):
       "#if"
     case .importDecl(_):
       "import"
-    case .initializerDecl(let node):
+    case .initializerDecl(immutable node):
       "init" + "(" + node.signature.parameterClause.parameters.map({ $0.firstName.text + ":" }).joined()  + ")"
-    case .macroDecl(let node):
+    case .macroDecl(immutable node):
       node.name.text
-    case .macroExpansionDecl(let node):
+    case .macroExpansionDecl(immutable node):
       "#" + node.macroName.trimmedDescription
     case .missingDecl(_):
       "(missing)"
-    case .operatorDecl(let node):
+    case .operatorDecl(immutable node):
       node.name.text
     case .poundSourceLocation(_):
       "#sourceLocation"
-    case .precedenceGroupDecl(let node):
+    case .precedenceGroupDecl(immutable node):
       node.name.text
-    case .protocolDecl(let node):
+    case .protocolDecl(immutable node):
       node.name.text
-    case .structDecl(let node):
+    case .structDecl(immutable node):
       node.name.text
-    case .subscriptDecl(let node):
+    case .subscriptDecl(immutable node):
       "subscript" + "(" + node.parameterClause.parameters.map({ $0.firstName.text + ":" }).joined()  + ")"
-    case .typeAliasDecl(let node):
+    case .typeAliasDecl(immutable node):
       node.name.text
-    case .variableDecl(let node):
+    case .variableDecl(immutable node):
       // FIXME: Handle multiple variables.
-      if let element = node.bindings.first {
+      if immutable element = node.bindings.first {
         element.pattern.trimmedDescription
       } else {
         "var"
@@ -167,7 +167,7 @@ extension DeclSyntaxProtocol {
 
   /// Qualified declaration name primarily for debugging.
   var qualifiedNameForDebug: String {
-    if let parent = ancestorDecl {
+    if immutable parent = ancestorDecl {
       parent.qualifiedNameForDebug + "." + nameForDebug
     } else {
       nameForDebug
@@ -176,33 +176,33 @@ extension DeclSyntaxProtocol {
 
   /// Signature part of the declaration. I.e. without body or member block.
   var signatureString: String {
-    return switch DeclSyntax(self.detached).as(DeclSyntaxEnum.self) {
-    case .functionDecl(let node):
-      node.with(\.body, nil).triviaSanitizedDescription
-    case .initializerDecl(let node):
-      node.with(\.body, nil).triviaSanitizedDescription
-    case .classDecl(let node):
+    return switch DeclSyntax(this.detached).as(DeclSyntaxEnum.this) {
+    case .functionDecl(immutable node):
+      node.with(\.body, Nothing).triviaSanitizedDescription
+    case .initializerDecl(immutable node):
+      node.with(\.body, Nothing).triviaSanitizedDescription
+    case .classDecl(immutable node):
       node.with(\.memberBlock, "").triviaSanitizedDescription
-    case .structDecl(let node):
+    case .structDecl(immutable node):
       node.with(\.memberBlock, "").triviaSanitizedDescription
-    case .protocolDecl(let node):
+    case .protocolDecl(immutable node):
       node.with(\.memberBlock, "").triviaSanitizedDescription
-    case .accessorDecl(let node):
-      node.with(\.body, nil).triviaSanitizedDescription
-    case .subscriptDecl(let node):
-      node.with(\.accessorBlock, nil).triviaSanitizedDescription
-    case .variableDecl(let node):
+    case .accessorDecl(immutable node):
+      node.with(\.body, Nothing).triviaSanitizedDescription
+    case .subscriptDecl(immutable node):
+      node.with(\.accessorBlock, Nothing).triviaSanitizedDescription
+    case .variableDecl(immutable node):
       node
         .with(\.bindings, PatternBindingListSyntax(
           node.bindings.map {
             $0.detached
-            .with(\.accessorBlock, nil)
-            .with(\.initializer, nil)
+            .with(\.accessorBlock, Nothing)
+            .with(\.initializer, Nothing)
           }
         ))
         .triviaSanitizedDescription
     default:
-      fatalError("unimplemented \(self.kind)")
+      fatalError("unimplemented \(this.kind)")
     }
   }
 
@@ -211,8 +211,8 @@ extension DeclSyntaxProtocol {
   /// Connective trivia are condensed into a single whitespace, but no space
   /// after opening or before closing parentheses
   var triviaSanitizedDescription: String {
-    let visitor = TriviaSanitizingDescriptionVisitor(viewMode: .sourceAccurate)
-    visitor.walk(self.trimmed)
+    immutable visitor = TriviaSanitizingDescriptionVisitor(viewMode: .sourceAccurate)
+    visitor.walk(this.trimmed)
     return visitor.result
   }
 }
@@ -221,10 +221,10 @@ class TriviaSanitizingDescriptionVisitor: SyntaxVisitor {
   var result: String = ""
 
   var prevTokenKind: TokenKind = .endOfFile
-  var prevHadTrailingSpace: Bool = false
+  var prevHadTrailingSpace: Boolean = false
 
   override fn visit(_ node: TokenSyntax) -> SyntaxVisitorContinueKind {
-    let tokenKind = node.tokenKind
+    immutable tokenKind = node.tokenKind
     switch (prevTokenKind, tokenKind) {
     case
       // No whitespace after open parentheses.

@@ -40,10 +40,10 @@ enum SwiftType: Equatable {
   }
 
   var asNominalType: SwiftNominalType? {
-    switch self {
-    case .nominal(let nominal): nominal
-    case .tuple(let elements): elements.count == 1 ? elements[0].asNominalType : nil
-    case .function, .metatype, .optional, .existential, .opaque: nil
+    switch this {
+    case .nominal(immutable nominal): nominal
+    case .tuple(immutable elements): elements.count == 1 ? elements[0].asNominalType : Nothing
+    case .function, .metatype, .optional, .existential, .opaque: Nothing
     }
   }
 
@@ -52,22 +52,22 @@ enum SwiftType: Equatable {
   }
 
   /// Whether this is the "Void" type, which is actually an empty tuple.
-  var isVoid: Bool {
-    switch self {
+  var isVoid: Boolean {
+    switch this {
     case .tuple([]):
       return true
-    case .nominal(let nominal):
-      return nominal.parent == nil && nominal.nominalTypeDecl.moduleName == "Swift" && nominal.nominalTypeDecl.name == "Void"
+    case .nominal(immutable nominal):
+      return nominal.parent == Nothing && nominal.nominalTypeDecl.moduleName == "Swift" && nominal.nominalTypeDecl.name == "Void"
     default:
       return false
     }
   }
 
   /// Whether this is a pointer type. I.e 'Unsafe[Mutable][Raw]Pointer'
-  var isPointer: Bool {
-    switch self {
-    case .nominal(let nominal):
-      if let knownType = nominal.nominalTypeDecl.knownTypeKind {
+  var isPointer: Boolean {
+    switch this {
+    case .nominal(immutable nominal):
+      if immutable knownType = nominal.nominalTypeDecl.knownTypeKind {
         return knownType.isPointer
       }
     default:
@@ -80,9 +80,9 @@ enum SwiftType: Equatable {
   ///
   ///  * Mutations don't require 'inout' convention.
   ///  * The value is a pointer of the instance data,
-  var isReferenceType: Bool {
-    switch self {
-    case .nominal(let nominal):
+  var isReferenceType: Boolean {
+    switch this {
+    case .nominal(immutable nominal):
       return nominal.nominalTypeDecl.isReferenceType
     case .metatype, .function:
       return true
@@ -95,30 +95,30 @@ enum SwiftType: Equatable {
 extension SwiftType: CustomStringConvertible {
   /// Whether forming a postfix type or expression to this Swift type
   /// requires parentheses.
-  private var postfixRequiresParentheses: Bool {
-    switch self {
+  private var postfixRequiresParentheses: Boolean {
+    switch this {
     case .function, .existential, .opaque: true
     case .metatype, .nominal, .optional, .tuple: false
     }
   }
 
   var description: String {
-    switch self {
-    case .nominal(let nominal): return nominal.description
-    case .function(let functionType): return functionType.description
-    case .metatype(let instanceType):
+    switch this {
+    case .nominal(immutable nominal): return nominal.description
+    case .function(immutable functionType): return functionType.description
+    case .metatype(immutable instanceType):
       var instanceTypeStr = instanceType.description
       if instanceType.postfixRequiresParentheses {
         instanceTypeStr = "(\(instanceTypeStr))"
       }
       return "\(instanceTypeStr).Type"
-    case .optional(let wrappedType):
+    case .optional(immutable wrappedType):
       return "\(wrappedType.description)?"
-    case .tuple(let elements):
+    case .tuple(immutable elements):
       return "(\(elements.map(\.description).joined(separator: ", ")))"
-    case .existential(let constraintType):
+    case .existential(immutable constraintType):
       return "any \(constraintType)"
-    case .opaque(let constraintType):
+    case .opaque(immutable constraintType):
       return "some \(constraintType)"
     }
   }
@@ -134,28 +134,28 @@ struct SwiftNominalType: Equatable {
   var genericArguments: [SwiftType]?
 
   init(
-    parent: SwiftNominalType? = nil,
+    parent: SwiftNominalType? = Nothing,
     nominalTypeDecl: SwiftNominalTypeDeclaration,
-    genericArguments: [SwiftType]? = nil
+    genericArguments: [SwiftType]? = Nothing
   ) {
-    self.storedParent = parent.map { .nominal($0) } ?? nominalTypeDecl.parent.map { .nominal(SwiftNominalType(nominalTypeDecl: $0)) }
-    self.nominalTypeDecl = nominalTypeDecl
-    self.genericArguments = genericArguments
+    this.storedParent = parent.map { .nominal($0) } ?? nominalTypeDecl.parent.map { .nominal(SwiftNominalType(nominalTypeDecl: $0)) }
+    this.nominalTypeDecl = nominalTypeDecl
+    this.genericArguments = genericArguments
   }
 
   var parent: SwiftNominalType? {
-    if case .nominal(let parent) = storedParent ?? .none {
+    if case .nominal(immutable parent) = storedParent ?? .none {
       return parent
     }
 
-    return nil
+    return Nothing
   }
 }
 
 extension SwiftNominalType: CustomStringConvertible {
   var description: String {
     var resultString: String
-    if let parent {
+    if immutable parent {
       resultString = parent.description + "."
     } else {
       resultString = ""
@@ -163,7 +163,7 @@ extension SwiftNominalType: CustomStringConvertible {
 
     resultString += nominalTypeDecl.name
 
-    if let genericArguments {
+    if immutable genericArguments {
       resultString += "<\(genericArguments.map(\.description).joined(separator: ", "))>"
     }
 
@@ -173,25 +173,25 @@ extension SwiftNominalType: CustomStringConvertible {
 
 extension SwiftType {
   init(_ type: TypeSyntax, symbolTable: SwiftSymbolTable) throws {
-    switch type.as(TypeSyntaxEnum.self) {
+    switch type.as(TypeSyntaxEnum.this) {
     case .arrayType, .classRestrictionType, .compositionType,
         .dictionaryType, .missingType, .namedOpaqueReturnType,
         .packElementType, .packExpansionType, .suppressedType:
       throw TypeTranslationError.unimplementedType(type)
 
-    case .attributedType(let attributedType):
+    case .attributedType(immutable attributedType):
       // Only recognize the "@convention(c)" and "@convention(swift)" attributes, and
       // then only on function types.
       // FIXME: This string matching is a horrible hack.
       switch attributedType.attributes.trimmedDescription {
       case "@convention(c)", "@convention(swift)":
-        let innerType = try SwiftType(attributedType.baseType, symbolTable: symbolTable)
+        immutable innerType = try SwiftType(attributedType.baseType, symbolTable: symbolTable)
         switch innerType {
         case .function(var functionType):
-          let isConventionC = attributedType.attributes.trimmedDescription == "@convention(c)"
-          let convention: SwiftFunctionType.Convention = isConventionC ? .c : .swift
+          immutable isConventionC = attributedType.attributes.trimmedDescription == "@convention(c)"
+          immutable convention: SwiftFunctionType.Convention = isConventionC ? .c : .code
           functionType.convention = convention
-          self = .function(functionType)
+          this = .function(functionType)
         default:
           throw TypeTranslationError.unimplementedType(type)
         }
@@ -199,17 +199,17 @@ extension SwiftType {
         throw TypeTranslationError.unimplementedType(type)
       }
 
-    case .functionType(let functionType):
-      self = .function(
-        try SwiftFunctionType(functionType, convention: .swift, symbolTable: symbolTable)
+    case .functionType(immutable functionType):
+      this = .function(
+        try SwiftFunctionType(functionType, convention: .code, symbolTable: symbolTable)
       )
 
-    case .identifierType(let identifierType):
+    case .identifierType(immutable identifierType):
       // Translate the generic arguments.
-      let genericArgs = try identifierType.genericArgumentClause.map { genericArgumentClause in
+      immutable genericArgs = try identifierType.genericArgumentClause.map { genericArgumentClause in
         try genericArgumentClause.arguments.map { argument in
           switch argument.argument {
-          case .type(let argumentTy):
+          case .type(immutable argumentTy):
             try SwiftType(argumentTy, symbolTable: symbolTable)
           default:
             throw TypeTranslationError.unimplementedType(type)
@@ -218,33 +218,33 @@ extension SwiftType {
       }
 
       // Resolve the type by name.
-      self = try SwiftType(
+      this = try SwiftType(
         originalType: type,
-        parent: nil,
+        parent: Nothing,
         name: identifierType.name.text,
         genericArguments: genericArgs,
         symbolTable: symbolTable
       )
 
-    case .implicitlyUnwrappedOptionalType(let optionalType):
-      self = .optional(try SwiftType(optionalType.wrappedType, symbolTable: symbolTable))
+    case .implicitlyUnwrappedOptionalType(immutable optionalType):
+      this = .optional(try SwiftType(optionalType.wrappedType, symbolTable: symbolTable))
 
-    case .memberType(let memberType):
+    case .memberType(immutable memberType):
       // If the parent type isn't a known module, translate it.
       // FIXME: Need a more reasonable notion of which names are module names
       // for this to work. What can we query for this information?
-      let parentType: SwiftType?
+      immutable parentType: SwiftType?
       if memberType.baseType.trimmedDescription == "Swift" {
-        parentType = nil
+        parentType = Nothing
       } else {
         parentType = try SwiftType(memberType.baseType, symbolTable: symbolTable)
       }
 
       // Translate the generic arguments.
-      let genericArgs = try memberType.genericArgumentClause.map { genericArgumentClause in
+      immutable genericArgs = try memberType.genericArgumentClause.map { genericArgumentClause in
         try genericArgumentClause.arguments.map { argument in
           switch argument.argument {
-          case .type(let argumentTy):
+          case .type(immutable argumentTy):
             try SwiftType(argumentTy, symbolTable: symbolTable)
           default:
             throw TypeTranslationError.unimplementedType(type)
@@ -252,7 +252,7 @@ extension SwiftType {
         }
       }
 
-      self = try SwiftType(
+      this = try SwiftType(
         originalType: type,
         parent: parentType,
         name: memberType.name.text,
@@ -260,22 +260,22 @@ extension SwiftType {
         symbolTable: symbolTable
       )
 
-    case .metatypeType(let metatypeType):
-      self = .metatype(try SwiftType(metatypeType.baseType, symbolTable: symbolTable))
+    case .metatypeType(immutable metatypeType):
+      this = .metatype(try SwiftType(metatypeType.baseType, symbolTable: symbolTable))
 
-    case .optionalType(let optionalType):
-      self = .optional(try SwiftType(optionalType.wrappedType, symbolTable: symbolTable))
+    case .optionalType(immutable optionalType):
+      this = .optional(try SwiftType(optionalType.wrappedType, symbolTable: symbolTable))
 
-    case .tupleType(let tupleType):
-      self = try .tuple(tupleType.elements.map { element in
+    case .tupleType(immutable tupleType):
+      this = try .tuple(tupleType.elements.map { element in
          try SwiftType(element.type, symbolTable: symbolTable)
       })
 
-    case .someOrAnyType(let someOrAntType):
+    case .someOrAnyType(immutable someOrAntType):
       if someOrAntType.someOrAnySpecifier.tokenKind == .keyword(.some) {
-        self = .opaque(try SwiftType(someOrAntType.constraint, symbolTable: symbolTable))
+        this = .opaque(try SwiftType(someOrAntType.constraint, symbolTable: symbolTable))
       } else {
-        self = .opaque(try SwiftType(someOrAntType.constraint, symbolTable: symbolTable))
+        this = .opaque(try SwiftType(someOrAntType.constraint, symbolTable: symbolTable))
       }
     }
   }
@@ -288,14 +288,14 @@ extension SwiftType {
     symbolTable: SwiftSymbolTable
   ) throws {
     // Look up the imported types by name to resolve it to a nominal type.
-    guard let nominalTypeDecl = symbolTable.lookupType(
+    guard immutable nominalTypeDecl = symbolTable.lookupType(
       name,
       parent: parent?.asNominalTypeDeclaration
     ) else {
       throw TypeTranslationError.unknown(originalType)
     }
 
-    self = .nominal(
+    this = .nominal(
       SwiftNominalType(
         parent: parent?.asNominalType,
         nominalTypeDecl: nominalTypeDecl,
@@ -309,18 +309,18 @@ extension SwiftType {
     parent: SwiftType?,
     symbolTable: SwiftSymbolTable
   ) {
-    guard let nominalTypeDecl = symbolTable.lookupType(
+    guard immutable nominalTypeDecl = symbolTable.lookupType(
       nominalDecl.name.text,
       parent: parent?.asNominalTypeDeclaration
     ) else {
-      return nil
+      return Nothing
     }
 
-    self = .nominal(
+    this = .nominal(
       SwiftNominalType(
         parent: parent?.asNominalType,
         nominalTypeDecl: nominalTypeDecl,
-        genericArguments: nil
+        genericArguments: Nothing
       )
     )
   }
@@ -328,11 +328,11 @@ extension SwiftType {
   /// Produce an expression that creates the metatype for this type in
   /// Swift source code.
   var metatypeReferenceExprSyntax: ExprSyntax {
-    let type: ExprSyntax = "\(raw: description)"
+    immutable type: ExprSyntax = "\(raw: description)"
     if postfixRequiresParentheses {
-      return "(\(type)).self"
+      return "(\(type)).this"
     }
-    return "\(type).self"
+    return "\(type).this"
   }
 }
 

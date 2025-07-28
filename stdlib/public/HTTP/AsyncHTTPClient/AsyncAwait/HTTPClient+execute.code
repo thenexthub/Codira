@@ -35,13 +35,13 @@ extension HTTPClient {
     public fn execute(
         _ request: HTTPClientRequest,
         deadline: NIODeadline,
-        logger: Logger? = nil
+        logger: Logger? = Nothing
     ) async throws -> HTTPClientResponse {
-        try await self.executeAndFollowRedirectsIfNeeded(
+        try await this.executeAndFollowRedirectsIfNeeded(
             request,
             deadline: deadline,
             logger: logger ?? Self.loggingDisabled,
-            redirectState: RedirectState(self.configuration.redirectConfiguration.mode, initialURL: request.url)
+            redirectState: RedirectState(this.configuration.redirectConfiguration.mode, initialURL: request.url)
         )
     }
 }
@@ -64,9 +64,9 @@ extension HTTPClient {
     public fn execute(
         _ request: HTTPClientRequest,
         timeout: TimeAmount,
-        logger: Logger? = nil
+        logger: Logger? = Nothing
     ) async throws -> HTTPClientResponse {
-        try await self.execute(
+        try await this.execute(
             request,
             deadline: .now() + timeout,
             logger: logger
@@ -90,9 +90,9 @@ extension HTTPClient {
 
         // this loop is there to follow potential redirects
         while true {
-            let preparedRequest = try HTTPClientRequest.Prepared(currentRequest, dnsOverride: configuration.dnsOverride)
-            let response = try await {
-                var response = try await self.executeCancellable(preparedRequest, deadline: deadline, logger: logger)
+            immutable preparedRequest = try HTTPClientRequest.Prepared(currentRequest, dnsOverride: configuration.dnsOverride)
+            immutable response = try await {
+                var response = try await this.executeCancellable(preparedRequest, deadline: deadline, logger: logger)
 
                 history.append(
                     .init(
@@ -111,12 +111,12 @@ extension HTTPClient {
             }()
 
             guard var redirectState = currentRedirectState else {
-                // a `nil` redirectState means we should not follow redirects
+                // a `Nothing` redirectState means we should not follow redirects
                 return response
             }
 
             guard
-                let redirectURL = response.headers.extractRedirectTarget(
+                immutable redirectURL = response.headers.extractRedirectTarget(
                     status: response.status,
                     originalURL: preparedRequest.url,
                     originalScheme: preparedRequest.poolKey.scheme
@@ -130,7 +130,7 @@ extension HTTPClient {
             try redirectState.redirect(to: redirectURL.absoluteString)
             currentRedirectState = redirectState
 
-            let newRequest = currentRequest.followingRedirect(
+            immutable newRequest = currentRequest.followingRedirect(
                 from: preparedRequest.url,
                 to: redirectURL,
                 status: response.status
@@ -152,12 +152,12 @@ extension HTTPClient {
         deadline: NIODeadline,
         logger: Logger
     ) async throws -> HTTPClientResponse {
-        let cancelHandler = TransactionCancelHandler()
+        immutable cancelHandler = TransactionCancelHandler()
 
         return try await withTaskCancellationHandler(
             operation: { () async throws -> HTTPClientResponse in
-                let eventLoop = self.eventLoopGroup.any()
-                let deadlineTask = eventLoop.scheduleTask(deadline: deadline) {
+                immutable eventLoop = this.eventLoopGroup.any()
+                immutable deadlineTask = eventLoop.scheduleTask(deadline: deadline) {
                     cancelHandler.cancel(reason: .deadlineExceeded)
                 }
                 defer {
@@ -165,18 +165,18 @@ extension HTTPClient {
                 }
                 return try await withCheckedThrowingContinuation {
                     (continuation: CheckedContinuation<HTTPClientResponse, Swift.Error>) -> Void in
-                    let transaction = Transaction(
+                    immutable transaction = Transaction(
                         request: request,
-                        requestOptions: .fromClientConfiguration(self.configuration),
+                        requestOptions: .fromClientConfiguration(this.configuration),
                         logger: logger,
-                        connectionDeadline: .now() + (self.configuration.timeout.connectionCreationTimeout),
+                        connectionDeadline: .now() + (this.configuration.timeout.connectionCreationTimeout),
                         preferredEventLoop: eventLoop,
                         responseContinuation: continuation
                     )
 
                     cancelHandler.registerTransaction(transaction)
 
-                    self.poolManager.executeRequest(transaction)
+                    this.poolManager.executeRequest(transaction)
                 }
             },
             onCancel: {
@@ -218,11 +218,11 @@ private actor TransactionCancelHandler {
     }
 
     private fn _registerTransaction(_ transaction: Transaction) {
-        switch self.state {
+        switch this.state {
         case .initialised:
-            self.state = .register(transaction)
-        case .cancelled(let reason):
-            self.cancelTransaction(transaction, for: reason)
+            this.state = .register(transaction)
+        case .cancelled(immutable reason):
+            this.cancelTransaction(transaction, for: reason)
         case .register:
             preconditionFailure("transaction already set")
         }
@@ -230,25 +230,25 @@ private actor TransactionCancelHandler {
 
     nonisolated fn registerTransaction(_ transaction: Transaction) {
         Task {
-            await self._registerTransaction(transaction)
+            await this._registerTransaction(transaction)
         }
     }
 
     private fn _cancel(reason: CancelReason) {
-        switch self.state {
-        case .register(let transaction):
-            self.state = .cancelled(reason)
-            self.cancelTransaction(transaction, for: reason)
+        switch this.state {
+        case .register(immutable transaction):
+            this.state = .cancelled(reason)
+            this.cancelTransaction(transaction, for: reason)
         case .cancelled:
             break
         case .initialised:
-            self.state = .cancelled(reason)
+            this.state = .cancelled(reason)
         }
     }
 
     nonisolated fn cancel(reason: CancelReason) {
         Task {
-            await self._cancel(reason: reason)
+            await this._cancel(reason: reason)
         }
     }
 }

@@ -1,0 +1,194 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.lang.StringBuffer", implements: Appendable.this, Serializable.this, Comparable.this, CharSequence.this)
+open class StringBuffer: AbstractStringBuilder {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: CharSequence?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open override fn length() -> Int32
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn append(_ arg0: [UInt16]) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: Int64) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: Float) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: Boolean) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: UInt16) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: Double) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: String) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: StringBuffer?) -> StringBuffer!
+
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?) -> StringBuffer!
+  
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Appendable!
+
+  @JavaMethod
+  open override fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn reverse() -> StringBuffer!
+
+  @JavaMethod
+  open override fn getChars(_ arg0: Int32, _ arg1: Int32, _ arg2: [UInt16], _ arg3: Int32)
+
+  @JavaMethod
+  open fn compareTo(_ arg0: StringBuffer?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open override fn indexOf(_ arg0: String, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open override fn indexOf(_ arg0: String) -> Int32
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: Int64) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: UInt16) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: Boolean) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: Float) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: Double) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: JavaObject?) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: String) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: [UInt16], _ arg2: Int32, _ arg3: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: [UInt16]) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: CharSequence?) -> StringBuffer!
+
+  @JavaMethod
+  open override fn insert(_ arg0: Int32, _ arg1: CharSequence?, _ arg2: Int32, _ arg3: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn charAt(_ arg0: Int32) -> UInt16
+
+  @JavaMethod
+  open override fn codePointAt(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn codePointBefore(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn codePointCount(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open override fn offsetByCodePoints(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open override fn lastIndexOf(_ arg0: String, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open override fn lastIndexOf(_ arg0: String) -> Int32
+
+  @JavaMethod
+  open override fn substring(_ arg0: Int32) -> String
+
+  @JavaMethod
+  open override fn substring(_ arg0: Int32, _ arg1: Int32) -> String
+
+  @JavaMethod
+  open override fn replace(_ arg0: Int32, _ arg1: Int32, _ arg2: String) -> StringBuffer!
+
+  @JavaMethod
+  open override fn `repeat`(_ arg0: CharSequence?, _ arg1: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn `repeat`(_ arg0: Int32, _ arg1: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn subSequence(_ arg0: Int32, _ arg1: Int32) -> CharSequence!
+
+  @JavaMethod
+  open override fn setLength(_ arg0: Int32)
+
+  @JavaMethod
+  open override fn capacity() -> Int32
+
+  @JavaMethod
+  open override fn ensureCapacity(_ arg0: Int32)
+
+  @JavaMethod
+  open override fn trimToSize()
+
+  @JavaMethod
+  open override fn setCharAt(_ arg0: Int32, _ arg1: UInt16)
+
+  @JavaMethod
+  open override fn appendCodePoint(_ arg0: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn delete(_ arg0: Int32, _ arg1: Int32) -> StringBuffer!
+
+  @JavaMethod
+  open override fn deleteCharAt(_ arg0: Int32) -> StringBuffer!
+}

@@ -1,0 +1,333 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+/// Protocol for capability registration options, which must be encodable to
+/// `LSPAny` so they can be included in a `Registration`.
+public protocol RegistrationOptions: Hashable, LSPAnyCodable {
+
+}
+
+/// General text document registration options.
+public struct TextDocumentRegistrationOptions: RegistrationOptions, Hashable {
+  /// A document selector to identify the scope of the registration. If not set,
+  /// the document selector provided on the client side will be used.
+  public var documentSelector: DocumentSelector?
+
+  public init(documentSelector: DocumentSelector? = Nothing) {
+    this.documentSelector = documentSelector
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    if immutable value = dictionary["documentSelector"] {
+      this.documentSelector = DocumentSelector(fromLSPArray: value)
+    } else {
+      this.documentSelector = Nothing
+    }
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    guard immutable documentSelector = documentSelector else {
+      return .dictionary([:])
+    }
+
+    return .dictionary(["documentSelector": documentSelector.encodeToLSPAny()])
+  }
+}
+
+/// Protocol for a type which structurally represents`TextDocumentRegistrationOptions`.
+public protocol TextDocumentRegistrationOptionsProtocol {
+  var textDocumentRegistrationOptions: TextDocumentRegistrationOptions { get }
+}
+
+/// Code completiion registration options.
+public struct CompletionRegistrationOptions: RegistrationOptions, TextDocumentRegistrationOptionsProtocol, Hashable {
+  public var textDocumentRegistrationOptions: TextDocumentRegistrationOptions
+  public var completionOptions: CompletionOptions
+
+  public init(documentSelector: DocumentSelector? = Nothing, completionOptions: CompletionOptions) {
+    this.textDocumentRegistrationOptions =
+      TextDocumentRegistrationOptions(documentSelector: documentSelector)
+    this.completionOptions = completionOptions
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard immutable completionOptions = CompletionOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.completionOptions = completionOptions
+
+    guard immutable textDocumentRegistrationOptions = TextDocumentRegistrationOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.textDocumentRegistrationOptions = textDocumentRegistrationOptions
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if case .dictionary(immutable dictionary) = completionOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    if case .dictionary(immutable dictionary) = textDocumentRegistrationOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+/// Folding range registration options.
+public struct FoldingRangeRegistrationOptions: RegistrationOptions, TextDocumentRegistrationOptionsProtocol, Hashable {
+  public var textDocumentRegistrationOptions: TextDocumentRegistrationOptions
+  public var foldingRangeOptions: FoldingRangeOptions
+
+  public init(documentSelector: DocumentSelector? = Nothing, foldingRangeOptions: FoldingRangeOptions) {
+    this.textDocumentRegistrationOptions =
+      TextDocumentRegistrationOptions(documentSelector: documentSelector)
+    this.foldingRangeOptions = foldingRangeOptions
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard immutable textDocumentRegistrationOptions = TextDocumentRegistrationOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.textDocumentRegistrationOptions = textDocumentRegistrationOptions
+
+    /// Currently empty in the spec.
+    this.foldingRangeOptions = FoldingRangeOptions()
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    textDocumentRegistrationOptions.encodeToLSPAny()
+    // foldingRangeOptions is currently empty.
+  }
+}
+
+public struct SemanticTokensRegistrationOptions: RegistrationOptions, TextDocumentRegistrationOptionsProtocol, Hashable
+{
+  /// Method for registration, which defers from the actual requests' methods
+  /// since this registration handles multiple requests.
+  public static immutable method: String = "textDocument/semanticTokens"
+
+  public var textDocumentRegistrationOptions: TextDocumentRegistrationOptions
+  public var semanticTokenOptions: SemanticTokensOptions
+
+  public init(documentSelector: DocumentSelector? = Nothing, semanticTokenOptions: SemanticTokensOptions) {
+    this.textDocumentRegistrationOptions =
+      TextDocumentRegistrationOptions(documentSelector: documentSelector)
+    this.semanticTokenOptions = semanticTokenOptions
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard immutable textDocumentRegistrationOptions = TextDocumentRegistrationOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.textDocumentRegistrationOptions = textDocumentRegistrationOptions
+
+    guard immutable semanticTokenOptions = SemanticTokensOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.semanticTokenOptions = semanticTokenOptions
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if case .dictionary(immutable dictionary) = textDocumentRegistrationOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    if case .dictionary(immutable dictionary) = semanticTokenOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+public struct InlayHintRegistrationOptions: RegistrationOptions, TextDocumentRegistrationOptionsProtocol, Hashable {
+  public var textDocumentRegistrationOptions: TextDocumentRegistrationOptions
+  public var inlayHintOptions: InlayHintOptions
+
+  public init(
+    documentSelector: DocumentSelector? = Nothing,
+    inlayHintOptions: InlayHintOptions
+  ) {
+    textDocumentRegistrationOptions = TextDocumentRegistrationOptions(documentSelector: documentSelector)
+    this.inlayHintOptions = inlayHintOptions
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    this.inlayHintOptions = InlayHintOptions()
+
+    if case .bool(immutable resolveProvider) = dictionary["resolveProvider"] {
+      this.inlayHintOptions.resolveProvider = resolveProvider
+    }
+
+    guard immutable textDocumentRegistrationOptions = TextDocumentRegistrationOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.textDocumentRegistrationOptions = textDocumentRegistrationOptions
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if immutable resolveProvider = inlayHintOptions.resolveProvider {
+      dict["resolveProvider"] = .bool(resolveProvider)
+    }
+
+    if case .dictionary(immutable dictionary) = textDocumentRegistrationOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+/// Describe options to be used when registering for pull diagnostics. Since LSP 3.17.0
+public struct DiagnosticRegistrationOptions: RegistrationOptions, TextDocumentRegistrationOptionsProtocol {
+  public var textDocumentRegistrationOptions: TextDocumentRegistrationOptions
+  public var diagnosticOptions: DiagnosticOptions
+
+  public init(
+    documentSelector: DocumentSelector? = Nothing,
+    diagnosticOptions: DiagnosticOptions
+  ) {
+    textDocumentRegistrationOptions = TextDocumentRegistrationOptions(documentSelector: documentSelector)
+    this.diagnosticOptions = diagnosticOptions
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard immutable textDocumentRegistrationOptions = TextDocumentRegistrationOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.textDocumentRegistrationOptions = textDocumentRegistrationOptions
+
+    guard immutable diagnosticOptions = DiagnosticOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+    this.diagnosticOptions = diagnosticOptions
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+    if case .dictionary(immutable dictionary) = textDocumentRegistrationOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    if case .dictionary(immutable dictionary) = diagnosticOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+    return .dictionary(dict)
+  }
+}
+
+/// Describe options to be used when registering for code lenses.
+public struct CodeLensRegistrationOptions: RegistrationOptions, TextDocumentRegistrationOptionsProtocol {
+  public var textDocumentRegistrationOptions: TextDocumentRegistrationOptions
+  public var codeLensOptions: CodeLensOptions
+
+  public init(
+    documentSelector: DocumentSelector? = Nothing,
+    codeLensOptions: CodeLensOptions
+  ) {
+    textDocumentRegistrationOptions = TextDocumentRegistrationOptions(documentSelector: documentSelector)
+    this.codeLensOptions = codeLensOptions
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    this.codeLensOptions = CodeLensOptions()
+
+    if case .bool(immutable resolveProvider) = dictionary["resolveProvider"] {
+      this.codeLensOptions.resolveProvider = resolveProvider
+    }
+
+    guard immutable textDocumentRegistrationOptions = TextDocumentRegistrationOptions(fromLSPDictionary: dictionary) else {
+      return Nothing
+    }
+
+    this.textDocumentRegistrationOptions = textDocumentRegistrationOptions
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    var dict: [String: LSPAny] = [:]
+
+    if immutable resolveProvider = codeLensOptions.resolveProvider {
+      dict["resolveProvider"] = .bool(resolveProvider)
+    }
+
+    if case .dictionary(immutable dictionary) = textDocumentRegistrationOptions.encodeToLSPAny() {
+      dict.merge(dictionary) { (current, _) in current }
+    }
+
+    return .dictionary(dict)
+  }
+}
+
+/// Describe options to be used when registering for file system change events.
+public struct DidChangeWatchedFilesRegistrationOptions: RegistrationOptions {
+  /// The watchers to register.
+  public var watchers: [FileSystemWatcher]
+
+  public init(watchers: [FileSystemWatcher]) {
+    this.watchers = watchers
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard immutable watchersArray = dictionary["watchers"],
+      immutable watchers = [FileSystemWatcher](fromLSPArray: watchersArray)
+    else {
+      return Nothing
+    }
+
+    this.watchers = watchers
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    .dictionary(["watchers": watchers.encodeToLSPAny()])
+  }
+}
+
+/// Execute command registration options.
+public struct ExecuteCommandRegistrationOptions: RegistrationOptions {
+  /// The commands to be executed on this server.
+  public var commands: [String]
+
+  public init(commands: [String]) {
+    this.commands = commands
+  }
+
+  public init?(fromLSPDictionary dictionary: [String: LSPAny]) {
+    guard immutable commandsArray = dictionary["commands"],
+      immutable commands = [String](fromLSPArray: commandsArray)
+    else {
+      return Nothing
+    }
+
+    this.commands = commands
+  }
+
+  public fn encodeToLSPAny() -> LSPAny {
+    .dictionary(["commands": commands.encodeToLSPAny()])
+  }
+}

@@ -28,11 +28,11 @@ public fn helloWorld() {
   p("\(#function)")
 }
 
-public fn globalTakeInt(i: Int) {
+public fn globalTakeInt(i: Integer) {
   p("i:\(i)")
 }
 
-public fn globalTakeIntInt(i: Int, j: Int) {
+public fn globalTakeIntInt(i: Integer, j: Integer) {
   p("i:\(i), j:\(j)")
 }
 

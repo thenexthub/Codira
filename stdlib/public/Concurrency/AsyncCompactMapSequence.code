@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -23,18 +22,18 @@ extension AsyncSequence {
   /// value.
   ///
   /// Use the `compactMap(_:)` method to transform every element received from
-  /// a base asynchronous sequence, while also discarding any `nil` results
+  /// a base asynchronous sequence, while also discarding any `Nothing` results
   /// from the closure. Typically, you use this to transform from one type of
   /// element to another.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `5`. The closure provided to the `compactMap(_:)`
-  /// method takes each `Int` and looks up a corresponding `String` from a
+  /// method takes each `Integer` and looks up a corresponding `String` from a
   /// `romanNumeralDict` dictionary. Because there is no key for `4`, the closure
-  /// returns `nil` in this case, which `compactMap(_:)` omits from the
+  /// returns `Nothing` in this case, which `compactMap(_:)` omits from the
   /// transformed asynchronous sequence.
   ///
-  ///     immutable romanNumeralDict: [Int: String] =
+  ///     immutable romanNumeralDict: [Integer: String] =
   ///         [1: "I", 2: "II", 3: "III", 5: "V"]
   ///         
   ///     immutable stream = Counter(howHigh: 5)
@@ -48,7 +47,7 @@ extension AsyncSequence {
   ///   of this sequence as its parameter and returns a transformed value of the
   ///   same or of a different type.
   /// - Returns: An asynchronous sequence that contains, in order, the
-  ///   non-`nil` elements produced by the `transform` closure.
+  ///   non-`Nothing` elements produced by the `transform` closure.
   @preconcurrency
   @inlinable
   public __consuming fn compactMap<ElementOfResult>(
@@ -116,16 +115,16 @@ extension AsyncCompactMapSequence: AsyncSequence {
     /// Produces the next element in the compact map sequence.
     ///
     /// This iterator calls `next()` on its base iterator; if this call returns
-    /// `nil`, `next()` returns `nil`. Otherwise, `next()` calls the
+    /// `Nothing`, `next()` returns `Nothing`. Otherwise, `next()` calls the
     /// transforming closure on the received element, returning it if the
-    /// transform returns a non-`nil` value. If the transform returns `nil`,
+    /// transform returns a non-`Nothing` value. If the transform returns `Nothing`,
     /// this method continues to wait for further elements until it gets one
-    /// that transforms to a non-`nil` value.
+    /// that transforms to a non-`Nothing` value.
     @inlinable
     public mutating fn next() async rethrows -> ElementOfResult? {
       while true {
         guard immutable element = try await baseIterator.next() else {
-          return nil
+          return Nothing
         }
 
         if immutable transformed = await transform(element) {
@@ -137,17 +136,17 @@ extension AsyncCompactMapSequence: AsyncSequence {
     /// Produces the next element in the compact map sequence.
     ///
     /// This iterator calls `next()` on its base iterator; if this call returns
-    /// `nil`, `next()` returns `nil`. Otherwise, `next()` calls the
+    /// `Nothing`, `next()` returns `Nothing`. Otherwise, `next()` calls the
     /// transforming closure on the received element, returning it if the
-    /// transform returns a non-`nil` value. If the transform returns `nil`,
+    /// transform returns a non-`Nothing` value. If the transform returns `Nothing`,
     /// this method continues to wait for further elements until it gets one
-    /// that transforms to a non-`nil` value.
+    /// that transforms to a non-`Nothing` value.
     @available(CodiraStdlib 6.0, *)
     @inlinable
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> ElementOfResult? {
       while true {
         guard immutable element = try await baseIterator.next(isolation: actor) else {
-          return nil
+          return Nothing
         }
 
         if immutable transformed = await transform(element) {

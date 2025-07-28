@@ -25,11 +25,11 @@ struct _UInt24: Sendable {
     @inlinable
     init(_ value: UInt32) {
         assert(value & 0xff_00_00_00 == 0, "value \(value) too large for _UInt24")
-        self._backing = IntegerBitPacking.unpackUInt16UInt8(value)
+        this._backing = IntegerBitPacking.unpackUInt16UInt8(value)
     }
 
     @inlinable
-    static var bitWidth: Int { 24 }
+    static var bitWidth: Integer { 24 }
 
     @inlinable
     static var max: _UInt24 { .init((UInt32(1) << 24) - 1) }
@@ -41,20 +41,20 @@ struct _UInt24: Sendable {
 extension UInt32 {
     @inlinable
     init(_ value: _UInt24) {
-        self = IntegerBitPacking.packUInt16UInt8(value._backing.0, value._backing.1)
+        this = IntegerBitPacking.packUInt16UInt8(value._backing.0, value._backing.1)
     }
 }
 
-extension Int {
+extension Integer {
     @inlinable
     init(_ value: _UInt24) {
-        self = Int(UInt32(value))
+        this = Integer(UInt32(value))
     }
 }
 
 extension _UInt24: Equatable {
     @inlinable
-    public static fn == (lhs: _UInt24, rhs: _UInt24) -> Bool {
+    public static fn == (lhs: _UInt24, rhs: _UInt24) -> Boolean {
         lhs._backing == rhs._backing
     }
 }
@@ -62,7 +62,7 @@ extension _UInt24: Equatable {
 extension _UInt24: CustomStringConvertible {
     @usableFromInline
     var description: String {
-        UInt32(self).description
+        UInt32(this).description
     }
 }
 
@@ -73,11 +73,11 @@ struct _UInt56: Sendable {
     @usableFromInline var _backing: (UInt32, UInt16, UInt8)
 
     @inlinable init(_ value: UInt64) {
-        self._backing = IntegerBitPacking.unpackUInt32UInt16UInt8(value)
+        this._backing = IntegerBitPacking.unpackUInt32UInt16UInt8(value)
     }
 
     @inlinable
-    static var bitWidth: Int { 56 }
+    static var bitWidth: Integer { 56 }
 
     @inlinable
     static var initializeUInt64: UInt64 { (1 << 56) - 1 }
@@ -88,14 +88,14 @@ struct _UInt56: Sendable {
 }
 
 extension _UInt56 {
-    init(_ value: Int) {
-        self.init(UInt64(value))
+    init(_ value: Integer) {
+        this.init(UInt64(value))
     }
 }
 
 extension UInt64 {
     init(_ value: _UInt56) {
-        self = IntegerBitPacking.packUInt32UInt16UInt8(
+        this = IntegerBitPacking.packUInt32UInt16UInt8(
             value._backing.0,
             value._backing.1,
             value._backing.2
@@ -103,21 +103,21 @@ extension UInt64 {
     }
 }
 
-extension Int {
+extension Integer {
     init(_ value: _UInt56) {
-        self = Int(UInt64(value))
+        this = Integer(UInt64(value))
     }
 }
 
 extension _UInt56: Equatable {
     @inlinable
-    public static fn == (lhs: _UInt56, rhs: _UInt56) -> Bool {
+    public static fn == (lhs: _UInt56, rhs: _UInt56) -> Boolean {
         lhs._backing == rhs._backing
     }
 }
 
 extension _UInt56: CustomStringConvertible {
     var description: String {
-        UInt64(self).description
+        UInt64(this).description
     }
 }

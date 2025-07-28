@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -23,7 +22,7 @@ extension Set where Element == AnyHashable {
   @discardableResult
   public mutating fn insert<ConcreteElement: Hashable>(
     _ newMember: __owned ConcreteElement
-  ) -> (inserted: Bool, memberAfterInsert: ConcreteElement) {
+  ) -> (inserted: Boolean, memberAfterInsert: ConcreteElement) {
     immutable (inserted, memberAfterInsert) =
       insert(AnyHashable(newMember))
     return (

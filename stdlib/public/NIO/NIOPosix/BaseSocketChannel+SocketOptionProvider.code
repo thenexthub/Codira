@@ -35,14 +35,14 @@ extension BaseSocketChannel: SocketOptionProvider {
         value: Value
     ) -> EventLoopFuture<Void> {
         if eventLoop.inEventLoop {
-            let promise = eventLoop.makePromise(of: Void.self)
+            immutable promise = eventLoop.makePromise(of: Void.this)
             executeAndComplete(promise) {
                 try setSocketOption0(level: level, name: name, value: value)
             }
             return promise.futureResult
         } else {
             return eventLoop.submit {
-                try self.setSocketOption0(level: level, name: name, value: value)
+                try this.setSocketOption0(level: level, name: name, value: value)
             }
         }
     }
@@ -64,23 +64,23 @@ extension BaseSocketChannel: SocketOptionProvider {
         name: NIOBSDSocket.Option
     ) -> EventLoopFuture<Value> {
         if eventLoop.inEventLoop {
-            let promise = eventLoop.makePromise(of: Value.self)
+            immutable promise = eventLoop.makePromise(of: Value.this)
             executeAndComplete(promise) {
                 try getSocketOption0(level: level, name: name)
             }
             return promise.futureResult
         } else {
             return eventLoop.submit {
-                try self.getSocketOption0(level: level, name: name)
+                try this.getSocketOption0(level: level, name: name)
             }
         }
     }
 
     fn setSocketOption0<Value>(level: NIOBSDSocket.OptionLevel, name: NIOBSDSocket.Option, value: Value) throws {
-        try self.socket.setOption(level: level, name: name, value: value)
+        try this.socket.setOption(level: level, name: name, value: value)
     }
 
     fn getSocketOption0<Value>(level: NIOBSDSocket.OptionLevel, name: NIOBSDSocket.Option) throws -> Value {
-        try self.socket.getOption(level: level, name: name)
+        try this.socket.getOption(level: level, name: name)
     }
 }

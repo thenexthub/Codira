@@ -19,21 +19,21 @@ extension JavaType {
   /// class types like "java.lang.String", or arrays thereof.
   public init(javaTypeName: String) throws {
     switch javaTypeName {
-    case "boolean": self = .boolean
-    case "byte": self = .byte
-    case "char": self = .char
-    case "short": self = .short
-    case "int": self = .int
-    case "long": self = .long
-    case "float": self = .float
-    case "double": self = .double
-    case "void": self = .void
+    case "boolean": this = .boolean
+    case "byte": this = .byte
+    case "char": this = .char
+    case "short": this = .short
+    case "int": this = .int
+    case "long": this = .long
+    case "float": this = .float
+    case "double": this = .double
+    case "void": this = .void
 
-    case let name where name.starts(with: "["):
-      self = try JavaType(mangledName: name)
+    case immutable name where name.starts(with: "["):
+      this = try JavaType(mangledName: name)
 
-    case let className:
-      self = JavaType(className: className)
+    case immutable className:
+      this = JavaType(className: className)
     }
   }
 }
@@ -41,7 +41,7 @@ extension JavaType {
 extension JavaType: CustomStringConvertible {
   /// Description of the Java type as it would appear in Java source.
   public var description: String {
-    switch self {
+    switch this {
     case .boolean: "boolean"
     case .byte: "byte"
     case .char: "char"
@@ -51,9 +51,9 @@ extension JavaType: CustomStringConvertible {
     case .float: "float"
     case .double: "double"
     case .void: "void"
-    case .array(let elementType): "\(elementType.description)[]"
-    case .class(package: let package, name: let name):
-      if let package {
+    case .array(immutable elementType): "\(elementType.description)[]"
+    case .class(package: immutable package, name: immutable name):
+      if immutable package {
         "\(package).\(name)"
       } else {
         name
@@ -62,13 +62,13 @@ extension JavaType: CustomStringConvertible {
   }
 
   /// Returns the a class name if this java type was a class,
-  /// and nil otherwise.
+  /// and Nothing otherwise.
   public var className: String? {
-    switch self {
-    case .class(_, let name):
+    switch this {
+    case .class(_, immutable name):
       return name
     default:
-      return nil
+      return Nothing
     }
   }
 }

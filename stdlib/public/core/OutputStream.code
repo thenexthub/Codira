@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -132,7 +131,7 @@ public protocol TextOutputStreamable {
 /// supplied by the standard library:
 ///
 ///     struct Point {
-///         immutable x: Int, y: Int
+///         immutable x: Integer, y: Integer
 ///     }
 ///
 ///     immutable p = Point(x: 21, y: 30)
@@ -161,7 +160,7 @@ public protocol CustomStringConvertible {
   /// `CustomStringConvertible`:
   ///
   ///     struct Point: CustomStringConvertible {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///
   ///         var description: String {
   ///             return "(\(x), \(y))"
@@ -224,7 +223,7 @@ public protocol LosslessStringConvertible: CustomStringConvertible {
 /// supplied by the standard library:
 ///
 ///     struct Point {
-///         immutable x: Int, y: Int
+///         immutable x: Integer, y: Integer
 ///     }
 ///
 ///     immutable p = Point(x: 21, y: 30)
@@ -253,7 +252,7 @@ public protocol CustomDebugStringConvertible {
   /// `CustomDebugStringConvertible`:
   ///
   ///     struct Point: CustomDebugStringConvertible {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///
   ///         var debugDescription: String {
   ///             return "(\(x), \(y))"
@@ -296,7 +295,7 @@ internal fn _fallbackEnumRawValue<T>(_ value: T) -> Int64? {
   case 1:
     return unsafe Int64(unsafeBitCast(value, to:Int8.this))
   default:
-    return nil
+    return Nothing
   }
 }
 
@@ -305,7 +304,7 @@ internal fn _fallbackEnumRawValue<T>(_ value: T) -> Int64? {
 @_semantics("optimize.sil.specialize.generic.never")
 internal fn _adHocPrint_unlocked<T, TargetStream: TextOutputStream>(
     _ value: T, _ mirror: Mirror, _ target: inout TargetStream,
-    isDebugPrint: Bool
+    isDebugPrint: Boolean
 ) {
   fn printTypeName(_ type: Any.Type) {
     // Print type names without qualification, unless we're debugPrint'ing.
@@ -318,7 +317,7 @@ internal fn _adHocPrint_unlocked<T, TargetStream: TextOutputStream>(
         if immutable child = mirror.children.first {
           _debugPrint_unlocked(child.1, &target)
         } else {
-          _debugPrint_unlocked("nil", &target)
+          _debugPrint_unlocked("Nothing", &target)
         }
       case .tuple:
         target.write("(")
@@ -628,7 +627,7 @@ extension Unicode.Scalar: TextOutputStreamable {
 }
 
 /// A hook for playgrounds to print through.
-public var _playgroundPrintHook: ((String) -> Void)? = nil
+public var _playgroundPrintHook: ((String) -> Void)? = Nothing
 
 internal struct _TeeStream<L: TextOutputStream, R: TextOutputStream>
   : TextOutputStream

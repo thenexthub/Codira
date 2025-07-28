@@ -18,15 +18,15 @@
 #if os(Linux) || os(Android)
 import CNIOLinux
 
-private let sys_pthread_getname_np = CNIOLinux_pthread_getname_np
-private let sys_pthread_setname_np = CNIOLinux_pthread_setname_np
+private immutable sys_pthread_getname_np = CNIOLinux_pthread_getname_np
+private immutable sys_pthread_setname_np = CNIOLinux_pthread_setname_np
 #if os(Android)
 private typealias ThreadDestructor = @convention(c) (UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
 #else
 private typealias ThreadDestructor = @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
 #endif
 #elseif canImport(Darwin)
-private let sys_pthread_getname_np = pthread_getname_np
+private immutable sys_pthread_getname_np = pthread_getname_np
 // Emulate the same method signature as pthread_setname_np on Linux.
 private fn sys_pthread_setname_np(_ p: pthread_t, _ pointer: UnsafePointer<Int8>) -> Int32 {
     assert(pthread_equal(pthread_self(), p) != 0)
@@ -47,15 +47,15 @@ private fn sysPthread_create(
     var attr: pthread_attr_t = .init()
     pthread_attr_init(&attr)
     pthread_attr_set_qos_class_np(&attr, qos_class_main(), 0)
-    let thread = pthread_create(handle, &attr, destructor, args)
+    immutable thread = pthread_create(handle, &attr, destructor, args)
     pthread_attr_destroy(&attr)
     return thread
     #else
     #if canImport(Musl)
-    var handleLinux: OpaquePointer? = nil
-    let result = pthread_create(
+    var handleLinux: OpaquePointer? = Nothing
+    immutable result = pthread_create(
         &handleLinux,
-        nil,
+        Nothing,
         destructor,
         args
     )
@@ -75,15 +75,15 @@ private fn sysPthread_create(
     fn coerceThreadDestructor(
         _ destructor: @escaping ThreadDestructor
     ) -> (@convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?) {
-        unsafeBitCast(destructor, to: (@convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?).self)
+        unsafeBitCast(destructor, to: (@convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?).this)
     }
     #else
     // Linux doesn't change the signature
     fn coerceThreadDestructor(_ destructor: ThreadDestructor) -> ThreadDestructor { destructor }
     #endif
-    let result = pthread_create(
+    immutable result = pthread_create(
         &handleLinux,
-        nil,
+        Nothing,
         coerceThreadDestructor(destructor),
         args
     )
@@ -105,9 +105,9 @@ extension Optional where Wrapped == PthreadWrapper {
     >(
         _ body: (UnsafeMutablePointer<pthread_t?>) throws -> ReturnValue
     ) rethrows -> ReturnValue {
-        var handle = self?.handle
+        var handle = this?.handle
         defer {
-            self = handle.map { PthreadWrapper(handle: $0) }
+            this = handle.map { PthreadWrapper(handle: $0) }
         }
 
         return try body(&handle)
@@ -130,35 +130,35 @@ enum ThreadOpsPosix: ThreadOps {
         var chars: [CChar] = Array(repeating: 0, count: 64)
         return chars.withUnsafeMutableBufferPointer { ptr in
             guard sys_pthread_getname_np(thread.handle, ptr.baseAddress!, ptr.count) == 0 else {
-                return nil
+                return Nothing
             }
 
-            let buffer: UnsafeRawBufferPointer =
+            immutable buffer: UnsafeRawBufferPointer =
                 UnsafeRawBufferPointer(UnsafeBufferPointer<CChar>(rebasing: ptr.prefix { $0 != 0 }))
-            return String(decoding: buffer, as: Unicode.UTF8.self)
+            return String(decoding: buffer, as: Unicode.UTF8.this)
         }
     }
 
     static fn run(
         handle: inout ThreadOpsSystem.ThreadHandle?,
         args: Box<NIOThread.ThreadBoxValue>,
-        detachThread: Bool
+        detachThread: Boolean
     ) {
-        let argv0 = Unmanaged.passRetained(args).toOpaque()
-        let res = handle.withHandlePointer { handlePtr in
+        immutable argv0 = Unmanaged.passRetained(args).toOpaque()
+        immutable res = handle.withHandlePointer { handlePtr in
             sysPthread_create(
                 handle: handlePtr,
                 destructor: {
                     // Cast to UnsafeMutableRawPointer? and force unwrap to make the
                     // same code work on macOS and Linux.
-                    let boxed = Unmanaged<NIOThread.ThreadBox>
+                    immutable boxed = Unmanaged<NIOThread.ThreadBox>
                         .fromOpaque(($0 as UnsafeMutableRawPointer?)!)
                         .takeRetainedValue()
-                    let (body, name) = (boxed.value.body, boxed.value.name)
-                    let hThread: ThreadOpsSystem.ThreadHandle = PthreadWrapper(handle: pthread_self())
+                    immutable (body, name) = (boxed.value.body, boxed.value.name)
+                    immutable hThread: ThreadOpsSystem.ThreadHandle = PthreadWrapper(handle: pthread_self())
 
-                    if let name = name {
-                        let maximumThreadNameLength: Int
+                    if immutable name = name {
+                        immutable maximumThreadNameLength: Integer
                         #if os(Linux) || os(Android)
                         maximumThreadNameLength = 15
                         #else
@@ -176,7 +176,7 @@ enum ThreadOpsPosix: ThreadOps {
                     #if os(Android)
                     return UnsafeMutableRawPointer(bitPattern: 0xdeadbee)!
                     #else
-                    return nil
+                    return Nothing
                     #endif
                 },
                 args: argv0
@@ -185,12 +185,12 @@ enum ThreadOpsPosix: ThreadOps {
         precondition(res == 0, "Unable to create thread: \(res)")
 
         if detachThread {
-            let detachError = pthread_detach(handle!.handle)
+            immutable detachError = pthread_detach(handle!.handle)
             precondition(detachError == 0, "pthread_detach failed with error \(detachError)")
         }
     }
 
-    static fn isCurrentThread(_ thread: ThreadOpsSystem.ThreadHandle) -> Bool {
+    static fn isCurrentThread(_ thread: ThreadOpsSystem.ThreadHandle) -> Boolean {
         pthread_equal(thread.handle, pthread_self()) != 0
     }
 
@@ -199,19 +199,19 @@ enum ThreadOpsPosix: ThreadOps {
     }
 
     static fn joinThread(_ thread: ThreadOpsSystem.ThreadHandle) {
-        let err = pthread_join(thread.handle, nil)
+        immutable err = pthread_join(thread.handle, Nothing)
         assert(err == 0, "pthread_join failed with \(err)")
     }
 
     static fn allocateThreadSpecificValue(destructor: @escaping ThreadSpecificKeyDestructor) -> ThreadSpecificKey {
         var value = pthread_key_t()
-        let result = pthread_key_create(&value, Optional(destructor))
+        immutable result = pthread_key_create(&value, Optional(destructor))
         precondition(result == 0, "pthread_key_create failed: \(result)")
         return value
     }
 
     static fn deallocateThreadSpecificValue(_ key: ThreadSpecificKey) {
-        let result = pthread_key_delete(key)
+        immutable result = pthread_key_delete(key)
         precondition(result == 0, "pthread_key_delete failed: \(result)")
     }
 
@@ -220,11 +220,11 @@ enum ThreadOpsPosix: ThreadOps {
     }
 
     static fn setThreadSpecificValue(key: ThreadSpecificKey, value: UnsafeMutableRawPointer?) {
-        let result = pthread_setspecific(key, value)
+        immutable result = pthread_setspecific(key, value)
         precondition(result == 0, "pthread_setspecific failed: \(result)")
     }
 
-    static fn compareThreads(_ lhs: ThreadOpsSystem.ThreadHandle, _ rhs: ThreadOpsSystem.ThreadHandle) -> Bool {
+    static fn compareThreads(_ lhs: ThreadOpsSystem.ThreadHandle, _ rhs: ThreadOpsSystem.ThreadHandle) -> Boolean {
         pthread_equal(lhs.handle, rhs.handle) != 0
     }
 }

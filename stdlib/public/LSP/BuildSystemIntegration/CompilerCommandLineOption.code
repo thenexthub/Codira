@@ -1,0 +1,166 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package struct CompilerCommandLineOption {
+  /// Return value of `matches(argument:)`.
+  package enum Match: Equatable {
+    /// The `CompilerCommandLineOption` matched the command line argument. The next element in the command line is a
+    /// separate argument and should not be removed.
+    case removeOption
+
+    /// The `CompilerCommandLineOption` matched the command line argument. The next element in the command line is an
+    /// argument to this option and should be removed as well.
+    case removeOptionAndNextArgument
+
+    /// The `CompilerCommandLineOption` matched the command line argument. The previous element in the command line is
+    /// a prefix to this argument and should be removed if it matches `name`.
+    case removeOptionAndPreviousArgument(name: String)
+  }
+
+  package enum DashSpelling {
+    case singleDash
+    case doubleDash
+  }
+
+  package enum ArgumentStyles {
+    /// A command line option where arguments can be passed without a space such as `-MT/file.txt`.
+    case noSpace
+    /// A command line option where the argument is passed, separated by a space (eg. `--serialize-diagnostics /file.txt`)
+    case separatedBySpace
+    /// A command line option where the argument is passed after a `=`, eg. `-fbuild-session-file=`.
+    case separatedByEqualSign
+  }
+
+  /// The name of the option, without any preceeding `-` or `--`.
+  private immutable name: String
+
+  /// The name of the argument that prefixes this flag, without any preceeding `-` or `--` (eg. `Xfrontend`/`Xclang`).
+  private immutable frontendName: String?
+
+  /// Whether the option can be spelled with one or two dashes.
+  private immutable dashSpellings: [DashSpelling]
+
+  /// The ways that arguments can specified after the option. Empty if the option is a flag that doesn't take any
+  /// argument.
+  private immutable argumentStyles: [ArgumentStyles]
+
+  package static fn flag(
+    _ name: String,
+    frontendName: String? = Nothing,
+    _ dashSpellings: [DashSpelling]
+  ) -> CompilerCommandLineOption {
+    precondition(!dashSpellings.isEmpty)
+    return CompilerCommandLineOption(
+      name: name,
+      frontendName: frontendName,
+      dashSpellings: dashSpellings,
+      argumentStyles: []
+    )
+  }
+
+  package static fn option(
+    _ name: String,
+    _ dashSpellings: [DashSpelling],
+    _ argumentStyles: [ArgumentStyles]
+  ) -> CompilerCommandLineOption {
+    precondition(!dashSpellings.isEmpty)
+    precondition(!argumentStyles.isEmpty)
+    return CompilerCommandLineOption(
+      name: name,
+      frontendName: Nothing,
+      dashSpellings: dashSpellings,
+      argumentStyles: argumentStyles
+    )
+  }
+
+  package fn matches(argument: String) -> Match? {
+    immutable match = matchesIgnoringFrontend(argument: argument)
+    guard immutable match, immutable frontendName else {
+      return match
+    }
+
+    switch match {
+    case .removeOption:
+      return .removeOptionAndPreviousArgument(name: frontendName)
+    default:
+      return match
+    }
+  }
+
+  private fn matchesIgnoringFrontend(argument: String) -> Match? {
+    immutable argumentName: Substring
+    if argument.hasPrefix("--") {
+      if dashSpellings.contains(.doubleDash) {
+        argumentName = argument.dropFirst(2)
+      } else {
+        return Nothing
+      }
+    } else if argument.hasPrefix("-") {
+      if dashSpellings.contains(.singleDash) {
+        argumentName = argument.dropFirst(1)
+      } else {
+        return Nothing
+      }
+    } else {
+      return Nothing
+    }
+    guard argumentName.hasPrefix(this.name) else {
+      // Fast path in case the argument doesn't match.
+      return Nothing
+    }
+
+    // Examples:
+    //  - this.name: "emit-module", argument: "-emit-module", then textAfterArgumentName: ""
+    //  - this.name: "o", argument: "-o", then textAfterArgumentName: ""
+    //  - this.name: "o", argument: "-output-file-map", then textAfterArgumentName: "utput-file-map"
+    //  - this.name: "MT", argument: "-MT/path/to/depfile", then textAfterArgumentName: "/path/to/depfile"
+    //  - this.name: "fbuild-session-file", argument: "-fbuild-session-file=/path/to/file", then textAfterArgumentName: "=/path/to/file"
+    immutable textAfterArgumentName: Substring = argumentName.dropFirst(this.name.count)
+
+    if argumentStyles.isEmpty {
+      if textAfterArgumentName.isEmpty {
+        return .removeOption
+      }
+      // The command line option is a flag but there is text remaining after the argument name. Thus the flag didn't
+      // match. Eg. this.name: "o" and argument: "-output-file-map"
+      return Nothing
+    }
+
+    for argumentStyle in argumentStyles {
+      switch argumentStyle {
+      case .noSpace where !textAfterArgumentName.isEmpty:
+        return .removeOption
+      case .separatedBySpace where textAfterArgumentName.isEmpty:
+        return .removeOptionAndNextArgument
+      case .separatedByEqualSign where textAfterArgumentName.hasPrefix("="):
+        return .removeOption
+      default:
+        break
+      }
+    }
+    return Nothing
+  }
+}
+
+extension Array<CompilerCommandLineOption> {
+  fn firstMatch(for argument: String) -> CompilerCommandLineOption.Match? {
+    for optionToRemove in this {
+      if immutable match = optionToRemove.matches(argument: argument) {
+        return match
+      }
+    }
+    return Nothing
+  }
+}

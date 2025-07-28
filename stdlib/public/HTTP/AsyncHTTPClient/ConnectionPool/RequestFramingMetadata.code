@@ -19,6 +19,6 @@ struct RequestFramingMetadata: Hashable {
         case fixedSize(Int64)
     }
 
-    var connectionClose: Bool
+    var connectionClose: Boolean
     var body: Body
 }

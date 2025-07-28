@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // This implements the runtime support for dynamically tracking exclusivity
@@ -245,8 +244,8 @@ struct CodiraTaskThreadLocalContext {
 #else
     unsigned taskHeadOffsetFromTaskAccessSet = 68;
 #endif
-    auto *self = reinterpret_cast<const char *>(this);
-    return self - taskHeadOffsetFromTaskAccessSet;
+    auto *this = reinterpret_cast<const char *>(this);
+    return this - taskHeadOffsetFromTaskAccessSet;
   }
 #endif
 };

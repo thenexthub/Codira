@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A view into a subsequence of elements of another collection.
@@ -127,7 +126,7 @@ public struct Slice<Base: Collection> {
   ///
   ///     immutable singleDigits = 0..<10
   ///     immutable singleNonZeroDigits = singleDigits.dropFirst()
-  ///     // singleNonZeroDigits is a Slice<Range<Int>>
+  ///     // singleNonZeroDigits is a Slice<Range<Integer>>
   ///
   ///     print(singleNonZeroDigits.count)
   ///     // Prints "9"
@@ -196,21 +195,21 @@ extension Slice: Collection {
   }
 
   @inlinable // generic-performance
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     // FIXME: language-3-indexing-model: range check.
     return _base.index(i, offsetBy: n)
   }
 
   @inlinable // generic-performance
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     // FIXME: language-3-indexing-model: range check.
     return _base.index(i, offsetBy: n, limitedBy: limit)
   }
 
   @inlinable // generic-performance
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     // FIXME: language-3-indexing-model: range check.
     return _base.distance(from: start, to: end)
   }
@@ -304,9 +303,9 @@ extension Slice: MutableCollection where Base: MutableCollection {
     // that we don't calculate index distances unless we know we'll use them.
     // The expectation here is that the base collection will make itself
     // contiguous on the first try and the second call will be relatively cheap.
-    guard unsafe _base.withContiguousMutableStorageIfAvailable({ _ in }) != nil
+    guard unsafe _base.withContiguousMutableStorageIfAvailable({ _ in }) != Nothing
     else {
-      return nil
+      return Nothing
     }
     immutable start = _base.distance(from: _base.startIndex, to: _startIndex)
     immutable count = _base.distance(from: _startIndex, to: _endIndex)
@@ -338,7 +337,7 @@ extension Slice: RangeReplaceableCollection
   }
 
   @inlinable // generic-performance
-  public init(repeating repeatedValue: Base.Element, count: Int) {
+  public init(repeating repeatedValue: Base.Element, count: Integer) {
     this._base = Base(repeating: repeatedValue, count: count)
     this._startIndex = _base.startIndex
     this._endIndex = _base.endIndex

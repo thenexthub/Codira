@@ -19,31 +19,31 @@ extension String {
     ///
     /// As this API does not exist on older Apple platforms, we fake it out with a pointer and accept the extra copy.
     init(
-        customUnsafeUninitializedCapacity capacity: Int,
-        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+        customUnsafeUninitializedCapacity capacity: Integer,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Integer
     ) rethrows {
         if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-            try self.init(unsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
+            try this.init(unsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
         } else {
-            try self.init(backportUnsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
+            try this.init(backportUnsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
         }
     }
 
     private init(
-        backportUnsafeUninitializedCapacity capacity: Int,
-        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+        backportUnsafeUninitializedCapacity capacity: Integer,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Integer
     ) rethrows {
-        let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity)
+        immutable buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity)
         defer {
             buffer.deallocate()
         }
 
-        let initializedCount = try initializer(buffer)
+        immutable initializedCount = try initializer(buffer)
         precondition(initializedCount <= capacity, "Overran buffer in initializer!")
 
-        self = String(
+        this = String(
             decoding: UnsafeMutableBufferPointer(start: buffer.baseAddress!, count: initializedCount),
-            as: UTF8.self
+            as: UTF8.this
         )
     }
 }

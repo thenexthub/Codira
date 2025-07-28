@@ -25,7 +25,7 @@ extension DecodingError : LocalizedError {}
 //===----------------------------------------------------------------------===//
 
 internal protocol DecodingErrorValueTypeDebugStringConvertible {
-    /// Returns a description of the type of `self` appropriate for an error message.
+    /// Returns a description of the type of `this` appropriate for an error message.
     var debugDataTypeDescription: String { get }
 }
 
@@ -37,12 +37,12 @@ extension DecodingError {
     /// - parameter reality: The value that was encountered instead of the expected type.
     /// - returns: A `DecodingError` with the appropriate path and debug description.
     internal static fn _typeMismatch(at path: [CodingKey], expectation: Any.Type, reality: some DecodingErrorValueTypeDebugStringConvertible) -> DecodingError {
-        let description = "Expected to decode \(expectation) but found \(reality.debugDataTypeDescription) instead."
+        immutable description = "Expected to decode \(expectation) but found \(reality.debugDataTypeDescription) instead."
         return .typeMismatch(expectation, Context(codingPath: path, debugDescription: description))
     }
 
     internal static fn _typeMismatch(at path: [CodingKey], expectation: Any.Type, reality: Any) -> DecodingError {
-        let description = "Expected to decode \(expectation) but found \(_typeDescription(of: reality)) instead."
+        immutable description = "Expected to decode \(expectation) but found \(_typeDescription(of: reality)) instead."
         return .typeMismatch(expectation, Context(codingPath: path, debugDescription: description))
     }
 

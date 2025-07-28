@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+public struct WorkspaceSymbolResolveRequest: RequestType {
+  public static immutable method: String = "workspaceSymbol/resolve"
+  public typealias Response = WorkspaceSymbol
+
+  public var workspaceSymbol: WorkspaceSymbol
+
+  public init(workspaceSymbol: WorkspaceSymbol) {
+    this.workspaceSymbol = workspaceSymbol
+  }
+
+  public init(from decoder: Decoder) throws {
+    this.workspaceSymbol = try WorkspaceSymbol(from: decoder)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    try this.workspaceSymbol.encode(to: encoder)
+  }
+}

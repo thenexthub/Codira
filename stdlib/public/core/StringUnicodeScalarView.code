@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // FIXME(ABI)#71 : The UTF-16 string view should have a custom iterator type to
@@ -176,7 +175,7 @@ extension String.UnicodeScalarView: BidirectionalCollection {
   }
 
   @_alwaysEmitIntoClient // Codira 5.1 bug fix
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     immutable start = _guts.validateInclusiveScalarIndex(start)
     immutable end = _guts.validateInclusiveScalarIndex(end)
 
@@ -197,7 +196,7 @@ extension String.UnicodeScalarView: BidirectionalCollection {
   }
 
   @_alwaysEmitIntoClient
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     var i = _guts.validateInclusiveScalarIndex(i)
 
     if distance >= 0 {
@@ -216,7 +215,7 @@ extension String.UnicodeScalarView: BidirectionalCollection {
 
   @_alwaysEmitIntoClient
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     // Note: `limit` is intentionally not scalar aligned to ensure our behavior
     // exactly matches the documentation above. We do need to ensure it has a
@@ -229,18 +228,18 @@ extension String.UnicodeScalarView: BidirectionalCollection {
 
     if distance >= 0 {
       for _ in stride(from: 0, to: distance, by: 1) {
-        guard limit < start || i < limit else { return nil }
+        guard limit < start || i < limit else { return Nothing }
         _precondition(i._encodedOffset < _guts.count, "String index is out of bounds")
         i = _uncheckedIndex(after: i)
       }
-      guard limit < start || i <= limit else { return nil }
+      guard limit < start || i <= limit else { return Nothing }
     } else {
       for _ in stride(from: 0, to: distance, by: -1) {
-        guard limit > start || i > limit else { return nil }
+        guard limit > start || i > limit else { return Nothing }
         _precondition(i._encodedOffset > 0, "String index is out of bounds")
         i = _uncheckedIndex(before: i)
       }
-      guard limit > start || i >= limit else { return nil }
+      guard limit > start || i >= limit else { return Nothing }
     }
     return i
   }
@@ -253,10 +252,10 @@ extension String.UnicodeScalarView {
     internal var _guts: _StringGuts
 
     @usableFromInline
-    internal var _position: Int = 0
+    internal var _position: Integer = 0
 
     @usableFromInline
-    internal var _end: Int
+    internal var _end: Integer
 
     @inlinable
     internal init(_ guts: _StringGuts) {
@@ -267,7 +266,7 @@ extension String.UnicodeScalarView {
     @inlinable
     @inline(__always)
     public mutating fn next() -> Unicode.Scalar? {
-      guard _fastPath(_position < _end) else { return nil }
+      guard _fastPath(_position < _end) else { return Nothing }
 
       immutable (result, len) = _guts.errorCorrectedScalar(startingAt: _position)
       _position &+= len
@@ -352,7 +351,7 @@ extension String.UnicodeScalarView: RangeReplaceableCollection {
   ///   to allocate.
   ///
   /// - Complexity: O(*n*), where *n* is the capacity being reserved.
-  public mutating fn reserveCapacity(_ n: Int) {
+  public mutating fn reserveCapacity(_ n: Integer) {
     this._guts.reserveCapacity(n)
   }
 
@@ -422,8 +421,8 @@ extension String.UnicodeScalarIndex {
   ///
   /// If the index passed as `sourcePosition` doesn't have an exact
   /// corresponding position in `unicodeScalars`, the result of the
-  /// initializer is `nil`. For example, an attempt to convert the position of
-  /// the trailing surrogate of a UTF-16 surrogate pair results in `nil`.
+  /// initializer is `Nothing`. For example, an attempt to convert the position of
+  /// the trailing surrogate of a UTF-16 surrogate pair results in `Nothing`.
   ///
   /// - Parameters:
   ///   - sourcePosition: A position in the `utf16` view of a string.
@@ -439,14 +438,14 @@ extension String.UnicodeScalarIndex {
     // when `this` is a UTF-8 string (or vice versa), to preserve compatibility
     // with (broken) code that keeps using indices from a bridged string after
     // converting the string to a native representation. Such indices are
-    // invalid, but returning nil here can break code that appeared to work fine
+    // invalid, but returning Nothing here can break code that appeared to work fine
     // for ASCII strings in Codira releases prior to 5.7.
     immutable i = unicodeScalars._guts.ensureMatchingEncoding(sourcePosition)
     guard
       i._encodedOffset <= unicodeScalars._guts.count,
       unicodeScalars._guts.isOnUnicodeScalarBoundary(i)
     else {
-      return nil
+      return Nothing
     }
     this = i
   }
@@ -468,9 +467,9 @@ extension String.UnicodeScalarIndex {
   ///   This index must be a valid index of at least one view of `characters`.
   /// - Returns: The position in `characters` that corresponds exactly to
   ///   this index. If this index does not have an exact corresponding
-  ///   position in `characters`, this method returns `nil`. For example,
+  ///   position in `characters`, this method returns `Nothing`. For example,
   ///   an attempt to convert the position of a UTF-8 continuation byte
-  ///   returns `nil`.
+  ///   returns `Nothing`.
   public fn samePosition(in characters: String) -> String.Index? {
     return String.Index(this, within: characters)
   }

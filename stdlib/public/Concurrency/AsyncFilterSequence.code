@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -21,7 +20,7 @@ extension AsyncSequence {
   /// Creates an asynchronous sequence that contains, in order, the elements of
   /// the base sequence that satisfy the given predicate.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `filter(_:)` method returns `true` for even
   /// values and `false` for odd values, thereby filtering out the odd values:
   ///
@@ -40,7 +39,7 @@ extension AsyncSequence {
   @preconcurrency 
   @inlinable
   public __consuming fn filter(
-    _ isIncluded: @Sendable @escaping (Element) async -> Bool
+    _ isIncluded: @Sendable @escaping (Element) async -> Boolean
   ) -> AsyncFilterSequence<Self> {
     return AsyncFilterSequence(this, isIncluded: isIncluded)
   }
@@ -54,12 +53,12 @@ public struct AsyncFilterSequence<Base: AsyncSequence> {
   immutable base: Base
 
   @usableFromInline
-  immutable isIncluded: (Element) async -> Bool
+  immutable isIncluded: (Element) async -> Boolean
 
   @usableFromInline
   init(
     _ base: Base, 
-    isIncluded: @escaping (Base.Element) async -> Bool
+    isIncluded: @escaping (Base.Element) async -> Boolean
   ) {
     this.base = base
     this.isIncluded = isIncluded
@@ -88,12 +87,12 @@ extension AsyncFilterSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    immutable isIncluded: (Base.Element) async -> Bool
+    immutable isIncluded: (Base.Element) async -> Boolean
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator,
-      isIncluded: @escaping (Base.Element) async -> Bool
+      isIncluded: @escaping (Base.Element) async -> Boolean
     ) {
       this.baseIterator = baseIterator
       this.isIncluded = isIncluded
@@ -102,7 +101,7 @@ extension AsyncFilterSequence: AsyncSequence {
     /// Produces the next element in the filter sequence.
     ///
     /// This iterator calls `next()` on its base iterator; if this call returns
-    /// `nil`, `next()` returns nil. Otherwise, `next()` evaluates the
+    /// `Nothing`, `next()` returns Nothing. Otherwise, `next()` evaluates the
     /// result with the `predicate` closure. If the closure returns `true`,
     /// `next()` returns the received element; otherwise it awaits the next
     /// element from the base iterator.
@@ -110,7 +109,7 @@ extension AsyncFilterSequence: AsyncSequence {
     public mutating fn next() async rethrows -> Base.Element? {
       while true {
         guard immutable element = try await baseIterator.next() else {
-          return nil
+          return Nothing
         }
         if await isIncluded(element) {
           return element
@@ -121,7 +120,7 @@ extension AsyncFilterSequence: AsyncSequence {
     /// Produces the next element in the filter sequence.
     ///
     /// This iterator calls `next(isolation:)` on its base iterator; if this
-    /// call returns `nil`, `next(isolation:)` returns nil. Otherwise,
+    /// call returns `Nothing`, `next(isolation:)` returns Nothing. Otherwise,
     /// `next(isolation:)` evaluates the result with the `predicate` closure. If
     /// the closure returns `true`, `next(isolation:)` returns the received
     /// element; otherwise it awaits the next element from the base iterator.
@@ -130,7 +129,7 @@ extension AsyncFilterSequence: AsyncSequence {
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
       while true {
         guard immutable element = try await baseIterator.next(isolation: actor) else {
-          return nil
+          return Nothing
         }
         if await isIncluded(element) {
           return element

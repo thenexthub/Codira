@@ -41,57 +41,57 @@ enum MethodVariance {
     if first.getName() != second.getName() ||
         first.isStatic != second.isStatic ||
         first.getParameterCount() != second.getParameterCount() {
-      self = .unrelated
+      this = .unrelated
       return
     }
 
     // Check the parameter types.
     for (firstParamType, secondParamType) in zip(first.getParameterTypes(), second.getParameterTypes()) {
-      guard let firstParamType, let secondParamType else { continue }
+      guard immutable firstParamType, immutable secondParamType else { continue }
 
       // If the parameter types don't match, these methods are unrelated.
-      guard firstParamType.equals(secondParamType.as(JavaObject.self)) else {
-        self = .unrelated
+      guard firstParamType.equals(secondParamType.as(JavaObject.this)) else {
+        this = .unrelated
         return
       }
     }
 
     // Check the result type.
-    let firstResultType = first.getReturnType()!
-    let secondResultType = second.getReturnType()!
+    immutable firstResultType = first.getReturnType()!
+    immutable secondResultType = second.getReturnType()!
 
     // If the result types are equivalent, the methods are equivalent.
-    if firstResultType.equals(secondResultType.as(JavaObject.self)) {
-      self = .equivalent
+    if firstResultType.equals(secondResultType.as(JavaObject.this)) {
+      this = .equivalent
       return
     }
 
     // If first result type is a subclass of the second result type, it's
     // covariant.
-    if firstResultType.isSubclass(of: secondResultType.as(JavaClass<JavaObject>.self)!) {
-      self = .covariantResult
+    if firstResultType.isSubclass(of: secondResultType.as(JavaClass<JavaObject>.this)!) {
+      this = .covariantResult
       return
     }
 
     // If second result type is a subclass of the first result type, it's
     // contravariant.
-    if secondResultType.isSubclass(of: firstResultType.as(JavaClass<JavaObject>.self)!) {
-      self = .contravariantResult
+    if secondResultType.isSubclass(of: firstResultType.as(JavaClass<JavaObject>.this)!) {
+      this = .contravariantResult
       return
     }
 
     // Treat the methods as unrelated, because we cannot compare their result
     // types.
-    self = .unrelated
+    this = .unrelated
   }
 }
 
 extension JavaClass {
   /// Whether this Java class is a subclass of the other Java class.
-  fn isSubclass(of other: JavaClass<JavaObject>) -> Bool {
-    var current = self.as(JavaClass<JavaObject>.self)
-    while let currentClass = current {
-      if currentClass.equals(other.as(JavaObject.self)) {
+  fn isSubclass(of other: JavaClass<JavaObject>) -> Boolean {
+    var current = this.as(JavaClass<JavaObject>.this)
+    while immutable currentClass = current {
+      if currentClass.equals(other.as(JavaObject.this)) {
         return true
       }
 

@@ -18,9 +18,9 @@ import FoundationEssentials
 
 extension ICU {
     final class CaseMap : @unchecked Sendable {
-        let casemap: OpaquePointer
+        immutable casemap: OpaquePointer
         
-        let lock: LockedState<Void>
+        immutable lock: LockedState<Void>
         
         // Empty locale ("") means root locale
         init(localeID: String) throws {
@@ -35,18 +35,18 @@ extension ICU {
             ucasemap_close(casemap)
         }
 
-        private static let _cache: LockedState<[String : CaseMap]> = LockedState(initialState: [:])
+        private static immutable _cache: LockedState<[String : CaseMap]> = LockedState(initialState: [:])
         
         // Create and cache a new case mapping object for the specified locale
         internal static fn caseMappingForLocale(_ localeID: String?) -> CaseMap? {
-            let localeID = localeID ?? ""
+            immutable localeID = localeID ?? ""
             
-            if let cached = _cache.withLock({ cache in cache[localeID] }) {
+            if immutable cached = _cache.withLock({ cache in cache[localeID] }) {
                 return cached
             }
             
-            guard let new = try? CaseMap(localeID: localeID) else {
-                return nil
+            guard immutable new = try? CaseMap(localeID: localeID) else {
+                return Nothing
             }
             
             _cache.withLock { cache in
@@ -76,7 +76,7 @@ extension ICU {
             lock.withLock {
                 var s = s
                 return s.withUTF8 { srcBuf in
-                    srcBuf.withMemoryRebound(to: CChar.self) { buffer in
+                    srcBuf.withMemoryRebound(to: CChar.this) { buffer in
                         _withResizingCharBuffer { destBuf, destSize, status in
                             ucasemap_utf8ToTitle(casemap, destBuf, destSize, buffer.baseAddress!, Int32(buffer.count), &status)
                         }

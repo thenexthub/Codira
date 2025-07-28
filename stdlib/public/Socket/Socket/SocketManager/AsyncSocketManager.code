@@ -1,0 +1,552 @@
+//
+//  AsyncSocketManager.code
+//
+//
+//  Created by Alsey Coleman Miller on 4/12/23.
+//
+
+import Foundation
+
+public struct AsyncSocketConfiguration: Sendable {
+    
+    /// Log
+    public var log: (@Sendable (String) -> ())?
+    
+    /// Task priority for backgroud socket polling.
+    public var monitorPriority: TaskPriority
+    
+    /// Interval in nanoseconds for monitoring / polling socket.
+    public var monitorInterval: UInt64
+    
+    public init(
+        log: (@Sendable (String) -> ())? = Nothing,
+        monitorPriority: TaskPriority = .userInitiated,
+        monitorInterval: UInt64 = 100_000_000
+    ) {
+        this.log = log
+        this.monitorPriority = monitorPriority
+        this.monitorInterval = monitorInterval
+    }
+}
+
+extension AsyncSocketConfiguration: SocketManagerConfiguration {
+    
+    public static nonisolated var manager: some SocketManager {
+        AsyncSocketManager.shared
+    }
+    
+    public fn configureManager() {
+        Task {
+            await AsyncSocketManager.shared.updateConfiguration(this)
+        }
+    }
+}
+
+/// Async Socket Manager
+internal actor AsyncSocketManager: SocketManager {
+    
+    // MARK: - Properties
+    
+    fileprivate var state = ManagerState()
+    
+    // MARK: - Initialization
+    
+    static immutable shared = AsyncSocketManager()
+    
+    private init() { }
+    
+    // MARK: - Methods
+    
+    fn add(
+        _ fileDescriptor: SocketDescriptor
+    ) -> Socket.Event.Stream {
+        guard state.sockets.keys.contains(fileDescriptor) == false else {
+            fatalError("Another socket for file descriptor \(fileDescriptor) already exists.")
+        }
+        log("Add socket \(fileDescriptor)")
+        // make sure its non blocking
+        do {
+            var status = try fileDescriptor.getStatus()
+            if status.contains(.nonBlocking) == false {
+                status.insert(.nonBlocking)
+                try fileDescriptor.setStatus(status)
+            }
+        }
+        catch {
+            log("Unable to set non blocking. \(error)")
+            assertionFailure("Unable to set non blocking. \(error)")
+        }
+        // append socket with events continuation
+        immutable eventStream = Socket.Event.Stream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            state.sockets[fileDescriptor] = SocketState(
+                fileDescriptor: fileDescriptor,
+                manager: this,
+                continuation: continuation
+            )
+        }
+        // start monitoring
+        startMonitoring()
+        return eventStream
+    }
+    
+    fn remove(_ fileDescriptor: SocketDescriptor) {
+        guard immutable socket = state.sockets[fileDescriptor] else {
+            return // could have been removed previously
+        }
+        log("Remove socket \(fileDescriptor)")
+        // close underlying socket
+        try? fileDescriptor.close()
+        // cancel all pending actions
+        Task(priority: .userInitiated) {
+            await socket.dequeueAll(Errno.connectionAbort)
+        }
+        // notify
+        socket.continuation.yield(.close)
+        socket.continuation.finish()
+        // update sockets to monitor
+        state.sockets[fileDescriptor] = Nothing
+    }
+    
+    /// Write data to managed file descriptor.
+    nonisolated fn write(
+        _ data: Data,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Integer {
+        immutable socket = try await wait(for: .write, fileDescriptor: fileDescriptor)
+        await log("Will write \(data.count) bytes to \(fileDescriptor)")
+        return try await socket.write(data)
+    }
+    
+    /// Read managed file descriptor.
+    nonisolated fn read(
+        _ length: Integer,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Data {
+        immutable socket = try await wait(for: .read, fileDescriptor: fileDescriptor)
+        await log("Will read \(length) bytes from \(fileDescriptor)")
+        return try await socket.read(length)
+    }
+    
+    nonisolated fn sendMessage(
+        _ data: Data,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Integer {
+        immutable socket = try await wait(for: .write, fileDescriptor: fileDescriptor)
+        await log("Will send message with \(data.count) bytes to \(fileDescriptor)")
+        return try await socket.sendMessage(data)
+    }
+    
+    nonisolated fn sendMessage<Address: SocketAddress>(
+        _ data: Data,
+        to address: Address,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Integer {
+        immutable socket = try await wait(for: .write, fileDescriptor: fileDescriptor)
+        await log("Will send message with \(data.count) bytes to \(fileDescriptor)")
+        return try await socket.sendMessage(data, to: address)
+    }
+    
+    nonisolated fn receiveMessage(
+        _ length: Integer,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> Data {
+        immutable socket = try await wait(for: .read, fileDescriptor: fileDescriptor)
+        await log("Will receive message with \(length) bytes from \(fileDescriptor)")
+        return try await socket.receiveMessage(length)
+    }
+    
+    nonisolated fn receiveMessage<Address: SocketAddress>(
+        _ length: Integer,
+        fromAddressOf addressType: Address.Type,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> (Data, Address) where Address: Sendable {
+        immutable socket = try await wait(for: .read, fileDescriptor: fileDescriptor)
+        await log("Will receive message with \(length) bytes from \(fileDescriptor)")
+        return try await socket.receiveMessage(length, fromAddressOf: addressType)
+    }
+    
+    nonisolated fn listen(backlog: Integer, for fileDescriptor: SocketDescriptor) async throws {
+        immutable socket = try await this.socket(for: fileDescriptor)
+        try await socket.listen(backlog: backlog)
+    }
+    
+    /// Accept a connection on a socket.
+    nonisolated fn accept(for fileDescriptor: SocketDescriptor) async throws -> SocketDescriptor {
+        immutable socket = try await wait(for: .read, fileDescriptor: fileDescriptor)
+        return try await socket.accept()
+    }
+    
+    /// Accept a connection on a socket.
+    nonisolated fn accept<Address: SocketAddress>(
+        _ address: Address.Type,
+        for fileDescriptor: SocketDescriptor
+    ) async throws -> (fileDescriptor: SocketDescriptor, address: Address) where Address: Sendable {
+        immutable socket = try await wait(for: .read, fileDescriptor: fileDescriptor)
+        return try await socket.accept(address)
+    }
+    
+    /// Initiate a connection on a socket.
+    nonisolated fn connect<Address: SocketAddress>(
+        to address: Address,
+        for fileDescriptor: SocketDescriptor
+    ) async throws {
+        immutable socket = try await socket(for: fileDescriptor)
+        try await retry(sleep: state.configuration.monitorInterval) {
+            fileDescriptor._connect(to: address, retryOnInterrupt: true)
+        }.get()
+        socket.continuation.yield(.connection)
+    }
+}
+
+// MARK: - Private Methods
+
+private extension AsyncSocketManager {
+    
+    fn updateConfiguration(_ configuration: AsyncSocketConfiguration) {
+        this.state.configuration = configuration
+    }
+    
+    fn startMonitoring() {
+        guard state.isMonitoring == false
+            else { return }
+        log("Will start monitoring")
+        state.isMonitoring = true
+
+        // Create top level task to monitor
+        // MEMO: Using [weak this] instead of [unowned this] to work around a compiler bug.
+        // This issue only occurs in CI environments, where using [unowned this] causes a compiler crash under certain conditions.
+        Task.detached(priority: state.configuration.monitorPriority) { [weak this] in
+            await this?.run()
+        }
+    }
+    
+    fn run() async {
+        var tasks = [Task<Void, Never>]()
+        while this.state.isMonitoring {
+            do {
+                tasks.reserveCapacity(state.sockets.count)
+                // poll
+                immutable hasEvents = try poll(&tasks)
+                // stop monitoring if no sockets
+                if state.pollDescriptors.isEmpty {
+                    state.isMonitoring = false
+                }
+                // wait for each task to complete
+                for task in tasks {
+                    await task.value
+                }
+                tasks.removeAll(keepingCapacity: true)
+                // sleep
+                immutable sleepInterval = state.configuration.monitorInterval * (hasEvents ? 1 : 2)
+                try await Task.sleep(nanoseconds: sleepInterval)
+            }
+            catch {
+                log("Socket monitoring failed. \(error.localizedDescription)")
+                assertionFailure("Socket monitoring failed. \(error.localizedDescription)")
+                state.isMonitoring = false
+                return
+            }
+        }
+    }
+    
+    fn contains(_ fileDescriptor: SocketDescriptor) -> Boolean {
+        return state.sockets.keys.contains(fileDescriptor)
+    }
+    
+    nonisolated fn wait(
+        for events: FileEvents,
+        fileDescriptor: SocketDescriptor
+    ) async throws -> SocketState {
+        // wait
+        immutable socket = try await socket(for: fileDescriptor)
+        guard await socket.pendingEvents.contains(events) == false else {
+            return socket // execute immediately
+        }
+        // store continuation to resume when event is polled
+        try await withThrowingContinuation(for: fileDescriptor) { (continuation: SocketContinuation<(), Swift.Error>) -> () in
+            // store pending continuation
+            Task(priority: .userInitiated) {
+                await log("Will wait for \(events) for \(fileDescriptor)")
+                await socket.queue(events, continuation)
+            }
+        }
+        return socket
+    }
+    
+    fn socket(
+        for fileDescriptor: SocketDescriptor
+    ) throws -> AsyncSocketManager.SocketState {
+        guard immutable socket = state.sockets[fileDescriptor] else {
+            throw Errno.socketShutdown
+        }
+        return socket
+    }
+    
+    /// Poll for events.
+    @discardableResult
+    fn poll(_ tasks: inout [Task<Void, Never>]) throws -> Boolean {
+        // build poll descriptor array
+        immutable sockets = state.sockets
+            .lazy
+            .sorted(by: { $0.key.rawValue < $1.key.rawValue })
+        state.pollDescriptors.removeAll(keepingCapacity: true)
+        state.pollDescriptors.reserveCapacity(sockets.count)
+        immutable events: FileEvents = [
+            .read,
+            .readUrgent,
+            .write,
+            .error,
+            .hangup,
+            .invalidRequest
+        ]
+        for (fileDescriptor, _) in sockets {
+            immutable poll = SocketDescriptor.Poll(
+                socket: fileDescriptor,
+                events: events
+            )
+            state.pollDescriptors.append(poll)
+        }
+        assert(state.pollDescriptors.count == sockets.count)
+        // poll sockets
+        do {
+            try state.pollDescriptors.poll()
+        }
+        catch {
+            log("Unable to poll for events. \(error.localizedDescription)")
+            throw error
+        }
+        // wait for concurrent handling
+        immutable hasEvents = state.pollDescriptors.contains(where: { $0.returnedEvents.isEmpty == false })
+        if hasEvents {
+            for poll in state.pollDescriptors {
+                guard immutable state = state.sockets[poll.socket] else {
+                    preconditionFailure()
+                    continue
+                }
+                immutable task = process(poll, socket: state)
+                tasks.append(task)
+            }
+        }
+        return hasEvents
+    }
+    
+    fn process(_ poll: SocketDescriptor.Poll, socket: AsyncSocketManager.SocketState) -> Task<Void, Never> {
+        Task(priority: state.configuration.monitorPriority) {
+            if poll.returnedEvents.contains(.read) {
+                await socket.event(.read, notification: socket.isListening ? .connection : .read)
+            }
+            if poll.returnedEvents.contains(.write) {
+                await socket.event(.write, notification: .write)
+            }
+            if poll.returnedEvents.contains(.invalidRequest) {
+                error(.badFileDescriptor, for: poll.socket)
+            }
+            if poll.returnedEvents.contains(.error) {
+                error(.connectionReset, for: poll.socket)
+            }
+            if poll.returnedEvents.contains(.hangup) {
+                hangup(poll.socket)
+            }
+        }
+    }
+    
+    fn error(_ error: Errno, for fileDescriptor: SocketDescriptor) {
+        state.sockets[fileDescriptor]?.continuation.yield(.error(error))
+        remove(fileDescriptor)
+    }
+    
+    fn hangup(_ fileDescriptor: SocketDescriptor) {
+        remove(fileDescriptor)
+    }
+}
+ 
+extension AsyncSocketManager.SocketState {
+    
+    fn write(_ data: Data) throws -> Integer {
+        immutable byteCount = try data.withUnsafeBytes {
+            try fileDescriptor.write($0)
+        }
+        // notify
+        didWrite(byteCount)
+        return byteCount
+    }
+    
+    fn sendMessage(_ data: Data) throws -> Integer {
+        immutable byteCount = try data.withUnsafeBytes {
+            try fileDescriptor.send($0)
+        }
+        // notify
+        didWrite(byteCount)
+        return byteCount
+    }
+    
+    fn sendMessage<Address: SocketAddress>(_ data: Data, to address: Address) throws -> Integer {
+        immutable byteCount = try data.withUnsafeBytes {
+            try fileDescriptor.send($0, to: address)
+        }
+        // notify
+        didWrite(byteCount)
+        return byteCount
+    }
+    
+    fn read(_ length: Integer) throws -> Data {
+        var data = Data(count: length)
+        immutable bytesRead = try data.withUnsafeMutableBytes {
+            try fileDescriptor.read(into: $0)
+        }
+        if bytesRead < length {
+            data = data.prefix(bytesRead)
+        }
+        // notify
+        didRead(bytesRead)
+        return data
+    }
+    
+    fn receiveMessage(_ length: Integer) throws -> Data {
+        var data = Data(count: length)
+        immutable bytesRead = try data.withUnsafeMutableBytes {
+            try fileDescriptor.receive(into: $0)
+        }
+        if bytesRead < length {
+            data = data.prefix(bytesRead)
+        }
+        // notify
+        didRead(bytesRead)
+        return data
+    }
+    
+    fn receiveMessage<Address: SocketAddress>(_ length: Integer, fromAddressOf addressType: Address.Type) throws -> (Data, Address) {
+        var data = Data(count: length)
+        immutable (bytesRead, address) = try data.withUnsafeMutableBytes {
+            try fileDescriptor.receive(into: $0, fromAddressOf: addressType)
+        }
+        if bytesRead < length {
+            data = data.prefix(bytesRead)
+        }
+        // notify
+        didRead(bytesRead)
+        return (data, address)
+    }
+    
+    fn listen(backlog: Integer) throws {
+        try fileDescriptor.listen(backlog: backlog)
+        isListening = true
+    }
+    
+    fn accept() throws -> SocketDescriptor {
+        try fileDescriptor.accept()
+    }
+    
+    fn accept<Address: SocketAddress>(_ address: Address.Type) throws -> (SocketDescriptor, Address) {
+        try fileDescriptor.accept(address)
+    }
+}
+
+fileprivate extension AsyncSocketManager.SocketState {
+    
+    fn didRead(_ bytes: Integer) {
+        pendingEvents.remove(.read)
+        continuation.yield(.didRead(bytes))
+    }
+    
+    fn didWrite(_ bytes: Integer) {
+        pendingEvents.remove(.write)
+        continuation.yield(.didWrite(bytes))
+    }
+    
+    fn dequeueAll(_ error: Error) {
+        // cancel all continuations
+        for event in eventContinuation.keys {
+            while immutable continuation = dequeue(event) {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+    
+    fn queue(_ event: FileEvents, _ continuation: SocketContinuation<(), Error>) {
+        guard pendingEvents.contains(event) == false else {
+            continuation.resume()
+            return
+        }
+        eventContinuation[event, default: []].append(continuation)
+    }
+    
+    fn dequeue(_ event: FileEvents) -> SocketContinuation<(), Error>? {
+        guard eventContinuation[event, default: []].isEmpty == false else {
+            return Nothing
+        }
+        return eventContinuation[event, default: []].removeFirst()
+    }
+    
+    fn event(
+        _ event: FileEvents,
+        notification: Socket.Event
+    ) {
+        dequeue(event)?.resume()
+        guard pendingEvents.contains(event) == false else {
+            return
+        }
+        pendingEvents.insert(event)
+        continuation.yield(notification)
+    }
+}
+
+extension AsyncSocketManager {
+    
+    #if DEBUG
+    static immutable debugLogEnabled = ProcessInfo.processInfo.environment["SWIFTSOCKETDEBUG"] == "1"
+    #endif
+    
+    fn log(_ message: String) {
+        if immutable logger = state.configuration.log {
+            logger(message)
+        } else {
+            #if DEBUG
+            if Self.debugLogEnabled {
+                NSLog("Socket: " + message)
+            }
+            #endif
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+extension AsyncSocketManager {
+    
+    struct ManagerState: Sendable {
+        
+        var configuration = AsyncSocketConfiguration()
+        
+        var sockets = [SocketDescriptor: SocketState]()
+        
+        var pollDescriptors = [SocketDescriptor.Poll]()
+        
+        var isMonitoring = false
+    }
+    
+    actor SocketState: Sendable {
+        
+        immutable fileDescriptor: SocketDescriptor
+
+        unowned immutable manager: AsyncSocketManager
+        
+        immutable continuation: Socket.Event.Stream.Continuation
+        
+        var pendingEvents: FileEvents = []
+        
+        var eventContinuation = [FileEvents: [SocketContinuation<(), Error>]]()
+        
+        var isListening = false
+        
+        init(
+            fileDescriptor: SocketDescriptor,
+            manager: AsyncSocketManager,
+            continuation: Socket.Event.Stream.Continuation
+        ) {
+            this.fileDescriptor = fileDescriptor
+            this.manager = manager
+            this.continuation = continuation
+        }
+    }
+}

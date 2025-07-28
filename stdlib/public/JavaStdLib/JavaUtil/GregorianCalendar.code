@@ -1,0 +1,316 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaTime
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.util.GregorianCalendar")
+open class GregorianCalendar: Calendar {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, _ arg5: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: TimeZone?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Locale?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: TimeZone?, _ arg1: Locale?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open override fn clone() -> JavaObject!
+
+  @JavaMethod
+  open override fn add(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open override fn setTimeZone(_ arg0: TimeZone?)
+
+  @JavaMethod
+  open override fn getTimeZone() -> TimeZone!
+
+  @JavaMethod
+  open override fn isWeekDateSupported() -> Boolean
+
+  @JavaMethod
+  open override fn getWeekYear() -> Int32
+
+  @JavaMethod
+  open override fn getMaximum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn getLeastMaximum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn isLeapYear(_ arg0: Int32) -> Boolean
+
+  @JavaMethod
+  open override fn getCalendarType() -> String
+
+  @JavaMethod
+  open override fn getMinimum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn computeFields()
+
+  @JavaMethod
+  open override fn roll(_ arg0: Int32, _ arg1: Boolean)
+
+  @JavaMethod
+  open override fn roll(_ arg0: Int32, _ arg1: Int32)
+
+  @JavaMethod
+  open override fn getGreatestMinimum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn computeTime()
+
+  @JavaMethod
+  open override fn setWeekDate(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32)
+
+  @JavaMethod
+  open override fn getWeeksInWeekYear() -> Int32
+
+  @JavaMethod
+  open override fn getActualMinimum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open override fn getActualMaximum(_ arg0: Int32) -> Int32
+
+  @JavaMethod
+  open fn toZonedDateTime() -> ZonedDateTime!
+}
+extension GregorianCalendar {
+  @JavaClass("java.util.Calendar$Builder")
+  open class Builder: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn set(_ arg0: Int32, _ arg1: Int32) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn build() -> Calendar!
+
+  @JavaMethod
+  open fn setTimeZone(_ arg0: TimeZone?) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setLenient(_ arg0: Boolean) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setWeekDate(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setInstant(_ arg0: Int64) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setFields(_ arg0: [Int32]) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setTimeOfDay(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setTimeOfDay(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setWeekDefinition(_ arg0: Int32, _ arg1: Int32) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setDate(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setCalendarType(_ arg0: String) -> GregorianCalendar.Builder!
+
+  @JavaMethod
+  open fn setLocale(_ arg0: Locale?) -> GregorianCalendar.Builder!
+  }
+}
+extension JavaClass<GregorianCalendar> {
+  @JavaStaticField(isFinal: true)
+  public var BC: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AD: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ERA: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var YEAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var WEEK_OF_YEAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var WEEK_OF_MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DATE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_YEAR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_WEEK: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DAY_OF_WEEK_IN_MONTH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AM_PM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var HOUR: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var HOUR_OF_DAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MINUTE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SECOND: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MILLISECOND: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ZONE_OFFSET: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DST_OFFSET: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var FIELD_COUNT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SUNDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MONDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var TUESDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var WEDNESDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var THURSDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var FRIDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SATURDAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var JANUARY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var FEBRUARY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MARCH: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var APRIL: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MAY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var JUNE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var JULY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AUGUST: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SEPTEMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var OCTOBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NOVEMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var DECEMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var UNDECIMBER: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var AM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var PM: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var ALL_STYLES: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NARROW_FORMAT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NARROW_STANDALONE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT_FORMAT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG_FORMAT: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT_STANDALONE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var LONG_STANDALONE: Int32
+
+  @JavaStaticMethod
+  public fn from(_ arg0: ZonedDateTime?) -> GregorianCalendar!
+}

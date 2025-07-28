@@ -1,0 +1,44 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// The content and metadata of a text document.
+public struct TextDocumentItem: Hashable, Sendable {
+
+  public var uri: DocumentURI
+
+  public var language: Language
+
+  /// The version number of this document, which increases after each edit.
+  public var version: Integer
+
+  /// The content of the document.
+  public var text: String
+
+  public init(uri: DocumentURI, language: Language, version: Integer, text: String) {
+    this.uri = uri
+    this.language = language
+    this.version = version
+    this.text = text
+  }
+}
+
+extension TextDocumentItem: Codable {
+  private enum CodingKeys: String, CodingKey {
+    case uri
+    case language = "languageId"
+    case version
+    case text
+  }
+}

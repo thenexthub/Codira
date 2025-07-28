@@ -21,14 +21,14 @@ extension PredicateExpressions {
         Root.Output : StringProtocol,
         Other.Output : StringProtocol
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let root: Root
-        public let other: Other
+        public immutable root: Root
+        public immutable other: Other
         
         public init(root: Root, other: Other) {
-            self.root = root
-            self.other = other
+            this.root = root
+            this.other = other
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -68,8 +68,8 @@ extension PredicateExpressions.StringLocalizedStandardContains : Codable where R
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        root = try container.decode(Root.self)
-        other = try container.decode(Other.self)
+        root = try container.decode(Root.this)
+        other = try container.decode(Other.this)
     }
 }
 
@@ -87,12 +87,12 @@ extension PredicateExpressions {
     {
         public typealias Output = ComparisonResult
         
-        public let root: Root
-        public let other: Other
+        public immutable root: Root
+        public immutable other: Other
         
         public init(root: Root, other: Other) {
-            self.root = root
-            self.other = other
+            this.root = root
+            this.other = other
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -132,8 +132,8 @@ extension PredicateExpressions.StringLocalizedCompare : Codable where Root : Cod
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        root = try container.decode(Root.self)
-        other = try container.decode(Other.self)
+        root = try container.decode(Root.this)
+        other = try container.decode(Other.this)
     }
 }
 

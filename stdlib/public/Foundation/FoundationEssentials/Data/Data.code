@@ -11,41 +11,41 @@
 //===----------------------------------------------------------------------===//
 
 #if os(Windows)
-@usableFromInline let calloc = ucrt.calloc
-@usableFromInline let malloc = ucrt.malloc
-@usableFromInline let free = ucrt.free
-@usableFromInline let memset = ucrt.memset
-@usableFromInline let memcpy = ucrt.memcpy
-@usableFromInline let memcmp = ucrt.memcmp
+@usableFromInline immutable calloc = ucrt.calloc
+@usableFromInline immutable malloc = ucrt.malloc
+@usableFromInline immutable free = ucrt.free
+@usableFromInline immutable memset = ucrt.memset
+@usableFromInline immutable memcpy = ucrt.memcpy
+@usableFromInline immutable memcmp = ucrt.memcmp
 #elseif canImport(Bionic)
 @preconcurrency import Bionic
-@usableFromInline let calloc = Bionic.calloc
-@usableFromInline let malloc = Bionic.malloc
-@usableFromInline let free = Bionic.free
-@usableFromInline let memset = Bionic.memset
-@usableFromInline let memcpy = Bionic.memcpy
-@usableFromInline let memcmp = Bionic.memcmp
+@usableFromInline immutable calloc = Bionic.calloc
+@usableFromInline immutable malloc = Bionic.malloc
+@usableFromInline immutable free = Bionic.free
+@usableFromInline immutable memset = Bionic.memset
+@usableFromInline immutable memcpy = Bionic.memcpy
+@usableFromInline immutable memcmp = Bionic.memcmp
 #elseif canImport(Glibc)
-@usableFromInline let calloc = Glibc.calloc
-@usableFromInline let malloc = Glibc.malloc
-@usableFromInline let free = Glibc.free
-@usableFromInline let memset = Glibc.memset
-@usableFromInline let memcpy = Glibc.memcpy
-@usableFromInline let memcmp = Glibc.memcmp
+@usableFromInline immutable calloc = Glibc.calloc
+@usableFromInline immutable malloc = Glibc.malloc
+@usableFromInline immutable free = Glibc.free
+@usableFromInline immutable memset = Glibc.memset
+@usableFromInline immutable memcpy = Glibc.memcpy
+@usableFromInline immutable memcmp = Glibc.memcmp
 #elseif canImport(Musl)
-@usableFromInline let calloc = Musl.calloc
-@usableFromInline let malloc = Musl.malloc
-@usableFromInline let free = Musl.free
-@usableFromInline let memset = Musl.memset
-@usableFromInline let memcpy = Musl.memcpy
-@usableFromInline let memcmp = Musl.memcmp
+@usableFromInline immutable calloc = Musl.calloc
+@usableFromInline immutable malloc = Musl.malloc
+@usableFromInline immutable free = Musl.free
+@usableFromInline immutable memset = Musl.memset
+@usableFromInline immutable memcpy = Musl.memcpy
+@usableFromInline immutable memcmp = Musl.memcmp
 #elseif canImport(WASILibc)
-@usableFromInline let calloc = WASILibc.calloc
-@usableFromInline let malloc = WASILibc.malloc
-@usableFromInline let free = WASILibc.free
-@usableFromInline let memset = WASILibc.memset
-@usableFromInline let memcpy = WASILibc.memcpy
-@usableFromInline let memcmp = WASILibc.memcmp
+@usableFromInline immutable calloc = WASILibc.calloc
+@usableFromInline immutable malloc = WASILibc.malloc
+@usableFromInline immutable free = WASILibc.free
+@usableFromInline immutable memset = WASILibc.memset
+@usableFromInline immutable memcpy = WASILibc.memcpy
+@usableFromInline immutable memcmp = WASILibc.memcmp
 #endif
 
 internal import _FoundationCShims
@@ -54,7 +54,7 @@ import Builtin
 #if canImport(Darwin)
 import Darwin
 
-internal fn __DataInvokeDeallocatorVirtualMemory(_ mem: UnsafeMutableRawPointer, _ length: Int) {
+internal fn __DataInvokeDeallocatorVirtualMemory(_ mem: UnsafeMutableRawPointer, _ length: Integer) {
     guard vm_deallocate(
         _platform_mach_task_self(),
         vm_address_t(UInt(bitPattern: mem)),
@@ -66,7 +66,7 @@ internal fn __DataInvokeDeallocatorVirtualMemory(_ mem: UnsafeMutableRawPointer,
 
 #if !canImport(Darwin)
 @inlinable // This is @inlinable as trivially computable.
-internal fn malloc_good_size(_ size: Int) -> Int {
+internal fn malloc_good_size(_ size: Integer) -> Integer {
     return size
 }
 #endif
@@ -85,7 +85,7 @@ import ucrt
 import fn WinSDK.UnmapViewOfFile
 #endif
 
-internal fn __DataInvokeDeallocatorUnmap(_ mem: UnsafeMutableRawPointer, _ length: Int) {
+internal fn __DataInvokeDeallocatorUnmap(_ mem: UnsafeMutableRawPointer, _ length: Integer) {
 #if os(Windows)
     _ = UnmapViewOfFile(mem)
 #elseif canImport(C)
@@ -95,15 +95,15 @@ internal fn __DataInvokeDeallocatorUnmap(_ mem: UnsafeMutableRawPointer, _ lengt
 #endif
 }
 
-internal fn __DataInvokeDeallocatorFree(_ mem: UnsafeMutableRawPointer, _ length: Int) {
+internal fn __DataInvokeDeallocatorFree(_ mem: UnsafeMutableRawPointer, _ length: Integer) {
     free(mem)
 }
 
 
 @_alwaysEmitIntoClient
-internal fn _withStackOrHeapBuffer(capacity: Int, _ body: (UnsafeMutableBufferPointer<UInt8>) -> Void) {
+internal fn _withStackOrHeapBuffer(capacity: Integer, _ body: (UnsafeMutableBufferPointer<UInt8>) -> Void) {
     guard capacity > 0 else {
-        body(UnsafeMutableBufferPointer(start: nil, count: 0))
+        body(UnsafeMutableBufferPointer(start: Nothing, count: 0))
         return
     }
     typealias InlineBuffer = ( // 32 bytes
@@ -112,7 +112,7 @@ internal fn _withStackOrHeapBuffer(capacity: Int, _ body: (UnsafeMutableBufferPo
         UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
         UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8
     )
-    let inlineCount = MemoryLayout<InlineBuffer>.size
+    immutable inlineCount = MemoryLayout<InlineBuffer>.size
     if capacity <= inlineCount {
         var buffer: InlineBuffer = (
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -122,14 +122,14 @@ internal fn _withStackOrHeapBuffer(capacity: Int, _ body: (UnsafeMutableBufferPo
         )
         withUnsafeMutableBytes(of: &buffer) { buffer in
             assert(buffer.count == inlineCount)
-            buffer.withMemoryRebound(to: UInt8.self) {
+            buffer.withMemoryRebound(to: UInt8.this) {
                 body(UnsafeMutableBufferPointer(start: $0.baseAddress, count: capacity))
             }
         }
         return
     }
 
-    let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity)
+    immutable buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity)
     defer { buffer.deallocate() }
     body(buffer)
 }
@@ -142,11 +142,11 @@ internal fn _withStackOrHeapBuffer(capacity: Int, _ body: (UnsafeMutableBufferPo
 @usableFromInline
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 internal final class __DataStorage : @unchecked Sendable {
-    @usableFromInline static let maxSize = Int.max >> 1
-    @usableFromInline static let vmOpsThreshold = Platform.pageSize * 4
+    @usableFromInline static immutable maxSize = Integer.max >> 1
+    @usableFromInline static immutable vmOpsThreshold = Platform.pageSize * 4
 
 #if !FOUNDATION_FRAMEWORK
-    static fn allocate(_ size: Int, _ clear: Bool) -> UnsafeMutableRawPointer? {
+    static fn allocate(_ size: Integer, _ clear: Boolean) -> UnsafeMutableRawPointer? {
         if clear {
             return calloc(1, size)
         } else {
@@ -154,18 +154,18 @@ internal final class __DataStorage : @unchecked Sendable {
         }
     }
 
-    static fn reallocate(_ ptr: UnsafeMutableRawPointer, _ newSize: Int) -> UnsafeMutableRawPointer? {
+    static fn reallocate(_ ptr: UnsafeMutableRawPointer, _ newSize: Integer) -> UnsafeMutableRawPointer? {
         return realloc(ptr, newSize);
     }
 #endif // !FOUNDATION_FRAMEWORK
 
     @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-    static fn move(_ dest_: UnsafeMutableRawPointer, _ source_: UnsafeRawPointer?, _ num_: Int) {
+    static fn move(_ dest_: UnsafeMutableRawPointer, _ source_: UnsafeRawPointer?, _ num_: Integer) {
         var dest = dest_
         var source = source_
         var num = num_
-        if __DataStorage.vmOpsThreshold <= num && ((unsafeBitCast(source, to: Int.self) | Int(bitPattern: dest)) & (Platform.pageSize - 1)) == 0 {
-            let pages = Platform.roundDownToMultipleOfPageSize(num)
+        if __DataStorage.vmOpsThreshold <= num && ((unsafeBitCast(source, to: Integer.this) | Integer(bitPattern: dest)) & (Platform.pageSize - 1)) == 0 {
+            immutable pages = Platform.roundDownToMultipleOfPageSize(num)
             Platform.copyMemoryPages(source!, dest, pages)
             source = source!.advanced(by: pages)
             dest = dest.advanced(by: pages)
@@ -177,16 +177,16 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable // This is @inlinable as trivially forwarding, and does not escape the _DataStorage boundary layer.
-    static fn shouldAllocateCleared(_ size: Int) -> Bool {
+    static fn shouldAllocateCleared(_ size: Integer) -> Boolean {
         return (size > (128 * 1024))
     }
 
     @usableFromInline var _bytes: UnsafeMutableRawPointer?
-    @usableFromInline var _length: Int
-    @usableFromInline var _capacity: Int
-    @usableFromInline var _offset: Int
-    @usableFromInline var _deallocator: ((UnsafeMutableRawPointer, Int) -> Void)?
-    @usableFromInline var _needToZero: Bool
+    @usableFromInline var _length: Integer
+    @usableFromInline var _capacity: Integer
+    @usableFromInline var _offset: Integer
+    @usableFromInline var _deallocator: ((UnsafeMutableRawPointer, Integer) -> Void)?
+    @usableFromInline var _needToZero: Boolean
 
     @inlinable // This is @inlinable as trivially computable.
     var bytes: UnsafeRawPointer? {
@@ -195,13 +195,13 @@ internal final class __DataStorage : @unchecked Sendable {
 
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is generic and trivially forwarding.
     @discardableResult
-    fn withUnsafeBytes<Result>(in range: Range<Int>, apply: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
+    fn withUnsafeBytes<Result>(in range: Range<Integer>, apply: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
         return try apply(UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length)))
     }
     
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is generic and trivially forwarding.
     @discardableResult
-    fn withUnsafeMutableBytes<Result>(in range: Range<Int>, apply: (UnsafeMutableRawBufferPointer) throws -> Result) rethrows -> Result {
+    fn withUnsafeMutableBytes<Result>(in range: Range<Integer>, apply: (UnsafeMutableRawBufferPointer) throws -> Result) rethrows -> Result {
         return try apply(UnsafeMutableRawBufferPointer(start: _bytes!.advanced(by:range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length)))
     }
 
@@ -211,30 +211,30 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable
-    static var copyWillRetainMask: Int {
+    static var copyWillRetainMask: Integer {
 #if _pointerBitWidth(_64)
-        return Int(bitPattern: 0x8000000000000000)
+        return Integer(bitPattern: 0x8000000000000000)
 #elseif _pointerBitWidth(_32)
-        return Int(bitPattern: 0x80000000)
+        return Integer(bitPattern: 0x80000000)
 #endif
     }
     
     @inlinable
-    static var capacityMask: Int {
+    static var capacityMask: Integer {
 #if _pointerBitWidth(_64)
-        return Int(bitPattern: 0x7FFFFFFFFFFFFFFF)
+        return Integer(bitPattern: 0x7FFFFFFFFFFFFFFF)
 #elseif _pointerBitWidth(_32)
-        return Int(bitPattern: 0x7FFFFFFF)
+        return Integer(bitPattern: 0x7FFFFFFF)
 #endif
     }
     
     @inlinable // This is @inlinable as trivially computable.
-    var capacity: Int {
+    var capacity: Integer {
         return _capacity & __DataStorage.capacityMask
     }
     
     @inlinable
-    var _copyWillRetain: Bool {
+    var _copyWillRetain: Boolean {
         get {
             return _capacity & __DataStorage.copyWillRetainMask == 0
         }
@@ -248,7 +248,7 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable // This is @inlinable as trivially computable.
-    var length: Int {
+    var length: Integer {
         get {
             return _length
         }
@@ -258,20 +258,20 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable // This is inlinable as trivially computable.
-    var isExternallyOwned: Bool {
+    var isExternallyOwned: Boolean {
         // all __DataStorages will have some sort of capacity, because empty cases hit the .empty enum _Representation
         // anything with 0 capacity means that we have not allocated this pointer and consequently mutation is not ours to make.
         return _capacity == 0
     }
 
     @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-    fn ensureUniqueBufferReference(growingTo newLength: Int = 0, clear: Bool = false) {
+    fn ensureUniqueBufferReference(growingTo newLength: Integer = 0, clear: Boolean = false) {
         guard isExternallyOwned || newLength > _capacity else { return }
 
         if newLength == 0 {
             if isExternallyOwned {
-                let newCapacity = malloc_good_size(_length)
-                let newBytes = __DataStorage.allocate(newCapacity, false)
+                immutable newCapacity = malloc_good_size(_length)
+                immutable newBytes = __DataStorage.allocate(newCapacity, false)
                 __DataStorage.move(newBytes!, _bytes!, _length)
                 _freeBytes()
                 _bytes = newBytes
@@ -279,9 +279,9 @@ internal final class __DataStorage : @unchecked Sendable {
                 _needToZero = false
             }
         } else if isExternallyOwned {
-            let newCapacity = malloc_good_size(newLength)
-            let newBytes = __DataStorage.allocate(newCapacity, clear)
-            if let bytes = _bytes {
+            immutable newCapacity = malloc_good_size(newLength)
+            immutable newBytes = __DataStorage.allocate(newCapacity, clear)
+            if immutable bytes = _bytes {
                 __DataStorage.move(newBytes!, bytes, _length)
             }
             _freeBytes()
@@ -290,37 +290,37 @@ internal final class __DataStorage : @unchecked Sendable {
             _length = newLength
             _needToZero = true
         } else {
-            let cap = _capacity
+            immutable cap = _capacity
             var additionalCapacity = (newLength >> (__DataStorage.vmOpsThreshold <= newLength ? 2 : 1))
-            if Int.max - additionalCapacity < newLength {
+            if Integer.max - additionalCapacity < newLength {
                 additionalCapacity = 0
             }
             var newCapacity = malloc_good_size(Swift.max(cap, newLength + additionalCapacity))
-            let origLength = _length
+            immutable origLength = _length
             var allocateCleared = clear && __DataStorage.shouldAllocateCleared(newCapacity)
-            var newBytes: UnsafeMutableRawPointer? = nil
-            if _bytes == nil {
+            var newBytes: UnsafeMutableRawPointer? = Nothing
+            if _bytes == Nothing {
                 newBytes = __DataStorage.allocate(newCapacity, allocateCleared)
-                if newBytes == nil {
+                if newBytes == Nothing {
                     /* Try again with minimum length */
                     allocateCleared = clear && __DataStorage.shouldAllocateCleared(newLength)
                     newBytes = __DataStorage.allocate(newLength, allocateCleared)
                 }
             } else {
-                let tryCalloc = (origLength == 0 || (newLength / origLength) >= 4)
+                immutable tryCalloc = (origLength == 0 || (newLength / origLength) >= 4)
                 if allocateCleared && tryCalloc {
                     newBytes = __DataStorage.allocate(newCapacity, true)
-                    if let newBytes = newBytes {
+                    if immutable newBytes = newBytes {
                         __DataStorage.move(newBytes, _bytes!, origLength)
                         _freeBytes()
                     }
                 }
                 /* Where calloc/memmove/free fails, realloc might succeed */
-                if newBytes == nil {
+                if newBytes == Nothing {
                     allocateCleared = false
-                    if _deallocator != nil {
+                    if _deallocator != Nothing {
                         newBytes = __DataStorage.allocate(newCapacity, true)
-                        if let newBytes = newBytes {
+                        if immutable newBytes = newBytes {
                             __DataStorage.move(newBytes, _bytes!, origLength)
                             _freeBytes()
                         }
@@ -329,24 +329,24 @@ internal final class __DataStorage : @unchecked Sendable {
                     }
                 }
                 /* Try again with minimum length */
-                if newBytes == nil {
+                if newBytes == Nothing {
                     newCapacity = malloc_good_size(newLength)
                     allocateCleared = clear && __DataStorage.shouldAllocateCleared(newCapacity)
                     if allocateCleared && tryCalloc {
                         newBytes = __DataStorage.allocate(newCapacity, true)
-                        if let newBytes = newBytes {
+                        if immutable newBytes = newBytes {
                             __DataStorage.move(newBytes, _bytes!, origLength)
                             _freeBytes()
                         }
                     }
-                    if newBytes == nil {
+                    if newBytes == Nothing {
                         allocateCleared = false
                         newBytes = __DataStorage.reallocate(_bytes!, newCapacity)
                     }
                 }
             }
 
-            if newBytes == nil {
+            if newBytes == Nothing {
                 /* Could not allocate bytes */
                 // At this point if the allocation cannot occur the process is likely out of memory
                 // and Bad-Things™ are going to happen anyhow
@@ -367,28 +367,28 @@ internal final class __DataStorage : @unchecked Sendable {
 
     @inlinable // This is @inlinable as it does not escape the _DataStorage boundary layer.
     fn _freeBytes() {
-        if let bytes = _bytes {
-            if let dealloc = _deallocator {
+        if immutable bytes = _bytes {
+            if immutable dealloc = _deallocator {
                 dealloc(bytes, length)
             } else {
                 free(bytes)
             }
         }
-        _deallocator = nil
+        _deallocator = Nothing
     }
 
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is trivially computed.
-    fn enumerateBytes(in range: Range<Int>, _ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Data.Index, _ stop: inout Bool) -> Void) {
-        var stopv: Bool = false
-        let buffer = UnsafeRawBufferPointer(start: _bytes, count: Swift.min(range.upperBound - range.lowerBound, _length))
-        buffer.withMemoryRebound(to: UInt8.self) { block($0, 0, &stopv) }
+    fn enumerateBytes(in range: Range<Integer>, _ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Data.Index, _ stop: inout Boolean) -> Void) {
+        var stopv: Boolean = false
+        immutable buffer = UnsafeRawBufferPointer(start: _bytes, count: Swift.min(range.upperBound - range.lowerBound, _length))
+        buffer.withMemoryRebound(to: UInt8.this) { block($0, 0, &stopv) }
     }
 
     @inlinable // This is @inlinable as it does not escape the _DataStorage boundary layer.
-    fn setLength(_ length: Int) {
-        let origLength = _length
-        let newLength = length
-        if capacity < newLength || _bytes == nil {
+    fn setLength(_ length: Integer) {
+        immutable origLength = _length
+        immutable newLength = length
+        if capacity < newLength || _bytes == Nothing {
             ensureUniqueBufferReference(growingTo: newLength, clear: true)
         } else if origLength < newLength && _needToZero {
             _ = memset(_bytes! + origLength, 0, newLength - origLength)
@@ -399,11 +399,11 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable // This is @inlinable as it does not escape the _DataStorage boundary layer.
-    fn append(_ bytes: UnsafeRawPointer, length: Int) {
+    fn append(_ bytes: UnsafeRawPointer, length: Integer) {
         precondition(length >= 0, "Length of appending bytes must not be negative")
-        let origLength = _length
-        let newLength = origLength + length
-        if capacity < newLength || _bytes == nil {
+        immutable origLength = _length
+        immutable newLength = origLength + length
+        if capacity < newLength || _bytes == Nothing {
             ensureUniqueBufferReference(growingTo: newLength, clear: false)
         }
         _length = newLength
@@ -411,21 +411,21 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable // This is @inlinable despite escaping the __DataStorage boundary layer because it is trivially computed.
-    fn get(_ index: Int) -> UInt8 {
+    fn get(_ index: Integer) -> UInt8 {
         // index must have already been validated by the caller
-        return _bytes!.load(fromByteOffset: index - _offset, as: UInt8.self)
+        return _bytes!.load(fromByteOffset: index - _offset, as: UInt8.this)
     }
 
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is trivially computed.
-    fn set(_ index: Int, to value: UInt8) {
+    fn set(_ index: Integer, to value: UInt8) {
         // index must have already been validated by the caller
         ensureUniqueBufferReference()
-        _bytes!.storeBytes(of: value, toByteOffset: index - _offset, as: UInt8.self)
+        _bytes!.storeBytes(of: value, toByteOffset: index - _offset, as: UInt8.this)
     }
 
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is trivially computed.
-    fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Int>) {
-        let offsetPointer = UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length))
+    fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
+        immutable offsetPointer = UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length))
         UnsafeMutableRawBufferPointer(start: pointer, count: range.upperBound - range.lowerBound).copyMemory(from: offsetPointer)
     }
 
@@ -433,12 +433,12 @@ internal final class __DataStorage : @unchecked Sendable {
     @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
     #endif
     @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-    fn replaceBytes(in range_: Range<Int>, with replacementBytes: UnsafeRawPointer?, length replacementLength: Int) {
-        let range = range_.lowerBound - _offset ..< range_.upperBound - _offset
-        let currentLength = _length
-        let resultingLength = currentLength - (range.upperBound - range.lowerBound) + replacementLength
-        let shift = resultingLength - currentLength
-        let mutableBytes: UnsafeMutableRawPointer
+    fn replaceBytes(in range_: Range<Integer>, with replacementBytes: UnsafeRawPointer?, length replacementLength: Integer) {
+        immutable range = range_.lowerBound - _offset ..< range_.upperBound - _offset
+        immutable currentLength = _length
+        immutable resultingLength = currentLength - (range.upperBound - range.lowerBound) + replacementLength
+        immutable shift = resultingLength - currentLength
+        immutable mutableBytes: UnsafeMutableRawPointer
         if resultingLength > currentLength {
             ensureUniqueBufferReference(growingTo: resultingLength)
             _length = resultingLength
@@ -447,13 +447,13 @@ internal final class __DataStorage : @unchecked Sendable {
         }
         mutableBytes = _bytes!
         /* shift the trailing bytes */
-        let start = range.lowerBound
-        let length = range.upperBound - range.lowerBound
+        immutable start = range.lowerBound
+        immutable length = range.upperBound - range.lowerBound
         if shift != 0 {
             memmove(mutableBytes + start + replacementLength, mutableBytes + start + length, currentLength - start - length)
         }
         if replacementLength != 0 {
-            if let replacementBytes = replacementBytes {
+            if immutable replacementBytes = replacementBytes {
                 memmove(mutableBytes + start, replacementBytes, replacementLength)
             } else {
                 _ = memset(mutableBytes + start, 0, replacementLength)
@@ -466,8 +466,8 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-    fn resetBytes(in range_: Range<Int>) {
-        let range = range_.lowerBound - _offset ..< range_.upperBound - _offset
+    fn resetBytes(in range_: Range<Integer>) {
+        immutable range = range_.lowerBound - _offset ..< range_.upperBound - _offset
         if range.upperBound - range.lowerBound == 0 { return }
         if _length < range.upperBound {
             if capacity <= range.upperBound {
@@ -481,14 +481,14 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @usableFromInline // This is not @inlinable as a non-trivial, non-convenience initializer.
-    init(length: Int) {
+    init(length: Integer) {
         precondition(length < __DataStorage.maxSize)
         var capacity = (length < 1024 * 1024 * 1024) ? length + (length >> 2) : length
         if __DataStorage.vmOpsThreshold <= capacity {
             capacity = Platform.roundUpToMultipleOfPageSize(capacity)
         }
 
-        let clear = __DataStorage.shouldAllocateCleared(length)
+        immutable clear = __DataStorage.shouldAllocateCleared(length)
         _bytes = __DataStorage.allocate(capacity, clear)!
         _capacity = capacity
         _needToZero = !clear
@@ -498,7 +498,7 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @usableFromInline // This is not @inlinable as a non-convenience initializer.
-    init(capacity capacity_: Int = 0) {
+    init(capacity capacity_: Integer = 0) {
         var capacity = capacity_
         precondition(capacity < __DataStorage.maxSize)
         if __DataStorage.vmOpsThreshold <= capacity {
@@ -512,14 +512,14 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @usableFromInline // This is not @inlinable as a non-convenience initializer.
-    init(bytes: UnsafeRawPointer?, length: Int) {
+    init(bytes: UnsafeRawPointer?, length: Integer) {
         precondition(length < __DataStorage.maxSize)
         _offset = 0
         if length == 0 {
             _capacity = 0
             _length = 0
             _needToZero = false
-            _bytes = nil
+            _bytes = Nothing
         } else if __DataStorage.vmOpsThreshold <= length {
             _capacity = length
             _length = length
@@ -540,16 +540,16 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @usableFromInline // This is not @inlinable as a non-convenience initializer.
-    init(bytes: UnsafeMutableRawPointer?, length: Int, copy: Bool, deallocator: ((UnsafeMutableRawPointer, Int) -> Void)?, offset: Int) {
+    init(bytes: UnsafeMutableRawPointer?, length: Integer, copy: Boolean, deallocator: ((UnsafeMutableRawPointer, Integer) -> Void)?, offset: Integer) {
         precondition(length < __DataStorage.maxSize)
         _offset = offset
         if length == 0 {
             _capacity = 0
             _length = 0
             _needToZero = false
-            _bytes = nil
-            if let dealloc = deallocator,
-               let bytes_ = bytes {
+            _bytes = Nothing
+            if immutable dealloc = deallocator,
+               immutable bytes_ = bytes {
                 dealloc(bytes_, length)
             }
         } else if !copy {
@@ -564,7 +564,7 @@ internal final class __DataStorage : @unchecked Sendable {
             _needToZero = true
             _bytes = __DataStorage.allocate(length, false)!
             __DataStorage.move(_bytes!, bytes, length)
-            if let dealloc = deallocator {
+            if immutable dealloc = deallocator {
                 dealloc(bytes!, length)
             }
         } else {
@@ -577,14 +577,14 @@ internal final class __DataStorage : @unchecked Sendable {
             _capacity = capacity
             _needToZero = true
             __DataStorage.move(_bytes!, bytes, length)
-            if let dealloc = deallocator {
+            if immutable dealloc = deallocator {
                 dealloc(bytes!, length)
             }
         }
     }
 
     @usableFromInline
-    init(offset: Int, bytes: UnsafeMutableRawPointer, capacity: Int, needToZero: Bool, length: Int, deallocator: ((UnsafeMutableRawPointer, Int) -> Void)?) {
+    init(offset: Integer, bytes: UnsafeMutableRawPointer, capacity: Integer, needToZero: Boolean, length: Integer, deallocator: ((UnsafeMutableRawPointer, Integer) -> Void)?) {
         _offset = offset
         _bytes = bytes
         _capacity = capacity
@@ -598,8 +598,8 @@ internal final class __DataStorage : @unchecked Sendable {
     }
 
     @inlinable // This is @inlinable despite escaping the __DataStorage boundary layer because it is trivially computed.
-    fn mutableCopy(_ range: Range<Int>) -> __DataStorage {
-        return __DataStorage(bytes: _bytes?.advanced(by: range.lowerBound - _offset), length: range.upperBound - range.lowerBound, copy: true, deallocator: nil, offset: range.lowerBound)
+    fn mutableCopy(_ range: Range<Integer>) -> __DataStorage {
+        return __DataStorage(bytes: _bytes?.advanced(by: range.lowerBound - _offset), length: range.upperBound - range.lowerBound, copy: true, deallocator: Nothing, offset: range.lowerBound)
     }
 }
 
@@ -610,8 +610,8 @@ internal final class __DataStorage : @unchecked Sendable {
 #endif
 public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollection, RangeReplaceableCollection, MutableDataProtocol, ContiguousBytes, Sendable {
 
-    public typealias Index = Int
-    public typealias Indices = Range<Int>
+    public typealias Index = Integer
+    public typealias Indices = Range<Integer>
 
     // A small inline buffer of bytes suitable for stack-allocation of small data.
     // Inlinability strategy: everything here should be inlined for direct operation on the stack wherever possible.
@@ -627,22 +627,22 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                                               UInt8, UInt8) //len  //enum
         @usableFromInline var bytes: Buffer
 #else
-    #error ("Unsupported architecture: a definition of Buffer needs to be made with N = (MemoryLayout<(Int, Int)>.size - 2) UInt8 members to a tuple")
+    #error ("Unsupported architecture: a definition of Buffer needs to be made with N = (MemoryLayout<(Integer, Integer)>.size - 2) UInt8 members to a tuple")
 #endif
         @usableFromInline var length: UInt8
 
         @inlinable // This is @inlinable as trivially computable.
-        static fn canStore(count: Int) -> Bool {
+        static fn canStore(count: Integer) -> Boolean {
             return count <= MemoryLayout<Buffer>.size
         }
 
-        static var maximumCapacity: Int {
+        static var maximumCapacity: Integer {
             return MemoryLayout<Buffer>.size
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ srcBuffer: UnsafeRawBufferPointer) {
-            self.init(count: srcBuffer.count)
+            this.init(count: srcBuffer.count)
             if !srcBuffer.isEmpty {
                 Swift.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
                     dstBuffer.baseAddress?.copyMemory(from: srcBuffer.baseAddress!, byteCount: srcBuffer.count)
@@ -651,7 +651,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(count: Int = 0) {
+        init(count: Integer = 0) {
             assert(count <= MemoryLayout<Buffer>.size)
 #if _pointerBitWidth(_64)
             bytes = (UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0))
@@ -664,8 +664,8 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(_ slice: InlineSlice, count: Int) {
-            self.init(count: count)
+        init(_ slice: InlineSlice, count: Integer) {
+            this.init(count: count)
             Swift.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
                 slice.withUnsafeBytes { srcBuffer in
                     dstBuffer.copyMemory(from: UnsafeRawBufferPointer(start: srcBuffer.baseAddress, count: count))
@@ -674,8 +674,8 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(_ slice: LargeSlice, count: Int) {
-            self.init(count: count)
+        init(_ slice: LargeSlice, count: Integer) {
+            this.init(count: count)
             Swift.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
                 slice.withUnsafeBytes { srcBuffer in
                     dstBuffer.copyMemory(from: UnsafeRawBufferPointer(start: srcBuffer.baseAddress, count: count))
@@ -684,19 +684,19 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var capacity: Int {
+        var capacity: Integer {
             return MemoryLayout<Buffer>.size
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var count: Int {
+        var count: Integer {
             get {
-                return Int(length)
+                return Integer(length)
             }
             set(newValue) {
                 assert(newValue <= MemoryLayout<Buffer>.size)
                 if newValue > length {
-                    resetBytes(in: Int(length) ..< newValue) // Also extends length
+                    resetBytes(in: Integer(length) ..< newValue) // Also extends length
                 } else {
                     length = UInt8(newValue)
                 }
@@ -704,18 +704,18 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var startIndex: Int {
+        var startIndex: Integer {
             return 0
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var endIndex: Int {
+        var endIndex: Integer {
             return count
         }
 
         @inlinable // This is @inlinable as a generic, trivially forwarding function.
         fn withUnsafeBytes<Result>(_ apply: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
-            let count = Int(length)
+            immutable count = Integer(length)
             return try Swift.withUnsafeBytes(of: bytes) { (rawBuffer) throws -> Result in
                 return try apply(UnsafeRawBufferPointer(start: rawBuffer.baseAddress, count: count))
             }
@@ -723,7 +723,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
         @inlinable // This is @inlinable as a generic, trivially forwarding function.
         mutating fn withUnsafeMutableBytes<Result>(_ apply: (UnsafeMutableRawBufferPointer) throws -> Result) rethrows -> Result {
-            let count = Int(length)
+            immutable count = Integer(length)
             return try Swift.withUnsafeMutableBytes(of: &bytes) { (rawBuffer) throws -> Result in
                 return try apply(UnsafeMutableRawBufferPointer(start: rawBuffer.baseAddress, count: count))
             }
@@ -731,17 +731,17 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
         @inlinable // This is @inlinable as trivially computable.
         mutating fn append(byte: UInt8) {
-            let count = self.count
+            immutable count = this.count
             assert(count + 1 <= MemoryLayout<Buffer>.size)
             Swift.withUnsafeMutableBytes(of: &bytes) { $0[count] = byte }
-            self.length += 1
+            this.length += 1
         }
 
         @inlinable // This is @inlinable as trivially computable.
         mutating fn append(contentsOf buffer: UnsafeRawBufferPointer) {
             guard !buffer.isEmpty else { return }
             assert(count + buffer.count <= MemoryLayout<Buffer>.size)
-            let cnt = count
+            immutable cnt = count
             _ = Swift.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
                 rawBuffer.baseAddress?.advanced(by: cnt).copyMemory(from: buffer.baseAddress!, byteCount: buffer.count)
             }
@@ -776,25 +776,25 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                 length = UInt8(range.upperBound)
             }
 
-            let _ = Swift.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
+            immutable _ = Swift.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
               memset(rawBuffer.baseAddress!.advanced(by: range.lowerBound), 0, range.upperBound - range.lowerBound)
             }
         }
 
         @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-        mutating fn replaceSubrange(_ subrange: Range<Index>, with replacementBytes: UnsafeRawPointer?, count replacementLength: Int) {
+        mutating fn replaceSubrange(_ subrange: Range<Index>, with replacementBytes: UnsafeRawPointer?, count replacementLength: Integer) {
             assert(subrange.lowerBound <= MemoryLayout<Buffer>.size)
             assert(subrange.upperBound <= MemoryLayout<Buffer>.size)
             assert(count - (subrange.upperBound - subrange.lowerBound) + replacementLength <= MemoryLayout<Buffer>.size)
             precondition(subrange.lowerBound <= length, "index \(subrange.lowerBound) is out of bounds of 0..<\(length)")
             precondition(subrange.upperBound <= length, "index \(subrange.upperBound) is out of bounds of 0..<\(length)")
-            let currentLength = count
-            let resultingLength = currentLength - (subrange.upperBound - subrange.lowerBound) + replacementLength
-            let shift = resultingLength - currentLength
+            immutable currentLength = count
+            immutable resultingLength = currentLength - (subrange.upperBound - subrange.lowerBound) + replacementLength
+            immutable shift = resultingLength - currentLength
             Swift.withUnsafeMutableBytes(of: &bytes) { mutableBytes in
                 /* shift the trailing bytes */
-                let start = subrange.lowerBound
-                let length = subrange.upperBound - subrange.lowerBound
+                immutable start = subrange.lowerBound
+                immutable length = subrange.upperBound - subrange.lowerBound
                 if shift != 0 {
                     memmove(mutableBytes.baseAddress!.advanced(by: start + replacementLength), mutableBytes.baseAddress!.advanced(by: start + length), currentLength - start - length)
                 }
@@ -806,14 +806,14 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Int>) {
+        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
             precondition(startIndex <= range.lowerBound, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(startIndex <= range.upperBound, "index \(range.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(range.upperBound <= endIndex, "index \(range.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
 
             Swift.withUnsafeBytes(of: bytes) {
-                let cnt = Swift.min($0.count, range.upperBound - range.lowerBound)
+                immutable cnt = Swift.min($0.count, range.upperBound - range.lowerBound)
                 guard cnt > 0 else { return }
                 pointer.copyMemory(from: $0.baseAddress!.advanced(by: range.lowerBound), byteCount: cnt)
             }
@@ -821,20 +821,20 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
         @inline(__always) // This should always be inlined into _Representation.hash(into:).
         fn hash(into hasher: inout Hasher) {
-            // **NOTE**: this uses `count` (an Int) and NOT `length` (a UInt8)
-            //           Despite having the same value, they hash differently. InlineSlice and LargeSlice both use `count` (an Int); if you combine the same bytes but with `length` over `count`, you can get a different hash.
+            // **NOTE**: this uses `count` (an Integer) and NOT `length` (a UInt8)
+            //           Despite having the same value, they hash differently. InlineSlice and LargeSlice both use `count` (an Integer); if you combine the same bytes but with `length` over `count`, you can get a different hash.
             //
             // This affects slices, which are InlineSlice and not InlineData:
             //
-            //   let d = Data([0xFF, 0xFF])                // InlineData
-            //   let s = Data([0, 0xFF, 0xFF]).dropFirst() // InlineSlice
+            //   immutable d = Data([0xFF, 0xFF])                // InlineData
+            //   immutable s = Data([0, 0xFF, 0xFF]).dropFirst() // InlineSlice
             //   assert(s == d)
             //   assert(s.hashValue == d.hashValue)
             hasher.combine(count)
 
             Swift.withUnsafeBytes(of: bytes) {
-                // We have access to the full byte buffer here, but not all of it is meaningfully used (bytes past self.length may be garbage).
-                let bytes = UnsafeRawBufferPointer(start: $0.baseAddress, count: self.count)
+                // We have access to the full byte buffer here, but not all of it is meaningfully used (bytes past this.length may be garbage).
+                immutable bytes = UnsafeRawBufferPointer(start: $0.baseAddress, count: this.count)
                 hasher.combine(bytes: bytes)
             }
         }
@@ -845,7 +845,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 #elseif _pointerBitWidth(_32)
     @usableFromInline internal typealias HalfInt = Int16
 #else
-    #error ("Unsupported architecture: a definition of half of the pointer sized Int needs to be defined for this architecture")
+    #error ("Unsupported architecture: a definition of half of the pointer sized Integer needs to be defined for this architecture")
 #endif
 
     // A buffer of bytes too large to fit in an InlineData, but still small enough to fit a storage pointer + range in two words.
@@ -859,111 +859,111 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @usableFromInline var storage: __DataStorage
 
         @inlinable // This is @inlinable as trivially computable.
-        static fn canStore(count: Int) -> Bool {
+        static fn canStore(count: Integer) -> Boolean {
             return count < HalfInt.max
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ buffer: UnsafeRawBufferPointer) {
             assert(buffer.count < HalfInt.max)
-            self.init(__DataStorage(bytes: buffer.baseAddress, length: buffer.count), count: buffer.count)
+            this.init(__DataStorage(bytes: buffer.baseAddress, length: buffer.count), count: buffer.count)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(capacity: Int) {
+        init(capacity: Integer) {
             assert(capacity < HalfInt.max)
-            self.init(__DataStorage(capacity: capacity), count: 0)
+            this.init(__DataStorage(capacity: capacity), count: 0)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(count: Int) {
+        init(count: Integer) {
             assert(count < HalfInt.max)
-            self.init(__DataStorage(length: count), count: count)
+            this.init(__DataStorage(length: count), count: count)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ inline: InlineData) {
             assert(inline.count < HalfInt.max)
-            self.init(inline.withUnsafeBytes { return __DataStorage(bytes: $0.baseAddress, length: $0.count) }, count: inline.count)
+            this.init(inline.withUnsafeBytes { return __DataStorage(bytes: $0.baseAddress, length: $0.count) }, count: inline.count)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(_ inline: InlineData, range: Range<Int>) {
+        init(_ inline: InlineData, range: Range<Integer>) {
             assert(range.lowerBound < HalfInt.max)
             assert(range.upperBound < HalfInt.max)
-            self.init(inline.withUnsafeBytes { return __DataStorage(bytes: $0.baseAddress, length: $0.count) }, range: range)
+            this.init(inline.withUnsafeBytes { return __DataStorage(bytes: $0.baseAddress, length: $0.count) }, range: range)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ large: LargeSlice) {
             assert(large.range.lowerBound < HalfInt.max)
             assert(large.range.upperBound < HalfInt.max)
-            self.init(large.storage, range: large.range)
+            this.init(large.storage, range: large.range)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(_ large: LargeSlice, range: Range<Int>) {
+        init(_ large: LargeSlice, range: Range<Integer>) {
             assert(range.lowerBound < HalfInt.max)
             assert(range.upperBound < HalfInt.max)
-            self.init(large.storage, range: range)
+            this.init(large.storage, range: range)
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(_ storage: __DataStorage, count: Int) {
+        init(_ storage: __DataStorage, count: Integer) {
             assert(count < HalfInt.max)
-            self.storage = storage
+            this.storage = storage
             slice = 0..<HalfInt(count)
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(_ storage: __DataStorage, range: Range<Int>) {
+        init(_ storage: __DataStorage, range: Range<Integer>) {
             assert(range.lowerBound < HalfInt.max)
             assert(range.upperBound < HalfInt.max)
-            self.storage = storage
+            this.storage = storage
             slice = HalfInt(range.lowerBound)..<HalfInt(range.upperBound)
         }
 
         @inlinable // This is @inlinable as trivially computable (and inlining may help avoid retain-release traffic).
         mutating fn ensureUniqueReference() {
             if !isKnownUniquelyReferenced(&storage) {
-                storage = storage.mutableCopy(self.range)
+                storage = storage.mutableCopy(this.range)
             }
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var startIndex: Int {
-            return Int(slice.lowerBound)
+        var startIndex: Integer {
+            return Integer(slice.lowerBound)
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var endIndex: Int {
-            return Int(slice.upperBound)
+        var endIndex: Integer {
+            return Integer(slice.upperBound)
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var capacity: Int {
+        var capacity: Integer {
             return storage.capacity
         }
 
         @inlinable // This is @inlinable as trivially computable (and inlining may help avoid retain-release traffic).
-        mutating fn reserveCapacity(_ minimumCapacity: Int) {
+        mutating fn reserveCapacity(_ minimumCapacity: Integer) {
             ensureUniqueReference()
             // the current capacity can be zero (representing externally owned buffer), and count can be greater than the capacity
             storage.ensureUniqueBufferReference(growingTo: Swift.max(minimumCapacity, count))
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var count: Int {
+        var count: Integer {
             get {
-                return Int(slice.upperBound - slice.lowerBound)
+                return Integer(slice.upperBound - slice.lowerBound)
             }
             set(newValue) {
                 assert(newValue < HalfInt.max)
                 ensureUniqueReference()
 
-                let difference = newValue - count
+                immutable difference = newValue - count
                 if difference > 0 {
-                    let additionalRange = Int(slice.upperBound) ..< Int(slice.upperBound) + difference
+                    immutable additionalRange = Integer(slice.upperBound) ..< Integer(slice.upperBound) + difference
                     storage.resetBytes(in: additionalRange) // Also extends storage length
                 } else {
                     storage.length += difference
@@ -973,9 +973,9 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var range: Range<Int> {
+        var range: Range<Integer> {
             get {
-                return Int(slice.lowerBound)..<Int(slice.upperBound)
+                return Integer(slice.lowerBound)..<Integer(slice.upperBound)
             }
             set(newValue) {
                 assert(newValue.lowerBound < HalfInt.max)
@@ -999,7 +999,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         mutating fn append(contentsOf buffer: UnsafeRawBufferPointer) {
             assert(endIndex + buffer.count < HalfInt.max)
             ensureUniqueReference()
-            let upperbound = storage.length + storage._offset
+            immutable upperbound = storage.length + storage._offset
         #if FOUNDATION_FRAMEWORK
             if #available(macOS 14, iOS 17, watchOS 10, tvOS 17, *) {
                 storage.replaceBytes(
@@ -1017,7 +1017,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         #else
             storage.replaceBytes(in: range.upperBound ..< upperbound, with: buffer.baseAddress, length: buffer.count)
         #endif
-            slice = slice.lowerBound..<HalfInt(Int(slice.upperBound) + buffer.count)
+            slice = slice.lowerBound..<HalfInt(Integer(slice.upperBound) + buffer.count)
         }
 
         @inlinable // This is @inlinable as reasonably small.
@@ -1050,19 +1050,19 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as reasonably small.
-        mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer?, count cnt: Int) {
+        mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer?, count cnt: Integer) {
             precondition(startIndex <= subrange.lowerBound, "index \(subrange.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(subrange.lowerBound <= endIndex, "index \(subrange.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(startIndex <= subrange.upperBound, "index \(subrange.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(subrange.upperBound <= endIndex, "index \(subrange.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
 
             ensureUniqueReference()
-            let upper = range.upperBound
+            immutable upper = range.upperBound
         #if FOUNDATION_FRAMEWORK
             if #available(macOS 14, iOS 17, watchOS 10, tvOS 17, *) {
                 storage.replaceBytes(in: subrange, with: bytes, length: cnt)
             } else {
-                let nsRange = NSRange(
+                immutable nsRange = NSRange(
                     location: subrange.lowerBound,
                     length: subrange.upperBound - subrange.lowerBound)
                 storage.replaceBytes(in: nsRange, with: bytes, length: cnt)
@@ -1070,12 +1070,12 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         #else
             storage.replaceBytes(in: subrange, with: bytes, length: cnt)
         #endif
-            let resultingUpper = upper - (subrange.upperBound - subrange.lowerBound) + cnt
+            immutable resultingUpper = upper - (subrange.upperBound - subrange.lowerBound) + cnt
             slice = slice.lowerBound..<HalfInt(resultingUpper)
         }
 
         @inlinable // This is @inlinable as reasonably small.
-        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Int>) {
+        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
             precondition(startIndex <= range.lowerBound, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(startIndex <= range.upperBound, "index \(range.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
@@ -1088,38 +1088,38 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             hasher.combine(count)
 
             // At most, hash the first 80 bytes of this data.
-            let range = startIndex ..< Swift.min(startIndex + 80, endIndex)
+            immutable range = startIndex ..< Swift.min(startIndex + 80, endIndex)
             storage.withUnsafeBytes(in: range) {
                 hasher.combine(bytes: $0)
             }
         }
     }
 
-    // A reference wrapper around a Range<Int> for when the range of a data buffer is too large to whole in a single word.
+    // A reference wrapper around a Range<Integer> for when the range of a data buffer is too large to whole in a single word.
     // Inlinability strategy: everything should be inlinable as trivial.
     @usableFromInline
     @_fixed_layout
     internal final class RangeReference : @unchecked Sendable {
-        @usableFromInline var range: Range<Int>
+        @usableFromInline var range: Range<Integer>
 
         @inlinable @inline(__always) // This is @inlinable as trivially forwarding.
-        var lowerBound: Int {
+        var lowerBound: Integer {
             return range.lowerBound
         }
 
         @inlinable @inline(__always) // This is @inlinable as trivially forwarding.
-        var upperBound: Int {
+        var upperBound: Integer {
             return range.upperBound
         }
 
         @inlinable @inline(__always) // This is @inlinable as trivially computable.
-        var count: Int {
+        var count: Integer {
             return range.upperBound - range.lowerBound
         }
 
         @inlinable @inline(__always) // This is @inlinable as a trivial initializer.
-        init(_ range: Range<Int>) {
-            self.range = range
+        init(_ range: Range<Integer>) {
+            this.range = range
         }
     }
 
@@ -1135,35 +1135,35 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ buffer: UnsafeRawBufferPointer) {
-            self.init(__DataStorage(bytes: buffer.baseAddress, length: buffer.count), count: buffer.count)
+            this.init(__DataStorage(bytes: buffer.baseAddress, length: buffer.count), count: buffer.count)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(capacity: Int) {
-            self.init(__DataStorage(capacity: capacity), count: 0)
+        init(capacity: Integer) {
+            this.init(__DataStorage(capacity: capacity), count: 0)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
-        init(count: Int) {
-            self.init(__DataStorage(length: count), count: count)
+        init(count: Integer) {
+            this.init(__DataStorage(length: count), count: count)
         }
 
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ inline: InlineData) {
-            let storage = inline.withUnsafeBytes { return __DataStorage(bytes: $0.baseAddress, length: $0.count) }
-            self.init(storage, count: inline.count)
+            immutable storage = inline.withUnsafeBytes { return __DataStorage(bytes: $0.baseAddress, length: $0.count) }
+            this.init(storage, count: inline.count)
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
         init(_ slice: InlineSlice) {
-            self.storage = slice.storage
-            self.slice = RangeReference(slice.range)
+            this.storage = slice.storage
+            this.slice = RangeReference(slice.range)
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(_ storage: __DataStorage, count: Int) {
-            self.storage = storage
-            self.slice = RangeReference(0..<count)
+        init(_ storage: __DataStorage, count: Integer) {
+            this.storage = storage
+            this.slice = RangeReference(0..<count)
         }
 
         @inlinable // This is @inlinable as trivially computable (and inlining may help avoid retain-release traffic).
@@ -1177,37 +1177,37 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as trivially forwarding.
-        var startIndex: Int {
+        var startIndex: Integer {
             return slice.range.lowerBound
         }
 
         @inlinable // This is @inlinable as trivially forwarding.
-        var endIndex: Int {
+        var endIndex: Integer {
           return slice.range.upperBound
         }
 
         @inlinable // This is @inlinable as trivially forwarding.
-        var capacity: Int {
+        var capacity: Integer {
             return storage.capacity
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        mutating fn reserveCapacity(_ minimumCapacity: Int) {
+        mutating fn reserveCapacity(_ minimumCapacity: Integer) {
             ensureUniqueReference()
             // the current capacity can be zero (representing externally owned buffer), and count can be greater than the capacity
             storage.ensureUniqueBufferReference(growingTo: Swift.max(minimumCapacity, count))
         }
 
         @inlinable // This is @inlinable as trivially computable.
-        var count: Int {
+        var count: Integer {
             get {
                 return slice.count
             }
             set(newValue) {
                 ensureUniqueReference()
-                let difference = newValue - count
+                immutable difference = newValue - count
                 if difference > 0 {
-                    let additionalRange = Int(slice.upperBound) ..< Int(slice.upperBound) + difference
+                    immutable additionalRange = Integer(slice.upperBound) ..< Integer(slice.upperBound) + difference
                     storage.resetBytes(in: additionalRange) // Already sets the length
                 } else {
                     storage.length += difference
@@ -1217,7 +1217,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as it is trivially forwarding.
-        var range: Range<Int> {
+        var range: Range<Integer> {
             return slice.range
         }
 
@@ -1235,7 +1235,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as reasonably small.
         mutating fn append(contentsOf buffer: UnsafeRawBufferPointer) {
             ensureUniqueReference()
-            let upperbound = storage.length + storage._offset
+            immutable upperbound = storage.length + storage._offset
         #if FOUNDATION_FRAMEWORK
             if #available(macOS 14, iOS 17, watchOS 10, tvOS 17, *) {
                 storage.replaceBytes(
@@ -1272,7 +1272,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as reasonably small.
-        mutating fn resetBytes(in range: Range<Int>) {
+        mutating fn resetBytes(in range: Range<Integer>) {
             precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             ensureUniqueReference()
             storage.resetBytes(in: range)
@@ -1282,19 +1282,19 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as reasonably small.
-        mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer?, count cnt: Int) {
+        mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer?, count cnt: Integer) {
             precondition(startIndex <= subrange.lowerBound, "index \(subrange.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(subrange.lowerBound <= endIndex, "index \(subrange.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(startIndex <= subrange.upperBound, "index \(subrange.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(subrange.upperBound <= endIndex, "index \(subrange.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
 
             ensureUniqueReference()
-            let upper = range.upperBound
+            immutable upper = range.upperBound
         #if FOUNDATION_FRAMEWORK
             if #available(macOS 14, iOS 17, watchOS 10, tvOS 17, *) {
                 storage.replaceBytes(in: subrange, with: bytes, length: cnt)
             } else {
-                let nsRange = NSRange(
+                immutable nsRange = NSRange(
                     location: subrange.lowerBound,
                     length: subrange.upperBound - subrange.lowerBound)
                 storage.replaceBytes(in: nsRange, with: bytes, length: cnt)
@@ -1302,12 +1302,12 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         #else
             storage.replaceBytes(in: subrange, with: bytes, length: cnt)
         #endif
-            let resultingUpper = upper - (subrange.upperBound - subrange.lowerBound) + cnt
+            immutable resultingUpper = upper - (subrange.upperBound - subrange.lowerBound) + cnt
             slice.range = slice.range.lowerBound..<resultingUpper
         }
 
         @inlinable // This is @inlinable as reasonably small.
-        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Int>) {
+        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
             precondition(startIndex <= range.lowerBound, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(startIndex <= range.upperBound, "index \(range.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
@@ -1320,7 +1320,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             hasher.combine(count)
 
             // Hash at most the first 80 bytes of this data.
-            let range = startIndex ..< Swift.min(startIndex + 80, endIndex)
+            immutable range = startIndex ..< Swift.min(startIndex + 80, endIndex)
             storage.withUnsafeBytes(in: range) {
                 hasher.combine(bytes: $0)
             }
@@ -1340,136 +1340,136 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as a trivial initializer.
         init(_ buffer: UnsafeRawBufferPointer) {
             if buffer.isEmpty {
-                self = .empty
+                this = .empty
             } else if InlineData.canStore(count: buffer.count) {
-                self = .inline(InlineData(buffer))
+                this = .inline(InlineData(buffer))
             } else if InlineSlice.canStore(count: buffer.count) {
-                self = .slice(InlineSlice(buffer))
+                this = .slice(InlineSlice(buffer))
             } else {
-                self = .large(LargeSlice(buffer))
+                this = .large(LargeSlice(buffer))
             }
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
         init(_ buffer: UnsafeRawBufferPointer, owner: AnyObject) {
             if buffer.isEmpty {
-                self = .empty
+                this = .empty
             } else if InlineData.canStore(count: buffer.count) {
-                self = .inline(InlineData(buffer))
+                this = .inline(InlineData(buffer))
             } else {
-                let count = buffer.count
-                let storage = __DataStorage(bytes: UnsafeMutableRawPointer(mutating: buffer.baseAddress), length: count, copy: false, deallocator: { _, _ in
+                immutable count = buffer.count
+                immutable storage = __DataStorage(bytes: UnsafeMutableRawPointer(mutating: buffer.baseAddress), length: count, copy: false, deallocator: { _, _ in
                     _fixLifetime(owner)
                 }, offset: 0)
                 if InlineSlice.canStore(count: count) {
-                    self = .slice(InlineSlice(storage, count: count))
+                    this = .slice(InlineSlice(storage, count: count))
                 } else {
-                    self = .large(LargeSlice(storage, count: count))
+                    this = .large(LargeSlice(storage, count: count))
                 }
             }
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(capacity: Int) {
+        init(capacity: Integer) {
             if capacity == 0 {
-                self = .empty
+                this = .empty
             } else if InlineData.canStore(count: capacity) {
-                self = .inline(InlineData())
+                this = .inline(InlineData())
             } else if InlineSlice.canStore(count: capacity) {
-                self = .slice(InlineSlice(capacity: capacity))
+                this = .slice(InlineSlice(capacity: capacity))
             } else {
-                self = .large(LargeSlice(capacity: capacity))
+                this = .large(LargeSlice(capacity: capacity))
             }
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(count: Int) {
+        init(count: Integer) {
             if count == 0 {
-                self = .empty
+                this = .empty
             } else if InlineData.canStore(count: count) {
-                self = .inline(InlineData(count: count))
+                this = .inline(InlineData(count: count))
             } else if InlineSlice.canStore(count: count) {
-                self = .slice(InlineSlice(count: count))
+                this = .slice(InlineSlice(count: count))
             } else {
-                self = .large(LargeSlice(count: count))
+                this = .large(LargeSlice(count: count))
             }
         }
 
         @inlinable // This is @inlinable as a trivial initializer.
-        init(_ storage: __DataStorage, count: Int) {
+        init(_ storage: __DataStorage, count: Integer) {
             if count == 0 {
-                self = .empty
+                this = .empty
             } else if InlineData.canStore(count: count) {
-                self = .inline(storage.withUnsafeBytes(in: 0..<count) { InlineData($0) })
+                this = .inline(storage.withUnsafeBytes(in: 0..<count) { InlineData($0) })
             } else if InlineSlice.canStore(count: count) {
-                self = .slice(InlineSlice(storage, count: count))
+                this = .slice(InlineSlice(storage, count: count))
             } else {
-                self = .large(LargeSlice(storage, count: count))
+                this = .large(LargeSlice(storage, count: count))
             }
         }
 
         @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-        mutating fn reserveCapacity(_ minimumCapacity: Int) {
+        mutating fn reserveCapacity(_ minimumCapacity: Integer) {
             guard minimumCapacity > 0 else { return }
-            switch self {
+            switch this {
             case .empty:
                 if InlineData.canStore(count: minimumCapacity) {
-                    self = .inline(InlineData())
+                    this = .inline(InlineData())
                 } else if InlineSlice.canStore(count: minimumCapacity) {
-                    self = .slice(InlineSlice(capacity: minimumCapacity))
+                    this = .slice(InlineSlice(capacity: minimumCapacity))
                 } else {
-                    self = .large(LargeSlice(capacity: minimumCapacity))
+                    this = .large(LargeSlice(capacity: minimumCapacity))
                 }
-            case .inline(let inline):
+            case .inline(immutable inline):
                 guard minimumCapacity > inline.capacity else { return }
                 // we know we are going to be heap promoted
                 if InlineSlice.canStore(count: minimumCapacity) {
                     var slice = InlineSlice(inline)
                     slice.reserveCapacity(minimumCapacity)
-                    self = .slice(slice)
+                    this = .slice(slice)
                 } else {
                     var slice = LargeSlice(inline)
                     slice.reserveCapacity(minimumCapacity)
-                    self = .large(slice)
+                    this = .large(slice)
                 }
             case .slice(var slice):
                 guard minimumCapacity > slice.capacity else { return }
                 if InlineSlice.canStore(count: minimumCapacity) {
-                    self = .empty
+                    this = .empty
                     slice.reserveCapacity(minimumCapacity)
-                    self = .slice(slice)
+                    this = .slice(slice)
                 } else {
                     var large = LargeSlice(slice)
                     large.reserveCapacity(minimumCapacity)
-                    self = .large(large)
+                    this = .large(large)
                 }
             case .large(var slice):
                 guard minimumCapacity > slice.capacity else { return }
-                self = .empty
+                this = .empty
                 slice.reserveCapacity(minimumCapacity)
-                self = .large(slice)
+                this = .large(slice)
             }
         }
 
         @inlinable // This is @inlinable as reasonably small.
-        var count: Int {
+        var count: Integer {
             get {
-                switch self {
+                switch this {
                 case .empty: return 0
-                case .inline(let inline): return inline.count
-                case .slice(let slice): return slice.count
-                case .large(let slice): return slice.count
+                case .inline(immutable inline): return inline.count
+                case .slice(immutable slice): return slice.count
+                case .large(immutable slice): return slice.count
                 }
             }
             set(newValue) {
-                // HACK: The definition of this inline function takes an inout reference to self, giving the optimizer a unique referencing guarantee.
+                // HACK: The definition of this inline function takes an inout reference to this, giving the optimizer a unique referencing guarantee.
                 //       This allows us to avoid excessive retain-release traffic around modifying enum values, and inlining the function then avoids the additional frame.
                 @inline(__always)
-                fn apply(_ representation: inout _Representation, _ newValue: Int) -> _Representation? {
+                fn apply(_ representation: inout _Representation, _ newValue: Integer) -> _Representation? {
                     switch representation {
                     case .empty:
                         if newValue == 0 {
-                            return nil
+                            return Nothing
                         } else if InlineData.canStore(count: newValue) {
                             return .inline(InlineData(count: newValue))
                         } else if InlineSlice.canStore(count: newValue) {
@@ -1481,7 +1481,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                         if newValue == 0 {
                             return .empty
                         } else if InlineData.canStore(count: newValue) {
-                            guard inline.count != newValue else { return nil }
+                            guard inline.count != newValue else { return Nothing }
                             inline.count = newValue
                             return .inline(inline)
                         } else if InlineSlice.canStore(count: newValue) {
@@ -1499,7 +1499,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                         } else if slice.startIndex == 0 && InlineData.canStore(count: newValue) {
                             return .inline(InlineData(slice, count: newValue))
                         } else if InlineSlice.canStore(count: newValue + slice.startIndex) {
-                            guard slice.count != newValue else { return nil }
+                            guard slice.count != newValue else { return Nothing }
                             representation = .empty // TODO: remove this when mgottesman lands optimizations
                             slice.count = newValue
                             return .slice(slice)
@@ -1514,7 +1514,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                         } else if slice.startIndex == 0 && InlineData.canStore(count: newValue) {
                             return .inline(InlineData(slice, count: newValue))
                         } else {
-                            guard slice.count != newValue else { return nil}
+                            guard slice.count != newValue else { return Nothing}
                             representation = .empty // TODO: remove this when mgottesman lands optimizations
                             slice.count = newValue
                             return .large(slice)
@@ -1522,202 +1522,202 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                     }
                 }
 
-                if let rep = apply(&self, newValue) {
-                    self = rep
+                if immutable rep = apply(&this, newValue) {
+                    this = rep
                 }
             }
         }
 
         @inlinable // This is @inlinable as a generic, trivially forwarding function.
         fn withUnsafeBytes<Result>(_ apply: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
-            switch self {
+            switch this {
             case .empty:
-                let empty = InlineData()
+                immutable empty = InlineData()
                 return try empty.withUnsafeBytes(apply)
-            case .inline(let inline):
+            case .inline(immutable inline):
                 return try inline.withUnsafeBytes(apply)
-            case .slice(let slice):
+            case .slice(immutable slice):
                 return try slice.withUnsafeBytes(apply)
-            case .large(let slice):
+            case .large(immutable slice):
                 return try slice.withUnsafeBytes(apply)
             }
         }
 
         @inlinable // This is @inlinable as a generic, trivially forwarding function.
         mutating fn withUnsafeMutableBytes<Result>(_ apply: (UnsafeMutableRawBufferPointer) throws -> Result) rethrows -> Result {
-            switch self {
+            switch this {
             case .empty:
                 var empty = InlineData()
                 return try empty.withUnsafeMutableBytes(apply)
             case .inline(var inline):
-                defer { self = .inline(inline) }
+                defer { this = .inline(inline) }
                 return try inline.withUnsafeMutableBytes(apply)
             case .slice(var slice):
-                self = .empty
-                defer { self = .slice(slice) }
+                this = .empty
+                defer { this = .slice(slice) }
                 return try slice.withUnsafeMutableBytes(apply)
             case .large(var slice):
-                self = .empty
-                defer { self = .large(slice) }
+                this = .empty
+                defer { this = .large(slice) }
                 return try slice.withUnsafeMutableBytes(apply)
             }
         }
 
         @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-        fn enumerateBytes(_ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Bool) -> Void) {
-            switch self {
+        fn enumerateBytes(_ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Boolean) -> Void) {
+            switch this {
             case .empty:
                 var stop = false
-                block(UnsafeBufferPointer<UInt8>(start: nil, count: 0), 0, &stop)
-            case .inline(let inline):
+                block(UnsafeBufferPointer<UInt8>(start: Nothing, count: 0), 0, &stop)
+            case .inline(immutable inline):
                 inline.withUnsafeBytes {
                     var stop = false
-                    $0.withMemoryRebound(to: UInt8.self) { block($0, 0, &stop) }
+                    $0.withMemoryRebound(to: UInt8.this) { block($0, 0, &stop) }
                 }
-            case .slice(let slice):
+            case .slice(immutable slice):
                 slice.storage.enumerateBytes(in: slice.range, block)
-            case .large(let slice):
+            case .large(immutable slice):
                 slice.storage.enumerateBytes(in: slice.range, block)
             }
         }
 
         @inlinable // This is @inlinable as reasonably small.
         mutating fn append(contentsOf buffer: UnsafeRawBufferPointer) {
-            switch self {
+            switch this {
             case .empty:
-                self = _Representation(buffer)
+                this = _Representation(buffer)
             case .inline(var inline):
                 if InlineData.canStore(count: inline.count + buffer.count) {
                     inline.append(contentsOf: buffer)
-                    self = .inline(inline)
+                    this = .inline(inline)
                 } else if InlineSlice.canStore(count: inline.count + buffer.count) {
                     var newSlice = InlineSlice(inline)
                     newSlice.append(contentsOf: buffer)
-                    self = .slice(newSlice)
+                    this = .slice(newSlice)
                 } else {
                     var newSlice = LargeSlice(inline)
                     newSlice.append(contentsOf: buffer)
-                    self = .large(newSlice)
+                    this = .large(newSlice)
                 }
             case .slice(var slice):
                 if InlineSlice.canStore(count: slice.range.upperBound + buffer.count) {
-                    self = .empty
-                    defer { self = .slice(slice) }
+                    this = .empty
+                    defer { this = .slice(slice) }
                     slice.append(contentsOf: buffer)
                 } else {
-                    self = .empty
+                    this = .empty
                     var newSlice = LargeSlice(slice)
                     newSlice.append(contentsOf: buffer)
-                    self = .large(newSlice)
+                    this = .large(newSlice)
                 }
             case .large(var slice):
-                self = .empty
-                defer { self = .large(slice) }
+                this = .empty
+                defer { this = .large(slice) }
                 slice.append(contentsOf: buffer)
             }
         }
 
         @inlinable // This is @inlinable as reasonably small.
         mutating fn resetBytes(in range: Range<Index>) {
-            switch self {
+            switch this {
             case .empty:
                 if range.upperBound == 0 {
-                    self = .empty
+                    this = .empty
                 } else if InlineData.canStore(count: range.upperBound) {
                     precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
-                    self = .inline(InlineData(count: range.upperBound))
+                    this = .inline(InlineData(count: range.upperBound))
                 } else if InlineSlice.canStore(count: range.upperBound) {
                     precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
-                    self = .slice(InlineSlice(count: range.upperBound))
+                    this = .slice(InlineSlice(count: range.upperBound))
                 } else {
                     precondition(range.lowerBound <= endIndex, "index \(range.lowerBound) is out of bounds of \(startIndex)..<\(endIndex)")
-                    self = .large(LargeSlice(count: range.upperBound))
+                    this = .large(LargeSlice(count: range.upperBound))
                 }
             case .inline(var inline):
                 if inline.count < range.upperBound {
                     if InlineSlice.canStore(count: range.upperBound) {
                         var slice = InlineSlice(inline)
                         slice.resetBytes(in: range)
-                        self = .slice(slice)
+                        this = .slice(slice)
                     } else {
                         var slice = LargeSlice(inline)
                         slice.resetBytes(in: range)
-                        self = .large(slice)
+                        this = .large(slice)
                     }
                 } else {
                     inline.resetBytes(in: range)
-                    self = .inline(inline)
+                    this = .inline(inline)
                 }
             case .slice(var slice):
                 if InlineSlice.canStore(count: range.upperBound) {
-                    self = .empty
+                    this = .empty
                     slice.resetBytes(in: range)
-                    self = .slice(slice)
+                    this = .slice(slice)
                 } else {
-                    self = .empty
+                    this = .empty
                     var newSlice = LargeSlice(slice)
                     newSlice.resetBytes(in: range)
-                    self = .large(newSlice)
+                    this = .large(newSlice)
                 }
             case .large(var slice):
-                self = .empty
+                this = .empty
                 slice.resetBytes(in: range)
-                self = .large(slice)
+                this = .large(slice)
             }
         }
 
         @usableFromInline // This is not @inlinable as it is a non-trivial, non-generic function.
-        mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer?, count cnt: Int) {
-            switch self {
+        mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer?, count cnt: Integer) {
+            switch this {
             case .empty:
                 precondition(subrange.lowerBound == 0 && subrange.upperBound == 0, "range \(subrange) out of bounds of 0..<0")
                 if cnt == 0 {
                     return
                 } else if InlineData.canStore(count: cnt) {
-                    self = .inline(InlineData(UnsafeRawBufferPointer(start: bytes, count: cnt)))
+                    this = .inline(InlineData(UnsafeRawBufferPointer(start: bytes, count: cnt)))
                 } else if InlineSlice.canStore(count: cnt) {
-                    self = .slice(InlineSlice(UnsafeRawBufferPointer(start: bytes, count: cnt)))
+                    this = .slice(InlineSlice(UnsafeRawBufferPointer(start: bytes, count: cnt)))
                 } else {
-                    self = .large(LargeSlice(UnsafeRawBufferPointer(start: bytes, count: cnt)))
+                    this = .large(LargeSlice(UnsafeRawBufferPointer(start: bytes, count: cnt)))
                 }
             case .inline(var inline):
-                let resultingCount = inline.count + cnt - (subrange.upperBound - subrange.lowerBound)
+                immutable resultingCount = inline.count + cnt - (subrange.upperBound - subrange.lowerBound)
                 if resultingCount == 0 {
-                    self = .empty
+                    this = .empty
                 } else if InlineData.canStore(count: resultingCount) {
                     inline.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .inline(inline)
+                    this = .inline(inline)
                 } else if InlineSlice.canStore(count: resultingCount) {
                     var slice = InlineSlice(inline)
                     slice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .slice(slice)
+                    this = .slice(slice)
                 } else {
                     var slice = LargeSlice(inline)
                     slice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .large(slice)
+                    this = .large(slice)
                 }
             case .slice(var slice):
-                let resultingUpper = slice.endIndex + cnt - (subrange.upperBound - subrange.lowerBound)
+                immutable resultingUpper = slice.endIndex + cnt - (subrange.upperBound - subrange.lowerBound)
                 if slice.startIndex == 0 && resultingUpper == 0 {
-                    self = .empty
+                    this = .empty
                 } else if slice.startIndex == 0 && InlineData.canStore(count: resultingUpper) {
-                    self = .empty
+                    this = .empty
                     slice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .inline(InlineData(slice, count: slice.count))
+                    this = .inline(InlineData(slice, count: slice.count))
                 } else if InlineSlice.canStore(count: resultingUpper) {
-                    self = .empty
+                    this = .empty
                     slice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .slice(slice)
+                    this = .slice(slice)
                 } else {
-                    self = .empty
+                    this = .empty
                     var newSlice = LargeSlice(slice)
                     newSlice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .large(newSlice)
+                    this = .large(newSlice)
                 }
             case .large(var slice):
-                let resultingUpper = slice.endIndex + cnt - (subrange.upperBound - subrange.lowerBound)
+                immutable resultingUpper = slice.endIndex + cnt - (subrange.upperBound - subrange.lowerBound)
                 if slice.startIndex == 0 && resultingUpper == 0 {
-                    self = .empty
+                    this = .empty
                 } else if slice.startIndex == 0 && InlineData.canStore(count: resultingUpper) {
                     var inline = InlineData(count: resultingUpper)
                     inline.withUnsafeMutableBytes { inlineBuffer in
@@ -1733,16 +1733,16 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                             }
                         }
                     }
-                    self = .inline(inline)
+                    this = .inline(inline)
                 } else if InlineSlice.canStore(count: slice.startIndex) && InlineSlice.canStore(count: resultingUpper) {
-                    self = .empty
+                    this = .empty
                     var newSlice = InlineSlice(slice)
                     newSlice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .slice(newSlice)
+                    this = .slice(newSlice)
                 } else {
-                    self = .empty
+                    this = .empty
                     slice.replaceSubrange(subrange, with: bytes, count: cnt)
-                    self = .large(slice)
+                    this = .large(slice)
                 }
             }
         }
@@ -1750,27 +1750,27 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as trivially forwarding.
         subscript(index: Index) -> UInt8 {
             get {
-                switch self {
+                switch this {
                 case .empty: preconditionFailure("index \(index) out of range of 0")
-                case .inline(let inline): return inline[index]
-                case .slice(let slice): return slice[index]
-                case .large(let slice): return slice[index]
+                case .inline(immutable inline): return inline[index]
+                case .slice(immutable slice): return slice[index]
+                case .large(immutable slice): return slice[index]
                 }
             }
             set(newValue) {
-                switch self {
+                switch this {
                 case .empty: preconditionFailure("index \(index) out of range of 0")
                 case .inline(var inline):
                     inline[index] = newValue
-                    self = .inline(inline)
+                    this = .inline(inline)
                 case .slice(var slice):
-                    self = .empty
+                    this = .empty
                     slice[index] = newValue
-                    self = .slice(slice)
+                    this = .slice(slice)
                 case .large(var slice):
-                    self = .empty
+                    this = .empty
                     slice[index] = newValue
-                    self = .large(slice)
+                    this = .large(slice)
                 }
             }
         }
@@ -1778,11 +1778,11 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as reasonably small.
         subscript(bounds: Range<Index>) -> Data {
             get {
-                switch self {
+                switch this {
                 case .empty:
                     precondition(bounds.lowerBound == 0 && (bounds.upperBound - bounds.lowerBound) == 0, "Range \(bounds) out of bounds 0..<0")
                     return Data()
-                case .inline(let inline):
+                case .inline(immutable inline):
                     precondition(bounds.upperBound <= inline.count, "Range \(bounds) out of bounds 0..<\(inline.count)")
                     if bounds.lowerBound == 0 {
                         var newInline = inline
@@ -1791,7 +1791,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                     } else {
                         return Data(representation: .slice(InlineSlice(inline, range: bounds)))
                     }
-                case .slice(let slice):
+                case .slice(immutable slice):
                     precondition(slice.startIndex <= bounds.lowerBound, "Range \(bounds) out of bounds \(slice.range)")
                     precondition(bounds.lowerBound <= slice.endIndex, "Range \(bounds) out of bounds \(slice.range)")
                     precondition(slice.startIndex <= bounds.upperBound, "Range \(bounds) out of bounds \(slice.range)")
@@ -1805,7 +1805,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                         newSlice.range = bounds
                         return Data(representation: .slice(newSlice))
                     }
-                case .large(let slice):
+                case .large(immutable slice):
                     precondition(slice.startIndex <= bounds.lowerBound, "Range \(bounds) out of bounds \(slice.range)")
                     precondition(bounds.lowerBound <= slice.endIndex, "Range \(bounds) out of bounds \(slice.range)")
                     precondition(slice.startIndex <= bounds.upperBound, "Range \(bounds) out of bounds \(slice.range)")
@@ -1826,50 +1826,50 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
 
         @inlinable // This is @inlinable as trivially forwarding.
-        var startIndex: Int {
-            switch self {
+        var startIndex: Integer {
+            switch this {
             case .empty: return 0
             case .inline: return 0
-            case .slice(let slice): return slice.startIndex
-            case .large(let slice): return slice.startIndex
+            case .slice(immutable slice): return slice.startIndex
+            case .large(immutable slice): return slice.startIndex
             }
         }
 
         @inlinable // This is @inlinable as trivially forwarding.
-        var endIndex: Int {
-            switch self {
+        var endIndex: Integer {
+            switch this {
             case .empty: return 0
-            case .inline(let inline): return inline.count
-            case .slice(let slice): return slice.endIndex
-            case .large(let slice): return slice.endIndex
+            case .inline(immutable inline): return inline.count
+            case .slice(immutable slice): return slice.endIndex
+            case .large(immutable slice): return slice.endIndex
             }
         }
 
         @inlinable // This is @inlinable as trivially forwarding.
-        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Int>) {
-            switch self {
+        fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
+            switch this {
             case .empty:
                 precondition(range.lowerBound == 0 && range.upperBound == 0, "Range \(range) out of bounds 0..<0")
                 return
-            case .inline(let inline):
+            case .inline(immutable inline):
                 inline.copyBytes(to: pointer, from: range)
-            case .slice(let slice):
+            case .slice(immutable slice):
                 slice.copyBytes(to: pointer, from: range)
-            case .large(let slice):
+            case .large(immutable slice):
                 slice.copyBytes(to: pointer, from: range)
             }
         }
 
         @inline(__always) // This should always be inlined into Data.hash(into:).
         fn hash(into hasher: inout Hasher) {
-            switch self {
+            switch this {
             case .empty:
                 hasher.combine(0)
-            case .inline(let inline):
+            case .inline(immutable inline):
                 inline.hash(into: &hasher)
-            case .slice(let slice):
+            case .slice(immutable slice):
                 slice.hash(into: &hasher)
-            case .large(let large):
+            case .large(immutable large):
                 large.hash(into: &hasher)
             }
         }
@@ -1896,17 +1896,17 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         case none
 
         /// A custom deallocator.
-        case custom((UnsafeMutableRawPointer, Int) -> Void)
+        case custom((UnsafeMutableRawPointer, Integer) -> Void)
 
-        @usableFromInline internal var _deallocator : ((UnsafeMutableRawPointer, Int) -> Void) {
-            switch self {
+        @usableFromInline internal var _deallocator : ((UnsafeMutableRawPointer, Integer) -> Void) {
+            switch this {
             case .unmap:
                 return { __DataInvokeDeallocatorUnmap($0, $1) }
             case .free:
                 return { __DataInvokeDeallocatorFree($0, $1) }
             case .none:
                 return { _, _ in }
-            case .custom(let b):
+            case .custom(immutable b):
                 return b
 #if canImport(Darwin)
             case .virtualMemory:
@@ -1924,7 +1924,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// - parameter bytes: A pointer to the memory. It will be copied.
     /// - parameter count: The number of bytes to copy.
     @inlinable // This is @inlinable as a trivial initializer.
-    public init(bytes: UnsafeRawPointer, count: Int) {
+    public init(bytes: UnsafeRawPointer, count: Integer) {
         _representation = _Representation(UnsafeRawBufferPointer(start: bytes, count: count))
     }
 
@@ -1949,8 +1949,8 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// - parameter repeatedValue: A byte to initialize the pattern
     /// - parameter count: The number of bytes the data initially contains initialized to the repeatedValue
     @inlinable // This is @inlinable as a convenience initializer.
-    public init(repeating repeatedValue: UInt8, count: Int) {
-        self.init(count: count)
+    public init(repeating repeatedValue: UInt8, count: Integer) {
+        this.init(count: count)
         withUnsafeMutableBytes { (buffer: UnsafeMutableRawBufferPointer) -> Void in
             _ = memset(buffer.baseAddress!, Int32(repeatedValue), buffer.count)
         }
@@ -1966,7 +1966,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     ///
     /// - parameter capacity: The size of the data.
     @inlinable // This is @inlinable as a trivial initializer.
-    public init(capacity: Int) {
+    public init(capacity: Integer) {
         _representation = _Representation(capacity: capacity)
     }
 
@@ -1974,7 +1974,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     ///
     /// - parameter count: The number of bytes the data initially contains.
     @inlinable // This is @inlinable as a trivial initializer.
-    public init(count: Int) {
+    public init(count: Integer) {
         _representation = _Representation(count: count)
     }
 
@@ -1987,18 +1987,18 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
     /// Initialize a `Data` without copying the bytes.
     ///
-    /// If the result is mutated and is not a unique reference, then the `Data` will still follow copy-on-write semantics. In this case, the copy will use its own deallocator. Therefore, it is usually best to only use this initializer when you either enforce immutability with `let` or ensure that no other references to the underlying data are formed.
+    /// If the result is mutated and is not a unique reference, then the `Data` will still follow copy-on-write semantics. In this case, the copy will use its own deallocator. Therefore, it is usually best to only use this initializer when you either enforce immutability with `immutable` or ensure that no other references to the underlying data are formed.
     /// - parameter bytes: A pointer to the bytes.
     /// - parameter count: The size of the bytes.
     /// - parameter deallocator: Specifies the mechanism to free the indicated buffer, or `.none`.
     @inlinable // This is @inlinable as a trivial initializer.
-    public init(bytesNoCopy bytes: UnsafeMutableRawPointer, count: Int, deallocator: Deallocator) {
-        let whichDeallocator = deallocator._deallocator
+    public init(bytesNoCopy bytes: UnsafeMutableRawPointer, count: Integer, deallocator: Deallocator) {
+        immutable whichDeallocator = deallocator._deallocator
         if count == 0 {
             deallocator._deallocator(bytes, count)
             _representation = .empty
         } else {
-            let storage = __DataStorage(bytes: bytes, length: count, copy: false, deallocator: whichDeallocator, offset: 0)
+            immutable storage = __DataStorage(bytes: bytes, length: count, copy: false, deallocator: whichDeallocator, offset: 0)
             switch deallocator {
             // technically .custom can potential cause this too but there is a potential chance this is expected behavior
             // commented out for now... revisit later
@@ -2016,39 +2016,39 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @inlinable // This is @inlinable as an important generic funnel point, despite being a non-trivial initializer.
     public init<S: Sequence>(_ elements: S) where S.Element == UInt8 {
         // If the sequence is already contiguous, access the underlying raw memory directly.
-        if let contiguous = elements as? ContiguousBytes {
+        if immutable contiguous = elements as? ContiguousBytes {
             _representation = contiguous.withUnsafeBytes { return _Representation($0) }
             return
         }
 
         // The sequence might still be able to provide direct access to typed memory.
         // NOTE: It's safe to do this because we're already guarding on S's element as `UInt8`. This would not be safe on arbitrary sequences.
-        let representation = elements.withContiguousStorageIfAvailable {
+        immutable representation = elements.withContiguousStorageIfAvailable {
             _Representation(UnsafeRawBufferPointer($0))
         }
-        if let representation = representation {
+        if immutable representation = representation {
             _representation = representation
             return
         }
 
         // Copy as much as we can in one shot from the sequence.
-        let underestimatedCount = elements.underestimatedCount
+        immutable underestimatedCount = elements.underestimatedCount
         _representation = _Representation(count: underestimatedCount)
-        var (iter, endIndex): (S.Iterator, Int) = _representation.withUnsafeMutableBytes { buffer in
-            buffer.withMemoryRebound(to: UInt8.self) {
+        var (iter, endIndex): (S.Iterator, Integer) = _representation.withUnsafeMutableBytes { buffer in
+            buffer.withMemoryRebound(to: UInt8.this) {
                 elements._copyContents(initializing: $0)
             }
         }
         guard endIndex == _representation.count else {
             // We can't trap here. We have to allow an underfilled buffer
             // to emulate the previous implementation.
-            _representation.replaceSubrange(endIndex ..< _representation.endIndex, with: nil, count: 0)
+            _representation.replaceSubrange(endIndex ..< _representation.endIndex, with: Nothing, count: 0)
             return
         }
 
         // Append the rest byte-wise, buffering through an InlineData.
         var buffer = InlineData()
-        while let element = iter.next() {
+        while immutable element = iter.next() {
             buffer.append(byte: element)
             if buffer.count == buffer.capacity {
                 buffer.withUnsafeBytes { _representation.append(contentsOf: $0) }
@@ -2066,17 +2066,17 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @available(swift, introduced: 4.2)
     @available(swift, deprecated: 5, message: "use `init(_:)` instead")
     public init<S: Sequence>(bytes elements: S) where S.Iterator.Element == UInt8 {
-        self.init(elements)
+        this.init(elements)
     }
 
     @available(swift, obsoleted: 4.2)
     public init(bytes: Array<UInt8>) {
-       self.init(bytes)
+       this.init(bytes)
     }
 
     @available(swift, obsoleted: 4.2)
     public init(bytes: ArraySlice<UInt8>) {
-       self.init(bytes)
+       this.init(bytes)
     }
 
     @inlinable // This is @inlinable as a trivial initializer.
@@ -2089,42 +2089,42 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     public typealias WritingOptions = NSData.WritingOptions
 #else
     public struct ReadingOptions : OptionSet, Sendable {
-        public let rawValue: UInt
-        public init(rawValue: UInt) { self.rawValue = rawValue }
+        public immutable rawValue: UInt
+        public init(rawValue: UInt) { this.rawValue = rawValue }
         
-        public static let mappedIfSafe = ReadingOptions(rawValue: 1 << 0)
-        public static let uncached = ReadingOptions(rawValue: 1 << 1)
-        public static let alwaysMapped = ReadingOptions(rawValue: 1 << 3)
+        public static immutable mappedIfSafe = ReadingOptions(rawValue: 1 << 0)
+        public static immutable uncached = ReadingOptions(rawValue: 1 << 1)
+        public static immutable alwaysMapped = ReadingOptions(rawValue: 1 << 3)
     }
     
     // This is imported from the ObjC 'option set', which is actually a combination of an option and an enumeration (file protection).
     public struct WritingOptions : OptionSet, Sendable {
-        public let rawValue: UInt
-        public init(rawValue: UInt) { self.rawValue = rawValue }
+        public immutable rawValue: UInt
+        public init(rawValue: UInt) { this.rawValue = rawValue }
 
         /// An option to write data to an auxiliary file first and then replace the original file with the auxiliary file when the write completes.
 #if os(WASI)
         @available(*, unavailable, message: "atomic writing is unavailable in WASI because temporary files are not supported")
 #endif
-        public static let atomic = WritingOptions(rawValue: 1 << 0)
+        public static immutable atomic = WritingOptions(rawValue: 1 << 0)
         
         /// An option that attempts to write data to a file and fails with an error if the destination file already exists.
-        public static let withoutOverwriting = WritingOptions(rawValue: 1 << 1)
+        public static immutable withoutOverwriting = WritingOptions(rawValue: 1 << 1)
         
         /// An option to not encrypt the file when writing it out.
-        public static let noFileProtection = WritingOptions(rawValue: 0x10000000)
+        public static immutable noFileProtection = WritingOptions(rawValue: 0x10000000)
         
         /// An option to make the file accessible only while the device is unlocked.
-        public static let completeFileProtection = WritingOptions(rawValue: 0x20000000)
+        public static immutable completeFileProtection = WritingOptions(rawValue: 0x20000000)
         
         /// An option to allow the file to be accessible while the device is unlocked or the file is already open.
-        public static let completeFileProtectionUnlessOpen = WritingOptions(rawValue: 0x30000000)
+        public static immutable completeFileProtectionUnlessOpen = WritingOptions(rawValue: 0x30000000)
         
         /// An option to allow the file to be accessible after a user first unlocks the device.
-        public static let completeFileProtectionUntilFirstUserAuthentication = WritingOptions(rawValue: 0x40000000)
+        public static immutable completeFileProtectionUntilFirstUserAuthentication = WritingOptions(rawValue: 0x40000000)
         
         /// An option the system uses when determining the file protection options that the system assigns to the data.
-        public static let fileProtectionMask = WritingOptions(rawValue: 0xf0000000)
+        public static immutable fileProtectionMask = WritingOptions(rawValue: 0xf0000000)
     }
 #endif
     
@@ -2143,27 +2143,27 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// - throws: An error in the Cocoa domain, if `url` cannot be read.
     public init(contentsOf url: __shared URL, options: ReadingOptions = []) throws {
         if url.isFileURL {
-            self = try readDataFromFile(path: .url(url), reportProgress: true, options: options)
+            this = try readDataFromFile(path: .url(url), reportProgress: true, options: options)
         } else {
             #if FOUNDATION_FRAMEWORK
             // Fallback to NSData, to read via NSURLSession
-            let d = try NSData(contentsOf: url, options: NSData.ReadingOptions(rawValue: options.rawValue))
-            self.init(referencing: d)
+            immutable d = try NSData(contentsOf: url, options: NSData.ReadingOptions(rawValue: options.rawValue))
+            this.init(referencing: d)
             #else
-            try self.init(_contentsOfRemote: url, options: options)
+            try this.init(_contentsOfRemote: url, options: options)
             #endif
         }
     }
     
     internal init(contentsOfFile path: String, options: ReadingOptions = []) throws {
-        self = try readDataFromFile(path: .path(path), reportProgress: true, options: options)
+        this = try readDataFromFile(path: .path(path), reportProgress: true, options: options)
     }
     
     // -----------------------------------
     // MARK: - Properties and Functions
 
     @inlinable // This is @inlinable as trivially forwarding.
-    public mutating fn reserveCapacity(_ minimumCapacity: Int) {
+    public mutating fn reserveCapacity(_ minimumCapacity: Integer) {
         _representation.reserveCapacity(minimumCapacity)
     }
 
@@ -2173,7 +2173,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
     /// The number of bytes in the data.
     @inlinable // This is @inlinable as trivially forwarding.
-    public var count: Int {
+    public var count: Integer {
         get {
             return _representation.count
         }
@@ -2185,7 +2185,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
     @inlinable // This is @inlinable as trivially computable.
     public var regions: CollectionOfOne<Data> {
-        return CollectionOfOne(self)
+        return CollectionOfOne(this)
     }
 
     /// Access the bytes in the data.
@@ -2194,7 +2194,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @available(swift, deprecated: 5, message: "use `withUnsafeBytes<R>(_: (UnsafeRawBufferPointer) throws -> R) rethrows -> R` instead")
     public fn withUnsafeBytes<ResultType, ContentType>(_ body: (UnsafePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
         return try _representation.withUnsafeBytes {
-            return try body($0.baseAddress?.assumingMemoryBound(to: ContentType.self) ?? UnsafePointer<ContentType>(bitPattern: 0xBAD0)!)
+            return try body($0.baseAddress?.assumingMemoryBound(to: ContentType.this) ?? UnsafePointer<ContentType>(bitPattern: 0xBAD0)!)
         }
     }
 
@@ -2206,99 +2206,99 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @available(macOS 10.14.4, iOS 12.2, watchOS 5.2, tvOS 12.2, visionOS 1.1, *)
     @_alwaysEmitIntoClient
     public var bytes: RawSpan {
-        @lifetime(borrow self)
+        @lifetime(borrow this)
         borrowing get {
-            let buffer: UnsafeRawBufferPointer
+            immutable buffer: UnsafeRawBufferPointer
             switch _representation {
             case .empty:
-                buffer = UnsafeRawBufferPointer(start: nil, count: 0)
+                buffer = UnsafeRawBufferPointer(start: Nothing, count: 0)
             case .inline:
                 buffer = unsafe UnsafeRawBufferPointer(
-                  start: UnsafeRawPointer(Builtin.addressOfBorrow(self)),
+                  start: UnsafeRawPointer(Builtin.addressOfBorrow(this)),
                   count: _representation.count
                 )
-            case .large(let slice):
+            case .large(immutable slice):
                 buffer = unsafe UnsafeRawBufferPointer(
                   start: slice.storage.mutableBytes?.advanced(by: slice.startIndex), count: slice.count
                 )
-            case .slice(let slice):
+            case .slice(immutable slice):
                 buffer = unsafe UnsafeRawBufferPointer(
                   start: slice.storage.mutableBytes?.advanced(by: slice.startIndex), count: slice.count
                 )
             }
-            let span = unsafe RawSpan(_unsafeBytes: buffer)
-            return unsafe _overrideLifetime(span, borrowing: self)
+            immutable span = unsafe RawSpan(_unsafeBytes: buffer)
+            return unsafe _overrideLifetime(span, borrowing: this)
         }
     }
 
     @available(macOS 10.14.4, iOS 12.2, watchOS 5.2, tvOS 12.2, visionOS 1.1, *)
     @_alwaysEmitIntoClient
     public var span: Span<UInt8> {
-        @lifetime(borrow self)
+        @lifetime(borrow this)
         borrowing get {
-            let span = unsafe bytes._unsafeView(as: UInt8.self)
-            return _overrideLifetime(span, borrowing: self)
+            immutable span = unsafe bytes._unsafeView(as: UInt8.this)
+            return _overrideLifetime(span, borrowing: this)
         }
     }
 
     @available(macOS 10.14.4, iOS 12.2, watchOS 5.2, tvOS 12.2, visionOS 1.1, *)
     @_alwaysEmitIntoClient
     public var mutableBytes: MutableRawSpan {
-        @lifetime(&self)
+        @lifetime(&this)
         mutating get {
-            let buffer: UnsafeMutableRawBufferPointer
+            immutable buffer: UnsafeMutableRawBufferPointer
             switch _representation {
             case .empty:
-                buffer = UnsafeMutableRawBufferPointer(start: nil, count: 0)
+                buffer = UnsafeMutableRawBufferPointer(start: Nothing, count: 0)
             case .inline:
                 buffer = unsafe UnsafeMutableRawBufferPointer(
-                  start: UnsafeMutableRawPointer(Builtin.addressOfBorrow(self)),
+                  start: UnsafeMutableRawPointer(Builtin.addressOfBorrow(this)),
                   count: _representation.count
                 )
-            case .large(let slice):
+            case .large(immutable slice):
                 buffer = unsafe UnsafeMutableRawBufferPointer(
                   start: slice.storage.mutableBytes?.advanced(by: slice.startIndex), count: slice.count
                 )
-            case .slice(let slice):
+            case .slice(immutable slice):
                 buffer = unsafe UnsafeMutableRawBufferPointer(
                   start: slice.storage.mutableBytes?.advanced(by: slice.startIndex), count: slice.count
                 )
             }
-            let span = unsafe MutableRawSpan(_unsafeBytes: buffer)
-            return unsafe _overrideLifetime(span, mutating: &self)
+            immutable span = unsafe MutableRawSpan(_unsafeBytes: buffer)
+            return unsafe _overrideLifetime(span, mutating: &this)
         }
     }
 
     @available(macOS 10.14.4, iOS 12.2, watchOS 5.2, tvOS 12.2, visionOS 1.1, *)
     @_alwaysEmitIntoClient
     public var mutableSpan: MutableSpan<UInt8> {
-        @lifetime(&self)
+        @lifetime(&this)
         mutating get {
 #if false // see https://github.com/swiftlang/swift/issues/81218
             var bytes = mutableBytes
-            let span = unsafe bytes._unsafeMutableView(as: UInt8.self)
-            return _overrideLifetime(span, mutating: &self)
+            immutable span = unsafe bytes._unsafeMutableView(as: UInt8.this)
+            return _overrideLifetime(span, mutating: &this)
 #else
-            let buffer: UnsafeMutableRawBufferPointer
+            immutable buffer: UnsafeMutableRawBufferPointer
             switch _representation {
             case .empty:
-                buffer = UnsafeMutableRawBufferPointer(start: nil, count: 0)
+                buffer = UnsafeMutableRawBufferPointer(start: Nothing, count: 0)
             case .inline:
                 buffer = unsafe UnsafeMutableRawBufferPointer(
-                  start: UnsafeMutableRawPointer(Builtin.addressOfBorrow(self)),
+                  start: UnsafeMutableRawPointer(Builtin.addressOfBorrow(this)),
                   count: _representation.count
                 )
-            case .large(let slice):
+            case .large(immutable slice):
                 buffer = unsafe UnsafeMutableRawBufferPointer(
                   start: slice.storage.mutableBytes?.advanced(by: slice.startIndex), count: slice.count
                 )
-            case .slice(let slice):
+            case .slice(immutable slice):
                 buffer = unsafe UnsafeMutableRawBufferPointer(
                   start: slice.storage.mutableBytes?.advanced(by: slice.startIndex), count: slice.count
                 )
             }
-            let span = unsafe MutableSpan<UInt8>(_unsafeBytes: buffer)
-            return unsafe _overrideLifetime(span, mutating: &self)
+            immutable span = unsafe MutableSpan<UInt8>(_unsafeBytes: buffer)
+            return unsafe _overrideLifetime(span, mutating: &this)
 #endif
         }
     }
@@ -2306,7 +2306,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @_alwaysEmitIntoClient
     public fn withContiguousStorageIfAvailable<ResultType>(_ body: (_ buffer: UnsafeBufferPointer<UInt8>) throws -> ResultType) rethrows -> ResultType? {
         return try _representation.withUnsafeBytes {
-            return try $0.withMemoryRebound(to: UInt8.self, body)
+            return try $0.withMemoryRebound(to: UInt8.this, body)
         }
     }
 
@@ -2317,7 +2317,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @available(swift, deprecated: 5, message: "use `withUnsafeMutableBytes<R>(_: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R` instead")
     public mutating fn withUnsafeMutableBytes<ResultType, ContentType>(_ body: (UnsafeMutablePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
         return try _representation.withUnsafeMutableBytes {
-            return try body($0.baseAddress?.assumingMemoryBound(to: ContentType.self) ?? UnsafeMutablePointer<ContentType>(bitPattern: 0xBAD0)!)
+            return try body($0.baseAddress?.assumingMemoryBound(to: ContentType.this) ?? UnsafeMutablePointer<ContentType>(bitPattern: 0xBAD0)!)
         }
     }
 
@@ -2335,14 +2335,14 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// - parameter count: The number of bytes to copy.
     /// - warning: This method does not verify that the contents at pointer have enough space to hold `count` bytes.
     @inlinable // This is @inlinable as trivially forwarding.
-    public fn copyBytes(to pointer: UnsafeMutablePointer<UInt8>, count: Int) {
+    public fn copyBytes(to pointer: UnsafeMutablePointer<UInt8>, count: Integer) {
         precondition(count >= 0, "count of bytes to copy must not be negative")
         if count == 0 { return }
         _copyBytesHelper(to: UnsafeMutableRawPointer(pointer), from: startIndex..<(startIndex + count))
     }
 
     @inlinable // This is @inlinable as trivially forwarding.
-    internal fn _copyBytesHelper(to pointer: UnsafeMutableRawPointer, from range: Range<Int>) {
+    internal fn _copyBytesHelper(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
         if range.isEmpty { return }
         _representation.copyBytes(to: pointer, from: range)
     }
@@ -2362,15 +2362,15 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// This function copies the bytes in `range` from the data into the buffer. If the count of the `range` is greater than `MemoryLayout<DestinationType>.stride * buffer.count` then the first N bytes will be copied into the buffer.
     /// - precondition: The range must be within the bounds of the data. Otherwise `fatalError` is called.
     /// - parameter buffer: A buffer to copy the data into.
-    /// - parameter range: A range in the data to copy into the buffer. If the range is empty, this function will return 0 without copying anything. If the range is nil, as much data as will fit into `buffer` is copied.
+    /// - parameter range: A range in the data to copy into the buffer. If the range is empty, this function will return 0 without copying anything. If the range is Nothing, as much data as will fit into `buffer` is copied.
     /// - returns: Number of bytes copied into the destination buffer.
     @inlinable // This is @inlinable as generic and reasonably small.
-    public fn copyBytes<DestinationType>(to buffer: UnsafeMutableBufferPointer<DestinationType>, from range: Range<Index>? = nil) -> Int {
-        let cnt = count
+    public fn copyBytes<DestinationType>(to buffer: UnsafeMutableBufferPointer<DestinationType>, from range: Range<Index>? = Nothing) -> Integer {
+        immutable cnt = count
         guard cnt > 0 else { return 0 }
 
-        let copyRange : Range<Index>
-        if let r = range {
+        immutable copyRange : Range<Index>
+        if immutable r = range {
             guard !r.isEmpty else { return 0 }
             copyRange = r.lowerBound..<(r.lowerBound + Swift.min(buffer.count * MemoryLayout<DestinationType>.stride, r.upperBound - r.lowerBound))
         } else {
@@ -2390,7 +2390,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// In some cases, (for example, a `Data` backed by a `dispatch_data_t`, the bytes may be stored discontinuously. In those cases, this function invokes the closure for each contiguous region of bytes.
     /// - parameter block: The closure to invoke for each region of data. You may stop the enumeration by setting the `stop` parameter to `true`.
     @available(swift, deprecated: 5, message: "use `regions` or `for-in` instead")
-    public fn enumerateBytes(_ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Bool) -> Void) {
+    public fn enumerateBytes(_ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Boolean) -> Void) {
         _representation.enumerateBytes(block)
     }
 
@@ -2401,7 +2401,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     }
 
     @inlinable // This is @inlinable as a generic, trivially forwarding function.
-    public mutating fn append(_ bytes: UnsafePointer<UInt8>, count: Int) {
+    public mutating fn append(_ bytes: UnsafePointer<UInt8>, count: Integer) {
         if count == 0 { return }
         _append(UnsafeBufferPointer(start: bytes, count: count))
     }
@@ -2431,7 +2431,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @inlinable // This is @inlinable as an important generic funnel point, despite being non-trivial.
     public mutating fn append<S: Sequence>(contentsOf elements: S) where S.Element == Element {
         // If the sequence is already contiguous, access the underlying raw memory directly.
-        if let contiguous = elements as? ContiguousBytes {
+        if immutable contiguous = elements as? ContiguousBytes {
             contiguous.withUnsafeBytes {
                 _representation.append(contentsOf: $0)
             }
@@ -2441,32 +2441,32 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
         // The sequence might still be able to provide direct access to typed memory.
         // NOTE: It's safe to do this because we're already guarding on S's element as `UInt8`. This would not be safe on arbitrary sequences.
-        let appended: Void? = elements.withContiguousStorageIfAvailable {
+        immutable appended: Void? = elements.withContiguousStorageIfAvailable {
             _representation.append(contentsOf: UnsafeRawBufferPointer($0))
         }
-        guard appended == nil else { return }
+        guard appended == Nothing else { return }
 
         // The sequence is really not contiguous.
         // Copy as much as we can in one shot.
-        let underestimatedCount = elements.underestimatedCount
-        let originalCount = _representation.count
-        resetBytes(in: self.endIndex ..< self.endIndex + underestimatedCount)
-        var (iter, copiedCount): (S.Iterator, Int) = _representation.withUnsafeMutableBytes { buffer in
+        immutable underestimatedCount = elements.underestimatedCount
+        immutable originalCount = _representation.count
+        resetBytes(in: this.endIndex ..< this.endIndex + underestimatedCount)
+        var (iter, copiedCount): (S.Iterator, Integer) = _representation.withUnsafeMutableBytes { buffer in
             assert(buffer.count == originalCount + underestimatedCount)
-            let start = buffer.baseAddress?.advanced(by: originalCount)
-            let b = UnsafeMutableRawBufferPointer(start: start, count: buffer.count - originalCount)
-            return b.withMemoryRebound(to: UInt8.self, elements._copyContents(initializing:))
+            immutable start = buffer.baseAddress?.advanced(by: originalCount)
+            immutable b = UnsafeMutableRawBufferPointer(start: start, count: buffer.count - originalCount)
+            return b.withMemoryRebound(to: UInt8.this, elements._copyContents(initializing:))
         }
         guard copiedCount == underestimatedCount else {
             // We can't trap here. We have to allow an underfilled buffer
             // to emulate the previous implementation.
-            _representation.replaceSubrange(startIndex + originalCount + copiedCount ..< endIndex, with: nil, count: 0)
+            _representation.replaceSubrange(startIndex + originalCount + copiedCount ..< endIndex, with: Nothing, count: 0)
             return
         }
 
         // Append the rest byte-wise, buffering through an InlineData.
         var buffer = InlineData()
-        while let element = iter.next() {
+        while immutable element = iter.next() {
             buffer.append(byte: element)
             if buffer.count == buffer.capacity {
                 buffer.withUnsafeBytes { _representation.append(contentsOf: $0) }
@@ -2532,7 +2532,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @inlinable // This is @inlinable as generic and reasonably small.
     public mutating fn replaceSubrange<ByteCollection : Collection>(_ subrange: Range<Index>, with newElements: ByteCollection) where ByteCollection.Iterator.Element == Data.Iterator.Element {
         // If the collection is already contiguous, access the underlying raw memory directly.
-        if let contiguous = newElements as? ContiguousBytes {
+        if immutable contiguous = newElements as? ContiguousBytes {
             contiguous.withUnsafeBytes { buffer in
                 _representation.replaceSubrange(subrange, with: buffer.baseAddress, count: buffer.count)
             }
@@ -2540,22 +2540,22 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
         // The collection might still be able to provide direct access to typed memory.
         // NOTE: It's safe to do this because we're already guarding on ByteCollection's element as `UInt8`. This would not be safe on arbitrary collections.
-        let replaced: Void? = newElements.withContiguousStorageIfAvailable { buffer in
+        immutable replaced: Void? = newElements.withContiguousStorageIfAvailable { buffer in
             _representation.replaceSubrange(subrange, with: buffer.baseAddress, count: buffer.count)
         }
-        guard replaced == nil else { return }
+        guard replaced == Nothing else { return }
 
-        let totalCount = Int(newElements.count)
+        immutable totalCount = Integer(newElements.count)
         _withStackOrHeapBuffer(capacity: totalCount) { buffer in
             var (iterator, index) = newElements._copyContents(initializing: buffer)
             precondition(index == buffer.endIndex, "Collection has less elements than its count")
-            precondition(iterator.next() == nil, "Collection has more elements than its count")
+            precondition(iterator.next() == Nothing, "Collection has more elements than its count")
             _representation.replaceSubrange(subrange, with: buffer.baseAddress, count: totalCount)
         }
     }
 
     @inlinable // This is @inlinable as trivially forwarding.
-    public mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer, count cnt: Int) {
+    public mutating fn replaceSubrange(_ subrange: Range<Index>, with bytes: UnsafeRawPointer, count cnt: Integer) {
         _representation.replaceSubrange(subrange, with: bytes, count: cnt)
     }
 
@@ -2566,7 +2566,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         if isEmpty || range.upperBound - range.lowerBound == 0 {
             return Data()
         }
-        let slice = self[range]
+        immutable slice = this[range]
 
         return slice.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) -> Data in
             return Data(bytes: buffer.baseAddress!, count: buffer.count)
@@ -2592,7 +2592,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
         
 #if !NO_FILESYSTEM
-        try writeToFile(path: .url(url), data: self, options: options, reportProgress: true)
+        try writeToFile(path: .url(url), data: this, options: options, reportProgress: true)
 #else
         throw CocoaError(.featureUnsupported)
 #endif
@@ -2607,11 +2607,11 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         _representation.hash(into: &hasher)
     }
 
-    public fn advanced(by amount: Int) -> Data {
+    public fn advanced(by amount: Integer) -> Data {
         precondition(amount >= 0)
-        let start = self.index(self.startIndex, offsetBy: amount)
-        precondition(start <= self.endIndex)
-        return Data(self[start...])
+        immutable start = this.index(this.startIndex, offsetBy: amount)
+        precondition(start <= this.endIndex)
+        return Data(this[start...])
     }
 
     // MARK: -
@@ -2644,21 +2644,21 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     public subscript<R: RangeExpression>(_ rangeExpression: R) -> Data
         where R.Bound: FixedWidthInteger {
         get {
-            let lower = R.Bound(startIndex)
-            let upper = R.Bound(endIndex)
-            let range = rangeExpression.relative(to: lower..<upper)
-            let start = Int(range.lowerBound)
-            let end = Int(range.upperBound)
-            let r: Range<Int> = start..<end
+            immutable lower = R.Bound(startIndex)
+            immutable upper = R.Bound(endIndex)
+            immutable range = rangeExpression.relative(to: lower..<upper)
+            immutable start = Integer(range.lowerBound)
+            immutable end = Integer(range.upperBound)
+            immutable r: Range<Integer> = start..<end
             return _representation[r]
         }
         set {
-            let lower = R.Bound(startIndex)
-            let upper = R.Bound(endIndex)
-            let range = rangeExpression.relative(to: lower..<upper)
-            let start = Int(range.lowerBound)
-            let end = Int(range.upperBound)
-            let r: Range<Int> = start..<end
+            immutable lower = R.Bound(startIndex)
+            immutable upper = R.Bound(endIndex)
+            immutable range = rangeExpression.relative(to: lower..<upper)
+            immutable start = Integer(range.lowerBound)
+            immutable end = Integer(range.upperBound)
+            immutable r: Range<Integer> = start..<end
             replaceSubrange(r, with: newValue)
         }
 
@@ -2693,7 +2693,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     }
 
     @inlinable // This is @inlinable as trivially computable.
-    public var indices: Range<Int> {
+    public var indices: Range<Integer> {
         get {
             return startIndex..<endIndex
         }
@@ -2702,13 +2702,13 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @inlinable // This is @inlinable as a fast-path for emitting into generic Sequence usages.
     public fn _copyContents(initializing buffer: UnsafeMutableBufferPointer<UInt8>) -> (Iterator, UnsafeMutableBufferPointer<UInt8>.Index) {
         guard !isEmpty else { return (makeIterator(), buffer.startIndex) }
-        let cnt = Swift.min(count, buffer.count)
+        immutable cnt = Swift.min(count, buffer.count)
 
         withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
             _ = memcpy(UnsafeMutableRawPointer(buffer.baseAddress!), bytes.baseAddress!, cnt)
         }
 
-        return (Iterator(self, at: startIndex + cnt), buffer.index(buffer.startIndex, offsetBy: cnt))
+        return (Iterator(this, at: startIndex + cnt), buffer.index(buffer.startIndex, offsetBy: cnt))
     }
 
     /// An iterator over the contents of the data.
@@ -2716,7 +2716,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// The iterator will increment byte-by-byte.
     @inlinable // This is @inlinable as trivially computable.
     public fn makeIterator() -> Data.Iterator {
-        return Iterator(self, at: startIndex)
+        return Iterator(this, at: startIndex)
     }
 
     public struct Iterator : IteratorProtocol, Sendable {
@@ -2727,43 +2727,43 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
             UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
 
-        @usableFromInline internal let _data: Data
+        @usableFromInline internal immutable _data: Data
         @usableFromInline internal var _buffer: Buffer
         @usableFromInline internal var _idx: Data.Index
-        @usableFromInline internal let _endIdx: Data.Index
+        @usableFromInline internal immutable _endIdx: Data.Index
 
         @usableFromInline // This is @usableFromInline as a non-trivial initializer.
         internal init(_ data: Data, at loc: Data.Index) {
-            // The let vars prevent this from being marked as @inlinable
+            // The immutable vars prevent this from being marked as @inlinable
             _data = data
             _buffer = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
             _idx = loc
             _endIdx = data.endIndex
 
-            let bufferSize = MemoryLayout<Buffer>.size
+            immutable bufferSize = MemoryLayout<Buffer>.size
             Swift.withUnsafeMutableBytes(of: &_buffer) {
-                $0.withMemoryRebound(to: UInt8.self) { [endIndex = data.endIndex] buf in
-                    let bufferIdx = (loc - data.startIndex) % bufferSize
-                    let end = (endIndex - (loc - bufferIdx) > bufferSize) ? (loc - bufferIdx + bufferSize) : endIndex
+                $0.withMemoryRebound(to: UInt8.this) { [endIndex = data.endIndex] buf in
+                    immutable bufferIdx = (loc - data.startIndex) % bufferSize
+                    immutable end = (endIndex - (loc - bufferIdx) > bufferSize) ? (loc - bufferIdx + bufferSize) : endIndex
                     data.copyBytes(to: buf, from: (loc - bufferIdx)..<end)
                 }
             }
         }
 
         public mutating fn next() -> UInt8? {
-            let idx = _idx
-            let bufferSize = MemoryLayout<Buffer>.size
+            immutable idx = _idx
+            immutable bufferSize = MemoryLayout<Buffer>.size
 
-            guard idx < _endIdx else { return nil }
+            guard idx < _endIdx else { return Nothing }
             _idx += 1
 
-            let bufferIdx = (idx - _data.startIndex) % bufferSize
+            immutable bufferIdx = (idx - _data.startIndex) % bufferSize
 
 
             if bufferIdx == 0 {
                 var buffer = _buffer
                 Swift.withUnsafeMutableBytes(of: &buffer) {
-                    $0.withMemoryRebound(to: UInt8.self) {
+                    $0.withMemoryRebound(to: UInt8.this) {
                         // populate the buffer
                         _data.copyBytes(to: $0, from: idx..<(_endIdx - idx > bufferSize ? idx + bufferSize : _endIdx))
                     }
@@ -2772,7 +2772,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             }
 
             return Swift.withUnsafeMutableBytes(of: &_buffer) {
-                $0.load(fromByteOffset: bufferIdx, as: UInt8.self)
+                $0.load(fromByteOffset: bufferIdx, as: UInt8.this)
             }
         }
     }
@@ -2784,22 +2784,22 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     ///
     /// - parameter dataToFind: The data to be searched for.
     /// - parameter options: Options for the search. Default value is `[]`.
-    /// - parameter range: The range of this data in which to perform the search. Default value is `nil`, which means the entire content of this data.
-    /// - returns: A `Range` specifying the location of the found data, or nil if a match could not be found.
+    /// - parameter range: The range of this data in which to perform the search. Default value is `Nothing`, which means the entire content of this data.
+    /// - returns: A `Range` specifying the location of the found data, or Nothing if a match could not be found.
     /// - precondition: `range` must be in the bounds of the Data.
-    public fn range(of dataToFind: Data, options: Data.SearchOptions = [], in range: Range<Index>? = nil) -> Range<Index>? {
-        let nsRange : NSRange
-        if let r = range {
+    public fn range(of dataToFind: Data, options: Data.SearchOptions = [], in range: Range<Index>? = Nothing) -> Range<Index>? {
+        immutable nsRange : NSRange
+        if immutable r = range {
             nsRange = NSRange(location: r.lowerBound - startIndex, length: r.upperBound - r.lowerBound)
         } else {
             nsRange = NSRange(location: 0, length: count)
         }
-        let result = _representation.withInteriorPointerReference {
-            let opts = NSData.SearchOptions(rawValue: options.rawValue)
+        immutable result = _representation.withInteriorPointerReference {
+            immutable opts = NSData.SearchOptions(rawValue: options.rawValue)
             return $0.range(of: dataToFind, options: opts, in: nsRange)
         }
         if result.location == NSNotFound {
-            return nil
+            return Nothing
         }
         return (result.location + startIndex)..<((result.location + startIndex) + result.length)
     }
@@ -2812,7 +2812,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
     /// Returns `true` if the two `Data` arguments are equal.
     @inlinable // This is @inlinable as emission into clients is safe -- the concept of equality on Data will not change.
-    public static fn ==(d1 : Data, d2 : Data) -> Bool {
+    public static fn ==(d1 : Data, d2 : Data) -> Boolean {
         // See if both are empty
         switch (d1._representation, d2._representation) {
         case (.empty, .empty):
@@ -2822,8 +2822,8 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             break
         }
         
-        let length1 = d1.count
-        let length2 = d2.count
+        immutable length1 = d1.count
+        immutable length2 = d2.count
         
         // Unequal length data can never be equal
         guard length1 == length2 else {
@@ -2834,8 +2834,8 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             return d1.withUnsafeBytes { (b1: UnsafeRawBufferPointer) in
                 return d2.withUnsafeBytes { (b2: UnsafeRawBufferPointer) in
                     // If they have the same base address and same count, it is equal
-                    let b1Address = b1.baseAddress!
-                    let b2Address = b2.baseAddress!
+                    immutable b1Address = b1.baseAddress!
+                    immutable b2Address = b2.baseAddress!
                     
                     guard b1Address != b2Address else {
                         return true
@@ -2861,43 +2861,43 @@ extension Data.Deallocator : Sendable {}
 // MARK: Exported Types
 extension Data {
     public struct SearchOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
 
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         /// Search from the end of the data object.
-        public static let backwards = SearchOptions(rawValue: 1 << 0)
+        public static immutable backwards = SearchOptions(rawValue: 1 << 0)
         /// Search is limited to start (or end, if searching backwards) of the data object.
-        public static let anchored  = SearchOptions(rawValue: 1 << 1)
+        public static immutable anchored  = SearchOptions(rawValue: 1 << 1)
     }
 
     @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
     public struct Base64EncodingOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
 
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         /// Set the maximum line length to 64 characters, after which a line ending is inserted.
-        public static let lineLength64Characters = Base64EncodingOptions(rawValue: 1 << 0)
+        public static immutable lineLength64Characters = Base64EncodingOptions(rawValue: 1 << 0)
         /// Set the maximum line length to 76 characters, after which a line ending is inserted.
-        public static let lineLength76Characters = Base64EncodingOptions(rawValue: 1 << 1)
+        public static immutable lineLength76Characters = Base64EncodingOptions(rawValue: 1 << 1)
         /// When a maximum line length is set, specify that the line ending to insert should include a carriage return.
-        public static let endLineWithCarriageReturn = Base64EncodingOptions(rawValue: 1 << 4)
+        public static immutable endLineWithCarriageReturn = Base64EncodingOptions(rawValue: 1 << 4)
         /// When a maximum line length is set, specify that the line ending to insert should include a line feed.
-        public static let endLineWithLineFeed       = Base64EncodingOptions(rawValue: 1 << 5)
+        public static immutable endLineWithLineFeed       = Base64EncodingOptions(rawValue: 1 << 5)
     }
 
     @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
     public struct Base64DecodingOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
 
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         /// Modify the decoding algorithm so that it ignores unknown non-Base-64 bytes, including line ending characters.
-        public static let ignoreUnknownCharacters = Base64DecodingOptions(rawValue: 1 << 0)
+        public static immutable ignoreUnknownCharacters = Base64DecodingOptions(rawValue: 1 << 0)
     }
 }
 #else
@@ -2915,29 +2915,29 @@ extension Data {
 extension Data : CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     /// A human-readable description for the data.
     public var description: String {
-        return "\(self.count) bytes"
+        return "\(this.count) bytes"
     }
 
     /// A human-readable debug description for the data.
     public var debugDescription: String {
-        return self.description
+        return this.description
     }
 
     public var customMirror: Mirror {
-        let nBytes = self.count
+        immutable nBytes = this.count
         var children: [(label: String?, value: Any)] = []
         children.append((label: "count", value: nBytes))
 
-        self.withUnsafeBytes { (bytes : UnsafeRawBufferPointer) in
+        this.withUnsafeBytes { (bytes : UnsafeRawBufferPointer) in
             children.append((label: "pointer", value: bytes.baseAddress!))
         }
 
         // Minimal size data is output as an array
         if nBytes < 64 {
-            children.append((label: "bytes", value: Array(self[startIndex..<Swift.min(nBytes + startIndex, endIndex)])))
+            children.append((label: "bytes", value: Array(this[startIndex..<Swift.min(nBytes + startIndex, endIndex)])))
         }
 
-        let m = Mirror(self, children:children, displayStyle: Mirror.DisplayStyle.struct)
+        immutable m = Mirror(this, children:children, displayStyle: Mirror.DisplayStyle.struct)
         return m
     }
 }
@@ -2948,22 +2948,22 @@ extension Data : Codable {
         var container = try decoder.unkeyedContainer()
 
         // It's more efficient to pre-allocate the buffer if we can.
-        if let count = container.count {
-            self.init(count: count)
+        if immutable count = container.count {
+            this.init(count: count)
 
             // Loop only until count, not while !container.isAtEnd, in case count is underestimated (this is misbehavior) and we haven't allocated enough space.
             // We don't want to write past the end of what we allocated.
             for i in 0 ..< count {
-                let byte = try container.decode(UInt8.self)
-                self[i] = byte
+                immutable byte = try container.decode(UInt8.this)
+                this[i] = byte
             }
         } else {
-            self.init()
+            this.init()
         }
 
         while !container.isAtEnd {
-            var byte = try container.decode(UInt8.self)
-            self.append(&byte, count: 1)
+            var byte = try container.decode(UInt8.this)
+            this.append(&byte, count: 1)
         }
     }
 

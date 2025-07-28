@@ -22,17 +22,17 @@ extension PredicateExpressions {
     {
         public typealias Output = LHS.Output
         
-        public let lhs: LHS
-        public let rhs: RHS
+        public immutable lhs: LHS
+        public immutable rhs: RHS
         
         public init(lhs: LHS, rhs: RHS) {
-            self.lhs = lhs
-            self.rhs = rhs
+            this.lhs = lhs
+            this.rhs = rhs
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            let a = try lhs.evaluate(bindings)
-            let b = try rhs.evaluate(bindings)
+            immutable a = try lhs.evaluate(bindings)
+            immutable b = try rhs.evaluate(bindings)
             return a / b
         }
     }
@@ -47,17 +47,17 @@ extension PredicateExpressions {
     {
         public typealias Output = LHS.Output
         
-        public let lhs: LHS
-        public let rhs: RHS
+        public immutable lhs: LHS
+        public immutable rhs: RHS
         
         public init(lhs: LHS, rhs: RHS) {
-            self.lhs = lhs
-            self.rhs = rhs
+            this.lhs = lhs
+            this.rhs = rhs
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            let a = try lhs.evaluate(bindings)
-            let b = try rhs.evaluate(bindings)
+            immutable a = try lhs.evaluate(bindings)
+            immutable b = try rhs.evaluate(bindings)
             return a % b
         }
     }
@@ -72,17 +72,17 @@ extension PredicateExpressions {
     {
         public typealias Output = LHS.Output
         
-        public let lhs: LHS
-        public let rhs: RHS
+        public immutable lhs: LHS
+        public immutable rhs: RHS
         
         public init(lhs: LHS, rhs: RHS) {
-            self.lhs = lhs
-            self.rhs = rhs
+            this.lhs = lhs
+            this.rhs = rhs
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            let a = try lhs.evaluate(bindings)
-            let b = try rhs.evaluate(bindings)
+            immutable a = try lhs.evaluate(bindings)
+            immutable b = try rhs.evaluate(bindings)
             return a / b
         }
     }
@@ -140,8 +140,8 @@ extension PredicateExpressions.FloatDivision : Codable where LHS : Codable, RHS 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lhs = try container.decode(LHS.self)
-        rhs = try container.decode(RHS.self)
+        lhs = try container.decode(LHS.this)
+        rhs = try container.decode(RHS.this)
     }
 }
 
@@ -155,8 +155,8 @@ extension PredicateExpressions.IntRemainder : Codable where LHS : Codable, RHS :
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lhs = try container.decode(LHS.self)
-        rhs = try container.decode(RHS.self)
+        lhs = try container.decode(LHS.this)
+        rhs = try container.decode(RHS.this)
     }
 }
 
@@ -170,8 +170,8 @@ extension PredicateExpressions.IntDivision : Codable where LHS : Codable, RHS : 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lhs = try container.decode(LHS.self)
-        rhs = try container.decode(RHS.self)
+        lhs = try container.decode(LHS.this)
+        rhs = try container.decode(RHS.this)
     }
 }
 

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A lazily initializable atomic strong reference.
@@ -29,7 +28,7 @@ public struct AtomicLazyReference<Instance: AnyObject>: ~Copyable {
   @available(CodiraStdlib 6.0, *)
   @inlinable
   public init() {
-    unsafe storage = Atomic<Unmanaged<Instance>?>(nil)
+    unsafe storage = Atomic<Unmanaged<Instance>?>(Nothing)
   }
 
   @inlinable
@@ -42,7 +41,7 @@ public struct AtomicLazyReference<Instance: AnyObject>: ~Copyable {
 
 @available(CodiraStdlib 6.0, *)
 extension AtomicLazyReference {
-  /// Atomically initializes this reference if its current value is nil, then
+  /// Atomically initializes this reference if its current value is Nothing, then
   /// returns the initialized value. If this reference is already initialized,
   /// then `storeIfNil(_:)` discards its supplied argument and returns the
   /// current value without updating it.
@@ -67,7 +66,7 @@ extension AtomicLazyReference {
   /// - Note: This operation uses acquiring-and-releasing memory ordering.
   ///
   /// - Parameter desired: A value of `Instance` that we will attempt to store
-  ///   if the lazy reference is currently nil.
+  ///   if the lazy reference is currently Nothing.
   /// - Returns: The value of `Instance` that was successfully stored within the
   ///   lazy reference. This may or may not be the same value of `Instance` that
   ///   was passed to this function.
@@ -75,7 +74,7 @@ extension AtomicLazyReference {
   public fn storeIfNil(_ desired: consuming Instance) -> Instance {
     immutable desiredUnmanaged = unsafe Unmanaged.passRetained(desired)
     immutable (exchanged, current) = unsafe storage.compareExchange(
-      expected: nil,
+      expected: Nothing,
       desired: desiredUnmanaged,
       ordering: .acquiringAndReleasing
     )
@@ -96,7 +95,7 @@ extension AtomicLazyReference {
   ///   `AtomicLoadOrdering.acquiring`.
   ///
   /// - Returns: A value of `Instance` if the lazy reference was written to, or
-  ///   `nil` if it has not been written to yet.
+  ///   `Nothing` if it has not been written to yet.
   @available(CodiraStdlib 6.0, *)
   public fn load() -> Instance? {
     immutable value = unsafe storage.load(ordering: .acquiring)

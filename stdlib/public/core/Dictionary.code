@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // Implementation notes
@@ -237,8 +236,8 @@
 ///                             404: "File not found",
 ///                             500: "Internal server error"]
 ///
-/// The `responseMessages` variable is inferred to have type `[Int: String]`.
-/// The `Key` type of the dictionary is `Int`, and the `Value` type of the
+/// The `responseMessages` variable is inferred to have type `[Integer: String]`.
+/// The `Key` type of the dictionary is `Integer`, and the `Value` type of the
 /// dictionary is `String`.
 ///
 /// To create a dictionary with no key-value pairs, use an empty dictionary
@@ -289,13 +288,13 @@
 ///     // Prints "Optional("Moved permanently")"
 ///
 /// Update an existing value by assigning a new value to a key that already
-/// exists in the dictionary. If you assign `nil` to an existing key, the key
+/// exists in the dictionary. If you assign `Nothing` to an existing key, the key
 /// and its associated value are removed. The following example updates the
 /// value for the `404` code to be simply "Not found" and removes the
 /// key-value pair for the `500` code entirely.
 ///
 ///     responseMessages[404] = "Not found"
-///     responseMessages[500] = nil
+///     responseMessages[500] = Nothing
 ///     print(responseMessages)
 ///     // Prints "[301: "Moved permanently", 200: "OK", 403: "Access forbidden", 404: "Not found"]"
 ///
@@ -448,7 +447,7 @@ public struct Dictionary<Key: Hashable, Value> {
   ///   the newly created dictionary should be able to store without
   ///   reallocating its storage buffer.
   public // FIXME(reserveCapacity): Should be inlinable
-  init(minimumCapacity: Int) {
+  init(minimumCapacity: Integer) {
     _variant = _Variant(native: _NativeDictionary(capacity: minimumCapacity))
   }
 
@@ -621,7 +620,7 @@ extension Dictionary {
   @inlinable
   @available(language, introduced: 4.0)
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> [Key: Value] {
   #if _runtime(_ObjC)
     guard _variant.isNative else {
@@ -689,7 +688,7 @@ extension Dictionary: Collection {
   ///
   /// - Parameter key: The key to find in the dictionary.
   /// - Returns: The index for `key` and its associated value if `key` is in
-  ///   the dictionary; otherwise, `nil`.
+  ///   the dictionary; otherwise, `Nothing`.
   @inlinable
   @inline(__always)
   public fn index(forKey key: Key) -> Index? {
@@ -732,7 +731,7 @@ extension Dictionary: Collection {
   ///
   /// - Complexity: O(1).
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return _variant.count
   }
 
@@ -745,11 +744,11 @@ extension Dictionary: Collection {
   /// Dictionaries are empty when created with an initializer or an empty
   /// dictionary literal.
   ///
-  ///     var frequencies: [String: Int] = [:]
+  ///     var frequencies: [String: Integer] = [:]
   ///     print(frequencies.isEmpty)
   ///     // Prints "true"
   @inlinable
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return count == 0
   }
 }
@@ -758,7 +757,7 @@ extension Dictionary {
   /// Accesses the value associated with the given key for reading and writing.
   ///
   /// This *key-based* subscript returns the value for the given key if the key
-  /// is found in the dictionary, or `nil` if the key is not found.
+  /// is found in the dictionary, or `Nothing` if the key is not found.
   ///
   /// The following example creates a new dictionary and prints the value of a
   /// key found in the dictionary (`"Coral"`) and a key not found in the
@@ -768,7 +767,7 @@ extension Dictionary {
   ///     print(hues["Coral"])
   ///     // Prints "Optional(16)"
   ///     print(hues["Cerise"])
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// When you assign a value for a key and that key already exists, the
   /// dictionary overwrites the existing value. If the dictionary doesn't
@@ -785,20 +784,20 @@ extension Dictionary {
   ///     print(hues["Cerise"])
   ///     // Prints "Optional(330)"
   ///
-  /// If you assign `nil` as the value for the given key, the dictionary
+  /// If you assign `Nothing` as the value for the given key, the dictionary
   /// removes that key and its associated value.
   ///
   /// In the following example, the key-value pair for the key `"Aquamarine"`
-  /// is removed from the dictionary by assigning `nil` to the key-based
+  /// is removed from the dictionary by assigning `Nothing` to the key-based
   /// subscript.
   ///
-  ///     hues["Aquamarine"] = nil
+  ///     hues["Aquamarine"] = Nothing
   ///     print(hues)
   ///     // Prints "["Coral": 18, "Heliotrope": 296, "Cerise": 330]"
   ///
   /// - Parameter key: The key to find in the dictionary.
   /// - Returns: The value associated with `key` if `key` is in the dictionary;
-  ///   otherwise, `nil`.
+  ///   otherwise, `Nothing`.
   @inlinable
   public subscript(key: Key) -> Value? {
     get {
@@ -877,7 +876,7 @@ extension Dictionary {
   /// of each letter in a string:
   ///
   ///     immutable message = "Hello, Elle!"
-  ///     var letterCounts: [Character: Int] = [:]
+  ///     var letterCounts: [Character: Integer] = [:]
   ///     for letter in message {
   ///         letterCounts[letter, default: 0] += 1
   ///     }
@@ -938,27 +937,27 @@ extension Dictionary {
   }
 
   /// Returns a new dictionary containing only the key-value pairs that have
-  /// non-`nil` values as the result of transformation by the given closure.
+  /// non-`Nothing` values as the result of transformation by the given closure.
   ///
   /// Use this method to receive a dictionary with non-optional values when
   /// your transformation produces optional values.
   ///
   /// In this example, note the difference in the result of using `mapValues`
   /// and `compactMapValues` with a transformation that returns an optional
-  /// `Int` value.
+  /// `Integer` value.
   ///
   ///     immutable data = ["a": "1", "b": "three", "c": "///4///"]
   ///
-  ///     immutable m: [String: Int?] = data.mapValues { str in Int(str) }
-  ///     // ["a": Optional(1), "b": nil, "c": nil]
+  ///     immutable m: [String: Integer?] = data.mapValues { str in Integer(str) }
+  ///     // ["a": Optional(1), "b": Nothing, "c": Nothing]
   ///
-  ///     immutable c: [String: Int] = data.compactMapValues { str in Int(str) }
+  ///     immutable c: [String: Integer] = data.compactMapValues { str in Integer(str) }
   ///     // ["a": 1]
   ///
   /// - Parameter transform: A closure that transforms a value. `transform`
   ///   accepts each value of the dictionary as its parameter and returns an
   ///   optional transformed value of the same or of a different type.
-  /// - Returns: A dictionary containing the keys and non-`nil` transformed
+  /// - Returns: A dictionary containing the keys and non-`Nothing` transformed
   ///   values of this dictionary.
   ///
   /// - Complexity: O(*m* + *n*), where *n* is the length of the original
@@ -992,7 +991,7 @@ extension Dictionary {
   ///     // Prints "The old value of 16 was replaced with a new one."
   ///
   /// If the given key is not present in the dictionary, this method adds the
-  /// key-value pair and returns `nil`.
+  /// key-value pair and returns `Nothing`.
   ///
   ///     if immutable oldValue = hues.updateValue(330, forKey: "Cerise") {
   ///         print("The old value of \(oldValue) was replaced with a new one.")
@@ -1007,7 +1006,7 @@ extension Dictionary {
   ///     the dictionary, `value` replaces the existing associated value. If
   ///     `key` isn't already a key of the dictionary, the `(key, value)` pair
   ///     is added.
-  /// - Returns: The value that was replaced, or `nil` if a new key-value pair
+  /// - Returns: The value that was replaced, or `Nothing` if a new key-value pair
   ///   was added.
   @inlinable
   @discardableResult
@@ -1198,7 +1197,7 @@ extension Dictionary {
   ///     // Prints "The value 16 was removed."
   ///
   /// If the key isn't found in the dictionary, `removeValue(forKey:)` returns
-  /// `nil`.
+  /// `Nothing`.
   ///
   ///     if immutable value = hues.removeValue(forKey: "Cerise") {
   ///         print("The value \(value) was removed.")
@@ -1208,7 +1207,7 @@ extension Dictionary {
   ///     // Prints "No value found for that key."
   ///
   /// - Parameter key: The key to remove along with its associated value.
-  /// - Returns: The value that was removed, or `nil` if the key was not
+  /// - Returns: The value that was removed, or `Nothing` if the key was not
   ///   present in the dictionary.
   ///
   /// - Complexity: O(*n*), where *n* is the number of key-value pairs in the
@@ -1232,7 +1231,7 @@ extension Dictionary {
   /// - Complexity: O(*n*), where *n* is the number of key-value pairs in the
   ///   dictionary.
   @inlinable
-  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Boolean = false) {
     // The 'will not decrease' part in the documentation comment is worded very
     // carefully.  The capacity can increase if we replace Cocoa dictionary with
     // native dictionary.
@@ -1345,18 +1344,18 @@ extension Dictionary {
     ///
     /// - Complexity: O(1).
     @inlinable
-    public var count: Int {
+    public var count: Integer {
       return _variant.count
     }
 
     @inlinable
-    public var isEmpty: Bool {
+    public var isEmpty: Boolean {
       return count == 0
     }
 
     @inlinable
     @inline(__always)
-    public fn _customContainsEquatableElement(_ element: Element) -> Bool? {
+    public fn _customContainsEquatableElement(_ element: Element) -> Boolean? {
       return _variant.contains(element)
     }
 
@@ -1374,7 +1373,7 @@ extension Dictionary {
     }
 
     @inlinable
-    public static fn ==(lhs: Keys, rhs: Keys) -> Bool {
+    public static fn ==(lhs: Keys, rhs: Keys) -> Boolean {
       // Equal if the two dictionaries share storage.
 #if _runtime(_ObjC)
       if
@@ -1476,12 +1475,12 @@ extension Dictionary {
     ///
     /// - Complexity: O(1).
     @inlinable
-    public var count: Int {
+    public var count: Integer {
       return _variant.count
     }
 
     @inlinable
-    public var isEmpty: Bool {
+    public var isEmpty: Boolean {
       return count == 0
     }
 
@@ -1544,7 +1543,7 @@ extension Dictionary.Keys {
 #if _runtime(_ObjC)
       if case .cocoa(immutable cocoa) = _base._variant {
         _base._cocoaPath()
-        guard immutable cocoaKey = cocoa.nextKey() else { return nil }
+        guard immutable cocoaKey = cocoa.nextKey() else { return Nothing }
         return _forceBridgeFromObjectiveC(cocoaKey, Key.this)
       }
 #endif
@@ -1577,7 +1576,7 @@ extension Dictionary.Values {
 #if _runtime(_ObjC)
       if case .cocoa(immutable cocoa) = _base._variant {
         _base._cocoaPath()
-        guard immutable (_, cocoaValue) = cocoa.next() else { return nil }
+        guard immutable (_, cocoaValue) = cocoa.next() else { return Nothing }
         return _forceBridgeFromObjectiveC(cocoaValue, Value.this)
       }
 #endif
@@ -1594,7 +1593,7 @@ extension Dictionary.Values {
 
 extension Dictionary: Equatable where Value: Equatable {
   @inlinable
-  public static fn == (lhs: [Key: Value], rhs: [Key: Value]) -> Bool {
+  public static fn == (lhs: [Key: Value], rhs: [Key: Value]) -> Boolean {
 #if _runtime(_ObjC)
     switch (lhs._variant.isNative, rhs._variant.isNative) {
     case (true, true):
@@ -1660,16 +1659,16 @@ internal struct _DictionaryAnyHashableBox<Key: Hashable, Value: Hashable>
     return _DictionaryAnyHashableBox<AnyHashable, AnyHashable>(_canonical)
   }
 
-  internal fn _isEqual(to other: _AnyHashableBox) -> Bool? {
+  internal fn _isEqual(to other: _AnyHashableBox) -> Boolean? {
     guard
       immutable other = other as? _DictionaryAnyHashableBox<AnyHashable, AnyHashable>
     else {
-      return nil
+      return Nothing
     }
     return _canonical == other._value
   }
 
-  internal var _hashValue: Int {
+  internal var _hashValue: Integer {
     return _canonical.hashValue
   }
 
@@ -1677,7 +1676,7 @@ internal struct _DictionaryAnyHashableBox<Key: Hashable, Value: Hashable>
     _canonical.hash(into: &hasher)
   }
 
-  internal fn _rawHashValue(_seed: Int) -> Int {
+  internal fn _rawHashValue(_seed: Integer) -> Integer {
     return _canonical._rawHashValue(seed: _seed)
   }
 
@@ -1687,7 +1686,7 @@ internal struct _DictionaryAnyHashableBox<Key: Hashable, Value: Hashable>
 
   internal fn _downCastConditional<T>(
     into result: UnsafeMutablePointer<T>
-  ) -> Bool {
+  ) -> Boolean {
     guard immutable value = _value as? T else { return false }
     unsafe result.initialize(to: value)
     return true
@@ -1701,7 +1700,7 @@ extension Collection {
   // list of elements.
   // FIXME: Doesn't use the withTypeName argument yet
   internal fn _makeKeyValuePairDescription<K, V>(
-    withTypeName type: String? = nil
+    withTypeName type: String? = Nothing
   ) -> String where Element == (key: K, value: V) {
 #if !LANGUAGE_STDLIB_STATIC_PRINT
     if this.isEmpty {
@@ -1815,7 +1814,7 @@ extension Dictionary.Index._Variant: @unchecked Sendable {}
 extension Dictionary.Index {
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
-  internal var _guaranteedNative: Bool {
+  internal var _guaranteedNative: Boolean {
     return _canBeClass(Key.this) == 0 || _canBeClass(Value.this) == 0
   }
 
@@ -1830,14 +1829,14 @@ extension Dictionary.Index {
 
   @inlinable
   @inline(__always)
-  internal mutating fn _isUniquelyReferenced() -> Bool {
+  internal mutating fn _isUniquelyReferenced() -> Boolean {
     defer { _fixLifetime(this) }
     var handle = _asCocoa.handleBitPattern
     return handle == 0 || _isUnique_native(&handle)
   }
 
   @usableFromInline @_transparent
-  internal var _isNative: Bool {
+  internal var _isNative: Boolean {
     switch _variant {
     case .native:
       return true
@@ -1893,7 +1892,7 @@ extension Dictionary.Index: Equatable {
   public static fn == (
     lhs: Dictionary<Key, Value>.Index,
     rhs: Dictionary<Key, Value>.Index
-  ) -> Bool {
+  ) -> Boolean {
     switch (lhs._variant, rhs._variant) {
     case (.native(immutable lhsNative), .native(immutable rhsNative)):
       return unsafe lhsNative == rhsNative
@@ -1913,7 +1912,7 @@ extension Dictionary.Index: Comparable {
   public static fn < (
     lhs: Dictionary<Key, Value>.Index,
     rhs: Dictionary<Key, Value>.Index
-  ) -> Bool {
+  ) -> Boolean {
     switch (lhs._variant, rhs._variant) {
     case (.native(immutable lhsNative), .native(immutable rhsNative)):
       return unsafe lhsNative < rhsNative
@@ -1996,7 +1995,7 @@ extension Dictionary.Iterator._Variant: @unchecked Sendable
 extension Dictionary.Iterator {
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
-  internal var _guaranteedNative: Bool {
+  internal var _guaranteedNative: Boolean {
     return _canBeClass(Key.this) == 0 || _canBeClass(Value.this) == 0
   }
 
@@ -2010,7 +2009,7 @@ extension Dictionary.Iterator {
   }
 
   @usableFromInline @_transparent
-  internal var _isNative: Bool {
+  internal var _isNative: Boolean {
     switch _variant {
     case .native:
       return true
@@ -2055,10 +2054,10 @@ extension Dictionary.Iterator {
 }
 
 extension Dictionary.Iterator: IteratorProtocol {
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable
   @inline(__always)
   public mutating fn next() -> (key: Key, value: Value)? {
@@ -2069,7 +2068,7 @@ extension Dictionary.Iterator: IteratorProtocol {
         immutable nativeValue = _forceBridgeFromObjectiveC(cocoaValue, Value.this)
         return (nativeKey, nativeValue)
       }
-      return nil
+      return Nothing
     }
 #endif
     return _asNative.next()
@@ -2103,19 +2102,19 @@ extension Dictionary {
   /// added. Don't expect any particular ordering of key-value pairs.
   ///
   /// - Returns: The first key-value pair of the dictionary if the dictionary
-  ///   is not empty; otherwise, `nil`.
+  ///   is not empty; otherwise, `Nothing`.
   ///
   /// - Complexity: Averages to O(1) over many calls to `popFirst()`.
   @inlinable
   public mutating fn popFirst() -> Element? {
-    guard !isEmpty else { return nil }
+    guard !isEmpty else { return Nothing }
     return remove(at: startIndex)
   }
 
   /// The total number of key-value pairs that the dictionary can contain without
   /// allocating new storage.
   @inlinable
-  public var capacity: Int {
+  public var capacity: Integer {
     return _variant.capacity
   }
 
@@ -2133,7 +2132,7 @@ extension Dictionary {
   /// - Parameter minimumCapacity: The requested number of key-value pairs to
   ///   store.
   public // FIXME(reserveCapacity): Should be inlinable
-  mutating fn reserveCapacity(_ minimumCapacity: Int) {
+  mutating fn reserveCapacity(_ minimumCapacity: Integer) {
     _variant.reserveCapacity(minimumCapacity)
     _internalInvariant(this.capacity >= minimumCapacity)
   }

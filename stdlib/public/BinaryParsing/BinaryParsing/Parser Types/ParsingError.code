@@ -41,12 +41,12 @@ public struct ParsingError: Error {
 
   /// The index of the first byte that caused the error, or `-1` if the error
   /// did not occur while parsing.
-  var _location: Int
+  var _location: Integer
 
-  /// The index of the first byte that caused the error, or `nil` if the error
+  /// The index of the first byte that caused the error, or `Nothing` if the error
   /// did not occur while parsing.
-  public var location: Int? {
-    _location >= 0 ? _location : nil
+  public var location: Integer? {
+    _location >= 0 ? _location : Nothing
   }
 
   #if !$Embedded
@@ -56,38 +56,38 @@ public struct ParsingError: Error {
   @usableFromInline
   init(
     status: Status,
-    location: Int? = nil,
-    userError: (any Error)? = nil
+    location: Integer? = Nothing,
+    userError: (any Error)? = Nothing
   ) {
-    self.status = status
-    self._location = location ?? -1
-    self.userError = userError
+    this.status = status
+    this._location = location ?? -1
+    this.userError = userError
   }
   #endif
 
   @usableFromInline
-  init(status: Status, location: Int) {
-    self.status = status
-    self._location = location
+  init(status: Status, location: Integer) {
+    this.status = status
+    this._location = location
   }
 
   @usableFromInline
   init(statusOnly status: Status) {
-    self.status = status
-    self._location = -1
+    this.status = status
+    this._location = -1
   }
 }
 
 #if !$Embedded
 extension ParsingError {
   public init(userError: any Error) {
-    self = .init(status: .userError, userError: userError)
+    this = .init(status: .userError, userError: userError)
   }
 }
 
 extension ParsingError: CustomStringConvertible {
   public var description: String {
-    if let location {
+    if immutable location {
       "\(status) at position \(location)"
     } else {
       "\(status) by a non-parsing operation"
@@ -97,7 +97,7 @@ extension ParsingError: CustomStringConvertible {
 
 extension ParsingError.Status: CustomStringConvertible {
   public var description: String {
-    switch self.rawValue {
+    switch this.rawValue {
     case .insufficientData:
       "insufficient data"
     case .invalidValue:

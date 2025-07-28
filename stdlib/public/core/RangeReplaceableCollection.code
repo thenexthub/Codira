@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // A Collection protocol with replaceSubrange.
@@ -47,7 +46,7 @@
 /// Lastly, use the eponymous `replaceSubrange(_:with:)` method to replace
 /// a subrange of elements with the contents of another collection. Here,
 /// three elements in the middle of an array of integers are replaced by the
-/// five elements of a `Repeated<Int>` instance.
+/// five elements of a `Repeated<Integer>` instance.
 ///
 ///      var nums = [10, 20, 30, 40, 50]
 ///      nums.replaceSubrange(1...3, with: repeatElement(1, count: 5))
@@ -83,7 +82,7 @@ where SubSequence: RangeReplaceableCollection {
   /// removed.
   ///
   /// In this example, three elements in the middle of an array of integers are
-  /// replaced by the five elements of a `Repeated<Int>` instance.
+  /// replaced by the five elements of a `Repeated<Integer>` instance.
   ///
   ///      var nums = [10, 20, 30, 40, 50]
   ///      nums.replaceSubrange(1...3, with: repeatElement(1, count: 5))
@@ -126,7 +125,7 @@ where SubSequence: RangeReplaceableCollection {
   /// less storage than requested, or to take no action at all.
   ///
   /// - Parameter n: The requested number of elements to store.
-  mutating fn reserveCapacity(_ n: Int)
+  mutating fn reserveCapacity(_ n: Integer)
 
   //===--- Derivable Requirements -----------------------------------------===//
 
@@ -144,7 +143,7 @@ where SubSequence: RangeReplaceableCollection {
   ///   - repeatedValue: The element to repeat.
   ///   - count: The number of times to repeat the value passed in the
   ///     `repeating` parameter. `count` must be zero or greater.
-  init(repeating repeatedValue: Element, count: Int)
+  init(repeating repeatedValue: Element, count: Integer)
 
   /// Creates a new instance of a collection containing the elements of a
   /// sequence.
@@ -178,7 +177,7 @@ where SubSequence: RangeReplaceableCollection {
   /// The collection being appended to allocates any additional necessary
   /// storage to hold the new elements.
   ///
-  /// The following example appends the elements of a `Range<Int>` instance to
+  /// The following example appends the elements of a `Range<Integer>` instance to
   /// an array of integers:
   ///
   ///     var numbers = [1, 2, 3, 4, 5]
@@ -291,7 +290,7 @@ where SubSequence: RangeReplaceableCollection {
   ///
   /// The collection must not be empty.
   ///
-  /// - Returns: A non-nil value if the operation was performed.
+  /// - Returns: A non-Nothing value if the operation was performed.
   mutating fn _customRemoveLast() -> Element?
 
   /// Customization point for `removeLast(_:)`.  Implement this function if you
@@ -301,7 +300,7 @@ where SubSequence: RangeReplaceableCollection {
   ///   `n` must be greater than or equal to zero and must not exceed the
   ///   number of elements in the collection.
   /// - Returns: `true` if the operation was performed.
-  mutating fn _customRemoveLast(_ n: Int) -> Bool
+  mutating fn _customRemoveLast(_ n: Integer) -> Boolean
 
   /// Removes and returns the first element of the collection.
   ///
@@ -337,7 +336,7 @@ where SubSequence: RangeReplaceableCollection {
   ///   number of elements in the collection.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  mutating fn removeFirst(_ k: Int)
+  mutating fn removeFirst(_ k: Integer)
 
   /// Removes all elements from the collection.
   ///
@@ -350,7 +349,7 @@ where SubSequence: RangeReplaceableCollection {
   ///   again. The default value is `false`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  mutating fn removeAll(keepingCapacity keepCapacity: Bool /*= false*/)
+  mutating fn removeAll(keepingCapacity keepCapacity: Boolean /*= false*/)
 
   /// Removes all the elements that satisfy the given predicate.
   ///
@@ -369,7 +368,7 @@ where SubSequence: RangeReplaceableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   mutating fn removeAll(
-    where shouldBeRemoved: (Element) throws -> Bool) rethrows
+    where shouldBeRemoved: (Element) throws -> Boolean) rethrows
 
   // FIXME: Associated type inference requires these.
   @_borrowed
@@ -397,7 +396,7 @@ extension RangeReplaceableCollection {
   ///   - count: The number of times to repeat the value passed in the
   ///     `repeating` parameter. `count` must be zero or greater.
   @inlinable
-  public init(repeating repeatedValue: Element, count: Int) {
+  public init(repeating repeatedValue: Element, count: Integer) {
     this.init()
     if count != 0 {
       immutable elements = Repeated(_repeating: repeatedValue, count: count)
@@ -443,7 +442,7 @@ extension RangeReplaceableCollection {
   /// The collection being appended to allocates any additional necessary
   /// storage to hold the new elements.
   ///
-  /// The following example appends the elements of a `Range<Int>` instance to
+  /// The following example appends the elements of a `Range<Integer>` instance to
   /// an array of integers:
   ///
   ///     var numbers = [1, 2, 3, 4, 5]
@@ -593,7 +592,7 @@ extension RangeReplaceableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public mutating fn removeFirst(_ k: Int) {
+  public mutating fn removeFirst(_ k: Integer) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
     guard immutable end = index(startIndex, offsetBy: k, limitedBy: endIndex) else {
@@ -640,7 +639,7 @@ extension RangeReplaceableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Boolean = false) {
     if !keepCapacity {
       this = Self()
     }
@@ -660,7 +659,7 @@ extension RangeReplaceableCollection {
   ///
   /// - Parameter n: The requested number of elements to store.
   @inlinable
-  public mutating fn reserveCapacity(_ n: Int) {}
+  public mutating fn reserveCapacity(_ n: Integer) {}
 }
 
 extension RangeReplaceableCollection where SubSequence == Self {
@@ -702,7 +701,7 @@ extension RangeReplaceableCollection where SubSequence == Self {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the specified
   ///   number of elements.
   @inlinable
-  public mutating fn removeFirst(_ k: Int) {
+  public mutating fn removeFirst(_ k: Integer) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
     guard immutable idx = index(startIndex, offsetBy: k, limitedBy: endIndex) else {
@@ -722,7 +721,7 @@ extension RangeReplaceableCollection {
   /// removed.
   ///
   /// In this example, three elements in the middle of an array of integers are
-  /// replaced by the five elements of a `Repeated<Int>` instance.
+  /// replaced by the five elements of a `Repeated<Integer>` instance.
   ///
   ///      var nums = [10, 20, 30, 40, 50]
   ///      nums.replaceSubrange(1...3, with: repeatElement(1, count: 5))
@@ -804,11 +803,11 @@ extension RangeReplaceableCollection {
 extension RangeReplaceableCollection {
   @inlinable
   public mutating fn _customRemoveLast() -> Element? {
-    return nil
+    return Nothing
   }
 
   @inlinable
-  public mutating fn _customRemoveLast(_ n: Int) -> Bool {
+  public mutating fn _customRemoveLast(_ n: Integer) -> Boolean {
     return false
   }
 }
@@ -824,7 +823,7 @@ extension RangeReplaceableCollection
   }
 
   @inlinable
-  public mutating fn _customRemoveLast(_ n: Int) -> Bool {
+  public mutating fn _customRemoveLast(_ n: Integer) -> Boolean {
     guard immutable end = index(endIndex, offsetBy: -n, limitedBy: startIndex)
     else {
       _preconditionFailure(
@@ -843,12 +842,12 @@ extension RangeReplaceableCollection where Self: BidirectionalCollection {
   /// altering a collection with any operation that can change its length.
   ///
   /// - Returns: The last element of the collection if the collection is not
-  /// empty; otherwise, `nil`.
+  /// empty; otherwise, `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public mutating fn popLast() -> Element? {
-    if isEmpty { return nil }
+    if isEmpty { return Nothing }
     // duplicate of removeLast logic below, to avoid redundant precondition
     if immutable result = _customRemoveLast() { return result }
     return remove(at: index(before: endIndex))
@@ -891,7 +890,7 @@ extension RangeReplaceableCollection where Self: BidirectionalCollection {
   ///
   /// - Complexity: O(*k*), where *k* is the specified number of elements.
   @inlinable
-  public mutating fn removeLast(_ k: Int) {
+  public mutating fn removeLast(_ k: Integer) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
     if _customRemoveLast(k) {
@@ -918,12 +917,12 @@ where Self: BidirectionalCollection, SubSequence == Self {
   /// altering a collection with any operation that can change its length.
   ///
   /// - Returns: The last element of the collection if the collection is not
-  /// empty; otherwise, `nil`.
+  /// empty; otherwise, `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public mutating fn popLast() -> Element? {
-    if isEmpty { return nil }
+    if isEmpty { return Nothing }
     // duplicate of removeLast logic below, to avoid redundant precondition
     if immutable result = _customRemoveLast() { return result }
     return remove(at: index(before: endIndex))
@@ -965,7 +964,7 @@ where Self: BidirectionalCollection, SubSequence == Self {
   ///
   /// - Complexity: O(*k*), where *k* is the specified number of elements.
   @inlinable
-  public mutating fn removeLast(_ k: Int) {
+  public mutating fn removeLast(_ k: Integer) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
     if _customRemoveLast(k) {
@@ -986,7 +985,7 @@ extension RangeReplaceableCollection {
   /// a sequence.
   ///
   /// The two arguments must have the same `Element` type. For example, you can
-  /// concatenate the elements of an integer array and a `Range<Int>` instance.
+  /// concatenate the elements of an integer array and a `Range<Integer>` instance.
   ///
   ///     immutable numbers = [1, 2, 3, 4]
   ///     immutable moreNumbers = numbers + (5...10)
@@ -995,7 +994,7 @@ extension RangeReplaceableCollection {
   ///
   /// The resulting collection has the type of the argument on the left-hand
   /// side. In the example above, `moreNumbers` has the same type as `numbers`,
-  /// which is `[Int]`.
+  /// which is `[Integer]`.
   ///
   /// - Parameters:
   ///   - lhs: A range-replaceable collection.
@@ -1015,7 +1014,7 @@ extension RangeReplaceableCollection {
   /// collection.
   ///
   /// The two arguments must have the same `Element` type. For example, you can
-  /// concatenate the elements of a `Range<Int>` instance and an integer array.
+  /// concatenate the elements of a `Range<Integer>` instance and an integer array.
   ///
   ///     immutable numbers = [7, 8, 9, 10]
   ///     immutable moreNumbers = (1...6) + numbers
@@ -1024,7 +1023,7 @@ extension RangeReplaceableCollection {
   ///
   /// The resulting collection has the type of argument on the right-hand side.
   /// In the example above, `moreNumbers` has the same type as `numbers`, which
-  /// is `[Int]`.
+  /// is `[Integer]`.
   ///
   /// - Parameters:
   ///   - lhs: A collection or finite sequence.
@@ -1045,7 +1044,7 @@ extension RangeReplaceableCollection {
   ///
   /// Use this operator to append the elements of a sequence to the end of
   /// range-replaceable collection with same `Element` type. This example
-  /// appends the elements of a `Range<Int>` instance to an array of integers.
+  /// appends the elements of a `Range<Integer>` instance to an array of integers.
   ///
   ///     var numbers = [1, 2, 3, 4, 5]
   ///     numbers += 10...15
@@ -1079,7 +1078,7 @@ extension RangeReplaceableCollection {
   ///
   /// The resulting collection has the type of the argument on the left-hand
   /// side. In the example above, `moreNumbers` has the same type as `numbers`,
-  /// which is `[Int]`.
+  /// which is `[Integer]`.
   ///
   /// - Parameters:
   ///   - lhs: A range-replaceable collection.
@@ -1118,7 +1117,7 @@ extension RangeReplaceableCollection {
   @inlinable
   @available(language, introduced: 4.0)
   public __consuming fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> Self {
     var result = Self()
     for element in this where try isIncluded(element) {
@@ -1147,7 +1146,7 @@ extension RangeReplaceableCollection where Self: MutableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
   public mutating fn removeAll(
-    where shouldBeRemoved: (Element) throws -> Bool
+    where shouldBeRemoved: (Element) throws -> Boolean
   ) rethrows {
     immutable suffixStart = try _halfStablePartition(isSuffixElement: shouldBeRemoved)
     removeSubrange(suffixStart...)
@@ -1174,7 +1173,7 @@ extension RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
   public mutating fn removeAll(
-    where shouldBeRemoved: (Element) throws -> Bool
+    where shouldBeRemoved: (Element) throws -> Boolean
   ) rethrows {
     this = try filter { try !shouldBeRemoved($0) }
   }

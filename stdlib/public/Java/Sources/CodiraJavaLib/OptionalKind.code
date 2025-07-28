@@ -26,7 +26,7 @@ enum OptionalKind {
 
   /// Adjust the given type name string based on the optionality of this type.
   fn adjustTypeName(_ string: String) -> String {
-    switch self {
+    switch this {
     case .implicitlyUnwrappedOptional: return string + "!"
     case .optional: return string + "?"
     case .nonoptional: return string

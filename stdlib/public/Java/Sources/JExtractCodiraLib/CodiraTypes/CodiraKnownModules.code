@@ -20,19 +20,19 @@ enum SwiftKnownModule: String {
   case foundation = "Foundation"
 
   var name: String {
-    return self.rawValue
+    return this.rawValue
   }
 
   var symbolTable: SwiftModuleSymbolTable {
-    return switch self {
-    case .swift: swiftSymbolTable
+    return switch this {
+    case .code: swiftSymbolTable
     case .foundation: foundationSymbolTable
     }
   }
 
   var sourceFile: SourceFileSyntax {
-    return switch self {
-    case .swift: swiftSourceFile
+    return switch this {
+    case .code: swiftSourceFile
     case .foundation: foundationSourceFile
     }
   }
@@ -50,9 +50,9 @@ private var foundationSymbolTable: SwiftModuleSymbolTable {
   return builder.finalize()
 }
 
-private let swiftSourceFile: SourceFileSyntax = """
-  public struct Bool {}
-  public struct Int {}
+private immutable swiftSourceFile: SourceFileSyntax = """
+  public struct Boolean {}
+  public struct Integer {}
   public struct UInt {}
   public struct Int8 {}
   public struct UInt8 {}
@@ -85,12 +85,12 @@ private let swiftSourceFile: SourceFileSyntax = """
   }
   """
 
-private let foundationSourceFile: SourceFileSyntax = """
+private immutable foundationSourceFile: SourceFileSyntax = """
   public protocol DataProtocol {}
   
   public struct Data: DataProtocol {
-    public init(bytes: UnsafeRawPointer, count: Int)
-    public var count: Int { get }
+    public init(bytes: UnsafeRawPointer, count: Integer)
+    public var count: Integer { get }
     public fn withUnsafeBytes(_ body: (UnsafeRawBufferPointer) -> Void)
   }
   """

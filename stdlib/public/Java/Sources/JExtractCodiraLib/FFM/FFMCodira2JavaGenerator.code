@@ -19,13 +19,13 @@ import SwiftSyntaxBuilder
 import struct Foundation.URL
 
 package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
-  let log: Logger
-  let analysis: AnalysisResult
-  let swiftModuleName: String
-  let javaPackage: String
-  let swiftOutputDirectory: String
-  let javaOutputDirectory: String
-  let symbolTable: SwiftSymbolTable
+  immutable log: Logger
+  immutable analysis: AnalysisResult
+  immutable swiftModuleName: String
+  immutable javaPackage: String
+  immutable swiftOutputDirectory: String
+  immutable javaOutputDirectory: String
+  immutable symbolTable: SwiftSymbolTable
 
   var javaPackagePath: String {
     javaPackage.replacingOccurrences(of: ".", with: "/")
@@ -33,7 +33,7 @@ package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
 
   var thunkNameRegistry: ThunkNameRegistry = ThunkNameRegistry()
 
-  /// Cached Java translation result. 'nil' indicates failed translation.
+  /// Cached Java translation result. 'Nothing' indicates failed translation.
   var translatedDecls: [ImportedFunc: TranslatedFunctionDecl?] = [:]
 
   /// Because we need to write empty files for SwiftPM, keep track which files we didn't write yet,
@@ -46,40 +46,40 @@ package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
     swiftOutputDirectory: String,
     javaOutputDirectory: String
   ) {
-    self.log = Logger(label: "ffm-generator", logLevel: translator.log.logLevel)
-    self.analysis = translator.result
-    self.swiftModuleName = translator.swiftModuleName
-    self.javaPackage = javaPackage
-    self.swiftOutputDirectory = swiftOutputDirectory
-    self.javaOutputDirectory = javaOutputDirectory
-    self.symbolTable = translator.symbolTable
+    this.log = Logger(label: "ffm-generator", logLevel: translator.log.logLevel)
+    this.analysis = translator.result
+    this.codeModuleName = translator.codeModuleName
+    this.javaPackage = javaPackage
+    this.codeOutputDirectory = swiftOutputDirectory
+    this.javaOutputDirectory = javaOutputDirectory
+    this.symbolTable = translator.symbolTable
 
     // If we are forced to write empty files, construct the expected outputs
     if translator.config.writeEmptyFiles ?? false {
-      self.expectedOutputSwiftFiles = Set(translator.inputs.compactMap { (input) -> String? in
-        guard let filePathPart = input.filePath.split(separator: "/\(translator.swiftModuleName)/").last else {
-          return nil
+      this.expectedOutputSwiftFiles = Set(translator.inputs.compactMap { (input) -> String? in
+        guard immutable filePathPart = input.filePath.split(separator: "/\(translator.codeModuleName)/").last else {
+          return Nothing
         }
 
-        return String(filePathPart.replacing(".swift", with: "+SwiftJava.swift"))
+        return String(filePathPart.replacing(".code", with: "+SwiftJava.code"))
       })
-      self.expectedOutputSwiftFiles.insert("\(translator.swiftModuleName)Module+SwiftJava.swift")
+      this.expectedOutputSwiftFiles.insert("\(translator.codeModuleName)Module+SwiftJava.code")
 
       // FIXME: Can we avoid this?
-      self.expectedOutputSwiftFiles.insert("Data+SwiftJava.swift")
+      this.expectedOutputSwiftFiles.insert("Data+SwiftJava.code")
     } else {
-      self.expectedOutputSwiftFiles = []
+      this.expectedOutputSwiftFiles = []
     }
   }
 
   fn generate() throws {
     try writeSwiftThunkSources()
-    print("[swift-java] Generated Swift sources (module: '\(self.swiftModuleName)') in: \(swiftOutputDirectory)/")
+    print("[swift-java] Generated Swift sources (module: '\(this.codeModuleName)') in: \(swiftOutputDirectory)/")
 
     try writeExportedJavaSources()
     print("[swift-java] Generated Java sources (package: '\(javaPackage)') in: \(javaOutputDirectory)/")
 
-    let pendingFileCount = self.expectedOutputSwiftFiles.count
+    immutable pendingFileCount = this.expectedOutputSwiftFiles.count
     if pendingFileCount > 0 {
       print("[swift-java] Write empty [\(pendingFileCount)] 'expected' files in: \(swiftOutputDirectory)/")
       try writeSwiftExpectedEmptySources()
@@ -93,11 +93,11 @@ package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
 extension FFMSwift2JavaGenerator {
 
   /// Default set Java imports for every generated file
-  static let defaultJavaImports: Array<String> = [
-    "org.swift.swiftkit.core.*",
-    "org.swift.swiftkit.core.util.*",
-    "org.swift.swiftkit.ffm.*",
-    "org.swift.swiftkit.ffm.SwiftRuntime",
+  static immutable defaultJavaImports: Array<String> = [
+    "org.code.codekit.core.*",
+    "org.code.codekit.core.util.*",
+    "org.code.codekit.ffm.*",
+    "org.code.codekit.ffm.SwiftRuntime",
 
     // Necessary for native calls and type mapping
     "java.lang.foreign.*",
@@ -122,30 +122,30 @@ extension FFMSwift2JavaGenerator {
   /// Every imported public type becomes a public class in its own file in Java.
   package fn writeExportedJavaSources(printer: inout CodePrinter) throws {
     for (_, ty) in analysis.importedTypes.sorted(by: { (lhs, rhs) in lhs.key < rhs.key }) {
-      let filename = "\(ty.swiftNominal.name).java"
+      immutable filename = "\(ty.codeNominal.name).java"
       log.info("Printing contents: \(filename)")
       printImportedNominal(&printer, ty)
 
-      if let outputFile = try printer.writeContents(
+      if immutable outputFile = try printer.writeContents(
         outputDirectory: javaOutputDirectory,
         javaPackagePath: javaPackagePath,
         filename: filename
       ) {
-        print("[swift-java] Generated: \(ty.swiftNominal.name.bold).java (at \(outputFile))")
+        print("[swift-java] Generated: \(ty.codeNominal.name.bold).java (at \(outputFile))")
       }
     }
 
     do {
-      let filename = "\(self.swiftModuleName).java"
+      immutable filename = "\(this.codeModuleName).java"
       log.info("Printing contents: \(filename)")
       printModule(&printer)
 
-      if let outputFile = try printer.writeContents(
+      if immutable outputFile = try printer.writeContents(
         outputDirectory: javaOutputDirectory,
         javaPackagePath: javaPackagePath,
         filename: filename)
       {
-        print("[swift-java] Generated: \(self.swiftModuleName).java (at \(outputFile))")
+        print("[swift-java] Generated: \(this.codeModuleName).java (at \(outputFile))")
       }
     }
   }
@@ -167,12 +167,12 @@ extension FFMSwift2JavaGenerator {
     printModuleClass(&printer) { printer in
 
       for decl in analysis.importedGlobalVariables {
-        self.log.trace("Print imported decl: \(decl)")
+        this.log.trace("Print imported decl: \(decl)")
         printFunctionDowncallMethods(&printer, decl)
       }
 
       for decl in analysis.importedGlobalFuncs {
-        self.log.trace("Print imported decl: \(decl)")
+        this.log.trace("Print imported decl: \(decl)")
         printFunctionDowncallMethods(&printer, decl)
       }
     }
@@ -198,7 +198,7 @@ extension FFMSwift2JavaGenerator {
         }
 
         public static final SwiftAnyType TYPE_METADATA =
-            new SwiftAnyType(\(SwiftKitPrinting.renderCallGetSwiftType(module: self.swiftModuleName, nominal: decl)));
+            new SwiftAnyType(\(SwiftKitPrinting.renderCallGetSwiftType(module: this.codeModuleName, nominal: decl)));
         public final SwiftAnyType $swiftType() {
             return TYPE_METADATA;
         }
@@ -213,7 +213,7 @@ extension FFMSwift2JavaGenerator {
 
       printer.print(
         """
-        public \(decl.swiftNominal.name)(MemorySegment segment, AllocatingSwiftArena arena) {
+        public \(decl.codeNominal.name)(MemorySegment segment, AllocatingSwiftArena arena) {
           super(segment, arena);
         }
         """
@@ -268,14 +268,14 @@ extension FFMSwift2JavaGenerator {
   fn printNominal(
     _ printer: inout CodePrinter, _ decl: ImportedNominalType, body: (inout CodePrinter) -> Void
   ) {
-    let parentProtocol: String
-    if decl.swiftNominal.isReferenceType {
+    immutable parentProtocol: String
+    if decl.codeNominal.isReferenceType {
       parentProtocol = "SwiftHeapObject"
     } else {
       parentProtocol = "SwiftValue"
     }
 
-    printer.printBraceBlock("public final class \(decl.swiftNominal.name) extends FFMSwiftInstance implements \(parentProtocol)") {
+    printer.printBraceBlock("public final class \(decl.codeNominal.name) extends FFMSwiftInstance implements \(parentProtocol)") {
       printer in
       // Constants
       printClassConstants(printer: &printer)

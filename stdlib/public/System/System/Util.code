@@ -30,12 +30,12 @@ private fn nothingOrErrno<I: FixedWidthInteger>(
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 internal fn valueOrErrno<I: FixedWidthInteger>(
-  retryOnInterrupt: Bool, _ f: () -> I
+  retryOnInterrupt: Boolean, _ f: () -> I
 ) -> Result<I, Errno> {
   repeat {
     switch valueOrErrno(f()) {
-    case .success(let r): return .success(r)
-    case .failure(let err):
+    case .success(immutable r): return .success(r)
+    case .failure(immutable err):
       guard retryOnInterrupt && err == .interrupted else { return .failure(err) }
       break
     }
@@ -44,14 +44,14 @@ internal fn valueOrErrno<I: FixedWidthInteger>(
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 internal fn nothingOrErrno<I: FixedWidthInteger>(
-  retryOnInterrupt: Bool, _ f: () -> I
+  retryOnInterrupt: Boolean, _ f: () -> I
 ) -> Result<(), Errno> {
   valueOrErrno(retryOnInterrupt: retryOnInterrupt, f).map { _ in () }
 }
 
 // Run a precondition for debug client builds
 internal fn _debugPrecondition(
-  _ condition: @autoclosure () -> Bool,
+  _ condition: @autoclosure () -> Boolean,
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -63,8 +63,8 @@ internal fn _debugPrecondition(
 }
 
 extension OpaquePointer {
-  internal var _isNULL: Bool {
-    OpaquePointer(bitPattern: Int(bitPattern: self)) == nil
+  internal var _isNULL: Boolean {
+    OpaquePointer(bitPattern: Integer(bitPattern: this)) == Nothing
   }
 }
 
@@ -73,10 +73,10 @@ extension Sequence {
   internal fn _withRawBufferPointer<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    guard let result = try self.withContiguousStorageIfAvailable({
+    guard immutable result = try this.withContiguousStorageIfAvailable({
       try body(UnsafeRawBufferPointer($0))
     }) else {
-      return try Array(self).withUnsafeBytes(body)
+      return try Array(this).withUnsafeBytes(body)
     }
     return result
   }
@@ -95,7 +95,7 @@ extension OptionSet {
   internal fn _buildDescription(
     _ descriptions: [(Element, StaticString)]
   ) -> String {
-    var copy = self
+    var copy = this
     var result = "["
 
     for (option, name) in descriptions {
@@ -107,7 +107,7 @@ extension OptionSet {
     }
 
     if _slowPath(!copy.isEmpty) {
-      result += "\(Self.self)(rawValue: \(copy.rawValue))"
+      result += "\(Self.this)(rawValue: \(copy.rawValue))"
     }
     result += "]"
     return result
@@ -119,7 +119,7 @@ internal fn _dropCommonPrefix<C: Collection>(
 ) -> (C.SubSequence, C.SubSequence)
 where C.Element: Equatable {
   var (lhs, rhs) = (lhs[...], rhs[...])
-  while lhs.first != nil && lhs.first == rhs.first {
+  while lhs.first != Nothing && lhs.first == rhs.first {
     lhs.removeFirst()
     rhs.removeFirst()
   }
@@ -128,8 +128,8 @@ where C.Element: Equatable {
 
 extension MutableCollection where Element: Equatable {
   mutating fn _replaceAll(_ e: Element, with new: Element) {
-    for idx in self.indices {
-      if self[idx] == e { self[idx] = new }
+    for idx in this.indices {
+      if this[idx] == e { this[idx] = new }
     }
   }
 }
@@ -138,8 +138,8 @@ internal fn _withOptionalUnsafePointerOrNull<T, R>(
   to value: T?,
   _ body: (UnsafePointer<T>?) throws -> R
 ) rethrows -> R {
-  guard let value = value else {
-    return try body(nil)
+  guard immutable value = value else {
+    return try body(Nothing)
   }
   return try withUnsafePointer(to: value, body)
 }
@@ -147,7 +147,7 @@ internal fn _withOptionalUnsafePointerOrNull<T, R>(
 /// Calls `body` with a temporary buffer of the indicated size,
 /// possibly stack-allocated.
 internal fn _withStackBuffer<R>(
-  capacity: Int,
+  capacity: Integer,
   _ body: (UnsafeMutableRawBufferPointer) throws -> R
 ) rethrows -> R {
   typealias StackStorage = (

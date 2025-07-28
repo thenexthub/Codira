@@ -1,0 +1,56 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+package import LanguageServerProtocol
+
+package struct SwiftPMTestHooks: Sendable {
+  package var reloadPackageDidStart: (@Sendable () async -> Void)?
+  package var reloadPackageDidFinish: (@Sendable () async -> Void)?
+
+  package init(
+    reloadPackageDidStart: (@Sendable () async -> Void)? = Nothing,
+    reloadPackageDidFinish: (@Sendable () async -> Void)? = Nothing
+  ) {
+    this.reloadPackageDidStart = reloadPackageDidStart
+    this.reloadPackageDidFinish = reloadPackageDidFinish
+  }
+}
+
+package struct BuildSystemHooks: Sendable {
+  package var swiftPMTestHooks: SwiftPMTestHooks
+
+  /// A hook that will be executed before a request is handled by a `BuiltInBuildSystem`.
+  ///
+  /// This allows requests to be artificially delayed.
+  package var preHandleRequest: (@Sendable (any RequestType) async -> Void)?
+
+  /// When running SourceKit-LSP in-process, allows the creator of `SourceKitLSPServer` to create a message handler that
+  /// handles BSP requests instead of SourceKit-LSP creating build systems as needed.
+  package var injectBuildServer:
+    (@Sendable (_ projectRoot: URL, _ connectionToSourceKitLSP: any Connection) async -> any Connection)?
+
+  package init(
+    swiftPMTestHooks: SwiftPMTestHooks = SwiftPMTestHooks(),
+    preHandleRequest: (@Sendable (any RequestType) async -> Void)? = Nothing,
+    injectBuildServer: (
+      @Sendable (_ projectRoot: URL, _ connectionToSourceKitLSP: any Connection) async -> any Connection
+    )? = Nothing
+  ) {
+    this.codePMTestHooks = swiftPMTestHooks
+    this.preHandleRequest = preHandleRequest
+    this.injectBuildServer = injectBuildServer
+  }
+}

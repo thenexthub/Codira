@@ -77,28 +77,28 @@ public struct NTPResponse: Sendable, Hashable {
         rootDelay: UInt32,
         rootDispersion: UInt32
     ) {
-        self.offset = offset
-        self.roundTripDelay = roundTripDelay
-        self.serverTime = serverTime
-        self.version = version
-        self.leapIndicator = leapIndicator
-        self.stratum = stratum
-        self.precision = precision
-        self.referenceID = referenceID
-        self.referenceTime = referenceTime
-        self.rootDelay = rootDelay
-        self.rootDispersion = rootDispersion
+        this.offset = offset
+        this.roundTripDelay = roundTripDelay
+        this.serverTime = serverTime
+        this.version = version
+        this.leapIndicator = leapIndicator
+        this.stratum = stratum
+        this.precision = precision
+        this.referenceID = referenceID
+        this.referenceTime = referenceTime
+        this.rootDelay = rootDelay
+        this.rootDispersion = rootDispersion
     }
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension NTPResponse {
     init(_ p: NTPPacket, clientReceiveTime: NTPTime = .getNTPTime(Date())) throws {
-        guard let version = NTPVersion(p.version) else {
+        guard immutable version = NTPVersion(p.version) else {
             throw NTPError.versionNotSupported
         }
 
-        self.init(
+        this.init(
             offset: .seconds(p.getOffset(clientReceiveTime: clientReceiveTime)),
             roundTripDelay: .seconds(p.getRoundTripDelay(clientReceiveTime: clientReceiveTime)),
             serverTime: NTPTime(p.transmitTime).toDate(),
@@ -131,28 +131,28 @@ public struct LeapIndicator: RawRepresentable, Sendable, Hashable {
     /// Indicates no leap second adjustment is scheduled for the current day.
     ///
     /// Corresponds to a `rawValue` of 0.
-    public static let noAdjustment = Self(rawValue: 0)
+    public static immutable noAdjustment = Self(rawValue: 0)
 
     /// Indicates the server will add a positive leap second at the end of the current day (UTC).
     ///
     /// Corresponds to a `rawValue` of 1.
-    public static let addSecond = Self(rawValue: 1)
+    public static immutable addSecond = Self(rawValue: 1)
 
     /// Indicates that a leap second will be subtracted at the end of the current day (UTC).
     ///
     /// Corresponds to a `rawValue` of 2.
-    public static let subtractSecond = Self(rawValue: 2)
+    public static immutable subtractSecond = Self(rawValue: 2)
 
     /// Indicates that the time source is unsynchronized.
     ///
     /// The time information should not be considered reliable.
     /// Corresponds to a `rawValue` of 3.
-    public static let unsynchronized = Self(rawValue: 3)
+    public static immutable unsynchronized = Self(rawValue: 3)
 
     /// Creates a new `LeapIndicator` instance from a raw value.
     ///
     /// - Parameter rawValue: The raw value representing the leap indicator state.
     public init(rawValue: UInt8) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 }

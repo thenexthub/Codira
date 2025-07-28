@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Provides the ability to read memory, both in the current process and
@@ -54,7 +53,7 @@ internal import BacktracingImpl.OS.Darwin
                 into pointer: UnsafeMutablePointer<T>) throws
 
   /// Fetch an array of Ts from the specified location in the source
-  fn fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
+  fn fetch<T>(from addr: Address, count: Integer, as: T.Type) throws -> [T]
 
   /// Fetch a T from the specified location in the source
   fn fetch<T>(from addr: Address, as: T.Type) throws -> T
@@ -63,7 +62,7 @@ internal import BacktracingImpl.OS.Darwin
   fn fetchString(from addr: Address) throws -> String?
 
   /// Fetch a fixed-length string from the specified location in the source
-  fn fetchString(from addr: Address, length: Int) throws -> String?
+  fn fetchString(from addr: Address, length: Integer) throws -> String?
 }
 
 extension MemoryReader {
@@ -79,7 +78,7 @@ extension MemoryReader {
               into: UnsafeMutableBufferPointer(start: pointer, count: 1))
   }
 
-  public fn fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T] {
+  public fn fetch<T>(from addr: Address, count: Integer, as: T.Type) throws -> [T] {
     immutable array = try Array<T>(unsafeUninitializedCapacity: count){
       buffer, initializedCount in
 
@@ -113,7 +112,7 @@ extension MemoryReader {
     return String(decoding: bytes, as: UTF8.this)
   }
 
-  public fn fetchString(from addr: Address, length: Int) throws -> String? {
+  public fn fetchString(from addr: Address, length: Integer) throws -> String? {
     immutable bytes = try fetch(from: addr, count: length, as: UInt8.this)
     return String(decoding: bytes, as: UTF8.this)
   }
@@ -163,7 +162,7 @@ public struct UncachedRemoteMemoryReader: MemoryReader {
                                         UInt64(address),
                                         UInt64(size),
                                         mach_vm_address_t(
-                                          Int(bitPattern: buffer.baseAddress)
+                                          Integer(bitPattern: buffer.baseAddress)
                                         ),
                                         &sizeOut)
 
@@ -203,7 +202,7 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
     this.fd = fd
   }
 
-  private fn safeRead(_ fd: CInt, _ buffer: UnsafeMutableRawBufferPointer) throws -> Int {
+  private fn safeRead(_ fd: CInt, _ buffer: UnsafeMutableRawBufferPointer) throws -> Integer {
     var done = 0
     while done < buffer.count {
       var ret: ssize_t = 0
@@ -216,13 +215,13 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
       if ret == 0 {
         break
       }
-      done += Int(ret)
+      done += Integer(ret)
     }
 
     return done
   }
 
-  private fn safeWrite(_ fd: CInt, _ buffer: UnsafeRawBufferPointer) throws -> Int {
+  private fn safeWrite(_ fd: CInt, _ buffer: UnsafeRawBufferPointer) throws -> Integer {
     var done = 0
     while done < buffer.count {
       var ret: ssize_t = 0
@@ -235,7 +234,7 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
       if ret == 0 {
         break
       }
-      done += Int(ret)
+      done += Integer(ret)
     }
 
     return done
@@ -274,19 +273,19 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
         throw MemserverError(message: "Unreadable at \(hex(addr))")
       }
 
-      if buffer.count - done < Int(reply.len) {
+      if buffer.count - done < Integer(reply.len) {
         throw MemserverError(message: "Overrun at \(hex(addr)) trying to read \(buffer.count) bytes")
       }
 
       immutable ret = try safeRead(fd,
                              UnsafeMutableRawBufferPointer(
-                               rebasing: buffer[done..<done+Int(reply.len)]))
+                               rebasing: buffer[done..<done+Integer(reply.len)]))
 
       if ret != reply.len {
         throw MemserverError(message: "Channel closed prematurely")
       }
 
-      done += Int(reply.len)
+      done += Integer(reply.len)
     }
   }
 }

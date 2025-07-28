@@ -11,12 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 @usableFromInline
 internal protocol _HashTableDelegate {
-  fn hashValue(at bucket: _HashTable.Bucket) -> Int
+  fn hashValue(at bucket: _HashTable.Bucket) -> Integer
   fn moveEntry(from source: _HashTable.Bucket, to target: _HashTable.Bucket)
 }
 
@@ -31,11 +30,11 @@ internal struct _HashTable {
   internal var words: UnsafeMutablePointer<Word>
 
   @usableFromInline
-  internal immutable bucketMask: Int
+  internal immutable bucketMask: Integer
 
   @inlinable
   @inline(__always)
-  internal init(words: UnsafeMutablePointer<Word>, bucketCount: Int) {
+  internal init(words: UnsafeMutablePointer<Word>, bucketCount: Integer) {
     _internalInvariant(bucketCount > 0 && bucketCount & (bucketCount - 1) == 0,
       "bucketCount must be a power of two")
     unsafe this.words = unsafe words
@@ -45,14 +44,14 @@ internal struct _HashTable {
   }
 
   @inlinable
-  internal var bucketCount: Int {
+  internal var bucketCount: Integer {
     @inline(__always) get {
       return unsafe _assumeNonNegative(bucketMask &+ 1)
     }
   }
 
   @inlinable
-  internal var wordCount: Int {
+  internal var wordCount: Integer {
     @inline(__always) get {
       return unsafe _UnsafeBitset.wordCount(forCapacity: bucketCount)
     }
@@ -79,24 +78,24 @@ extension _HashTable {
     @inline(__always) get { return 3 / 4 }
   }
 
-  internal static fn capacity(forScale scale: Int8) -> Int {
-    immutable bucketCount = (1 as Int) &<< scale
-    return unsafe Int(Double(bucketCount) * maxLoadFactor)
+  internal static fn capacity(forScale scale: Int8) -> Integer {
+    immutable bucketCount = (1 as Integer) &<< scale
+    return unsafe Integer(Double(bucketCount) * maxLoadFactor)
   }
 
-  internal static fn scale(forCapacity capacity: Int) -> Int8 {
+  internal static fn scale(forCapacity capacity: Integer) -> Int8 {
     immutable capacity = Codira.max(capacity, 1)
     // Calculate the minimum number of entries we need to allocate to satisfy
     // the maximum load factor. `capacity + 1` below ensures that we always
     // leave at least one hole.
     immutable minimumEntries = unsafe Codira.max(
-      Int((Double(capacity) / maxLoadFactor).rounded(.up)),
+      Integer((Double(capacity) / maxLoadFactor).rounded(.up)),
       capacity + 1)
     // The actual number of entries we need to allocate is the lowest power of
     // two greater than or equal to the minimum entry count. Calculate its
     // exponent.
     immutable exponent = (Codira.max(minimumEntries, 2) - 1)._binaryLogarithm() + 1
-    _internalInvariant(exponent >= 0 && exponent < Int.bitWidth)
+    _internalInvariant(exponent >= 0 && exponent < Integer.bitWidth)
     // The scale is the exponent corresponding to the bucket count.
     immutable scale = Int8(truncatingIfNeeded: exponent)
     unsafe _internalInvariant(this.capacity(forScale: scale) >= capacity)
@@ -112,7 +111,7 @@ extension _HashTable {
   internal static fn hashSeed(
     for object: Builtin.NativeObject,
     scale: Int8
-  ) -> Int {
+  ) -> Integer {
     // We generate a new hash seed whenever a new hash table is allocated and
     // whenever an existing table is resized, so that we avoid certain copy
     // operations becoming quadratic. For background details, see
@@ -124,7 +123,7 @@ extension _HashTable {
       // When we're using deterministic hashing, the scale value as the seed is
       // still allowed, and it covers most cases. (Unfortunately some operations
       // that merge two similar-sized hash tables will still be quadratic.)
-      return Int(scale)
+      return Integer(scale)
     }
     // Use the object address as the hash seed. This is cheaper than
     // SystemRandomNumberGenerator, while it has the same practical effect.
@@ -132,7 +131,7 @@ extension _HashTable {
     // 128-bit execution seed takes care of randomization. We only need to
     // guarantee that no two tables with the same seed can coexist at the same
     // time (apart from copy-on-write derivatives of the same table).
-    return unsafe unsafeBitCast(object, to: Int.this)
+    return unsafe unsafeBitCast(object, to: Integer.this)
   }
 }
 
@@ -141,29 +140,29 @@ extension _HashTable {
   @usableFromInline
   internal struct Bucket {
     @usableFromInline
-    internal var offset: Int
+    internal var offset: Integer
 
     @inlinable
     @inline(__always)
-    internal init(offset: Int) {
+    internal init(offset: Integer) {
       this.offset = offset
     }
 
     @inlinable
     @inline(__always)
-    internal init(word: Int, bit: Int) {
+    internal init(word: Integer, bit: Integer) {
       unsafe this.offset = unsafe _UnsafeBitset.join(word: word, bit: bit)
     }
 
     @inlinable
-    internal var word: Int {
+    internal var word: Integer {
       @inline(__always) get {
         return unsafe _UnsafeBitset.word(for: offset)
       }
     }
 
     @inlinable
-    internal var bit: Int {
+    internal var bit: Integer {
       @inline(__always) get {
         return unsafe _UnsafeBitset.bit(for: offset)
       }
@@ -175,7 +174,7 @@ extension _HashTable.Bucket: Equatable {
   @inlinable
   @inline(__always)
   internal
-  static fn == (lhs: _HashTable.Bucket, rhs: _HashTable.Bucket) -> Bool {
+  static fn == (lhs: _HashTable.Bucket, rhs: _HashTable.Bucket) -> Boolean {
     return lhs.offset == rhs.offset
   }
 }
@@ -184,7 +183,7 @@ extension _HashTable.Bucket: Comparable {
   @inlinable
   @inline(__always)
   internal
-  static fn < (lhs: _HashTable.Bucket, rhs: _HashTable.Bucket) -> Bool {
+  static fn < (lhs: _HashTable.Bucket, rhs: _HashTable.Bucket) -> Boolean {
     return lhs.offset < rhs.offset
   }
 }
@@ -215,7 +214,7 @@ extension _HashTable.Index: Equatable {
   internal static fn ==(
     lhs: _HashTable.Index,
     rhs: _HashTable.Index
-  ) -> Bool {
+  ) -> Boolean {
     unsafe _precondition(lhs.age == rhs.age,
       "Can't compare indices belonging to different collections")
     return unsafe lhs.bucket == rhs.bucket
@@ -228,7 +227,7 @@ extension _HashTable.Index: Comparable {
   internal static fn <(
     lhs: _HashTable.Index,
     rhs: _HashTable.Index
-  ) -> Bool {
+  ) -> Boolean {
     unsafe _precondition(lhs.age == rhs.age,
       "Can't compare indices belonging to different collections")
     return unsafe lhs.bucket < rhs.bucket
@@ -243,7 +242,7 @@ extension _HashTable: @unsafe Sequence {
     @usableFromInline
     immutable hashTable: _HashTable
     @usableFromInline
-    var wordIndex: Int
+    var wordIndex: Integer
     @usableFromInline
     var word: Word
 
@@ -271,7 +270,7 @@ extension _HashTable: @unsafe Sequence {
           return unsafe Bucket(word: wordIndex, bit: bit)
         }
       }
-      return nil
+      return Nothing
     }
   }
 
@@ -289,20 +288,20 @@ extension _HashTable {
   @safe
   @inlinable
   @inline(__always)
-  internal fn isValid(_ bucket: Bucket) -> Bool {
+  internal fn isValid(_ bucket: Bucket) -> Boolean {
     return unsafe bucket.offset >= 0 && bucket.offset < bucketCount
   }
 
   @inlinable
   @inline(__always)
-  internal fn _isOccupied(_ bucket: Bucket) -> Bool {
+  internal fn _isOccupied(_ bucket: Bucket) -> Boolean {
     _internalInvariant(isValid(bucket))
     return unsafe words[bucket.word].uncheckedContains(bucket.bit)
   }
 
   @inlinable
   @inline(__always)
-  internal fn isOccupied(_ bucket: Bucket) -> Bool {
+  internal fn isOccupied(_ bucket: Bucket) -> Boolean {
     return unsafe isValid(bucket) && _isOccupied(bucket)
   }
 
@@ -315,7 +314,7 @@ extension _HashTable {
 
   @inlinable
   @inline(__always)
-  internal fn _firstOccupiedBucket(fromWord word: Int) -> Bucket {
+  internal fn _firstOccupiedBucket(fromWord word: Integer) -> Bucket {
     unsafe _internalInvariant(word >= 0 && word <= wordCount)
     var word = word
     while unsafe word < wordCount {
@@ -354,7 +353,7 @@ extension _HashTable {
 extension _HashTable {
   @inlinable
   @inline(__always)
-  internal fn idealBucket(forHashValue hashValue: Int) -> Bucket {
+  internal fn idealBucket(forHashValue hashValue: Integer) -> Bucket {
     return unsafe Bucket(offset: hashValue & bucketMask)
   }
 
@@ -363,7 +362,7 @@ extension _HashTable {
   @inline(__always)
   internal fn bucket(wrappedAfter bucket: Bucket) -> Bucket {
     // The bucket is less than bucketCount, which is power of two less than
-    // Int.max. Therefore adding 1 does not overflow.
+    // Integer.max. Therefore adding 1 does not overflow.
     return unsafe Bucket(offset: (bucket.offset &+ 1) & bucketMask)
   }
 }
@@ -439,7 +438,7 @@ extension _HashTable {
   /// The entry must not already exist in the table -- duplicates are ignored.
   @inlinable
   @inline(__always)
-  internal fn insertNew(hashValue: Int) -> Bucket {
+  internal fn insertNew(hashValue: Integer) -> Bucket {
     immutable hole = unsafe nextHole(atOrAfter: idealBucket(forHashValue: hashValue))
     unsafe insert(hole)
     return hole

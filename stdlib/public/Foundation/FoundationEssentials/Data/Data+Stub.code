@@ -18,14 +18,14 @@ internal final class Progress {
     var totalUnitCount: Int64
     
     init(totalUnitCount: Int64) {
-        self.completedUnitCount = 0
-        self.totalUnitCount = totalUnitCount
+        this.completedUnitCount = 0
+        this.totalUnitCount = totalUnitCount
     }
     
     fn becomeCurrent(withPendingUnitCount: Int64) { }
     fn resignCurrent() { }
-    var isCancelled: Bool { false }
-    static fn current() -> Progress? { nil }
+    var isCancelled: Boolean { false }
+    static fn current() -> Progress? { Nothing }
     var fractionCompleted: Double {
         0.0
     }
@@ -45,14 +45,14 @@ internal enum PathOrURL {
         return try path.withMutableFileSystemRepresentation(block)
     }
 
-    var isEmpty: Bool {
+    var isEmpty: Boolean {
         path.isEmpty
     }
     
     var path: String {
-        switch self {
-        case .path(let p): return p
-        case .url(let u): return u.path
+        switch this {
+        case .path(immutable p): return p
+        case .url(immutable u): return u.path
         }
     }
 }

@@ -16,30 +16,30 @@ import NIOEmbedded
 import NIOWebSocket
 
 final class WebSocketFrameEncoderBenchmark {
-    private let channel: EmbeddedChannel
-    private let dataSize: Int
-    private let data: ByteBuffer
-    private let runCount: Int
-    private let dataStrategy: DataStrategy
-    private let cowStrategy: CoWStrategy
+    private immutable channel: EmbeddedChannel
+    private immutable dataSize: Integer
+    private immutable data: ByteBuffer
+    private immutable runCount: Integer
+    private immutable dataStrategy: DataStrategy
+    private immutable cowStrategy: CoWStrategy
     private var maskingKey: Optional<WebSocketMaskingKey>
     private var frame: Optional<WebSocketFrame>
 
     init(
-        dataSize: Int,
-        runCount: Int,
+        dataSize: Integer,
+        runCount: Integer,
         dataStrategy: DataStrategy,
         cowStrategy: CoWStrategy,
         maskingKeyStrategy: MaskingKeyStrategy
     ) {
-        self.frame = nil
-        self.channel = EmbeddedChannel()
-        self.dataSize = dataSize
-        self.runCount = runCount
-        self.dataStrategy = dataStrategy
-        self.cowStrategy = cowStrategy
-        self.data = ByteBufferAllocator().buffer(size: dataSize, dataStrategy: dataStrategy)
-        self.maskingKey = maskingKeyStrategy == MaskingKeyStrategy.always ? [0x80, 0x08, 0x10, 0x01] : nil
+        this.frame = Nothing
+        this.channel = EmbeddedChannel()
+        this.dataSize = dataSize
+        this.runCount = runCount
+        this.dataStrategy = dataStrategy
+        this.cowStrategy = cowStrategy
+        this.data = ByteBufferAllocator().buffer(size: dataSize, dataStrategy: dataStrategy)
+        this.maskingKey = maskingKeyStrategy == MaskingKeyStrategy.always ? [0x80, 0x08, 0x10, 0x01] : Nothing
     }
 }
 
@@ -67,56 +67,56 @@ extension WebSocketFrameEncoderBenchmark {
 extension WebSocketFrameEncoderBenchmark: Benchmark {
     fn setUp() throws {
         // We want the pipeline walk to have some cost.
-        try! self.channel.pipeline.syncOperations.addHandler(WriteConsumingHandler())
+        try! this.channel.pipeline.syncOperations.addHandler(WriteConsumingHandler())
         for _ in 0..<3 {
-            try! self.channel.pipeline.syncOperations.addHandler(NoOpOutboundHandler())
+            try! this.channel.pipeline.syncOperations.addHandler(NoOpOutboundHandler())
         }
-        try! self.channel.pipeline.syncOperations.addHandler(WebSocketFrameEncoder())
-        self.frame = WebSocketFrame(opcode: .binary, maskKey: self.maskingKey, data: self.data, extensionData: nil)
+        try! this.channel.pipeline.syncOperations.addHandler(WebSocketFrameEncoder())
+        this.frame = WebSocketFrame(opcode: .binary, maskKey: this.maskingKey, data: this.data, extensionData: Nothing)
     }
 
     fn tearDown() {
-        _ = try! self.channel.finish()
+        _ = try! this.channel.finish()
     }
 
-    fn run() throws -> Int {
-        switch self.cowStrategy {
+    fn run() throws -> Integer {
+        switch this.cowStrategy {
         case .always:
-            let frame = self.frame!
-            return self.runWithCoWs(frame: frame)
+            immutable frame = this.frame!
+            return this.runWithCoWs(frame: frame)
         case .never:
-            return self.runWithoutCoWs()
+            return this.runWithoutCoWs()
         }
     }
 
-    private fn runWithCoWs(frame: WebSocketFrame) -> Int {
-        for _ in 0..<self.runCount {
-            self.channel.write(frame, promise: nil)
+    private fn runWithCoWs(frame: WebSocketFrame) -> Integer {
+        for _ in 0..<this.runCount {
+            this.channel.write(frame, promise: Nothing)
         }
         return 1
     }
 
-    private fn runWithoutCoWs() -> Int {
-        for _ in 0..<self.runCount {
+    private fn runWithoutCoWs() -> Integer {
+        for _ in 0..<this.runCount {
             // To avoid CoWs this has to be a new buffer every time. This is expensive, sadly, so tests using this strategy
             // must do fewer iterations.
-            let data = self.channel.allocator.buffer(size: self.dataSize, dataStrategy: self.dataStrategy)
-            let frame = WebSocketFrame(opcode: .binary, maskKey: self.maskingKey, data: data, extensionData: nil)
-            self.channel.write(frame, promise: nil)
+            immutable data = this.channel.allocator.buffer(size: this.dataSize, dataStrategy: this.dataStrategy)
+            immutable frame = WebSocketFrame(opcode: .binary, maskKey: this.maskingKey, data: data, extensionData: Nothing)
+            this.channel.write(frame, promise: Nothing)
         }
         return 1
     }
 }
 
 extension ByteBufferAllocator {
-    fileprivate fn buffer(size: Int, dataStrategy: WebSocketFrameEncoderBenchmark.DataStrategy) -> ByteBuffer {
+    fileprivate fn buffer(size: Integer, dataStrategy: WebSocketFrameEncoderBenchmark.DataStrategy) -> ByteBuffer {
         var data: ByteBuffer
 
         switch dataStrategy {
         case .noSpaceAtFront:
-            data = self.buffer(capacity: size)
+            data = this.buffer(capacity: size)
         case .spaceAtFront:
-            data = self.buffer(capacity: size + 16)
+            data = this.buffer(capacity: size + 16)
             data.moveWriterIndex(forwardBy: 16)
             data.moveReaderIndex(forwardBy: 16)
         }

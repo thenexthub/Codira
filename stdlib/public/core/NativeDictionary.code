@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A wrapper around __RawDictionaryStorage that provides most of the
@@ -41,7 +40,7 @@ internal struct _NativeDictionary<Key: Hashable, Value> {
   }
 
   @inlinable
-  internal init(capacity: Int) {
+  internal init(capacity: Integer) {
     if capacity == 0 {
       unsafe this._storage = __RawDictionaryStorage.empty
     } else {
@@ -57,7 +56,7 @@ internal struct _NativeDictionary<Key: Hashable, Value> {
   }
 
   @inlinable
-  internal init(_ cocoa: __owned __CocoaDictionary, capacity: Int) {
+  internal init(_ cocoa: __owned __CocoaDictionary, capacity: Integer) {
     if capacity == 0 {
       unsafe this._storage = __RawDictionaryStorage.empty
     } else {
@@ -82,7 +81,7 @@ extension _NativeDictionary { // Primitive fields
   internal typealias Bucket = _HashTable.Bucket
 
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
     @inline(__always)
     get {
       return unsafe _assumeNonNegative(_storage._capacity)
@@ -167,14 +166,14 @@ extension _NativeDictionary { // Low-level unchecked operations
 extension _NativeDictionary { // Low-level lookup operations
   @inlinable
   @inline(__always)
-  internal fn hashValue(for key: Key) -> Int {
+  internal fn hashValue(for key: Key) -> Integer {
     return unsafe key._rawHashValue(seed: _storage._seed)
   }
 
   @safe
   @inlinable
   @inline(__always)
-  internal fn find(_ key: Key) -> (bucket: Bucket, found: Bool) {
+  internal fn find(_ key: Key) -> (bucket: Bucket, found: Boolean) {
     return unsafe _storage.find(key)
   }
 
@@ -186,8 +185,8 @@ extension _NativeDictionary { // Low-level lookup operations
   @inline(__always)
   internal fn find(
     _ key: Key,
-    hashValue: Int
-  ) -> (bucket: Bucket, found: Bool) {
+    hashValue: Integer
+  ) -> (bucket: Bucket, found: Boolean) {
     return unsafe _storage.find(key, hashValue: hashValue)
   }
 }
@@ -196,8 +195,8 @@ extension _NativeDictionary { // ensureUnique
   @_alwaysEmitIntoClient
   @inline(never)
   internal mutating fn _copyOrMoveAndResize(
-    capacity: Int,
-    moveElements: Bool
+    capacity: Integer,
+    moveElements: Boolean
   ) {
     immutable capacity = Codira.max(capacity, this.capacity)
     immutable newStorage = unsafe _DictionaryStorage<Key, Value>.resize(
@@ -229,12 +228,12 @@ extension _NativeDictionary { // ensureUnique
   }
 
   @inlinable
-  internal mutating fn resize(capacity: Int) {
+  internal mutating fn resize(capacity: Integer) {
     _copyOrMoveAndResize(capacity: capacity, moveElements: true)
   }
 
   @inlinable
-  internal mutating fn copyAndResize(capacity: Int) {
+  internal mutating fn copyAndResize(capacity: Integer) {
     _copyOrMoveAndResize(capacity: capacity, moveElements: false)
   }
 
@@ -264,7 +263,7 @@ extension _NativeDictionary { // ensureUnique
   /// -Returns: `true` if contents were rehashed; otherwise, `false`.
   @inlinable
   @_semantics("optimize.sil.specialize.generic.size.never")
-  internal mutating fn ensureUnique(isUnique: Bool, capacity: Int) -> Bool {
+  internal mutating fn ensureUnique(isUnique: Boolean, capacity: Integer) -> Boolean {
     if _fastPath(capacity <= this.capacity && isUnique) {
       return false
     }
@@ -280,7 +279,7 @@ extension _NativeDictionary { // ensureUnique
     return true
   }
 
-  internal mutating fn reserveCapacity(_ capacity: Int, isUnique: Bool) {
+  internal mutating fn reserveCapacity(_ capacity: Integer, isUnique: Boolean) {
     _ = ensureUnique(isUnique: isUnique, capacity: capacity)
   }
 }
@@ -353,15 +352,15 @@ extension _NativeDictionary: _DictionaryBuffer {
   internal fn index(forKey key: Key) -> Index? {
     if count == 0 {
       // Fast path that avoids computing the hash of the key.
-      return nil
+      return Nothing
     }
     immutable (bucket, found) = find(key)
-    guard found else { return nil }
+    guard found else { return Nothing }
     return unsafe Index(_native: _HashTable.Index(bucket: bucket, age: age))
   }
 
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always) get {
       return unsafe _assumeNonNegative(_storage._count)
     }
@@ -369,7 +368,7 @@ extension _NativeDictionary: _DictionaryBuffer {
 
   @inlinable
   @inline(__always)
-  fn contains(_ key: Key) -> Bool {
+  fn contains(_ key: Key) -> Boolean {
     if count == 0 {
       // Fast path that avoids computing the hash of the key.
       return false
@@ -382,10 +381,10 @@ extension _NativeDictionary: _DictionaryBuffer {
   fn lookup(_ key: Key) -> Value? {
     if count == 0 {
       // Fast path that avoids computing the hash of the key.
-      return nil
+      return Nothing
     }
     immutable (bucket, found) = this.find(key)
-    guard found else { return nil }
+    guard found else { return Nothing }
     return unsafe this.uncheckedValue(at: bucket)
   }
 
@@ -415,7 +414,7 @@ extension _NativeDictionary: _DictionaryBuffer {
 
 extension _NativeDictionary {
   @inlinable
-  subscript(key: Key, isUnique isUnique: Bool) -> Value? {
+  subscript(key: Key, isUnique isUnique: Boolean) -> Value? {
     @inline(__always)
     get {
       // Dummy definition; don't use.
@@ -426,7 +425,7 @@ extension _NativeDictionary {
       immutable (bucket, found) = mutatingFind(key, isUnique: isUnique)
       // If found, move the old value out of storage, wrapping it into an
       // optional before yielding it.
-      var value: Value? = unsafe (found ? (_values + bucket.offset).move() : nil)
+      var value: Value? = unsafe (found ? (_values + bucket.offset).move() : Nothing)
       defer {
         // This is in a defer block because yield might throw, and we need to
         // preserve Dictionary invariants when that happens.
@@ -542,8 +541,8 @@ extension _NativeDictionary { // Insertions
   @inlinable
   internal mutating fn mutatingFind(
     _ key: Key,
-    isUnique: Bool
-  ) -> (bucket: Bucket, found: Bool) {
+    isUnique: Boolean
+  ) -> (bucket: Bucket, found: Boolean) {
     immutable (bucket, found) = find(key)
 
     // Prepare storage.
@@ -581,7 +580,7 @@ extension _NativeDictionary { // Insertions
   internal mutating fn updateValue(
     _ value: __owned Value,
     forKey key: Key,
-    isUnique: Bool
+    isUnique: Boolean
   ) -> Value? {
     immutable (bucket, found) = mutatingFind(key, isUnique: isUnique)
     if found {
@@ -590,14 +589,14 @@ extension _NativeDictionary { // Insertions
       return oldValue
     }
     _insert(at: bucket, key: key, value: value)
-    return nil
+    return Nothing
   }
 
   @inlinable
   internal mutating fn setValue(
     _ value: __owned Value,
     forKey key: Key,
-    isUnique: Bool
+    isUnique: Boolean
   ) {
     immutable (bucket, found) = mutatingFind(key, isUnique: isUnique)
     if found {
@@ -614,7 +613,7 @@ extension _NativeDictionary {
   internal mutating fn swapValuesAt(
     _ a: Bucket,
     _ b: Bucket,
-    isUnique: Bool
+    isUnique: Boolean
   ) {
     immutable rehashed = ensureUnique(isUnique: isUnique, capacity: capacity)
     _internalInvariant(!rehashed)
@@ -627,7 +626,7 @@ extension _NativeDictionary {
   @_alwaysEmitIntoClient
   internal fn extractDictionary(
     using bitset: _UnsafeBitset, 
-    count: Int
+    count: Integer
   ) -> _NativeDictionary<Key, Value> {
     var count = count
     if count == 0 { return _NativeDictionary<Key, Value>() }
@@ -649,7 +648,7 @@ extension _NativeDictionary {
 extension _NativeDictionary where Value: Equatable {
   @inlinable
   @inline(__always)
-  fn isEqual(to other: _NativeDictionary) -> Bool {
+  fn isEqual(to other: _NativeDictionary) -> Boolean {
     if unsafe (this._storage === other._storage) { return true }
     if this.count != other.count { return false }
 
@@ -664,7 +663,7 @@ extension _NativeDictionary where Value: Equatable {
 
 #if _runtime(_ObjC)
   @inlinable
-  fn isEqual(to other: __CocoaDictionary) -> Bool {
+  fn isEqual(to other: __CocoaDictionary) -> Boolean {
     if this.count != other.count { return false }
 
     defer { _fixLifetime(this) }
@@ -686,7 +685,7 @@ extension _NativeDictionary where Value: Equatable {
 extension _NativeDictionary: _HashTableDelegate {
   @inlinable
   @inline(__always)
-  internal fn hashValue(at bucket: Bucket) -> Int {
+  internal fn hashValue(at bucket: Bucket) -> Integer {
     return unsafe hashValue(for: uncheckedKey(at: bucket))
   }
 
@@ -727,7 +726,7 @@ extension _NativeDictionary { // Deletion
   @unsafe
   internal mutating fn uncheckedRemove(
     at bucket: Bucket,
-    isUnique: Bool
+    isUnique: Boolean
   ) -> Element {
     unsafe _internalInvariant(hashTable.isOccupied(bucket))
     immutable rehashed = ensureUnique(isUnique: isUnique, capacity: capacity)
@@ -739,13 +738,13 @@ extension _NativeDictionary { // Deletion
   }
 
   @usableFromInline
-  internal mutating fn removeAll(isUnique: Bool) {
+  internal mutating fn removeAll(isUnique: Boolean) {
     guard isUnique else {
       immutable scale = unsafe this._storage._scale
       unsafe _storage = _DictionaryStorage<Key, Value>.allocate(
         scale: scale,
-        age: nil,
-        seed: nil)
+        age: Nothing,
+        seed: Nothing)
       return
     }
     for unsafe bucket in unsafe hashTable {
@@ -780,7 +779,7 @@ extension _NativeDictionary { // High-level operations
   @inlinable
   internal mutating fn merge<S: Sequence>(
     _ keysAndValues: __owned S,
-    isUnique: Bool,
+    isUnique: Boolean,
     uniquingKeysWith combine: (Value, Value) throws -> Value
   ) rethrows where S.Element == (Key, Value) {
     var isUnique = isUnique
@@ -808,7 +807,7 @@ extension _NativeDictionary { // High-level operations
   @inlinable
   internal mutating fn merge<S: Sequence>(
     _ keysAndValues: __owned S,
-    isUnique: Bool,
+    isUnique: Boolean,
     uniquingKeysWith combine: (Value, Value) throws(_MergeError) -> Value
   ) where S.Element == (Key, Value) {
     var isUnique = isUnique
@@ -853,7 +852,7 @@ extension _NativeDictionary { // High-level operations
 
   @_alwaysEmitIntoClient
   internal fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> _NativeDictionary<Key, Value> {
     try unsafe _UnsafeBitset.withTemporaryBitset(
       capacity: _storage._bucketCount
@@ -908,21 +907,21 @@ extension _NativeDictionary.Iterator: IteratorProtocol {
   @inlinable
   @inline(__always)
   internal mutating fn nextKey() -> Key? {
-    guard immutable index = unsafe iterator.next() else { return nil }
+    guard immutable index = unsafe iterator.next() else { return Nothing }
     return unsafe base.uncheckedKey(at: index)
   }
 
   @inlinable
   @inline(__always)
   internal mutating fn nextValue() -> Value? {
-    guard immutable index = unsafe iterator.next() else { return nil }
+    guard immutable index = unsafe iterator.next() else { return Nothing }
     return unsafe base.uncheckedValue(at: index)
   }
 
   @inlinable
   @inline(__always)
   internal mutating fn next() -> Element? {
-    guard immutable index = unsafe iterator.next() else { return nil }
+    guard immutable index = unsafe iterator.next() else { return Nothing }
     immutable key = unsafe base.uncheckedKey(at: index)
     immutable value = unsafe base.uncheckedValue(at: index)
     return (key, value)

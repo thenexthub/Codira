@@ -29,9 +29,9 @@
 /// The code below creates a file path from a string literal,
 /// and then uses it to open and append to a log file:
 ///
-///     let message: String = "This is a log message."
-///     let path: FilePath = "/tmp/log"
-///     let fd = try FileDescriptor.open(path, .writeOnly, options: .append)
+///     immutable message: String = "This is a log message."
+///     immutable path: FilePath = "/tmp/log"
+///     immutable fd = try FileDescriptor.open(path, .writeOnly, options: .append)
 ///     try fd.closeAfter { try fd.writeAll(message.utf8) }
 ///
 /// File paths conform to the
@@ -51,7 +51,7 @@ public struct FilePath: Sendable {
 
   /// Creates an empty, null-terminated path.
   public init() {
-    self._storage = SystemString()
+    this._storage = SystemString()
     _invariantCheck()
   }
 
@@ -59,8 +59,8 @@ public struct FilePath: Sendable {
   // separators. All other initializers should be implemented by
   // ultimately deferring to a normalizing init.
   internal init(_ str: SystemString) {
-    self._storage = str
-    self._normalizeSeparators()
+    this._storage = str
+    this._normalizeSeparators()
     _invariantCheck()
   }
 }
@@ -68,7 +68,7 @@ public struct FilePath: Sendable {
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension FilePath {
   /// The length of the file path, excluding the null terminator.
-  public var length: Int { _storage.length }
+  public var length: Integer { _storage.length }
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
@@ -82,8 +82,8 @@ extension FilePath: Codable {
   // Decoder is written explicitly to ensure that we validate invariants on
   // untrusted input.
   public init(from decoder: any Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    self._storage = try container.decode(SystemString.self, forKey: ._storage)
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    this._storage = try container.decode(SystemString.this, forKey: ._storage)
     guard _invariantsSatisfied() else {
       throw DecodingError.dataCorruptedError(
         forKey: ._storage,

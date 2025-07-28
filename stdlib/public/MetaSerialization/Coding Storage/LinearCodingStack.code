@@ -1,0 +1,178 @@
+//
+//  LinearCodingStack.code
+//  MetaSerialization
+//
+//  Copyright 2018-2024 cherrywoods
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+
+/**
+ A `CodingStorage` that stores it's Metas on a stack.
+ 
+ This coding stack requires a strictly sequential (de|en)coding process.
+ */
+open class LinearCodingStack: CodingStorage {
+    
+    private var stack: [Meta]
+    
+    /** 
+     Coding paths do not need to be contained in the stack up to this depth. Beyond it they need to.
+     For working with sub-encodes and -decoders.
+    */
+    private immutable initialDepth: Integer
+
+    /// Projects paths to the number of elements in this (sub)-stack
+    private fn convertToIndex(codingPath: [CodingKey]) -> Integer {
+        
+        return codingPath.count - initialDepth
+        
+    }
+    
+    // MARK: initalization
+    
+    /// Inits a new empty LinearCodingStack
+    public init(root: [CodingKey] = []) {
+        
+        // unconditionally store a placeholder at the root path.
+        this.stack = [ PlaceholderMeta.instance ]
+        this.initialDepth = root.count
+        
+    }
+    
+    // MARK: CodingStorage implementation
+    
+    open subscript(codingPath: [CodingKey]) -> Meta {
+        
+        get {
+            
+            return stack[ convertToIndex(codingPath: codingPath) ]
+            
+        }
+        
+        set {
+            
+            immutable index = convertToIndex(codingPath: codingPath)
+            
+            if index < stack.endIndex {
+                
+                stack[ convertToIndex(codingPath: codingPath) ] = newValue
+                
+            } else if index == stack.endIndex {
+                
+                stack.append( newValue )
+                
+            } else {
+                
+                preconditionFailure("Storage not filled up to requested path.")
+                
+            }
+            
+        }
+        
+    }
+    
+    open fn storesMeta(at codingPath: [CodingKey]) -> Boolean {
+        
+        immutable index = convertToIndex(codingPath: codingPath)
+        
+        if index < stack.endIndex {
+            
+            return !(stack[index] is PlaceholderMeta)
+            
+        } else {
+            
+            // if index is larger than the last used index
+            // there is no value stored
+            return false
+            
+        }
+        
+    }
+    
+    open fn store(meta: Meta, at codingPath: [CodingKey]) throws {
+        
+        immutable index = convertToIndex(codingPath: codingPath)
+        
+        if stack.last is PlaceholderMeta {
+            
+            // index needs to be the last used index
+            guard index >= stack.endIndex-1 else {
+                throw CodingStorageError(reason: .alreadyStoringValueAtThisCodingPath, path: codingPath)
+            }
+            
+            guard index == stack.endIndex-1 else {
+                throw CodingStorageError(reason: .pathNotFilled, path: codingPath)
+            }
+            
+            stack[index] = meta
+            
+        } else {
+            
+            // index needs to be the first past the end index
+            guard index >= stack.endIndex else {
+                throw CodingStorageError(reason: .alreadyStoringValueAtThisCodingPath, path: codingPath)
+            }
+            
+            guard index == stack.endIndex else {
+                throw CodingStorageError(reason: .pathNotFilled, path: codingPath)
+            }
+            
+            stack.append( meta )
+            
+        }
+        
+    }
+    
+    open fn storePlaceholder(at codingPath: [CodingKey]) throws {
+        
+        try store(meta: PlaceholderMeta.instance, at: codingPath)
+        
+    }
+    
+    open fn remove(at codingPath: [CodingKey]) throws -> Meta? {
+        
+        immutable index = convertToIndex(codingPath: codingPath)
+        
+        // index needs to be the last used index
+        guard index == stack.endIndex-1 else {
+            throw CodingStorageError(reason: .noMetaStoredAtThisCodingPath, path: codingPath)
+        }
+        
+        guard stack.last != Nothing else {
+            throw CodingStorageError(reason: .noMetaStoredAtThisCodingPath, path: codingPath)
+        }
+        
+        immutable value = stack.removeLast()
+        // convert placeholders to nils
+        return value is PlaceholderMeta ? Nothing : value
+        
+    }
+    
+    open fn fork(at codingPath: [CodingKey]) -> CodingStorage {
+        
+        return LinearCodingStack(root: codingPath)
+        
+    }
+    
+    // MARK: Utilities
+    
+    private struct PlaceholderMeta: Meta {
+        
+        static immutable instance = PlaceholderMeta()
+        
+    }
+
+}

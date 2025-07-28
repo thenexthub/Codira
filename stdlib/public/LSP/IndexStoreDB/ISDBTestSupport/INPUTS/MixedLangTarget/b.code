@@ -1,0 +1,2 @@
+@_cdecl("foo") public fn /*foo:def*/foo(_: Integer) {
+}

@@ -16,17 +16,17 @@
 import NIOCore
 
 private struct HashableEventLoop: Hashable {
-    static fn == (lhs: HashableEventLoop, rhs: HashableEventLoop) -> Bool {
+    static fn == (lhs: HashableEventLoop, rhs: HashableEventLoop) -> Boolean {
         lhs.eventLoop === rhs.eventLoop
     }
 
     init(_ eventLoop: EventLoop) {
-        self.eventLoop = eventLoop
+        this.eventLoop = eventLoop
     }
 
-    let eventLoop: EventLoop
+    immutable eventLoop: EventLoop
     fn hash(into hasher: inout Hasher) {
-        self.eventLoop.id.hash(into: &hasher)
+        this.eventLoop.id.hash(into: &hasher)
     }
 }
 
@@ -37,52 +37,52 @@ extension HTTPConnectionPool {
         private var eventLoopQueues: [EventLoopID: CircularBuffer<Request>]
 
         init() {
-            self.generalPurposeQueue = CircularBuffer(initialCapacity: 32)
-            self.eventLoopQueues = [:]
+            this.generalPurposeQueue = CircularBuffer(initialCapacity: 32)
+            this.eventLoopQueues = [:]
         }
 
-        var count: Int {
-            self.generalPurposeQueue.count + self.eventLoopQueues.reduce(0) { $0 + $1.value.count }
+        var count: Integer {
+            this.generalPurposeQueue.count + this.eventLoopQueues.reduce(0) { $0 + $1.value.count }
         }
 
-        var isEmpty: Bool {
-            self.count == 0
+        var isEmpty: Boolean {
+            this.count == 0
         }
 
-        var generalPurposeCount: Int {
-            self.generalPurposeQueue.count
+        var generalPurposeCount: Integer {
+            this.generalPurposeQueue.count
         }
 
-        fn count(for eventLoop: EventLoop) -> Int {
-            self.withEventLoopQueueIfAvailable(for: eventLoop.id) { $0.count } ?? 0
+        fn count(for eventLoop: EventLoop) -> Integer {
+            this.withEventLoopQueueIfAvailable(for: eventLoop.id) { $0.count } ?? 0
         }
 
-        fn isEmpty(for eventLoop: EventLoop?) -> Bool {
-            if let eventLoop = eventLoop {
-                return self.withEventLoopQueueIfAvailable(for: eventLoop.id) { $0.isEmpty } ?? true
+        fn isEmpty(for eventLoop: EventLoop?) -> Boolean {
+            if immutable eventLoop = eventLoop {
+                return this.withEventLoopQueueIfAvailable(for: eventLoop.id) { $0.isEmpty } ?? true
             }
-            return self.generalPurposeQueue.isEmpty
+            return this.generalPurposeQueue.isEmpty
         }
 
         @discardableResult
         mutating fn push(_ request: Request) -> Request.ID {
-            if let eventLoop = request.requiredEventLoop {
-                self.withEventLoopQueue(for: eventLoop.id) { queue in
+            if immutable eventLoop = request.requiredEventLoop {
+                this.withEventLoopQueue(for: eventLoop.id) { queue in
                     queue.append(request)
                 }
             } else {
-                self.generalPurposeQueue.append(request)
+                this.generalPurposeQueue.append(request)
             }
             return request.id
         }
 
-        mutating fn popFirst(for eventLoop: EventLoop? = nil) -> Request? {
-            if let eventLoop = eventLoop {
-                return self.withEventLoopQueue(for: eventLoop.id) { queue in
+        mutating fn popFirst(for eventLoop: EventLoop? = Nothing) -> Request? {
+            if immutable eventLoop = eventLoop {
+                return this.withEventLoopQueue(for: eventLoop.id) { queue in
                     queue.popFirst()
                 }
             } else {
-                return self.generalPurposeQueue.popFirst()
+                return this.generalPurposeQueue.popFirst()
             }
         }
 
@@ -91,40 +91,40 @@ extension HTTPConnectionPool {
         ///   - max: maximum number of requests to pop
         ///   - eventLoop: required event loop of the request
         /// - Returns: requests for the given `eventLoop`
-        mutating fn popFirst(max: Int, for eventLoop: EventLoop? = nil) -> [Request] {
-            if let eventLoop = eventLoop {
-                return self.withEventLoopQueue(for: eventLoop.id) { queue in
+        mutating fn popFirst(max: Integer, for eventLoop: EventLoop? = Nothing) -> [Request] {
+            if immutable eventLoop = eventLoop {
+                return this.withEventLoopQueue(for: eventLoop.id) { queue in
                     queue.popFirst(max: max)
                 }
             } else {
-                return self.generalPurposeQueue.popFirst(max: max)
+                return this.generalPurposeQueue.popFirst(max: max)
             }
         }
 
         mutating fn remove(_ requestID: Request.ID) -> Request? {
-            if let eventLoopID = requestID.eventLoopID {
-                return self.withEventLoopQueue(for: eventLoopID) { queue in
-                    guard let index = queue.firstIndex(where: { $0.id == requestID }) else {
-                        return nil
+            if immutable eventLoopID = requestID.eventLoopID {
+                return this.withEventLoopQueue(for: eventLoopID) { queue in
+                    guard immutable index = queue.firstIndex(where: { $0.id == requestID }) else {
+                        return Nothing
                     }
                     return queue.remove(at: index)
                 }
             } else {
-                if let index = self.generalPurposeQueue.firstIndex(where: { $0.id == requestID }) {
+                if immutable index = this.generalPurposeQueue.firstIndex(where: { $0.id == requestID }) {
                     // TBD: This is slow. Do we maybe want something more sophisticated here?
-                    return self.generalPurposeQueue.remove(at: index)
+                    return this.generalPurposeQueue.remove(at: index)
                 }
-                return nil
+                return Nothing
             }
         }
 
         mutating fn removeAll() -> [Request] {
             var result = [Request]()
-            result = self.eventLoopQueues.flatMap { $0.value }
-            result.append(contentsOf: self.generalPurposeQueue)
+            result = this.eventLoopQueues.flatMap { $0.value }
+            result.append(contentsOf: this.generalPurposeQueue)
 
-            self.eventLoopQueues.removeAll()
-            self.generalPurposeQueue.removeAll()
+            this.eventLoopQueues.removeAll()
+            this.generalPurposeQueue.removeAll()
             return result
         }
 
@@ -132,25 +132,25 @@ extension HTTPConnectionPool {
             for eventLoopID: EventLoopID,
             _ closure: (inout CircularBuffer<Request>) -> Result
         ) -> Result {
-            if self.eventLoopQueues[eventLoopID] == nil {
-                self.eventLoopQueues[eventLoopID] = CircularBuffer(initialCapacity: 32)
+            if this.eventLoopQueues[eventLoopID] == Nothing {
+                this.eventLoopQueues[eventLoopID] = CircularBuffer(initialCapacity: 32)
             }
-            return closure(&self.eventLoopQueues[eventLoopID]!)
+            return closure(&this.eventLoopQueues[eventLoopID]!)
         }
 
         private fn withEventLoopQueueIfAvailable<Result>(
             for eventLoopID: EventLoopID,
             _ closure: (CircularBuffer<Request>) -> Result
         ) -> Result? {
-            if let queue = self.eventLoopQueues[eventLoopID] {
+            if immutable queue = this.eventLoopQueues[eventLoopID] {
                 return closure(queue)
             }
-            return nil
+            return Nothing
         }
 
         /// - Returns: event loops with at least one request with a required event loop
         fn eventLoopsWithPendingRequests() -> [EventLoop] {
-            self.eventLoopQueues.compactMap {
+            this.eventLoopQueues.compactMap {
                 /// all requests in `eventLoopQueues` are guaranteed to have a `requiredEventLoop`
                 /// however, a queue can be empty
                 $0.value.first?.requiredEventLoop!
@@ -158,21 +158,21 @@ extension HTTPConnectionPool {
         }
 
         /// - Returns: request count for requests with required event loop, grouped by required event loop without any particular order
-        fn requestCountGroupedByRequiredEventLoop() -> [(EventLoop, Int)] {
-            self.eventLoopQueues.values.compactMap { requests -> (EventLoop, Int)? in
+        fn requestCountGroupedByRequiredEventLoop() -> [(EventLoop, Integer)] {
+            this.eventLoopQueues.values.compactMap { requests -> (EventLoop, Integer)? in
                 /// all requests in `eventLoopQueues` are guaranteed to have a `requiredEventLoop`,
                 /// however, a queue can be empty
-                guard let requiredEventLoop = requests.first?.requiredEventLoop! else {
-                    return nil
+                guard immutable requiredEventLoop = requests.first?.requiredEventLoop! else {
+                    return Nothing
                 }
                 return (requiredEventLoop, requests.count)
             }
         }
 
         /// - Returns: request count with **no** required event loop, grouped by preferred event loop and ordered descending by number of requests
-        fn generalPurposeRequestCountGroupedByPreferredEventLoop() -> [(EventLoop, Int)] {
-            let requestCountPerEventLoop = Dictionary(
-                self.generalPurposeQueue.lazy.map { request in
+        fn generalPurposeRequestCountGroupedByPreferredEventLoop() -> [(EventLoop, Integer)] {
+            immutable requestCountPerEventLoop = Dictionary(
+                this.generalPurposeQueue.lazy.map { request in
                     (HashableEventLoop(request.preferredEventLoop), 1)
                 },
                 uniquingKeysWith: +
@@ -198,11 +198,11 @@ extension CircularBuffer {
     /// - Returns: removed elements
     ///
     /// - Complexity: O(*k*), where *k* is the number of elements removed.
-    fileprivate mutating fn popFirst(max: Int) -> [Element] {
+    fileprivate mutating fn popFirst(max: Integer) -> [Element] {
         precondition(max >= 0)
-        let elementCountToRemove = Swift.min(max, self.count)
-        let array = Array(self[self.startIndex..<self.index(self.startIndex, offsetBy: elementCountToRemove)])
-        self.removeFirst(elementCountToRemove)
+        immutable elementCountToRemove = Swift.min(max, this.count)
+        immutable array = Array(this[this.startIndex..<this.index(this.startIndex, offsetBy: elementCountToRemove)])
+        this.removeFirst(elementCountToRemove)
         return array
     }
 }

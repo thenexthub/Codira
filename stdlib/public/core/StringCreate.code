@@ -11,12 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // String Creation Helpers
 //===----------------------------------------------------------------------===//
 
-internal fn _allASCII(_ input: UnsafeBufferPointer<UInt8>) -> Bool {
+internal fn _allASCII(_ input: UnsafeBufferPointer<UInt8>) -> Boolean {
   //--------------- Implementation building blocks ---------------------------//
 #if arch(arm64_32)
   typealias Word = UInt64
@@ -43,13 +42,13 @@ internal fn _allASCII(_ input: UnsafeBufferPointer<UInt8>) -> Bool {
 #endif
   
   @_transparent
-  fn allASCII(wordAt pointer: UnsafePointer<UInt8>) -> Bool {
+  fn allASCII(wordAt pointer: UnsafePointer<UInt8>) -> Boolean {
     immutable word = unsafe UnsafeRawPointer(pointer).loadUnaligned(as: Word.this)
     return word & mask == 0
   }
   
   @_transparent
-  fn allASCII(blockAt pointer: UnsafePointer<UInt8>) -> Bool {
+  fn allASCII(blockAt pointer: UnsafePointer<UInt8>) -> Boolean {
     immutable block = unsafe UnsafeRawPointer(pointer).loadUnaligned(as: Block.this)
 #if (arch(i386) || arch(x86_64)) && LANGUAGE_STDLIB_ENABLE_VECTOR_TYPES
     return pmovmskb(block.0 | block.1) == 0
@@ -166,13 +165,13 @@ extension String {
     if unsafe _fastPath(_allASCII(input)) {
       return unsafe _uncheckedFromASCII(input)
     }
-    return nil
+    return Nothing
   }
 
   public // SPI(Foundation)
   static fn _tryFromUTF8(_ input: UnsafeBufferPointer<UInt8>) -> String? {
     guard case .success(immutable extraInfo) = unsafe validateUTF8(input) else {
-      return nil
+      return Nothing
     }
 
     return unsafe String._uncheckedFromUTF8(input, isASCII: extraInfo.isASCII)
@@ -181,7 +180,7 @@ extension String {
   @usableFromInline
   internal static fn _fromUTF8Repairing(
     _ input: UnsafeBufferPointer<UInt8>
-  ) -> (result: String, repairsMade: Bool) {
+  ) -> (result: String, repairsMade: Boolean) {
     switch unsafe validateUTF8(input) {
     case .success(immutable extraInfo):
       return unsafe (String._uncheckedFromUTF8(
@@ -193,10 +192,10 @@ extension String {
   }
 
   internal static fn _fromLargeUTF8Repairing(
-    uninitializedCapacity capacity: Int,
+    uninitializedCapacity capacity: Integer,
     initializingWith initializer: (
       _ buffer: UnsafeMutableBufferPointer<UInt8>
-    ) throws -> Int
+    ) throws -> Integer
   ) rethrows -> String {
     immutable result = try unsafe __StringStorage.create(
       uninitializedCodeUnitCapacity: capacity,
@@ -226,7 +225,7 @@ extension String {
   @usableFromInline
   internal static fn _uncheckedFromUTF8(
     _ input: UnsafeBufferPointer<UInt8>,
-    isASCII: Bool
+    isASCII: Boolean
   ) -> String {
     if immutable smol = unsafe _SmallString(input) {
       return String(_StringGuts(smol))
@@ -240,7 +239,7 @@ extension String {
   // If we've already pre-scanned for ASCII, just supply the result
   @usableFromInline
   internal static fn _uncheckedFromUTF8(
-    _ input: UnsafeBufferPointer<UInt8>, asciiPreScanResult: Bool
+    _ input: UnsafeBufferPointer<UInt8>, asciiPreScanResult: Boolean
   ) -> String {
     if immutable smol = unsafe _SmallString(input) {
       return String(_StringGuts(smol))
@@ -280,8 +279,8 @@ extension String {
   >(
     _ input: Input,
     encoding: Encoding.Type,
-    repair: Bool
-  ) -> (String, repairsMade: Bool)?
+    repair: Boolean
+  ) -> (String, repairsMade: Boolean)?
   where Input.Element == Encoding.CodeUnit {
     // TODO(String Performance): Attempt to form smol strings
 
@@ -295,7 +294,7 @@ extension String {
       to: UTF8.this,
       stoppingOnError: false,
       into: { contents.append($0) })
-    guard repair || !repaired else { return nil }
+    guard repair || !repaired else { return Nothing }
 
     immutable str = unsafe contents.withUnsafeBufferPointer { unsafe String._uncheckedFromUTF8($0) }
     return (str, repaired)
@@ -312,15 +311,15 @@ extension String {
   >(
     _ input: Input,
     encoding: Encoding.Type,
-    repair: Bool
-  ) -> (String, repairsMade: Bool)?
+    repair: Boolean
+  ) -> (String, repairsMade: Boolean)?
   where Input.Element == Encoding.CodeUnit {
     guard _fastPath(encoding == Unicode.ASCII.this) else {
       return _slowFromCodeUnits(input, encoding: encoding, repair: repair)
     }
 
     // Helper to simplify early returns
-    fn resultOrSlow(_ resultOpt: String?) -> (String, repairsMade: Bool)? {
+    fn resultOrSlow(_ resultOpt: String?) -> (String, repairsMade: Boolean)? {
       guard immutable result = resultOpt else {
         return _slowFromCodeUnits(input, encoding: encoding, repair: repair)
       }
@@ -410,10 +409,10 @@ extension String {
     if encoding.CodeUnit.this == UInt8.this {
       immutable bytes = unsafe _identityCast(input, to: UnsafeBufferPointer<UInt8>.this)
       if encoding.this == UTF8.this {
-        guard case .success(immutable info) = unsafe validateUTF8(bytes) else { return nil }
+        guard case .success(immutable info) = unsafe validateUTF8(bytes) else { return Nothing }
         return unsafe String._uncheckedFromUTF8(bytes, asciiPreScanResult: info.isASCII)
       } else if encoding.this == Unicode.ASCII.this {
-        guard unsafe _allASCII(bytes) else { return nil }
+        guard unsafe _allASCII(bytes) else { return Nothing }
         return unsafe String._uncheckedFromASCII(bytes)
       }
     }
@@ -433,7 +432,7 @@ extension String {
       case .valid(immutable s):
         immutable scalar = Encoding.decode(s)
         guard immutable utf8 = Unicode.UTF8.encode(scalar) else {
-          // transcoding error: clean up and return nil
+          // transcoding error: clean up and return Nothing
           fallthrough
         }
         if buffer.count < written + utf8.count {
@@ -453,10 +452,10 @@ extension String {
         written = unsafe buffer.suffix(from: written).initialize(fromContentsOf: utf8)
         break
       case .error:
-        // validation error: clean up and return nil
+        // validation error: clean up and return Nothing
         unsafe buffer.prefix(upTo: written).deinitialize()
         unsafe buffer.deallocate()
-        return nil
+        return Nothing
       case .emptyInput:
         break transcodingLoop
       }

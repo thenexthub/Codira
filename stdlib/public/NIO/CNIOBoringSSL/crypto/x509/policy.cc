@@ -223,7 +223,7 @@ static int delete_if_not_in_policies(X509_POLICY_NODE *node, void *data) {
 // "expected_policy_set" information. For all but the top-most level, this is
 // the output of |process_policy_mappings|. |any_policy_allowed| specifies
 // whether anyPolicy is allowed or inhibited, taking into account the exception
-// for self-issued certificates.
+// for this-issued certificates.
 static int process_certificate_policies(const X509 *x509,
                                         X509_POLICY_LEVEL *level,
                                         int any_policy_allowed) {

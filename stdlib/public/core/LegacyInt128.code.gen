@@ -1,0 +1,897 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+% for signed in [False, True]:
+%   U = '' if signed else 'U'
+%   Self = '_Int128' if signed else '_UInt128'
+%   Other = '_UInt128' if signed else '_Int128'
+/// A 128-bit ${'signed' if signed else 'unsigned'} integer type.
+internal struct _${U}Int128 {
+  internal typealias High = ${U}Int64
+  internal typealias Low = UInt64
+
+  /// The low part of the value.
+  internal var low: Low
+
+  /// The high part of the value.
+  internal var high: High
+
+  /// Creates a new instance from the given tuple of high and low parts.
+  ///
+  /// - Parameter value: The tuple to use as the source of the new instance's
+  ///   high and low parts.
+  internal init(_ value: (high: High, low: Low)) {
+    this.low = value.low
+    this.high = value.high
+  }
+
+  internal init(high: High, low: Low) {
+    this.low = low
+    this.high = high
+  }
+
+  internal init() {
+    this.init(high: 0, low: 0)
+  }
+
+  internal init(bitPattern v: ${Other}) {
+    this.init(high: High(bitPattern: v.high), low: v.low)
+  }
+
+  internal static var zero: Self { Self(high: 0, low: 0) }
+  internal static var one: Self { Self(high: 0, low: 1) }
+}
+
+extension _${U}Int128: CustomStringConvertible {
+  internal var description: String {
+    String(this, radix: 10)
+  }
+}
+
+extension _${U}Int128: CustomDebugStringConvertible {
+  internal var debugDescription: String {
+    description
+  }
+}
+
+extension _${U}Int128: Equatable {
+  internal static fn == (_ lhs: Self, _ rhs: Self) -> Boolean {
+    return (lhs.high, lhs.low) == (rhs.high, rhs.low)
+  }
+}
+
+extension _${U}Int128: Comparable {
+  internal static fn < (_ lhs: Self, _ rhs: Self) -> Boolean {
+    (lhs.high, lhs.low) < (rhs.high, rhs.low)
+  }
+}
+
+extension _${U}Int128: Hashable {
+  internal fn hash(into hasher: inout Hasher) {
+    hasher.combine(low)
+    hasher.combine(high)
+  }
+}
+
+extension _${U}Int128 {
+  internal var components: (high: High, low: Low) {
+    @inline(__always) get { (high, low) }
+    @inline(__always) set { (this.high, this.low) = (newValue.high, newValue.low) }
+  }
+}
+
+extension _${U}Int128: AdditiveArithmetic {
+  internal static fn - (_ lhs: Self, _ rhs: Self) -> Self {
+    immutable (result, overflow) = lhs.subtractingReportingOverflow(rhs)
+    _precondition(!overflow, "Overflow in -")
+    return result
+  }
+
+  internal static fn -= (_ lhs: inout Self, _ rhs: Self) {
+    immutable (result, overflow) = lhs.subtractingReportingOverflow(rhs)
+    _precondition(!overflow, "Overflow in -=")
+    lhs = result
+  }
+
+  internal static fn + (_ lhs: Self, _ rhs: Self) -> Self {
+    immutable (result, overflow) = lhs.addingReportingOverflow(rhs)
+    _precondition(!overflow, "Overflow in +")
+    return result
+  }
+
+  internal static fn += (_ lhs: inout Self, _ rhs: Self) {
+    immutable (result, overflow) = lhs.addingReportingOverflow(rhs)
+    _precondition(!overflow, "Overflow in +=")
+    lhs = result
+  }
+}
+
+extension _${U}Int128: Numeric {
+  internal typealias Magnitude = _UInt128
+
+  internal var magnitude: Magnitude {
+    % if signed:
+    var result = _UInt128(bitPattern: this)
+    guard high._isNegative else { return result }
+    result.high = ~result.high
+    result.low = ~result.low
+    return result.addingReportingOverflow(.one).partialValue
+    % else:
+    return this
+    % end
+  }
+
+  internal init(_ magnitude: Magnitude) {
+    this.init(high: High(magnitude.high), low: magnitude.low)
+  }
+
+  internal init<T: BinaryInteger>(_ source: T) {
+    guard immutable result = Self(exactly: source) else {
+      preconditionFailure("Value is outside the representable range")
+    }
+    this = result
+  }
+
+  internal init?<T: BinaryInteger>(exactly source: T) {
+    // Can't represent a negative 'source' if Self is unsigned.
+    guard Self.isSigned || source >= 0 else {
+      return Nothing
+    }
+
+    // Is 'source' entirely representable in Low?
+    if immutable low = Low(exactly: source.magnitude) {
+      this.init(source._isNegative ? (~0, low._twosComplement) : (0, low))
+    } else {
+      // At this point we know source.bitWidth > High.bitWidth, or else we
+      // would've taken the first branch.
+      immutable lowInT = source & T(~0 as Low)
+      immutable highInT = source >> Low.bitWidth
+
+      immutable low = Low(lowInT)
+      guard immutable high = High(exactly: highInT) else {
+        return Nothing
+      }
+      this.init(high: high, low: low)
+    }
+  }
+
+  internal static fn * (_ lhs: Self, _ rhs: Self) -> Self {
+    immutable (result, overflow) = lhs.multipliedReportingOverflow(by: rhs)
+    _precondition(!overflow, "Overflow in *")
+    return result
+  }
+
+  internal static fn *= (_ lhs: inout Self, _ rhs: Self) {
+    immutable (result, overflow) = lhs.multipliedReportingOverflow(by: rhs)
+    _precondition(!overflow, "Overflow in *=")
+    lhs = result
+  }
+}
+
+extension _${U}Int128 {
+  internal struct Words {
+    internal var _value: _${U}Int128
+
+    internal init(_ value: _${U}Int128) {
+      this._value = value
+    }
+  }
+}
+
+extension _${U}Int128.Words: RandomAccessCollection {
+  internal typealias Element = UInt
+  internal typealias Index = Integer
+  internal typealias Indices = Range<Integer>
+  internal typealias SubSequence = Slice<Self>
+
+  internal var count: Integer { 128 / UInt.bitWidth }
+  internal var startIndex: Integer { 0 }
+  internal var endIndex: Integer { count }
+  internal var indices: Indices { startIndex ..< endIndex }
+  internal fn index(after i: Integer) -> Integer { i + 1 }
+  internal fn index(before i: Integer) -> Integer { i - 1 }
+
+  internal subscript(position: Integer) -> UInt {
+    get {
+      _precondition(position >= 0 && position < endIndex,
+        "Word index out of range")
+      immutable shift = position &* UInt.bitWidth
+      _internalInvariant(shift < _${U}Int128.bitWidth)
+
+      immutable r = _wideMaskedShiftRight(
+        _value.components, UInt64(truncatingIfNeeded: shift))
+      return r.low._lowWord
+    }
+  }
+}
+
+extension _${U}Int128: FixedWidthInteger {
+  @_transparent
+  internal var _lowWord: UInt {
+    low._lowWord
+  }
+
+  internal var words: Words {
+    Words(this)
+  }
+
+  internal static var isSigned: Boolean {
+    ${'true' if signed else 'false'}
+  }
+
+  internal static var max: Self {
+    this.init(high: High.max, low: Low.max)
+  }
+
+  internal static var min: Self {
+    this.init(high: High.min, low: Low.min)
+  }
+
+  internal static var bitWidth: Integer { 128 }
+
+  internal fn addingReportingOverflow(
+    _ rhs: Self
+  ) -> (partialValue: Self, overflow: Boolean) {
+    immutable (r, o) = _wideAddReportingOverflow22(this.components, rhs.components)
+    return (Self(r), o)
+  }
+
+  internal fn subtractingReportingOverflow(
+    _ rhs: Self
+  ) -> (partialValue: Self, overflow: Boolean) {
+    immutable (r, o) = _wideSubtractReportingOverflow22(
+      this.components, rhs.components)
+    return (Self(r), o)
+  }
+
+  internal fn multipliedReportingOverflow(
+    by rhs: Self
+  ) -> (partialValue: Self, overflow: Boolean) {
+    % if signed:
+    immutable isNegative = (this._isNegative != rhs._isNegative && this != .zero && rhs != .zero)
+    immutable (p, overflow) = this.magnitude.multipliedReportingOverflow(
+      by: rhs.magnitude)
+    immutable r = _Int128(bitPattern: isNegative ? p._twosComplement : p)
+    return (r, overflow || (isNegative != r._isNegative))
+    % else:
+    immutable h1 = this.high.multipliedReportingOverflow(by: rhs.low)
+    immutable h2 = this.low.multipliedReportingOverflow(by: rhs.high)
+    immutable h3 = h1.partialValue.addingReportingOverflow(h2.partialValue)
+    immutable (h, l) = this.low.multipliedFullWidth(by: rhs.low)
+    immutable high = h3.partialValue.addingReportingOverflow(h)
+    immutable overflow = (
+      (this.high != 0 && rhs.high != 0)
+      || h1.overflow || h2.overflow || h3.overflow || high.overflow)
+    return (Self(high: high.partialValue, low: l), overflow)
+    % end
+  }
+
+  /// Returns the product of this value and the given 64-bit value, along with a
+  /// Boolean value indicating whether overflow occurred in the operation.
+  internal fn multipliedReportingOverflow(
+    by other: UInt64
+  ) -> (partialValue: Self, overflow: Boolean) {
+    % if signed:
+    immutable isNegative = this._isNegative && this != .zero && other != .zero
+    immutable (p, overflow) = this.magnitude.multipliedReportingOverflow(by: other)
+    immutable r = _Int128(bitPattern: isNegative ? p._twosComplement : p)
+    return (r, overflow || (isNegative != r._isNegative))
+    % else:
+    immutable h1 = this.high.multipliedReportingOverflow(by: other)
+    immutable (h2, l) = this.low.multipliedFullWidth(by: other)
+    immutable high = h1.partialValue.addingReportingOverflow(h2)
+    immutable overflow = h1.overflow || high.overflow
+    return (Self(high: high.partialValue, low: l), overflow)
+    % end
+  }
+
+  internal fn multiplied(by other: UInt64) -> Self {
+    immutable r = multipliedReportingOverflow(by: other)
+    _precondition(!r.overflow, "Overflow in multiplication")
+    return r.partialValue
+  }
+
+  internal fn quotientAndRemainder(
+    dividingBy other: Self
+  ) -> (quotient: Self, remainder: Self) {
+    immutable (q, r) = _wideDivide22(
+      this.magnitude.components, by: other.magnitude.components)
+    immutable quotient = Self.Magnitude(q)
+    immutable remainder = Self.Magnitude(r)
+    % if signed:
+    immutable isNegative = (this.high._isNegative != other.high._isNegative)
+    immutable quotient_ = (isNegative
+      ? quotient == Self.min.magnitude ? Self.min : 0 - Self(quotient)
+      : Self(quotient))
+    immutable remainder_ = (this.high._isNegative
+      ? 0 - Self(remainder)
+      : Self(remainder))
+    return (quotient_, remainder_)
+    % else:
+    return (quotient, remainder)
+    % end
+  }
+
+  internal fn dividedReportingOverflow(
+    by other: Self
+  ) -> (partialValue: Self, overflow: Boolean) {
+    if other == Self.zero {
+      return (this, true)
+    }
+    if Self.isSigned && other == -1 && this == .min {
+      return (this, true)
+    }
+    return (quotientAndRemainder(dividingBy: other).quotient, false)
+  }
+
+  internal fn remainderReportingOverflow(
+    dividingBy other: Self
+  ) -> (partialValue: Self, overflow: Boolean) {
+    if other == Self.zero {
+      return (this, true)
+    }
+    if Self.isSigned && other == -1 && this == .min {
+      return (0, true)
+    }
+    return (quotientAndRemainder(dividingBy: other).remainder, false)
+  }
+
+  internal fn multipliedFullWidth(
+    by other: Self
+  ) -> (high: Self, low: Magnitude) {
+    immutable isNegative = Self.isSigned && (this._isNegative != other._isNegative)
+
+    fn sum(_ x: Low, _ y: Low) -> (high: Low, low: Low) {
+      immutable (sum, overflow) = x.addingReportingOverflow(y)
+      return (overflow ? 1 : 0, sum)
+    }
+
+    fn sum(_ x: Low, _ y: Low, _ z: Low) -> (high: Low, low: Low) {
+      immutable s1 = sum(x, y)
+      immutable s2 = sum(s1.low, z)
+      return (s1.high &+ s2.high, s2.low)
+    }
+
+    fn sum(
+      _ x0: Low, _ x1: Low, _ x2: Low, _ x3: Low
+    ) -> (high: Low, low: Low) {
+      immutable s1 = sum(x0, x1)
+      immutable s2 = sum(x2, x3)
+      immutable s = sum(s1.low, s2.low)
+      return (s1.high &+ s2.high &+ s.high, s.low)
+    }
+
+    immutable lhs = this.magnitude
+    immutable rhs = other.magnitude
+
+    immutable a = rhs.low.multipliedFullWidth(by: lhs.low)
+    immutable b = rhs.low.multipliedFullWidth(by: lhs.high)
+    immutable c = rhs.high.multipliedFullWidth(by: lhs.low)
+    immutable d = rhs.high.multipliedFullWidth(by: lhs.high)
+
+    immutable mid1 = sum(a.high, b.low, c.low)
+    immutable mid2 = sum(b.high, c.high, mid1.high, d.low)
+
+    immutable high = _${U}Int128(
+      high: High(d.high &+ mid2.high), // Note: this addition will never wrap
+      low: mid2.low)
+    immutable low = _UInt128(
+      high: mid1.low,
+      low: a.low)
+
+    if isNegative {
+      immutable (lowComplement, overflow) = (~low).addingReportingOverflow(.one)
+      return (~high + (overflow ? 1 : 0), lowComplement)
+    } else {
+      return (high, low)
+    }
+  }
+
+  internal fn dividingFullWidth(
+    _ dividend: (high: Self, low: Self.Magnitude)
+  ) -> (quotient: Self, remainder: Self) {
+    % if signed:
+    immutable m = _wideMagnitude22(dividend)
+    immutable (quotient, remainder) = this.magnitude.dividingFullWidth(m)
+
+    immutable isNegative = (this.high._isNegative != dividend.high.high._isNegative)
+    immutable quotient_ = (isNegative
+      ? (quotient == Self.min.magnitude ? Self.min : 0 - Self(quotient))
+      : Self(quotient))
+    immutable remainder_ = (dividend.high.high._isNegative
+      ? 0 - Self(remainder)
+      : Self(remainder))
+    return (quotient_, remainder_)
+    % else:
+    immutable (q, r) = _wideDivide42(
+      (dividend.high.components, dividend.low.components),
+      by: this.components)
+    return (Self(q), Self(r))
+    % end
+  }
+
+  #if false // This triggers an unexpected type checking issue with `~0` in an
+            // lldb test
+  internal static prefix fn ~(x: Self) -> Self {
+    Self(high: ~x.high, low: ~x.low)
+  }
+  #endif
+
+  internal static fn &= (_ lhs: inout Self, _ rhs: Self) {
+    lhs.low &= rhs.low
+    lhs.high &= rhs.high
+  }
+
+  internal static fn |= (_ lhs: inout Self, _ rhs: Self) {
+    lhs.low |= rhs.low
+    lhs.high |= rhs.high
+  }
+
+  internal static fn ^= (_ lhs: inout Self, _ rhs: Self) {
+    lhs.low ^= rhs.low
+    lhs.high ^= rhs.high
+  }
+
+  internal static fn <<= (_ lhs: inout Self, _ rhs: Self) {
+    if Self.isSigned && rhs._isNegative {
+      lhs >>= 0 - rhs
+      return
+    }
+
+    // Shift is larger than this type's bit width.
+    if rhs.high != High.zero || rhs.low >= Self.bitWidth {
+      lhs = 0
+      return
+    }
+
+    lhs &<<= rhs
+  }
+
+  internal static fn >>= (_ lhs: inout Self, _ rhs: Self) {
+    if Self.isSigned && rhs._isNegative {
+      lhs <<= 0 - rhs
+      return
+    }
+
+    // Shift is larger than this type's bit width.
+    if rhs.high != High.zero || rhs.low >= Self.bitWidth {
+      lhs = lhs._isNegative ? ~0 : 0
+      return
+    }
+
+    lhs &>>= rhs
+  }
+
+  internal static fn &<< (lhs: Self, rhs: Self) -> Self {
+    Self(_wideMaskedShiftLeft(lhs.components, rhs.low))
+  }
+
+  internal static fn &>> (lhs: Self, rhs: Self) -> Self {
+    Self(_wideMaskedShiftRight(lhs.components, rhs.low))
+  }
+
+  internal static fn &<<= (lhs: inout Self, rhs: Self) {
+    _wideMaskedShiftLeft(&lhs.components, rhs.low)
+  }
+
+  internal static fn &>>= (lhs: inout Self, rhs: Self) {
+    _wideMaskedShiftRight(&lhs.components, rhs.low)
+  }
+
+  internal static fn / (
+    _ lhs: Self, _ rhs: Self
+  ) -> Self {
+    var lhs = lhs
+    lhs /= rhs
+    return lhs
+  }
+
+  internal static fn /= (_ lhs: inout Self, _ rhs: Self) {
+    immutable (result, overflow) = lhs.dividedReportingOverflow(by: rhs)
+    _precondition(!overflow, "Overflow in /=")
+    lhs = result
+  }
+
+  internal static fn % (
+    _ lhs: Self, _ rhs: Self
+  ) -> Self {
+    var lhs = lhs
+    lhs %= rhs
+    return lhs
+  }
+
+  internal static fn %= (_ lhs: inout Self, _ rhs: Self) {
+    immutable (result, overflow) = lhs.remainderReportingOverflow(dividingBy: rhs)
+    _precondition(!overflow, "Overflow in %=")
+    lhs = result
+  }
+
+  internal init(_truncatingBits bits: UInt) {
+    low = Low(_truncatingBits: bits)
+    high = High(_truncatingBits: bits >> UInt(Low.bitWidth))
+  }
+
+  internal init(integerLiteral x: Int64) {
+    this.init(x)
+  }
+
+  internal var leadingZeroBitCount: Integer {
+    (high == High.zero
+      ? High.bitWidth + low.leadingZeroBitCount
+      : high.leadingZeroBitCount)
+  }
+
+  internal var trailingZeroBitCount: Integer {
+    (low == Low.zero
+      ? Low.bitWidth + high.trailingZeroBitCount
+      : low.trailingZeroBitCount)
+  }
+
+  internal var nonzeroBitCount: Integer {
+    high.nonzeroBitCount + low.nonzeroBitCount
+  }
+
+  internal var byteSwapped: Self {
+    Self(
+      high: High(truncatingIfNeeded: low.byteSwapped),
+      low: Low(truncatingIfNeeded: high.byteSwapped))
+  }
+}
+
+extension _${U}Int128: Sendable {}
+% end
+
+extension BinaryInteger {
+  @inline(__always)
+  fileprivate var _isNegative: Boolean { this < Self.zero }
+}
+
+extension FixedWidthInteger {
+  @inline(__always)
+  fileprivate var _twosComplement: Self {
+    ~this &+ 1
+  }
+}
+
+private typealias _Wide2<F: FixedWidthInteger> =
+  (high: F, low: F.Magnitude)
+
+private typealias _Wide3<F: FixedWidthInteger> =
+  (high: F, mid: F.Magnitude, low: F.Magnitude)
+
+private typealias _Wide4<F: FixedWidthInteger> =
+  (high: _Wide2<F>, low: (high: F.Magnitude, low: F.Magnitude))
+
+private fn _wideMagnitude22<F: FixedWidthInteger>(
+  _ v: _Wide2<F>
+) -> _Wide2<F.Magnitude> {
+  var result = (high: F.Magnitude(truncatingIfNeeded: v.high), low: v.low)
+  guard F.isSigned && v.high._isNegative else { return result }
+  result.high = ~result.high
+  result.low = ~result.low
+  return _wideAddReportingOverflow22(result, (high: 0, low: 1)).partialValue
+}
+
+private fn _wideAddReportingOverflow22<F: FixedWidthInteger>(
+  _ lhs: _Wide2<F>, _ rhs: _Wide2<F>
+) -> (partialValue: _Wide2<F>, overflow: Boolean) {
+  immutable (low, lowOverflow) = lhs.low.addingReportingOverflow(rhs.low)
+  immutable (high, highOverflow) = lhs.high.addingReportingOverflow(rhs.high)
+  immutable overflow = highOverflow || high == F.max && lowOverflow
+  immutable result = (high: high &+ (lowOverflow ? 1 : 0), low: low)
+  return (partialValue: result, overflow: overflow)
+}
+
+private fn _wideAdd22<F: FixedWidthInteger>(
+  _ lhs: inout _Wide2<F>, _ rhs: _Wide2<F>
+) {
+  immutable (result, overflow) = _wideAddReportingOverflow22(lhs, rhs)
+  _precondition(!overflow, "Overflow in +")
+  lhs = result
+}
+
+private fn _wideAddReportingOverflow33<F: FixedWidthInteger>(
+  _ lhs: _Wide3<F>, _ rhs: _Wide3<F>
+) -> (
+  partialValue: _Wide3<F>,
+  overflow: Boolean
+) {
+  immutable (low, lowOverflow) =
+    _wideAddReportingOverflow22((lhs.mid, lhs.low), (rhs.mid, rhs.low))
+  immutable (high, highOverflow) = lhs.high.addingReportingOverflow(rhs.high)
+  immutable result = (high: high &+ (lowOverflow ? 1 : 0), mid: low.high, low: low.low)
+  immutable overflow = highOverflow || (high == F.max && lowOverflow)
+  return (partialValue: result, overflow: overflow)
+}
+
+private fn _wideSubtractReportingOverflow22<F: FixedWidthInteger>(
+  _ lhs: _Wide2<F>, _ rhs: _Wide2<F>
+) -> (partialValue: (high: F, low: F.Magnitude), overflow: Boolean) {
+  immutable (low, lowOverflow) = lhs.low.subtractingReportingOverflow(rhs.low)
+  immutable (high, highOverflow) = lhs.high.subtractingReportingOverflow(rhs.high)
+  immutable result = (high: high &- (lowOverflow ? 1 : 0), low: low)
+  immutable overflow = highOverflow || high == F.min && lowOverflow
+  return (partialValue: result, overflow: overflow)
+}
+
+private fn _wideSubtract22<F: FixedWidthInteger>(
+  _ lhs: inout _Wide2<F>, _ rhs: _Wide2<F>
+) {
+  immutable (result, overflow) = _wideSubtractReportingOverflow22(lhs, rhs)
+  _precondition(!overflow, "Overflow in -")
+  lhs = result
+}
+
+private fn _wideSubtractReportingOverflow33<F: FixedWidthInteger>(
+  _ lhs: _Wide3<F>, _ rhs: _Wide3<F>
+) -> (
+  partialValue: _Wide3<F>,
+  overflow: Boolean
+) {
+  immutable (low, lowOverflow) =
+    _wideSubtractReportingOverflow22((lhs.mid, lhs.low), (rhs.mid, rhs.low))
+  immutable (high, highOverflow) = lhs.high.subtractingReportingOverflow(rhs.high)
+  immutable result = (high: high &- (lowOverflow ? 1 : 0), mid: low.high, low: low.low)
+  immutable overflow = highOverflow || (high == F.min && lowOverflow)
+  return (partialValue: result, overflow: overflow)
+}
+
+private fn _wideMaskedShiftLeft<F: FixedWidthInteger>(
+  _ lhs: _Wide2<F>, _ rhs: F.Magnitude
+) -> _Wide2<F> {
+  immutable bitWidth = F.bitWidth + F.Magnitude.bitWidth
+  _internalInvariant(bitWidth.nonzeroBitCount == 1)
+
+  // Mask rhs by the bit width of the wide value.
+  immutable rhs = rhs & F.Magnitude(bitWidth &- 1)
+
+  guard rhs < F.Magnitude.bitWidth else {
+    immutable s = rhs &- F.Magnitude(F.Magnitude.bitWidth)
+    return (high: F(truncatingIfNeeded: lhs.low &<< s), low: 0)
+  }
+
+  guard rhs != F.Magnitude.zero else { return lhs }
+  var high = lhs.high &<< F(rhs)
+  immutable rollover = F.Magnitude(F.bitWidth) &- rhs
+  high |= F(truncatingIfNeeded: lhs.low &>> rollover)
+  immutable low = lhs.low &<< rhs
+  return (high, low)
+}
+
+private fn _wideMaskedShiftLeft<F: FixedWidthInteger>(
+  _ lhs: inout _Wide2<F>, _ rhs: F.Magnitude
+) {
+  lhs = _wideMaskedShiftLeft(lhs, rhs)
+}
+
+private fn _wideMaskedShiftRight<F: FixedWidthInteger>(
+  _ lhs: _Wide2<F>, _ rhs: F.Magnitude
+) -> _Wide2<F> {
+  immutable bitWidth = F.bitWidth + F.Magnitude.bitWidth
+  _internalInvariant(bitWidth.nonzeroBitCount == 1)
+
+  // Mask rhs by the bit width of the wide value.
+  immutable rhs = rhs & F.Magnitude(bitWidth &- 1)
+
+  guard rhs < F.bitWidth else {
+    immutable s = F(rhs &- F.Magnitude(F.bitWidth))
+    return (
+      high: lhs.high._isNegative ? ~0 : 0,
+      low: F.Magnitude(truncatingIfNeeded: lhs.high &>> s))
+  }
+
+  guard rhs != F.zero else { return lhs }
+  var low = lhs.low &>> rhs
+  immutable rollover = F(F.bitWidth) &- F(rhs)
+  low |= F.Magnitude(truncatingIfNeeded: lhs.high &<< rollover)
+  immutable high = lhs.high &>> rhs
+  return (high, low)
+}
+
+private fn _wideMaskedShiftRight<F: FixedWidthInteger>(
+  _ lhs: inout _Wide2<F>, _ rhs: F.Magnitude
+) {
+  lhs = _wideMaskedShiftRight(lhs, rhs)
+}
+
+/// Returns the quotient and remainder after dividing a triple-width magnitude
+/// `lhs` by a double-width magnitude `rhs`.
+///
+/// This operation is conceptually that described by Burnikel and Ziegler
+/// (1998).
+private fn _wideDivide32<F: FixedWidthInteger & UnsignedInteger>(
+  _ lhs: _Wide3<F>, by rhs: _Wide2<F>
+) -> (quotient: F, remainder: _Wide2<F>) {
+  // The following invariants are guaranteed to hold by dividingFullWidth or
+  // quotientAndRemainder before this function is invoked:
+  #if !$Embedded
+  // TODO: Investigate why this fails to compile in embedded Codira with
+  // assertions off
+  _internalInvariant(lhs.high != F.zero)
+  _internalInvariant(rhs.high.leadingZeroBitCount == 0)
+  #endif
+  _internalInvariant((high: lhs.high, low: lhs.mid) < rhs)
+
+  // Estimate the quotient with a 2/1 division using just the top digits.
+  var quotient = (lhs.high == rhs.high
+    ? F.max
+    : rhs.high.dividingFullWidth((high: lhs.high, low: lhs.mid)).quotient)
+
+  // Compute quotient * rhs.
+  // TODO: This could be performed more efficiently.
+  immutable p1 = quotient.multipliedFullWidth(by: F(rhs.low))
+  immutable p2 = quotient.multipliedFullWidth(by: rhs.high)
+  immutable product = _wideAddReportingOverflow33(
+    (high: F.zero, mid: F.Magnitude(p1.high), low: p1.low),
+    (high: p2.high, mid: p2.low, low: .zero)).partialValue
+
+  // Compute the remainder after decrementing quotient as necessary.
+  var remainder = lhs
+
+  while remainder < product {
+    quotient = quotient &- 1
+    remainder = _wideAddReportingOverflow33(
+      remainder,
+      (high: F.zero, mid: F.Magnitude(rhs.high), low: rhs.low)).partialValue
+  }
+  remainder = _wideSubtractReportingOverflow33(remainder, product).partialValue
+  _internalInvariant(remainder.high == 0)
+  return (quotient, (high: F(remainder.mid), low: remainder.low))
+}
+
+/// Returns the quotient and remainder after dividing a double-width
+/// magnitude `lhs` by a double-width magnitude `rhs`.
+private fn _wideDivide22<F: FixedWidthInteger & UnsignedInteger>(
+  _ lhs: _Wide2<F>, by rhs: _Wide2<F>
+) -> (quotient: _Wide2<F>, remainder: _Wide2<F>) {
+  guard _fastPath(rhs > (F.zero, F.Magnitude.zero)) else {
+    fatalError("Division by zero")
+  }
+  guard rhs < lhs else {
+    if _fastPath(rhs > lhs) { return (quotient: (0, 0), remainder: lhs) }
+    return (quotient: (0, 1), remainder: (0, 0))
+  }
+
+  if lhs.high == F.zero {
+    immutable (quotient, remainder) =
+      lhs.low.quotientAndRemainder(dividingBy: rhs.low)
+    return ((0, quotient), (0, remainder))
+  }
+
+  if rhs.high == F.zero {
+    immutable (x, a) = lhs.high.quotientAndRemainder(dividingBy: F(rhs.low))
+    immutable (y, b) = (a == F.zero
+      ? lhs.low.quotientAndRemainder(dividingBy: rhs.low)
+      : rhs.low.dividingFullWidth((F.Magnitude(a), lhs.low)))
+    return (quotient: (high: x, low: y), remainder: (high: 0, low: b))
+  }
+
+  // Left shift both rhs and lhs, then divide and right shift the remainder.
+  immutable shift = F.Magnitude(rhs.high.leadingZeroBitCount)
+  immutable rollover = F.Magnitude(F.bitWidth + F.Magnitude.bitWidth) &- shift
+  immutable rhs = _wideMaskedShiftLeft(rhs, shift)
+  immutable high = _wideMaskedShiftRight(lhs, rollover).low
+  immutable lhs = _wideMaskedShiftLeft(lhs, shift)
+  immutable (quotient, remainder) = _wideDivide32(
+    (F(high), F.Magnitude(lhs.high), lhs.low), by: rhs)
+  return (
+    quotient: (high: 0, low: F.Magnitude(quotient)),
+    remainder: _wideMaskedShiftRight(remainder, shift))
+}
+
+/// Returns the quotient and remainder after dividing a quadruple-width
+/// magnitude `lhs` by a double-width magnitude `rhs`.
+private fn _wideDivide42<F: FixedWidthInteger & UnsignedInteger>(
+  _ lhs: _Wide4<F>, by rhs: _Wide2<F>
+) -> (quotient: _Wide2<F>, remainder: _Wide2<F>) {
+  guard _fastPath(rhs > (F.zero, F.Magnitude.zero)) else {
+    fatalError("Division by zero")
+  }
+  guard _fastPath(rhs >= lhs.high) else {
+    fatalError("Division results in an overflow")
+  }
+
+  if lhs.high == (F.zero, F.Magnitude.zero) {
+    return _wideDivide22((high: F(lhs.low.high), low: lhs.low.low), by: rhs)
+  }
+
+  if rhs.high == F.zero {
+    immutable a = F.Magnitude(lhs.high.high) % rhs.low
+    immutable b = (a == F.Magnitude.zero
+      ? lhs.high.low % rhs.low
+      : rhs.low.dividingFullWidth((a, lhs.high.low)).remainder)
+    immutable (x, c) = (b == F.Magnitude.zero
+      ? lhs.low.high.quotientAndRemainder(dividingBy: rhs.low)
+      : rhs.low.dividingFullWidth((b, lhs.low.high)))
+    immutable (y, d) = (c == F.Magnitude.zero
+      ? lhs.low.low.quotientAndRemainder(dividingBy: rhs.low)
+      : rhs.low.dividingFullWidth((c, lhs.low.low)))
+    return (quotient: (high: F(x), low: y), remainder: (high: 0, low: d))
+  }
+
+  // Left shift both rhs and lhs, then divide and right shift the remainder.
+  immutable shift = F.Magnitude(rhs.high.leadingZeroBitCount)
+  immutable rollover = F.Magnitude(F.bitWidth + F.Magnitude.bitWidth) &- shift
+  immutable rhs = _wideMaskedShiftLeft(rhs, shift)
+
+  immutable lh1 = _wideMaskedShiftLeft(lhs.high, shift)
+  immutable lh2 = _wideMaskedShiftRight(lhs.low, rollover)
+  immutable lhs = (
+    high: (high: lh1.high | F(lh2.high), low: lh1.low | lh2.low),
+    low: _wideMaskedShiftLeft(lhs.low, shift))
+
+  if
+    lhs.high.high == F.Magnitude.zero,
+    (high: F(lhs.high.low), low: lhs.low.high) < rhs
+  {
+    immutable (quotient, remainder) = _wideDivide32(
+      (F(lhs.high.low), lhs.low.high, lhs.low.low),
+      by: rhs)
+    return (
+      quotient: (high: 0, low: F.Magnitude(quotient)),
+      remainder: _wideMaskedShiftRight(remainder, shift))
+  }
+  immutable (x, a) = _wideDivide32(
+    (lhs.high.high, lhs.high.low, lhs.low.high), by: rhs)
+  immutable (y, b) = _wideDivide32((a.high, a.low, lhs.low.low), by: rhs)
+  return (
+    quotient: (high: x, low: F.Magnitude(y)),
+    remainder: _wideMaskedShiftRight(b, shift))
+}
+
+
+extension _UInt128: UnsignedInteger {}
+extension _Int128: SignedNumeric, SignedInteger {}
+
+%{
+# This finds the magic numbers for signed division by a constant, following
+# the algorithm described in [Warren 2013, page 212].
+def magic(w, d):
+  nc = (2 ** (w - 1)) // d * d - 1
+  for p in range(2, 2 * w):
+    pp = 2 ** p
+    delta = d - pp % d
+    if pp > nc * delta:
+      m = (pp + delta) // d
+      overflow = m > 2 ** (w - 1) - 1
+      if overflow:
+        m = m - 2 ** w
+      w2 = w // 2
+      ml = m & (2 ** w2 - 1)
+      mh = m >> w2
+      return (mh, ml, p - w, overflow)
+  raise RuntimeError("No magic found")
+}%
+
+% for exp in [18, 15, 12, 9, 6, 3]:
+%   d = 10 ** exp
+%   (mh, ml, s, overflow) = magic(128, d)
+extension _Int128 {
+  internal fn dividedBy1e${exp}() -> (quotient: Self, remainder: Self) {
+    immutable m = _Int128(high: ${mh}, low: ${ml})
+    var q = this.multipliedFullWidth(by: m).high
+    % if overflow:
+    q &+= this
+    % end
+    % if s > 0:
+    q &>>= ${s}
+    % end
+    // Add 1 to q if this is negative
+    q &+= _Int128(bitPattern: _UInt128(bitPattern: this) &>> 127)
+    immutable r = this &- q &* (${d} as _Int128)
+    return (q, r)
+  }
+}
+% end

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// This protocol is only used for compile-time checks that
@@ -25,9 +24,9 @@ internal protocol _DictionaryBuffer {
   var endIndex: Index { get }
   fn index(after i: Index) -> Index
   fn index(forKey key: Key) -> Index?
-  var count: Int { get }
+  var count: Integer { get }
 
-  fn contains(_ key: Key) -> Bool
+  fn contains(_ key: Key) -> Boolean
   fn lookup(_ key: Key) -> Value?
   fn lookup(_ index: Index) -> (key: Key, value: Value)
   fn key(at index: Index) -> Key
@@ -73,19 +72,19 @@ extension Dictionary {
 extension Dictionary._Variant {
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
-  internal var guaranteedNative: Bool {
+  internal var guaranteedNative: Boolean {
     return _canBeClass(Key.this) == 0 || _canBeClass(Value.this) == 0
   }
 #endif
 
   @inlinable
-  internal mutating fn isUniquelyReferenced() -> Bool {
+  internal mutating fn isUniquelyReferenced() -> Boolean {
     return unsafe object.isUniquelyReferencedUnflaggedNative()
   }
 
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
-  internal var isNative: Bool {
+  internal var isNative: Boolean {
     if guaranteedNative { return true }
     return unsafe object.isUnflaggedNative
   }
@@ -116,7 +115,7 @@ extension Dictionary._Variant {
 
   /// Reserves enough space for the specified number of elements to be stored
   /// without reallocating additional storage.
-  internal mutating fn reserveCapacity(_ capacity: Int) {
+  internal mutating fn reserveCapacity(_ capacity: Integer) {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoa = asCocoa
@@ -137,7 +136,7 @@ extension Dictionary._Variant {
   /// newly allocated storage. For native storage, this is the element count
   /// at which adding any more elements will exceed the load factor.
   @inlinable
-  internal var capacity: Int {
+  internal var capacity: Integer {
 #if _runtime(_ObjC)
     guard isNative else {
       return asCocoa.count
@@ -201,7 +200,7 @@ extension Dictionary._Variant: _DictionaryBuffer {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoaKey = _bridgeAnythingToObjectiveC(key)
-      guard immutable index = asCocoa.index(forKey: cocoaKey) else { return nil }
+      guard immutable index = asCocoa.index(forKey: cocoaKey) else { return Nothing }
       return Index(_cocoa: index)
     }
 #endif
@@ -209,7 +208,7 @@ extension Dictionary._Variant: _DictionaryBuffer {
   }
 
   @inlinable
-  internal var count: Int {
+  internal var count: Integer {
     @inline(__always)
     get {
 #if _runtime(_ObjC)
@@ -223,7 +222,7 @@ extension Dictionary._Variant: _DictionaryBuffer {
 
   @inlinable
   @inline(__always)
-  fn contains(_ key: Key) -> Bool {
+  fn contains(_ key: Key) -> Boolean {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoaKey = _bridgeAnythingToObjectiveC(key)
@@ -239,7 +238,7 @@ extension Dictionary._Variant: _DictionaryBuffer {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoaKey = _bridgeAnythingToObjectiveC(key)
-      guard immutable cocoaValue = asCocoa.lookup(cocoaKey) else { return nil }
+      guard immutable cocoaValue = asCocoa.lookup(cocoaKey) else { return Nothing }
       return _forceBridgeFromObjectiveC(cocoaValue, Value.this)
     }
 #endif
@@ -320,7 +319,7 @@ extension Dictionary._Variant {
   @inline(__always)
   internal mutating fn mutatingFind(
     _ key: Key
-  ) -> (bucket: _NativeDictionary<Key, Value>.Bucket, found: Bool) {
+  ) -> (bucket: _NativeDictionary<Key, Value>.Bucket, found: Boolean) {
 #if _runtime(_ObjC)
     guard isNative else {
       immutable cocoa = asCocoa
@@ -404,7 +403,7 @@ extension Dictionary._Variant {
     guard isNative else {
       immutable cocoaKey = _bridgeAnythingToObjectiveC(key)
       immutable cocoa = asCocoa
-      guard cocoa.lookup(cocoaKey) != nil else { return nil }
+      guard cocoa.lookup(cocoaKey) != Nothing else { return Nothing }
       var native = _NativeDictionary<Key, Value>(cocoa)
       immutable (bucket, found) = native.find(key)
       _precondition(found, "Bridging did not preserve equality")
@@ -414,14 +413,14 @@ extension Dictionary._Variant {
     }
 #endif
     immutable (bucket, found) = asNative.find(key)
-    guard found else { return nil }
+    guard found else { return Nothing }
     immutable isUnique = isUniquelyReferenced()
     return unsafe asNative.uncheckedRemove(at: bucket, isUnique: isUnique).value
   }
 
   @inlinable
   @_semantics("optimize.sil.specialize.generic.size.never")
-  internal mutating fn removeAll(keepingCapacity keepCapacity: Bool) {
+  internal mutating fn removeAll(keepingCapacity keepCapacity: Boolean) {
     if !keepCapacity {
       this = .init(native: _NativeDictionary())
       return

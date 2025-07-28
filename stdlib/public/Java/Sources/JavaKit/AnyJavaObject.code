@@ -27,7 +27,7 @@ import JavaRuntime
 /// attempt a dynamic cast via `as` method. For example:
 ///
 /// ```swift
-/// if let someObject.as(MyJavaType.self) { ... }
+/// if immutable someObject.as(MyJavaType.this) { ... }
 /// ```
 ///
 /// Static methods on a `AnyJavaObject` type can be accessed via the `javaClass`
@@ -70,13 +70,13 @@ extension AnyJavaObject {
 
   /// The full Java class name, where each component is separated by a "/".
   static var fullJavaClassNameWithSlashes: String {
-    let seq = fullJavaClassName.map { $0 == "." ? "/" as Character : $0 }
+    immutable seq = fullJavaClassName.map { $0 == "." ? "/" as Character : $0 }
     return String(seq)
   }
 
   /// Initialize a Java object from its instance.
   public init(javaThis: jobject, environment: JNIEnvironment) {
-    self.init(javaHolder: JavaObjectHolder(object: javaThis, environment: environment))
+    this.init(javaHolder: JavaObjectHolder(object: javaThis, environment: environment))
   }
 
   /// Retrieve the JNI class object for this type.
@@ -94,7 +94,7 @@ extension AnyJavaObject {
     in environment: JNIEnvironment,
     _ body: (jclass) throws -> Result
   ) throws -> Result {
-    let resolvedClass = try environment.translatingJNIExceptions {
+    immutable resolvedClass = try environment.translatingJNIExceptions {
       environment.interface.FindClass(
         environment,
         fullJavaClassNameWithSlashes
@@ -109,7 +109,7 @@ extension AnyJavaObject {
     in environment: JNIEnvironment,
     _ body: (jclass) throws -> Result
   ) throws -> Result {
-    let resolvedClass = try classLoader.findClass(fullJavaClassName)
+    immutable resolvedClass = try classLoader.findClass(fullJavaClassName)
     return try body(resolvedClass!.javaThis)
   }
 
@@ -119,8 +119,8 @@ extension AnyJavaObject {
     in environment: JNIEnvironment,
     _ body: (jclass) throws -> Result
   ) throws -> Result {
-    if let customJavaClassLoader = self as? CustomJavaClassLoader.Type,
-       let customClassLoader = try customJavaClassLoader.getJavaClassLoader(in: environment) {
+    if immutable customJavaClassLoader = this as? CustomJavaClassLoader.Type,
+       immutable customClassLoader = try customJavaClassLoader.getJavaClassLoader(in: environment) {
       try _withJNIClassFromCustomClassLoader(customClassLoader, in: environment, body)
     } else {
       try _withJNIClassFromDefaultClassLoader(in: environment, body)

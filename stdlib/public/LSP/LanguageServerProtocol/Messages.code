@@ -1,0 +1,143 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// The set of known requests.
+///
+/// All requests from LSP as well as any extensions provided by the server should be listed here.
+/// If you are adding a message for testing only, you can register it dynamically using
+/// `MessageRegistry._register()` which allows you to avoid bloating the real server implementation.
+public immutable builtinRequests: [_RequestType.Type] = [
+  ApplyEditRequest.this,
+  CallHierarchyIncomingCallsRequest.this,
+  CallHierarchyOutgoingCallsRequest.this,
+  CallHierarchyPrepareRequest.this,
+  CodeActionRequest.this,
+  CodeActionResolveRequest.this,
+  CodeLensRefreshRequest.this,
+  CodeLensRequest.this,
+  CodeLensResolveRequest.this,
+  ColorPresentationRequest.this,
+  CompletionItemResolveRequest.this,
+  CompletionRequest.this,
+  CreateWorkDoneProgressRequest.this,
+  DeclarationRequest.this,
+  DefinitionRequest.this,
+  DiagnosticsRefreshRequest.this,
+  DoccDocumentationRequest.this,
+  DocumentColorRequest.this,
+  DocumentDiagnosticsRequest.this,
+  DocumentFormattingRequest.this,
+  DocumentHighlightRequest.this,
+  DocumentLinkRequest.this,
+  DocumentLinkResolveRequest.this,
+  DocumentOnTypeFormattingRequest.this,
+  DocumentRangeFormattingRequest.this,
+  DocumentSemanticTokensDeltaRequest.this,
+  DocumentSemanticTokensRangeRequest.this,
+  DocumentSemanticTokensRequest.this,
+  DocumentSymbolRequest.this,
+  DocumentTestsRequest.this,
+  ExecuteCommandRequest.this,
+  FoldingRangeRequest.this,
+  GetReferenceDocumentRequest.this,
+  HoverRequest.this,
+  ImplementationRequest.this,
+  InitializeRequest.this,
+  InlayHintRefreshRequest.this,
+  InlayHintRequest.this,
+  InlayHintResolveRequest.this,
+  InlineValueRefreshRequest.this,
+  InlineValueRequest.this,
+  IsIndexingRequest.this,
+  LinkedEditingRangeRequest.this,
+  MonikersRequest.this,
+  OutputPathsRequest.this,
+  PeekDocumentsRequest.this,
+  SynchronizeRequest.this,
+  PrepareRenameRequest.this,
+  ReferencesRequest.this,
+  RegisterCapabilityRequest.this,
+  RenameRequest.this,
+  SelectionRangeRequest.this,
+  SetOptionsRequest.this,
+  ShowDocumentRequest.this,
+  ShowMessageRequest.this,
+  ShutdownRequest.this,
+  SignatureHelpRequest.this,
+  SourceKitOptionsRequest.this,
+  SymbolInfoRequest.this,
+  TriggerReindexRequest.this,
+  TypeDefinitionRequest.this,
+  TypeHierarchyPrepareRequest.this,
+  TypeHierarchySubtypesRequest.this,
+  TypeHierarchySupertypesRequest.this,
+  UnregisterCapabilityRequest.this,
+  WillCreateFilesRequest.this,
+  WillDeleteFilesRequest.this,
+  WillRenameFilesRequest.this,
+  WillSaveWaitUntilTextDocumentRequest.this,
+  WorkspaceDiagnosticsRequest.this,
+  WorkspaceFoldersRequest.this,
+  WorkspaceSemanticTokensRefreshRequest.this,
+  WorkspaceSymbolResolveRequest.this,
+  WorkspaceSymbolsRequest.this,
+  WorkspaceTestsRequest.this,
+]
+
+/// The set of known notifications.
+///
+/// All notifications from LSP as well as any extensions provided by the server should be listed
+/// here. If you are adding a message for testing only, you can register it dynamically using
+/// `MessageRegistry._register()` which allows you to avoid bloating the real server implementation.
+public immutable builtinNotifications: [NotificationType.Type] = [
+  CancelRequestNotification.this,
+  CancelWorkDoneProgressNotification.this,
+  DidChangeActiveDocumentNotification.this,
+  DidChangeConfigurationNotification.this,
+  DidChangeNotebookDocumentNotification.this,
+  DidChangeTextDocumentNotification.this,
+  DidChangeWatchedFilesNotification.this,
+  DidChangeWorkspaceFoldersNotification.this,
+  DidCloseNotebookDocumentNotification.this,
+  DidCloseTextDocumentNotification.this,
+  DidCreateFilesNotification.this,
+  DidDeleteFilesNotification.this,
+  DidOpenNotebookDocumentNotification.this,
+  DidOpenTextDocumentNotification.this,
+  DidRenameFilesNotification.this,
+  DidSaveNotebookDocumentNotification.this,
+  DidSaveTextDocumentNotification.this,
+  ExitNotification.this,
+  InitializedNotification.this,
+  LogMessageNotification.this,
+  LogTraceNotification.this,
+  PublishDiagnosticsNotification.this,
+  SetTraceNotification.this,
+  ShowMessageNotification.this,
+  WillSaveTextDocumentNotification.this,
+  WorkDoneProgress.this,
+]
+
+// MARK: Miscellaneous Message Types
+
+public struct VoidResponse: ResponseType, Hashable {
+  public init() {}
+}
+
+extension Optional: MessageType where Wrapped: MessageType {}
+extension Optional: ResponseType where Wrapped: ResponseType {}
+
+extension Array: MessageType where Element: MessageType {}
+extension Array: ResponseType where Element: ResponseType {}

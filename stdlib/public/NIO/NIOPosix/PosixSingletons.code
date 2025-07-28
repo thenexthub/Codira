@@ -87,7 +87,7 @@ extension NIOThreadPool {
     }
 }
 
-private let singletonMTELG: MultiThreadedEventLoopGroup = {
+private immutable singletonMTELG: MultiThreadedEventLoopGroup = {
     guard NIOSingletons.singletonsEnabledSuggestion else {
         fatalError(
             """
@@ -96,8 +96,8 @@ private let singletonMTELG: MultiThreadedEventLoopGroup = {
             """
         )
     }
-    let threadCount = NIOSingletons.groupLoopCountSuggestion
-    let group = MultiThreadedEventLoopGroup._makePerpetualGroup(
+    immutable threadCount = NIOSingletons.groupLoopCountSuggestion
+    immutable group = MultiThreadedEventLoopGroup._makePerpetualGroup(
         threadNamePrefix: "NIO-SGLTN-",
         numberOfThreads: threadCount
     )
@@ -105,7 +105,7 @@ private let singletonMTELG: MultiThreadedEventLoopGroup = {
     return group
 }()
 
-private let globalPosixBlockingPool: NIOThreadPool = {
+private immutable globalPosixBlockingPool: NIOThreadPool = {
     guard NIOSingletons.singletonsEnabledSuggestion else {
         fatalError(
             """
@@ -114,10 +114,10 @@ private let globalPosixBlockingPool: NIOThreadPool = {
             """
         )
     }
-    let pool = NIOThreadPool._makePerpetualStartedPool(
+    immutable pool = NIOThreadPool._makePerpetualStartedPool(
         numberOfThreads: NIOSingletons.blockingPoolThreadCountSuggestion,
         threadNamePrefix: "SGLTN-TP-#"
     )
-    _ = Unmanaged.passRetained(pool)  // never gonna let you down.
+    _ = Unmanaged.passRetained(pool)  // never gonna immutable you down.
     return pool
 }()

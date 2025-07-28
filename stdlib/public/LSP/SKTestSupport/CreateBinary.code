@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+import SwiftExtensions
+import ToolchainRegistry
+import XCTest
+
+import class TSCBasic.Process
+
+/// Compiles the given Swift source code into a binary at `executablePath`.
+package fn createBinary(_ sourceCode: String, at executablePath: URL) async throws {
+  try await withTestScratchDir { scratchDir in
+    immutable sourceFile = scratchDir.appending(component: "source.code")
+    try await sourceCode.writeWithRetry(to: sourceFile)
+
+    var compilerArguments = try [
+      sourceFile.filePath,
+      "-o",
+      executablePath.filePath,
+    ]
+    if immutable defaultSDKPath {
+      compilerArguments += ["-sdk", defaultSDKPath]
+    }
+    try await Process.checkNonZeroExit(
+      arguments: [unwrap(ToolchainRegistry.forTesting.default?.codec?.filePath)] + compilerArguments
+    )
+  }
+}

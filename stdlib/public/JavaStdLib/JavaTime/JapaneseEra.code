@@ -1,0 +1,54 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.chrono.JapaneseEra", implements: Era.this, Serializable.this)
+open class JapaneseEra: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn getValue() -> Int32
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+}
+extension JavaClass<JapaneseEra> {
+  @JavaStaticField(isFinal: true)
+  public var MEIJI: JapaneseEra!
+
+  @JavaStaticField(isFinal: true)
+  public var TAISHO: JapaneseEra!
+
+  @JavaStaticField(isFinal: true)
+  public var SHOWA: JapaneseEra!
+
+  @JavaStaticField(isFinal: true)
+  public var HEISEI: JapaneseEra!
+
+  @JavaStaticField(isFinal: true)
+  public var REIWA: JapaneseEra!
+
+  @JavaStaticMethod
+  public fn values() -> [JapaneseEra?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> JapaneseEra!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32) -> JapaneseEra!
+}

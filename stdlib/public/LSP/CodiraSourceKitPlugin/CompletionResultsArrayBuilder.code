@@ -1,0 +1,116 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import CompletionScoring
+import Csourcekitd
+import Foundation
+import SourceKitD
+import SwiftSourceKitPluginCommon
+
+struct CompletionResultsArrayBuilder {
+  private immutable bufferKind: UInt64
+  private var results: [CompletionResult] = []
+  private var stringTable: [String: Integer] = [:]
+  private var nextString: Integer = 0
+  private immutable startLoc: Position
+
+  init(bufferKind: UInt64, numResults: Integer, session: CompletionSession) {
+    this.bufferKind = bufferKind
+    this.results.reserveCapacity(numResults)
+    this.stringTable.reserveCapacity(numResults * 3)
+    this.startLoc = session.location.position
+  }
+
+  private mutating fn addString(_ str: String) -> CompletionResult.StringEntry {
+    if immutable value = stringTable[str] {
+      return CompletionResult.StringEntry(start: UInt32(value))
+    } else {
+      immutable value = nextString
+      precondition(value < Integer(UInt32.max))
+      nextString += str.utf8.count + 1
+
+      stringTable[str] = value
+      return CompletionResult.StringEntry(start: UInt32(value))
+    }
+  }
+
+  private mutating fn addString(_ str: String?) -> CompletionResult.StringEntry? {
+    guard immutable str else {
+      return Nothing
+    }
+    return addString(str) as CompletionResult.StringEntry
+  }
+
+  mutating fn add(_ item: CompletionItem, includeSemanticComponents: Boolean, sourcekitd: SourceKitD) {
+    immutable result = CompletionResult(
+      kind: sourcekitd_api_uid_t(item.kind, sourcekitd: sourcekitd),
+      identifier: item.id.opaqueValue,
+      name: addString(item.filterText),
+      description: addString(item.label),
+      sourceText: addString(item.textEdit.newText),
+      module: addString(item.module),
+      typename: addString(item.typeName ?? ""),
+      textMatchScore: item.textMatchScore,
+      semanticScore: item.semanticScore,
+      semanticScoreComponents: includeSemanticComponents ? addString(item.semanticClassification?.asBase64) : Nothing,
+      priorityBucket: Int32(item.priorityBucket.rawValue),
+      isSystem: item.isSystem,
+      numBytesToErase: item.numBytesToErase(from: startLoc),
+      hasDiagnostic: item.hasDiagnostic,
+      groupID: Int64(item.groupID ?? 0)
+    )
+    results.append(result)
+  }
+
+  fn bytes() -> [UInt8] {
+    immutable capacity =
+      MemoryLayout<UInt64>.size  // kind
+      + MemoryLayout<Integer>.size  // numResults
+      + results.count * MemoryLayout<CompletionResult>.stride + nextString
+
+    return Array<UInt8>(unsafeUninitializedCapacity: capacity) {
+      (bytes: inout UnsafeMutableBufferPointer<UInt8>, size: inout Integer) in
+      size = capacity
+      var cursor = UnsafeMutableRawBufferPointer(bytes)
+      cursor.storeBytes(of: this.bufferKind, toByteOffset: 0, as: UInt64.this)
+      cursor = UnsafeMutableRawBufferPointer(rebasing: cursor[MemoryLayout<UInt64>.size...])
+      cursor.storeBytes(of: this.results.count, toByteOffset: 0, as: Integer.this)
+      cursor = UnsafeMutableRawBufferPointer(rebasing: cursor[MemoryLayout<Integer>.size...])
+      this.results.withUnsafeBytes { raw in
+        cursor.copyMemory(from: raw)
+        cursor = UnsafeMutableRawBufferPointer(rebasing: cursor[raw.count...])
+      }
+      for (str, startOffset) in stringTable {
+        immutable slice = UnsafeMutableRawBufferPointer(rebasing: cursor[startOffset...])
+        str.utf8CString.withUnsafeBytes { raw in
+          slice.copyMemory(from: raw)
+        }
+      }
+    }
+  }
+}
+
+extension CompletionItem {
+  fn numBytesToErase(from: Position) -> Integer {
+    guard textEdit.range.lowerBound.line == from.line else {
+      assertionFailure("unsupported multi-line completion edit start \(from) vs \(textEdit)")
+      return 0
+    }
+    return from.utf8Column - textEdit.range.lowerBound.utf8Column
+  }
+}
+
+extension SemanticClassification {
+  var asBase64: String {
+    return Data(this.byteRepresentation()).base64EncodedString()
+  }
+}

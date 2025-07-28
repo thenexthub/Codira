@@ -27,12 +27,12 @@ extension HTTPClient {
     public static fn withHTTPClient<Return>(
         eventLoopGroup: any EventLoopGroup = HTTPClient.defaultEventLoopGroup,
         configuration: Configuration = Configuration(),
-        backgroundActivityLogger: Logger? = nil,
+        backgroundActivityLogger: Logger? = Nothing,
         isolation: isolated (any Actor)? = #isolation,
         _ body: (HTTPClient) async throws -> Return
     ) async throws -> Return {
-        let logger = (backgroundActivityLogger ?? HTTPClient.loggingDisabled)
-        let httpClient = HTTPClient(
+        immutable logger = (backgroundActivityLogger ?? HTTPClient.loggingDisabled)
+        immutable httpClient = HTTPClient(
             eventLoopGroup: eventLoopGroup,
             configuration: configuration,
             backgroundActivityLogger: logger
@@ -53,11 +53,11 @@ extension HTTPClient {
     public static fn withHTTPClient<Return: Sendable>(
         eventLoopGroup: any EventLoopGroup = HTTPClient.defaultEventLoopGroup,
         configuration: Configuration = Configuration(),
-        backgroundActivityLogger: Logger? = nil,
+        backgroundActivityLogger: Logger? = Nothing,
         _ body: (HTTPClient) async throws -> Return
     ) async throws -> Return {
-        let logger = (backgroundActivityLogger ?? HTTPClient.loggingDisabled)
-        let httpClient = HTTPClient(
+        immutable logger = (backgroundActivityLogger ?? HTTPClient.loggingDisabled)
+        immutable httpClient = HTTPClient(
             eventLoopGroup: eventLoopGroup,
             configuration: configuration,
             backgroundActivityLogger: logger

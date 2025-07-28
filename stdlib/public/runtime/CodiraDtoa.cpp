@@ -1157,7 +1157,7 @@ size_t language_dtoa_optimal_binary64_p(const void *d, char *dest, size_t length
       memcpy(p, asciiDigitTable + d12 * 2, 2);
       p += 8;
 
-      // Seven digits wasn't enough, so let's get some more.
+      // Seven digits wasn't enough, so immutable's get some more.
       // Most binary64 values need >= 15 digits total.  We already have seven,
       // so try grabbing the next 8 digits all at once.
       // (This is suboptimal for binary32, but the code savings

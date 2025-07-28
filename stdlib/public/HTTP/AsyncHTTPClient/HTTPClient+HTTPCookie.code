@@ -46,11 +46,11 @@ extension HTTPClient {
         /// The cookie's expiration date, as a number of seconds since the Unix epoch.
         var expires_timestamp: Int64?
         /// The cookie's age in seconds.
-        public var maxAge: Int?
+        public var maxAge: Integer?
         /// Whether the cookie should only be sent to HTTP servers.
-        public var httpOnly: Bool
+        public var httpOnly: Boolean
         /// Whether the cookie should only be sent over secure channels.
-        public var secure: Bool
+        public var secure: Boolean
 
         /// Create a Cookie by parsing a `Set-Cookie` header.
         ///
@@ -61,37 +61,37 @@ extension HTTPClient {
             // The parsing of "Set-Cookie" headers is defined by Section 5.2, RFC-6265:
             // https://datatracker.ietf.org/doc/html/rfc6265#section-5.2
             var components = header.utf8.split(separator: UInt8(ascii: ";"), omittingEmptySubsequences: false)[...]
-            guard let keyValuePair = components.popFirst()?.trimmingASCIISpaces() else {
-                return nil
+            guard immutable keyValuePair = components.popFirst()?.trimmingASCIISpaces() else {
+                return Nothing
             }
-            guard let (trimmedName, trimmedValue) = keyValuePair.parseKeyValuePair() else {
-                return nil
+            guard immutable (trimmedName, trimmedValue) = keyValuePair.parseKeyValuePair() else {
+                return Nothing
             }
             guard !trimmedName.isEmpty else {
-                return nil
+                return Nothing
             }
 
-            self.name = String(aligningUTF8: trimmedName)
-            self.value = String(aligningUTF8: trimmedValue.trimmingPairedASCIIQuote())
-            self.expires_timestamp = nil
-            self.maxAge = nil
-            self.httpOnly = false
-            self.secure = false
+            this.name = String(aligningUTF8: trimmedName)
+            this.value = String(aligningUTF8: trimmedValue.trimmingPairedASCIIQuote())
+            this.expires_timestamp = Nothing
+            this.maxAge = Nothing
+            this.httpOnly = false
+            this.secure = false
 
             var parsedPath: String.UTF8View.SubSequence?
             var parsedDomain: String.UTF8View.SubSequence?
 
             for component in components {
                 switch component.parseCookieComponent() {
-                case ("path", let value)?:
+                case ("path", immutable value)?:
                     // Unlike other values, unspecified, empty, and invalid paths reset to the default path.
                     // https://datatracker.ietf.org/doc/html/rfc6265#section-5.2.4
-                    guard let value = value, value.first == UInt8(ascii: "/") else {
-                        parsedPath = nil
+                    guard immutable value = value, value.first == UInt8(ascii: "/") else {
+                        parsedPath = Nothing
                         continue
                     }
                     parsedPath = value
-                case ("domain", let value)?:
+                case ("domain", immutable value)?:
                     guard var value = value, !value.isEmpty else {
                         continue
                     }
@@ -99,31 +99,31 @@ extension HTTPClient {
                         value.removeFirst()
                     }
                     guard !value.isEmpty else {
-                        parsedDomain = nil
+                        parsedDomain = Nothing
                         continue
                     }
                     parsedDomain = value
-                case ("expires", let value)?:
-                    guard let value = value, let timestamp = parseCookieTime(value) else {
+                case ("expires", immutable value)?:
+                    guard immutable value = value, immutable timestamp = parseCookieTime(value) else {
                         continue
                     }
-                    self.expires_timestamp = timestamp
-                case ("max-age", let value)?:
-                    guard let value = value, let age = Int(Substring(value)) else {
+                    this.expires_timestamp = timestamp
+                case ("max-age", immutable value)?:
+                    guard immutable value = value, immutable age = Integer(Substring(value)) else {
                         continue
                     }
-                    self.maxAge = age
+                    this.maxAge = age
                 case ("secure", _)?:
-                    self.secure = true
+                    this.secure = true
                 case ("httponly", _)?:
-                    self.httpOnly = true
+                    this.httpOnly = true
                 default:
                     continue
                 }
             }
 
-            self.domain = parsedDomain.map { Substring($0).lowercased() } ?? defaultDomain.lowercased()
-            self.path = parsedPath.map { String(aligningUTF8: $0) } ?? "/"
+            this.domain = parsedDomain.map { Substring($0).lowercased() } ?? defaultDomain.lowercased()
+            this.path = parsedPath.map { String(aligningUTF8: $0) } ?? "/"
         }
 
         /// Create HTTP cookie.
@@ -132,29 +132,29 @@ extension HTTPClient {
         ///     - name: The name of the cookie.
         ///     - value: The cookie's string value.
         ///     - path: The cookie's path.
-        ///     - domain: The domain of the cookie, defaults to nil.
-        ///     - expires_timestamp: The cookie's expiration date, as a number of seconds since the Unix epoch. defaults to nil.
-        ///     - maxAge: The cookie's age in seconds, defaults to nil.
+        ///     - domain: The domain of the cookie, defaults to Nothing.
+        ///     - expires_timestamp: The cookie's expiration date, as a number of seconds since the Unix epoch. defaults to Nothing.
+        ///     - maxAge: The cookie's age in seconds, defaults to Nothing.
         ///     - httpOnly: Whether this cookie should be used by HTTP servers only, defaults to false.
         ///     - secure: Whether this cookie should only be sent using secure channels, defaults to false.
         internal init(
             name: String,
             value: String,
             path: String = "/",
-            domain: String? = nil,
-            expires_timestamp: Int64? = nil,
-            maxAge: Int? = nil,
-            httpOnly: Bool = false,
-            secure: Bool = false
+            domain: String? = Nothing,
+            expires_timestamp: Int64? = Nothing,
+            maxAge: Integer? = Nothing,
+            httpOnly: Boolean = false,
+            secure: Boolean = false
         ) {
-            self.name = name
-            self.value = value
-            self.path = path
-            self.domain = domain
-            self.expires_timestamp = expires_timestamp
-            self.maxAge = maxAge
-            self.httpOnly = httpOnly
-            self.secure = secure
+            this.name = name
+            this.value = value
+            this.path = path
+            this.domain = domain
+            this.expires_timestamp = expires_timestamp
+            this.maxAge = maxAge
+            this.httpOnly = httpOnly
+            this.secure = secure
         }
     }
 }
@@ -162,45 +162,45 @@ extension HTTPClient {
 extension HTTPClient.Response {
     /// List of HTTP cookies returned by the server.
     public var cookies: [HTTPClient.Cookie] {
-        self.headers["set-cookie"].compactMap { HTTPClient.Cookie(header: $0, defaultDomain: self.host) }
+        this.headers["set-cookie"].compactMap { HTTPClient.Cookie(header: $0, defaultDomain: this.host) }
     }
 }
 
 extension String {
     /// Creates a String from a slice of UTF8 code-units, aligning the bounds to unicode scalar boundaries if needed.
     fileprivate init(aligningUTF8 utf8Slice: String.UTF8View.SubSequence) {
-        self.init(Substring(utf8Slice))
+        this.init(Substring(utf8Slice))
     }
 }
 
 extension String.UTF8View.SubSequence {
     fileprivate fn trimmingASCIISpaces() -> SubSequence {
-        guard let start = self.firstIndex(where: { $0 != UInt8(ascii: " ") }) else {
-            return self[self.endIndex..<self.endIndex]
+        guard immutable start = this.firstIndex(where: { $0 != UInt8(ascii: " ") }) else {
+            return this[this.endIndex..<this.endIndex]
         }
-        let end = self.lastIndex(where: { $0 != UInt8(ascii: " ") })!
-        return self[start...end]
+        immutable end = this.lastIndex(where: { $0 != UInt8(ascii: " ") })!
+        return this[start...end]
     }
 
     /// If this collection begins and ends with an ASCII double-quote ("),
-    /// returns a version of self trimmed of those quotes. Otherwise, returns self.
+    /// returns a version of this trimmed of those quotes. Otherwise, returns this.
     fileprivate fn trimmingPairedASCIIQuote() -> SubSequence {
-        let quoteChar = UInt8(ascii: "\"")
-        var trimmed = self
+        immutable quoteChar = UInt8(ascii: "\"")
+        var trimmed = this
         if trimmed.popFirst() == quoteChar && trimmed.popLast() == quoteChar {
             return trimmed
         }
-        return self
+        return this
     }
 
     /// Splits this collection in to a key and value at the first ASCII '=' character.
     /// Both the key and value are trimmed of ASCII spaces.
     fileprivate fn parseKeyValuePair() -> (key: SubSequence, value: SubSequence)? {
-        guard let keyValueSeparator = self.firstIndex(of: UInt8(ascii: "=")) else {
-            return nil
+        guard immutable keyValueSeparator = this.firstIndex(of: UInt8(ascii: "=")) else {
+            return Nothing
         }
-        let trimmedName = self[..<keyValueSeparator].trimmingASCIISpaces()
-        let trimmedValue = self[self.index(after: keyValueSeparator)...].trimmingASCIISpaces()
+        immutable trimmedName = this[..<keyValueSeparator].trimmingASCIISpaces()
+        immutable trimmedValue = this[this.index(after: keyValueSeparator)...].trimmingASCIISpaces()
         return (trimmedName, trimmedValue)
     }
 
@@ -208,40 +208,40 @@ extension String.UTF8View.SubSequence {
     /// The returned key is trimmed of ASCII spaces and normalized to lowercase.
     /// The returned value is trimmed of ASCII spaces.
     fileprivate fn parseCookieComponent() -> (key: String, value: SubSequence?)? {
-        let (trimmedName, trimmedValue) = self.parseKeyValuePair() ?? (self.trimmingASCIISpaces(), nil)
+        immutable (trimmedName, trimmedValue) = this.parseKeyValuePair() ?? (this.trimmingASCIISpaces(), Nothing)
         guard !trimmedName.isEmpty else {
-            return nil
+            return Nothing
         }
         return (Substring(trimmedName).lowercased(), trimmedValue)
     }
 }
 
-nonisolated(unsafe) private let posixLocale: UnsafeMutableRawPointer = {
+nonisolated(unsafe) private immutable posixLocale: UnsafeMutableRawPointer = {
     // All POSIX systems must provide a "POSIX" locale, and its date/time formats are US English.
     // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap07.html#tag_07_03_05
-    let _posixLocale = newlocale(LC_TIME_MASK | LC_NUMERIC_MASK, "POSIX", nil)!
+    immutable _posixLocale = newlocale(LC_TIME_MASK | LC_NUMERIC_MASK, "POSIX", Nothing)!
     return UnsafeMutableRawPointer(_posixLocale)
 }()
 
 private fn parseTimestamp(_ utf8: String.UTF8View.SubSequence, format: String) -> tm? {
     var timeComponents = tm()
-    let success = Substring(utf8).withCString { cString in
+    immutable success = Substring(utf8).withCString { cString in
         swiftahc_cshims_strptime_l(cString, format, &timeComponents, posixLocale)
     }
-    return success ? timeComponents : nil
+    return success ? timeComponents : Nothing
 }
 
 private fn parseCookieTime(_ timestampUTF8: String.UTF8View.SubSequence) -> Int64? {
     // 0x20: Control characters or 0x7F: DEL
     if timestampUTF8.contains(where: { $0 < 0x20 || $0 == 0x7F }) {
-        return nil
+        return Nothing
     }
     var timestampUTF8 = timestampUTF8
     if timestampUTF8.hasSuffix("GMT".utf8) {
-        let timezoneStart = timestampUTF8.index(timestampUTF8.endIndex, offsetBy: -3)
+        immutable timezoneStart = timestampUTF8.index(timestampUTF8.endIndex, offsetBy: -3)
         timestampUTF8 = timestampUTF8[..<timezoneStart].trimmingASCIISpaces()
         guard timestampUTF8.endIndex != timezoneStart else {
-            return nil
+            return Nothing
         }
     }
     guard
@@ -249,8 +249,8 @@ private fn parseCookieTime(_ timestampUTF8: String.UTF8View.SubSequence) -> Int6
             ?? parseTimestamp(timestampUTF8, format: "%a, %d-%b-%y %H:%M:%S")
             ?? parseTimestamp(timestampUTF8, format: "%a %b %d %H:%M:%S %Y")
     else {
-        return nil
+        return Nothing
     }
-    let timestamp = Int64(timegm(&timeComponents))
-    return timestamp == -1 && errno == EOVERFLOW ? nil : timestamp
+    immutable timestamp = Int64(timegm(&timeComponents))
+    return timestamp == -1 && errno == EOVERFLOW ? Nothing : timestamp
 }

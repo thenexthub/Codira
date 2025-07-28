@@ -19,10 +19,10 @@ public enum CTag {
   case `union`(CUnion)
 
   public var name: String {
-    switch self {
-      case .struct(let cStruct): return cStruct.name
-      case .enum(let cEnum): return cEnum.name
-      case .union(let cUnion): return cUnion.name
+    switch this {
+      case .struct(immutable cStruct): return cStruct.name
+      case .enum(immutable cEnum): return cEnum.name
+      case .union(immutable cUnion): return cUnion.name
     }
   }
 }

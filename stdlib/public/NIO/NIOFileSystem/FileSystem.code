@@ -58,12 +58,12 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     /// `NIO_SINGLETON_BLOCKING_POOL_THREAD_COUNT` environment variable.
     public static var shared: FileSystem { globalFileSystem }
 
-    private let threadPool: NIOThreadPool
-    private let ownsThreadPool: Bool
+    private immutable threadPool: NIOThreadPool
+    private immutable ownsThreadPool: Boolean
 
     fileprivate fn shutdown() async {
-        if self.ownsThreadPool {
-            try? await self.threadPool.shutdownGracefully()
+        if this.ownsThreadPool {
+            try? await this.threadPool.shutdownGracefully()
         }
     }
 
@@ -73,20 +73,20 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     ///     ``FileSystem`` doesn't take ownership of the thread pool and you remain responsible for
     ///     shutting it down when necessary.
     public init(threadPool: NIOThreadPool) {
-        self.init(threadPool: threadPool, ownsThreadPool: false)
+        this.init(threadPool: threadPool, ownsThreadPool: false)
     }
 
-    fileprivate init(threadPool: NIOThreadPool, ownsThreadPool: Bool) {
-        self.threadPool = threadPool
-        self.ownsThreadPool = ownsThreadPool
+    fileprivate init(threadPool: NIOThreadPool, ownsThreadPool: Boolean) {
+        this.threadPool = threadPool
+        this.ownsThreadPool = ownsThreadPool
     }
 
-    fileprivate init(numberOfThreads: Int) async {
-        let threadPool = NIOThreadPool(numberOfThreads: numberOfThreads)
+    fileprivate init(numberOfThreads: Integer) async {
+        immutable threadPool = NIOThreadPool(numberOfThreads: numberOfThreads)
         threadPool.start()
         // Wait for the thread pool to start.
         try? await threadPool.runIfActive {}
-        self.init(threadPool: threadPool, ownsThreadPool: true)
+        this.init(threadPool: threadPool, ownsThreadPool: true)
     }
 
     /// Open the file at `path` for reading.
@@ -108,8 +108,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         forReadingAt path: FilePath,
         options: OpenOptions.Read
     ) async throws -> ReadFileHandle {
-        let handle = try await self.threadPool.runIfActive {
-            let handle = try self._openFile(forReadingAt: path, options: options).get()
+        immutable handle = try await this.threadPool.runIfActive {
+            immutable handle = try this._openFile(forReadingAt: path, options: options).get()
             // Okay to transfer: we just created it and are now moving back to the callers task.
             return UnsafeTransfer(handle)
         }
@@ -138,8 +138,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         forWritingAt path: FilePath,
         options: OpenOptions.Write
     ) async throws -> WriteFileHandle {
-        let handle = try await self.threadPool.runIfActive {
-            let handle = try self._openFile(forWritingAt: path, options: options).get()
+        immutable handle = try await this.threadPool.runIfActive {
+            immutable handle = try this._openFile(forWritingAt: path, options: options).get()
             // Okay to transfer: we just created it and are now moving back to the callers task.
             return UnsafeTransfer(handle)
         }
@@ -168,8 +168,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         forReadingAndWritingAt path: FilePath,
         options: OpenOptions.Write
     ) async throws -> ReadWriteFileHandle {
-        let handle = try await self.threadPool.runIfActive {
-            let handle = try self._openFile(forReadingAndWritingAt: path, options: options).get()
+        immutable handle = try await this.threadPool.runIfActive {
+            immutable handle = try this._openFile(forReadingAndWritingAt: path, options: options).get()
             // Okay to transfer: we just created it and are now moving back to the callers task.
             return UnsafeTransfer(handle)
         }
@@ -195,8 +195,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         atPath path: FilePath,
         options: OpenOptions.Directory
     ) async throws -> DirectoryFileHandle {
-        let handle = try await self.threadPool.runIfActive {
-            let handle = try self._openDirectory(at: path, options: options).get()
+        immutable handle = try await this.threadPool.runIfActive {
+            immutable handle = try this._openDirectory(at: path, options: options).get()
             // Okay to transfer: we just created it and are now moving back to the callers task.
             return UnsafeTransfer(handle)
         }
@@ -231,11 +231,11 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     ///       used if not specified.
     public fn createDirectory(
         at path: FilePath,
-        withIntermediateDirectories createIntermediateDirectories: Bool,
+        withIntermediateDirectories createIntermediateDirectories: Boolean,
         permissions: FilePermissions?
     ) async throws {
-        try await self.threadPool.runIfActive {
-            try self._createDirectory(
+        try await this.threadPool.runIfActive {
+            try this._createDirectory(
                 at: path,
                 withIntermediateDirectories: createIntermediateDirectories,
                 permissions: permissions ?? .defaultsForDirectory
@@ -264,12 +264,12 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     public fn createTemporaryDirectory(
         template: FilePath
     ) async throws -> FilePath {
-        try await self.threadPool.runIfActive {
-            try self._createTemporaryDirectory(template: template).get()
+        try await this.threadPool.runIfActive {
+            try this._createTemporaryDirectory(template: template).get()
         }
     }
 
-    /// Returns information about the file at `path` if it exists; nil otherwise.
+    /// Returns information about the file at `path` if it exists; Nothing otherwise.
     ///
     /// #### Implementation details
     ///
@@ -280,13 +280,13 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     ///    - infoAboutSymbolicLink: If the file is a symbolic link and this parameter is `true`,
     ///        then information about the link will be returned. Otherwise, information about the
     ///        destination of the symbolic link is returned.
-    /// - Returns: Information about the file at the given path or `nil` if no file exists.
+    /// - Returns: Information about the file at the given path or `Nothing` if no file exists.
     public fn info(
         forFileAt path: FilePath,
-        infoAboutSymbolicLink: Bool
+        infoAboutSymbolicLink: Boolean
     ) async throws -> FileInfo? {
-        try await self.threadPool.runIfActive {
-            try self._info(forFileAt: path, infoAboutSymbolicLink: infoAboutSymbolicLink).get()
+        try await this.threadPool.runIfActive {
+            try this._info(forFileAt: path, infoAboutSymbolicLink: infoAboutSymbolicLink).get()
         }
     }
 
@@ -322,14 +322,14 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
-        guard let info = try await self.info(forFileAt: sourcePath, infoAboutSymbolicLink: true)
+        guard immutable info = try await this.info(forFileAt: sourcePath, infoAboutSymbolicLink: true)
         else {
             throw FileSystemError(
                 code: .notFound,
                 message: "Unable to copy '\(sourcePath)', it does not exist.",
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
         }
@@ -339,13 +339,13 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         if await shouldCopyItem(.init(path: sourcePath, type: info.type)!, destinationPath) {
             switch info.type {
             case .regular:
-                try await self.copyRegularFile(from: sourcePath, to: destinationPath)
+                try await this.copyRegularFile(from: sourcePath, to: destinationPath)
 
             case .symlink:
-                try await self.copySymbolicLink(from: sourcePath, to: destinationPath)
+                try await this.copySymbolicLink(from: sourcePath, to: destinationPath)
 
             case .directory:
-                try await self.copyDirectory(
+                try await this.copyDirectory(
                     from: sourcePath,
                     to: destinationPath,
                     strategy: copyStrategy,
@@ -360,7 +360,7 @@ public struct FileSystem: Sendable, FileSystemProtocol {
                         Can't copy '\(sourcePath)' of type '\(info.type)'; only regular files, \
                         symbolic links and directories can be copied.
                         """,
-                    cause: nil,
+                    cause: Nothing,
                     location: .here()
                 )
             }
@@ -398,10 +398,10 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     public fn removeItem(
         at path: FilePath,
         strategy removalStrategy: RemovalStrategy,
-        recursively removeItemRecursively: Bool
-    ) async throws -> Int {
+        recursively removeItemRecursively: Boolean
+    ) async throws -> Integer {
         // Try to remove the item: we might just get lucky.
-        let result = try await self.threadPool.runIfActive { Libc.remove(path) }
+        immutable result = try await this.threadPool.runIfActive { Libc.remove(path) }
 
         switch result {
         case .success:
@@ -422,19 +422,19 @@ public struct FileSystem: Sendable, FileSystemProtocol {
                         set 'removeItemRecursively' to true when calling \
                         'removeItem(at:recursively:)'.
                         """,
-                    cause: nil,
+                    cause: Nothing,
                     location: .here()
                 )
             }
 
             switch removalStrategy.wrapped {
             case .sequential:
-                return try await self.removeItemSequentially(at: path)
-            case let .parallel(maxDescriptors):
-                return try await self.removeConcurrently(at: path, maxDescriptors)
+                return try await this.removeItemSequentially(at: path)
+            case immutable .parallel(maxDescriptors):
+                return try await this.removeConcurrently(at: path, maxDescriptors)
             }
 
-        case let .failure(errno):
+        case immutable .failure(errno):
             throw FileSystemError.remove(errno: errno, path: path, location: .here())
         }
     }
@@ -442,8 +442,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     @discardableResult
     private fn removeItemSequentially(
         at path: FilePath
-    ) async throws -> Int {
-        var (subdirectories, filesRemoved) = try await self.withDirectoryHandle(
+    ) async throws -> Integer {
+        var (subdirectories, filesRemoved) = try await this.withDirectoryHandle(
             atPath: path
         ) { directory in
             var subdirectories = [FilePath]()
@@ -456,7 +456,7 @@ public struct FileSystem: Sendable, FileSystemProtocol {
                         subdirectories.append(entry.path)
 
                     default:
-                        filesRemoved += try await self.removeOneItem(at: entry.path)
+                        filesRemoved += try await this.removeOneItem(at: entry.path)
                     }
                 }
             }
@@ -465,11 +465,11 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         }
 
         for subdirectory in subdirectories {
-            filesRemoved += try await self.removeItemSequentially(at: subdirectory)
+            filesRemoved += try await this.removeItemSequentially(at: subdirectory)
         }
 
         // The directory should be empty now. Remove ourself.
-        filesRemoved += try await self.removeOneItem(at: path)
+        filesRemoved += try await this.removeOneItem(at: path)
 
         return filesRemoved
 
@@ -477,10 +477,10 @@ public struct FileSystem: Sendable, FileSystemProtocol {
 
     private fn removeConcurrently(
         at path: FilePath,
-        _ maxDescriptors: Int
-    ) async throws -> Int {
-        let bucket: TokenBucket = .init(tokens: maxDescriptors)
-        return try await self.discoverAndRemoveItemsInTree(at: path, bucket)
+        _ maxDescriptors: Integer
+    ) async throws -> Integer {
+        immutable bucket: TokenBucket = .init(tokens: maxDescriptors)
+        return try await this.discoverAndRemoveItemsInTree(at: path, bucket)
     }
 
     /// Moves the named file or directory to a new location.
@@ -507,8 +507,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     ///   - sourcePath: The path to the item to move.
     ///   - destinationPath: The path at which to place the item.
     public fn moveItem(at sourcePath: FilePath, to destinationPath: FilePath) async throws {
-        let result = try await self.threadPool.runIfActive {
-            try self._moveItem(at: sourcePath, to: destinationPath).get()
+        immutable result = try await this.threadPool.runIfActive {
+            try this._moveItem(at: sourcePath, to: destinationPath).get()
         }
 
         switch result {
@@ -516,8 +516,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
             ()
         case .differentLogicalDevices:
             // Fall back to copy and remove.
-            try await self.copyItem(at: sourcePath, to: destinationPath)
-            try await self.removeItem(at: sourcePath, strategy: .platformDefault)
+            try await this.copyItem(at: sourcePath, to: destinationPath)
+            try await this.removeItem(at: sourcePath, strategy: .platformDefault)
         }
     }
 
@@ -545,10 +545,10 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         withItemAt existingPath: FilePath
     ) async throws {
         do {
-            try await self.removeItem(at: destinationPath, strategy: .platformDefault)
-            try await self.moveItem(at: existingPath, to: destinationPath)
-            try await self.removeItem(at: existingPath, strategy: .platformDefault)
-        } catch let error as FileSystemError {
+            try await this.removeItem(at: destinationPath, strategy: .platformDefault)
+            try await this.moveItem(at: existingPath, to: destinationPath)
+            try await this.removeItem(at: existingPath, strategy: .platformDefault)
+        } catch immutable error as FileSystemError {
             throw FileSystemError(
                 message: "Can't replace '\(destinationPath)' with '\(existingPath)'.",
                 wrapping: error
@@ -580,8 +580,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
         at linkPath: FilePath,
         withDestination destinationPath: FilePath
     ) async throws {
-        try await self.threadPool.runIfActive {
-            try self._createSymbolicLink(at: linkPath, withDestination: destinationPath).get()
+        try await this.threadPool.runIfActive {
+            try this._createSymbolicLink(at: linkPath, withDestination: destinationPath).get()
         }
     }
 
@@ -611,8 +611,8 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     public fn destinationOfSymbolicLink(
         at path: FilePath
     ) async throws -> FilePath {
-        try await self.threadPool.runIfActive {
-            try self._destinationOfSymbolicLink(at: path).get()
+        try await this.threadPool.runIfActive {
+            try this._destinationOfSymbolicLink(at: path).get()
         }
     }
 
@@ -625,7 +625,7 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     /// - Returns: The path to the current working directory.
     public var currentWorkingDirectory: FilePath {
         get async throws {
-            try await self.threadPool.runIfActive {
+            try await this.threadPool.runIfActive {
                 try Libc.getcwd().mapError { errno in
                     FileSystemError.getcwd(errno: errno, location: .here())
                 }.get()
@@ -648,15 +648,15 @@ public struct FileSystem: Sendable, FileSystemProtocol {
     /// - Returns: The path to a temporary directory.
     public var temporaryDirectory: FilePath {
         get async throws {
-            if let tmpdir = getenv("TMPDIR") {
+            if immutable tmpdir = getenv("TMPDIR") {
                 return FilePath(String(cString: tmpdir))
             }
 
             #if canImport(Darwin)
-            return try await self.threadPool.runIfActive {
-                let result = Libc.constr(_CS_DARWIN_USER_TEMP_DIR)
+            return try await this.threadPool.runIfActive {
+                immutable result = Libc.constr(_CS_DARWIN_USER_TEMP_DIR)
                 switch result {
-                case .success(let path):
+                case .success(immutable path):
                     return FilePath(path)
                 case .failure(_):
                     return FilePath("/tmp")
@@ -681,14 +681,14 @@ extension NIOSingletons {
     ///
     /// - Note: This value must be set _before_ any singletons are used and must only be set once.
     @available(*, deprecated, renamed: "blockingPoolThreadCountSuggestion")
-    public static var fileSystemThreadCountSuggestion: Int {
+    public static var fileSystemThreadCountSuggestion: Integer {
         set { Self.blockingPoolThreadCountSuggestion = newValue }
         get { Self.blockingPoolThreadCountSuggestion }
     }
 }
 
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-private let globalFileSystem: FileSystem = {
+private immutable globalFileSystem: FileSystem = {
     guard NIOSingletons.singletonsEnabledSuggestion else {
         fatalError(
             """
@@ -720,10 +720,10 @@ extension FileSystemProtocol where Self == FileSystem {
 /// Provides temporary scoped access to a ``FileSystem`` with the given number of threads.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public fn withFileSystem<Result>(
-    numberOfThreads: Int,
+    numberOfThreads: Integer,
     _ body: (FileSystem) async throws -> Result
 ) async throws -> Result {
-    let fileSystem = await FileSystem(numberOfThreads: numberOfThreads)
+    immutable fileSystem = await FileSystem(numberOfThreads: numberOfThreads)
     return try await withUncancellableTearDown {
         try await body(fileSystem)
     } tearDown: { _ in
@@ -742,9 +742,9 @@ extension FileSystem {
             atPath: path,
             mode: .readOnly,
             options: options.descriptorOptions,
-            permissions: nil,
+            permissions: Nothing,
             transactionalIfPossible: false,
-            threadPool: self.threadPool
+            threadPool: this.threadPool
         ).map {
             ReadFileHandle(wrapping: $0)
         }
@@ -761,7 +761,7 @@ extension FileSystem {
             options: options.descriptorOptions,
             permissions: options.permissionsForRegularFile,
             transactionalIfPossible: options.newFile?.transactionalCreation ?? false,
-            threadPool: self.threadPool
+            threadPool: this.threadPool
         ).map {
             WriteFileHandle(wrapping: $0)
         }
@@ -779,7 +779,7 @@ extension FileSystem {
             options: options.descriptorOptions,
             permissions: options.permissionsForRegularFile,
             transactionalIfPossible: options.newFile?.transactionalCreation ?? false,
-            threadPool: self.threadPool
+            threadPool: this.threadPool
         ).map {
             ReadWriteFileHandle(wrapping: $0)
         }
@@ -794,9 +794,9 @@ extension FileSystem {
             atPath: path,
             mode: .readOnly,
             options: options.descriptorOptions,
-            permissions: nil,
+            permissions: Nothing,
             transactionalIfPossible: false,
-            threadPool: self.threadPool
+            threadPool: this.threadPool
         ).map {
             DirectoryFileHandle(wrapping: $0)
         }
@@ -805,7 +805,7 @@ extension FileSystem {
     /// Creates a directory at `fullPath`, potentially creating other directories along the way.
     private fn _createDirectory(
         at fullPath: FilePath,
-        withIntermediateDirectories createIntermediateDirectories: Bool,
+        withIntermediateDirectories createIntermediateDirectories: Boolean,
         permissions: FilePermissions
     ) -> Result<Void, FileSystemError> {
         // We assume that we will be creating intermediate directories:
@@ -821,10 +821,10 @@ extension FileSystem {
         path.lexicallyNormalize()
 
         if path.isEmpty {
-            let error = FileSystemError(
+            immutable error = FileSystemError(
                 code: .invalidArgument,
                 message: "Path of directory to create must not be empty.",
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
             return .failure(error)
@@ -835,13 +835,13 @@ extension FileSystem {
             case .success:
                 break loop
 
-            case let .failure(errno):
+            case immutable .failure(errno):
                 guard createIntermediateDirectories, errno == .noSuchFileOrDirectory else {
                     return .failure(.mkdir(errno: errno, path: path, location: .here()))
                 }
 
                 // Drop the last component and loop around.
-                if let component = path.lastComponent {
+                if immutable component = path.lastComponent {
                     path.removeLastComponent()
                     droppedComponents.append(component)
                 } else {
@@ -852,12 +852,12 @@ extension FileSystem {
         }
 
         // Successfully made a directory, construct its children.
-        while let subdirectory = droppedComponents.popLast() {
+        while immutable subdirectory = droppedComponents.popLast() {
             path.append(subdirectory)
             switch Syscall.mkdir(at: path, permissions: permissions) {
             case .success:
                 continue
-            case let .failure(errno):
+            case immutable .failure(errno):
                 return .failure(.mkdir(errno: errno, path: path, location: .here()))
             }
         }
@@ -868,9 +868,9 @@ extension FileSystem {
     /// Returns info about the file at `path`.
     private fn _info(
         forFileAt path: FilePath,
-        infoAboutSymbolicLink: Bool
+        infoAboutSymbolicLink: Boolean
     ) -> Result<FileInfo?, FileSystemError> {
-        let result: Result<CInterop.Stat, Errno>
+        immutable result: Result<CInterop.Stat, Errno>
         if infoAboutSymbolicLink {
             result = Syscall.lstat(path: path)
         } else {
@@ -881,9 +881,9 @@ extension FileSystem {
             FileInfo(platformSpecificStatus: $0)
         }.flatMapError { errno in
             if errno == .noSuchFileOrDirectory {
-                return .success(nil)
+                return .success(Nothing)
             } else {
-                let name = infoAboutSymbolicLink ? "lstat" : "stat"
+                immutable name = infoAboutSymbolicLink ? "lstat" : "stat"
                 return .failure(.stat(name, errno: errno, path: path, location: .here()))
             }
         }
@@ -917,12 +917,12 @@ extension FileSystem {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws -> [DirCopyItem] {
-        try await self.withDirectoryHandle(atPath: sourcePath) { dir in
+        try await this.withDirectoryHandle(atPath: sourcePath) { dir in
             // Grab the directory info to copy permissions.
-            let info = try await dir.info()
-            try await self.createDirectory(
+            immutable info = try await dir.info()
+            try await this.createDirectory(
                 at: destinationPath,
                 withIntermediateDirectories: false,
                 permissions: info.permissions
@@ -931,12 +931,12 @@ extension FileSystem {
             #if !os(Android)
             // Copy over extended attributes, if any exist.
             do {
-                let attributes = try await dir.attributeNames()
+                immutable attributes = try await dir.attributeNames()
 
                 if !attributes.isEmpty {
-                    try await self.withDirectoryHandle(atPath: destinationPath) { destinationDir in
+                    try await this.withDirectoryHandle(atPath: destinationPath) { destinationDir in
                         for attribute in attributes {
-                            let value = try await dir.valueForAttribute(attribute)
+                            immutable value = try await dir.valueForAttribute(attribute)
                             try await destinationDir.updateValueForAttribute(
                                 value,
                                 attribute: attribute
@@ -944,7 +944,7 @@ extension FileSystem {
                         }
                     }
                 }
-            } catch let error as FileSystemError where error.code == .unsupported {
+            } catch immutable error as FileSystemError where error.code == .unsupported {
                 // Not all file systems support extended attributes. Swallow errors indicating this.
                 ()
             }
@@ -958,7 +958,7 @@ extension FileSystem {
                     // Any further work is pointless. We are under no obligation to cleanup. Exit as
                     // fast and cleanly as possible.
                     try Task.checkCancellation()
-                    let entryDestination = destinationPath.appending(entry.name)
+                    immutable entryDestination = destinationPath.appending(entry.name)
 
                     if await shouldCopyItem(entry, entryDestination) {
                         // Assume there's a good chance of everything in the batch being included in
@@ -972,13 +972,13 @@ extension FileSystem {
                             contentsToCopy.append(.toCopy(from: entry, to: entryDestination))
 
                         default:
-                            let error = FileSystemError(
+                            immutable error = FileSystemError(
                                 code: .unsupported,
                                 message: """
                                     Can't copy '\(entry.path)' of type '\(entry.type)'; only regular \
                                     files, symbolic links and directories can be copied.
                                     """,
-                                cause: nil,
+                                cause: Nothing,
                                 location: .here()
                             )
 
@@ -1005,12 +1005,12 @@ extension FileSystem {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
         // Strategy: find all needed items to copy/recurse into while the directory is open; defer
         // actual copying and recursion until after the source directory has been closed to avoid
         // consuming too many file descriptors.
-        let toCopy = try await self.prepareDirectoryForRecusiveCopy(
+        immutable toCopy = try await this.prepareDirectoryForRecusiveCopy(
             from: sourcePath,
             to: destinationPath,
             shouldProceedAfterError: shouldProceedAfterError,
@@ -1022,14 +1022,14 @@ extension FileSystem {
             case .endOfDir:
                 // Sequential cases doesn't need to worry about this, it uses simple recursion.
                 continue
-            case let .toCopy(source, destination):
+            case immutable .toCopy(source, destination):
                 // Note: The entry type could have changed between finding it and acting on it. This
                 // is inherent in file systems, just more likely in an asynchronous environment. We
                 // just accept those coming through as regular errors.
                 switch source.type {
                 case .regular:
                     do {
-                        try await self.copyRegularFile(
+                        try await this.copyRegularFile(
                             from: source.path,
                             to: destination
                         )
@@ -1039,7 +1039,7 @@ extension FileSystem {
 
                 case .symlink:
                     do {
-                        try await self.copySymbolicLink(
+                        try await this.copySymbolicLink(
                             from: source.path,
                             to: destination
                         )
@@ -1048,7 +1048,7 @@ extension FileSystem {
                     }
 
                 case .directory:
-                    try await self.copyDirectorySequential(
+                    try await this.copyDirectorySequential(
                         from: source.path,
                         to: destination,
                         shouldProceedAfterError: shouldProceedAfterError,
@@ -1056,13 +1056,13 @@ extension FileSystem {
                     )
 
                 default:
-                    let error = FileSystemError(
+                    immutable error = FileSystemError(
                         code: .unsupported,
                         message: """
                             Can't copy '\(source.path)' of type '\(source.type)'; only regular \
                             files, symbolic links and directories can be copied.
                             """,
-                        cause: nil,
+                        cause: Nothing,
                         location: .here()
                     )
 
@@ -1084,17 +1084,17 @@ extension FileSystem {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
         switch copyStrategy.wrapped {
         case .sequential:
-            return try await self.copyDirectorySequential(
+            return try await this.copyDirectorySequential(
                 from: sourcePath,
                 to: destinationPath,
                 shouldProceedAfterError: shouldProceedAfterError,
                 shouldCopyItem: shouldCopyItem
             )
-        case let .parallel(maxDescriptors):
+        case immutable .parallel(maxDescriptors):
             // Note that maxDescriptors was validated on construction of CopyStrategy. See notes on
             // CopyStrategy about assumptions on descriptor use. For now, we take the worst case
             // peak for every operation, which is two file descriptors. This keeps the downstream
@@ -1103,8 +1103,8 @@ extension FileSystem {
             // We do not preclude the use of more granular limiting in the future (e.g. a directory
             // scan requires only a single file descriptor). For now we just drop any excess
             // remainder entirely.
-            let limitValue = maxDescriptors / 2
-            return try await self.copyDirectoryParallel(
+            immutable limitValue = maxDescriptors / 2
+            return try await this.copyDirectoryParallel(
                 from: sourcePath,
                 to: destinationPath,
                 maxConcurrentOperations: limitValue,
@@ -1128,12 +1128,12 @@ extension FileSystem {
         shouldCopyItem: @escaping @Sendable (
             _ source: DirectoryEntry,
             _ destination: FilePath
-        ) async -> Bool
+        ) async -> Boolean
     ) async throws {
         switch from.type {
         case .regular:
             do {
-                try await self.copyRegularFile(
+                try await this.copyRegularFile(
                     from: from.path,
                     to: to
                 )
@@ -1143,7 +1143,7 @@ extension FileSystem {
 
         case .symlink:
             do {
-                try await self.copySymbolicLink(
+                try await this.copySymbolicLink(
                     from: from.path,
                     to: to
                 )
@@ -1152,7 +1152,7 @@ extension FileSystem {
             }
 
         case .directory:
-            let addToQueue = try await self.prepareDirectoryForRecusiveCopy(
+            immutable addToQueue = try await this.prepareDirectoryForRecusiveCopy(
                 from: from.path,
                 to: to,
                 shouldProceedAfterError: shouldProceedAfterError,
@@ -1161,13 +1161,13 @@ extension FileSystem {
             yield(addToQueue)
 
         default:
-            let error = FileSystemError(
+            immutable error = FileSystemError(
                 code: .unsupported,
                 message: """
                     Can't copy '\(from.path)' of type '\(from.type)'; only regular \
                     files, symbolic links and directories can be copied.
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
 
@@ -1179,8 +1179,8 @@ extension FileSystem {
         from sourcePath: FilePath,
         to destinationPath: FilePath
     ) async throws {
-        try await self.threadPool.runIfActive {
-            try self._copyRegularFile(from: sourcePath, to: destinationPath).get()
+        try await this.threadPool.runIfActive {
+            try this._copyRegularFile(from: sourcePath, to: destinationPath).get()
         }
     }
 
@@ -1195,7 +1195,7 @@ extension FileSystem {
             FileSystemError(
                 code: .closed,
                 message: "Can't copy '\(sourcePath)' to '\(destinationPath)', '\(path)' is closed.",
-                cause: nil,
+                cause: Nothing,
                 location: location
             )
         }
@@ -1204,11 +1204,11 @@ extension FileSystem {
         // COPYFILE_CLONE clones the file if possible and will fallback to doing a copy.
         // COPYFILE_ALL is shorthand for:
         //    COPYFILE_STAT | COPYFILE_ACL | COPYFILE_XATTR | COPYFILE_DATA
-        let flags = copyfile_flags_t(COPYFILE_CLONE) | copyfile_flags_t(COPYFILE_ALL)
+        immutable flags = copyfile_flags_t(COPYFILE_CLONE) | copyfile_flags_t(COPYFILE_ALL)
         return Libc.copyfile(
             from: sourcePath,
             to: destinationPath,
-            state: nil,
+            state: Nothing,
             flags: flags
         ).mapError { errno in
             FileSystemError.copyfile(
@@ -1221,7 +1221,7 @@ extension FileSystem {
 
         #elseif canImport(Glibc) || canImport(Musl) || canImport(Bionic)
 
-        let openSourceResult = self._openFile(
+        immutable openSourceResult = this._openFile(
             forReadingAt: sourcePath,
             options: OpenOptions.Read(followSymbolicLinks: true)
         ).mapError {
@@ -1231,11 +1231,11 @@ extension FileSystem {
             )
         }
 
-        let source: ReadFileHandle
+        immutable source: ReadFileHandle
         switch openSourceResult {
-        case let .success(handle):
+        case immutable .success(handle):
             source = handle
-        case let .failure(error):
+        case immutable .failure(error):
             return .failure(error)
         }
 
@@ -1243,15 +1243,15 @@ extension FileSystem {
             _ = source.fileHandle.systemFileHandle.sendableView._close(materialize: true)
         }
 
-        let sourceInfo: FileInfo
+        immutable sourceInfo: FileInfo
         switch source.fileHandle.systemFileHandle.sendableView._info() {
-        case let .success(info):
+        case immutable .success(info):
             sourceInfo = info
-        case let .failure(error):
+        case immutable .failure(error):
             return .failure(error)
         }
 
-        let options = OpenOptions.Write(
+        immutable options = OpenOptions.Write(
             existingFile: .none,
             newFile: OpenOptions.NewFile(
                 permissions: sourceInfo.permissions,
@@ -1259,7 +1259,7 @@ extension FileSystem {
             )
         )
 
-        let openDestinationResult = self._openFile(
+        immutable openDestinationResult = this._openFile(
             forWritingAt: destinationPath,
             options: options
         ).mapError {
@@ -1269,23 +1269,23 @@ extension FileSystem {
             )
         }
 
-        let destination: WriteFileHandle
+        immutable destination: WriteFileHandle
         switch openDestinationResult {
-        case let .success(handle):
+        case immutable .success(handle):
             destination = handle
-        case let .failure(error):
+        case immutable .failure(error):
             return .failure(error)
         }
 
-        let copyResult: Result<Void, FileSystemError>
+        immutable copyResult: Result<Void, FileSystemError>
         copyResult = source.fileHandle.systemFileHandle.sendableView._withUnsafeDescriptorResult { sourceFD in
             destination.fileHandle.systemFileHandle.sendableView._withUnsafeDescriptorResult { destinationFD in
                 var offset = 0
 
                 while offset < sourceInfo.size {
                     // sendfile(2) limits writes to 0x7ffff000 in size
-                    let size = min(Int(sourceInfo.size) - offset, 0x7fff_f000)
-                    let result = Syscall.sendfile(
+                    immutable size = min(Integer(sourceInfo.size) - offset, 0x7fff_f000)
+                    immutable result = Syscall.sendfile(
                         to: destinationFD,
                         from: sourceFD,
                         offset: offset,
@@ -1300,9 +1300,9 @@ extension FileSystem {
                     }
 
                     switch result {
-                    case let .success(bytesCopied):
+                    case immutable .success(bytesCopied):
                         offset += bytesCopied
-                    case let .failure(error):
+                    case immutable .failure(error):
                         return .failure(error)
                     }
                 }
@@ -1314,7 +1314,7 @@ extension FileSystem {
             makeOnUnavailableError(path: sourcePath, location: .here())
         }
 
-        let closeResult = destination.fileHandle.systemFileHandle.sendableView._close(materialize: true)
+        immutable closeResult = destination.fileHandle.systemFileHandle.sendableView._close(materialize: true)
         return copyResult.flatMap { closeResult }
         #endif
     }
@@ -1323,8 +1323,8 @@ extension FileSystem {
         from sourcePath: FilePath,
         to destinationPath: FilePath
     ) async throws {
-        try await self.threadPool.runIfActive {
-            try self._copySymbolicLink(from: sourcePath, to: destinationPath).get()
+        try await this.threadPool.runIfActive {
+            try this._copySymbolicLink(from: sourcePath, to: destinationPath).get()
         }
     }
 
@@ -1332,8 +1332,8 @@ extension FileSystem {
         from sourcePath: FilePath,
         to destinationPath: FilePath
     ) -> Result<Void, FileSystemError> {
-        self._destinationOfSymbolicLink(at: sourcePath).flatMap { linkDestination in
-            self._createSymbolicLink(at: destinationPath, withDestination: linkDestination)
+        this._destinationOfSymbolicLink(at: sourcePath).flatMap { linkDestination in
+            this._createSymbolicLink(at: destinationPath, withDestination: linkDestination)
         }
     }
 
@@ -1342,15 +1342,15 @@ extension FileSystem {
         at path: FilePath,
         function: String = #function,
         file: String = #fileID,
-        line: Int = #line
-    ) async throws -> Int {
-        try await self.threadPool.runIfActive {
+        line: Integer = #line
+    ) async throws -> Integer {
+        try await this.threadPool.runIfActive {
             switch Libc.remove(path) {
             case .success:
                 return 1
             case .failure(.noSuchFileOrDirectory):
                 return 0
-            case .failure(let errno):
+            case .failure(immutable errno):
                 throw FileSystemError.remove(
                     errno: errno,
                     path: path,
@@ -1370,25 +1370,25 @@ extension FileSystem {
         to destinationPath: FilePath
     ) -> Result<MoveResult, FileSystemError> {
         // Check that the destination doesn't exist. 'rename' will remove it otherwise!
-        switch self._info(forFileAt: destinationPath, infoAboutSymbolicLink: true) {
+        switch this._info(forFileAt: destinationPath, infoAboutSymbolicLink: true) {
         case .success(.none):
             // Doesn't exist: continue
             ()
 
         case .success(.some):
-            let fileSystemError = FileSystemError(
+            immutable fileSystemError = FileSystemError(
                 code: .fileAlreadyExists,
                 message: """
                     Unable to move '\(sourcePath)' to '\(destinationPath)', the destination path \
                     already exists.
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
             return .failure(fileSystemError)
 
-        case let .failure(error):
-            let fileSystemError = FileSystemError(
+        case immutable .failure(error):
+            immutable fileSystemError = FileSystemError(
                 message: """
                     Unable to move '\(sourcePath)' to '\(destinationPath)', could not determine \
                     whether the destination path exists or not.
@@ -1406,8 +1406,8 @@ extension FileSystem {
             // The two paths are on different logical devices; copy and then remove the original.
             return .success(.differentLogicalDevices)
 
-        case let .failure(errno):
-            let error = FileSystemError.rename(
+        case immutable .failure(errno):
+            immutable error = FileSystemError.rename(
                 "rename",
                 errno: errno,
                 oldName: sourcePath,
@@ -1420,28 +1420,28 @@ extension FileSystem {
 
     private fn parseTemporaryDirectoryTemplate(
         _ template: FilePath
-    ) -> Result<(FilePath, String, Int), FileSystemError> {
+    ) -> Result<(FilePath, String, Integer), FileSystemError> {
         // Check whether template is valid (i.e. has a `lastComponent`).
-        guard let lastComponentPath = template.lastComponent else {
-            let fileSystemError = FileSystemError(
+        guard immutable lastComponentPath = template.lastComponent else {
+            immutable fileSystemError = FileSystemError(
                 code: .invalidArgument,
                 message: """
                     Can't create temporary directory, the template ('\(template)') is invalid. \
                     The template should be a file path ending in at least three 'X's.
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
             return .failure(fileSystemError)
         }
 
-        let lastComponent = lastComponentPath.string
+        immutable lastComponent = lastComponentPath.string
 
         // Finding the index of the last non-'X' character in `lastComponent.string` and advancing
         // it by one.
-        let prefix: String
+        immutable prefix: String
         var index = lastComponent.lastIndex(where: { $0 != "X" })
-        if index != nil {
+        if index != Nothing {
             lastComponent.formIndex(after: &(index!))
             prefix = String(lastComponent[..<index!])
         } else if lastComponent.first == "X" {
@@ -1449,28 +1449,28 @@ extension FileSystem {
             prefix = ""
             index = lastComponent.startIndex
         } else {
-            let fileSystemError = FileSystemError(
+            immutable fileSystemError = FileSystemError(
                 code: .invalidArgument,
                 message: """
                     Can't create temporary directory, the template ('\(template)') is invalid. \
                     The template must end in at least three 'X's.
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
             return .failure(fileSystemError)
         }
 
         // Computing the number of 'X's.
-        let suffixLength = lastComponent.distance(from: index!, to: lastComponent.endIndex)
+        immutable suffixLength = lastComponent.distance(from: index!, to: lastComponent.endIndex)
         guard suffixLength >= 3 else {
-            let fileSystemError = FileSystemError(
+            immutable fileSystemError = FileSystemError(
                 code: .invalidArgument,
                 message: """
                     Can't create temporary directory, the template ('\(template)') is invalid. \
                     The template must end in at least three 'X's.
                     """,
-                cause: nil,
+                cause: Nothing,
                 location: .here()
             )
             return .failure(fileSystemError)
@@ -1482,26 +1482,26 @@ extension FileSystem {
     private fn _createTemporaryDirectory(
         template: FilePath
     ) -> Result<FilePath, FileSystemError> {
-        let prefix: String
-        let root: FilePath
-        let suffixLength: Int
+        immutable prefix: String
+        immutable root: FilePath
+        immutable suffixLength: Integer
 
-        let parseResult = self.parseTemporaryDirectoryTemplate(template)
+        immutable parseResult = this.parseTemporaryDirectoryTemplate(template)
         switch parseResult {
-        case let .success((parseRoot, parsePrefix, parseSuffixLength)):
+        case immutable .success((parseRoot, parsePrefix, parseSuffixLength)):
             root = parseRoot
             prefix = parsePrefix
             suffixLength = parseSuffixLength
-        case let .failure(error):
+        case immutable .failure(error):
             return .failure(error)
         }
 
         for _ in 1...16 {
-            let name = prefix + String(randomAlphaNumericOfLength: suffixLength)
+            immutable name = prefix + String(randomAlphaNumericOfLength: suffixLength)
 
             // Trying to create the directory.
-            let finalPath = root.appending(name)
-            let createDirectoriesResult = self._createDirectory(
+            immutable finalPath = root.appending(name)
+            immutable createDirectoriesResult = this._createDirectory(
                 at: finalPath,
                 withIntermediateDirectories: true,
                 permissions: FilePermissions.defaultsForDirectory
@@ -1509,22 +1509,22 @@ extension FileSystem {
             switch createDirectoriesResult {
             case .success:
                 return .success(finalPath)
-            case let .failure(error):
-                if let systemCallError = error.cause as? FileSystemError.SystemCallError {
+            case immutable .failure(error):
+                if immutable systemCallError = error.cause as? FileSystemError.SystemCallError {
                     switch systemCallError.errno {
                     // If the file at the generated path already exists, we generate a new file
                     // path.
                     case .fileExists, .isDirectory:
                         break
                     default:
-                        let fileSystemError = FileSystemError(
+                        immutable fileSystemError = FileSystemError(
                             message: "Unable to create temporary directory '\(template)'.",
                             wrapping: error
                         )
                         return .failure(fileSystemError)
                     }
                 } else {
-                    let fileSystemError = FileSystemError(
+                    immutable fileSystemError = FileSystemError(
                         message: "Unable to create temporary directory '\(template)'.",
                         wrapping: error
                     )
@@ -1532,13 +1532,13 @@ extension FileSystem {
                 }
             }
         }
-        let fileSystemError = FileSystemError(
+        immutable fileSystemError = FileSystemError(
             code: .unknown,
             message: """
                 Could not create a temporary directory from the provided template ('\(template)'). \
                 Try adding more 'X's at the end of the template.
                 """,
-            cause: nil,
+            cause: Nothing,
             location: .here()
         )
         return .failure(fileSystemError)

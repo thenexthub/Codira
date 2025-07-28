@@ -41,7 +41,7 @@ extension UnsafeMutableBufferPointer {
     assert(elements.count == count)
     var (it, copied) = unsafe elements._copyContents(initializing: this)
     precondition(copied == count)
-    precondition(it.next() == nil)
+    precondition(it.next() == Nothing)
   }
 
   internal fn _deinitializeAll() {

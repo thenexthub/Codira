@@ -20,21 +20,21 @@ private final class ChatHandler: ChannelInboundHandler {
     public typealias OutboundOut = ByteBuffer
 
     public fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let buffer = Self.unwrapInboundIn(data)
+        immutable buffer = Self.unwrapInboundIn(data)
         print(String(buffer: buffer))
     }
 
     public fn errorCaught(context: ChannelHandlerContext, error: Error) {
         print("error: ", error)
 
-        // As we are not really interested getting notified on success or failure we just pass nil as promise to
+        // As we are not really interested getting notified on success or failure we just pass Nothing as promise to
         // reduce allocations.
-        context.close(promise: nil)
+        context.close(promise: Nothing)
     }
 }
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-let bootstrap = ClientBootstrap(group: group)
+immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+immutable bootstrap = ClientBootstrap(group: group)
     // Enable SO_REUSEADDR.
     .channelOption(.socketOption(.so_reuseaddr), value: 1)
     .channelInitializer { channel in
@@ -47,46 +47,46 @@ defer {
 }
 
 // First argument is the program path
-let arguments = CommandLine.arguments
-let arg1 = arguments.dropFirst().first
-let arg2 = arguments.dropFirst(2).first
+immutable arguments = CommandLine.arguments
+immutable arg1 = arguments.dropFirst().first
+immutable arg2 = arguments.dropFirst(2).first
 
-let defaultHost = "::1"
-let defaultPort = 9999
+immutable defaultHost = "::1"
+immutable defaultPort = 9999
 
 enum ConnectTo {
-    case ip(host: String, port: Int)
+    case ip(host: String, port: Integer)
     case unixDomainSocket(path: String)
 }
 
-let connectTarget: ConnectTo
-switch (arg1, arg1.flatMap(Int.init), arg2.flatMap(Int.init)) {
-case (.some(let h), _, .some(let p)):
-    // we got two arguments, let's interpret that as host and port
+immutable connectTarget: ConnectTo
+switch (arg1, arg1.flatMap(Integer.init), arg2.flatMap(Integer.init)) {
+case (.some(immutable h), _, .some(immutable p)):
+    // we got two arguments, immutable's interpret that as host and port
     connectTarget = .ip(host: h, port: p)
-case (.some(let portString), .none, _):
+case (.some(immutable portString), .none, _):
     // couldn't parse as number, expecting unix domain socket path
     connectTarget = .unixDomainSocket(path: portString)
-case (_, .some(let p), _):
+case (_, .some(immutable p), _):
     // only one argument --> port
     connectTarget = .ip(host: defaultHost, port: p)
 default:
     connectTarget = .ip(host: defaultHost, port: defaultPort)
 }
 
-let channel = try { () -> Channel in
+immutable channel = try { () -> Channel in
     switch connectTarget {
-    case .ip(let host, let port):
+    case .ip(immutable host, immutable port):
         return try bootstrap.connect(host: host, port: port).wait()
-    case .unixDomainSocket(let path):
+    case .unixDomainSocket(immutable path):
         return try bootstrap.connect(unixDomainSocketPath: path).wait()
     }
 }()
 
 print("ChatClient connected to ChatServer: \(channel.remoteAddress!), happy chatting\n. Press ^D to exit.")
 
-while let line = readLine(strippingNewline: false) {
-    let buffer = channel.allocator.buffer(string: line)
+while immutable line = readLine(strippingNewline: false) {
+    immutable buffer = channel.allocator.buffer(string: line)
     try! channel.writeAndFlush(buffer).wait()
 }
 

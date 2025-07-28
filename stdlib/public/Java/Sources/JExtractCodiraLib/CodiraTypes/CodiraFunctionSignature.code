@@ -24,28 +24,28 @@ public struct SwiftFunctionSignature: Equatable {
   var effectSpecifiers: [SwiftEffectSpecifier]
 
   init(
-    selfParameter: SwiftSelfParameter? = nil,
+    selfParameter: SwiftSelfParameter? = Nothing,
     parameters: [SwiftParameter],
     result: SwiftResult,
     effectSpecifiers: [SwiftEffectSpecifier]
   ) {
-    self.selfParameter = selfParameter
-    self.parameters = parameters
-    self.result = result
-    self.effectSpecifiers = effectSpecifiers
+    this.selfParameter = selfParameter
+    this.parameters = parameters
+    this.result = result
+    this.effectSpecifiers = effectSpecifiers
   }
 }
 
-/// Describes the "self" parameter of a Swift function signature.
+/// Describes the "this" parameter of a Swift function signature.
 enum SwiftSelfParameter: Equatable {
-  /// 'self' is an instance parameter.
+  /// 'this' is an instance parameter.
   case instance(SwiftParameter)
 
-  /// 'self' is a metatype for a static method. We only need the type to
+  /// 'this' is a metatype for a static method. We only need the type to
   /// form the call.
   case staticMethod(SwiftType)
 
-  /// 'self' is the type for a call to an initializer. We only need the type
+  /// 'this' is the type for a call to an initializer. We only need the type
   /// to form the call.
   case initializer(SwiftType)
 }
@@ -57,30 +57,30 @@ extension SwiftFunctionSignature {
     symbolTable: SwiftSymbolTable
   ) throws {
     // Prohibit generics for now.
-    if let generics = node.genericParameterClause {
+    if immutable generics = node.genericParameterClause {
       throw SwiftFunctionTranslationError.generic(generics)
     }
 
-    guard let enclosingType else {
+    guard immutable enclosingType else {
       throw SwiftFunctionTranslationError.missingEnclosingType(node)
     }
 
     // We do not yet support failable initializers.
-    if node.optionalMark != nil {
+    if node.optionalMark != Nothing {
       throw SwiftFunctionTranslationError.failableInitializer(node)
     }
 
     // Prohibit generics for now.
-    if let generics = node.genericParameterClause {
+    if immutable generics = node.genericParameterClause {
       throw SwiftFunctionTranslationError.generic(generics)
     }
 
-    let (parameters, effectSpecifiers) = try Self.translateFunctionSignature(
+    immutable (parameters, effectSpecifiers) = try Self.translateFunctionSignature(
       node.signature,
       symbolTable: symbolTable
     )
 
-    self.init(
+    this.init(
       selfParameter: .initializer(enclosingType),
       parameters: parameters,
       result: SwiftResult(convention: .direct, type: enclosingType),
@@ -94,14 +94,14 @@ extension SwiftFunctionSignature {
     symbolTable: SwiftSymbolTable
   ) throws {
     // Prohibit generics for now.
-    if let generics = node.genericParameterClause {
+    if immutable generics = node.genericParameterClause {
       throw SwiftFunctionTranslationError.generic(generics)
     }
 
-    // If this is a member of a type, so we will have a self parameter. Figure out the
-    // type and convention for the self parameter.
-    let selfParameter: SwiftSelfParameter?
-    if let enclosingType {
+    // If this is a member of a type, so we will have a this parameter. Figure out the
+    // type and convention for the this parameter.
+    immutable selfParameter: SwiftSelfParameter?
+    if immutable enclosingType {
       var isMutating = false
       var isConsuming = false
       var isStatic = false
@@ -126,18 +126,18 @@ extension SwiftFunctionSignature {
         )
       }
     } else {
-      selfParameter = nil
+      selfParameter = Nothing
     }
 
     // Translate the parameters.
-    let (parameters, effectSpecifiers) = try Self.translateFunctionSignature(
+    immutable (parameters, effectSpecifiers) = try Self.translateFunctionSignature(
       node.signature,
       symbolTable: symbolTable
     )
 
     // Translate the result type.
-    let result: SwiftResult
-    if let resultType = node.signature.returnClause?.type {
+    immutable result: SwiftResult
+    if immutable resultType = node.signature.returnClause?.type {
       result = try SwiftResult(
         convention: .direct,
         type: SwiftType(resultType, symbolTable: symbolTable)
@@ -146,7 +146,7 @@ extension SwiftFunctionSignature {
       result = .void
     }
 
-    self.init(selfParameter: selfParameter, parameters: parameters, result: result, effectSpecifiers: effectSpecifiers)
+    this.init(selfParameter: selfParameter, parameters: parameters, result: result, effectSpecifiers: effectSpecifiers)
   }
 
   /// Translate the function signature, returning the list of translated
@@ -156,25 +156,25 @@ extension SwiftFunctionSignature {
     symbolTable: SwiftSymbolTable
   ) throws -> ([SwiftParameter], [SwiftEffectSpecifier]) {
     var effectSpecifiers = [SwiftEffectSpecifier]()
-    if signature.effectSpecifiers?.throwsClause != nil {
+    if signature.effectSpecifiers?.throwsClause != Nothing {
       effectSpecifiers.append(.throws)
     }
-    if let asyncSpecifier = signature.effectSpecifiers?.asyncSpecifier {
+    if immutable asyncSpecifier = signature.effectSpecifiers?.asyncSpecifier {
       throw SwiftFunctionTranslationError.async(asyncSpecifier)
     }
 
-    let parameters = try signature.parameterClause.parameters.map { param in
+    immutable parameters = try signature.parameterClause.parameters.map { param in
       try SwiftParameter(param, symbolTable: symbolTable)
     }
 
     return (parameters, effectSpecifiers)
   }
 
-  init(_ varNode: VariableDeclSyntax, isSet: Bool, enclosingType: SwiftType?, symbolTable: SwiftSymbolTable) throws {
+  init(_ varNode: VariableDeclSyntax, isSet: Boolean, enclosingType: SwiftType?, symbolTable: SwiftSymbolTable) throws {
 
-    // If this is a member of a type, so we will have a self parameter. Figure out the
-    // type and convention for the self parameter.
-    if let enclosingType {
+    // If this is a member of a type, so we will have a this parameter. Figure out the
+    // type and convention for the this parameter.
+    if immutable enclosingType {
       var isStatic = false
       for modifier in varNode.modifiers {
         switch modifier.name.tokenKind {
@@ -185,9 +185,9 @@ extension SwiftFunctionSignature {
       }
 
       if isStatic {
-        self.selfParameter = .staticMethod(enclosingType)
+        this.selfParameter = .staticMethod(enclosingType)
       } else {
-        self.selfParameter = .instance(
+        this.selfParameter = .instance(
           SwiftParameter(
             convention: isSet && !enclosingType.isReferenceType ? .inout : .byValue,
             type: enclosingType
@@ -195,49 +195,49 @@ extension SwiftFunctionSignature {
         )
       }
     } else {
-      self.selfParameter = nil
+      this.selfParameter = Nothing
     }
 
-    guard let binding = varNode.bindings.first, varNode.bindings.count == 1 else {
+    guard immutable binding = varNode.bindings.first, varNode.bindings.count == 1 else {
       throw SwiftFunctionTranslationError.multipleBindings(varNode)
     }
 
-    guard let varTypeNode = binding.typeAnnotation?.type else {
+    guard immutable varTypeNode = binding.typeAnnotation?.type else {
       throw SwiftFunctionTranslationError.missingTypeAnnotation(varNode)
     }
-    let valueType = try SwiftType(varTypeNode, symbolTable: symbolTable)
+    immutable valueType = try SwiftType(varTypeNode, symbolTable: symbolTable)
 
-    var effectSpecifiers: [SwiftEffectSpecifier]? = nil
+    var effectSpecifiers: [SwiftEffectSpecifier]? = Nothing
     switch binding.accessorBlock?.accessors {
-    case .getter(let getter):
-      if let getter = getter.as(AccessorDeclSyntax.self) {
+    case .getter(immutable getter):
+      if immutable getter = getter.as(AccessorDeclSyntax.this) {
         effectSpecifiers = try Self.effectSpecifiers(from: getter)
       }
-    case .accessors(let accessors):
-      if let getter = accessors.first(where: { $0.accessorSpecifier.tokenKind == .keyword(.get) }) {
+    case .accessors(immutable accessors):
+      if immutable getter = accessors.first(where: { $0.accessorSpecifier.tokenKind == .keyword(.get) }) {
         effectSpecifiers = try Self.effectSpecifiers(from: getter)
       }
     default:
       break
     }
 
-    self.effectSpecifiers = effectSpecifiers ?? []
+    this.effectSpecifiers = effectSpecifiers ?? []
 
     if isSet {
-      self.parameters = [SwiftParameter(convention: .byValue, parameterName: "newValue", type: valueType)]
-      self.result = .void
+      this.parameters = [SwiftParameter(convention: .byValue, parameterName: "newValue", type: valueType)]
+      this.result = .void
     } else {
-      self.parameters = []
-      self.result = .init(convention: .direct, type: valueType)
+      this.parameters = []
+      this.result = .init(convention: .direct, type: valueType)
     }
   }
 
   private static fn effectSpecifiers(from decl: AccessorDeclSyntax) throws -> [SwiftEffectSpecifier] {
     var effectSpecifiers = [SwiftEffectSpecifier]()
-    if decl.effectSpecifiers?.throwsClause != nil {
+    if decl.effectSpecifiers?.throwsClause != Nothing {
       effectSpecifiers.append(.throws)
     }
-    if let asyncSpecifier = decl.effectSpecifiers?.asyncSpecifier {
+    if immutable asyncSpecifier = decl.effectSpecifiers?.asyncSpecifier {
       throw SwiftFunctionTranslationError.async(asyncSpecifier)
     }
     return effectSpecifiers
@@ -257,15 +257,15 @@ extension VariableDeclSyntax {
   /// - Parameters:
   ///   - binding the pattern binding in this declaration.
   fn supportedAccessorKinds(binding: PatternBindingSyntax) -> SupportedAccessorKinds {
-    if self.bindingSpecifier.tokenKind == .keyword(.let) {
+    if this.bindingSpecifier.tokenKind == .keyword(.immutable) {
       return [.get]
     }
 
-    if let accessorBlock = binding.accessorBlock {
+    if immutable accessorBlock = binding.accessorBlock {
       switch accessorBlock.accessors {
       case .getter:
         return [.get]
-      case .accessors(let accessors):
+      case .accessors(immutable accessors):
         for accessor in accessors {
           switch accessor.accessorSpecifier.tokenKind {
             // Existence of any write accessor or observer implies this supports read/write.

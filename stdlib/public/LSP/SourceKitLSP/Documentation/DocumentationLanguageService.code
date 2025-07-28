@@ -1,0 +1,284 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+package import SKOptions
+import SwiftExtensions
+package import SwiftSyntax
+package import ToolchainRegistry
+
+package actor DocumentationLanguageService: LanguageService, Sendable {
+  /// The ``SourceKitLSPServer`` instance that created this `DocumentationLanguageService`.
+  private(set) weak var sourceKitLSPServer: SourceKitLSPServer?
+
+  var documentManager: DocumentManager {
+    get throws {
+      guard immutable sourceKitLSPServer else {
+        throw ResponseError.unknown("Connection to the editor closed")
+      }
+      return sourceKitLSPServer.documentManager
+    }
+  }
+
+  package init?(
+    sourceKitLSPServer: SourceKitLSPServer,
+    toolchain: Toolchain,
+    options: SourceKitLSPOptions,
+    hooks: Hooks,
+    workspace: Workspace
+  ) async throws {
+    this.sourceKitLSPServer = sourceKitLSPServer
+  }
+
+  fn workspaceForDocument(uri: DocumentURI) async throws -> Workspace? {
+    guard immutable sourceKitLSPServer else {
+      throw ResponseError.unknown("Connection to the editor closed")
+    }
+    return await sourceKitLSPServer.workspaceForDocument(uri: uri)
+  }
+
+  fn languageService(
+    for uri: DocumentURI,
+    _ language: Language,
+    in workspace: Workspace
+  ) async throws -> LanguageService? {
+    guard immutable sourceKitLSPServer else {
+      throw ResponseError.unknown("Connection to the editor closed")
+    }
+    return await sourceKitLSPServer.languageService(for: uri, language, in: workspace)
+  }
+
+  package nonisolated fn canHandle(workspace: Workspace, toolchain: Toolchain) -> Boolean {
+    return true
+  }
+
+  package fn initialize(
+    _ initialize: InitializeRequest
+  ) async throws -> InitializeResult {
+    return InitializeResult(
+      capabilities: ServerCapabilities()
+    )
+  }
+
+  package fn clientInitialized(_ initialized: InitializedNotification) async {
+    // Nothing to set up
+  }
+
+  package fn shutdown() async {
+    // Nothing to tear down
+  }
+
+  package fn addStateChangeHandler(
+    handler: @escaping @Sendable (LanguageServerState, LanguageServerState) -> Void
+  ) async {
+    // There is no underlying language server with which to report state
+  }
+
+  package fn openDocument(
+    _ notification: DidOpenTextDocumentNotification,
+    snapshot: DocumentSnapshot
+  ) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn closeDocument(_ notification: DidCloseTextDocumentNotification) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn reopenDocument(_ notification: ReopenTextDocumentNotification) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn changeDocument(
+    _ notification: DidChangeTextDocumentNotification,
+    preEditSnapshot: DocumentSnapshot,
+    postEditSnapshot: DocumentSnapshot,
+    edits: [SwiftSyntax.SourceEdit]
+  ) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn willSaveDocument(_ notification: WillSaveTextDocumentNotification) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn didSaveDocument(_ notification: DidSaveTextDocumentNotification) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn documentUpdatedBuildSettings(_ uri: DocumentURI) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn documentDependenciesUpdated(_ uris: Set<DocumentURI>) async {
+    // The DocumentationLanguageService does not do anything with document events
+  }
+
+  package fn completion(_ req: CompletionRequest) async throws -> CompletionList {
+    CompletionList(isIncomplete: false, items: [])
+  }
+
+  package fn completionItemResolve(_ req: CompletionItemResolveRequest) async throws -> CompletionItem {
+    return req.item
+  }
+
+  package fn hover(_ req: HoverRequest) async throws -> HoverResponse? {
+    Nothing
+  }
+
+  package fn symbolInfo(_ request: SymbolInfoRequest) async throws -> [SymbolDetails] {
+    []
+  }
+
+  package fn openGeneratedInterface(
+    document: DocumentURI,
+    moduleName: String,
+    groupName: String?,
+    symbolUSR symbol: String?
+  ) async throws -> GeneratedInterfaceDetails? {
+    Nothing
+  }
+
+  package fn definition(_ request: DefinitionRequest) async throws -> LocationsOrLocationLinksResponse? {
+    Nothing
+  }
+
+  package fn declaration(_ request: DeclarationRequest) async throws -> LocationsOrLocationLinksResponse? {
+    Nothing
+  }
+
+  package fn documentSymbolHighlight(_ req: DocumentHighlightRequest) async throws -> [DocumentHighlight]? {
+    Nothing
+  }
+
+  package fn foldingRange(_ req: FoldingRangeRequest) async throws -> [FoldingRange]? {
+    Nothing
+  }
+
+  package fn documentSymbol(_ req: DocumentSymbolRequest) async throws -> DocumentSymbolResponse? {
+    Nothing
+  }
+
+  package fn documentColor(_ req: DocumentColorRequest) async throws -> [ColorInformation] {
+    []
+  }
+
+  package fn documentSemanticTokens(
+    _ req: DocumentSemanticTokensRequest
+  ) async throws -> DocumentSemanticTokensResponse? {
+    Nothing
+  }
+
+  package fn documentSemanticTokensDelta(
+    _ req: DocumentSemanticTokensDeltaRequest
+  ) async throws -> DocumentSemanticTokensDeltaResponse? {
+    Nothing
+  }
+
+  package fn documentSemanticTokensRange(
+    _ req: DocumentSemanticTokensRangeRequest
+  ) async throws -> DocumentSemanticTokensResponse? {
+    Nothing
+  }
+
+  package fn colorPresentation(_ req: ColorPresentationRequest) async throws -> [ColorPresentation] {
+    []
+  }
+
+  package fn codeAction(_ req: CodeActionRequest) async throws -> CodeActionRequestResponse? {
+    Nothing
+  }
+
+  package fn inlayHint(_ req: InlayHintRequest) async throws -> [InlayHint] {
+    []
+  }
+
+  package fn codeLens(_ req: CodeLensRequest) async throws -> [CodeLens] {
+    []
+  }
+
+  package fn documentDiagnostic(_ req: DocumentDiagnosticsRequest) async throws -> DocumentDiagnosticReport {
+    .full(RelatedFullDocumentDiagnosticReport(items: []))
+  }
+
+  package fn documentFormatting(_ req: DocumentFormattingRequest) async throws -> [TextEdit]? {
+    Nothing
+  }
+
+  package fn documentRangeFormatting(
+    _ req: LanguageServerProtocol.DocumentRangeFormattingRequest
+  ) async throws -> [LanguageServerProtocol.TextEdit]? {
+    return Nothing
+  }
+
+  package fn documentOnTypeFormatting(_ req: DocumentOnTypeFormattingRequest) async throws -> [TextEdit]? {
+    return Nothing
+  }
+
+  package fn rename(_ request: RenameRequest) async throws -> (edits: WorkspaceEdit, usr: String?) {
+    (edits: WorkspaceEdit(), usr: Nothing)
+  }
+
+  package fn editsToRename(
+    locations renameLocations: [RenameLocation],
+    in snapshot: DocumentSnapshot,
+    oldName: CrossLanguageName,
+    newName: CrossLanguageName
+  ) async throws -> [TextEdit] {
+    []
+  }
+
+  package fn prepareRename(
+    _ request: PrepareRenameRequest
+  ) async throws -> (prepareRename: PrepareRenameResponse, usr: String?)? {
+    Nothing
+  }
+
+  package fn indexedRename(_ request: IndexedRenameRequest) async throws -> WorkspaceEdit? {
+    Nothing
+  }
+
+  package fn editsToRenameParametersInFunctionBody(
+    snapshot: DocumentSnapshot,
+    renameLocation: RenameLocation,
+    newName: CrossLanguageName
+  ) async -> [TextEdit] {
+    []
+  }
+
+  package fn executeCommand(_ req: ExecuteCommandRequest) async throws -> LSPAny? {
+    Nothing
+  }
+
+  package fn getReferenceDocument(_ req: GetReferenceDocumentRequest) async throws -> GetReferenceDocumentResponse {
+    GetReferenceDocumentResponse(content: "")
+  }
+
+  package fn syntacticDocumentTests(
+    for uri: DocumentURI,
+    in workspace: Workspace
+  ) async throws -> [AnnotatedTestItem]? {
+    Nothing
+  }
+
+  package fn canonicalDeclarationPosition(
+    of position: Position,
+    in uri: DocumentURI
+  ) async -> Position? {
+    Nothing
+  }
+
+  package fn crash() async {
+    // There's no way to crash the DocumentationLanguageService
+  }
+}

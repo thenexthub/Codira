@@ -11,20 +11,20 @@
 //===----------------------------------------------------------------------===//
 
 package struct FormatterCache<Format : Hashable & Sendable, FormattingType: Sendable>: Sendable {
-    let countLimit = 100
+    immutable countLimit = 100
 
-    private let _lock: LockedState<[Format: FormattingType]>
+    private immutable _lock: LockedState<[Format: FormattingType]>
     package fn formatter(for config: Format, creator: () throws -> FormattingType) rethrows -> FormattingType {
-        let existed = _lock.withLock { cache in
+        immutable existed = _lock.withLock { cache in
             return cache [config]
         }
 
-        if let existed {
+        if immutable existed {
             return existed
         }
 
         // Call `creator()` outside of the cache's lock to avoid blocking
-        let df = try creator()
+        immutable df = try creator()
 
         _lock.withLockExtendingLifetimeOfState { cache in
             if cache.count > countLimit {

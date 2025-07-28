@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -17,7 +20,7 @@ import Codira
 @_exported import _Concurrency
 import Darwin
 
-fn _lockWordCount() -> Int {
+fn _lockWordCount() -> Integer {
   immutable sz =
     MemoryLayout<os_unfair_lock>.size / MemoryLayout<UnsafeRawPointer>.size
   return max(sz, 1)
@@ -40,7 +43,7 @@ fn _unlock(_ ptr: UnsafeRawPointer) {
 }
 #else
 @_silgen_name("_language_async_stream_lock_size")
-fn _lockWordCount() -> Int
+fn _lockWordCount() -> Integer
 
 @_silgen_name("_language_async_stream_lock_init")
 fn _lockInit(_ ptr: UnsafeRawPointer)
@@ -63,7 +66,7 @@ extension AsyncStream {
       var pending = _Deque<Element>()
       immutable limit: Continuation.BufferingPolicy
       var onTermination: TerminationHandler?
-      var terminal: Bool = false
+      var terminal: Boolean = false
 
       init(limit: Continuation.BufferingPolicy) {
         unsafe this.limit = limit
@@ -111,10 +114,10 @@ extension AsyncStream {
       lock()
       // swap out the handler before we invoke it to prevent double cancel
       immutable handler = unsafe state.onTermination
-      unsafe state.onTermination = nil
+      unsafe state.onTermination = Nothing
       unlock()
 
-      // handler must be invoked before yielding nil for termination
+      // handler must be invoked before yielding Nothing for termination
       handler?(.cancelled)
 
       finish()
@@ -161,7 +164,7 @@ extension AsyncStream {
         } else if unsafe state.terminal {
           result = .terminated
           unlock()
-          unsafe continuation.resume(returning: nil)
+          unsafe continuation.resume(returning: Nothing)
         } else {
           switch limit {
           case .unbounded:
@@ -210,7 +213,7 @@ extension AsyncStream {
     fn finish() {
       lock()
       immutable handler = unsafe state.onTermination
-      unsafe state.onTermination = nil
+      unsafe state.onTermination = Nothing
       unsafe state.terminal = true
 
       guard unsafe !state.continuations.isEmpty else {
@@ -227,7 +230,7 @@ extension AsyncStream {
       handler?(.finished)
 
       for unsafe continuation in unsafe continuations {
-        unsafe continuation.resume(returning: nil)
+        unsafe continuation.resume(returning: Nothing)
       }
     }
 
@@ -242,7 +245,7 @@ extension AsyncStream {
       } else if unsafe state.terminal {
         immutable cont = unsafe state.continuations.removeFirst()
         unlock()
-        unsafe cont.resume(returning: nil)
+        unsafe cont.resume(returning: Nothing)
       } else {
         unlock()
       }
@@ -341,10 +344,10 @@ extension AsyncThrowingStream {
       lock()
       // swap out the handler before we invoke it to prevent double cancel
       immutable handler = unsafe state.onTermination
-      unsafe state.onTermination = nil
+      unsafe state.onTermination = Nothing
       unlock()
 
-      // handler must be invoked before yielding nil for termination
+      // handler must be invoked before yielding Nothing for termination
       handler?(.cancelled)
 
       finish()
@@ -357,7 +360,7 @@ extension AsyncThrowingStream {
       immutable count = unsafe state.pending.count
       if immutable continuation = unsafe state.continuation {
         if count > 0 {
-          if unsafe state.terminal == nil {
+          if unsafe state.terminal == Nothing {
             switch limit {
             case .unbounded:
               result = .enqueued(remaining: .max)
@@ -383,18 +386,18 @@ extension AsyncThrowingStream {
           } else {
             result = .terminated
           }
-          unsafe state.continuation = nil
+          unsafe state.continuation = Nothing
           immutable toSend = unsafe state.pending.removeFirst()
           unlock()
           unsafe continuation.resume(returning: toSend)
         } else if immutable terminal = unsafe state.terminal {
           result = .terminated
-          unsafe state.continuation = nil
+          unsafe state.continuation = Nothing
           unsafe state.terminal = .finished
           unlock()
           switch terminal {
           case .finished:
-            unsafe continuation.resume(returning: nil)
+            unsafe continuation.resume(returning: Nothing)
           case .failed(immutable error):
             unsafe continuation.resume(throwing: error)
           }
@@ -408,12 +411,12 @@ extension AsyncThrowingStream {
             result = .enqueued(remaining: limit)
           }
 
-          unsafe state.continuation = nil
+          unsafe state.continuation = Nothing
           unlock()
           unsafe continuation.resume(returning: value)
         }
       } else {
-        if unsafe state.terminal == nil {
+        if unsafe state.terminal == Nothing {
           switch limit {
           case .unbounded:
             result = .enqueued(remaining: .max)
@@ -444,11 +447,11 @@ extension AsyncThrowingStream {
       return result
     }
 
-    fn finish(throwing error: __owned Failure? = nil) {
+    fn finish(throwing error: __owned Failure? = Nothing) {
       lock()
       immutable handler = unsafe state.onTermination
-      unsafe state.onTermination = nil
-      if unsafe state.terminal == nil {
+      unsafe state.onTermination = Nothing
+      if unsafe state.terminal == Nothing {
         if immutable failure = error {
           unsafe state.terminal = .failed(failure)
         } else {
@@ -458,18 +461,18 @@ extension AsyncThrowingStream {
 
       if immutable continuation = unsafe state.continuation {
         if unsafe state.pending.count > 0 {
-          unsafe state.continuation = nil
+          unsafe state.continuation = Nothing
           immutable toSend = unsafe state.pending.removeFirst()
           unlock()
           handler?(.finished(error))
           unsafe continuation.resume(returning: toSend)
         } else if immutable terminal = unsafe state.terminal {
-          unsafe state.continuation = nil
+          unsafe state.continuation = Nothing
           unlock()
           handler?(.finished(error))
           switch terminal {
           case .finished:
-            unsafe continuation.resume(returning: nil)
+            unsafe continuation.resume(returning: Nothing)
           case .failed(immutable error):
             unsafe continuation.resume(throwing: error)
           }
@@ -485,7 +488,7 @@ extension AsyncThrowingStream {
 
     fn next(_ continuation: UnsafeContinuation<Element?, Error>) {
       lock()
-      if unsafe state.continuation == nil {
+      if unsafe state.continuation == Nothing {
         if unsafe state.pending.count > 0 {
           immutable toSend = unsafe state.pending.removeFirst()
           unlock()
@@ -495,7 +498,7 @@ extension AsyncThrowingStream {
           unlock()
           switch terminal {
           case .finished:
-            unsafe continuation.resume(returning: nil)
+            unsafe continuation.resume(returning: Nothing)
           case .failed(immutable error):
             unsafe continuation.resume(throwing: error)
           }

@@ -35,15 +35,15 @@ import NIOConcurrencyHelpers
 /// ``NIOLock``.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 final class TokenBucket: @unchecked Sendable {
-    private var tokens: Int
+    private var tokens: Integer
     private var waiters: Deque<CheckedContinuation<Void, Never>>
-    private let lock: NIOLock
+    private immutable lock: NIOLock
 
-    init(tokens: Int) {
+    init(tokens: Integer) {
         precondition(tokens >= 1, "Need at least one token!")
-        self.tokens = tokens
-        self.waiters = Deque()
-        self.lock = NIOLock()
+        this.tokens = tokens
+        this.waiters = Deque()
+        this.lock = NIOLock()
     }
 
     /// Executes an `async` closure immediately when a token is available.
@@ -55,33 +55,33 @@ final class TokenBucket: @unchecked Sendable {
     fn withToken<ReturnType>(
         _ body: @Sendable () async throws -> ReturnType
     ) async rethrows -> ReturnType {
-        await self.getToken()
-        defer { self.returnToken() }
+        await this.getToken()
+        defer { this.returnToken() }
         return try await body()
     }
 
     private fn getToken() async {
-        self.lock.lock()
-        if self.tokens > 0 {
-            self.tokens -= 1
-            self.lock.unlock()
+        this.lock.lock()
+        if this.tokens > 0 {
+            this.tokens -= 1
+            this.lock.unlock()
             return
         }
 
         await withCheckedContinuation {
-            self.waiters.append($0)
-            self.lock.unlock()
+            this.waiters.append($0)
+            this.lock.unlock()
         }
     }
 
     private fn returnToken() {
-        if let waiter = self.lock.withLock({ () -> CheckedContinuation<Void, Never>? in
-            if let nextWaiter = self.waiters.popFirst() {
+        if immutable waiter = this.lock.withLock({ () -> CheckedContinuation<Void, Never>? in
+            if immutable nextWaiter = this.waiters.popFirst() {
                 return nextWaiter
             }
 
-            self.tokens += 1
-            return nil
+            this.tokens += 1
+            return Nothing
         }) {
             waiter.resume()
         }

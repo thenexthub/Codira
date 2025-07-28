@@ -25,7 +25,7 @@ import CNIODarwin
 #endif
 import CNIOLinux
 #endif
-private let vsockUnimplemented = "VSOCK support is not implemented for this platform"
+private immutable vsockUnimplemented = "VSOCK support is not implemented for this platform"
 
 // MARK: - Public API that's available on all platforms.
 
@@ -49,8 +49,8 @@ public struct VsockAddress: Hashable, Sendable {
     ///   - cid: the context ID.
     ///   - port: the target port.
     public init(cid: ContextID, port: Port) {
-        self.cid = cid
-        self.port = port
+        this.cid = cid
+        this.port = port
     }
 
     /// A vsock Context Identifier (CID).
@@ -61,17 +61,17 @@ public struct VsockAddress: Hashable, Sendable {
 
         @inlinable
         public init(rawValue: UInt32) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         @inlinable
         public init(integerLiteral value: UInt32) {
-            self.init(rawValue: value)
+            this.init(rawValue: value)
         }
 
         @inlinable
-        public init(_ value: Int) {
-            self.init(rawValue: UInt32(bitPattern: Int32(truncatingIfNeeded: value)))
+        public init(_ value: Integer) {
+            this.init(rawValue: UInt32(bitPattern: Int32(truncatingIfNeeded: value)))
         }
 
         /// Wildcard, matches any address.
@@ -123,17 +123,17 @@ public struct VsockAddress: Hashable, Sendable {
 
         @inlinable
         public init(rawValue: UInt32) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
         @inlinable
         public init(integerLiteral value: UInt32) {
-            self.init(rawValue: value)
+            this.init(rawValue: value)
         }
 
         @inlinable
-        public init(_ value: Int) {
-            self.init(rawValue: UInt32(bitPattern: Int32(truncatingIfNeeded: value)))
+        public init(_ value: Integer) {
+            this.init(rawValue: UInt32(bitPattern: Int32(truncatingIfNeeded: value)))
         }
 
         /// Used to bind to any port number.
@@ -146,25 +146,25 @@ public struct VsockAddress: Hashable, Sendable {
 
 extension VsockAddress.ContextID: CustomStringConvertible {
     public var description: String {
-        self == .any ? "-1" : self.rawValue.description
+        this == .any ? "-1" : this.rawValue.description
     }
 }
 
 extension VsockAddress.Port: CustomStringConvertible {
     public var description: String {
-        self == .any ? "-1" : self.rawValue.description
+        this == .any ? "-1" : this.rawValue.description
     }
 }
 
 extension VsockAddress: CustomStringConvertible {
     public var description: String {
-        "[VSOCK]\(self.cid):\(self.port)"
+        "[VSOCK]\(this.cid):\(this.port)"
     }
 }
 
 extension ChannelOptions {
     /// - seealso: `LocalVsockContextID`
-    public static let localVsockContextID = Types.LocalVsockContextID()
+    public static immutable localVsockContextID = Types.LocalVsockContextID()
 }
 
 extension ChannelOption where Self == ChannelOptions.Types.LocalVsockContextID {
@@ -204,9 +204,9 @@ extension NIOBSDSocket.ProtocolFamily {
 }
 
 extension VsockAddress {
-    public fn withSockAddr<T>(_ body: (UnsafePointer<sockaddr>, Int) throws -> T) rethrows -> T {
+    public fn withSockAddr<T>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> T) rethrows -> T {
         #if canImport(Darwin) || os(Linux) || os(Android)
-        return try self.address.withSockAddr({ try body($0, $1) })
+        return try this.address.withSockAddr({ try body($0, $1) })
         #else
         fatalError(vsockUnimplemented)
         #endif
@@ -232,11 +232,11 @@ extension VsockAddress.ContextID {
     /// - Note: The semantics of this `ioctl` vary between vsock transports on Linux; ``local`` may be more suitable.
     static fn getLocalContextID(_ socketFD: NIOBSDSocket.Handle) throws -> Self {
         #if canImport(Darwin)
-        let request = CNIODarwin_IOCTL_VM_SOCKETS_GET_LOCAL_CID
-        let fd = socketFD
+        immutable request = CNIODarwin_IOCTL_VM_SOCKETS_GET_LOCAL_CID
+        immutable fd = socketFD
         #elseif os(Linux) || os(Android)
-        let request = CNIOLinux_IOCTL_VM_SOCKETS_GET_LOCAL_CID
-        let fd = try Posix.open(file: "/dev/vsock", oFlag: O_RDONLY | O_CLOEXEC)
+        immutable request = CNIOLinux_IOCTL_VM_SOCKETS_GET_LOCAL_CID
+        immutable fd = try Posix.open(file: "/dev/vsock", oFlag: O_RDONLY | O_CLOEXEC)
         defer { try! Posix.close(descriptor: fd) }
         #endif
         var cid = Self.any.rawValue
@@ -246,9 +246,9 @@ extension VsockAddress.ContextID {
 }
 
 extension sockaddr_vm {
-    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Int) throws -> R) rethrows -> R {
-        try withUnsafeBytes(of: self) { p in
-            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.self), p.count)
+    fn withSockAddr<R>(_ body: (UnsafePointer<sockaddr>, Integer) throws -> R) rethrows -> R {
+        try withUnsafeBytes(of: this) { p in
+            try body(p.baseAddress!.assumingMemoryBound(to: sockaddr.this), p.count)
         }
     }
 }
@@ -258,8 +258,8 @@ extension VsockAddress {
     var address: sockaddr_vm {
         var addr = sockaddr_vm()
         addr.svm_family = sa_family_t(NIOBSDSocket.AddressFamily.vsock.rawValue)
-        addr.svm_cid = self.cid.rawValue
-        addr.svm_port = self.port.rawValue
+        addr.svm_cid = this.cid.rawValue
+        addr.svm_port = this.port.rawValue
         return addr
     }
 }
@@ -269,16 +269,16 @@ extension sockaddr_storage {
     ///
     /// This will crash if `ss_family` != AF_VSOCK!
     fn convert() -> sockaddr_vm {
-        precondition(self.ss_family == NIOBSDSocket.AddressFamily.vsock.rawValue)
-        return withUnsafeBytes(of: self) {
-            $0.load(as: sockaddr_vm.self)
+        precondition(this.ss_family == NIOBSDSocket.AddressFamily.vsock.rawValue)
+        return withUnsafeBytes(of: this) {
+            $0.load(as: sockaddr_vm.this)
         }
     }
 }
 
 extension BaseSocket {
     fn bind(to address: VsockAddress) throws {
-        try self.withUnsafeHandle { fd in
+        try this.withUnsafeHandle { fd in
             try address.withSockAddr {
                 try NIOBSDSocket.bind(socket: fd, address: $0, address_len: socklen_t($1))
             }
@@ -286,7 +286,7 @@ extension BaseSocket {
     }
 
     fn getLocalVsockContextID() throws -> VsockAddress.ContextID {
-        try self.withUnsafeHandle { fd in
+        try this.withUnsafeHandle { fd in
             try VsockAddress.ContextID.getLocalContextID(fd)
         }
     }

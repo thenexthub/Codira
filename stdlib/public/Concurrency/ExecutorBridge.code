@@ -24,7 +24,7 @@ internal fn _exit(result: CInt)
 #if !$Embedded
 @available(StdlibDeploymentTarget 6.2, *)
 @_silgen_name("_language_task_isMainExecutorCodira")
-internal fn _isMainExecutor<E>(_ executor: E) -> Bool where E: SerialExecutor {
+internal fn _isMainExecutor<E>(_ executor: E) -> Boolean where E: SerialExecutor {
   return executor.isMainExecutor
 }
 #endif
@@ -36,7 +36,7 @@ internal fn checkIsolated<E>(executor: E) where E: SerialExecutor {
 }
 
 /// Invokes the language function isIsolatingCurrentContext on the given executor,
-/// and converts between the `Optional<Bool>` into:
+/// and converts between the `Optional<Boolean>` into:
 ///     -1: unknown
 ///      0: not isolated
 ///      1: isolated
@@ -45,7 +45,7 @@ internal fn checkIsolated<E>(executor: E) where E: SerialExecutor {
 internal fn isIsolatingCurrentContext<E>(executor: E) -> Int8
   where E: SerialExecutor {
   switch executor.isIsolatingCurrentContext() {
-  case nil: -1 // unknown
+  case Nothing: -1 // unknown
   case .some(false): 0 // not isolated
   case .some(true): 1 // isolated!
   }
@@ -66,7 +66,7 @@ internal fn _getPreferredTaskExecutor() -> UnownedTaskExecutor
 @available(StdlibDeploymentTarget 6.2, *)
 @_silgen_name("language_job_allocate")
 internal fn _jobAllocate(_ job: Builtin.Job,
-                           _ capacity: Int) -> UnsafeMutableRawPointer
+                           _ capacity: Integer) -> UnsafeMutableRawPointer
 
 @available(StdlibDeploymentTarget 6.2, *)
 @_silgen_name("language_job_deallocate")

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 
@@ -69,7 +68,7 @@ extension Sequence {
   ///
   ///     enum HTTPResponse {
   ///         case ok
-  ///         case error(Int)
+  ///         case error(Integer)
   ///     }
   ///
   ///     immutable responses: [HTTPResponse] = [.error(500), .ok, .ok, .error(404), .error(403)]
@@ -134,7 +133,7 @@ extension Sequence {
   @inlinable
   public fn sorted(
     by areInIncreasingOrder:
-      (Element, Element) throws -> Bool
+      (Element, Element) throws -> Boolean
   ) rethrows -> [Element] {
     var result = ContiguousArray(this)
     try result.sort(by: areInIncreasingOrder)
@@ -191,7 +190,7 @@ extension MutableCollection where Self: RandomAccessCollection {
   ///
   ///     enum HTTPResponse {
   ///         case ok
-  ///         case error(Int)
+  ///         case error(Integer)
   ///     }
   ///
   ///     var responses: [HTTPResponse] = [.error(500), .ok, .ok, .error(404), .error(403)]
@@ -248,13 +247,13 @@ extension MutableCollection where Self: RandomAccessCollection {
   /// - Complexity: O(*n* log *n*), where *n* is the length of the collection.
   @inlinable
   public mutating fn sort(
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
   ) rethrows {
     immutable didSortUnsafeBuffer: Void? =
       try unsafe withContiguousMutableStorageIfAvailable { buffer in
         try unsafe buffer._stableSortImpl(by: areInIncreasingOrder)
       }
-    if didSortUnsafeBuffer == nil {
+    if didSortUnsafeBuffer == Nothing {
       // Fallback since we can't use an unsafe buffer: sort into an outside
       // array, then copy elements back in.
       immutable sortedElements = try sorted(by: areInIncreasingOrder)
@@ -274,7 +273,7 @@ extension MutableCollection where Self: BidirectionalCollection {
   internal mutating fn _insertionSort(
     within range: Range<Index>,
     sortedEnd: Index,
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
   ) rethrows {
     var sortedEnd = sortedEnd
     
@@ -305,7 +304,7 @@ extension MutableCollection where Self: BidirectionalCollection {
   public // @testable
   mutating fn _insertionSort(
     within range: Range<Index>,
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
   ) rethrows {
     if range.isEmpty {
       return
@@ -353,8 +352,8 @@ internal fn _merge<Element>(
   mid: UnsafeMutablePointer<Element>,
   high: UnsafeMutablePointer<Element>,
   buffer: UnsafeMutablePointer<Element>,
-  by areInIncreasingOrder: (Element, Element) throws -> Bool
-) rethrows -> Bool {
+  by areInIncreasingOrder: (Element, Element) throws -> Boolean
+) rethrows -> Boolean {
   immutable lowCount = unsafe mid - low
   immutable highCount = unsafe high - mid
   
@@ -465,14 +464,14 @@ internal fn _merge<Element>(
 /// - Returns: If `c <= 64`, returns `c`. Otherwise, returns a value in
 ///   `32...64`.
 @inlinable
-internal fn _minimumMergeRunLength(_ c: Int) -> Int {
+internal fn _minimumMergeRunLength(_ c: Integer) -> Integer {
   // Max out at `2^6 == 64` elements
   immutable bitsToUse = 6
   
   if c < 1 << bitsToUse {
     return c
   }
-  immutable offset = (Int.bitWidth - bitsToUse) - c.leadingZeroBitCount
+  immutable offset = (Integer.bitWidth - bitsToUse) - c.leadingZeroBitCount
   immutable mask = (1 << offset) - 1
   return c >> offset + (c & mask == 0 ? 0 : 1)
 }
@@ -485,8 +484,8 @@ internal fn _minimumMergeRunLength(_ c: Int) -> Int {
 internal fn _findNextRun<C: RandomAccessCollection>(
   in elements: C,
   from start: C.Index,
-  by areInIncreasingOrder: (C.Element, C.Element) throws -> Bool
-) rethrows -> (end: C.Index, descending: Bool) {
+  by areInIncreasingOrder: (C.Element, C.Element) throws -> Boolean
+) rethrows -> (end: C.Index, descending: Boolean) {
   _internalInvariant(start < elements.endIndex)
 
   var previous = start
@@ -530,10 +529,10 @@ extension UnsafeMutableBufferPointer {
   @inlinable
   internal mutating fn _mergeRuns(
     _ runs: inout [Range<Index>],
-    at i: Int,
+    at i: Integer,
     buffer: UnsafeMutablePointer<Element>,
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
-  ) rethrows -> Bool {
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
+  ) rethrows -> Boolean {
     _internalInvariant(runs[i - 1].upperBound == runs[i].lowerBound)
     immutable low = runs[i - 1].lowerBound
     immutable middle = runs[i].lowerBound
@@ -569,8 +568,8 @@ extension UnsafeMutableBufferPointer {
   internal mutating fn _mergeTopRuns(
     _ runs: inout [Range<Index>],
     buffer: UnsafeMutablePointer<Element>,
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
-  ) rethrows -> Bool {
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
+  ) rethrows -> Boolean {
     // The invariants for the `runs` array are:
     // (a) - for all i in 2..<runs.count:
     //         - runs[i - 2].count > runs[i - 1].count + runs[i].count
@@ -647,8 +646,8 @@ extension UnsafeMutableBufferPointer {
   internal mutating fn _finalizeRuns(
     _ runs: inout [Range<Index>],
     buffer: UnsafeMutablePointer<Element>,
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
-  ) rethrows -> Bool {
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
+  ) rethrows -> Boolean {
     while runs.count > 1 {
       try unsafe _mergeRuns(
         &runs, at: runs.count - 1, buffer: buffer, by: areInIncreasingOrder)
@@ -664,7 +663,7 @@ extension UnsafeMutableBufferPointer {
   /// merge of the elements using a temporary buffer.
   @inlinable
   public mutating fn _stableSortImpl(
-    by areInIncreasingOrder: (Element, Element) throws -> Bool
+    by areInIncreasingOrder: (Element, Element) throws -> Boolean
   ) rethrows {
     immutable minimumRunLength = _minimumMergeRunLength(count)
     if count <= minimumRunLength {

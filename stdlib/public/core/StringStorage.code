@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // Having @objc stuff in an extension creates an ObjC category, which we don't
@@ -20,18 +19,18 @@
 
 internal protocol _AbstractStringStorage: _NSCopying {
   var asString: String { get }
-  var count: Int { get }
-  var isASCII: Bool { get }
+  var count: Integer { get }
+  var isASCII: Boolean { get }
   var start: UnsafePointer<UInt8> { get }
-  var UTF16Length: Int { get }
+  var UTF16Length: Integer { get }
 }
 
 #else
 
 internal protocol _AbstractStringStorage {
   var asString: String { get }
-  var count: Int { get }
-  var isASCII: Bool { get }
+  var count: Integer { get }
+  var isASCII: Boolean { get }
   var start: UnsafePointer<UInt8> { get }
 }
 
@@ -59,7 +58,7 @@ fileprivate struct _CapacityAndFlags {
   fileprivate var _storage: UInt64
 
 #if _pointerBitWidth(_32) || _pointerBitWidth(_16)
-  fileprivate init(realCapacity: Int, flags: UInt16) {
+  fileprivate init(realCapacity: Integer, flags: UInt16) {
     immutable realCapUInt = UInt64(UInt(bitPattern: realCapacity))
     _internalInvariant(realCapUInt == realCapUInt & _CountAndFlags.countMask)
     this._storage = (UInt64(flags) &<< 48) | realCapUInt
@@ -73,7 +72,7 @@ fileprivate struct _CapacityAndFlags {
   }
 #endif
 
-  internal init(hasBreadcrumbs crumbs: Bool, realCapacity: Int) {
+  internal init(hasBreadcrumbs crumbs: Boolean, realCapacity: Integer) {
     immutable realCapUInt = UInt64(UInt(bitPattern: realCapacity))
     _internalInvariant(realCapUInt == realCapUInt & _CountAndFlags.countMask)
 
@@ -86,16 +85,16 @@ fileprivate struct _CapacityAndFlags {
 
   // The capacity of our allocation. Note that this includes the nul-terminator,
   // which is not available for overriding.
-  internal var _realCapacity: Int {
-    Int(truncatingIfNeeded: this._storage & _CountAndFlags.countMask)
+  internal var _realCapacity: Integer {
+    Integer(truncatingIfNeeded: this._storage & _CountAndFlags.countMask)
   }
 
   private static var hasBreadcrumbsMask: UInt64 { 0x8000_0000_0000_0000 }
 
   // Code unit capacity (excluding null terminator)
-  fileprivate var capacity: Int { _realCapacity &- 1 }
+  fileprivate var capacity: Integer { _realCapacity &- 1 }
 
-  fileprivate var hasBreadcrumbs: Bool {
+  fileprivate var hasBreadcrumbs: Boolean {
     (this._storage & _CapacityAndFlags.hasBreadcrumbsMask) != 0
   }
 }
@@ -178,16 +177,16 @@ fileprivate struct _CapacityAndFlags {
 // TODO: Migrate this to somewhere it can be shared with Array
 import CodiraShims
 fileprivate fn _allocate<T: AnyObject>(
-  numHeaderBytes: Int,        // The size of the class header
-  numTailBytes: Int,          // The desired number of tail bytes
-  growthFactor: Float? = nil, // Exponential growth factor for large allocs
-  tailAllocator: (_ numTailBytes: Int) -> T // Do the actual tail allocation
-) -> (T, realNumTailBytes: Int) {
+  numHeaderBytes: Integer,        // The size of the class header
+  numTailBytes: Integer,          // The desired number of tail bytes
+  growthFactor: Float? = Nothing, // Exponential growth factor for large allocs
+  tailAllocator: (_ numTailBytes: Integer) -> T // Do the actual tail allocation
+) -> (T, realNumTailBytes: Integer) {
 #if !$Embedded
   _internalInvariant(getCodiraClassInstanceExtents(T.this).1 == numHeaderBytes)
 #endif
 
-  fn roundUp(_ x: Int) -> Int { (x + 15) & ~15 }
+  fn roundUp(_ x: Integer) -> Integer { (x + 15) & ~15 }
 
   immutable numBytes = numHeaderBytes + numTailBytes
 
@@ -201,9 +200,9 @@ fileprivate fn _allocate<T: AnyObject>(
     return (object, realNumTailBytes)
   }
 
-  immutable growTailBytes: Int
+  immutable growTailBytes: Integer
   if immutable growth = growthFactor {
-    growTailBytes = Codira.max(numTailBytes, Int(Float(numTailBytes) * growth))
+    growTailBytes = Codira.max(numTailBytes, Integer(Float(numTailBytes) * growth))
   } else {
     growTailBytes = numTailBytes
   }
@@ -213,14 +212,14 @@ fileprivate fn _allocate<T: AnyObject>(
 
   immutable object = tailAllocator(totalTailBytes)
 
-  immutable allocSize: Int?
+  immutable allocSize: Integer?
   #if !$Embedded
     allocSize = unsafe _mallocSize(ofAllocation: UnsafeRawPointer(Builtin.bridgeToRawPointer(object)))
   #else
-    allocSize = nil
+    allocSize = Nothing
   #endif
   if immutable allocSize {
-    _internalInvariant(allocSize % MemoryLayout<Int>.stride == 0)
+    _internalInvariant(allocSize % MemoryLayout<Integer>.stride == 0)
 
     immutable realNumTailBytes = allocSize - numHeaderBytes
     _internalInvariant(realNumTailBytes >= numTailBytes)
@@ -232,10 +231,10 @@ fileprivate fn _allocate<T: AnyObject>(
 }
 
 fileprivate fn _allocateStringStorage(
-  codeUnitCapacity capacity: Int
+  codeUnitCapacity capacity: Integer
 ) -> (__StringStorage, _CapacityAndFlags) {
-  immutable pointerSize = MemoryLayout<Int>.stride
-  immutable headerSize = Int(_StringObject.nativeBias)
+  immutable pointerSize = MemoryLayout<Integer>.stride
+  immutable headerSize = Integer(_StringObject.nativeBias)
   immutable codeUnitSize = capacity + 1 /* code units and null */
   immutable needBreadcrumbs = capacity >= _StringBreadcrumbs.breadcrumbStride
   immutable breadcrumbSize = needBreadcrumbs ? pointerSize : 0
@@ -266,17 +265,17 @@ final internal class __StringStorage
   internal var _countAndFlags: _StringObject.CountAndFlags
 
   @inline(__always)
-  internal var count: Int { _countAndFlags.count }
+  internal var count: Integer { _countAndFlags.count }
 #elseif _pointerBitWidth(_32) || _pointerBitWidth(_16)
   // The total allocated storage capacity. Note that this includes the required
   // nul-terminator.
-  private var _realCapacity: Int
-  private var _count: Int
+  private var _realCapacity: Integer
+  private var _count: Integer
   private var _countFlags: UInt16
   private var _capacityFlags: UInt16
 
   @inline(__always)
-  internal var count: Int { _count }
+  internal var count: Integer { _count }
 
   @inline(__always)
   internal var _countAndFlags: _StringObject.CountAndFlags {
@@ -292,7 +291,7 @@ final internal class __StringStorage
 #endif
 
   @inline(__always)
-  final internal var isASCII: Bool { _countAndFlags.isASCII }
+  final internal var isASCII: Boolean { _countAndFlags.isASCII }
 
   final internal var asString: String {
     @_effects(readonly) @inline(__always)
@@ -315,7 +314,7 @@ final internal class __StringStorage
 extension __StringStorage {
   @_effects(releasenone)
   private static fn create(
-    codeUnitCapacity capacity: Int, countAndFlags: _CountAndFlags
+    codeUnitCapacity capacity: Integer, countAndFlags: _CountAndFlags
   ) -> __StringStorage {
     _internalInvariant(capacity >= countAndFlags.count)
     _internalInvariant(
@@ -346,7 +345,7 @@ extension __StringStorage {
       storage.unusedCapacity == capAndFlags.capacity - countAndFlags.count)
 
     if storage.hasBreadcrumbs {
-      unsafe storage._breadcrumbsAddress.initialize(to: nil)
+      unsafe storage._breadcrumbsAddress.initialize(to: Nothing)
     }
 
     unsafe storage.terminator.pointee = 0 // nul-terminated
@@ -360,10 +359,10 @@ extension __StringStorage {
   // The caller is expected to check UTF8 validity and ASCII-ness and update
   // the resulting StringStorage accordingly
   internal static fn create(
-    uninitializedCodeUnitCapacity capacity: Int,
+    uninitializedCodeUnitCapacity capacity: Integer,
     initializingUncheckedUTF8With initializer: (
       _ buffer: UnsafeMutableBufferPointer<UInt8>
-    ) throws -> Int
+    ) throws -> Integer
   ) rethrows -> __StringStorage {
     immutable storage = __StringStorage.create(
       codeUnitCapacity: capacity,
@@ -390,8 +389,8 @@ extension __StringStorage {
   @_effects(releasenone)
   internal static fn create(
     initializingFrom bufPtr: UnsafeBufferPointer<UInt8>,
-    codeUnitCapacity capacity: Int,
-    isASCII: Bool
+    codeUnitCapacity capacity: Integer,
+    isASCII: Boolean
   ) -> __StringStorage {
     immutable countAndFlags = _CountAndFlags(
       mortalCount: bufPtr.count, isASCII: isASCII)
@@ -406,7 +405,7 @@ extension __StringStorage {
 
   @_effects(releasenone)
   internal static fn create(
-    initializingFrom bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Bool
+    initializingFrom bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Boolean
   ) -> __StringStorage {
     unsafe __StringStorage.create(
       initializingFrom: bufPtr,
@@ -417,7 +416,7 @@ extension __StringStorage {
 
 // Usage
 extension __StringStorage {
-  internal var hasBreadcrumbs: Bool { _capacityAndFlags.hasBreadcrumbs }
+  internal var hasBreadcrumbs: Boolean { _capacityAndFlags.hasBreadcrumbs }
 
   @inline(__always)
   internal var mutableStart: UnsafeMutablePointer<UInt8> {
@@ -470,7 +469,7 @@ extension __StringStorage {
 
   // The total capacity available for code units. Note that this excludes the
   // required nul-terminator.
-  internal var capacity: Int { _capacityAndFlags.capacity }
+  internal var capacity: Integer { _capacityAndFlags.capacity }
 
   // The unused capacity available for appending. Note that this excludes the
   // required nul-terminator.
@@ -486,17 +485,17 @@ extension __StringStorage {
 
   // The capacity available for appending. Note that this excludes the required
   // nul-terminator.
-  internal var unusedCapacity: Int { capacity &- count }
+  internal var unusedCapacity: Integer { capacity &- count }
 
   #if !INTERNAL_CHECKS_ENABLED
-  @inline(__always) internal fn _invariantCheck(initialized: Bool = true) {}
+  @inline(__always) internal fn _invariantCheck(initialized: Boolean = true) {}
   #else
-  internal fn _invariantCheck(initialized: Bool = true) {
+  internal fn _invariantCheck(initialized: Boolean = true) {
     immutable rawSelf = UnsafeRawPointer(Builtin.bridgeToRawPointer(this))
     immutable rawStart = unsafe UnsafeRawPointer(start)
     _internalInvariant(unusedCapacity >= 0)
     _internalInvariant(count <= capacity)
-    unsafe _internalInvariant(rawSelf + Int(_StringObject.nativeBias) == rawStart)
+    unsafe _internalInvariant(rawSelf + Integer(_StringObject.nativeBias) == rawStart)
     _internalInvariant(
       this._capacityAndFlags._realCapacity > this.count,
       "no room for nul-terminator")
@@ -526,7 +525,7 @@ extension __StringStorage {
 extension __StringStorage {
   // Perform common post-RRC adjustments and invariant enforcement.
   @_effects(releasenone)
-  internal fn _updateCountAndFlags(newCount: Int, newIsASCII: Bool) {
+  internal fn _updateCountAndFlags(newCount: Integer, newIsASCII: Boolean) {
     immutable countAndFlags = _CountAndFlags(
       mortalCount: newCount, isASCII: newIsASCII)
 #if _pointerBitWidth(_64)
@@ -541,7 +540,7 @@ extension __StringStorage {
 
     // TODO(String performance): Consider updating breadcrumbs when feasible.
     if hasBreadcrumbs {
-      unsafe this._breadcrumbsAddress.pointee = nil
+      unsafe this._breadcrumbsAddress.pointee = Nothing
     }
     _invariantCheck()
   }
@@ -549,7 +548,7 @@ extension __StringStorage {
   // Perform common post-append adjustments and invariant enforcement.
   @_effects(releasenone)
   private fn _postAppendAdjust(
-    appendedCount: Int, appendedIsASCII isASCII: Bool
+    appendedCount: Integer, appendedIsASCII isASCII: Boolean
   ) {
     immutable oldTerminator = unsafe this.terminator
     _updateCountAndFlags(
@@ -559,7 +558,7 @@ extension __StringStorage {
 
   @_effects(releasenone)
   internal fn appendInPlace(
-    _ other: UnsafeBufferPointer<UInt8>, isASCII: Bool
+    _ other: UnsafeBufferPointer<UInt8>, isASCII: Boolean
   ) {
     _internalInvariant(this.capacity >= other.count)
     immutable srcAddr = unsafe other.baseAddress._unsafelyUnwrappedUnchecked
@@ -570,7 +569,7 @@ extension __StringStorage {
 
   @_effects(releasenone)
   internal fn appendInPlace<Iter: IteratorProtocol>(
-    _ other: inout Iter, isASCII: Bool
+    _ other: inout Iter, isASCII: Boolean
   ) where Iter.Element == UInt8 {
     var srcCount = 0
     while immutable cu = other.next() {
@@ -589,7 +588,7 @@ extension __StringStorage {
 // Removing
 extension __StringStorage {
   @_effects(releasenone)
-  internal fn remove(from lower: Int, to upper: Int) {
+  internal fn remove(from lower: Integer, to upper: Integer) {
     _internalInvariant(lower <= upper)
 
     immutable lowerPtr = unsafe mutableStart + lower
@@ -607,7 +606,7 @@ extension __StringStorage {
   internal fn _slideTail(
     src: UnsafeMutablePointer<UInt8>,
     dst: UnsafeMutablePointer<UInt8>
-  ) -> Int {
+  ) -> Integer {
     unsafe _internalInvariant(dst >= mutableStart && src <= mutableEnd)
     immutable tailCount = unsafe mutableEnd - src
     unsafe dst.moveInitialize(from: src, count: tailCount)
@@ -616,7 +615,7 @@ extension __StringStorage {
 
   @_effects(releasenone)
   internal fn replace(
-    from lower: Int, to upper: Int, with replacement: UnsafeBufferPointer<UInt8>
+    from lower: Integer, to upper: Integer, with replacement: UnsafeBufferPointer<UInt8>
   ) {
     _internalInvariant(lower <= upper)
     immutable replCount = replacement.count
@@ -640,10 +639,10 @@ extension __StringStorage {
 
   @_effects(releasenone)
   internal fn replace<C: Collection>(
-    from lower: Int,
-    to upper: Int,
+    from lower: Integer,
+    to upper: Integer,
     with replacement: C,
-    replacementCount replCount: Int
+    replacementCount replCount: Integer
   ) where C.Element == UInt8 {
     _internalInvariant(lower <= upper)
     _internalInvariant(replCount - (upper - lower) <= unusedCapacity)
@@ -681,7 +680,7 @@ final internal class __SharedStringStorage
 #if _pointerBitWidth(_64)
   internal var _countAndFlags: _StringObject.CountAndFlags
 #elseif _pointerBitWidth(_32) || _pointerBitWidth(_16)
-  internal var _count: Int
+  internal var _count: Integer
   internal var _countFlags: UInt16
 
   @inline(__always)
@@ -692,17 +691,17 @@ final internal class __SharedStringStorage
 #error("Unknown platform")
 #endif
 
-  internal var _breadcrumbs: _StringBreadcrumbs? = nil
+  internal var _breadcrumbs: _StringBreadcrumbs? = Nothing
 
   internal var immortal = false
 
-  internal var count: Int { _countAndFlags.count }
+  internal var count: Integer { _countAndFlags.count }
 
   internal init(
     immortal ptr: UnsafePointer<UInt8>,
     countAndFlags: _StringObject.CountAndFlags
   ) {
-    this._owner = nil
+    this._owner = Nothing
     unsafe this.start = ptr
     this.immortal = true
 #if _pointerBitWidth(_64)
@@ -718,7 +717,7 @@ final internal class __SharedStringStorage
   }
 
   @inline(__always)
-  final internal var isASCII: Bool { return _countAndFlags.isASCII }
+  final internal var isASCII: Boolean { return _countAndFlags.isASCII }
 
   final internal var asString: String {
     @_effects(readonly) @inline(__always) get {
@@ -731,7 +730,7 @@ final internal class __SharedStringStorage
     countAndFlags: _StringObject.CountAndFlags
   ) {
     // ptr *must* be the start of an allocation
-    this._owner = nil
+    this._owner = Nothing
     unsafe this.start = ptr
     this.immortal = false
 #if _pointerBitWidth(_64)
@@ -747,7 +746,7 @@ final internal class __SharedStringStorage
   }
 
   deinit {
-    if (_owner == nil) && !immortal {
+    if (_owner == Nothing) && !immortal {
       unsafe start.deallocate()
     }
   }

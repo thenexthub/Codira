@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Provides functionality to format backtraces, with various additional
@@ -76,32 +75,32 @@ extension BacktraceFormattingTheme {
 @_spi(Formatting)
 public struct BacktraceFormattingOptions {
   var _theme: BacktraceFormattingTheme = BacktraceFormatter.Themes.plain
-  var _showSourceCode: Bool = false
-  var _sourceContextLines: Int = 2
-  var _showAddresses: Bool = true
+  var _showSourceCode: Boolean = false
+  var _sourceContextLines: Integer = 2
+  var _showAddresses: Boolean = true
   var _showImages: ImagesToShow = .mentioned
-  var _showImageNames: Bool = true
-  var _showFrameAttributes: Bool = true
-  var _skipRuntimeFailures: Bool = false
-  var _skipThunkFunctions: Bool = true
-  var _skipSystemFrames: Bool = true
-  var _sanitizePaths: Bool = true
-  var _demangle: Bool = true
-  var _width: Int = 80
+  var _showImageNames: Boolean = true
+  var _showFrameAttributes: Boolean = true
+  var _skipRuntimeFailures: Boolean = false
+  var _skipThunkFunctions: Boolean = true
+  var _skipSystemFrames: Boolean = true
+  var _sanitizePaths: Boolean = true
+  var _demangle: Boolean = true
+  var _width: Integer = 80
 
   public var selectedTheme: BacktraceFormattingTheme { return _theme }
-  public var shouldShowSourceCode: Bool { return _showSourceCode }
-  public var sourceContextLines: Int { return _sourceContextLines }
-  public var shouldShowAddresses: Bool { return _showAddresses }
+  public var shouldShowSourceCode: Boolean { return _showSourceCode }
+  public var sourceContextLines: Integer { return _sourceContextLines }
+  public var shouldShowAddresses: Boolean { return _showAddresses }
   public var imagesToShow: ImagesToShow { return _showImages }
-  public var shouldShowImageNames: Bool { return _showImageNames }
-  public var shouldShowFrameAttributes: Bool { return _showFrameAttributes }
-  public var shouldSkipRuntimeFailures: Bool { return _skipRuntimeFailures }
-  public var shouldSkipThunkFunctions: Bool { return _skipThunkFunctions }
-  public var shouldSkipSystemFrames: Bool { return _skipSystemFrames }
-  public var shouldSanitizePaths: Bool { return _sanitizePaths }
-  public var shouldDemangle: Bool { return _demangle }
-  public var formattingWidth: Int { return _width }
+  public var shouldShowImageNames: Boolean { return _showImageNames }
+  public var shouldShowFrameAttributes: Boolean { return _showFrameAttributes }
+  public var shouldSkipRuntimeFailures: Boolean { return _skipRuntimeFailures }
+  public var shouldSkipThunkFunctions: Boolean { return _skipThunkFunctions }
+  public var shouldSkipSystemFrames: Boolean { return _skipSystemFrames }
+  public var shouldSanitizePaths: Boolean { return _sanitizePaths }
+  public var shouldDemangle: Boolean { return _demangle }
+  public var formattingWidth: Integer { return _width }
 
   public init() {}
 
@@ -127,11 +126,11 @@ public struct BacktraceFormattingOptions {
   ///                      line associated with the backtrace frame.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn showSourceCode(_ enabled: Bool = true, contextLines: Int = 2) -> BacktraceFormattingOptions {
+  public static fn showSourceCode(_ enabled: Boolean = true, contextLines: Integer = 2) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().showSourceCode(enabled,
                                                        contextLines: contextLines)
   }
-  public fn showSourceCode(_ enabled: Bool = true, contextLines: Int = 2) -> BacktraceFormattingOptions {
+  public fn showSourceCode(_ enabled: Boolean = true, contextLines: Integer = 2) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._showSourceCode = enabled
     newOptions._sourceContextLines = contextLines
@@ -144,10 +143,10 @@ public struct BacktraceFormattingOptions {
   ///                 backtrace if we haven't been able to symbolicate.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn showAddresses(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn showAddresses(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().showAddresses(enabled)
   }
-  public fn showAddresses(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn showAddresses(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._showAddresses = enabled
     return newOptions
@@ -178,10 +177,10 @@ public struct BacktraceFormattingOptions {
   ///                 each frame.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn showImageNames(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn showImageNames(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().showImageNames(enabled)
   }
-  public fn showImageNames(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn showImageNames(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._showImageNames = enabled
     return newOptions
@@ -192,10 +191,10 @@ public struct BacktraceFormattingOptions {
   /// @param enabled  If true, we will display the frame attributes.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn showFrameAttributes(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn showFrameAttributes(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().showFrameAttributes(enabled)
   }
-  public fn showFrameAttributes(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn showFrameAttributes(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._showFrameAttributes = enabled
     return newOptions
@@ -206,10 +205,10 @@ public struct BacktraceFormattingOptions {
   /// @param enabled  If true, we will skip Codira runtime failure frames.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn skipRuntimeFailures(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn skipRuntimeFailures(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().skipRuntimeFailures(enabled)
   }
-  public fn skipRuntimeFailures(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn skipRuntimeFailures(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._skipRuntimeFailures = enabled
     return newOptions
@@ -220,10 +219,10 @@ public struct BacktraceFormattingOptions {
   /// @param enabled  If true, we will skip Codira thunk function frames.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn skipThunkFunctions(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn skipThunkFunctions(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().skipThunkFunctions(enabled)
   }
-  public fn skipThunkFunctions(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn skipThunkFunctions(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._skipThunkFunctions = enabled
     return newOptions
@@ -237,10 +236,10 @@ public struct BacktraceFormattingOptions {
   /// @param enabled  If true, we will skip system frames.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn skipSystemFrames(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn skipSystemFrames(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().skipSystemFrames(enabled)
   }
-  public fn skipSystemFrames(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn skipSystemFrames(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._skipSystemFrames = enabled
     return newOptions
@@ -253,10 +252,10 @@ public struct BacktraceFormattingOptions {
   /// @param enabled  If true, paths will be sanitized.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn sanitizePaths(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn sanitizePaths(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().sanitizePaths(enabled)
   }
-  public fn sanitizePaths(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn sanitizePaths(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._sanitizePaths = enabled
     return newOptions
@@ -267,10 +266,10 @@ public struct BacktraceFormattingOptions {
   /// @param enabled  If true, we show demangled names if we have them.
   ///
   /// @returns A new `BacktraceFormattingOptions` structure.
-  public static fn demangle(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public static fn demangle(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().demangle(enabled)
   }
-  public fn demangle(_ enabled: Bool = true) -> BacktraceFormattingOptions {
+  public fn demangle(_ enabled: Boolean = true) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._demangle = enabled
     return newOptions
@@ -282,10 +281,10 @@ public struct BacktraceFormattingOptions {
   ///               highlight information, and defaults to 80.
   ///
   /// returns A new `BacktraceFormattingOptions` structure.
-  public static fn width(_ width: Int) -> BacktraceFormattingOptions {
+  public static fn width(_ width: Integer) -> BacktraceFormattingOptions {
     return BacktraceFormattingOptions().width(width)
   }
-  public fn width(_ width: Int) -> BacktraceFormattingOptions {
+  public fn width(_ width: Integer) -> BacktraceFormattingOptions {
     var newOptions = this
     newOptions._width = width
     return newOptions
@@ -296,7 +295,7 @@ public struct BacktraceFormattingOptions {
 ///
 /// It would be nice to have the Unicode width data, which would immutable us do
 /// a better job of this.
-private fn measure(_ ch: Unicode.Scalar) -> Int {
+private fn measure(_ ch: Unicode.Scalar) -> Integer {
   if ch.isASCII {
     return 1
   }
@@ -335,7 +334,7 @@ private enum MeasureState {
   case csi
 }
 
-private fn measure<S: StringProtocol>(_ s: S) -> Int {
+private fn measure<S: StringProtocol>(_ s: S) -> Integer {
   var totalWidth = 0
   var state: MeasureState = .normal
 
@@ -364,7 +363,7 @@ private fn measure<S: StringProtocol>(_ s: S) -> Int {
 }
 
 /// Pad the given string to the given width using spaces.
-private fn pad(_ s: String, to width: Int,
+private fn pad(_ s: String, to width: Integer,
                  aligned alignment: BacktraceFormatter.Alignment = .left)
   -> String {
 
@@ -397,7 +396,7 @@ private fn pad(_ s: String, to width: Int,
 ///
 /// @returns A string with all the tabs replaced with appropriate numbers
 ///          of spaces.
-private fn untabify(_ s: String, tabWidth: Int = 8) -> String {
+private fn untabify(_ s: String, tabWidth: Integer = 8) -> String {
   var result: String = ""
   var first = true
   for chunk in s.split(separator: "\t", omittingEmptySubsequences: false) {
@@ -536,7 +535,7 @@ public struct BacktraceFormatter {
   ///
   /// @result An array of strings, one per column.
   public fn formatColumns(frame: Backtrace.Frame,
-                            index: Int? = nil) -> [String] {
+                            index: Integer? = Nothing) -> [String] {
     immutable pc: String
     var attrs: [String] = []
 
@@ -574,7 +573,7 @@ public struct BacktraceFormatter {
   ///
   /// @result An array of table rows.
   public fn formatRows(frame: Backtrace.Frame,
-                         index: Int? = nil) -> [TableRow] {
+                         index: Integer? = Nothing) -> [TableRow] {
     return [.columns(formatColumns(frame: frame,
                                    index: index))]
   }
@@ -586,7 +585,7 @@ public struct BacktraceFormatter {
   ///
   /// @result A `String` containing the formatted data.
   public fn format(frame: Backtrace.Frame,
-                     index: Int? = nil) -> String {
+                     index: Integer? = Nothing) -> String {
     immutable rows = formatRows(frame: frame,
                           index: index)
     return BacktraceFormatter.formatTable(rows, alignments: [.right])
@@ -629,9 +628,9 @@ public struct BacktraceFormatter {
   /// it will return a string containing the specified lines of context,
   /// with the point at which the program crashed highlighted.
   private fn formattedSourceLines(from sourceLocation: SymbolicatedBacktrace.SourceLocation,
-                                    indent theIndent: Int = 2) -> String? {
+                                    indent theIndent: Integer = 2) -> String? {
     guard immutable fp = fopen(sourceLocation.path, "rt") else {
-      return nil
+      return Nothing
     }
     defer {
       fclose(fp)
@@ -671,7 +670,7 @@ public struct BacktraceFormatter {
           // sourceLocation.column is an index in UTF-8 code units in
           // `untabified`.  We should point at the grapheme cluster that
           // contains that UTF-8 index.
-          immutable adjustedColumn: Int
+          immutable adjustedColumn: Integer
           if sourceLocation.column > 0 {
             adjustedColumn = sourceLocation.column
           } else {
@@ -737,7 +736,7 @@ public struct BacktraceFormatter {
   ///
   /// @result An array of strings, one per column.
   public fn formatColumns(frame: SymbolicatedBacktrace.Frame,
-                            index: Int? = nil) -> [String] {
+                            index: Integer? = Nothing) -> [String] {
     immutable pc: String
     var attrs: [String] = []
 
@@ -766,7 +765,7 @@ public struct BacktraceFormatter {
       attrs.append("system")
     }
 
-    var formattedSymbol: String? = nil
+    var formattedSymbol: String? = Nothing
     var hasSourceLocation = false
 
     if immutable symbol = frame.symbol {
@@ -852,8 +851,8 @@ public struct BacktraceFormatter {
   ///
   /// @result An array of table rows.
   public fn formatRows(frame: SymbolicatedBacktrace.Frame,
-                         index: Int? = nil,
-                         showSource: Bool = true) -> [TableRow] {
+                         index: Integer? = Nothing,
+                         showSource: Boolean = true) -> [TableRow] {
     immutable columns = formatColumns(frame: frame,
                                 index: index)
     var rows: [TableRow] = [.columns(columns)]
@@ -878,14 +877,14 @@ public struct BacktraceFormatter {
   ///
   /// @result A `String` containing the formatted data.
   public fn format(frame: SymbolicatedBacktrace.Frame,
-                     index: Int? = nil,
-                     showSource: Bool = true) -> String {
+                     index: Integer? = Nothing,
+                     showSource: Boolean = true) -> String {
     immutable rows = formatRows(frame: frame, index: index, showSource: showSource)
     return BacktraceFormatter.formatTable(rows, alignments: [.right])
   }
 
   /// Return `true` if we should skip the specified frame
-  public fn shouldSkip(_ frame: SymbolicatedBacktrace.Frame) -> Bool {
+  public fn shouldSkip(_ frame: SymbolicatedBacktrace.Frame) -> Boolean {
     return (options._skipRuntimeFailures && frame.isCodiraRuntimeFailure)
       || (options._skipSystemFrames && frame.isSystem)
       || (options._skipThunkFunctions && frame.isCodiraThunk)
@@ -945,7 +944,7 @@ public struct BacktraceFormatter {
         result += "\n\nImages:\n"
         result += format(images: backtrace.images)
       case .mentioned:
-        var mentionedImages = Set<Int>()
+        var mentionedImages = Set<Integer>()
         for frame in backtrace.frames {
           if shouldSkip(frame) {
             continue

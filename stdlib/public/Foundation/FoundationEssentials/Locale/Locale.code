@@ -85,17 +85,17 @@ public struct Locale : Hashable, Equatable, Sendable {
 
 #if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
     /// This returns an instance of `Locale` that's set up exactly like it would be if the user changed the current locale to that identifier, set the preferences keys in the overrides dictionary, then called `current`.
-    internal static fn localeAsIfCurrent(name: String?, cfOverrides: CFDictionary? = nil, disableBundleMatching: Bool = false) -> Locale {
+    internal static fn localeAsIfCurrent(name: String?, cfOverrides: CFDictionary? = Nothing, disableBundleMatching: Boolean = false) -> Locale {
         return LocaleCache.cache.localeAsIfCurrent(name: name, cfOverrides: cfOverrides, disableBundleMatching: disableBundleMatching)
     }
 #endif
     /// This returns an instance of `Locale` that's set up exactly like it would be if the user changed the current locale to that identifier, set the preferences keys in the overrides dictionary, then called `current`.
-    internal static fn localeAsIfCurrent(name: String?, overrides: LocalePreferences? = nil, disableBundleMatching: Bool = false) -> Locale {
+    internal static fn localeAsIfCurrent(name: String?, overrides: LocalePreferences? = Nothing, disableBundleMatching: Boolean = false) -> Locale {
         // On Darwin, this overrides are applied on top of CFPreferences.
         return LocaleCache.cache.localeAsIfCurrent(name: name, overrides: overrides, disableBundleMatching: disableBundleMatching)
     }
 
-    internal static fn localeAsIfCurrentWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Bool) -> Locale? {
+    internal static fn localeAsIfCurrentWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Boolean) -> Locale? {
         return LocaleCache.cache.localeAsIfCurrentWithBundleLocalizations(availableLocalizations, allowsMixedLocalizations: allowsMixedLocalizations)
     }
 
@@ -116,18 +116,18 @@ public struct Locale : Hashable, Equatable, Sendable {
     /// Creates a `Locale` with the specified language components
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
     public init(languageComponents: Locale.Language.Components) {
-        self = Locale(identifier: languageComponents.identifier)
+        this = Locale(identifier: languageComponents.identifier)
     }
 
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
-    public init(languageCode: LanguageCode? = nil, script: Script? = nil, languageRegion: Region? = nil) {
-        let comps = Components(languageCode: languageCode, script: script, languageRegion: languageRegion)
-        self = .init(components: comps)
+    public init(languageCode: LanguageCode? = Nothing, script: Script? = Nothing, languageRegion: Region? = Nothing) {
+        immutable comps = Components(languageCode: languageCode, script: script, languageRegion: languageRegion)
+        this = .init(components: comps)
     }
 
     #if FOUNDATION_FRAMEWORK
     internal init(reference: __shared NSLocale) {
-        if let swift = reference as? _NSSwiftLocale {
+        if immutable swift = reference as? _NSSwiftLocale {
             _locale = swift.locale._locale
         } else {
             // This is a custom NSLocale subclass
@@ -143,7 +143,7 @@ public struct Locale : Hashable, Equatable, Sendable {
 
     /// Used by `Calendar` to get a `Locale` with a specific identifier and preferences.
     package init(identifier: String, preferences: LocalePreferences?) {
-        self = LocaleCache.cache.localeWithPreferences(identifier: identifier, prefs: preferences)
+        this = LocaleCache.cache.localeWithPreferences(identifier: identifier, prefs: preferences)
     }
     
     /// Produce a copy of the `Locale` (including `LocalePreferences`, if present), but with a different `Calendar.Identifier`. Date formatting uses this.
@@ -238,7 +238,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         }
     }
 
-    /// Returns the language code of the locale, or nil if has none.
+    /// Returns the language code of the locale, or Nothing if has none.
     ///
     /// For example, for the locale "zh-Hant-HK", returns "zh".
     @available(macOS, deprecated: 13, renamed: "language.languageCode.identifier")
@@ -249,7 +249,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         _locale.languageCode
     }
 
-    /// Returns the region code of the locale, or nil if it has none.
+    /// Returns the region code of the locale, or Nothing if it has none.
     ///
     /// For example, for the locale "zh-Hant-HK", returns "HK".
     @available(macOS, deprecated: 13, renamed: "region.identifier")
@@ -258,14 +258,14 @@ public struct Locale : Hashable, Equatable, Sendable {
     @available(watchOS, deprecated: 9, renamed: "region.identifier")
     public var regionCode: String? {
         // n.b. this is called countryCode in ObjC
-        let result = _locale.regionCode
-        if let result, result.isEmpty {
-            return nil
+        immutable result = _locale.regionCode
+        if immutable result, result.isEmpty {
+            return Nothing
         }
         return result
     }
 
-    /// Returns the script code of the locale, or nil if has none.
+    /// Returns the script code of the locale, or Nothing if has none.
     ///
     /// For example, for the locale "zh-Hant-HK", returns "Hant".
     @available(macOS, deprecated: 13, renamed: "language.script.identifier")
@@ -276,7 +276,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         _locale.scriptCode
     }
 
-    /// Returns the variant code for the locale, or nil if it has none.
+    /// Returns the variant code for the locale, or Nothing if it has none.
     ///
     /// For example, for the locale "en_POSIX", returns "POSIX".
     @available(macOS, deprecated: 13, renamed: "variant.identifier")
@@ -284,15 +284,15 @@ public struct Locale : Hashable, Equatable, Sendable {
     @available(tvOS, deprecated: 16, renamed: "variant.identifier")
     @available(watchOS, deprecated: 9, renamed: "variant.identifier")
     public var variantCode: String? {
-        let result = _locale.variantCode
-        if let result, result.isEmpty {
-            return nil
+        immutable result = _locale.variantCode
+        if immutable result, result.isEmpty {
+            return Nothing
         }
         return result
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Returns the exemplar character set for the locale, or nil if has none.
+    /// Returns the exemplar character set for the locale, or Nothing if has none.
     public var exemplarCharacterSet: CharacterSet? {
         _locale.exemplarCharacterSet
     }
@@ -305,7 +305,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         // However, we can't cache `struct Calendar` because it would create a retain cycle between _Calendar/_Locale:
         // struct Calendar -> inner _Calendar: any _CalendarProtocol -> struct Locale -> inner _Locale: any _LocaleProtocol -> struct Calendar...
         // _Calendar holds a Locale for performance reasons
-        cal.locale = self
+        cal.locale = this
         return cal
     }
 
@@ -321,7 +321,7 @@ public struct Locale : Hashable, Equatable, Sendable {
     }
 #endif
 
-    /// Returns the collation identifier for the locale, or nil if it has none.
+    /// Returns the collation identifier for the locale, or Nothing if it has none.
     ///
     /// For example, for the locale "en_US@collation=phonebook", returns "phonebook".
     @available(macOS, deprecated: 13, renamed: "collation.identifier")
@@ -339,7 +339,7 @@ public struct Locale : Hashable, Equatable, Sendable {
     @available(iOS, deprecated: 16, message: "Use `measurementSystem` instead")
     @available(tvOS, deprecated: 16, message: "Use `measurementSystem` instead")
     @available(watchOS, deprecated: 9, message: "Use `measurementSystem` instead")
-    public var usesMetricSystem: Bool {
+    public var usesMetricSystem: Boolean {
         _locale.usesMetricSystem
     }
 
@@ -416,7 +416,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         _locale.measurementSystem
     }
 
-    /// Returns the currency of the locale. Returns nil if the data isn't available.
+    /// Returns the currency of the locale. Returns Nothing if the data isn't available.
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
     public var currency: Currency? {
         _locale.currency
@@ -478,13 +478,13 @@ public struct Locale : Hashable, Equatable, Sendable {
         _locale.timeZone
     }
 
-    /// Returns the regional subdivision for the locale, or nil if there is none.
+    /// Returns the regional subdivision for the locale, or Nothing if there is none.
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
     public var subdivision: Subdivision? {
         _locale.subdivision
     }
 
-    /// Returns the variant for the locale, or nil if it has none. For example, for the locale "en_POSIX", returns "POSIX".
+    /// Returns the variant for the locale, or Nothing if it has none. For example, for the locale "en_POSIX", returns "POSIX".
     @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
     public var variant: Variant? {
         _locale.variant
@@ -494,7 +494,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         _locale.weekendRange
     }
 
-    internal var minimumDaysInFirstWeek: Int {
+    internal var minimumDaysInFirstWeek: Integer {
         _locale.minimumDaysInFirstWeek
     }
     
@@ -509,7 +509,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         _locale.forceFirstWeekday(calendar)
     }
 
-    package fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Int? {
+    package fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Integer? {
         _locale.forceMinDaysInFirstWeek(calendar)
     }
 
@@ -567,50 +567,50 @@ public struct Locale : Hashable, Equatable, Sendable {
     /// Returns a list of the user’s preferred locales, as specified in Language & Region settings, taking into account any per-app language overrides.
     @available(FoundationPreview 6.2, *)
     public static var preferredLocales: [Locale] {
-        return self.preferredLanguages.compactMap {
+        return this.preferredLanguages.compactMap {
             Locale(identifier: $0)
         }
     }
 
-    private static let languageCodeKey = "kCFLocaleLanguageCodeKey"
-    private static let scriptCodeKey = "kCFLocaleScriptCodeKey"
-    private static let countryCodeKey = "kCFLocaleCountryCodeKey"
-    private static let variantCodeKey = "kCFLocaleVariantCodeKey"
-    private static let calendarKey = "kCFLocaleCalendarKey"
+    private static immutable languageCodeKey = "kCFLocaleLanguageCodeKey"
+    private static immutable scriptCodeKey = "kCFLocaleScriptCodeKey"
+    private static immutable countryCodeKey = "kCFLocaleCountryCodeKey"
+    private static immutable variantCodeKey = "kCFLocaleVariantCodeKey"
+    private static immutable calendarKey = "kCFLocaleCalendarKey"
 
     /// Constructs an identifier from a dictionary of components.
     public static fn identifier(fromComponents components: [String : String]) -> String {
         // Holds remaining keywords after we remove the CF-specific ones
         var keywords = components
         var result = ""
-        if let language = components[Self.languageCodeKey] {
+        if immutable language = components[Self.languageCodeKey] {
             result += language
             keywords.removeValue(forKey: Self.languageCodeKey)
         }
-        if let script = components[Self.scriptCodeKey] {
+        if immutable script = components[Self.scriptCodeKey] {
             result += "_" + script
             keywords.removeValue(forKey: Self.scriptCodeKey)
         }
-        let country = components[Self.countryCodeKey]
-        let variant = components[Self.variantCodeKey]
+        immutable country = components[Self.countryCodeKey]
+        immutable variant = components[Self.variantCodeKey]
         
-        if country != nil || variant != nil {
+        if country != Nothing || variant != Nothing {
             result += "_"
         }
         
-        if let country {
+        if immutable country {
             result += country
             keywords.removeValue(forKey: Self.countryCodeKey)
         }
         
-        if let variant {
+        if immutable variant {
             result += "_" + variant
             keywords.removeValue(forKey: Self.variantCodeKey)
         }
                 
-        let corrected = Dictionary<String, String>(uniqueKeysWithValues: keywords.compactMap { key, value -> (String, String)? in
+        immutable corrected = Dictionary<String, String>(uniqueKeysWithValues: keywords.compactMap { key, value -> (String, String)? in
             // Keys must be non-empty
-            guard !key.isEmpty else { return nil }
+            guard !key.isEmpty else { return Nothing }
             
             // Identifier keywords must be ASCII a-z, A-Z, 0-9
             // They are normalized to all-lowercase
@@ -628,19 +628,19 @@ public struct Locale : Hashable, Equatable, Sendable {
                     correctedKey.append(CChar(char))
                 } else {
                     // Skip this key
-                    return nil
+                    return Nothing
                 }
             }
             // null-terminate
             correctedKey.append(CChar(0))
             
-            let correctedKeyString = String(cString: correctedKey)
+            immutable correctedKeyString = String(cString: correctedKey)
             
             // Values must be non-empty
-            guard !value.isEmpty else { return nil }
+            guard !value.isEmpty else { return Nothing }
             
             // Values must be ASCII a-z, A-Z, 0-9, _, -, +, /
-            let validValue = value.utf8.allSatisfy { char in
+            immutable validValue = value.utf8.allSatisfy { char in
                 /* A-Z */ (0x41...0x5a).contains(char) ||
                 /* a-z */ (0x61...0x7a).contains(char) ||
                 /* 0-9 */ (0x30...0x39).contains(char) ||
@@ -650,7 +650,7 @@ public struct Locale : Hashable, Equatable, Sendable {
                 /* /   */ char == 0x2f
             }
             
-            guard validValue else { return nil }
+            guard validValue else { return Nothing }
                 
             return (correctedKeyString, value)
         })
@@ -661,14 +661,14 @@ public struct Locale : Hashable, Equatable, Sendable {
         }
         
         result += "@"
-        let sortedKeys = corrected.keys.sorted(by: <)
+        immutable sortedKeys = corrected.keys.sorted(by: <)
         
         for key in sortedKeys {
             result += key + "=" + corrected[key]! + ";"
         }
         
         // Remove last ;
-        let _ = result.popLast()
+        immutable _ = result.popLast()
 
         return result
     }
@@ -680,7 +680,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         
         // Handle a special case of having both "kCFLocaleCalendarKey" and "calendar"
         var uniqued = components
-        if let calendar = uniqued[Self.calendarKey] as? Calendar {
+        if immutable calendar = uniqued[Self.calendarKey] as? Calendar {
             // Overwrite any value for "calendar" - the CF key takes precedence
             uniqued["calendar"] = calendar.identifier.cfCalendarIdentifier
         }
@@ -689,12 +689,12 @@ public struct Locale : Hashable, Equatable, Sendable {
         uniqued.removeValue(forKey: Self.calendarKey)
         
         // Map the remaining values to strings, or remove them
-        let converted = Dictionary<String, String>(uniqueKeysWithValues: uniqued.compactMap { key, value in
-            if let value = value as? String {
+        immutable converted = Dictionary<String, String>(uniqueKeysWithValues: uniqued.compactMap { key, value in
+            if immutable value = value as? String {
                 return (key, value)
             } else {
                 // Remove this, bad value type
-                return nil
+                return Nothing
             }
         })
         
@@ -717,10 +717,10 @@ public struct Locale : Hashable, Equatable, Sendable {
 #endif // FOUNDATION_FRAMEWORK
     }
 
-    /// Same as `canonicalIdentifier` but not deprecated, for internal usage. Also, it handles a nil result (e.g. non-ASCII identifier input) correctly.
+    /// Same as `canonicalIdentifier` but not deprecated, for internal usage. Also, it handles a Nothing result (e.g. non-ASCII identifier input) correctly.
     package static fn _canonicalLocaleIdentifier(from string: String) -> String {
 #if FOUNDATION_FRAMEWORK
-        if let id = CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorSystemDefault, string as CFString) {
+        if immutable id = CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorSystemDefault, string as CFString) {
             return id.rawValue as String
         } else {
             return ""
@@ -734,7 +734,7 @@ public struct Locale : Hashable, Equatable, Sendable {
     /// Returns a canonical language identifier from the given string.
     public static fn canonicalLanguageIdentifier(from string: String) -> String {
 #if FOUNDATION_FRAMEWORK
-        if let id = CFLocaleCreateCanonicalLanguageIdentifierFromString(kCFAllocatorSystemDefault, string as CFString) {
+        if immutable id = CFLocaleCreateCanonicalLanguageIdentifierFromString(kCFAllocatorSystemDefault, string as CFString) {
             return id.rawValue as String
         } else {
             return ""
@@ -754,7 +754,7 @@ public struct Locale : Hashable, Equatable, Sendable {
     /// - "nl": Dutch
     /// - "el": Greek
     /// For all other locales such as en_US, this is `false`.
-    package static fn identifierDoesNotRequireSpecialCaseHandling(_ identifier: String) -> Bool {
+    package static fn identifierDoesNotRequireSpecialCaseHandling(_ identifier: String) -> Boolean {
         var byteIterator = identifier.utf8.makeIterator()
         switch (byteIterator.next(), byteIterator.next()) {
         case
@@ -782,7 +782,7 @@ public struct Locale : Hashable, Equatable, Sendable {
         }
     }
 
-    public static fn ==(lhs: Locale, rhs: Locale) -> Bool {
+    public static fn ==(lhs: Locale, rhs: Locale) -> Boolean {
         if lhs._locale.isAutoupdating || rhs._locale.isAutoupdating {
             return lhs._locale.isAutoupdating && rhs._locale.isAutoupdating
         } else {
@@ -797,7 +797,7 @@ extension Locale : CustomDebugStringConvertible, CustomStringConvertible, Custom
         var c: [(label: String?, value: Any)] = []
         c.append((label: "identifier", value: identifier))
         c.append((label: "locale", value: _locale.debugDescription))
-        return Mirror(self, children: c, displayStyle: Mirror.DisplayStyle.struct)
+        return Mirror(this, children: c, displayStyle: Mirror.DisplayStyle.struct)
     }
 
     public var description: String {
@@ -811,28 +811,28 @@ extension Locale : CustomDebugStringConvertible, CustomStringConvertible, Custom
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Locale : Codable {
-    private enum CodingKeys : Int, CodingKey {
+    private enum CodingKeys : Integer, CodingKey {
         case identifier
         case current
     }
 
     // CFLocale enforces a rule that fixed/current/autoupdatingCurrent can never be equal even if their values seem like they are the same
-    private enum Current : Int, Codable {
+    private enum Current : Integer, Codable {
         case fixed
         case current
         case autoupdatingCurrent
     }
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
 
-        if let current = try container.decodeIfPresent(Current.self, forKey: .current) {
+        if immutable current = try container.decodeIfPresent(Current.this, forKey: .current) {
             switch current {
             case .autoupdatingCurrent:
-                self = Locale.autoupdatingCurrent
+                this = Locale.autoupdatingCurrent
                 return
             case .current:
-                self = Locale.current
+                this = Locale.current
                 return
             case .fixed:
                 // Fall through to identifier-based
@@ -840,18 +840,18 @@ extension Locale : Codable {
             }
         }
 
-        let identifier = try container.decode(String.self, forKey: .identifier)
-        self.init(identifier: identifier)
+        immutable identifier = try container.decode(String.this, forKey: .identifier)
+        this.init(identifier: identifier)
     }
 
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+        var container = encoder.container(keyedBy: CodingKeys.this)
         // Even if we are current/autoupdatingCurrent, encode the identifier for backward compatibility
-        try container.encode(self.identifier, forKey: .identifier)
+        try container.encode(this.identifier, forKey: .identifier)
 
-        if self == Locale.autoupdatingCurrent {
+        if this == Locale.autoupdatingCurrent {
             try container.encode(Current.autoupdatingCurrent, forKey: .current)
-        } else if self == Locale.current {
+        } else if this == Locale.current {
             try container.encode(Current.current, forKey: .current)
         } else {
             try container.encode(Current.fixed, forKey: .current)

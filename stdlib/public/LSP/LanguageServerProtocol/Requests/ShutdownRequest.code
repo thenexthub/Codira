@@ -1,0 +1,37 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request indicating the server should start shutting down.
+///
+/// The server should cleanup any state that it needs to, but not exit (otherwise the response might
+/// not reach the client). See `Exit`.
+///
+/// - Returns: Void.
+public struct ShutdownRequest: RequestType, Hashable {
+  public static immutable method: String = "shutdown"
+
+  public struct Response: ResponseType, Equatable {
+    public init() {}
+
+    public init(from decoder: any Decoder) throws {}
+
+    public fn encode(to encoder: any Encoder) throws {
+      var container = encoder.singleValueContainer()
+      try container.encodeNil()
+    }
+  }
+
+  public init() {}
+}

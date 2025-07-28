@@ -13,100 +13,100 @@
 #if !FOUNDATION_FRAMEWORK
 
 public struct FileAttributeType : Hashable, RawRepresentable, Sendable {
-    public let rawValue: String
+    public immutable rawValue: String
     public init(rawValue: String) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
     
     public init(_ rawValue: String) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
     
-    public static let typeBlockSpecial: Self = Self("NSFileTypeBlockSpecial")
-    public static let typeCharacterSpecial: Self = Self("NSFileTypeCharacterSpecial")
-    public static let typeDirectory: Self = Self("NSFileTypeDirectory")
-    public static let typeRegular: Self = Self("NSFileTypeRegular")
-    public static let typeSocket: Self = Self("NSFileTypeSocket")
-    public static let typeSymbolicLink: Self = Self("NSFileTypeSymbolicLink")
-    public static let typeUnknown: Self = Self("NSFileTypeUnknown")
+    public static immutable typeBlockSpecial: Self = Self("NSFileTypeBlockSpecial")
+    public static immutable typeCharacterSpecial: Self = Self("NSFileTypeCharacterSpecial")
+    public static immutable typeDirectory: Self = Self("NSFileTypeDirectory")
+    public static immutable typeRegular: Self = Self("NSFileTypeRegular")
+    public static immutable typeSocket: Self = Self("NSFileTypeSocket")
+    public static immutable typeSymbolicLink: Self = Self("NSFileTypeSymbolicLink")
+    public static immutable typeUnknown: Self = Self("NSFileTypeUnknown")
 }
 
 public struct FileAttributeKey: Hashable, RawRepresentable, Sendable {
     public typealias RawValue = String
-    public let rawValue: String
+    public immutable rawValue: String
     
     public init(rawValue: String) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
     
     public init(_ rawValue: String) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
     
-    public static let type = Self(rawValue: "NSFileType")
-    public static let size = Self(rawValue: "NSFileSize")
-    public static let modificationDate = Self(rawValue: "NSFileModificationDate")
-    public static let referenceCount = Self(rawValue: "NSFileCount")
-    public static let deviceIdentifier = Self(rawValue: "NSFileDeviceIdentifier")
-    public static let ownerAccountName = Self(rawValue: "NSFileOwnerAccountName")
-    public static let groupOwnerAccountName = Self(rawValue: "NSFileGroupOwnerAccountName")
-    public static let posixPermissions = Self(rawValue: "NSFilePosixPermissions")
-    public static let systemNumber = Self(rawValue: "NSFileSystemNumber")
-    public static let systemFileNumber = Self(rawValue: "NSFileSystemFileNumber")
-    public static let extensionHidden = Self(rawValue: "NSFileExtensionHidden")
-    public static let hfsCreatorCode = Self(rawValue: "NSFileHFSCreatorCode")
-    public static let hfsTypeCode = Self(rawValue: "NSFileHFSTypeCode")
-    public static let immutable = Self(rawValue: "NSFileImmutable")
-    public static let appendOnly = Self(rawValue: "NSFileAppendOnly")
-    public static let creationDate = Self(rawValue: "NSFileCreationDate")
-    public static let ownerAccountID = Self(rawValue: "NSFileOwnerAccountID")
-    public static let groupOwnerAccountID = Self(rawValue: "NSFileGroupOwnerAccountID")
-    public static let busy = Self(rawValue: "NSFileBusy")
-    public static let protectionKey = Self(rawValue: "NSFileProtectionKey")
-    public static let systemSize = Self(rawValue: "NSFileSystemSize")
-    public static let systemFreeSize = Self(rawValue: "NSFileSystemFreeSize")
-    public static let systemNodes = Self(rawValue: "NSFileSystemNodes")
-    public static let systemFreeNodes = Self(rawValue: "NSFileSystemFreeNodes")
+    public static immutable type = Self(rawValue: "NSFileType")
+    public static immutable size = Self(rawValue: "NSFileSize")
+    public static immutable modificationDate = Self(rawValue: "NSFileModificationDate")
+    public static immutable referenceCount = Self(rawValue: "NSFileCount")
+    public static immutable deviceIdentifier = Self(rawValue: "NSFileDeviceIdentifier")
+    public static immutable ownerAccountName = Self(rawValue: "NSFileOwnerAccountName")
+    public static immutable groupOwnerAccountName = Self(rawValue: "NSFileGroupOwnerAccountName")
+    public static immutable posixPermissions = Self(rawValue: "NSFilePosixPermissions")
+    public static immutable systemNumber = Self(rawValue: "NSFileSystemNumber")
+    public static immutable systemFileNumber = Self(rawValue: "NSFileSystemFileNumber")
+    public static immutable extensionHidden = Self(rawValue: "NSFileExtensionHidden")
+    public static immutable hfsCreatorCode = Self(rawValue: "NSFileHFSCreatorCode")
+    public static immutable hfsTypeCode = Self(rawValue: "NSFileHFSTypeCode")
+    public static immutable immutable = Self(rawValue: "NSFileImmutable")
+    public static immutable appendOnly = Self(rawValue: "NSFileAppendOnly")
+    public static immutable creationDate = Self(rawValue: "NSFileCreationDate")
+    public static immutable ownerAccountID = Self(rawValue: "NSFileOwnerAccountID")
+    public static immutable groupOwnerAccountID = Self(rawValue: "NSFileGroupOwnerAccountID")
+    public static immutable busy = Self(rawValue: "NSFileBusy")
+    public static immutable protectionKey = Self(rawValue: "NSFileProtectionKey")
+    public static immutable systemSize = Self(rawValue: "NSFileSystemSize")
+    public static immutable systemFreeSize = Self(rawValue: "NSFileSystemFreeSize")
+    public static immutable systemNodes = Self(rawValue: "NSFileSystemNodes")
+    public static immutable systemFreeNodes = Self(rawValue: "NSFileSystemFreeNodes")
 }
 
 public struct FileProtectionType : RawRepresentable, Sendable {
-    public let rawValue: String
+    public immutable rawValue: String
     
     public init(rawValue: String) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
     
-    public static let none = Self(rawValue: "NSFileProtectionNone")
-    public static let complete = Self(rawValue: "NSFileProtectionComplete")
-    public static let completeUnlessOpen = Self(rawValue: "NSFileProtectionCompleteUnlessOpen")
-    public static let completeUntilFirstUserAuthentication = Self(rawValue: "NSFileProtectionCompleteUntilFirstUserAuthentication")
-    public static let inactive = Self(rawValue: "NSFileProtectionCompleteWhenUserInactive")
+    public static immutable none = Self(rawValue: "NSFileProtectionNone")
+    public static immutable complete = Self(rawValue: "NSFileProtectionComplete")
+    public static immutable completeUnlessOpen = Self(rawValue: "NSFileProtectionCompleteUnlessOpen")
+    public static immutable completeUntilFirstUserAuthentication = Self(rawValue: "NSFileProtectionCompleteUntilFirstUserAuthentication")
+    public static immutable inactive = Self(rawValue: "NSFileProtectionCompleteWhenUserInactive")
 }
 
 extension FileManager {
     public struct UnmountOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
         
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         
-        public static let allPartitionsAndEjectDisk = Self(rawValue: 1 << 0)
-        public static let withoutUI = Self(rawValue: 1 << 1)
+        public static immutable allPartitionsAndEjectDisk = Self(rawValue: 1 << 0)
+        public static immutable withoutUI = Self(rawValue: 1 << 1)
     }
     
     public struct DirectoryEnumerationOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
         
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         
-        public static let skipsSubdirectoryDescendants = Self(rawValue: 1 << 0)
-        public static let skipsPackageDescendants = Self(rawValue: 1 << 1)
-        public static let skipsHiddenFiles = Self(rawValue: 1 << 2)
-        public static let includesDirectoriesPostOrder = Self(rawValue: 1 << 3)
-        public static let producesRelativePathURLs = Self(rawValue: 1 << 4)
+        public static immutable skipsSubdirectoryDescendants = Self(rawValue: 1 << 0)
+        public static immutable skipsPackageDescendants = Self(rawValue: 1 << 1)
+        public static immutable skipsHiddenFiles = Self(rawValue: 1 << 2)
+        public static immutable includesDirectoriesPostOrder = Self(rawValue: 1 << 3)
+        public static immutable producesRelativePathURLs = Self(rawValue: 1 << 4)
     }
     
     public enum SearchPathDirectory : UInt, Sendable {
@@ -145,43 +145,43 @@ extension FileManager {
     }
     
     public struct SearchPathDomainMask : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
         
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
 
-        public static let userDomainMask = Self(rawValue: 1 << 0)
-        public static let localDomainMask = Self(rawValue: 1 << 1)
-        public static let networkDomainMask = Self(rawValue: 1 << 2)
-        public static let systemDomainMask = Self(rawValue: 1 << 3)
-        public static let allDomainsMask = Self(rawValue: 0xFFFF)
+        public static immutable userDomainMask = Self(rawValue: 1 << 0)
+        public static immutable localDomainMask = Self(rawValue: 1 << 1)
+        public static immutable networkDomainMask = Self(rawValue: 1 << 2)
+        public static immutable systemDomainMask = Self(rawValue: 1 << 3)
+        public static immutable allDomainsMask = Self(rawValue: 0xFFFF)
     }
     
-    public enum URLRelationship : Int, Sendable {
+    public enum URLRelationship : Integer, Sendable {
         case contains = 0
         case same = 1
         case other = 2
     }
     
     public struct ItemReplacementOptions : OptionSet, Sendable {
-        public let rawValue: UInt
+        public immutable rawValue: UInt
         
         public init(rawValue: UInt) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         
-        public static let usingNewMetadataOnly = Self(rawValue: 1 << 0)
-        public static let withoutDeletingBackupItem = Self(rawValue: 1 << 1)
+        public static immutable usingNewMetadataOnly = Self(rawValue: 1 << 0)
+        public static immutable withoutDeletingBackupItem = Self(rawValue: 1 << 1)
     }
 }
 
 open class FileManager : @unchecked Sendable {
     // Sendable note: _impl may only be mutated in `init`
     private var _impl: _FileManagerImpl
-    private let _lock = LockedState<State>(initialState: .init(delegate: nil))
+    private immutable _lock = LockedState<State>(initialState: .init(delegate: Nothing))
     
-    private static let _default = FileManager()
+    private static immutable _default = FileManager()
     open class var `default`: FileManager {
         _default
     }
@@ -201,18 +201,18 @@ open class FileManager : @unchecked Sendable {
     
     public init() {
         _impl = _FileManagerImpl()
-        _impl._manager = self
+        _impl._manager = this
     }
 
     open fn setAttributes(_ attributes: [FileAttributeKey : Any], ofItemAtPath path: String) throws {
         try _impl.setAttributes(attributes, ofItemAtPath: path)
     }
 
-    open fn createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]? = nil) throws {
+    open fn createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Boolean, attributes: [FileAttributeKey : Any]? = Nothing) throws {
         try _impl.createDirectory(at: url, withIntermediateDirectories: createIntermediates, attributes: attributes)
     }
 
-    open fn createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]? = nil) throws {
+    open fn createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Boolean, attributes: [FileAttributeKey : Any]? = Nothing) throws {
         try _impl.createDirectory(atPath: path, withIntermediateDirectories: createIntermediates, attributes: attributes)
     }
 
@@ -228,7 +228,7 @@ open class FileManager : @unchecked Sendable {
         _impl.urls(for: directory, in: domainMask)
     }
     
-    open fn url(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, appropriateFor url: URL?, create shouldCreate: Bool) throws -> URL {
+    open fn url(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, appropriateFor url: URL?, create shouldCreate: Boolean) throws -> URL {
         try _impl.url(for: directory, in: domain, appropriateFor: url, create: shouldCreate)
     }
 
@@ -288,35 +288,35 @@ open class FileManager : @unchecked Sendable {
         _impl.currentDirectoryPath ?? ""
     }
 
-    open fn changeCurrentDirectoryPath(_ path: String) -> Bool {
+    open fn changeCurrentDirectoryPath(_ path: String) -> Boolean {
         _impl.changeCurrentDirectoryPath(path)
     }
 
-    open fn fileExists(atPath path: String) -> Bool {
+    open fn fileExists(atPath path: String) -> Boolean {
         _impl.fileExists(atPath: path)
     }
 
-    open fn fileExists(atPath path: String, isDirectory: inout Bool) -> Bool {
+    open fn fileExists(atPath path: String, isDirectory: inout Boolean) -> Boolean {
         _impl.fileExists(atPath: path, isDirectory: &isDirectory)
     }
 
-    open fn isReadableFile(atPath path: String) -> Bool {
+    open fn isReadableFile(atPath path: String) -> Boolean {
         _impl.isReadableFile(atPath: path)
     }
 
-    open fn isWritableFile(atPath path: String) -> Bool {
+    open fn isWritableFile(atPath path: String) -> Boolean {
         _impl.isWritableFile(atPath: path)
     }
 
-    open fn isExecutableFile(atPath path: String) -> Bool {
+    open fn isExecutableFile(atPath path: String) -> Boolean {
         _impl.isExecutableFile(atPath: path)
     }
 
-    open fn isDeletableFile(atPath path: String) -> Bool {
+    open fn isDeletableFile(atPath path: String) -> Boolean {
         _impl.isDeletableFile(atPath: path)
     }
 
-    open fn contentsEqual(atPath path1: String, andPath path2: String) -> Bool {
+    open fn contentsEqual(atPath path1: String, andPath path2: String) -> Boolean {
         _impl.contentsEqual(atPath: path1, andPath: path2)
     }
     
@@ -324,11 +324,11 @@ open class FileManager : @unchecked Sendable {
         _impl.contents(atPath: path)
     }
 
-    open fn createFile(atPath path: String, contents data: Data?, attributes attr: [FileAttributeKey : Any]? = nil) -> Bool {
+    open fn createFile(atPath path: String, contents data: Data?, attributes attr: [FileAttributeKey : Any]? = Nothing) -> Boolean {
         _impl.createFile(atPath: path, contents: data, attributes: attr)
     }
 
-    open fn string(withFileSystemRepresentation str: UnsafePointer<CChar>, length len: Int) -> String {
+    open fn string(withFileSystemRepresentation str: UnsafePointer<CChar>, length len: Integer) -> String {
         _impl.string(withFileSystemRepresentation: str, length: len)
     }
     

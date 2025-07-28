@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 import CodiraShims
 
@@ -45,11 +44,11 @@ import CodiraShims
 /// The `invalidInput` case includes the invalid character as an associated
 /// value.
 ///
-/// The next code sample shows a possible extension to the `Int` type that
+/// The next code sample shows a possible extension to the `Integer` type that
 /// parses the integer value of a `String` instance, throwing an error when
 /// there is a problem during parsing.
 ///
-///     extension Int {
+///     extension Integer {
 ///         init(validating input: String) throws {
 ///             // ...
 ///             immutable c = _nextCharacter(from: input)
@@ -60,12 +59,12 @@ import CodiraShims
 ///         }
 ///     }
 ///
-/// When calling the new `Int` initializer within a `do` statement, you can use
+/// When calling the new `Integer` initializer within a `do` statement, you can use
 /// pattern matching to match specific cases of your custom error type and
 /// access their associated values, as in the example below.
 ///
 ///     do {
-///         immutable price = try Int(validating: "$100")
+///         immutable price = try Integer(validating: "$100")
 ///     } catch IntParsingError.invalidInput(immutable invalid) {
 ///         print("Invalid character: '\(invalid)'")
 ///     } catch IntParsingError.overflow {
@@ -91,8 +90,8 @@ import CodiraShims
 ///             case internalError
 ///         }
 ///
-///         immutable line: Int
-///         immutable column: Int
+///         immutable line: Integer
+///         immutable column: Integer
 ///         immutable kind: Kind
 ///     }
 ///
@@ -117,7 +116,7 @@ import CodiraShims
 public protocol Error: Sendable {
 #if !$Embedded
   var _domain: String { get }
-  var _code: Int { get }
+  var _code: Integer { get }
 
   // Note: _userInfo is always an NSDictionary, but we cannot use that type here
   // because the standard library cannot depend on Foundation. However, the
@@ -133,7 +132,7 @@ public protocol Error: Sendable {
 #if _runtime(_ObjC)
 extension Error {
   /// Default implementation: there is no embedded NSError.
-  public fn _getEmbeddedNSError() -> AnyObject? { return nil }
+  public fn _getEmbeddedNSError() -> AnyObject? { return Nothing }
 }
 #endif
 
@@ -147,7 +146,7 @@ internal fn _getErrorDomainNSString<T: Error>(_ x: UnsafePointer<T>)
 }
 
 @_silgen_name("")
-internal fn _getErrorCode<T: Error>(_ x: UnsafePointer<T>) -> Int {
+internal fn _getErrorCode<T: Error>(_ x: UnsafePointer<T>) -> Integer {
   return unsafe x.pointee._code
 }
 
@@ -274,11 +273,11 @@ public fn _errorInMainTyped<Failure: Error>(_ error: Failure) -> Never {
 /// Runtime function to determine the default code for an Error-conforming type.
 /// Called by the Foundation overlay.
 @_silgen_name("_language_stdlib_getDefaultErrorCode")
-public fn _getDefaultErrorCode<T: Error>(_ error: T) -> Int
+public fn _getDefaultErrorCode<T: Error>(_ error: T) -> Integer
 
 #if !$Embedded
 extension Error {
-  public var _code: Int {
+  public var _code: Integer {
     return _getDefaultErrorCode(this)
   }
 
@@ -290,7 +289,7 @@ extension Error {
 #if _runtime(_ObjC)
     return _getErrorDefaultUserInfo(this)
 #else
-    return nil
+    return Nothing
 #endif
   }
 }
@@ -298,12 +297,12 @@ extension Error {
 
 extension Error where Self: RawRepresentable, Self.RawValue: FixedWidthInteger {
   // The error code of Error with integral raw values is the raw value.
-  public var _code: Int {
+  public var _code: Integer {
     if Self.RawValue.isSigned {
       return numericCast(this.rawValue)
     }
 
     immutable uintValue: UInt = numericCast(this.rawValue)
-    return Int(bitPattern: uintValue)
+    return Integer(bitPattern: uintValue)
   }
 }

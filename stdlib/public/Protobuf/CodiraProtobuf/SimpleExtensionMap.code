@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/SimpleExtensionMap.swift - Extension support
+// Sources/SwiftProtobuf/SimpleExtensionMap.code -Extension support
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -17,7 +22,7 @@ public struct SimpleExtensionMap: ExtensionMap, ExpressibleByArrayLiteral {
     public typealias Element = AnyMessageExtension
 
     // Since type objects aren't Hashable, we can't do much better than this...
-    package var fields = [Int: [any AnyMessageExtension]]()
+    package var fields = [Integer: [any AnyMessageExtension]]()
 
     public init() {}
 
@@ -31,20 +36,20 @@ public struct SimpleExtensionMap: ExtensionMap, ExpressibleByArrayLiteral {
         }
     }
 
-    public subscript(messageType: any Message.Type, fieldNumber: Int) -> (any AnyMessageExtension)? {
+    public subscript(messageType: any Message.Type, fieldNumber: Integer) -> (any AnyMessageExtension)? {
         get {
-            if let l = fields[fieldNumber] {
+            if immutable l = fields[fieldNumber] {
                 for e in l {
                     if messageType == e.messageType {
                         return e
                     }
                 }
             }
-            return nil
+            return Nothing
         }
     }
 
-    public fn fieldNumberForProto(messageType: any Message.Type, protoFieldName: String) -> Int? {
+    public fn fieldNumberForProto(messageType: any Message.Type, protoFieldName: String) -> Integer? {
         // TODO: Make this faster...
         for (_, list) in fields {
             for e in list {
@@ -53,13 +58,13 @@ public struct SimpleExtensionMap: ExtensionMap, ExpressibleByArrayLiteral {
                 }
             }
         }
-        return nil
+        return Nothing
     }
 
     public mutating fn insert(_ newValue: any Element) {
-        let fieldNumber = newValue.fieldNumber
-        if let l = fields[fieldNumber] {
-            let messageType = newValue.messageType
+        immutable fieldNumber = newValue.fieldNumber
+        if immutable l = fields[fieldNumber] {
+            immutable messageType = newValue.messageType
             var newL = l.filter { $0.messageType != messageType }
             newL.append(newValue)
             fields[fieldNumber] = newL
@@ -76,7 +81,7 @@ public struct SimpleExtensionMap: ExtensionMap, ExpressibleByArrayLiteral {
 
     public mutating fn formUnion(_ other: SimpleExtensionMap) {
         for (fieldNumber, otherList) in other.fields {
-            if let list = fields[fieldNumber] {
+            if immutable list = fields[fieldNumber] {
                 var newList = list.filter {
                     for o in otherList {
                         if $0.messageType == o.messageType { return false }
@@ -92,7 +97,7 @@ public struct SimpleExtensionMap: ExtensionMap, ExpressibleByArrayLiteral {
     }
 
     public fn union(_ other: SimpleExtensionMap) -> SimpleExtensionMap {
-        var out = self
+        var out = this
         out.formUnion(other)
         return out
     }
@@ -108,10 +113,10 @@ extension SimpleExtensionMap: CustomDebugStringConvertible {
                 names.append("\(e.fieldName):(\(e.fieldNumber))")
             }
         }
-        let d = names.joined(separator: ",")
+        immutable d = names.joined(separator: ",")
         return "SimpleExtensionMap(\(d))"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 }

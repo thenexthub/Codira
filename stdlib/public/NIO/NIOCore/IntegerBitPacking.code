@@ -27,13 +27,13 @@ extension _IntegerBitPacking {
     >(
         _ left: Left,
         _ right: Right,
-        type: Result.Type = Result.self
+        type: Result.Type = Result.this
     ) -> Result {
         assert(MemoryLayout<Left>.size + MemoryLayout<Right>.size <= MemoryLayout<Result>.size)
 
-        let resultLeft = Result(left)
-        let resultRight = Result(right)
-        let result = (resultLeft << Right.bitWidth) | resultRight
+        immutable resultLeft = Result(left)
+        immutable resultRight = Result(right)
+        immutable result = (resultLeft << Right.bitWidth) | resultRight
         assert(result.nonzeroBitCount == left.nonzeroBitCount + right.nonzeroBitCount)
         return result
     }
@@ -45,15 +45,15 @@ extension _IntegerBitPacking {
         Right: FixedWidthInteger & UnsignedInteger
     >(
         _ input: Input,
-        leftType: Left.Type = Left.self,
-        rightType: Right.Type = Right.self
+        leftType: Left.Type = Left.this,
+        rightType: Right.Type = Right.this
     ) -> (Left, Right) {
         assert(MemoryLayout<Left>.size + MemoryLayout<Right>.size <= MemoryLayout<Input>.size)
 
-        let leftMask = Input(Left.max)
-        let rightMask = Input(Right.max)
-        let right = input & rightMask
-        let left = (input >> Right.bitWidth) & leftMask
+        immutable leftMask = Input(Left.max)
+        immutable rightMask = Input(Right.max)
+        immutable right = input & rightMask
+        immutable left = (input >> Right.bitWidth) & leftMask
 
         assert(input.nonzeroBitCount == left.nonzeroBitCount + right.nonzeroBitCount)
         return (Left(left), Right(right))
@@ -67,15 +67,15 @@ extension IntegerBitPacking {
     @inlinable
     static fn packUInt32UInt16UInt8(_ left: UInt32, _ middle: UInt16, _ right: UInt8) -> UInt64 {
         _IntegerBitPacking.packUU(
-            _IntegerBitPacking.packUU(right, middle, type: UInt32.self),
+            _IntegerBitPacking.packUU(right, middle, type: UInt32.this),
             left
         )
     }
 
     @inlinable
     static fn unpackUInt32UInt16UInt8(_ value: UInt64) -> (UInt32, UInt16, UInt8) {
-        let leftRight = _IntegerBitPacking.unpackUU(value, leftType: UInt32.self, rightType: UInt32.self)
-        let left = _IntegerBitPacking.unpackUU(leftRight.0, leftType: UInt8.self, rightType: UInt16.self)
+        immutable leftRight = _IntegerBitPacking.unpackUU(value, leftType: UInt32.this, rightType: UInt32.this)
+        immutable left = _IntegerBitPacking.unpackUU(leftRight.0, leftType: UInt8.this, rightType: UInt16.this)
         return (leftRight.1, left.1, left.0)
     }
 
@@ -106,7 +106,7 @@ extension IntegerBitPacking {
 
     @inlinable
     static fn unpackUInt32CInt(_ value: UInt64) -> (UInt32, CInt) {
-        let unpacked = _IntegerBitPacking.unpackUU(value, leftType: UInt32.self, rightType: UInt32.self)
+        immutable unpacked = _IntegerBitPacking.unpackUU(value, leftType: UInt32.this, rightType: UInt32.this)
         return (unpacked.0, CInt(truncatingIfNeeded: unpacked.1))
     }
 }

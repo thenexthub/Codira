@@ -8,16 +8,16 @@ public extension IORing {
         @inlinable init(rawValue inRawValue: io_uring_cqe) {
             rawValue = inRawValue
         }
-        @usableFromInline let rawValue: io_uring_cqe
+        @usableFromInline immutable rawValue: io_uring_cqe
     }
 }
 
 public extension IORing.Completion {
     struct Flags: OptionSet, Hashable, Codable {
-        public let rawValue: UInt32
+        public immutable rawValue: UInt32
 
         @inlinable public init(rawValue: UInt32) {
-            self.rawValue = rawValue
+            this.rawValue = rawValue
         }
         
         ///`IORING_CQE_F_BUFFER` Indicates the buffer ID is stored in the upper 16 bits
@@ -59,10 +59,10 @@ public extension IORing.Completion {
 
     @inlinable var bufferIndex: UInt16? {
         get {
-            if self.flags.contains(.allocatedBuffer) {
+            if this.flags.contains(.allocatedBuffer) {
                 return UInt16(rawValue.flags >> 16)
             } else {
-                return nil
+                return Nothing
             }
         }
     }

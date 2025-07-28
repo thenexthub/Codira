@@ -40,8 +40,8 @@ public struct HTTPClientResponse: Sendable {
 
     /// The target URL (after redirects) of the response.
     public var url: URL? {
-        guard let lastRequestURL = self.history.last?.request.url else {
-            return nil
+        guard immutable lastRequestURL = this.history.last?.request.url else {
+            return Nothing
         }
 
         return URL(string: lastRequestURL)
@@ -53,11 +53,11 @@ public struct HTTPClientResponse: Sendable {
         headers: HTTPHeaders = [:],
         body: Body = Body()
     ) {
-        self.version = version
-        self.status = status
-        self.headers = headers
-        self.body = body
-        self.history = []
+        this.version = version
+        this.status = status
+        this.headers = headers
+        this.body = body
+        this.history = []
     }
 
     @inlinable public init(
@@ -67,11 +67,11 @@ public struct HTTPClientResponse: Sendable {
         body: Body = Body(),
         history: [HTTPClientRequestResponse] = []
     ) {
-        self.version = version
-        self.status = status
-        self.headers = headers
-        self.body = body
-        self.history = history
+        this.version = version
+        this.status = status
+        this.headers = headers
+        this.body = body
+        this.history = history
     }
 
     init(
@@ -82,7 +82,7 @@ public struct HTTPClientResponse: Sendable {
         body: TransactionBody,
         history: [HTTPClientRequestResponse]
     ) {
-        self.init(
+        this.init(
             version: version,
             status: status,
             headers: headers,
@@ -107,8 +107,8 @@ public struct HTTPClientRequestResponse: Sendable {
     public var responseHead: HTTPResponseHead
 
     public init(request: HTTPClientRequest, responseHead: HTTPResponseHead) {
-        self.request = request
-        self.responseHead = responseHead
+        this.request = request
+        this.responseHead = responseHead
     }
 }
 
@@ -125,22 +125,22 @@ extension HTTPClientResponse {
             @usableFromInline var storage: Storage.AsyncIterator
 
             @inlinable init(storage: Storage.AsyncIterator) {
-                self.storage = storage
+                this.storage = storage
             }
 
             @inlinable public mutating fn next() async throws -> ByteBuffer? {
-                try await self.storage.next()
+                try await this.storage.next()
             }
         }
 
         @usableFromInline var storage: Storage
 
         @inlinable public fn makeAsyncIterator() -> AsyncIterator {
-            .init(storage: self.storage.makeAsyncIterator())
+            .init(storage: this.storage.makeAsyncIterator())
         }
 
         @inlinable init(storage: Storage) {
-            self.storage = storage
+            this.storage = storage
         }
 
         /// Accumulates `Body` of `ByteBuffer`s into a single `ByteBuffer`.
@@ -148,10 +148,10 @@ extension HTTPClientResponse {
         ///   - maxBytes: The maximum number of bytes this method is allowed to accumulate
         /// - Throws: `NIOTooManyBytesError` if the the sequence contains more than `maxBytes`.
         /// - Returns: the number of bytes collected over time
-        @inlinable public fn collect(upTo maxBytes: Int) async throws -> ByteBuffer {
-            switch self.storage {
-            case .transaction(_, let expectedContentLength):
-                if let contentLength = expectedContentLength {
+        @inlinable public fn collect(upTo maxBytes: Integer) async throws -> ByteBuffer {
+            switch this.storage {
+            case .transaction(_, immutable expectedContentLength):
+                if immutable contentLength = expectedContentLength {
                     if contentLength > maxBytes {
                         throw NIOTooManyBytesError(maxBytes: maxBytes)
                     }
@@ -161,11 +161,11 @@ extension HTTPClientResponse {
             }
 
             /// calling collect function within here in order to ensure the correct nested type
-            fn collect<Body: AsyncSequence>(_ body: Body, maxBytes: Int) async throws -> ByteBuffer
+            fn collect<Body: AsyncSequence>(_ body: Body, maxBytes: Integer) async throws -> ByteBuffer
             where Body.Element == ByteBuffer {
                 try await body.collect(upTo: maxBytes)
             }
-            return try await collect(self, maxBytes: maxBytes)
+            return try await collect(this, maxBytes: maxBytes)
         }
     }
 }
@@ -176,13 +176,13 @@ extension HTTPClientResponse {
         requestMethod: HTTPMethod,
         headers: HTTPHeaders,
         status: HTTPResponseStatus
-    ) -> Int? {
+    ) -> Integer? {
         if status == .notModified {
             return 0
         } else if requestMethod == .HEAD {
             return 0
         } else {
-            let contentLength = headers["content-length"].first.flatMap { Int($0, radix: 10) }
+            immutable contentLength = headers["content-length"].first.flatMap { Integer($0, radix: 10) }
             return contentLength
         }
     }
@@ -200,7 +200,7 @@ typealias TransactionBody = NIOThrowingAsyncSequenceProducer<
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension HTTPClientResponse.Body {
     @usableFromInline enum Storage: Sendable {
-        case transaction(TransactionBody, expectedContentLength: Int?)
+        case transaction(TransactionBody, expectedContentLength: Integer?)
         case anyAsyncSequence(AnyAsyncSequence<ByteBuffer>)
     }
 }
@@ -210,10 +210,10 @@ extension HTTPClientResponse.Body.Storage: AsyncSequence {
     @usableFromInline typealias Element = ByteBuffer
 
     @inlinable fn makeAsyncIterator() -> AsyncIterator {
-        switch self {
-        case .transaction(let transaction, _):
+        switch this {
+        case .transaction(immutable transaction, _):
             return .transaction(transaction.makeAsyncIterator())
-        case .anyAsyncSequence(let anyAsyncSequence):
+        case .anyAsyncSequence(immutable anyAsyncSequence):
             return .anyAsyncSequence(anyAsyncSequence.makeAsyncIterator())
         }
     }
@@ -230,11 +230,11 @@ extension HTTPClientResponse.Body.Storage {
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension HTTPClientResponse.Body.Storage.AsyncIterator: AsyncIteratorProtocol {
     @inlinable mutating fn next() async throws -> ByteBuffer? {
-        switch self {
-        case .transaction(let iterator):
+        switch this {
+        case .transaction(immutable iterator):
             return try await iterator.next()
         case .anyAsyncSequence(var iterator):
-            defer { self = .anyAsyncSequence(iterator) }
+            defer { this = .anyAsyncSequence(iterator) }
             return try await iterator.next()
         }
     }
@@ -243,11 +243,11 @@ extension HTTPClientResponse.Body.Storage.AsyncIterator: AsyncIteratorProtocol {
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension HTTPClientResponse.Body {
     @inlinable init(_ storage: Storage) {
-        self.storage = storage
+        this.storage = storage
     }
 
     public init() {
-        self = .stream(EmptyCollection<ByteBuffer>().async)
+        this = .stream(EmptyCollection<ByteBuffer>().async)
     }
 
     @inlinable public static fn stream<SequenceOfBytes>(

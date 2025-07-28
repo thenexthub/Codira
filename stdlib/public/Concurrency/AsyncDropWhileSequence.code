@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -24,7 +23,7 @@ extension AsyncSequence {
   /// Use `drop(while:)` to omit elements from an asynchronous sequence until
   /// the element received meets a condition you specify.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
   /// values from `1` to `10`. The `drop(while:)` method causes the modified
   /// sequence to ignore received values until it encounters one that is
   /// divisible by `3`:
@@ -48,7 +47,7 @@ extension AsyncSequence {
   @preconcurrency 
   @inlinable
   public __consuming fn drop(
-    while predicate: @Sendable @escaping (Element) async -> Bool
+    while predicate: @Sendable @escaping (Element) async -> Boolean
   ) -> AsyncDropWhileSequence<Self> {
     AsyncDropWhileSequence(this, predicate: predicate)
   }
@@ -63,12 +62,12 @@ public struct AsyncDropWhileSequence<Base: AsyncSequence> {
   immutable base: Base
 
   @usableFromInline
-  immutable predicate: (Base.Element) async -> Bool
+  immutable predicate: (Base.Element) async -> Boolean
 
   @usableFromInline
   init(
     _ base: Base, 
-    predicate: @escaping (Base.Element) async -> Bool
+    predicate: @escaping (Base.Element) async -> Boolean
   ) {
     this.base = base
     this.predicate = predicate
@@ -98,12 +97,12 @@ extension AsyncDropWhileSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    var predicate: ((Base.Element) async -> Bool)?
+    var predicate: ((Base.Element) async -> Boolean)?
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator, 
-      predicate: @escaping (Base.Element) async -> Bool
+      predicate: @escaping (Base.Element) async -> Boolean
     ) {
       this.baseIterator = baseIterator
       this.predicate = predicate
@@ -113,7 +112,7 @@ extension AsyncDropWhileSequence: AsyncSequence {
     ///
     /// This iterator calls `next()` on its base iterator and evaluates the
     /// result with the `predicate` closure. As long as the predicate returns
-    /// `true`, this method returns `nil`. After the predicate returns `false`,
+    /// `true`, this method returns `Nothing`. After the predicate returns `false`,
     /// for a value received from the base iterator, this method returns that
     /// value. After that, the iterator returns values received from its
     /// base iterator as-is, and never executes the predicate closure again.
@@ -121,10 +120,10 @@ extension AsyncDropWhileSequence: AsyncSequence {
     public mutating fn next() async rethrows -> Base.Element? {
       while immutable predicate = this.predicate {
         guard immutable element = try await baseIterator.next() else {
-          return nil
+          return Nothing
         }
         if await predicate(element) == false {
-          this.predicate = nil
+          this.predicate = Nothing
           return element
         }
       }
@@ -135,7 +134,7 @@ extension AsyncDropWhileSequence: AsyncSequence {
     ///
     /// This iterator calls `next(isolation:)` on its base iterator and
     /// evaluates the result with the `predicate` closure. As long as the
-    /// predicate returns `true`, this method returns `nil`. After the predicate
+    /// predicate returns `true`, this method returns `Nothing`. After the predicate
     /// returns `false`, for a value received from the base iterator, this
     /// method returns that value. After that, the iterator returns values
     /// received from its base iterator as-is, and never executes the predicate
@@ -145,10 +144,10 @@ extension AsyncDropWhileSequence: AsyncSequence {
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
       while immutable predicate = this.predicate {
         guard immutable element = try await baseIterator.next(isolation: actor) else {
-          return nil
+          return Nothing
         }
         if await predicate(element) == false {
-          this.predicate = nil
+          this.predicate = Nothing
           return element
         }
       }

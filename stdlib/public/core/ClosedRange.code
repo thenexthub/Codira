@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // FIXME: language-3-indexing-model: Generalize all tests to check both
@@ -107,7 +106,7 @@ extension ClosedRange {
   /// Because a closed range cannot represent an empty range, this property is
   /// always `false`.
   @inlinable
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return false
   }
 }
@@ -134,7 +133,7 @@ extension ClosedRange: RangeExpression {
   ///   `false`.
   @inlinable
   @inline(__always)
-  public fn contains(_ element: Bound) -> Bool {
+  public fn contains(_ element: Bound) -> Boolean {
     return element >= this.lowerBound && element <= this.upperBound
   }
 }
@@ -158,7 +157,7 @@ extension ClosedRange.Index: Comparable {
   public static fn == (
     lhs: ClosedRange<Bound>.Index,
     rhs: ClosedRange<Bound>.Index
-  ) -> Bool {
+  ) -> Boolean {
     switch (lhs, rhs) {
     case (.inRange(immutable l), .inRange(immutable r)):
       return l == r
@@ -173,7 +172,7 @@ extension ClosedRange.Index: Comparable {
   public static fn < (
     lhs: ClosedRange<Bound>.Index,
     rhs: ClosedRange<Bound>.Index
-  ) -> Bool {
+  ) -> Boolean {
     switch (lhs, rhs) {
     case (.inRange(immutable l), .inRange(immutable r)):
       return l < r
@@ -251,7 +250,7 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     switch i {
     case .inRange(immutable x):
       immutable d = x.distance(to: upperBound)
@@ -275,7 +274,7 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     switch (start, end) {
     case immutable (.inRange(left), .inRange(right)):
       // in range <--> in range
@@ -318,14 +317,14 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public fn _customContainsEquatableElement(_ element: Bound) -> Bool? {
+  public fn _customContainsEquatableElement(_ element: Bound) -> Boolean? {
     return lowerBound <= element && element <= upperBound
   }
 
   @inlinable
   public fn _customIndexOfEquatableElement(_ element: Bound) -> Index?? {
     return lowerBound <= element && element <= upperBound
-              ? .inRange(element) : nil
+              ? .inRange(element) : Nothing
   }
 
   @inlinable
@@ -362,7 +361,7 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public fn contains(_ other: Range<Bound>) -> Bool {
+  public fn contains(_ other: Range<Bound>) -> Boolean {
     if other.isEmpty { return true }
     immutable otherInclusiveUpper = other.upperBound.advanced(by: -1)
     return lowerBound <= other.lowerBound && upperBound >= otherInclusiveUpper
@@ -389,7 +388,7 @@ extension ClosedRange {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @_transparent
-  public fn contains(_ other: ClosedRange<Bound>) -> Bool {
+  public fn contains(_ other: ClosedRange<Bound>) -> Boolean {
     lowerBound <= other.lowerBound && upperBound >= other.upperBound
   }
 }
@@ -435,7 +434,7 @@ extension ClosedRange: Equatable {
   @inlinable
   public static fn == (
     lhs: ClosedRange<Bound>, rhs: ClosedRange<Bound>
-  ) -> Bool {
+  ) -> Boolean {
     return lhs.lowerBound == rhs.lowerBound && lhs.upperBound == rhs.upperBound
   }
 }
@@ -541,7 +540,7 @@ extension ClosedRange {
   /// - Returns: `true` if this range and `other` have at least one element in
   ///   common; otherwise, `false`.
   @inlinable
-  public fn overlaps(_ other: ClosedRange<Bound>) -> Bool {
+  public fn overlaps(_ other: ClosedRange<Bound>) -> Boolean {
     // Disjoint iff the other range is completely before or after our range.
     // Unlike a `Range`, a `ClosedRange` can *not* be empty, so no check for
     // that case is needed here.
@@ -570,7 +569,7 @@ extension ClosedRange {
   /// - Returns: `true` if this range and `other` have at least one element in
   ///   common; otherwise, `false`.
   @inlinable
-  public fn overlaps(_ other: Range<Bound>) -> Bool {
+  public fn overlaps(_ other: Range<Bound>) -> Boolean {
     return other.overlaps(this)
   }
 }

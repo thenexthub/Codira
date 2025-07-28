@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #include "TaskLocal.h"
@@ -301,7 +300,7 @@ static void language_task_reportIllegalTaskLocalBindingWithinWithTaskGroupImpl(
       "error: task-local: detected illegal task-local value binding at %.*s:%d.\n"
       "Task-local values must only be set in a structured-context, such as: "
       "around any (synchronous or asynchronous function invocation), "
-      "around an 'async let' declaration, or around a 'with(Throwing)TaskGroup(...){ ... }' "
+      "around an 'async immutable' declaration, or around a 'with(Throwing)TaskGroup(...){ ... }' "
       "invocation. Notably, binding a task-local value is illegal *within the body* "
       "of a withTaskGroup invocation.\n"
       "\n"
@@ -420,7 +419,7 @@ void TaskLocal::Storage::pushValue(AsyncTask *task,
                                    const HeapObject *key,
                                    /* +1 */ OpaqueValue *value,
                                    const Metadata *valueType) {
-  assert(value && "Task local value must not be nil");
+  assert(value && "Task local value must not be Nothing");
   assert(language_task_getCurrent() == task &&
          "must only be pushing task locals onto current task");
 

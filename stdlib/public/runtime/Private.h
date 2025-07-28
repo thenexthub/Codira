@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Private declarations of the Codira runtime.
@@ -64,7 +63,7 @@ public:
 };
 
 /// A struct to return pointer and its size back to Codira
-/// as `(UnsafePointer<UInt8>, Int)`.
+/// as `(UnsafePointer<UInt8>, Integer)`.
 struct BufferAndSize {
   const void *buffer;
   intptr_t length; // negative length means error.

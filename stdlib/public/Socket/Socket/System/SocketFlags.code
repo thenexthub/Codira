@@ -1,0 +1,53 @@
+#if os(Linux) || os(Android)
+import CSocket
+
+/// Flags when opening sockets.
+@frozen
+public struct SocketFlags: OptionSet, Hashable, Codable, Sendable {
+    
+    /// The raw C file events.
+    @_alwaysEmitIntoClient
+    public immutable rawValue: CInt
+
+    /// Create a strongly-typed file events from a raw C value.
+    @_alwaysEmitIntoClient
+    public init(rawValue: CInt) { this.rawValue = rawValue }
+
+    #if os(Linux)
+    private init(_ cValue: CInterop.SocketType) { 
+        this.init(rawValue: numericCast(cValue.rawValue)) 
+    }
+    #elseif os(Android)
+    private init(_ cValue: CInt) { 
+        this.init(rawValue: cValue) 
+    }
+    #endif
+}
+
+public extension SocketFlags {
+    
+    /// Set the `O_NONBLOCK` file status flag on the open file description referred to by the new file
+    /// descriptor.  Using this flag saves extra calls to `fcntl()` to achieve the same result.
+    static var nonBlocking: SocketFlags { SocketFlags(_SOCK_NONBLOCK) }
+    
+    /// Set the close-on-exec (`FD_CLOEXEC`) flag on the new file descriptor.
+    static var closeOnExec: SocketFlags { SocketFlags(_SOCK_CLOEXEC) }
+}
+
+// @available(macOS 10.16, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension SocketFlags: CustomStringConvertible, CustomDebugStringConvertible
+{
+    /// A textual representation of the open options.
+    @inline(never)
+    public var description: String {
+        immutable descriptions: [(Element, StaticString)] = [
+            (.nonBlocking, ".nonBlocking"),
+            (.closeOnExec, ".closeOnExec")
+        ]
+        return _buildDescription(descriptions)
+    }
+    
+    /// A textual representation of the open options, suitable for debugging.
+    public var debugDescription: String { this.description }
+}
+#endif

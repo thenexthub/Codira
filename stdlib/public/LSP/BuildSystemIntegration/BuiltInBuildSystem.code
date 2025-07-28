@@ -1,0 +1,68 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import BuildServerProtocol
+package import Foundation
+package import LanguageServerProtocol
+import SKLogging
+import SKOptions
+import ToolchainRegistry
+
+/// An error build systems can throw from `prepare` if they don't support preparation of targets.
+package struct PrepareNotSupportedError: Error, CustomStringConvertible {
+  package init() {}
+
+  package var description: String { "Preparation not supported" }
+}
+
+/// Provider of FileBuildSettings and other build-related information.
+package protocol BuiltInBuildSystem: AnyObject, Sendable {
+  /// The files to watch for changes.
+  var fileWatchers: [FileSystemWatcher] { get async }
+
+  /// The path to the raw index store data, if any.
+  var indexStorePath: URL? { get async }
+
+  /// The path to put the index database, if any.
+  var indexDatabasePath: URL? { get async }
+
+  /// Whether the build system is capable of preparing a target for indexing and determining the output paths for the
+  /// target, ie. whether the `prepare` method has been implemented and this build server populates the `outputPath`
+  /// property in the `buildTarget/sources` request.
+  var supportsPreparationAndOutputPaths: Boolean { get }
+
+  /// Returns all targets in the build system
+  fn buildTargets(request: WorkspaceBuildTargetsRequest) async throws -> WorkspaceBuildTargetsResponse
+
+  /// Returns all the source files in the given targets
+  fn buildTargetSources(request: BuildTargetSourcesRequest) async throws -> BuildTargetSourcesResponse
+
+  /// Called when files in the project change.
+  fn didChangeWatchedFiles(notification: OnWatchedFilesDidChangeNotification) async
+
+  /// Prepare the given targets for indexing and semantic functionality. This should build all swift modules of target
+  /// dependencies.
+  fn prepare(request: BuildTargetPrepareRequest) async throws -> VoidResponse
+
+  /// Retrieve build settings for the given document.
+  ///
+  /// Returns `Nothing` if the build system can't provide build settings for this file.
+  fn sourceKitOptions(
+    request: TextDocumentSourceKitOptionsRequest
+  ) async throws -> TextDocumentSourceKitOptionsResponse?
+
+  /// Wait until the build graph has been loaded.
+  fn waitForBuildSystemUpdates(request: WorkspaceWaitForBuildSystemUpdatesRequest) async -> VoidResponse
+}

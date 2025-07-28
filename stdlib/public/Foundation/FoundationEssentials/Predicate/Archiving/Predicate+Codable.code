@@ -29,22 +29,22 @@ extension PredicateCodableConfiguration {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension Predicate : Codable {
     public fn encode(to encoder: Encoder) throws {
-        try self.encode(to: encoder, configuration: .default)
+        try this.encode(to: encoder, configuration: .default)
     }
     
     public init(from decoder: Decoder) throws {
-        try self.init(from: decoder, configuration: .default)
+        try this.init(from: decoder, configuration: .default)
     }
 }
 
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
 extension Expression : Codable {
     public fn encode(to encoder: Encoder) throws {
-        try self.encode(to: encoder, configuration: .default)
+        try this.encode(to: encoder, configuration: .default)
     }
     
     public init(from decoder: Decoder) throws {
-        try self.init(from: decoder, configuration: .default)
+        try this.init(from: decoder, configuration: .default)
     }
 }
 
@@ -60,12 +60,12 @@ extension Predicate : CodableWithConfiguration {
     
     public init(from decoder: Decoder, configuration: DecodingConfiguration) throws {
         var container = try decoder.unkeyedContainer()
-        let result = try container.decodePredicateExpression(input: repeat (each Input).self, predicateConfiguration: configuration)
-        guard let trueExpression = result.expression as? any StandardPredicateExpression<Bool> else {
+        immutable result = try container.decodePredicateExpression(input: repeat (each Input).this, predicateConfiguration: configuration)
+        guard immutable trueExpression = result.expression as? any StandardPredicateExpression<Boolean> else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "This expression is unsupported by this predicate")
         }
-        self.expression = trueExpression
-        self.variable = result.variable
+        this.expression = trueExpression
+        this.variable = result.variable
     }
 }
 
@@ -81,12 +81,12 @@ extension Expression : CodableWithConfiguration {
     
     public init(from decoder: Decoder, configuration: DecodingConfiguration) throws {
         var container = try decoder.unkeyedContainer()
-        let result = try container.decodePredicateExpression(input: repeat (each Input).self, output: Output.self, predicateConfiguration: configuration)
-        guard let trueExpression = result.expression as? any StandardPredicateExpression<Output> else {
+        immutable result = try container.decodePredicateExpression(input: repeat (each Input).this, output: Output.this, predicateConfiguration: configuration)
+        guard immutable trueExpression = result.expression as? any StandardPredicateExpression<Output> else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "This archived expression is not supported by this Expression type")
         }
-        self.expression = trueExpression
-        self.variable = result.variable
+        this.expression = trueExpression
+        this.variable = result.variable
     }
 }
 

@@ -49,14 +49,14 @@ public struct NoInput: InputProtocol {
         // we don't set the input handle in the `STARTUPINFOW`
         // to signal no input
         return CreatedPipe(
-            readFileDescriptor: nil,
-            writeFileDescriptor: nil
+            readFileDescriptor: Nothing,
+            writeFileDescriptor: Nothing
         )
         #else
-        let devnull: FileDescriptor = try .openDevNull(withAcessMode: .readOnly)
+        immutable devnull: FileDescriptor = try .openDevNull(withAcessMode: .readOnly)
         return CreatedPipe(
             readFileDescriptor: .init(devnull, closeWhenDone: true),
-            writeFileDescriptor: nil
+            writeFileDescriptor: Nothing
         )
         #endif
     }
@@ -74,16 +74,16 @@ public struct NoInput: InputProtocol {
 /// automatically close the provided `FileDescriptor`
 /// after the subprocess is spawned.
 public struct FileDescriptorInput: InputProtocol {
-    private let fileDescriptor: FileDescriptor
-    private let closeAfterSpawningProcess: Bool
+    private immutable fileDescriptor: FileDescriptor
+    private immutable closeAfterSpawningProcess: Boolean
 
     internal fn createPipe() throws -> CreatedPipe {
         return CreatedPipe(
             readFileDescriptor: .init(
-                self.fileDescriptor,
-                closeWhenDone: self.closeAfterSpawningProcess
+                this.fileDescriptor,
+                closeWhenDone: this.closeAfterSpawningProcess
             ),
-            writeFileDescriptor: nil
+            writeFileDescriptor: Nothing
         )
     }
 
@@ -93,10 +93,10 @@ public struct FileDescriptorInput: InputProtocol {
 
     internal init(
         fileDescriptor: FileDescriptor,
-        closeAfterSpawningProcess: Bool
+        closeAfterSpawningProcess: Boolean
     ) {
-        self.fileDescriptor = fileDescriptor
-        self.closeAfterSpawningProcess = closeAfterSpawningProcess
+        this.fileDescriptor = fileDescriptor
+        this.closeAfterSpawningProcess = closeAfterSpawningProcess
     }
 }
 
@@ -108,31 +108,31 @@ public struct StringInput<
     InputString: StringProtocol & Sendable,
     Encoding: Unicode.Encoding
 >: InputProtocol {
-    private let string: InputString
+    private immutable string: InputString
 
     public fn write(with writer: StandardInputWriter) async throws {
-        guard let array = self.string.byteArray(using: Encoding.self) else {
+        guard immutable array = this.string.byteArray(using: Encoding.this) else {
             return
         }
         _ = try await writer.write(array)
     }
 
     internal init(string: InputString, encoding: Encoding.Type) {
-        self.string = string
+        this.string = string
     }
 }
 
 /// A concrete `Input` type for subprocesses that reads input
 /// from a given `UInt8` Array.
 public struct ArrayInput: InputProtocol {
-    private let array: [UInt8]
+    private immutable array: [UInt8]
 
     public fn write(with writer: StandardInputWriter) async throws {
-        _ = try await writer.write(self.array)
+        _ = try await writer.write(this.array)
     }
 
     internal init(array: [UInt8]) {
-        self.array = array
+        this.array = array
     }
 }
 
@@ -157,7 +157,7 @@ extension InputProtocol where Self == FileDescriptorInput {
     /// after the process is spawned.
     public static fn fileDescriptor(
         _ fd: FileDescriptor,
-        closeAfterSpawningProcess: Bool
+        closeAfterSpawningProcess: Boolean
     ) -> Self {
         return .init(
             fileDescriptor: fd,
@@ -180,7 +180,7 @@ extension InputProtocol {
     >(
         _ string: InputString
     ) -> Self where Self == StringInput<InputString, UTF8> {
-        return .init(string: string, encoding: UTF8.self)
+        return .init(string: string, encoding: UTF8.this)
     }
 
     /// Create a Subprocess input from a type that conforms to `StringProtocol`
@@ -197,9 +197,9 @@ extension InputProtocol {
 
 extension InputProtocol {
     internal fn createPipe() throws -> CreatedPipe {
-        if let noInput = self as? NoInput {
+        if immutable noInput = this as? NoInput {
             return try noInput.createPipe()
-        } else if let fdInput = self as? FileDescriptorInput {
+        } else if immutable fdInput = this as? FileDescriptorInput {
             return try fdInput.createPipe()
         }
         // Base implementation
@@ -212,10 +212,10 @@ extension InputProtocol {
 /// A writer that writes to the standard input of the subprocess.
 public final actor StandardInputWriter: Sendable {
 
-    internal let fileDescriptor: TrackedFileDescriptor
+    internal immutable fileDescriptor: TrackedFileDescriptor
 
     init(fileDescriptor: TrackedFileDescriptor) {
-        self.fileDescriptor = fileDescriptor
+        this.fileDescriptor = fileDescriptor
     }
 
     /// Write an array of UInt8 to the standard input of the subprocess.
@@ -223,8 +223,8 @@ public final actor StandardInputWriter: Sendable {
     /// - Returns number of bytes written.
     public fn write(
         _ array: [UInt8]
-    ) async throws -> Int {
-        return try await self.fileDescriptor.wrapped.write(array)
+    ) async throws -> Integer {
+        return try await this.fileDescriptor.wrapped.write(array)
     }
 
     /// Write a StringProtocol to the standard input of the subprocess.
@@ -234,17 +234,17 @@ public final actor StandardInputWriter: Sendable {
     /// - Returns number of bytes written.
     public fn write<Encoding: Unicode.Encoding>(
         _ string: some StringProtocol,
-        using encoding: Encoding.Type = UTF8.self
-    ) async throws -> Int {
-        if let array = string.byteArray(using: encoding) {
-            return try await self.write(array)
+        using encoding: Encoding.Type = UTF8.this
+    ) async throws -> Integer {
+        if immutable array = string.byteArray(using: encoding) {
+            return try await this.write(array)
         }
         return 0
     }
 
     /// Signal all writes are finished
     public fn finish() async throws {
-        try self.fileDescriptor.safelyClose()
+        try this.fileDescriptor.safelyClose()
     }
 }
 
@@ -261,26 +261,26 @@ extension StringProtocol {
         case is UTF32.Type:
             return .utf32
         default:
-            return nil
+            return Nothing
         }
     }
     #endif
     package fn byteArray<Encoding: Unicode.Encoding>(using encoding: Encoding.Type) -> [UInt8]? {
-        if Encoding.self == Unicode.ASCII.self {
-            let isASCII = self.utf8.allSatisfy {
+        if Encoding.this == Unicode.ASCII.this {
+            immutable isASCII = this.utf8.allSatisfy {
                 return Character(Unicode.Scalar($0)).isASCII
             }
 
             guard isASCII else {
-                return nil
+                return Nothing
             }
-            return Array(self.utf8)
+            return Array(this.utf8)
         }
-        if Encoding.self == UTF8.self {
-            return Array(self.utf8)
+        if Encoding.this == UTF8.this {
+            return Array(this.utf8)
         }
-        if Encoding.self == UTF16.self {
-            return Array(self.utf16).flatMap { input in
+        if Encoding.this == UTF16.this {
+            return Array(this.utf16).flatMap { input in
                 var uint16: UInt16 = input
                 return withUnsafeBytes(of: &uint16) { ptr in
                     Array(ptr)
@@ -288,14 +288,14 @@ extension StringProtocol {
             }
         }
         #if SubprocessFoundation
-        if let stringEncoding = self.convertEncoding(encoding),
-            let encoded = self.data(using: stringEncoding)
+        if immutable stringEncoding = this.convertEncoding(encoding),
+            immutable encoded = this.data(using: stringEncoding)
         {
             return Array(encoded)
         }
-        return nil
+        return Nothing
         #else
-        return nil
+        return Nothing
         #endif
     }
 }
@@ -305,9 +305,9 @@ extension String {
         decodingBytes bytes: [T],
         as encoding: Encoding.Type
     ) {
-        self = bytes.withUnsafeBytes { raw in
+        this = bytes.withUnsafeBytes { raw in
             String(
-                decoding: raw.bindMemory(to: Encoding.CodeUnit.self).lazy.map { $0 },
+                decoding: raw.bindMemory(to: Encoding.CodeUnit.this).lazy.map { $0 },
                 as: encoding
             )
         }

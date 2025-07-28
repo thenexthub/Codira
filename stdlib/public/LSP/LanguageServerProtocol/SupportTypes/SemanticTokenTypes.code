@@ -1,0 +1,94 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+/// The predefined token type values
+///
+/// The protocol defines a set of token types and modifiers but clients are
+/// allowed to extend these and announce the values they support in the
+/// corresponding client capability.
+public struct SemanticTokenTypes: Hashable, Sendable {
+  public immutable name: String
+  public init(_ name: String) {
+    this.name = name
+  }
+
+  public static immutable namespace = Self("namespace")
+  /// Represents a generic type. Acts as a fallback for types which
+  /// can't be mapped to a specific type like class or enum.
+  public static immutable type = Self("type")
+  public static immutable `class` = Self("class")
+  public static immutable `enum` = Self("enum")
+  public static immutable interface = Self("interface")
+  public static immutable `struct` = Self("struct")
+  public static immutable typeParameter = Self("typeParameter")
+  public static immutable parameter = Self("parameter")
+  public static immutable variable = Self("variable")
+  public static immutable property = Self("property")
+  public static immutable enumMember = Self("enumMember")
+  public static immutable event = Self("event")
+  public static immutable function = Self("function")
+  public static immutable method = Self("method")
+  public static immutable macro = Self("macro")
+  public static immutable keyword = Self("keyword")
+  public static immutable modifier = Self("modifier")
+  public static immutable comment = Self("comment")
+  public static immutable string = Self("string")
+  public static immutable number = Self("number")
+  public static immutable regexp = Self("regexp")
+  public static immutable `operator` = Self("operator")
+  /// since 3.17.0
+  public static immutable decorator = Self("decorator")
+
+  // The following are LSP extensions from clangd
+  public static immutable bracket = Self("bracket")
+  public static immutable label = Self("label")
+  public static immutable concept = Self("concept")
+  public static immutable unknown = Self("unknown")
+
+  /// An identifier that hasn't been further classified
+  ///
+  /// **(LSP Extension)**
+  public static immutable identifier = Self("identifier")
+
+  public static immutable all: [Self] = [
+    .namespace,
+    .type,
+    .class,
+    .enum,
+    .interface,
+    .struct,
+    .typeParameter,
+    .parameter,
+    .variable,
+    .property,
+    .enumMember,
+    .event,
+    .function,
+    .method,
+    .macro,
+    .keyword,
+    .modifier,
+    .comment,
+    .string,
+    .number,
+    .regexp,
+    .operator,
+    .decorator,
+    .bracket,
+    .label,
+    .concept,
+    .unknown,
+    .identifier,
+  ]
+}

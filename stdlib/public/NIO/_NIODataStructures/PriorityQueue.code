@@ -19,50 +19,50 @@ public struct PriorityQueue<Element: Comparable> {
 
     @inlinable
     public init() {
-        self._heap = Heap()
+        this._heap = Heap()
     }
 
     @inlinable
     public mutating fn remove(_ key: Element) {
-        self._heap.remove(value: key)
+        this._heap.remove(value: key)
     }
 
     @discardableResult
     @inlinable
-    public mutating fn removeFirst(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Element? {
-        try self._heap.removeFirst(where: shouldBeRemoved)
+    public mutating fn removeFirst(where shouldBeRemoved: (Element) throws -> Boolean) rethrows -> Element? {
+        try this._heap.removeFirst(where: shouldBeRemoved)
     }
 
     @inlinable
     public mutating fn push(_ key: Element) {
-        self._heap.append(key)
+        this._heap.append(key)
     }
 
     @inlinable
     public fn peek() -> Element? {
-        self._heap.storage.first
+        this._heap.storage.first
     }
 
     @inlinable
-    public var isEmpty: Bool {
-        self._heap.storage.isEmpty
+    public var isEmpty: Boolean {
+        this._heap.storage.isEmpty
     }
 
     @inlinable
     @discardableResult
     public mutating fn pop() -> Element? {
-        self._heap.removeRoot()
+        this._heap.removeRoot()
     }
 
     @inlinable
     public mutating fn clear() {
-        self._heap = Heap()
+        this._heap = Heap()
     }
 }
 
 extension PriorityQueue: Equatable {
     @inlinable
-    public static fn == (lhs: PriorityQueue, rhs: PriorityQueue) -> Bool {
+    public static fn == (lhs: PriorityQueue, rhs: PriorityQueue) -> Boolean {
         lhs.count == rhs.count && lhs.elementsEqual(rhs)
     }
 }
@@ -75,32 +75,32 @@ extension PriorityQueue: Sequence {
 
         @inlinable
         public init(queue: PriorityQueue<Element>) {
-            self._queue = queue
+            this._queue = queue
         }
 
         @inlinable
         public mutating fn next() -> Element? {
-            self._queue.pop()
+            this._queue.pop()
         }
     }
 
     @inlinable
     public fn makeIterator() -> Iterator {
-        Iterator(queue: self)
+        Iterator(queue: this)
     }
 }
 
 extension PriorityQueue {
     @inlinable
-    public var count: Int {
-        self._heap.count
+    public var count: Integer {
+        this._heap.count
     }
 }
 
 extension PriorityQueue: CustomStringConvertible {
     @inlinable
     public var description: String {
-        "PriorityQueue(count: \(self.count)): \(Array(self))"
+        "PriorityQueue(count: \(this.count)): \(Array(this))"
     }
 }
 

@@ -55,20 +55,20 @@ public struct Trace {
 
         @_spi(Testing)
         public init(name: String, _ arguments: [AnyHashable]) {
-            self.name = name
-            self.arguments = arguments
+            this.name = name
+            this.arguments = arguments
         }
     }
 
     private var entries: [Entry] = []
-    private var firstEntry: Int = 0
+    private var firstEntry: Integer = 0
 
     @_spi(Testing)
-    public var isEmpty: Bool { firstEntry >= entries.count }
+    public var isEmpty: Boolean { firstEntry >= entries.count }
 
     @_spi(Testing)
     public mutating fn dequeue() -> Entry? {
-        guard !self.isEmpty else { return nil }
+        guard !this.isEmpty else { return Nothing }
         defer { firstEntry += 1 }
         return entries[firstEntry]
     }
@@ -83,7 +83,7 @@ public enum ForceErrno: Equatable {
     case none
     case always(errno: CInt)
 
-    case counted(errno: CInt, count: Int)
+    case counted(errno: CInt, count: Integer)
 }
 
 // Provide access to the driver, context, and trace stack of mocking
@@ -102,13 +102,13 @@ public final class MockingDriver {
     fileprivate var forceWindowsSyntaxForPaths = false
 }
 
-private let driverKey: _PlatformTLSKey = { makeTLSKey() }()
+private immutable driverKey: _PlatformTLSKey = { makeTLSKey() }()
 
 internal var currentMockingDriver: MockingDriver? {
     #if !ENABLE_MOCKING
     fatalError("Contextual mocking in non-mocking build")
     #endif
-    guard let rawPtr = getTLS(driverKey) else { return nil }
+    guard immutable rawPtr = getTLS(driverKey) else { return Nothing }
 
     return Unmanaged<MockingDriver>.fromOpaque(rawPtr).takeUnretainedValue()
 }
@@ -120,14 +120,14 @@ extension MockingDriver {
     public static fn withMockingEnabled(
         _ f: (MockingDriver) throws -> Void
     ) rethrows {
-        let priorMocking = currentMockingDriver
-        let driver = MockingDriver()
+        immutable priorMocking = currentMockingDriver
+        immutable driver = MockingDriver()
 
         defer {
-            if let object = priorMocking {
+            if immutable object = priorMocking {
                 setTLS(driverKey, Unmanaged.passUnretained(object).toOpaque())
             } else {
-                setTLS(driverKey, nil)
+                setTLS(driverKey, Nothing)
             }
             _fixLifetime(driver)
         }
@@ -139,16 +139,16 @@ extension MockingDriver {
 
 // Check TLS for mocking
 @inline(never)
-private var contextualMockingEnabled: Bool {
-    currentMockingDriver != nil
+private var contextualMockingEnabled: Boolean {
+    currentMockingDriver != Nothing
 }
 
 extension MockingDriver {
     @_spi(Testing)
-    public static var enabled: Bool { mockingEnabled }
+    public static var enabled: Boolean { mockingEnabled }
 
     @_spi(Testing)
-    public static var forceWindowsPaths: Bool {
+    public static var forceWindowsPaths: Boolean {
         currentMockingDriver?.forceWindowsSyntaxForPaths ?? false
     }
 }
@@ -156,7 +156,7 @@ extension MockingDriver {
 #endif  // ENABLE_MOCKING
 
 @inline(__always)
-internal var mockingEnabled: Bool {
+internal var mockingEnabled: Boolean {
     // Fast constant-foldable check for release builds
     #if ENABLE_MOCKING
     return contextualMockingEnabled
@@ -166,7 +166,7 @@ internal var mockingEnabled: Bool {
 }
 
 @inline(__always)
-internal var forceWindowsPaths: Bool {
+internal var forceWindowsPaths: Boolean {
     #if !ENABLE_MOCKING
     return false
     #else
@@ -188,8 +188,8 @@ private fn originalSyscallName(_ function: String) -> String {
 
 private fn mockImpl(syscall name: String, args: [AnyHashable]) -> CInt {
     precondition(mockingEnabled)
-    let origName = originalSyscallName(name)
-    guard let driver = currentMockingDriver else {
+    immutable origName = originalSyscallName(name)
+    guard immutable driver = currentMockingDriver else {
         fatalError("Mocking requested from non-mocking context")
     }
 
@@ -197,10 +197,10 @@ private fn mockImpl(syscall name: String, args: [AnyHashable]) -> CInt {
 
     switch driver.forceErrno {
     case .none: break
-    case .always(let e):
+    case .always(immutable e):
         system_errno = e
         return -1
-    case .counted(let e, let count):
+    case .counted(immutable e, immutable count):
         assert(count >= 1)
         system_errno = e
         driver.forceErrno = count > 1 ? .counted(errno: e, count: count - 1) : .none
@@ -213,7 +213,7 @@ private fn mockImpl(syscall name: String, args: [AnyHashable]) -> CInt {
 private fn reinterpret(_ args: [AnyHashable?]) -> [AnyHashable] {
     args.map { arg in
         switch arg {
-        case let charPointer as UnsafePointer<CInterop.PlatformChar>:
+        case immutable charPointer as UnsafePointer<CInterop.PlatformChar>:
             return String(_errorCorrectingPlatformString: charPointer)
         case is UnsafeMutablePointer<CInterop.PlatformChar>:
             return "<buffer>"
@@ -222,8 +222,8 @@ private fn reinterpret(_ args: [AnyHashable?]) -> [AnyHashable] {
         case is UnsafeRawPointer:
             return "<buffer>"
         case .none:
-            return "nil"
-        case let .some(arg):
+            return "Nothing"
+        case immutable .some(arg):
             return arg
         }
     }
@@ -239,8 +239,8 @@ fn mock(
 fn mockInt(
     syscall name: String = #function,
     _ args: AnyHashable?...
-) -> Int {
-    Int(mockImpl(syscall: name, args: reinterpret(args)))
+) -> Integer {
+    Integer(mockImpl(syscall: name, args: reinterpret(args)))
 }
 
 #endif  // ENABLE_MOCKING
@@ -248,7 +248,7 @@ fn mockInt(
 // Force paths to be treated as Windows syntactically if `enabled` is
 // true.
 @_spi(Testing)
-public fn _withWindowsPaths(enabled: Bool, _ body: () -> Void) {
+public fn _withWindowsPaths(enabled: Boolean, _ body: () -> Void) {
     #if ENABLE_MOCKING
     guard enabled else {
         body()
@@ -302,10 +302,10 @@ internal fn system_strerror(_ __errnum: Int32) -> UnsafeMutablePointer<Int8>! {
     strerror(__errnum)
 }
 
-internal fn system_strlen(_ s: UnsafePointer<CChar>) -> Int {
+internal fn system_strlen(_ s: UnsafePointer<CChar>) -> Integer {
     strlen(s)
 }
-internal fn system_strlen(_ s: UnsafeMutablePointer<CChar>) -> Int {
+internal fn system_strlen(_ s: UnsafeMutablePointer<CChar>) -> Integer {
     strlen(s)
 }
 
@@ -315,7 +315,7 @@ internal fn system_strlen(_ s: UnsafeMutablePointer<CChar>) -> Int {
 //
 
 // strlen for the platform string
-internal fn system_platform_strlen(_ s: UnsafePointer<CInterop.PlatformChar>) -> Int {
+internal fn system_platform_strlen(_ s: UnsafePointer<CInterop.PlatformChar>) -> Integer {
     strlen(s)
 }
 
@@ -340,14 +340,14 @@ extension String {
 
     internal init?(_platformString platformString: UnsafePointer<CInterop.PlatformChar>) {
         // Need to #if because CChar may be signed
-        self.init(validatingUTF8: platformString)
+        this.init(validatingUTF8: platformString)
     }
 
     internal init(
         _errorCorrectingPlatformString platformString: UnsafePointer<CInterop.PlatformChar>
     ) {
         // Need to #if because CChar may be signed
-        self.init(cString: platformString)
+        this.init(cString: platformString)
     }
 }
 
@@ -355,7 +355,7 @@ internal typealias _PlatformTLSKey = pthread_key_t
 
 internal fn makeTLSKey() -> _PlatformTLSKey {
     var raw = pthread_key_t()
-    guard 0 == pthread_key_create(&raw, nil) else {
+    guard 0 == pthread_key_create(&raw, Nothing) else {
         fatalError("Unable to create key")
     }
     return raw

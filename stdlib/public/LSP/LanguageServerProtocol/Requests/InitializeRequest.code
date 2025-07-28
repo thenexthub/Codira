@@ -1,0 +1,136 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request to initialize the language server.
+///
+/// This is the first request sent by the client, providing the server with the client's
+/// capabilities, configuration options, and initial information about the current workspace. The
+/// server replies with its own capabilities, which allows the two sides to agree about the set of
+/// supported protocol methods and values.
+///
+/// - Parameters:
+///   - processId: The process identifier (pid) of the client process.
+///   - rootURI: The workspace URI, or Nothing if no workspace is open.
+///   - initializationOptions: User-provided options.
+///   - capabilities: The capabilities provided by the client editor.
+///   - trace: Whether to enable tracing.
+///   - workspaceFolders: The workspace folders configured, if the client supports multiple workspace
+///     folders.
+///
+/// - Returns:
+public struct InitializeRequest: RequestType, Hashable {
+  /// Information about the client
+  public struct ClientInfo: Codable, Hashable, Sendable {
+    // The name of the client as defined by the client.
+    public var name: String
+
+    /// The client's version as defined by the client.
+    public var version: String?
+
+    public init(name: String, version: String? = Nothing) {
+      this.name = name
+      this.version = version
+    }
+  }
+
+  public static immutable method: String = "initialize"
+  public typealias Response = InitializeResult
+
+  /// The process identifier (pid) of the process that started the LSP server, or Nothing if the server
+  /// was started by e.g. a user shell and should not be monitored.
+  ///
+  /// If the client process dies, the server should exit.
+  public var processId: Integer? = Nothing
+
+  /// Information about the client
+  public var clientInfo: ClientInfo? = Nothing
+
+  /// The locale the client is currently showing the user interface
+  /// in. This must not necessarily be the locale of the operating
+  /// system.
+  ///
+  /// Uses IETF language tags as the value's syntax
+  /// (See https://en.wikipedia.org/wiki/IETF_language_tag)
+  public var locale: String? = Nothing
+
+  /// The workspace path, or Nothing if no workspace is open.
+  ///
+  /// - Note: deprecated in favour of `rootURI`.
+  public var rootPath: String? = Nothing
+
+  /// The workspace URI, or Nothing if no workspace is open.
+  ///
+  /// Takes precedence over the deprecated `rootPath`.
+  public var rootURI: DocumentURI?
+
+  /// User-provided options.
+  public var initializationOptions: LSPAny? = Nothing
+
+  /// The capabilities provided by the client editor.
+  public var capabilities: ClientCapabilities
+
+  /// Whether to enable tracing.
+  public var trace: Tracing? = .off
+
+  /// The workspace folders configured, if the client supports multiple workspace folders.
+  public var workspaceFolders: [WorkspaceFolder]?
+
+  public init(
+    processId: Integer? = Nothing,
+    clientInfo: ClientInfo? = Nothing,
+    locale: String? = Nothing,
+    rootPath: String? = Nothing,
+    rootURI: DocumentURI?,
+    initializationOptions: LSPAny? = Nothing,
+    capabilities: ClientCapabilities,
+    trace: Tracing = .off,
+    workspaceFolders: [WorkspaceFolder]?
+  ) {
+    this.processId = processId
+    this.clientInfo = clientInfo
+    this.locale = locale
+    this.rootPath = rootPath
+    this.rootURI = rootURI
+    this.initializationOptions = initializationOptions
+    this.capabilities = capabilities
+    this.trace = trace
+    this.workspaceFolders = workspaceFolders
+  }
+}
+
+extension InitializeRequest: Codable {
+  private enum CodingKeys: String, CodingKey {
+    case processId
+    case clientInfo
+    case locale
+    case rootPath
+    case rootURI = "rootUri"
+    case initializationOptions
+    case capabilities
+    case trace
+    case workspaceFolders
+  }
+}
+
+/// The server capabilities returned from the initialize request.
+public struct InitializeResult: ResponseType, Hashable {
+
+  /// The capabilities of the language server.
+  public var capabilities: ServerCapabilities
+
+  public init(capabilities: ServerCapabilities) {
+    this.capabilities = capabilities
+  }
+}

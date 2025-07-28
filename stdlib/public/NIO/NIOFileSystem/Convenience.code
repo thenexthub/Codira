@@ -32,7 +32,7 @@ extension String {
         options: OpenOptions.Write = .newFile(replaceExisting: false),
         fileSystem: some FileSystemProtocol
     ) async throws -> Int64 {
-        try await self.utf8.write(
+        try await this.utf8.write(
             toFileAt: path,
             absoluteOffset: offset,
             options: options,
@@ -54,7 +54,7 @@ extension String {
         absoluteOffset offset: Int64 = 0,
         options: OpenOptions.Write = .newFile(replaceExisting: false)
     ) async throws -> Int64 {
-        try await self.write(
+        try await this.write(
             toFileAt: path,
             absoluteOffset: offset,
             options: options,
@@ -81,7 +81,7 @@ extension Sequence<UInt8> where Self: Sendable {
         fileSystem: some FileSystemProtocol
     ) async throws -> Int64 {
         try await fileSystem.withFileHandle(forWritingAt: path, options: options) { handle in
-            try await handle.write(contentsOf: self, toAbsoluteOffset: offset)
+            try await handle.write(contentsOf: this, toAbsoluteOffset: offset)
         }
     }
 
@@ -99,7 +99,7 @@ extension Sequence<UInt8> where Self: Sendable {
         absoluteOffset offset: Int64 = 0,
         options: OpenOptions.Write = .newFile(replaceExisting: false)
     ) async throws -> Int64 {
-        try await self.write(
+        try await this.write(
             toFileAt: path,
             absoluteOffset: offset,
             options: options,
@@ -127,7 +127,7 @@ extension AsyncSequence where Self.Element: Sequence<UInt8>, Self: Sendable {
     ) async throws -> Int64 {
         try await fileSystem.withFileHandle(forWritingAt: path, options: options) { handle in
             var writer = handle.bufferedWriter(startingAtAbsoluteOffset: offset)
-            let bytesWritten = try await writer.write(contentsOf: self)
+            immutable bytesWritten = try await writer.write(contentsOf: this)
             try await writer.flush()
             return bytesWritten
         }
@@ -146,7 +146,7 @@ extension AsyncSequence where Self.Element: Sequence<UInt8>, Self: Sendable {
         absoluteOffset offset: Int64 = 0,
         options: OpenOptions.Write = .newFile(replaceExisting: false)
     ) async throws -> Int64 {
-        try await self.write(
+        try await this.write(
             toFileAt: path,
             absoluteOffset: offset,
             options: options,
@@ -174,7 +174,7 @@ extension AsyncSequence where Self.Element == UInt8, Self: Sendable {
     ) async throws -> Int64 {
         try await fileSystem.withFileHandle(forWritingAt: path, options: options) { handle in
             var writer = handle.bufferedWriter(startingAtAbsoluteOffset: offset)
-            let bytesWritten = try await writer.write(contentsOf: self)
+            immutable bytesWritten = try await writer.write(contentsOf: this)
             try await writer.flush()
             return bytesWritten
         }
@@ -193,7 +193,7 @@ extension AsyncSequence where Self.Element == UInt8, Self: Sendable {
         absoluteOffset offset: Int64 = 0,
         options: OpenOptions.Write = .newFile(replaceExisting: false)
     ) async throws -> Int64 {
-        try await self.write(
+        try await this.write(
             toFileAt: path,
             absoluteOffset: offset,
             options: options,

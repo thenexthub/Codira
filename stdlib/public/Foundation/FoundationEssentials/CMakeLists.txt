@@ -13,25 +13,25 @@
 ##===----------------------------------------------------------------------===##
 
 add_library(FoundationEssentials
-    _ThreadLocal.swift
-    Bundle+Stub.swift
-    Codable.swift
-    CodableUtilities.swift
-    CodableWithConfiguration.swift
-    ComparisonResult.swift
-    Date.swift
-    DateInterval.swift
-    FoundationEssentials.swift
-    IndexPath.swift
-    LockedState.swift
-    Logging.swift
-    OutputBuffer.swift
-    Platform.swift
-    SortComparator.swift
-    UUID_Wrappers.swift
-    UUID.swift
-    WASILibc+Extensions.swift
-    WinSDK+Extensions.swift)
+    _ThreadLocal.code
+    Bundle+Stub.code
+    Codable.code
+    CodableUtilities.code
+    CodableWithConfiguration.code
+    ComparisonResult.code
+    Date.code
+    DateInterval.code
+    FoundationEssentials.code
+    IndexPath.code
+    LockedState.code
+    Logging.code
+    OutputBuffer.code
+    Platform.code
+    SortComparator.code
+    UUID_Wrappers.code
+    UUID.code
+    WASILibc+Extensions.code
+    WinSDK+Extensions.code)
 
 add_subdirectory(AttributedString)
 add_subdirectory(Calendar)

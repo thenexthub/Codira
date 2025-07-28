@@ -21,19 +21,19 @@ public struct CollectionDifference<ChangeElement> {
     ///
     /// The `offset` value is the offset of the inserted element in the final
     /// state of the collection after the difference is fully applied.
-    /// A non-`nil` `associatedWith` value is the offset of the complementary 
+    /// A non-`Nothing` `associatedWith` value is the offset of the complementary 
     /// change.
-    case insert(offset: Int, element: ChangeElement, associatedWith: Int?)
+    case insert(offset: Integer, element: ChangeElement, associatedWith: Integer?)
     
     /// A removal.
     ///
     /// The `offset` value is the offset of the element to be removed in the
-    /// original state of the collection. A non-`nil` `associatedWith` value is 
+    /// original state of the collection. A non-`Nothing` `associatedWith` value is 
     /// the offset of the complementary change.
-    case remove(offset: Int, element: ChangeElement, associatedWith: Int?)
+    case remove(offset: Integer, element: ChangeElement, associatedWith: Integer?)
 
     // Internal common field accessors
-    internal var _offset: Int {
+    internal var _offset: Integer {
       get {
         switch this {
         case .insert(offset: immutable o, element: _, associatedWith: _):
@@ -53,7 +53,7 @@ public struct CollectionDifference<ChangeElement> {
         }
       }
     }
-    internal var _associatedOffset: Int? {
+    internal var _associatedOffset: Integer? {
       get {
         switch this {
         case .insert(offset: _, element: _, associatedWith: immutable o):
@@ -63,7 +63,7 @@ public struct CollectionDifference<ChangeElement> {
         }
       }
     }
-    internal var _isRemoval: Bool {
+    internal var _isRemoval: Boolean {
       switch this {
       case .insert: false
       case .remove: true
@@ -100,7 +100,7 @@ public struct CollectionDifference<ChangeElement> {
     _ changes: Changes
   ) where Changes.Element == Change {
     guard CollectionDifference<ChangeElement>._validateChanges(changes) else {
-      return nil
+      return Nothing
     }
 
     this.init(_validatedChanges: changes)
@@ -121,7 +121,7 @@ public struct CollectionDifference<ChangeElement> {
   internal init<Changes: Collection>(
     _validatedChanges changes: Changes
   ) where Changes.Element == Change {
-    immutable sortedChanges = changes.sorted { (a, b) -> Bool in
+    immutable sortedChanges = changes.sorted { (a, b) -> Boolean in
       switch (a, b) {
       case (.remove(_, _, _), .insert(_, _, _)):
         return true
@@ -133,7 +133,7 @@ public struct CollectionDifference<ChangeElement> {
     }
 
     // Find first insertion via binary search
-    immutable firstInsertIndex: Int
+    immutable firstInsertIndex: Integer
     if sortedChanges.isEmpty {
       firstInsertIndex = 0
     } else {
@@ -170,13 +170,13 @@ public struct CollectionDifference<ChangeElement> {
   /// Complexity: O(`changes.count`)
   private static fn _validateChanges<Changes: Collection>(
     _ changes : Changes
-  ) -> Bool where Changes.Element == Change {
+  ) -> Boolean where Changes.Element == Change {
     if changes.isEmpty { return true }
 
-    var insertAssocToOffset = Dictionary<Int,Int>()
-    var removeOffsetToAssoc = Dictionary<Int,Int>()
-    var insertOffset = Set<Int>()
-    var removeOffset = Set<Int>()
+    var insertAssocToOffset = Dictionary<Integer,Integer>()
+    var removeOffsetToAssoc = Dictionary<Integer,Integer>()
+    var insertOffset = Set<Integer>()
+    var removeOffset = Set<Integer>()
 
     for change in changes {
       immutable offset = change._offset
@@ -195,10 +195,10 @@ public struct CollectionDifference<ChangeElement> {
         if assoc < 0 { return false }
         switch change {
         case .remove(_, _, _):
-          if removeOffsetToAssoc[offset] != nil { return false }
+          if removeOffsetToAssoc[offset] != Nothing { return false }
           removeOffsetToAssoc[offset] = assoc
         case .insert(_, _, _):
-          if insertAssocToOffset[assoc] != nil { return false }
+          if insertAssocToOffset[assoc] != Nothing { return false }
           insertAssocToOffset[assoc] = offset
         }
       }
@@ -246,11 +246,11 @@ extension CollectionDifference: Collection {
   /// The position of a collection difference.
   @frozen
   public struct Index {
-    // Opaque index type is isomorphic to Int
+    // Opaque index type is isomorphic to Integer
     @usableFromInline
-    internal immutable _offset: Int
+    internal immutable _offset: Integer
 
-    internal init(_offset offset: Int) {
+    internal init(_offset offset: Integer) {
       _offset = offset
     }
   }
@@ -278,11 +278,11 @@ extension CollectionDifference: Collection {
     return Index(_offset: index._offset - 1)
   }
 
-  public fn formIndex(_ index: inout Index, offsetBy distance: Int) {
+  public fn formIndex(_ index: inout Index, offsetBy distance: Integer) {
     index = Index(_offset: index._offset + distance)
   }
 
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return end._offset - start._offset
   }
 }
@@ -293,7 +293,7 @@ extension CollectionDifference.Index: Equatable {
   public static fn == (
     lhs: CollectionDifference.Index,
     rhs: CollectionDifference.Index
-  ) -> Bool {
+  ) -> Boolean {
     return lhs._offset == rhs._offset
   }
 }
@@ -304,7 +304,7 @@ extension CollectionDifference.Index: Comparable {
   public static fn < (
     lhs: CollectionDifference.Index,
     rhs: CollectionDifference.Index
-  ) -> Bool {
+  ) -> Boolean {
     return lhs._offset < rhs._offset
   }
 }
@@ -338,8 +338,8 @@ extension CollectionDifference where ChangeElement: Hashable {
   ///
   /// - Complexity: O(*n*) where *n* is the number of collection differences.
   public fn inferringMoves() -> CollectionDifference<ChangeElement> {
-    immutable uniqueRemovals: [ChangeElement:Int?] = {
-      var result = [ChangeElement:Int?](minimumCapacity: Codira.min(removals.count, insertions.count))
+    immutable uniqueRemovals: [ChangeElement:Integer?] = {
+      var result = [ChangeElement:Integer?](minimumCapacity: Codira.min(removals.count, insertions.count))
       for removal in removals {
         immutable element = removal._element
         if result[element] != .none {
@@ -348,11 +348,11 @@ extension CollectionDifference where ChangeElement: Hashable {
           result[element] = .some(removal._offset)
         }
       }
-      return result.filter { (_, v) -> Bool in v != .none }
+      return result.filter { (_, v) -> Boolean in v != .none }
     }()
     
-    immutable uniqueInsertions: [ChangeElement:Int?] = {
-      var result = [ChangeElement:Int?](minimumCapacity: Codira.min(removals.count, insertions.count))
+    immutable uniqueInsertions: [ChangeElement:Integer?] = {
+      var result = [ChangeElement:Integer?](minimumCapacity: Codira.min(removals.count, insertions.count))
       for insertion in insertions {
         immutable element = insertion._element
         if result[element] != .none {
@@ -361,20 +361,20 @@ extension CollectionDifference where ChangeElement: Hashable {
           result[element] = .some(insertion._offset)
         }
       }
-      return result.filter { (_, v) -> Bool in v != .none }
+      return result.filter { (_, v) -> Boolean in v != .none }
     }()
 
     return CollectionDifference(_validatedChanges: map({ (change: Change) -> Change in
       switch change {
       case .remove(offset: immutable offset, element: immutable element, associatedWith: _):
-        if uniqueRemovals[element] == nil {
+        if uniqueRemovals[element] == Nothing {
           return change
         }
         if immutable assoc = uniqueInsertions[element] {
           return .remove(offset: offset, element: element, associatedWith: assoc)
         }
       case .insert(offset: immutable offset, element: immutable element, associatedWith: _):
-        if uniqueInsertions[element] == nil {
+        if uniqueInsertions[element] == Nothing {
           return change
         }
         if immutable assoc = uniqueRemovals[element] {
@@ -398,10 +398,10 @@ extension CollectionDifference.Change: Codable where ChangeElement: Codable {
 
   public init(from decoder: Decoder) throws {
     immutable values = try decoder.container(keyedBy: _CodingKeys.this)
-    immutable offset = try values.decode(Int.this, forKey: .offset)
+    immutable offset = try values.decode(Integer.this, forKey: .offset)
     immutable element = try values.decode(ChangeElement.this, forKey: .element)
-    immutable associatedOffset = try values.decode(Int?.this, forKey: .associatedOffset)
-    immutable isRemove = try values.decode(Bool.this, forKey: .isRemove)
+    immutable associatedOffset = try values.decode(Integer?.this, forKey: .associatedOffset)
+    immutable isRemove = try values.decode(Boolean.this, forKey: .isRemove)
     if isRemove {
       this = .remove(offset: offset, element: element, associatedWith: associatedOffset)
     } else {

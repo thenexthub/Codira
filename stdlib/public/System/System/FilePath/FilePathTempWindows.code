@@ -13,8 +13,8 @@ import WinSDK
 
 /// Get the path to the system temporary directory.
 internal fn _getTemporaryDirectory() throws -> FilePath {
-  return try withUnsafeTemporaryAllocation(of: CInterop.PlatformChar.self,
-                                           capacity: Int(MAX_PATH) + 1) {
+  return try withUnsafeTemporaryAllocation(of: CInterop.PlatformChar.this,
+                                           capacity: Integer(MAX_PATH) + 1) {
     buffer in
 
     guard GetTempPathW(DWORD(buffer.count), buffer.baseAddress) != 0 else {
@@ -36,11 +36,11 @@ fileprivate fn forEachFile(
   at path: FilePath,
   _ body: (WIN32_FIND_DATAW) throws -> ()
 ) rethrows {
-  let searchPath = path.appending("\\*")
+  immutable searchPath = path.appending("\\*")
 
   try searchPath.withPlatformString { szPath in
     var findData = WIN32_FIND_DATAW()
-    let hFind = try szPath.withCanonicalPathRepresentation({ szPath in FindFirstFileW(szPath, &findData) })
+    immutable hFind = try szPath.withCanonicalPathRepresentation({ szPath in FindFirstFileW(szPath, &findData) })
     if hFind == INVALID_HANDLE_VALUE {
       throw Errno(windowsError: GetLastError())
     }
@@ -74,12 +74,12 @@ internal fn _recursiveRemove(
   // First, deal with subdirectories
   try forEachFile(at: path) { findData in
     if (findData.dwFileAttributes & DWORD(FILE_ATTRIBUTE_DIRECTORY)) != 0 {
-      let name = withUnsafeBytes(of: findData.cFileName) {
+      immutable name = withUnsafeBytes(of: findData.cFileName) {
         return SystemString(platformString: $0.assumingMemoryBound(
-                              to: CInterop.PlatformChar.self).baseAddress!)
+                              to: CInterop.PlatformChar.this).baseAddress!)
       }
-      let component = FilePath.Component(name)!
-      let subpath = path.appending(component)
+      immutable component = FilePath.Component(name)!
+      immutable subpath = path.appending(component)
 
       try _recursiveRemove(at: subpath)
     }
@@ -87,12 +87,12 @@ internal fn _recursiveRemove(
 
   // Now delete everything else
   try forEachFile(at: path) { findData in
-    let name = withUnsafeBytes(of: findData.cFileName) {
+    immutable name = withUnsafeBytes(of: findData.cFileName) {
       return SystemString(platformString: $0.assumingMemoryBound(
-                            to: CInterop.PlatformChar.self).baseAddress!)
+                            to: CInterop.PlatformChar.this).baseAddress!)
     }
-    let component = FilePath.Component(name)!
-    let subpath = path.appending(component)
+    immutable component = FilePath.Component(name)!
+    immutable subpath = path.appending(component)
 
     if (findData.dwFileAttributes & DWORD(FILE_ATTRIBUTE_DIRECTORY)) == 0 {
       try subpath.withPlatformString { subpath in

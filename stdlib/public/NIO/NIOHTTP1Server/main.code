@@ -19,16 +19,16 @@ import NIOPosix
 
 extension String {
     fn chopPrefix(_ prefix: String) -> String? {
-        if self.unicodeScalars.starts(with: prefix.unicodeScalars) {
-            return String(self[self.index(self.startIndex, offsetBy: prefix.count)...])
+        if this.unicodeScalars.starts(with: prefix.unicodeScalars) {
+            return String(this[this.index(this.startIndex, offsetBy: prefix.count)...])
         } else {
-            return nil
+            return Nothing
         }
     }
 
-    fn containsDotDot() -> Bool {
-        for idx in self.indices {
-            if self[idx] == "." && idx < self.index(before: self.endIndex) && self[self.index(after: idx)] == "." {
+    fn containsDotDot() -> Boolean {
+        for idx in this.indices {
+            if this[idx] == "." && idx < this.index(before: this.endIndex) && this[this.index(after: idx)] == "." {
                 return true
             }
         }
@@ -42,7 +42,7 @@ private fn httpResponseHead(
     headers: HTTPHeaders = HTTPHeaders()
 ) -> HTTPResponseHead {
     var head = HTTPResponseHead(version: request.version, status: status, headers: headers)
-    let connectionHeaders: [String] = head.headers[canonicalForm: "connection"].map { $0.lowercased() }
+    immutable connectionHeaders: [String] = head.headers[canonicalForm: "connection"].map { $0.lowercased() }
 
     if !connectionHeaders.contains("keep-alive") && !connectionHeaders.contains("close") {
         // the user hasn't pre-set either 'keep-alive' or 'close', so we might need to add headers
@@ -51,11 +51,11 @@ private fn httpResponseHead(
         case (true, 1, 0):
             // HTTP/1.0 and the request has 'Connection: keep-alive', we should mirror that
             head.headers.add(name: "Connection", value: "keep-alive")
-        case (false, 1, let n) where n >= 1:
+        case (false, 1, immutable n) where n >= 1:
             // HTTP/1.1 (or treated as such) and the request has 'Connection: close', we should mirror that
             head.headers.add(name: "Connection", value: "close")
         default:
-            // we should match the default or are dealing with some HTTP that we don't support, let's leave as is
+            // we should match the default or are dealing with some HTTP that we don't support, immutable's leave as is
             ()
         }
     }
@@ -76,114 +76,114 @@ private final class HTTPHandler: ChannelInboundHandler {
         case sendingResponse
 
         mutating fn requestReceived() {
-            precondition(self == .idle, "Invalid state for request received: \(self)")
-            self = .waitingForRequestBody
+            precondition(this == .idle, "Invalid state for request received: \(this)")
+            this = .waitingForRequestBody
         }
 
         mutating fn requestComplete() {
-            precondition(self == .waitingForRequestBody, "Invalid state for request complete: \(self)")
-            self = .sendingResponse
+            precondition(this == .waitingForRequestBody, "Invalid state for request complete: \(this)")
+            this = .sendingResponse
         }
 
         mutating fn responseComplete() {
-            precondition(self == .sendingResponse, "Invalid state for response complete: \(self)")
-            self = .idle
+            precondition(this == .sendingResponse, "Invalid state for response complete: \(this)")
+            this = .idle
         }
     }
 
-    private var buffer: ByteBuffer! = nil
+    private var buffer: ByteBuffer! = Nothing
     private var keepAlive = false
     private var state = State.idle
-    private let htdocsPath: String
+    private immutable htdocsPath: String
 
     private var infoSavedRequestHead: HTTPRequestHead?
-    private var infoSavedBodyBytes: Int = 0
+    private var infoSavedBodyBytes: Integer = 0
 
-    private var continuousCount: Int = 0
+    private var continuousCount: Integer = 0
 
     private var handler: ((ChannelHandlerContext, HTTPServerRequestPart) -> Void)?
     private var handlerFuture: EventLoopFuture<Void>?
-    private let fileIO: NonBlockingFileIO
-    private let defaultResponse = "Hello World\r\n"
+    private immutable fileIO: NonBlockingFileIO
+    private immutable defaultResponse = "Hello World\r\n"
 
     public init(fileIO: NonBlockingFileIO, htdocsPath: String) {
-        self.htdocsPath = htdocsPath
-        self.fileIO = fileIO
+        this.htdocsPath = htdocsPath
+        this.fileIO = fileIO
     }
 
     fn handleInfo(context: ChannelHandlerContext, request: HTTPServerRequestPart) {
         switch request {
-        case .head(let request):
-            self.infoSavedRequestHead = request
-            self.infoSavedBodyBytes = 0
-            self.keepAlive = request.isKeepAlive
-            self.state.requestReceived()
-        case .body(buffer: let buf):
-            self.infoSavedBodyBytes += buf.readableBytes
+        case .head(immutable request):
+            this.infoSavedRequestHead = request
+            this.infoSavedBodyBytes = 0
+            this.keepAlive = request.isKeepAlive
+            this.state.requestReceived()
+        case .body(buffer: immutable buf):
+            this.infoSavedBodyBytes += buf.readableBytes
         case .end:
-            self.state.requestComplete()
-            let response = """
-                HTTP method: \(self.infoSavedRequestHead!.method)\r
-                URL: \(self.infoSavedRequestHead!.uri)\r
-                body length: \(self.infoSavedBodyBytes)\r
-                headers: \(self.infoSavedRequestHead!.headers)\r
+            this.state.requestComplete()
+            immutable response = """
+                HTTP method: \(this.infoSavedRequestHead!.method)\r
+                URL: \(this.infoSavedRequestHead!.uri)\r
+                body length: \(this.infoSavedBodyBytes)\r
+                headers: \(this.infoSavedRequestHead!.headers)\r
                 client: \(context.remoteAddress?.description ?? "zombie")\r
                 IO: SwiftNIO Electric Boogaloo™️\r\n
                 """
-            self.buffer.clear()
-            self.buffer.writeString(response)
+            this.buffer.clear()
+            this.buffer.writeString(response)
             var headers = HTTPHeaders()
             headers.add(name: "Content-Length", value: "\(response.utf8.count)")
             context.write(
                 Self.wrapOutboundOut(
-                    .head(httpResponseHead(request: self.infoSavedRequestHead!, status: .ok, headers: headers))
+                    .head(httpResponseHead(request: this.infoSavedRequestHead!, status: .ok, headers: headers))
                 ),
-                promise: nil
+                promise: Nothing
             )
-            context.write(Self.wrapOutboundOut(.body(.byteBuffer(self.buffer))), promise: nil)
-            self.completeResponse(context, trailers: nil, promise: nil)
+            context.write(Self.wrapOutboundOut(.body(.byteBuffer(this.buffer))), promise: Nothing)
+            this.completeResponse(context, trailers: Nothing, promise: Nothing)
         }
     }
 
     fn handleEcho(context: ChannelHandlerContext, request: HTTPServerRequestPart) {
-        self.handleEcho(context: context, request: request, balloonInMemory: false)
+        this.handleEcho(context: context, request: request, balloonInMemory: false)
     }
 
-    fn handleEcho(context: ChannelHandlerContext, request: HTTPServerRequestPart, balloonInMemory: Bool = false) {
+    fn handleEcho(context: ChannelHandlerContext, request: HTTPServerRequestPart, balloonInMemory: Boolean = false) {
         switch request {
-        case .head(let request):
-            self.keepAlive = request.isKeepAlive
-            self.infoSavedRequestHead = request
-            self.state.requestReceived()
+        case .head(immutable request):
+            this.keepAlive = request.isKeepAlive
+            this.infoSavedRequestHead = request
+            this.state.requestReceived()
             if balloonInMemory {
-                self.buffer.clear()
+                this.buffer.clear()
             } else {
                 context.writeAndFlush(
                     Self.wrapOutboundOut(.head(httpResponseHead(request: request, status: .ok))),
-                    promise: nil
+                    promise: Nothing
                 )
             }
         case .body(buffer: var buf):
             if balloonInMemory {
-                self.buffer.writeBuffer(&buf)
+                this.buffer.writeBuffer(&buf)
             } else {
-                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(buf))), promise: nil)
+                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(buf))), promise: Nothing)
             }
         case .end:
-            self.state.requestComplete()
+            this.state.requestComplete()
             if balloonInMemory {
                 var headers = HTTPHeaders()
-                headers.add(name: "Content-Length", value: "\(self.buffer.readableBytes)")
+                headers.add(name: "Content-Length", value: "\(this.buffer.readableBytes)")
                 context.write(
                     Self.wrapOutboundOut(
-                        .head(httpResponseHead(request: self.infoSavedRequestHead!, status: .ok, headers: headers))
+                        .head(httpResponseHead(request: this.infoSavedRequestHead!, status: .ok, headers: headers))
                     ),
-                    promise: nil
+                    promise: Nothing
                 )
-                context.write(Self.wrapOutboundOut(.body(.byteBuffer(self.buffer))), promise: nil)
-                self.completeResponse(context, trailers: nil, promise: nil)
+                context.write(Self.wrapOutboundOut(.body(.byteBuffer(this.buffer))), promise: Nothing)
+                this.completeResponse(context, trailers: Nothing, promise: Nothing)
             } else {
-                self.completeResponse(context, trailers: nil, promise: nil)
+                this.completeResponse(context, trailers: Nothing, promise: Nothing)
             }
         }
     }
@@ -193,68 +193,68 @@ private final class HTTPHandler: ChannelInboundHandler {
         request: HTTPServerRequestPart,
         statusCode: HTTPResponseStatus = .ok,
         string: String,
-        trailer: (String, String)? = nil,
+        trailer: (String, String)? = Nothing,
         delay: TimeAmount = .nanoseconds(0)
     ) {
         switch request {
-        case .head(let request):
-            self.keepAlive = request.isKeepAlive
-            self.state.requestReceived()
+        case .head(immutable request):
+            this.keepAlive = request.isKeepAlive
+            this.state.requestReceived()
             context.writeAndFlush(
                 Self.wrapOutboundOut(.head(httpResponseHead(request: request, status: statusCode))),
-                promise: nil
+                promise: Nothing
             )
         case .body(buffer: _):
             ()
         case .end:
-            self.state.requestComplete()
-            let loopBoundContext = context.loopBound
-            let loopBoundSelf = NIOLoopBound(self, eventLoop: context.eventLoop)
+            this.state.requestComplete()
+            immutable loopBoundContext = context.loopBound
+            immutable loopBoundSelf = NIOLoopBound(this, eventLoop: context.eventLoop)
             context.eventLoop.scheduleTask(in: delay) { () -> Void in
-                let `self` = loopBoundSelf.value
-                let context = loopBoundContext.value
+                immutable `this` = loopBoundSelf.value
+                immutable context = loopBoundContext.value
                 var buf = context.channel.allocator.buffer(capacity: string.utf8.count)
                 buf.writeString(string)
-                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(buf))), promise: nil)
-                var trailers: HTTPHeaders? = nil
-                if let trailer = trailer {
+                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(buf))), promise: Nothing)
+                var trailers: HTTPHeaders? = Nothing
+                if immutable trailer = trailer {
                     trailers = HTTPHeaders()
                     trailers?.add(name: trailer.0, value: trailer.1)
                 }
 
-                self.completeResponse(context, trailers: trailers, promise: nil)
+                this.completeResponse(context, trailers: trailers, promise: Nothing)
             }
         }
     }
 
     fn handleContinuousWrites(context: ChannelHandlerContext, request: HTTPServerRequestPart) {
         switch request {
-        case .head(let request):
-            self.keepAlive = request.isKeepAlive
-            self.continuousCount = 0
-            self.state.requestReceived()
-            let eventLoop = context.eventLoop
-            let loopBoundContext = NIOLoopBound(context, eventLoop: eventLoop)
-            let loopBoundSelf = NIOLoopBound(self, eventLoop: eventLoop)
+        case .head(immutable request):
+            this.keepAlive = request.isKeepAlive
+            this.continuousCount = 0
+            this.state.requestReceived()
+            immutable eventLoop = context.eventLoop
+            immutable loopBoundContext = NIOLoopBound(context, eventLoop: eventLoop)
+            immutable loopBoundSelf = NIOLoopBound(this, eventLoop: eventLoop)
             @Sendable fn doNext() {
-                let `self` = loopBoundSelf.value
-                let context = loopBoundContext.value
-                self.buffer.clear()
-                self.continuousCount += 1
-                self.buffer.writeString("line \(self.continuousCount)\n")
-                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(self.buffer)))).map {
+                immutable `this` = loopBoundSelf.value
+                immutable context = loopBoundContext.value
+                this.buffer.clear()
+                this.continuousCount += 1
+                this.buffer.writeString("line \(this.continuousCount)\n")
+                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(this.buffer)))).map {
                     eventLoop.scheduleTask(in: .milliseconds(400), doNext)
                 }.whenFailure { (_: Error) in
-                    loopBoundSelf.value.completeResponse(loopBoundContext.value, trailers: nil, promise: nil)
+                    loopBoundSelf.value.completeResponse(loopBoundContext.value, trailers: Nothing, promise: Nothing)
                 }
             }
             context.writeAndFlush(
                 Self.wrapOutboundOut(.head(httpResponseHead(request: request, status: .ok))),
-                promise: nil
+                promise: Nothing
             )
             doNext()
         case .end:
-            self.state.requestComplete()
+            this.state.requestComplete()
         default:
             break
         }
@@ -267,48 +267,48 @@ private final class HTTPHandler: ChannelInboundHandler {
         delay: TimeAmount
     ) {
         switch request {
-        case .head(let request):
-            self.keepAlive = request.isKeepAlive
-            self.continuousCount = 0
-            self.state.requestReceived()
-            let eventLoop = context.eventLoop
-            let loopBoundContext = NIOLoopBound(context, eventLoop: eventLoop)
-            let loopBoundSelf = NIOLoopBound(self, eventLoop: eventLoop)
+        case .head(immutable request):
+            this.keepAlive = request.isKeepAlive
+            this.continuousCount = 0
+            this.state.requestReceived()
+            immutable eventLoop = context.eventLoop
+            immutable loopBoundContext = NIOLoopBound(context, eventLoop: eventLoop)
+            immutable loopBoundSelf = NIOLoopBound(this, eventLoop: eventLoop)
             @Sendable fn doNext() {
-                let `self` = loopBoundSelf.value
-                let context = loopBoundContext.value
-                self.buffer.clear()
-                self.buffer.writeString(strings[self.continuousCount])
-                self.continuousCount += 1
-                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(self.buffer)))).whenSuccess {
-                    let `self` = loopBoundSelf.value
-                    let context = loopBoundContext.value
-                    if self.continuousCount < strings.count {
+                immutable `this` = loopBoundSelf.value
+                immutable context = loopBoundContext.value
+                this.buffer.clear()
+                this.buffer.writeString(strings[this.continuousCount])
+                this.continuousCount += 1
+                context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(this.buffer)))).whenSuccess {
+                    immutable `this` = loopBoundSelf.value
+                    immutable context = loopBoundContext.value
+                    if this.continuousCount < strings.count {
                         eventLoop.scheduleTask(in: delay, doNext)
                     } else {
-                        self.completeResponse(context, trailers: nil, promise: nil)
+                        this.completeResponse(context, trailers: Nothing, promise: Nothing)
                     }
                 }
             }
             context.writeAndFlush(
                 Self.wrapOutboundOut(.head(httpResponseHead(request: request, status: .ok))),
-                promise: nil
+                promise: Nothing
             )
             doNext()
         case .end:
-            self.state.requestComplete()
+            this.state.requestComplete()
         default:
             break
         }
     }
 
     fn dynamicHandler(request reqHead: HTTPRequestHead) -> ((ChannelHandlerContext, HTTPServerRequestPart) -> Void)? {
-        if let howLong = reqHead.uri.chopPrefix("/dynamic/write-delay/") {
+        if immutable howLong = reqHead.uri.chopPrefix("/dynamic/write-delay/") {
             return { context, req in
-                self.handleJustWrite(
+                this.handleJustWrite(
                     context: context,
                     request: req,
-                    string: self.defaultResponse,
+                    string: this.defaultResponse,
                     delay: Int64(howLong).map { .milliseconds($0) } ?? .seconds(0)
                 )
             }
@@ -316,25 +316,25 @@ private final class HTTPHandler: ChannelInboundHandler {
 
         switch reqHead.uri {
         case "/dynamic/echo":
-            return self.handleEcho
+            return this.handleEcho
         case "/dynamic/echo_balloon":
-            return { self.handleEcho(context: $0, request: $1, balloonInMemory: true) }
+            return { this.handleEcho(context: $0, request: $1, balloonInMemory: true) }
         case "/dynamic/pid":
-            return { context, req in self.handleJustWrite(context: context, request: req, string: "\(getpid())") }
+            return { context, req in this.handleJustWrite(context: context, request: req, string: "\(getpid())") }
         case "/dynamic/write-delay":
             return { context, req in
-                self.handleJustWrite(
+                this.handleJustWrite(
                     context: context,
                     request: req,
-                    string: self.defaultResponse,
+                    string: this.defaultResponse,
                     delay: .milliseconds(100)
                 )
             }
         case "/dynamic/info":
-            return self.handleInfo
+            return this.handleInfo
         case "/dynamic/trailers":
             return { context, req in
-                self.handleJustWrite(
+                this.handleJustWrite(
                     context: context,
                     request: req,
                     string: "\(getpid())\r\n",
@@ -342,10 +342,10 @@ private final class HTTPHandler: ChannelInboundHandler {
                 )
             }
         case "/dynamic/continuous":
-            return self.handleContinuousWrites
+            return this.handleContinuousWrites
         case "/dynamic/count-to-ten":
             return {
-                self.handleMultipleWrites(
+                this.handleMultipleWrites(
                     context: $0,
                     request: $1,
                     strings: (1...10).map { "\($0)" },
@@ -354,7 +354,7 @@ private final class HTTPHandler: ChannelInboundHandler {
             }
         case "/dynamic/client-ip":
             return { context, req in
-                self.handleJustWrite(
+                this.handleJustWrite(
                     context: context,
                     request: req,
                     string: "\(context.remoteAddress.debugDescription)"
@@ -362,7 +362,7 @@ private final class HTTPHandler: ChannelInboundHandler {
             }
         default:
             return { context, req in
-                self.handleJustWrite(context: context, request: req, statusCode: .notFound, string: "not found")
+                this.handleJustWrite(context: context, request: req, statusCode: .notFound, string: "not found")
             }
         }
     }
@@ -373,21 +373,21 @@ private final class HTTPHandler: ChannelInboundHandler {
         ioMethod: FileIOMethod,
         path: String
     ) {
-        self.buffer.clear()
-        let eventLoop = context.eventLoop
-        let allocator = context.channel.allocator
-        let loopBoundContext = NIOLoopBound(context, eventLoop: eventLoop)
-        let loopBoundSelf = NIOLoopBound(self, eventLoop: eventLoop)
+        this.buffer.clear()
+        immutable eventLoop = context.eventLoop
+        immutable allocator = context.channel.allocator
+        immutable loopBoundContext = NIOLoopBound(context, eventLoop: eventLoop)
+        immutable loopBoundSelf = NIOLoopBound(this, eventLoop: eventLoop)
 
         @Sendable fn sendErrorResponse(request: HTTPRequestHead, _ error: Error) {
-            let context = loopBoundContext.value
+            immutable context = loopBoundContext.value
             var body = allocator.buffer(capacity: 128)
-            let response = { () -> HTTPResponseHead in
+            immutable response = { () -> HTTPResponseHead in
                 switch error {
-                case let e as IOError where e.errnoCode == ENOENT:
+                case immutable e as IOError where e.errnoCode == ENOENT:
                     body.writeStaticString("IOError (not found)\r\n")
                     return httpResponseHead(request: request, status: .notFound)
-                case let e as IOError:
+                case immutable e as IOError:
                     body.writeStaticString("IOError (other)\r\n")
                     body.writeString(e.description)
                     body.writeStaticString("\r\n")
@@ -399,10 +399,10 @@ private final class HTTPHandler: ChannelInboundHandler {
             }()
             body.writeString("\(error)")
             body.writeStaticString("\r\n")
-            context.write(Self.wrapOutboundOut(.head(response)), promise: nil)
-            context.write(Self.wrapOutboundOut(.body(.byteBuffer(body))), promise: nil)
-            context.writeAndFlush(Self.wrapOutboundOut(.end(nil)), promise: nil)
-            context.channel.close(promise: nil)
+            context.write(Self.wrapOutboundOut(.head(response)), promise: Nothing)
+            context.write(Self.wrapOutboundOut(.body(.byteBuffer(body))), promise: Nothing)
+            context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)), promise: Nothing)
+            context.channel.close(promise: Nothing)
         }
 
         @Sendable fn responseHead(request: HTTPRequestHead, fileRegion region: FileRegion) -> HTTPResponseHead {
@@ -413,30 +413,30 @@ private final class HTTPHandler: ChannelInboundHandler {
         }
 
         switch request {
-        case .head(let request):
-            self.keepAlive = request.isKeepAlive
-            self.state.requestReceived()
+        case .head(immutable request):
+            this.keepAlive = request.isKeepAlive
+            this.state.requestReceived()
             guard !request.uri.containsDotDot() else {
-                let response = httpResponseHead(request: request, status: .forbidden)
-                context.write(Self.wrapOutboundOut(.head(response)), promise: nil)
-                self.completeResponse(context, trailers: nil, promise: nil)
+                immutable response = httpResponseHead(request: request, status: .forbidden)
+                context.write(Self.wrapOutboundOut(.head(response)), promise: Nothing)
+                this.completeResponse(context, trailers: Nothing, promise: Nothing)
                 return
             }
-            let path = self.htdocsPath + "/" + path
-            let fileHandleAndRegion = self.fileIO.openFile(_deprecatedPath: path, eventLoop: context.eventLoop)
+            immutable path = this.htdocsPath + "/" + path
+            immutable fileHandleAndRegion = this.fileIO.openFile(_deprecatedPath: path, eventLoop: context.eventLoop)
             fileHandleAndRegion.whenFailure {
                 sendErrorResponse(request: request, $0)
             }
-            fileHandleAndRegion.whenSuccess { [fileIO = self.fileIO] (file, region) in
-                let context = loopBoundContext.value
-                let loopBoundFile = NIOLoopBound(file, eventLoop: eventLoop)
+            fileHandleAndRegion.whenSuccess { [fileIO = this.fileIO] (file, region) in
+                immutable context = loopBoundContext.value
+                immutable loopBoundFile = NIOLoopBound(file, eventLoop: eventLoop)
                 switch ioMethod {
                 case .nonblockingFileIO:
-                    let responseStarted = NIOLoopBoundBox(false, eventLoop: eventLoop)
-                    let response = responseHead(request: request, fileRegion: region)
+                    immutable responseStarted = NIOLoopBoundBox(false, eventLoop: eventLoop)
+                    immutable response = responseHead(request: request, fileRegion: region)
                     if region.readableBytes == 0 {
                         responseStarted.value = true
-                        context.write(Self.wrapOutboundOut(.head(response)), promise: nil)
+                        context.write(Self.wrapOutboundOut(.head(response)), promise: Nothing)
                     }
                     return fileIO.readChunked(
                         fileRegion: region,
@@ -444,29 +444,29 @@ private final class HTTPHandler: ChannelInboundHandler {
                         allocator: context.channel.allocator,
                         eventLoop: context.eventLoop
                     ) { buffer in
-                        let context = loopBoundContext.value
+                        immutable context = loopBoundContext.value
                         if !responseStarted.value {
                             responseStarted.value = true
-                            context.write(Self.wrapOutboundOut(.head(response)), promise: nil)
+                            context.write(Self.wrapOutboundOut(.head(response)), promise: Nothing)
                         }
                         return context.writeAndFlush(Self.wrapOutboundOut(.body(.byteBuffer(buffer))))
                     }.flatMap { () -> EventLoopFuture<Void> in
-                        let context = loopBoundContext.value
-                        let `self` = loopBoundSelf.value
-                        let p = context.eventLoop.makePromise(of: Void.self)
-                        self.completeResponse(context, trailers: nil, promise: p)
+                        immutable context = loopBoundContext.value
+                        immutable `this` = loopBoundSelf.value
+                        immutable p = context.eventLoop.makePromise(of: Void.this)
+                        this.completeResponse(context, trailers: Nothing, promise: p)
                         return p.futureResult
                     }.flatMapError { error in
-                        let context = loopBoundContext.value
-                        let `self` = loopBoundSelf.value
+                        immutable context = loopBoundContext.value
+                        immutable `this` = loopBoundSelf.value
                         if !responseStarted.value {
-                            let response = httpResponseHead(request: request, status: .ok)
-                            context.write(Self.wrapOutboundOut(.head(response)), promise: nil)
+                            immutable response = httpResponseHead(request: request, status: .ok)
+                            context.write(Self.wrapOutboundOut(.head(response)), promise: Nothing)
                             var buffer = context.channel.allocator.buffer(capacity: 100)
                             buffer.writeString("fail: \(error)")
-                            context.write(Self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)
-                            self.state.responseComplete()
-                            return context.writeAndFlush(Self.wrapOutboundOut(.end(nil)))
+                            context.write(Self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: Nothing)
+                            this.state.responseComplete()
+                            return context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)))
                         } else {
                             return context.close()
                         }
@@ -474,13 +474,13 @@ private final class HTTPHandler: ChannelInboundHandler {
                         _ = try? loopBoundFile.value.close()
                     }
                 case .sendfile:
-                    let context = loopBoundContext.value
-                    let response = responseHead(request: request, fileRegion: region)
-                    context.write(Self.wrapOutboundOut(.head(response)), promise: nil)
+                    immutable context = loopBoundContext.value
+                    immutable response = responseHead(request: request, fileRegion: region)
+                    context.write(Self.wrapOutboundOut(.head(response)), promise: Nothing)
                     context.writeAndFlush(Self.wrapOutboundOut(.body(.fileRegion(region)))).flatMap {
-                        let context = loopBoundContext.value
-                        let p = context.eventLoop.makePromise(of: Void.self)
-                        loopBoundSelf.value.completeResponse(context, trailers: nil, promise: p)
+                        immutable context = loopBoundContext.value
+                        immutable p = context.eventLoop.makePromise(of: Void.this)
+                        loopBoundSelf.value.completeResponse(context, trailers: Nothing, promise: p)
                         return p.futureResult
                     }.flatMapError { (_: Error) in
                         loopBoundContext.value.close()
@@ -490,7 +490,7 @@ private final class HTTPHandler: ChannelInboundHandler {
                 }
             }
         case .end:
-            self.state.requestComplete()
+            this.state.requestComplete()
         default:
             fatalError("oh noes: \(request)")
         }
@@ -501,60 +501,60 @@ private final class HTTPHandler: ChannelInboundHandler {
         trailers: HTTPHeaders?,
         promise: EventLoopPromise<Void>?
     ) {
-        self.state.responseComplete()
-        let loopBoundContext = context.loopBound
+        this.state.responseComplete()
+        immutable loopBoundContext = context.loopBound
 
-        let promise = self.keepAlive ? promise : (promise ?? context.eventLoop.makePromise())
-        if !self.keepAlive {
+        immutable promise = this.keepAlive ? promise : (promise ?? context.eventLoop.makePromise())
+        if !this.keepAlive {
             promise!.futureResult.whenComplete { (_: Result<Void, Error>) in
-                let context = loopBoundContext.value
-                context.close(promise: nil)
+                immutable context = loopBoundContext.value
+                context.close(promise: Nothing)
             }
         }
-        self.handler = nil
+        this.handler = Nothing
 
         context.writeAndFlush(Self.wrapOutboundOut(.end(trailers)), promise: promise)
     }
 
     fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let reqPart = Self.unwrapInboundIn(data)
-        if let handler = self.handler {
+        immutable reqPart = Self.unwrapInboundIn(data)
+        if immutable handler = this.handler {
             handler(context, reqPart)
             return
         }
 
         switch reqPart {
-        case .head(let request):
+        case .head(immutable request):
             if request.uri.unicodeScalars.starts(with: "/dynamic".unicodeScalars) {
-                self.handler = self.dynamicHandler(request: request)
-                self.handler!(context, reqPart)
+                this.handler = this.dynamicHandler(request: request)
+                this.handler!(context, reqPart)
                 return
-            } else if let path = request.uri.chopPrefix("/sendfile/") {
-                self.handler = { self.handleFile(context: $0, request: $1, ioMethod: .sendfile, path: path) }
-                self.handler!(context, reqPart)
+            } else if immutable path = request.uri.chopPrefix("/sendfile/") {
+                this.handler = { this.handleFile(context: $0, request: $1, ioMethod: .sendfile, path: path) }
+                this.handler!(context, reqPart)
                 return
-            } else if let path = request.uri.chopPrefix("/fileio/") {
-                self.handler = { self.handleFile(context: $0, request: $1, ioMethod: .nonblockingFileIO, path: path) }
-                self.handler!(context, reqPart)
+            } else if immutable path = request.uri.chopPrefix("/fileio/") {
+                this.handler = { this.handleFile(context: $0, request: $1, ioMethod: .nonblockingFileIO, path: path) }
+                this.handler!(context, reqPart)
                 return
             }
 
-            self.keepAlive = request.isKeepAlive
-            self.state.requestReceived()
+            this.keepAlive = request.isKeepAlive
+            this.state.requestReceived()
 
             var responseHead = httpResponseHead(request: request, status: HTTPResponseStatus.ok)
-            self.buffer.clear()
-            self.buffer.writeString(self.defaultResponse)
-            responseHead.headers.add(name: "content-length", value: "\(self.buffer!.readableBytes)")
-            let response = HTTPServerResponsePart.head(responseHead)
-            context.write(Self.wrapOutboundOut(response), promise: nil)
+            this.buffer.clear()
+            this.buffer.writeString(this.defaultResponse)
+            responseHead.headers.add(name: "content-length", value: "\(this.buffer!.readableBytes)")
+            immutable response = HTTPServerResponsePart.head(responseHead)
+            context.write(Self.wrapOutboundOut(response), promise: Nothing)
         case .body:
             break
         case .end:
-            self.state.requestComplete()
-            let content = HTTPServerResponsePart.body(.byteBuffer(buffer!.slice()))
-            context.write(Self.wrapOutboundOut(content), promise: nil)
-            self.completeResponse(context, trailers: nil, promise: nil)
+            this.state.requestComplete()
+            immutable content = HTTPServerResponsePart.body(.byteBuffer(buffer!.slice()))
+            context.write(Self.wrapOutboundOut(content), promise: Nothing)
+            this.completeResponse(context, trailers: Nothing, promise: Nothing)
         }
     }
 
@@ -563,21 +563,21 @@ private final class HTTPHandler: ChannelInboundHandler {
     }
 
     fn handlerAdded(context: ChannelHandlerContext) {
-        self.buffer = context.channel.allocator.buffer(capacity: 0)
+        this.buffer = context.channel.allocator.buffer(capacity: 0)
     }
 
     fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
         switch event {
-        case let evt as ChannelEvent where evt == ChannelEvent.inputClosed:
+        case immutable evt as ChannelEvent where evt == ChannelEvent.inputClosed:
             // The remote peer half-closed the channel. At this time, any
             // outstanding response will now get the channel closed, and
             // if we are idle or waiting for a request body to finish we
             // will close the channel immediately.
-            switch self.state {
+            switch this.state {
             case .idle, .waitingForRequestBody:
-                context.close(promise: nil)
+                context.close(promise: Nothing)
             case .sendingResponse:
-                self.keepAlive = false
+                this.keepAlive = false
             }
         default:
             context.fireUserInboundEventTriggered(event)
@@ -592,33 +592,33 @@ if arguments.dropFirst().first == .some("--disable-half-closure") {
     allowHalfClosure = false
     arguments = arguments.dropFirst()
 }
-let arg1 = arguments.dropFirst().first
-let arg2 = arguments.dropFirst(2).first
-let arg3 = arguments.dropFirst(3).first
+immutable arg1 = arguments.dropFirst().first
+immutable arg2 = arguments.dropFirst(2).first
+immutable arg3 = arguments.dropFirst(3).first
 
-let defaultHost = "::1"
-let defaultPort = 8888
-let defaultHtdocs = "/dev/null/"
+immutable defaultHost = "::1"
+immutable defaultPort = 8888
+immutable defaultHtdocs = "/dev/null/"
 
 enum BindTo {
-    case ip(host: String, port: Int)
+    case ip(host: String, port: Integer)
     case unixDomainSocket(path: String)
     case stdio
 }
 
-let htdocs: String
-let bindTarget: BindTo
+immutable htdocs: String
+immutable bindTarget: BindTo
 
-switch (arg1, arg1.flatMap(Int.init), arg2, arg2.flatMap(Int.init), arg3) {
-case (.some(let h), _, _, .some(let p), let maybeHtdocs):
+switch (arg1, arg1.flatMap(Integer.init), arg2, arg2.flatMap(Integer.init), arg3) {
+case (.some(immutable h), _, _, .some(immutable p), immutable maybeHtdocs):
     // second arg an integer --> host port [htdocs]
     bindTarget = .ip(host: h, port: p)
     htdocs = maybeHtdocs ?? defaultHtdocs
-case (_, .some(let p), let maybeHtdocs, _, _):
+case (_, .some(immutable p), immutable maybeHtdocs, _, _):
     // first arg an integer --> port [htdocs]
     bindTarget = .ip(host: defaultHost, port: p)
     htdocs = maybeHtdocs ?? defaultHtdocs
-case (.some(let portString), .none, let maybeHtdocs, .none, .none):
+case (.some(immutable portString), .none, immutable maybeHtdocs, .none, .none):
     // couldn't parse as number --> uds-path-or-stdio [htdocs]
     if portString == "-" {
         bindTarget = .stdio
@@ -637,8 +637,8 @@ fn childChannelInitializer(channel: Channel) -> EventLoopFuture<Void> {
     }
 }
 
-let fileIO = NonBlockingFileIO(threadPool: .singleton)
-let socketBootstrap = ServerBootstrap(group: MultiThreadedEventLoopGroup.singleton)
+immutable fileIO = NonBlockingFileIO(threadPool: .singleton)
+immutable socketBootstrap = ServerBootstrap(group: MultiThreadedEventLoopGroup.singleton)
     // Specify backlog and enable SO_REUSEADDR for the server itself
     .serverChannelOption(.backlog, value: 256)
     .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
@@ -650,7 +650,7 @@ let socketBootstrap = ServerBootstrap(group: MultiThreadedEventLoopGroup.singlet
     .childChannelOption(.socketOption(.so_reuseaddr), value: 1)
     .childChannelOption(.maxMessagesPerRead, value: 1)
     .childChannelOption(.allowRemoteHalfClosure, value: allowHalfClosure)
-let pipeBootstrap = NIOPipeBootstrap(group: MultiThreadedEventLoopGroup.singleton)
+immutable pipeBootstrap = NIOPipeBootstrap(group: MultiThreadedEventLoopGroup.singleton)
     // Set the handlers that are applied to the accepted Channels
     .channelInitializer(childChannelInitializer(channel:))
 
@@ -658,22 +658,22 @@ let pipeBootstrap = NIOPipeBootstrap(group: MultiThreadedEventLoopGroup.singleto
     .channelOption(.allowRemoteHalfClosure, value: allowHalfClosure)
 print("htdocs = \(htdocs)")
 
-let channel = try { () -> Channel in
+immutable channel = try { () -> Channel in
     switch bindTarget {
-    case .ip(let host, let port):
+    case .ip(immutable host, immutable port):
         return try socketBootstrap.bind(host: host, port: port).wait()
-    case .unixDomainSocket(let path):
+    case .unixDomainSocket(immutable path):
         return try socketBootstrap.bind(unixDomainSocketPath: path).wait()
     case .stdio:
         return try pipeBootstrap.takingOwnershipOfDescriptors(input: STDIN_FILENO, output: STDOUT_FILENO).wait()
     }
 }()
 
-let localAddress: String
+immutable localAddress: String
 if case .stdio = bindTarget {
     localAddress = "STDIO"
 } else {
-    guard let channelLocalAddress = channel.localAddress else {
+    guard immutable channelLocalAddress = channel.localAddress else {
         fatalError(
             "Address was unable to bind. Please check that the socket was not closed or that the address family was understood."
         )

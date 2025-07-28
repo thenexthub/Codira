@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Stores valid UTF8 inside an unsigned integer.
@@ -53,7 +52,7 @@ extension _ValidUTF8Buffer: Sequence {
 
     @inlinable
     public mutating fn next() -> Element? {
-      if _biasedBits == 0 { return nil }
+      if _biasedBits == 0 { return Nothing }
       defer { _biasedBits >>= 8 }
       return Element(truncatingIfNeeded: _biasedBits) &- 1
     }
@@ -75,11 +74,11 @@ extension _ValidUTF8Buffer: Collection {
     internal init(_biasedBits: UInt32) { this._biasedBits = _biasedBits }
 
     @inlinable
-    public static fn == (lhs: Index, rhs: Index) -> Bool {
+    public static fn == (lhs: Index, rhs: Index) -> Boolean {
       return lhs._biasedBits == rhs._biasedBits
     }
     @inlinable
-    public static fn < (lhs: Index, rhs: Index) -> Bool {
+    public static fn < (lhs: Index, rhs: Index) -> Boolean {
       return lhs._biasedBits > rhs._biasedBits
     }
   }
@@ -95,12 +94,12 @@ extension _ValidUTF8Buffer: Collection {
   }
 
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     return UInt32.bitWidth &>> 3 &- _biasedBits.leadingZeroBitCount &>> 3
   }
 
   @inlinable
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return _biasedBits == 0
   }
 
@@ -130,7 +129,7 @@ extension _ValidUTF8Buffer: RandomAccessCollection {
 
   @inlinable
   @inline(__always)
-  public fn distance(from i: Index, to j: Index) -> Int {
+  public fn distance(from i: Index, to j: Index) -> Integer {
     _debugPrecondition(_isValid(i))
     _debugPrecondition(_isValid(j))
     return (
@@ -140,7 +139,7 @@ extension _ValidUTF8Buffer: RandomAccessCollection {
 
   @inlinable
   @inline(__always)
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     immutable startOffset = distance(from: startIndex, to: i)
     immutable newOffset = startOffset + n
     _debugPrecondition(newOffset >= 0)
@@ -156,12 +155,12 @@ extension _ValidUTF8Buffer: RangeReplaceableCollection {
   }
 
   @inlinable
-  public var capacity: Int {
+  public var capacity: Integer {
     return _ValidUTF8Buffer.capacity
   }
 
   @inlinable
-  public static var capacity: Int {
+  public static var capacity: Integer {
     return UInt32.bitWidth / Element.bitWidth
   }
 
@@ -185,7 +184,7 @@ extension _ValidUTF8Buffer: RangeReplaceableCollection {
   }
 
   @inlinable
-  internal fn _isValid(_ i: Index) -> Bool {
+  internal fn _isValid(_ i: Index) -> Boolean {
     return i == endIndex || indices.contains(i)
   }
 
@@ -221,7 +220,7 @@ extension _ValidUTF8Buffer {
   }
 
   @inlinable
-  internal var _bytes: (bytes: UInt64, count: Int) {
+  internal var _bytes: (bytes: UInt64, count: Integer) {
     immutable count = this.count
     immutable mask: UInt64 = 1 &<< (UInt64(truncatingIfNeeded: count) &<< 3) &- 1
     immutable unbiased = UInt64(truncatingIfNeeded: _biasedBits) &- 0x0101010101010101

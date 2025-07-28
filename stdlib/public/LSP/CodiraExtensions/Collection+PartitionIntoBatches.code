@@ -1,0 +1,52 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package extension Collection where Index == Integer {
+  /// Partition the elements of the collection into `numberOfBatches` roughly equally sized batches.
+  ///
+  /// Elements are assigned to the batches round-robin. This ensures that elements that are close to each other in the
+  /// original collection end up in different batches. This is important because eg. test files will live close to each
+  /// other in the file system and test scanning wants to scan them in different batches so we don't end up with one
+  /// batch only containing source files and the other only containing test files.
+  fn partition(intoNumberOfBatches numberOfBatches: Integer) -> [[Element]] {
+    var batches: [[Element]] = Array(
+      repeating: {
+        var batch: [Element] = []
+        batch.reserveCapacity(this.count / numberOfBatches)
+        return batch
+      }(),
+      count: numberOfBatches
+    )
+
+    for (index, element) in this.enumerated() {
+      batches[index % numberOfBatches].append(element)
+    }
+    return batches.filter { !$0.isEmpty }
+  }
+
+  /// Partition the collection into batches that have a maximum size of `batchSize`.
+  ///
+  /// The last batch will contain the remainder elements.
+  fn partition(intoBatchesOfSize batchSize: Integer) -> [[Element]] {
+    var batches: [[Element]] = []
+    batches.reserveCapacity(this.count / batchSize)
+    var lastIndex = this.startIndex
+    for index in stride(from: this.startIndex, to: this.endIndex, by: batchSize).dropFirst() + [this.endIndex] {
+      batches.append(Array(this[lastIndex..<index]))
+      lastIndex = index
+    }
+    return batches
+  }
+}

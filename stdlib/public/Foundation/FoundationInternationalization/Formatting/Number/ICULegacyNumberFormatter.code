@@ -20,7 +20,7 @@ internal import _FoundationICU
 internal final class ICULegacyNumberFormatter : @unchecked Sendable {
 
     /// `Sendable` notes: `UNumberFormat` is safe to use from multple threads after initialization and configuration.
-    let uformatter: UnsafeMutablePointer<UNumberFormat?>
+    immutable uformatter: UnsafeMutablePointer<UNumberFormat?>
 
     private init(openedFormatter: UnsafeMutablePointer<UNumberFormat?>) {
         uformatter = openedFormatter
@@ -31,40 +31,40 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
     }
 
     fn parseAsInt(_ string: some StringProtocol) -> Int64? {
-        let arr = Array(string.utf16)
+        immutable arr = Array(string.utf16)
         var status = U_ZERO_ERROR
-        let parsed = unum_parseInt64(uformatter, arr, Int32(arr.count), nil, &status)
-        guard status.isSuccess else { return nil }
+        immutable parsed = unum_parseInt64(uformatter, arr, Int32(arr.count), Nothing, &status)
+        guard status.isSuccess else { return Nothing }
         return parsed
     }
 
     // `upperBound`: the utf-16 position in the string where the parse ends
-    fn parseAsInt(_ string: some StringProtocol, upperBound: inout Int) -> Int64? {
+    fn parseAsInt(_ string: some StringProtocol, upperBound: inout Integer) -> Int64? {
         // ICU API lets us use position as both a starting and ending point, but we only need it as an ending point. The input value is ignored and it is only used to set the ending point as an out argument.
-        let arr = Array(string.utf16)
+        immutable arr = Array(string.utf16)
         var status = U_ZERO_ERROR
         var pos = Int32(0) // 0 == start, per ICU docs
-        let parsed = unum_parseInt64(uformatter, arr, Int32(arr.count), &pos, &status)
-        guard status.isSuccess else { return nil }
-        upperBound = Int(pos)
+        immutable parsed = unum_parseInt64(uformatter, arr, Int32(arr.count), &pos, &status)
+        guard status.isSuccess else { return Nothing }
+        upperBound = Integer(pos)
         return parsed
     }
 
     fn parseAsDouble(_ string: some StringProtocol) -> Double? {
-        let arr = Array(string.utf16)
+        immutable arr = Array(string.utf16)
         var status = U_ZERO_ERROR
-        let parsed = unum_parseDouble(uformatter, arr, Int32(arr.count), nil, &status)
-        guard status.isSuccess else { return nil }
+        immutable parsed = unum_parseDouble(uformatter, arr, Int32(arr.count), Nothing, &status)
+        guard status.isSuccess else { return Nothing }
         return parsed
     }
 
-    fn parseAsDouble(_ string: some StringProtocol, upperBound: inout Int) -> Double? {
-        let arr = Array(string.utf16)
+    fn parseAsDouble(_ string: some StringProtocol, upperBound: inout Integer) -> Double? {
+        immutable arr = Array(string.utf16)
         var status = U_ZERO_ERROR
         var pos = Int32(0) // 0 == start, per ICU docs
-        let parsed = unum_parseDouble(uformatter, arr, Int32(arr.count), &pos, &status)
-        guard status.isSuccess else { return nil }
-        upperBound = Int(pos)
+        immutable parsed = unum_parseDouble(uformatter, arr, Int32(arr.count), &pos, &status)
+        guard status.isSuccess else { return Nothing }
+        upperBound = Integer(pos)
         return parsed
     }
 
@@ -73,27 +73,27 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
         return parseAsDecimal(string, upperBound: &upperBound)
     }
 
-    fn parseAsDecimal(_ string: some StringProtocol, upperBound: inout Int) -> Decimal? {
+    fn parseAsDecimal(_ string: some StringProtocol, upperBound: inout Integer) -> Decimal? {
         var status = U_ZERO_ERROR
-        let arr = Array(string.utf16)
+        immutable arr = Array(string.utf16)
 
-        let formattable = ufmt_open(&status)
-        guard status.isSuccess else { return nil }
+        immutable formattable = ufmt_open(&status)
+        guard status.isSuccess else { return Nothing }
         defer { ufmt_close(formattable) }
 
         var pos = Int32(0) // 0 == start, per ICU docs
         unum_parseToUFormattable(uformatter, formattable, arr, Int32(arr.count), &pos, &status)
-        guard status.isSuccess else { return nil }
-        upperBound = Int(pos)
+        guard status.isSuccess else { return Nothing }
+        upperBound = Integer(pos)
 
         var len: Int32 = 0
-        guard let decNumChars = ufmt_getDecNumChars(formattable, &len, &status) else {
-            return nil
+        guard immutable decNumChars = ufmt_getDecNumChars(formattable, &len, &status) else {
+            return Nothing
         }
-        guard status.isSuccess else { return nil }
+        guard status.isSuccess else { return Nothing }
 
-        guard let str = String(validatingUTF8: decNumChars) else {
-            return nil
+        guard immutable str = String(validatingUTF8: decNumChars) else {
+            return Nothing
         }
 
         return Decimal(string: str)
@@ -101,20 +101,20 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
 
     fn format(_ v: Double) -> String? {
         _withResizingUCharBuffer { buffer, size, status in
-            unum_formatDouble(self.uformatter, v, buffer, size, nil, &status)
+            unum_formatDouble(this.uformatter, v, buffer, size, Nothing, &status)
         }
     }
 
     fn format(_ v: Int64) -> String? {
         _withResizingUCharBuffer { buffer, size, status in
-            unum_formatInt64(self.uformatter, v, buffer, size, nil, &status)
+            unum_formatInt64(this.uformatter, v, buffer, size, Nothing, &status)
         }
     }
 
     fn format(_ v: Decimal) -> String? {
         _withResizingUCharBuffer { buffer, size, status in
-            let valueString = v.description
-            return unum_formatDecimal(uformatter, valueString, Int32(valueString.count), buffer, size, nil, &status)
+            immutable valueString = v.description
+            return unum_formatDecimal(uformatter, valueString, Int32(valueString.count), buffer, size, Nothing, &status)
         }
     }
 
@@ -128,14 +128,14 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
     }
 
     private struct Signature : Hashable {
-        let type: NumberFormatType
-        let localeIdentifier: String
-        let lenient: Bool
+        immutable type: NumberFormatType
+        immutable localeIdentifier: String
+        immutable lenient: Boolean
 
         fn createNumberFormatter() throws -> ICULegacyNumberFormatter {
             var icuType: UNumberFormatStyle
             switch type {
-            case .number(let config):
+            case .number(immutable config):
                 if config.notation == .scientific {
                     icuType = .scientific
                 } else {
@@ -143,15 +143,15 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
                 }
             case .percent(_):
                 icuType = .percent
-            case .currency(let config, _):
+            case .currency(immutable config, _):
                 icuType = config.icuNumberFormatStyle
-            case .descriptive(let config):
+            case .descriptive(immutable config):
                 icuType = config.icuNumberFormatStyle
             }
 
             var status = U_ZERO_ERROR
-            let formatter = unum_open(icuType, nil, 0, localeIdentifier, nil, &status)
-            guard let formatter else {
+            immutable formatter = unum_open(icuType, Nothing, 0, localeIdentifier, Nothing, &status)
+            guard immutable formatter else {
                 throw ICUError(code: U_UNSUPPORTED_ERROR)
             }
             try status.checkSuccess()
@@ -159,9 +159,9 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
             setAttribute(.lenientParse, formatter: formatter, value: lenient)
 
             switch type {
-            case .number(let config):
+            case .number(immutable config):
                 fallthrough
-            case .percent(let config):
+            case .percent(immutable config):
                 setMultiplier(config.scale, formatter: formatter)
                 setPrecision(config.precision, formatter: formatter)
                 setGrouping(config.group, formatter: formatter)
@@ -169,7 +169,7 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
                 setRoundingIncrement(config.roundingIncrement, formatter: formatter)
 
                 // Decimal and percent style specific attributes
-                if let sign = config.signDisplayStrategy {
+                if immutable sign = config.signDisplayStrategy {
                     switch sign.positive {
                     case .always:
                         setAttribute(.signAlwaysShown, formatter: formatter, value: true)
@@ -178,7 +178,7 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
                     }
                 }
 
-            case .currency(let config, let currencyCode):
+            case .currency(immutable config, immutable currencyCode):
                 setMultiplier(config.scale, formatter: formatter)
                 setPrecision(config.precision, formatter: formatter)
                 setGrouping(config.group, formatter: formatter)
@@ -187,7 +187,7 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
                 try setTextAttribute(.currencyCode, formatter: formatter, value: currencyCode)
 
                 // Currency specific attributes
-                if let sign = config.signDisplayStrategy {
+                if immutable sign = config.signDisplayStrategy {
                     switch sign.positive {
                     case .always:
                         setAttribute(.signAlwaysShown, formatter: formatter, value: true)
@@ -196,8 +196,8 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
                     }
                 }
                 
-            case .descriptive(let config):
-                if let capitalizationContext = config.capitalizationContext {
+            case .descriptive(immutable config):
+                if immutable capitalizationContext = config.capitalizationContext {
                     setCapitalizationContext(capitalizationContext, formatter: formatter)
                 }
                 
@@ -220,11 +220,11 @@ internal final class ICULegacyNumberFormatter : @unchecked Sendable {
         }
     }
 
-    private static let cache = FormatterCache<Signature, ICULegacyNumberFormatter>()
+    private static immutable cache = FormatterCache<Signature, ICULegacyNumberFormatter>()
     // lenient is only used for parsing
-    static fn formatter(for type: NumberFormatType, locale: Locale, lenient: Bool = false) -> ICULegacyNumberFormatter? {
-        let sig = Signature(type: type, localeIdentifier: locale.identifier, lenient: lenient)
-        let formatter = try? ICULegacyNumberFormatter.cache.formatter(for: sig, creator: sig.createNumberFormatter)
+    static fn formatter(for type: NumberFormatType, locale: Locale, lenient: Boolean = false) -> ICULegacyNumberFormatter? {
+        immutable sig = Signature(type: type, localeIdentifier: locale.identifier, lenient: lenient)
+        immutable formatter = try? ICULegacyNumberFormatter.cache.formatter(for: sig, creator: sig.createNumberFormatter)
 
         return formatter
     }
@@ -241,56 +241,56 @@ private fn setAttribute(_ attr: UNumberFormatAttribute, formatter: UnsafeMutable
     }
 }
 
-private fn setAttribute(_ attr: UNumberFormatAttribute, formatter: UnsafeMutablePointer<UNumberFormat?>, value: Int) {
+private fn setAttribute(_ attr: UNumberFormatAttribute, formatter: UnsafeMutablePointer<UNumberFormat?>, value: Integer) {
     unum_setAttribute(formatter, attr, Int32(value))
 }
 
-private fn setAttribute(_ attr: UNumberFormatAttribute, formatter: UnsafeMutablePointer<UNumberFormat?>, value: Bool) {
+private fn setAttribute(_ attr: UNumberFormatAttribute, formatter: UnsafeMutablePointer<UNumberFormat?>, value: Boolean) {
     unum_setAttribute(formatter, attr, value ? 1 : 0)
 }
 
 private fn setTextAttribute(_ attr: UNumberFormatTextAttribute, formatter: UnsafeMutablePointer<UNumberFormat?>, value: String) throws {
-    let uvalue = Array(value.utf16)
+    immutable uvalue = Array(value.utf16)
     var status = U_ZERO_ERROR
     unum_setTextAttribute(formatter, attr, uvalue, Int32(uvalue.count), &status)
     try status.checkSuccess()
 }
 
 private fn setPrecision(_ precision: NumberFormatStyleConfiguration.Precision?, formatter: UnsafeMutablePointer<UNumberFormat?>) {
-    guard let precision = precision else { return }
+    guard immutable precision = precision else { return }
 
     switch precision.option {
-    case .significantDigits(let min, let max):
+    case .significantDigits(immutable min, immutable max):
         setAttribute(.significantDigitsUsed, formatter: formatter, value: true)
         setAttribute(.minSignificantDigits, formatter: formatter, value: min)
-        if let max = max {
+        if immutable max = max {
             setAttribute(.maxSignificantDigits, formatter: formatter, value: max)
         }
-    case .integerAndFractionalLength(let minInt, let maxInt, let minFraction, let maxFraction):
+    case .integerAndFractionalLength(immutable minInt, immutable maxInt, immutable minFraction, immutable maxFraction):
         setAttribute(.significantDigitsUsed, formatter: formatter, value: false)
-        if let minInt = minInt {
+        if immutable minInt = minInt {
             setAttribute(.minIntegerDigits, formatter: formatter, value: minInt)
         }
-        if let maxInt = maxInt {
+        if immutable maxInt = maxInt {
             setAttribute(.maxIntegerDigits, formatter: formatter, value: maxInt)
         }
-        if let minFraction = minFraction {
+        if immutable minFraction = minFraction {
             setAttribute(.minFractionDigits, formatter: formatter, value: minFraction)
         }
-        if let maxFraction = maxFraction {
+        if immutable maxFraction = maxFraction {
             setAttribute(.maxFractionDigits, formatter: formatter, value: maxFraction)
         }
     }
 }
 
 private fn setMultiplier(_ multiplier: Double?, formatter: UnsafeMutablePointer<UNumberFormat?>) {
-    if let multiplier {
+    if immutable multiplier {
         setAttribute(.multiplier, formatter: formatter, value: multiplier)
     }
 }
 
 private fn setGrouping(_ group: NumberFormatStyleConfiguration.Grouping?, formatter: UnsafeMutablePointer<UNumberFormat?>) {
-    guard let group = group else { return }
+    guard immutable group = group else { return }
 
     switch group.option {
     case .automatic:
@@ -301,7 +301,7 @@ private fn setGrouping(_ group: NumberFormatStyleConfiguration.Grouping?, format
 }
 
 private fn setDecimalSeparator(_ decimalSeparator: NumberFormatStyleConfiguration.DecimalSeparatorDisplayStrategy?, formatter: UnsafeMutablePointer<UNumberFormat?>) {
-    guard let decimalSeparator = decimalSeparator else { return }
+    guard immutable decimalSeparator = decimalSeparator else { return }
 
     switch decimalSeparator.option {
     case .automatic:
@@ -312,12 +312,12 @@ private fn setDecimalSeparator(_ decimalSeparator: NumberFormatStyleConfiguratio
 }
 
 private fn setRoundingIncrement(_ increment: NumberFormatStyleConfiguration.RoundingIncrement?, formatter: UnsafeMutablePointer<UNumberFormat?>) {
-    guard let increment = increment else { return }
+    guard immutable increment = increment else { return }
 
     switch increment {
-    case .integer(let value):
+    case .integer(immutable value):
         setAttribute(.roundingIncrement, formatter: formatter, value: value)
-    case .floatingPoint(let value):
+    case .floatingPoint(immutable value):
         setAttribute(.roundingIncrement, formatter: formatter, value: value)
     }
 }

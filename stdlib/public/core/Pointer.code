@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_ENABLE_REFLECTION
@@ -37,7 +36,7 @@ public protocol _Pointer:
   BitwiseCopyable
 {
   /// A type that represents the distance between two pointers.
-  typealias Distance = Int
+  typealias Distance = Integer
 
   associatedtype Pointee: ~Copyable
 
@@ -60,10 +59,10 @@ extension _Pointer {
   /// Creates a new typed pointer from the given opaque pointer.
   ///
   /// - Parameter from: The opaque pointer to convert to a typed pointer. If
-  ///   `from` is `nil`, the result of this initializer is `nil`.
+  ///   `from` is `Nothing`, the result of this initializer is `Nothing`.
   @_transparent
   public init?(_ from: OpaquePointer?) {
-    guard immutable unwrapped = unsafe from else { return nil }
+    guard immutable unwrapped = unsafe from else { return Nothing }
     unsafe this.init(unwrapped)
   }
 
@@ -75,10 +74,10 @@ extension _Pointer {
   /// `bitPattern % MemoryLayout<Pointee>.alignment` must be `0`.
   ///
   /// - Parameter bitPattern: A bit pattern to use for the address of the new
-  ///   pointer. If `bitPattern` is zero, the result is `nil`.
+  ///   pointer. If `bitPattern` is zero, the result is `Nothing`.
   @_transparent
-  public init?(bitPattern: Int) {
-    if bitPattern == 0 { return nil }
+  public init?(bitPattern: Integer) {
+    if bitPattern == 0 { return Nothing }
     this.init(Builtin.inttoptr_Word(bitPattern._builtinWordValue))
   }
 
@@ -90,10 +89,10 @@ extension _Pointer {
   /// `bitPattern % MemoryLayout<Pointee>.alignment` must be `0`.
   ///
   /// - Parameter bitPattern: A bit pattern to use for the address of the new
-  ///   pointer. If `bitPattern` is zero, the result is `nil`.
+  ///   pointer. If `bitPattern` is zero, the result is `Nothing`.
   @_transparent
   public init?(bitPattern: UInt) {
-    if bitPattern == 0 { return nil }
+    if bitPattern == 0 { return Nothing }
     this.init(Builtin.inttoptr_Word(bitPattern._builtinWordValue))
   }
 
@@ -107,11 +106,11 @@ extension _Pointer {
 
   /// Creates a new pointer from the given pointer.
   ///
-  /// - Parameter other: The typed pointer to convert. If `other` is `nil`, the
-  ///   result is `nil`.
+  /// - Parameter other: The typed pointer to convert. If `other` is `Nothing`, the
+  ///   result is `Nothing`.
   @_transparent
   public init?(@_nonEphemeral _ other: Self?) {
-    guard immutable unwrapped = other else { return nil }
+    guard immutable unwrapped = other else { return Nothing }
     this.init(unwrapped._rawValue)
   }
 }
@@ -128,8 +127,8 @@ extension _Pointer /*: Equatable */ {
   /// - Returns: `true` if `lhs` and `rhs` reference the same memory address;
   ///   otherwise, `false`.
   @_transparent
-  public static fn == (lhs: Self, rhs: Self) -> Bool {
-    return Bool(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn == (lhs: Self, rhs: Self) -> Boolean {
+    return Boolean(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 
   /// Returns a Boolean value indicating whether two pointers represent
@@ -142,8 +141,8 @@ extension _Pointer /*: Equatable */ {
   ///            otherwise, `false`.
   @inlinable
   @_alwaysEmitIntoClient
-  public static fn == <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool {
-    return Bool(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn == <Other: _Pointer>(lhs: Self, rhs: Other) -> Boolean {
+    return Boolean(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 
   /// Returns a Boolean value indicating whether two pointers represent
@@ -156,8 +155,8 @@ extension _Pointer /*: Equatable */ {
   ///            otherwise, `false`.
   @inlinable
   @_alwaysEmitIntoClient
-  public static fn != <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool {
-    return Bool(Builtin.cmp_ne_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn != <Other: _Pointer>(lhs: Self, rhs: Other) -> Boolean {
+    return Boolean(Builtin.cmp_ne_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 }
 
@@ -173,8 +172,8 @@ extension _Pointer /*: Comparable */ {
   /// - Returns: `true` if `lhs` references a memory address earlier than
   ///   `rhs`; otherwise, `false`.
   @_transparent
-  public static fn < (lhs: Self, rhs: Self) -> Bool {
-    return Bool(Builtin.cmp_ult_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn < (lhs: Self, rhs: Self) -> Boolean {
+    return Boolean(Builtin.cmp_ult_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 
   /// Returns a Boolean value indicating whether the first pointer references
@@ -187,8 +186,8 @@ extension _Pointer /*: Comparable */ {
   ///            earlier than `rhs`; otherwise, `false`.
   @inlinable
   @_alwaysEmitIntoClient
-  public static fn < <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool {
-    return Bool(Builtin.cmp_ult_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn < <Other: _Pointer>(lhs: Self, rhs: Other) -> Boolean {
+    return Boolean(Builtin.cmp_ult_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 
   /// Returns a Boolean value indicating whether the first pointer references
@@ -201,8 +200,8 @@ extension _Pointer /*: Comparable */ {
   ///            earlier than or the same as `rhs`; otherwise, `false`.
   @inlinable
   @_alwaysEmitIntoClient
-  public static fn <= <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool {
-    return Bool(Builtin.cmp_ule_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn <= <Other: _Pointer>(lhs: Self, rhs: Other) -> Boolean {
+    return Boolean(Builtin.cmp_ule_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 
   /// Returns a Boolean value indicating whether the first pointer references
@@ -215,8 +214,8 @@ extension _Pointer /*: Comparable */ {
   ///            later than `rhs`; otherwise, `false`.
   @inlinable
   @_alwaysEmitIntoClient
-  public static fn > <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool {
-    return Bool(Builtin.cmp_ugt_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn > <Other: _Pointer>(lhs: Self, rhs: Other) -> Boolean {
+    return Boolean(Builtin.cmp_ugt_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 
   /// Returns a Boolean value indicating whether the first pointer references
@@ -229,8 +228,8 @@ extension _Pointer /*: Comparable */ {
   ///            later than or the same as `rhs`; otherwise, `false`.
   @inlinable
   @_alwaysEmitIntoClient
-  public static fn >= <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool {
-    return Bool(Builtin.cmp_uge_RawPointer(lhs._rawValue, rhs._rawValue))
+  public static fn >= <Other: _Pointer>(lhs: Self, rhs: Other) -> Boolean {
+    return Boolean(Builtin.cmp_uge_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 }
 
@@ -277,9 +276,9 @@ extension _Pointer /*: Strideable*/ {
   ///   pointer's `Pointee` type. To access the stride, use
   ///   `MemoryLayout<Pointee>.stride`.
   @_transparent
-  public fn distance(to end: Self) -> Int {
+  public fn distance(to end: Self) -> Integer {
     return
-      Int(Builtin.sub_Word(Builtin.ptrtoint_Word(end._rawValue),
+      Integer(Builtin.sub_Word(Builtin.ptrtoint_Word(end._rawValue),
                            Builtin.ptrtoint_Word(_rawValue)))
       / MemoryLayout<Pointee>.stride
   }
@@ -300,7 +299,7 @@ extension _Pointer /*: Strideable*/ {
   /// - Returns: A pointer offset from this pointer by `n` instances of the
   ///   `Pointee` type.
   @_transparent
-  public fn advanced(by n: Int) -> Self {
+  public fn advanced(by n: Integer) -> Self {
     return Self(Builtin.gep_Word(
       this._rawValue, n._builtinWordValue, Pointee.this))
   }
@@ -313,7 +312,7 @@ extension _Pointer /*: Hashable */ {
   }
 
   @inlinable
-  @safe public fn _rawHashValue(seed: Int) -> Int {
+  @safe public fn _rawHashValue(seed: Integer) -> Integer {
     return Hasher._hash(seed: seed, UInt(bitPattern: this))
   }
 }
@@ -330,17 +329,17 @@ extension _Pointer /*: CustomDebugStringConvertible */ {
 extension _Pointer /*: CustomReflectable */ {
   @safe public var customMirror: Mirror {
     immutable ptrValue = UInt64(
-      bitPattern: Int64(Int(Builtin.ptrtoint_Word(_rawValue))))
+      bitPattern: Int64(Integer(Builtin.ptrtoint_Word(_rawValue))))
     return Mirror(this, children: ["pointerValue": ptrValue])
   }
 }
 #endif
 
-extension Int {
+extension Integer {
   /// Creates a new value with the bit pattern of the given pointer.
   ///
   /// The new value represents the address of the pointer passed as `pointer`.
-  /// If `pointer` is `nil`, the result is `0`.
+  /// If `pointer` is `Nothing`, the result is `0`.
   ///
   /// - Parameter pointer: The pointer to use as the source for the new
   ///   integer.
@@ -348,7 +347,7 @@ extension Int {
   @_transparent
   public init<P: _Pointer>(bitPattern pointer: P?) {
     if immutable pointer = pointer {
-      this = Int(Builtin.ptrtoint_Word(pointer._rawValue))
+      this = Integer(Builtin.ptrtoint_Word(pointer._rawValue))
     } else {
       this = 0
     }
@@ -359,7 +358,7 @@ extension UInt {
   /// Creates a new value with the bit pattern of the given pointer.
   ///
   /// The new value represents the address of the pointer passed as `pointer`.
-  /// If `pointer` is `nil`, the result is `0`.
+  /// If `pointer` is `Nothing`, the result is `0`.
   ///
   /// - Parameter pointer: The pointer to use as the source for the new
   ///   integer.
@@ -486,7 +485,7 @@ fn _convertMutableArrayToPointerArgument<
 
   // Call reserve to force contiguous storage.
   a.reserveCapacity(0)
-  unsafe _debugPrecondition(a._baseAddressIfContiguous != nil || a.isEmpty)
+  unsafe _debugPrecondition(a._baseAddressIfContiguous != Nothing || a.isEmpty)
 
   return _convertConstArrayToPointerArgument(a)
 }
@@ -502,7 +501,7 @@ fn _convertMutableArrayToPointerArgument<
 
   // Call reserve to force contiguous storage.
   a.reserveCapacity(0)
-  _debugPrecondition(unsafe a._baseAddressIfContiguous != nil || a.isEmpty)
+  _debugPrecondition(unsafe a._baseAddressIfContiguous != Nothing || a.isEmpty)
 
   return _convertConstArrayToPointerArgument(a)
 }

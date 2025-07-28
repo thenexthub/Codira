@@ -1,0 +1,303 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.ZonedDateTime", implements: Temporal.this, ChronoZonedDateTime.this, Serializable.this)
+open class ZonedDateTime: JavaObject {
+  @JavaMethod
+  open fn withZoneSameInstant(_ arg0: ZoneId?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withZoneSameInstant(_ arg0: ZoneId?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn toOffsetDateTime() -> OffsetDateTime!
+
+  @JavaMethod
+  open fn withZoneSameLocal(_ arg0: ZoneId?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn withZoneSameLocal(_ arg0: ZoneId?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withLaterOffsetAtOverlap() -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn withLaterOffsetAtOverlap() -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withEarlierOffsetAtOverlap() -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn withEarlierOffsetAtOverlap() -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withFixedOffsetZone() -> ZonedDateTime!
+
+  @JavaMethod
+  open fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn format(_ arg0: DateTimeFormatter?) -> String
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalUnit?) -> Boolean
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  open fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn getOffset() -> ZoneOffset!
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open fn getNano() -> Int32
+
+  @JavaMethod
+  open fn getYear() -> Int32
+
+  @JavaMethod
+  open fn getMonthValue() -> Int32
+
+  @JavaMethod
+  open fn getDayOfMonth() -> Int32
+
+  @JavaMethod
+  open fn getHour() -> Int32
+
+  @JavaMethod
+  open fn getMinute() -> Int32
+
+  @JavaMethod
+  open fn getSecond() -> Int32
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn getZone() -> ZoneId!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open fn plusNanos(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusSeconds(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusDays(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusHours(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusMinutes(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusDays(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusHours(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusMinutes(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusSeconds(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusNanos(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn truncatedTo(_ arg0: TemporalUnit?) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn getMonth() -> Month!
+
+  @JavaMethod
+  open fn getDayOfWeek() -> DayOfWeek!
+
+  @JavaMethod
+  open fn getDayOfYear() -> Int32
+
+  @JavaMethod
+  open fn withDayOfMonth(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withDayOfYear(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusWeeks(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withMonth(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusMonths(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withYear(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn plusYears(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusMonths(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn toLocalTime() -> LocalTime!
+
+  @JavaMethod
+  open fn minusYears(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn minusWeeks(_ arg0: Int64) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn toLocalDateTime() -> LocalDateTime!
+
+  @JavaMethod
+  open fn toLocalDateTime() -> ChronoLocalDateTime!
+
+  @JavaMethod
+  open fn withHour(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withMinute(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withSecond(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn withNano(_ arg0: Int32) -> ZonedDateTime!
+
+  @JavaMethod
+  open fn toLocalDate() -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn toLocalDate() -> LocalDate!
+}
+extension JavaClass<ZonedDateTime> {
+  @JavaStaticMethod
+  public fn ofLocal(_ arg0: LocalDateTime?, _ arg1: ZoneId?, _ arg2: ZoneOffset?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn ofStrict(_ arg0: LocalDateTime?, _ arg1: ZoneOffset?, _ arg2: ZoneId?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32, _ arg4: Int32, _ arg5: Int32, _ arg6: Int32, _ arg7: ZoneId?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: LocalDateTime?, _ arg1: ZoneId?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: LocalDate?, _ arg1: LocalTime?, _ arg2: ZoneId?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?, _ arg1: DateTimeFormatter?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn now() -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: Clock?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: ZoneId?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn ofInstant(_ arg0: LocalDateTime?, _ arg1: ZoneOffset?, _ arg2: ZoneId?) -> ZonedDateTime!
+
+  @JavaStaticMethod
+  public fn ofInstant(_ arg0: Instant?, _ arg1: ZoneId?) -> ZonedDateTime!
+}

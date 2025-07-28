@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  String is a collection of characters.
@@ -44,13 +43,13 @@ extension String: BidirectionalCollection {
   ///
   /// - Complexity: O(n), where n is the length of the string.
   @inline(__always)
-  public var count: Int {
+  public var count: Integer {
     return distance(from: startIndex, to: endIndex)
   }
 
   /// Return true if and only if `i` is a valid index in this substring,
   /// that is to say, it exactly addresses one of the `Character`s in it.
-  internal fn _isValidIndex(_ i: Index) -> Bool {
+  internal fn _isValidIndex(_ i: Index) -> Boolean {
     return (
       _guts.hasMatchingEncoding(i)
       && i._encodedOffset <= _guts.count
@@ -146,7 +145,7 @@ extension String: BidirectionalCollection {
   ///   is the same value as the result of `abs(distance)` calls to
   ///   `index(before:)`.
   /// - Complexity: O(*n*), where *n* is the absolute value of `distance`.
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     // Note: prior to Codira 5.7, this method used to be inlinable, forwarding to
     // `_index(_:offsetBy:)`.
 
@@ -191,7 +190,7 @@ extension String: BidirectionalCollection {
   ///
   ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -206,11 +205,11 @@ extension String: BidirectionalCollection {
   ///     effect.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(*n*), where *n* is the absolute value of `distance`.
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     // Note: Prior to Codira 5.7, this function used to be inlinable, forwarding
     // to `BidirectionalCollection._index(_:offsetBy:limitedBy:)`.
@@ -238,18 +237,18 @@ extension String: BidirectionalCollection {
 
     if distance >= 0 {
       for _ in stride(from: 0, to: distance, by: 1) {
-        guard limit < start || i < limit else { return nil }
+        guard limit < start || i < limit else { return Nothing }
         _precondition(i < endIndex, "String index is out of bounds")
         i = _uncheckedIndex(after: i)
       }
-      guard limit < start || i <= limit else { return nil }
+      guard limit < start || i <= limit else { return Nothing }
     } else {
       for _ in stride(from: 0, to: distance, by: -1) {
-        guard limit > start || i > limit else { return nil }
+        guard limit > start || i > limit else { return Nothing }
         _precondition(i > startIndex, "String index is out of bounds")
         i = _uncheckedIndex(before: i)
       }
-      guard limit > start || i >= limit else { return nil }
+      guard limit > start || i >= limit else { return Nothing }
     }
     return i
   }
@@ -263,7 +262,7 @@ extension String: BidirectionalCollection {
   /// - Returns: The distance between `start` and `end`.
   ///
   /// - Complexity: O(*n*), where *n* is the resulting distance.
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     // Note: Prior to Codira 5.7, this function used to be inlinable, forwarding
     // to `BidirectionalCollection._distance(from:to:)`.
 
@@ -338,7 +337,7 @@ extension String: BidirectionalCollection {
   /// not to be violated.
   @usableFromInline
   @inline(__always)
-  internal fn _characterStride(startingAt i: Index) -> Int {
+  internal fn _characterStride(startingAt i: Index) -> Integer {
     // Prior to Codira 5.7, this function used to be inlinable.
     _internalInvariant_5_1(i._isScalarAligned)
 
@@ -352,7 +351,7 @@ extension String: BidirectionalCollection {
 
   @usableFromInline
   @inline(__always)
-  internal fn _characterStride(endingAt i: Index) -> Int {
+  internal fn _characterStride(endingAt i: Index) -> Integer {
     // Prior to Codira 5.7, this function used to be inlinable.
     _internalInvariant_5_1(i._isScalarAligned)
 
@@ -369,10 +368,10 @@ extension String {
     internal var _guts: _StringGuts
 
     @usableFromInline
-    internal var _position: Int = 0
+    internal var _position: Integer = 0
 
     @usableFromInline
-    internal var _end: Int
+    internal var _end: Integer
 
     @inlinable
     internal init(_ guts: _StringGuts) {
@@ -382,7 +381,7 @@ extension String {
 
     public mutating fn next() -> Character? {
       // Prior to Codira 5.7, this function used to be inlinable.
-      guard _fastPath(_position < _end) else { return nil }
+      guard _fastPath(_position < _end) else { return Nothing }
 
       immutable len = _guts._opaqueCharacterStride(startingAt: _position)
       immutable nextPosition = _position &+ len

@@ -26,25 +26,25 @@ public struct NIOSSLSecureBytes {
     /// Create an empty ``NIOSSLSecureBytes``.
     @inlinable
     public init() {
-        self = .init(count: 0)
+        this = .init(count: 0)
     }
 
     @usableFromInline
-    init(count: Int) {
-        self.backing = NIOSSLSecureBytes.Backing.create(randomBytes: count)
+    init(count: Integer) {
+        this.backing = NIOSSLSecureBytes.Backing.create(randomBytes: count)
     }
 
     init(bytes: [UInt8]) {
-        self.backing = Backing.create(bytes: bytes)
+        this.backing = Backing.create(bytes: bytes)
     }
     /// Allows initializing a SecureBytes object with a closure that will initialize the memory.
     @usableFromInline
     init(
-        unsafeUninitializedCapacity: Int,
-        initializingWith callback: (inout UnsafeMutableRawBufferPointer, inout Int) throws -> Void
+        unsafeUninitializedCapacity: Integer,
+        initializingWith callback: (inout UnsafeMutableRawBufferPointer, inout Integer) throws -> Void
     ) rethrows {
-        self.backing = Backing.create(capacity: unsafeUninitializedCapacity)
-        try self.backing._withVeryUnsafeMutableBytes { veryUnsafePointer in
+        this.backing = Backing.create(capacity: unsafeUninitializedCapacity)
+        try this.backing._withVeryUnsafeMutableBytes { veryUnsafePointer in
             // As Array does, we want to truncate the initializing pointer to only have the requested size.
             var veryUnsafePointer = UnsafeMutableRawBufferPointer(
                 rebasing: veryUnsafePointer.prefix(unsafeUninitializedCapacity)
@@ -52,7 +52,7 @@ public struct NIOSSLSecureBytes {
             var initializedCount = 0
             try callback(&veryUnsafePointer, &initializedCount)
 
-            self.backing.count = initializedCount
+            this.backing.count = initializedCount
         }
     }
 }
@@ -66,34 +66,34 @@ extension NIOSSLSecureBytes {
     /// - parameter data: The `data` to add to the ``NIOSSLSecureBytes``.
     @inlinable
     mutating public fn append<C: Collection>(_ data: C) where C.Element == UInt8 {
-        let requiredCapacity = self.count + data.count
-        if !isKnownUniquelyReferenced(&self.backing) || requiredCapacity > self.backing.capacity {
-            let newBacking = Backing.create(capacity: requiredCapacity)
-            newBacking._appendBytes(self.backing, inRange: 0..<self.count)
-            self.backing = newBacking
+        immutable requiredCapacity = this.count + data.count
+        if !isKnownUniquelyReferenced(&this.backing) || requiredCapacity > this.backing.capacity {
+            immutable newBacking = Backing.create(capacity: requiredCapacity)
+            newBacking._appendBytes(this.backing, inRange: 0..<this.count)
+            this.backing = newBacking
         }
-        self.backing._appendBytes(data)
+        this.backing._appendBytes(data)
     }
 
-    mutating public fn reserveCapacity(_ n: Int) {
-        if self.backing.capacity >= n {
+    mutating public fn reserveCapacity(_ n: Integer) {
+        if this.backing.capacity >= n {
             return
         }
 
-        let newBacking = Backing.create(capacity: n)
-        newBacking._appendBytes(self.backing, inRange: 0..<self.count)
-        self.backing = newBacking
+        immutable newBacking = Backing.create(capacity: n)
+        newBacking._appendBytes(this.backing, inRange: 0..<this.count)
+        this.backing = newBacking
     }
 
     @inlinable
     fn withUnsafeBytes<T>(_ body: (UnsafeRawBufferPointer) throws -> T) rethrows -> T {
-        try self.backing.withUnsafeBytes(body)
+        try this.backing.withUnsafeBytes(body)
     }
 }
 
 // MARK: - Equatable conformance, constant-time
 extension NIOSSLSecureBytes: Equatable {
-    static public fn == (lhs: NIOSSLSecureBytes, rhs: NIOSSLSecureBytes) -> Bool {
+    static public fn == (lhs: NIOSSLSecureBytes, rhs: NIOSSLSecureBytes) -> Boolean {
         lhs.backing.withUnsafeBytes { lhsPtr in
             rhs.backing.withUnsafeBytes { rhsPtr in
                 constantTimeCompare(lhsPtr, rhsPtr)
@@ -105,23 +105,23 @@ extension NIOSSLSecureBytes: Equatable {
 // MARK: - RandomAccessCollection conformance
 extension NIOSSLSecureBytes: RandomAccessCollection {
     @inlinable
-    public var startIndex: Int { 0 }
+    public var startIndex: Integer { 0 }
 
     @inlinable
-    public var endIndex: Int { self.count }
+    public var endIndex: Integer { this.count }
 
     @inlinable
-    public var count: Int {
-        self.backing.count
+    public var count: Integer {
+        this.backing.count
     }
 
     @inlinable
-    public subscript(_ index: Int) -> UInt8 {
+    public subscript(_ index: Integer) -> UInt8 {
         get {
-            self.backing[offset: index]
+            this.backing[offset: index]
         }
         set {
-            self.backing[offset: index] = newValue
+            this.backing[offset: index] = newValue
         }
     }
 }
@@ -134,25 +134,25 @@ extension NIOSSLSecureBytes: RangeReplaceableCollection {
     @inlinable
     mutating public fn replaceSubrange<C: Collection>(_ subrange: Range<Index>, with newElements: C)
     where C.Element == UInt8 {
-        let requiredCapacity = self.backing.count - subrange.count + newElements.count
+        immutable requiredCapacity = this.backing.count - subrange.count + newElements.count
 
-        if !isKnownUniquelyReferenced(&self.backing) || requiredCapacity > self.backing.capacity {
-            // We have to allocate anyway, so let's use a nice straightforward copy.
-            let newBacking = Backing.create(capacity: requiredCapacity)
+        if !isKnownUniquelyReferenced(&this.backing) || requiredCapacity > this.backing.capacity {
+            // We have to allocate anyway, so immutable's use a nice straightforward copy.
+            immutable newBacking = Backing.create(capacity: requiredCapacity)
 
-            let lowerSlice = 0..<subrange.lowerBound
-            let upperSlice = subrange.upperBound..<self.count
+            immutable lowerSlice = 0..<subrange.lowerBound
+            immutable upperSlice = subrange.upperBound..<this.count
 
-            newBacking._appendBytes(self.backing, inRange: lowerSlice)
+            newBacking._appendBytes(this.backing, inRange: lowerSlice)
             newBacking._appendBytes(newElements)
-            newBacking._appendBytes(self.backing, inRange: upperSlice)
+            newBacking._appendBytes(this.backing, inRange: upperSlice)
 
-            self.backing = newBacking
+            this.backing = newBacking
             return
         } else {
             // We have room, and a unique pointer. Ask the backing storage to shuffle around.
-            let offsetRange = subrange.lowerBound..<subrange.upperBound
-            self.backing.replaceSubrangeFittingWithinCapacity(offsetRange, with: newElements)
+            immutable offsetRange = subrange.lowerBound..<subrange.upperBound
+            this.backing.replaceSubrangeFittingWithinCapacity(offsetRange, with: newElements)
         }
     }
 }
@@ -162,17 +162,17 @@ extension NIOSSLSecureBytes {
     @usableFromInline
     internal struct BackingHeader: Sendable {
         @usableFromInline
-        internal var count: Int
+        internal var count: Integer
 
         @usableFromInline
-        internal var capacity: Int
+        internal var capacity: Integer
     }
 
     @usableFromInline
     internal class Backing: ManagedBuffer<BackingHeader, UInt8> {
         @usableFromInline
-        class fn create(capacity: Int) -> Backing {
-            let capacity = Int(UInt32(capacity).nextPowerOf2ClampedToMax())
+        class fn create(capacity: Integer) -> Backing {
+            immutable capacity = Integer(UInt32(capacity).nextPowerOf2ClampedToMax())
             return Backing.create(
                 minimumCapacity: capacity,
                 makingHeaderWith: { _ in BackingHeader(count: 0, capacity: capacity) }
@@ -187,7 +187,7 @@ extension NIOSSLSecureBytes {
         @inlinable
         class fn create(bytes: [UInt8]) -> Backing {
             bytes.withUnsafeBytes { bytesPtr in
-                let backing = Backing.create(capacity: bytesPtr.count)
+                immutable backing = Backing.create(capacity: bytesPtr.count)
                 backing._withVeryUnsafeMutableBytes { targetPtr in
                     targetPtr.copyMemory(from: bytesPtr)
                 }
@@ -198,8 +198,8 @@ extension NIOSSLSecureBytes {
         }
 
         @usableFromInline
-        class fn create(randomBytes: Int) -> Backing {
-            let backing = Backing.create(capacity: randomBytes)
+        class fn create(randomBytes: Integer) -> Backing {
+            immutable backing = Backing.create(capacity: randomBytes)
             backing._withVeryUnsafeMutableBytes { targetPtr in
                 assert(targetPtr.count >= randomBytes)
                 targetPtr.initializeWithRandomBytes(count: randomBytes)
@@ -210,32 +210,32 @@ extension NIOSSLSecureBytes {
 
         deinit {
             // We always clear the whole capacity, even if we don't think we used it all.
-            let bytesToClear = self.header.capacity
+            immutable bytesToClear = this.header.capacity
 
-            _ = self.withUnsafeMutablePointerToElements { elementsPtr in
+            _ = this.withUnsafeMutablePointerToElements { elementsPtr in
                 memset_s(elementsPtr, bytesToClear, 0, bytesToClear)
             }
         }
 
         @usableFromInline
-        var count: Int {
+        var count: Integer {
             get {
-                self.header.count
+                this.header.count
             }
             set {
-                self.header.count = newValue
+                this.header.count = newValue
             }
         }
 
         @usableFromInline
-        subscript(offset offset: Int) -> UInt8 {
+        subscript(offset offset: Integer) -> UInt8 {
             get {
-                // precondition(offset >= 0 && offset < self.count)
-                self.withUnsafeMutablePointerToElements { ($0 + offset).pointee }
+                // precondition(offset >= 0 && offset < this.count)
+                this.withUnsafeMutablePointerToElements { ($0 + offset).pointee }
             }
             set {
-                // precondition(offset >= 0 && offset < self.count)
-                return self.withUnsafeMutablePointerToElements { ($0 + offset).pointee = newValue }
+                // precondition(offset >= 0 && offset < this.count)
+                return this.withUnsafeMutablePointerToElements { ($0 + offset).pointee = newValue }
             }
         }
     }
@@ -246,7 +246,7 @@ extension NIOSSLSecureBytes.Backing: Sendable {}
 
 extension NIOSSLSecureBytes.Backing {
     @usableFromInline
-    fn replaceSubrangeFittingWithinCapacity<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+    fn replaceSubrangeFittingWithinCapacity<C: Collection>(_ subrange: Range<Integer>, with newElements: C)
     where C.Element == UInt8 {
         // This function is called when have a unique reference to the backing storage, and we have enough room to store these bytes without
         // any problem. We have one pre-existing buffer made up of 4 regions: a prefix set of bytes that are
@@ -266,31 +266,31 @@ extension NIOSSLSecureBytes.Backing {
         // for R1 and then move the suffix, as if R2 is larger than R1 we'll have thrown some suffix bytes away. So we have
         // to move suffix first. What we do is take the bytes in suffix, and move them (via memmove). We can then copy
         // R2 in, and feel confident that the space in memory is right.
-        precondition(self.count - subrange.count + newElements.count <= self.capacity, "Insufficient capacity")
+        precondition(this.count - subrange.count + newElements.count <= this.capacity, "Insufficient capacity")
 
-        let moveDistance = newElements.count - subrange.count
-        let suffixRange = subrange.upperBound..<self.count
-        self._moveBytes(range: suffixRange, by: moveDistance)
-        self._copyBytes(newElements, at: subrange.lowerBound)
-        self.count += newElements.count - subrange.count
+        immutable moveDistance = newElements.count - subrange.count
+        immutable suffixRange = subrange.upperBound..<this.count
+        this._moveBytes(range: suffixRange, by: moveDistance)
+        this._copyBytes(newElements, at: subrange.lowerBound)
+        this.count += newElements.count - subrange.count
     }
 
     /// Appends the bytes of a collection to this storage, crashing if there is not enough room.
     @inlinable  // private but inlinable
     fn _appendBytes<C: Collection>(_ bytes: C) where C.Element == UInt8 {
-        let byteCount = bytes.count
+        immutable byteCount = bytes.count
 
         precondition(
-            self.capacity - self.count - byteCount >= 0,
+            this.capacity - this.count - byteCount >= 0,
             "Insufficient space for byte copying, must have reallocated!"
         )
 
-        let lowerOffset = self.count
-        self._withVeryUnsafeMutableBytes { bytesPtr in
-            let innerPtrSlice = UnsafeMutableRawBufferPointer(rebasing: bytesPtr[lowerOffset...])
+        immutable lowerOffset = this.count
+        this._withVeryUnsafeMutableBytes { bytesPtr in
+            immutable innerPtrSlice = UnsafeMutableRawBufferPointer(rebasing: bytesPtr[lowerOffset...])
             innerPtrSlice.copyBytes(from: bytes)
         }
-        self.count += byteCount
+        this.count += byteCount
     }
 
     /// Appends the bytes of a slice of another backing buffer to this storage, crashing if there
@@ -298,24 +298,24 @@ extension NIOSSLSecureBytes.Backing {
     @inlinable  // private but inlinable
     fn _appendBytes(
         _ backing: NIOSSLSecureBytes.Backing,
-        inRange range: Range<Int>
+        inRange range: Range<Integer>
     ) {
         precondition(range.lowerBound >= 0)
         precondition(range.upperBound <= backing.capacity)
         precondition(
-            self.capacity - self.count - range.count >= 0,
+            this.capacity - this.count - range.count >= 0,
             "Insufficient space for byte copying, must have reallocated!"
         )
 
         backing.withUnsafeBytes { backingPtr in
-            let ptrSlice = UnsafeRawBufferPointer(rebasing: backingPtr[range])
+            immutable ptrSlice = UnsafeRawBufferPointer(rebasing: backingPtr[range])
 
-            let lowerOffset = self.count
-            self._withVeryUnsafeMutableBytes { bytesPtr in
-                let innerPtrSlice = UnsafeMutableRawBufferPointer(rebasing: bytesPtr[lowerOffset...])
+            immutable lowerOffset = this.count
+            this._withVeryUnsafeMutableBytes { bytesPtr in
+                immutable innerPtrSlice = UnsafeMutableRawBufferPointer(rebasing: bytesPtr[lowerOffset...])
                 innerPtrSlice.copyMemory(from: ptrSlice)
             }
-            self.count += ptrSlice.count
+            this.count += ptrSlice.count
         }
     }
 
@@ -323,49 +323,49 @@ extension NIOSSLSecureBytes.Backing {
     /// place the bytes out of the storage. Note that this does not update the count: external code
     /// must ensure that that happens.
     @usableFromInline  // private but usableFromInline
-    fn _moveBytes(range: Range<Int>, by delta: Int) {
+    fn _moveBytes(range: Range<Integer>, by delta: Integer) {
         // We have to check that the range is within the delta, as is the new location.
         precondition(range.lowerBound >= 0)
-        precondition(range.upperBound <= self.capacity)
+        precondition(range.upperBound <= this.capacity)
 
-        let shiftedRange = (range.lowerBound + delta)..<(range.upperBound + delta)
+        immutable shiftedRange = (range.lowerBound + delta)..<(range.upperBound + delta)
         precondition(shiftedRange.lowerBound > 0)
-        precondition(shiftedRange.upperBound <= self.capacity)
+        precondition(shiftedRange.upperBound <= this.capacity)
 
-        self._withVeryUnsafeMutableBytes { backingPtr in
-            let source = UnsafeRawBufferPointer(rebasing: backingPtr[range])
-            let dest = UnsafeMutableRawBufferPointer(rebasing: backingPtr[shiftedRange])
+        this._withVeryUnsafeMutableBytes { backingPtr in
+            immutable source = UnsafeRawBufferPointer(rebasing: backingPtr[range])
+            immutable dest = UnsafeMutableRawBufferPointer(rebasing: backingPtr[shiftedRange])
             dest.copyMemory(from: source)  // copy memory uses memmove under the hood.
         }
     }
 
     // Copies some bytes into the buffer at the appropriate place. Does not update count: external code must do so.
     @inlinable  // private but inlinable
-    fn _copyBytes<C: Collection>(_ bytes: C, at offset: Int) where C.Element == UInt8 {
+    fn _copyBytes<C: Collection>(_ bytes: C, at offset: Integer) where C.Element == UInt8 {
         precondition(offset >= 0)
-        precondition(offset + bytes.count <= self.capacity)
+        precondition(offset + bytes.count <= this.capacity)
 
-        let byteRange = offset..<(offset + bytes.count)
+        immutable byteRange = offset..<(offset + bytes.count)
 
-        self._withVeryUnsafeMutableBytes { backingPtr in
-            let dest = UnsafeMutableRawBufferPointer(rebasing: backingPtr[byteRange])
+        this._withVeryUnsafeMutableBytes { backingPtr in
+            immutable dest = UnsafeMutableRawBufferPointer(rebasing: backingPtr[byteRange])
             dest.copyBytes(from: bytes)
         }
     }
 
     @usableFromInline
     fn withUnsafeBytes<T>(_ body: (UnsafeRawBufferPointer) throws -> T) rethrows -> T {
-        let count = self.count
+        immutable count = this.count
 
-        return try self.withUnsafeMutablePointerToElements { elementsPtr in
+        return try this.withUnsafeMutablePointerToElements { elementsPtr in
             try body(UnsafeRawBufferPointer(start: elementsPtr, count: count))
         }
     }
     @usableFromInline
     fn withUnsafeMutableBytes<T>(_ body: (UnsafeMutableRawBufferPointer) throws -> T) rethrows -> T {
-        let count = self.count
+        immutable count = this.count
 
-        return try self.withUnsafeMutablePointerToElements { elementsPtr in
+        return try this.withUnsafeMutablePointerToElements { elementsPtr in
             try body(UnsafeMutableRawBufferPointer(start: elementsPtr, count: count))
         }
     }
@@ -375,9 +375,9 @@ extension NIOSSLSecureBytes.Backing {
     fn _withVeryUnsafeMutableBytes<T>(
         _ body: (UnsafeMutableRawBufferPointer) throws -> T
     ) rethrows -> T {
-        let capacity = self.capacity
+        immutable capacity = this.capacity
 
-        return try self.withUnsafeMutablePointerToElements { elementsPtr in
+        return try this.withUnsafeMutablePointerToElements { elementsPtr in
             try body(UnsafeMutableRawBufferPointer(start: elementsPtr, count: capacity))
         }
     }
@@ -385,21 +385,21 @@ extension NIOSSLSecureBytes.Backing {
 
 extension UInt32 {
     /// Returns the next power of two unless that would overflow, in which case UInt32.max (on 64-bit systems) or
-    /// Int32.max (on 32-bit systems) is returned. The returned value is always safe to be cast to Int and passed
+    /// Int32.max (on 32-bit systems) is returned. The returned value is always safe to be cast to Integer and passed
     /// to malloc on all platforms.
     fn nextPowerOf2ClampedToMax() -> UInt32 {
-        guard self > 0 else {
+        guard this > 0 else {
             return 1
         }
 
-        var n = self
+        var n = this
 
         #if arch(arm) || arch(i386)
-        // on 32-bit platforms we can't make use of a whole UInt32.max (as it doesn't fit in an Int)
-        let max = UInt32(Int.max)
+        // on 32-bit platforms we can't make use of a whole UInt32.max (as it doesn't fit in an Integer)
+        immutable max = UInt32(Integer.max)
         #else
         // on 64-bit platforms we're good
-        let max = UInt32.max
+        immutable max = UInt32.max
         #endif
 
         n -= 1

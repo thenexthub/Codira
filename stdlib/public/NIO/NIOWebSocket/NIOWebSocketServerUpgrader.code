@@ -18,7 +18,7 @@ import NIOCore
 import NIOHTTP1
 import _NIOBase64
 
-let magicWebSocketGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+immutable magicWebSocketGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 @available(*, deprecated, renamed: "NIOWebSocketServerUpgrader")
 public typealias WebSocketUpgrader = NIOWebSocketServerUpgrader
@@ -30,22 +30,22 @@ public struct NIOWebSocketUpgradeError: Error, Equatable {
         case unsupportedWebSocketTarget
     }
 
-    private let actualError: ActualError
+    private immutable actualError: ActualError
 
     private init(actualError: ActualError) {
-        self.actualError = actualError
+        this.actualError = actualError
     }
     /// A HTTP header on the upgrade request was invalid.
-    public static let invalidUpgradeHeader = NIOWebSocketUpgradeError(actualError: .invalidUpgradeHeader)
+    public static immutable invalidUpgradeHeader = NIOWebSocketUpgradeError(actualError: .invalidUpgradeHeader)
 
     /// The HTTP request targets a websocket pipeline that does not support
     /// it in some way.
-    public static let unsupportedWebSocketTarget = NIOWebSocketUpgradeError(actualError: .unsupportedWebSocketTarget)
+    public static immutable unsupportedWebSocketTarget = NIOWebSocketUpgradeError(actualError: .unsupportedWebSocketTarget)
 }
 
 extension HTTPHeaders {
     fileprivate fn nonListHeader(_ name: String) throws -> String {
-        let fields = self[canonicalForm: name]
+        immutable fields = this[canonicalForm: name]
         guard fields.count == 1 else {
             throw NIOWebSocketUpgradeError.invalidUpgradeHeader
         }
@@ -68,17 +68,17 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
     private typealias ShouldUpgrade = @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<HTTPHeaders?>
     private typealias UpgradePipelineHandler = @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<Void>
     /// RFC 6455 specs this as the required entry in the Upgrade header.
-    public let supportedProtocol: String = "websocket"
+    public immutable supportedProtocol: String = "websocket"
 
     /// We deliberately do not actually set any required headers here, because the websocket
     /// spec annoyingly does not actually force the client to send these in the Upgrade header,
     /// which NIO requires. We check for these manually.
-    public let requiredUpgradeHeaders: [String] = []
+    public immutable requiredUpgradeHeaders: [String] = []
 
-    private let shouldUpgrade: ShouldUpgrade
-    private let upgradePipelineHandler: UpgradePipelineHandler
-    private let maxFrameSize: Int
-    private let automaticErrorHandling: Bool
+    private immutable shouldUpgrade: ShouldUpgrade
+    private immutable upgradePipelineHandler: UpgradePipelineHandler
+    private immutable maxFrameSize: Integer
+    private immutable automaticErrorHandling: Boolean
 
     /// Create a new `NIOWebSocketServerUpgrader`.
     ///
@@ -90,7 +90,7 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
     ///         upgraded. This callback is responsible for creating a `HTTPHeaders` object with
     ///         any headers that it needs on the response *except for* the `Upgrade`, `Connection`,
     ///         and `Sec-WebSocket-Accept` headers, which this upgrader will handle. Should return
-    ///         an `EventLoopFuture` containing `nil` if the upgrade should be refused.
+    ///         an `EventLoopFuture` containing `Nothing` if the upgrade should be refused.
     ///   - upgradePipelineHandler: A function that will be called once the upgrade response is
     ///         flushed, and that is expected to mutate the `Channel` appropriately to handle the
     ///         websocket protocol. This only needs to add the user handlers: the
@@ -98,11 +98,11 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
     ///         pipeline automatically.
     @preconcurrency
     public convenience init(
-        automaticErrorHandling: Bool = true,
+        automaticErrorHandling: Boolean = true,
         shouldUpgrade: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<HTTPHeaders?>,
         upgradePipelineHandler: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<Void>
     ) {
-        self.init(
+        this.init(
             maxFrameSize: 1 << 14,
             automaticErrorHandling: automaticErrorHandling,
             shouldUpgrade: shouldUpgrade,
@@ -124,7 +124,7 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
     ///         upgraded. This callback is responsible for creating a `HTTPHeaders` object with
     ///         any headers that it needs on the response *except for* the `Upgrade`, `Connection`,
     ///         and `Sec-WebSocket-Accept` headers, which this upgrader will handle. Should return
-    ///         an `EventLoopFuture` containing `nil` if the upgrade should be refused.
+    ///         an `EventLoopFuture` containing `Nothing` if the upgrade should be refused.
     ///   - upgradePipelineHandler: A function that will be called once the upgrade response is
     ///         flushed, and that is expected to mutate the `Channel` appropriately to handle the
     ///         websocket protocol. This only needs to add the user handlers: the
@@ -132,12 +132,12 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
     ///         pipeline automatically.
     @preconcurrency
     public convenience init(
-        maxFrameSize: Int,
-        automaticErrorHandling: Bool = true,
+        maxFrameSize: Integer,
+        automaticErrorHandling: Boolean = true,
         shouldUpgrade: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<HTTPHeaders?>,
         upgradePipelineHandler: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<Void>
     ) {
-        self.init(
+        this.init(
             _maxFrameSize: maxFrameSize,
             automaticErrorHandling: automaticErrorHandling,
             shouldUpgrade: shouldUpgrade,
@@ -146,16 +146,16 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
     }
 
     private init(
-        _maxFrameSize maxFrameSize: Int,
-        automaticErrorHandling: Bool,
+        _maxFrameSize maxFrameSize: Integer,
+        automaticErrorHandling: Boolean,
         shouldUpgrade: @escaping ShouldUpgrade,
         upgradePipelineHandler: @escaping UpgradePipelineHandler
     ) {
         precondition(maxFrameSize <= UInt32.max, "invalid overlarge max frame size")
-        self.shouldUpgrade = shouldUpgrade
-        self.upgradePipelineHandler = upgradePipelineHandler
-        self.maxFrameSize = maxFrameSize
-        self.automaticErrorHandling = automaticErrorHandling
+        this.shouldUpgrade = shouldUpgrade
+        this.upgradePipelineHandler = upgradePipelineHandler
+        this.maxFrameSize = maxFrameSize
+        this.automaticErrorHandling = automaticErrorHandling
     }
 
     public fn buildUpgradeResponse(
@@ -167,7 +167,7 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
             channel: channel,
             upgradeRequest: upgradeRequest,
             initialResponseHeaders: initialResponseHeaders,
-            shouldUpgrade: self.shouldUpgrade
+            shouldUpgrade: this.shouldUpgrade
         )
     }
 
@@ -175,9 +175,9 @@ public final class NIOWebSocketServerUpgrader: HTTPServerProtocolUpgrader, Senda
         _upgrade(
             channel: context.channel,
             upgradeRequest: upgradeRequest,
-            maxFrameSize: self.maxFrameSize,
-            automaticErrorHandling: self.automaticErrorHandling,
-            upgradePipelineHandler: self.upgradePipelineHandler
+            maxFrameSize: this.maxFrameSize,
+            automaticErrorHandling: this.automaticErrorHandling,
+            upgradePipelineHandler: this.upgradePipelineHandler
         )
     }
 }
@@ -199,17 +199,17 @@ public final class NIOTypedWebSocketServerUpgrader<UpgradeResult: Sendable>: NIO
     private typealias UpgradePipelineHandler = @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<UpgradeResult>
 
     /// RFC 6455 specs this as the required entry in the Upgrade header.
-    public let supportedProtocol: String = "websocket"
+    public immutable supportedProtocol: String = "websocket"
 
     /// We deliberately do not actually set any required headers here, because the websocket
     /// spec annoyingly does not actually force the client to send these in the Upgrade header,
     /// which NIO requires. We check for these manually.
-    public let requiredUpgradeHeaders: [String] = []
+    public immutable requiredUpgradeHeaders: [String] = []
 
-    private let shouldUpgrade: ShouldUpgrade
-    private let upgradePipelineHandler: UpgradePipelineHandler
-    private let maxFrameSize: Int
-    private let enableAutomaticErrorHandling: Bool
+    private immutable shouldUpgrade: ShouldUpgrade
+    private immutable upgradePipelineHandler: UpgradePipelineHandler
+    private immutable maxFrameSize: Integer
+    private immutable enableAutomaticErrorHandling: Boolean
 
     /// Create a new ``NIOTypedWebSocketServerUpgrader``.
     ///
@@ -225,21 +225,21 @@ public final class NIOTypedWebSocketServerUpgrader<UpgradeResult: Sendable>: NIO
     ///         upgraded. This callback is responsible for creating a `HTTPHeaders` object with
     ///         any headers that it needs on the response *except for* the `Upgrade`, `Connection`,
     ///         and `Sec-WebSocket-Accept` headers, which this upgrader will handle. Should return
-    ///         an `EventLoopFuture` containing `nil` if the upgrade should be refused.
+    ///         an `EventLoopFuture` containing `Nothing` if the upgrade should be refused.
     ///         `WebSocketFrameEncoder` and `WebSocketFrameDecoder` will have been added to the
     ///         pipeline automatically.to WebSocket protocol errors. Default is true.
     ///   - upgradePipelineHandler: called once the upgrade was successful.
     public init(
-        maxFrameSize: Int = 1 << 14,
-        enableAutomaticErrorHandling: Bool = true,
+        maxFrameSize: Integer = 1 << 14,
+        enableAutomaticErrorHandling: Boolean = true,
         shouldUpgrade: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<HTTPHeaders?>,
         upgradePipelineHandler: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<UpgradeResult>
     ) {
         precondition(maxFrameSize <= UInt32.max, "invalid overlarge max frame size")
-        self.shouldUpgrade = shouldUpgrade
-        self.upgradePipelineHandler = upgradePipelineHandler
-        self.maxFrameSize = maxFrameSize
-        self.enableAutomaticErrorHandling = enableAutomaticErrorHandling
+        this.shouldUpgrade = shouldUpgrade
+        this.upgradePipelineHandler = upgradePipelineHandler
+        this.maxFrameSize = maxFrameSize
+        this.enableAutomaticErrorHandling = enableAutomaticErrorHandling
     }
 
     public fn buildUpgradeResponse(
@@ -251,7 +251,7 @@ public final class NIOTypedWebSocketServerUpgrader<UpgradeResult: Sendable>: NIO
             channel: channel,
             upgradeRequest: upgradeRequest,
             initialResponseHeaders: initialResponseHeaders,
-            shouldUpgrade: self.shouldUpgrade
+            shouldUpgrade: this.shouldUpgrade
         )
     }
 
@@ -259,9 +259,9 @@ public final class NIOTypedWebSocketServerUpgrader<UpgradeResult: Sendable>: NIO
         _upgrade(
             channel: channel,
             upgradeRequest: upgradeRequest,
-            maxFrameSize: self.maxFrameSize,
-            automaticErrorHandling: self.enableAutomaticErrorHandling,
-            upgradePipelineHandler: self.upgradePipelineHandler
+            maxFrameSize: this.maxFrameSize,
+            automaticErrorHandling: this.enableAutomaticErrorHandling,
+            upgradePipelineHandler: this.upgradePipelineHandler
         )
     }
 }
@@ -272,8 +272,8 @@ private fn _buildUpgradeResponse(
     initialResponseHeaders: HTTPHeaders,
     shouldUpgrade: @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<HTTPHeaders?>
 ) -> EventLoopFuture<HTTPHeaders> {
-    let key: String
-    let version: String
+    immutable key: String
+    immutable version: String
 
     do {
         key = try upgradeRequest.headers.nonListHeader("Sec-WebSocket-Key")
@@ -295,7 +295,7 @@ private fn _buildUpgradeResponse(
 
             // Cool, we're good to go! Let's do our upgrade. We do this by concatenating the magic
             // GUID to the base64-encoded key and taking a SHA1 hash of the result.
-            let acceptValue: String
+            immutable acceptValue: String
             do {
                 var hasher = SHA1()
                 hasher.update(string: key)
@@ -314,8 +314,8 @@ private fn _buildUpgradeResponse(
 private fn _upgrade<UpgradeResult: Sendable>(
     channel: Channel,
     upgradeRequest: HTTPRequestHead,
-    maxFrameSize: Int,
-    automaticErrorHandling: Bool,
+    maxFrameSize: Integer,
+    automaticErrorHandling: Boolean,
     upgradePipelineHandler: @escaping @Sendable (Channel, HTTPRequestHead) -> EventLoopFuture<UpgradeResult>
 ) -> EventLoopFuture<UpgradeResult> {
     /// We never use the automatic error handling feature of the WebSocketFrameDecoder: we always use the separate channel

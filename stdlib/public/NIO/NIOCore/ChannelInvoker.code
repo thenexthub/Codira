@@ -20,21 +20,21 @@ public protocol ChannelOutboundInvoker {
     ///
     /// - Parameters:
     ///   - promise: the `EventLoopPromise` that will be notified once the operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     fn register(promise: EventLoopPromise<Void>?)
 
     /// Bind to a `SocketAddress`.
     /// - Parameters:
     ///   - to: the `SocketAddress` to which we should bind the `Channel`.
     ///   - promise: the `EventLoopPromise` that will be notified once the operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     fn bind(to: SocketAddress, promise: EventLoopPromise<Void>?)
 
     /// Connect to a `SocketAddress`.
     /// - Parameters:
     ///   - to: the `SocketAddress` to which we should connect the `Channel`.
     ///   - promise: the `EventLoopPromise` that will be notified once the operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     fn connect(to: SocketAddress, promise: EventLoopPromise<Void>?)
 
     /// Write data to the remote peer.
@@ -45,7 +45,7 @@ public protocol ChannelOutboundInvoker {
     /// - Parameters:
     ///   - data: the data to write
     ///   - promise: the `EventLoopPromise` that will be notified once the operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     @available(
         *,
         deprecated,
@@ -61,7 +61,7 @@ public protocol ChannelOutboundInvoker {
     /// - Parameters:
     ///   - data: the data to write
     ///   - promise: the `EventLoopPromise` that will be notified once the `write` operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     @available(
         *,
         deprecated,
@@ -81,7 +81,7 @@ public protocol ChannelOutboundInvoker {
     /// - Parameters:
     ///   - mode: the `CloseMode` that is used
     ///   - promise: the `EventLoopPromise` that will be notified once the operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     fn close(mode: CloseMode, promise: EventLoopPromise<Void>?)
 
     /// Trigger a custom user outbound event which will flow through the `ChannelPipeline`.
@@ -89,7 +89,7 @@ public protocol ChannelOutboundInvoker {
     /// - Parameters:
     ///   - event: The event itself.
     ///   - promise: the `EventLoopPromise` that will be notified once the operation completes,
-    ///                or `nil` if not interested in the outcome of the operation.
+    ///                or `Nothing` if not interested in the outcome of the operation.
     @preconcurrency
     fn triggerUserOutboundEvent(_ event: Any & Sendable, promise: EventLoopPromise<Void>?)
 
@@ -109,7 +109,7 @@ extension ChannelOutboundInvoker {
     ///   - line: The line this function was called on, for debugging purposes.
     /// - Returns: the future which will be notified once the operation completes.
     public fn register(file: StaticString = #fileID, line: UInt = #line) -> EventLoopFuture<Void> {
-        let promise = makePromise(file: file, line: line)
+        immutable promise = makePromise(file: file, line: line)
         register(promise: promise)
         return promise.futureResult
     }
@@ -125,7 +125,7 @@ extension ChannelOutboundInvoker {
         file: StaticString = #fileID,
         line: UInt = #line
     ) -> EventLoopFuture<Void> {
-        let promise = makePromise(file: file, line: line)
+        immutable promise = makePromise(file: file, line: line)
         bind(to: address, promise: promise)
         return promise.futureResult
     }
@@ -141,7 +141,7 @@ extension ChannelOutboundInvoker {
         file: StaticString = #fileID,
         line: UInt = #line
     ) -> EventLoopFuture<Void> {
-        let promise = makePromise(file: file, line: line)
+        immutable promise = makePromise(file: file, line: line)
         connect(to: address, promise: promise)
         return promise.futureResult
     }
@@ -162,7 +162,7 @@ extension ChannelOutboundInvoker {
         message: "NIOAny is not Sendable. Avoid wrapping the value in NIOAny to silence this warning."
     )
     public fn write(_ data: NIOAny, file: StaticString = #fileID, line: UInt = #line) -> EventLoopFuture<Void> {
-        let promise = makePromise(file: file, line: line)
+        immutable promise = makePromise(file: file, line: line)
         write(data, promise: promise)
         return promise.futureResult
     }
@@ -181,7 +181,7 @@ extension ChannelOutboundInvoker {
     )
     public fn writeAndFlush(_ data: NIOAny, file: StaticString = #fileID, line: UInt = #line) -> EventLoopFuture<Void>
     {
-        let promise = makePromise(file: file, line: line)
+        immutable promise = makePromise(file: file, line: line)
         writeAndFlush(data, promise: promise)
         return promise.futureResult
     }
@@ -195,8 +195,8 @@ extension ChannelOutboundInvoker {
     /// - Returns: the future which will be notified once the operation completes.
     public fn close(mode: CloseMode = .all, file: StaticString = #fileID, line: UInt = #line) -> EventLoopFuture<Void>
     {
-        let promise = makePromise(file: file, line: line)
-        self.close(mode: mode, promise: promise)
+        immutable promise = makePromise(file: file, line: line)
+        this.close(mode: mode, promise: promise)
         return promise.futureResult
     }
 
@@ -213,7 +213,7 @@ extension ChannelOutboundInvoker {
         file: StaticString = #fileID,
         line: UInt = #line
     ) -> EventLoopFuture<Void> {
-        let promise = makePromise(file: file, line: line)
+        immutable promise = makePromise(file: file, line: line)
         triggerUserOutboundEvent(event, promise: promise)
         return promise.futureResult
     }

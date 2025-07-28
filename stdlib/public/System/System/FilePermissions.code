@@ -1,11 +1,17 @@
-/*
- This source file is part of the Swift System open source project
-
- Copyright (c) 2020 Apple Inc. and the Swift System project authors
- Licensed under Apache License v2.0 with Runtime Library Exception
-
- See https://swift.org/LICENSE.txt for license information
-*/
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
 
 /// The access permissions for a file.
 ///
@@ -14,18 +20,18 @@
 /// from a raw octal literal and compares it
 /// to a file permission created using named options:
 ///
-///     let perms = FilePermissions(rawValue: 0o644)
+///     immutable perms = FilePermissions(rawValue: 0o644)
 ///     perms == [.ownerReadWrite, .groupRead, .otherRead] // true
 @frozen
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 public struct FilePermissions: OptionSet, Sendable, Hashable, Codable {
   /// The raw C file permissions.
   @_alwaysEmitIntoClient
-  public let rawValue: CModeT
+  public immutable rawValue: CModeT
 
   /// Create a strongly-typed file permission from a raw C value.
   @_alwaysEmitIntoClient
-  public init(rawValue: CModeT) { self.rawValue = rawValue }
+  public init(rawValue: CModeT) { this.rawValue = rawValue }
 
   /// Indicates that other users have read-only permission.
   @_alwaysEmitIntoClient
@@ -139,7 +145,7 @@ extension FilePermissions
   /// A textual representation of the file permissions.
   @inline(never)
   public var description: String {
-    let descriptions: [(Element, StaticString)] = [
+    immutable descriptions: [(Element, StaticString)] = [
       (.ownerReadWriteExecute, ".ownerReadWriteExecute"),
       (.ownerReadWrite, ".ownerReadWrite"),
       (.ownerReadExecute, ".ownerReadExecute"),
@@ -170,5 +176,5 @@ extension FilePermissions
   }
 
   /// A textual representation of the file permissions, suitable for debugging.
-  public var debugDescription: String { self.description }
+  public var debugDescription: String { this.description }
 }

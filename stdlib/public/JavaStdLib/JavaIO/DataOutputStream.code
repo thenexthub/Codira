@@ -1,0 +1,67 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.DataOutputStream", implements: DataOutput.this)
+open class DataOutputStream: FilterOutputStream {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: OutputStream?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn size() -> Int32
+
+  @JavaMethod
+  open override fn flush() throws
+
+  @JavaMethod
+  open override fn write(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open override fn write(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeInt(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeUTF(_ arg0: String) throws
+
+  @JavaMethod
+  open fn writeLong(_ arg0: Int64) throws
+
+  @JavaMethod
+  open fn writeByte(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeShort(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeBytes(_ arg0: String) throws
+
+  @JavaMethod
+  open fn writeChar(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeFloat(_ arg0: Float) throws
+
+  @JavaMethod
+  open fn writeDouble(_ arg0: Double) throws
+
+  @JavaMethod
+  open fn writeBoolean(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn writeChars(_ arg0: String) throws
+}

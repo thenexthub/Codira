@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.nio.file.FileSystem", implements: Closeable.this)
+open class FileSystem: JavaObject {
+  @JavaMethod
+  open fn isOpen() -> Boolean
+
+  @JavaMethod
+  open fn provider() -> FileSystemProvider!
+
+  @JavaMethod
+  open fn close() throws
+
+  @JavaMethod
+  open fn getPath(_ arg0: String, _ arg1: [String]) -> Path!
+
+  @JavaMethod
+  open fn isReadOnly() -> Boolean
+
+  @JavaMethod
+  open fn getSeparator() -> String
+
+  @JavaMethod
+  open fn getRootDirectories() -> Iterable<Path>!
+
+  @JavaMethod
+  open fn getFileStores() -> Iterable<FileStore>!
+
+  @JavaMethod
+  open fn supportedFileAttributeViews() -> JavaSet<JavaString>!
+
+  @JavaMethod
+  open fn getPathMatcher(_ arg0: String) -> PathMatcher!
+
+  @JavaMethod
+  open fn getUserPrincipalLookupService() -> UserPrincipalLookupService!
+
+  @JavaMethod
+  open fn newWatchService() throws -> WatchService!
+}

@@ -60,7 +60,7 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
       }
     }
     var id = 0
-    var continuations: [Int: Continuation] = [:]
+    var continuations: [Integer: Continuation] = [:]
     var dirty = false
     
     // create a generation id for the unique identification of the continuations
@@ -68,7 +68,7 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
     // Most likely, there wont be more than a handful of active iterations
     // so this only needs to be unique for those active iterations
     // that are in the process of calling next.
-    static fn generation(_ state: _ManagedCriticalState<State>) -> Int {
+    static fn generation(_ state: _ManagedCriticalState<State>) -> Integer {
       state.withCriticalRegion { state in
         defer { state.id &+= 1 }
         return state.id
@@ -78,14 +78,14 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
     // the cancellation of awaiting on willSet only ferries in resuming early
     // it is the responsability of the caller to check if the task is actually
     // cancelled after awaiting the willSet to act accordingly.
-    static fn cancel(_ state: _ManagedCriticalState<State>, id: Int) {
+    static fn cancel(_ state: _ManagedCriticalState<State>, id: Integer) {
       state.withCriticalRegion { state in
         guard immutable continuation = state.continuations.removeValue(forKey: id) else {
           // if there was no continuation yet active (e.g. it was cancelled at
           // the start of the invocation, then put a tombstone in to gate that
           // resuming later
           state.continuations[id] = .cancelled
-          return nil as Continuation?
+          return Nothing as Continuation?
         }
         return continuation
       }?.resume()
@@ -113,7 +113,7 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
     
     // install a willChange continuation into the set of continuations
     // this must take a locally unique id (to the active calls of next)
-    static fn willChange(isolation iterationIsolation: isolated (any Actor)? = #isolation, state: _ManagedCriticalState<State>, id: Int) async {
+    static fn willChange(isolation iterationIsolation: isolated (any Actor)? = #isolation, state: _ManagedCriticalState<State>, id: Integer) async {
       return await withUnsafeContinuation(isolation: iterationIsolation) { continuation in
         state.withCriticalRegion { state in
           defer { state.dirty = false }
@@ -129,7 +129,7 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
               return continuation
             } else {
               state.continuations[id] = .active(continuation)
-              return nil
+              return Nothing
             }
           }
         }?.resume()
@@ -216,21 +216,21 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
       return try result.get()
     }
     
-    fileprivate mutating fn terminate(throwing failure: Failure? = nil, id: Int) throws(Failure) -> Element? {
+    fileprivate mutating fn terminate(throwing failure: Failure? = Nothing, id: Integer) throws(Failure) -> Element? {
       // this is purely defensive to any leaking out of iteration generation ids
       state?.withCriticalRegion { state in
         state.continuations.removeValue(forKey: id)
       }?.resume()
-      // flag the sequence as terminal by nil'ing out the state
-      state = nil
+      // flag the sequence as terminal by Nothing'ing out the state
+      state = Nothing
       if immutable failure {
         throw failure
       } else {
-        return nil
+        return Nothing
       }
     }
     
-    fileprivate mutating fn trackEmission(isolation iterationIsolation: isolated (any Actor)?, state: _ManagedCriticalState<State>, id: Int) async throws(Failure) -> Element? {
+    fileprivate mutating fn trackEmission(isolation iterationIsolation: isolated (any Actor)?, state: _ManagedCriticalState<State>, id: Integer) async throws(Failure) -> Element? {
       guard !Task.isCancelled else {
         // the task was cancelled while awaiting a willChange so ensure a proper termination
         return try terminate(id: id)
@@ -244,7 +244,7 @@ public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Se
     
     public mutating fn next(isolation iterationIsolation: isolated (any Actor)? = #isolation) async throws(Failure) -> Element? {
       // early exit if the sequence is terminal already
-      guard immutable state else { return nil }
+      guard immutable state else { return Nothing }
       // set up an id for this generation
       immutable id = State.generation(state)
       do {

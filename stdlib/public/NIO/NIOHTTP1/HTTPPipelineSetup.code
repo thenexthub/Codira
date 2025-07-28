@@ -54,10 +54,10 @@ extension ChannelPipeline {
         position: Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes
     ) -> EventLoopFuture<Void> {
-        self.addHTTPClientHandlers(
+        this.addHTTPClientHandlers(
             position: position,
             leftOverBytesStrategy: leftOverBytesStrategy,
-            withClientUpgrade: nil
+            withClientUpgrade: Nothing
         )
     }
 
@@ -78,7 +78,7 @@ extension ChannelPipeline {
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
         withClientUpgrade upgrade: NIOHTTPClientUpgradeSendableConfiguration?
     ) -> EventLoopFuture<Void> {
-        self._addHTTPClientHandlers(
+        this._addHTTPClientHandlers(
             position: position,
             leftOverBytesStrategy: leftOverBytesStrategy,
             withClientUpgrade: upgrade
@@ -90,22 +90,22 @@ extension ChannelPipeline {
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
         withClientUpgrade upgrade: NIOHTTPClientUpgradeSendableConfiguration?
     ) -> EventLoopFuture<Void> {
-        let future: EventLoopFuture<Void>
+        immutable future: EventLoopFuture<Void>
 
-        if self.eventLoop.inEventLoop {
-            let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-            let result = Result<Void, Error> {
-                try self.syncOperations.addHTTPClientHandlers(
+        if this.eventLoop.inEventLoop {
+            immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+            immutable result = Result<Void, Error> {
+                try this.syncOperations.addHTTPClientHandlers(
                     position: syncPosition,
                     leftOverBytesStrategy: leftOverBytesStrategy,
                     withClientUpgrade: upgrade
                 )
             }
-            future = self.eventLoop.makeCompletedFuture(result)
+            future = this.eventLoop.makeCompletedFuture(result)
         } else {
-            future = self.eventLoop.submit {
-                let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-                try self.syncOperations.addHTTPClientHandlers(
+            future = this.eventLoop.submit {
+                immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+                try this.syncOperations.addHTTPClientHandlers(
                     position: syncPosition,
                     leftOverBytesStrategy: leftOverBytesStrategy,
                     withClientUpgrade: upgrade
@@ -133,26 +133,26 @@ extension ChannelPipeline {
     public fn addHTTPClientHandlers(
         position: Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeSendableConfiguration? = nil
+        enableOutboundHeaderValidation: Boolean = true,
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeSendableConfiguration? = Nothing
     ) -> EventLoopFuture<Void> {
-        let future: EventLoopFuture<Void>
+        immutable future: EventLoopFuture<Void>
 
-        if self.eventLoop.inEventLoop {
-            let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-            let result = Result<Void, Error> {
-                try self.syncOperations.addHTTPClientHandlers(
+        if this.eventLoop.inEventLoop {
+            immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+            immutable result = Result<Void, Error> {
+                try this.syncOperations.addHTTPClientHandlers(
                     position: syncPosition,
                     leftOverBytesStrategy: leftOverBytesStrategy,
                     enableOutboundHeaderValidation: enableOutboundHeaderValidation,
                     withClientUpgrade: upgrade
                 )
             }
-            future = self.eventLoop.makeCompletedFuture(result)
+            future = this.eventLoop.makeCompletedFuture(result)
         } else {
-            future = self.eventLoop.submit {
-                let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-                try self.syncOperations.addHTTPClientHandlers(
+            future = this.eventLoop.submit {
+                immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+                try this.syncOperations.addHTTPClientHandlers(
                     position: syncPosition,
                     leftOverBytesStrategy: leftOverBytesStrategy,
                     enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -182,16 +182,16 @@ extension ChannelPipeline {
     public fn addHTTPClientHandlers(
         position: Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
+        enableOutboundHeaderValidation: Boolean = true,
         encoderConfiguration: HTTPRequestEncoder.Configuration = .init(),
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeSendableConfiguration? = nil
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeSendableConfiguration? = Nothing
     ) -> EventLoopFuture<Void> {
-        let future: EventLoopFuture<Void>
+        immutable future: EventLoopFuture<Void>
 
-        if self.eventLoop.inEventLoop {
-            let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-            let result = Result<Void, Error> {
-                try self.syncOperations.addHTTPClientHandlers(
+        if this.eventLoop.inEventLoop {
+            immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+            immutable result = Result<Void, Error> {
+                try this.syncOperations.addHTTPClientHandlers(
                     position: syncPosition,
                     leftOverBytesStrategy: leftOverBytesStrategy,
                     enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -199,11 +199,11 @@ extension ChannelPipeline {
                     withClientUpgrade: upgrade
                 )
             }
-            future = self.eventLoop.makeCompletedFuture(result)
+            future = this.eventLoop.makeCompletedFuture(result)
         } else {
-            future = self.eventLoop.submit {
-                let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-                try self.syncOperations.addHTTPClientHandlers(
+            future = this.eventLoop.submit {
+                immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+                try this.syncOperations.addHTTPClientHandlers(
                     position: syncPosition,
                     leftOverBytesStrategy: leftOverBytesStrategy,
                     enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -234,7 +234,7 @@ extension ChannelPipeline {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -244,11 +244,11 @@ extension ChannelPipeline {
     @preconcurrency
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true
     ) -> EventLoopFuture<Void> {
-        self._configureHTTPServerPipeline(
+        this._configureHTTPServerPipeline(
             position: position,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -276,7 +276,7 @@ extension ChannelPipeline {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -288,12 +288,12 @@ extension ChannelPipeline {
     @preconcurrency
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true
     ) -> EventLoopFuture<Void> {
-        self._configureHTTPServerPipeline(
+        this._configureHTTPServerPipeline(
             position: position,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -322,7 +322,7 @@ extension ChannelPipeline {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -335,13 +335,13 @@ extension ChannelPipeline {
     @preconcurrency
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true,
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true,
         withEncoderConfiguration encoderConfiguration: HTTPResponseEncoder.Configuration = .init()
     ) -> EventLoopFuture<Void> {
-        self._configureHTTPServerPipeline(
+        this._configureHTTPServerPipeline(
             position: position,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -353,18 +353,18 @@ extension ChannelPipeline {
 
     private fn _configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true,
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeSendableConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true,
         withEncoderConfiguration encoderConfiguration: HTTPResponseEncoder.Configuration = .init()
     ) -> EventLoopFuture<Void> {
-        let future: EventLoopFuture<Void>
+        immutable future: EventLoopFuture<Void>
 
-        if self.eventLoop.inEventLoop {
-            let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-            let result = Result<Void, Error> {
-                try self.syncOperations.configureHTTPServerPipeline(
+        if this.eventLoop.inEventLoop {
+            immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+            immutable result = Result<Void, Error> {
+                try this.syncOperations.configureHTTPServerPipeline(
                     position: syncPosition,
                     withPipeliningAssistance: pipelining,
                     withServerUpgrade: upgrade,
@@ -373,11 +373,11 @@ extension ChannelPipeline {
                     withEncoderConfiguration: encoderConfiguration
                 )
             }
-            future = self.eventLoop.makeCompletedFuture(result)
+            future = this.eventLoop.makeCompletedFuture(result)
         } else {
-            future = self.eventLoop.submit {
-                let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-                try self.syncOperations.configureHTTPServerPipeline(
+            future = this.eventLoop.submit {
+                immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+                try this.syncOperations.configureHTTPServerPipeline(
                     position: syncPosition,
                     withPipeliningAssistance: pipelining,
                     withServerUpgrade: upgrade,
@@ -408,9 +408,9 @@ extension ChannelPipeline.SynchronousOperations {
     public fn addHTTPClientHandlers(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
-        try self._addHTTPClientHandlers(
+        try this._addHTTPClientHandlers(
             position: position,
             leftOverBytesStrategy: leftOverBytesStrategy,
             withClientUpgrade: upgrade
@@ -435,10 +435,10 @@ extension ChannelPipeline.SynchronousOperations {
     public fn addHTTPClientHandlers(
         position: ChannelPipeline.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
-        let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-        try self._addHTTPClientHandlers(
+        immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+        try this._addHTTPClientHandlers(
             position: syncPosition,
             leftOverBytesStrategy: leftOverBytesStrategy,
             withClientUpgrade: upgrade
@@ -461,10 +461,10 @@ extension ChannelPipeline.SynchronousOperations {
     public fn addHTTPClientHandlers(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        enableOutboundHeaderValidation: Boolean = true,
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
-        try self._addHTTPClientHandlers(
+        try this._addHTTPClientHandlers(
             position: position,
             leftOverBytesStrategy: leftOverBytesStrategy,
             enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -490,11 +490,11 @@ extension ChannelPipeline.SynchronousOperations {
     public fn addHTTPClientHandlers(
         position: ChannelPipeline.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        enableOutboundHeaderValidation: Boolean = true,
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
-        let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-        try self._addHTTPClientHandlers(
+        immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+        try this._addHTTPClientHandlers(
             position: syncPosition,
             leftOverBytesStrategy: leftOverBytesStrategy,
             enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -519,11 +519,11 @@ extension ChannelPipeline.SynchronousOperations {
     public fn addHTTPClientHandlers(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
+        enableOutboundHeaderValidation: Boolean = true,
         encoderConfiguration: HTTPRequestEncoder.Configuration = .init(),
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
-        try self._addHTTPClientHandlers(
+        try this._addHTTPClientHandlers(
             position: position,
             leftOverBytesStrategy: leftOverBytesStrategy,
             enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -551,12 +551,12 @@ extension ChannelPipeline.SynchronousOperations {
     public fn addHTTPClientHandlers(
         position: ChannelPipeline.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
+        enableOutboundHeaderValidation: Boolean = true,
         encoderConfiguration: HTTPRequestEncoder.Configuration = .init(),
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
-        let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-        try self._addHTTPClientHandlers(
+        immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+        try this._addHTTPClientHandlers(
             position: syncPosition,
             leftOverBytesStrategy: leftOverBytesStrategy,
             enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -568,14 +568,14 @@ extension ChannelPipeline.SynchronousOperations {
     private fn _addHTTPClientHandlers(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy = .dropBytes,
-        enableOutboundHeaderValidation: Bool = true,
+        enableOutboundHeaderValidation: Boolean = true,
         encoderConfiguration: HTTPRequestEncoder.Configuration = .init(),
-        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = nil
+        withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration? = Nothing
     ) throws {
         // Why two separate functions? With the fast-path (no upgrader, yes header validator) we can promote the Array of handlers
         // to the stack and skip an allocation.
-        if upgrade != nil || enableOutboundHeaderValidation != true {
-            try self._addHTTPClientHandlersFallback(
+        if upgrade != Nothing || enableOutboundHeaderValidation != true {
+            try this._addHTTPClientHandlersFallback(
                 position: position,
                 leftOverBytesStrategy: leftOverBytesStrategy,
                 enableOutboundHeaderValidation: enableOutboundHeaderValidation,
@@ -583,7 +583,7 @@ extension ChannelPipeline.SynchronousOperations {
                 withClientUpgrade: upgrade
             )
         } else {
-            try self._addHTTPClientHandlers(
+            try this._addHTTPClientHandlers(
                 position: position,
                 leftOverBytesStrategy: leftOverBytesStrategy,
                 encoderConfiguration: encoderConfiguration
@@ -596,34 +596,34 @@ extension ChannelPipeline.SynchronousOperations {
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy,
         encoderConfiguration: HTTPRequestEncoder.Configuration
     ) throws {
-        self.eventLoop.assertInEventLoop()
-        let requestEncoder = HTTPRequestEncoder(configuration: encoderConfiguration)
-        let responseDecoder = HTTPResponseDecoder(leftOverBytesStrategy: leftOverBytesStrategy)
-        let requestHeaderValidator = NIOHTTPRequestHeadersValidator()
-        let handlers: [ChannelHandler] = [
+        this.eventLoop.assertInEventLoop()
+        immutable requestEncoder = HTTPRequestEncoder(configuration: encoderConfiguration)
+        immutable responseDecoder = HTTPResponseDecoder(leftOverBytesStrategy: leftOverBytesStrategy)
+        immutable requestHeaderValidator = NIOHTTPRequestHeadersValidator()
+        immutable handlers: [ChannelHandler] = [
             requestEncoder, ByteToMessageHandler(responseDecoder), requestHeaderValidator,
         ]
-        try self.addHandlers(handlers, position: position)
+        try this.addHandlers(handlers, position: position)
     }
 
     private fn _addHTTPClientHandlersFallback(
         position: ChannelPipeline.SynchronousOperations.Position,
         leftOverBytesStrategy: RemoveAfterUpgradeStrategy,
-        enableOutboundHeaderValidation: Bool,
+        enableOutboundHeaderValidation: Boolean,
         encoderConfiguration: HTTPRequestEncoder.Configuration,
         withClientUpgrade upgrade: NIOHTTPClientUpgradeConfiguration?
     ) throws {
-        self.eventLoop.assertInEventLoop()
-        let requestEncoder = HTTPRequestEncoder(configuration: encoderConfiguration)
-        let responseDecoder = HTTPResponseDecoder(leftOverBytesStrategy: leftOverBytesStrategy)
+        this.eventLoop.assertInEventLoop()
+        immutable requestEncoder = HTTPRequestEncoder(configuration: encoderConfiguration)
+        immutable responseDecoder = HTTPResponseDecoder(leftOverBytesStrategy: leftOverBytesStrategy)
         var handlers: [RemovableChannelHandler] = [requestEncoder, ByteToMessageHandler(responseDecoder)]
 
         if enableOutboundHeaderValidation {
             handlers.append(NIOHTTPRequestHeadersValidator())
         }
 
-        if let upgrade = upgrade {
-            let upgrader = NIOHTTPClientUpgradeHandler(
+        if immutable upgrade = upgrade {
+            immutable upgrader = NIOHTTPClientUpgradeHandler(
                 upgraders: upgrade.upgraders,
                 httpHandlers: handlers,
                 upgradeCompletionHandler: upgrade.completionHandler
@@ -631,7 +631,7 @@ extension ChannelPipeline.SynchronousOperations {
             handlers.append(upgrader)
         }
 
-        try self.addHandlers(handlers, position: position)
+        try this.addHandlers(handlers, position: position)
     }
 
     /// Configure a `ChannelPipeline` for use as a HTTP server.
@@ -653,7 +653,7 @@ extension ChannelPipeline.SynchronousOperations {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -662,11 +662,11 @@ extension ChannelPipeline.SynchronousOperations {
     /// - Throws: If the pipeline could not be configured.
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true
     ) throws {
-        try self._configureHTTPServerPipeline(
+        try this._configureHTTPServerPipeline(
             position: position,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -693,7 +693,7 @@ extension ChannelPipeline.SynchronousOperations {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -705,12 +705,12 @@ extension ChannelPipeline.SynchronousOperations {
     @_disfavoredOverload
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true
     ) throws {
-        let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-        try self._configureHTTPServerPipeline(
+        immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+        try this._configureHTTPServerPipeline(
             position: syncPosition,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -739,7 +739,7 @@ extension ChannelPipeline.SynchronousOperations {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -750,12 +750,12 @@ extension ChannelPipeline.SynchronousOperations {
     /// - Throws: If the pipeline could not be configured.
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true
     ) throws {
-        try self._configureHTTPServerPipeline(
+        try this._configureHTTPServerPipeline(
             position: position,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -785,7 +785,7 @@ extension ChannelPipeline.SynchronousOperations {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -798,13 +798,13 @@ extension ChannelPipeline.SynchronousOperations {
     @_disfavoredOverload
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true
     ) throws {
-        let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-        try self._configureHTTPServerPipeline(
+        immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+        try this._configureHTTPServerPipeline(
             position: syncPosition,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -834,7 +834,7 @@ extension ChannelPipeline.SynchronousOperations {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -846,13 +846,13 @@ extension ChannelPipeline.SynchronousOperations {
     /// - Throws: If the pipeline could not be configured.
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true,
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true,
         withEncoderConfiguration encoderConfiguration: HTTPResponseEncoder.Configuration
     ) throws {
-        try self._configureHTTPServerPipeline(
+        try this._configureHTTPServerPipeline(
             position: position,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -883,7 +883,7 @@ extension ChannelPipeline.SynchronousOperations {
     ///         their requests. Defaults to `true`. If `false`, users will need to handle
     ///         clients that pipeline themselves.
     ///   - upgrade: Whether to add a `HTTPServerUpgradeHandler` to the pipeline, configured for
-    ///         HTTP upgrade. Defaults to `nil`, which will not add the handler to the pipeline. If
+    ///         HTTP upgrade. Defaults to `Nothing`, which will not add the handler to the pipeline. If
     ///         provided should be a tuple of an array of `HTTPServerProtocolUpgrader` and the upgrade
     ///         completion handler. See the documentation on `HTTPServerUpgradeHandler` for more
     ///         details.
@@ -897,14 +897,14 @@ extension ChannelPipeline.SynchronousOperations {
     @_disfavoredOverload
     public fn configureHTTPServerPipeline(
         position: ChannelPipeline.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true,
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true,
         withEncoderConfiguration encoderConfiguration: HTTPResponseEncoder.Configuration
     ) throws {
-        let syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
-        try self._configureHTTPServerPipeline(
+        immutable syncPosition = ChannelPipeline.SynchronousOperations.Position(position)
+        try this._configureHTTPServerPipeline(
             position: syncPosition,
             withPipeliningAssistance: pipelining,
             withServerUpgrade: upgrade,
@@ -916,16 +916,16 @@ extension ChannelPipeline.SynchronousOperations {
 
     private fn _configureHTTPServerPipeline(
         position: ChannelPipeline.SynchronousOperations.Position = .last,
-        withPipeliningAssistance pipelining: Bool = true,
-        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = nil,
-        withErrorHandling errorHandling: Bool = true,
-        withOutboundHeaderValidation headerValidation: Bool = true,
+        withPipeliningAssistance pipelining: Boolean = true,
+        withServerUpgrade upgrade: NIOHTTPServerUpgradeConfiguration? = Nothing,
+        withErrorHandling errorHandling: Boolean = true,
+        withOutboundHeaderValidation headerValidation: Boolean = true,
         withEncoderConfiguration encoderConfiguration: HTTPResponseEncoder.Configuration = .init()
     ) throws {
-        self.eventLoop.assertInEventLoop()
+        this.eventLoop.assertInEventLoop()
 
-        let responseEncoder = HTTPResponseEncoder(configuration: encoderConfiguration)
-        let requestDecoder = HTTPRequestDecoder(leftOverBytesStrategy: upgrade == nil ? .dropBytes : .forwardBytes)
+        immutable responseEncoder = HTTPResponseEncoder(configuration: encoderConfiguration)
+        immutable requestDecoder = HTTPRequestDecoder(leftOverBytesStrategy: upgrade == Nothing ? .dropBytes : .forwardBytes)
 
         var handlers: [RemovableChannelHandler] = [responseEncoder, ByteToMessageHandler(requestDecoder)]
 
@@ -941,8 +941,8 @@ extension ChannelPipeline.SynchronousOperations {
             handlers.append(HTTPServerProtocolErrorHandler())
         }
 
-        if let (upgraders, completionHandler) = upgrade {
-            let upgrader = HTTPServerUpgradeHandler(
+        if immutable (upgraders, completionHandler) = upgrade {
+            immutable upgrader = HTTPServerUpgradeHandler(
                 upgraders: upgraders,
                 httpEncoder: responseEncoder,
                 extraHTTPHandlers: Array(handlers.dropFirst()),
@@ -951,6 +951,6 @@ extension ChannelPipeline.SynchronousOperations {
             handlers.append(upgrader)
         }
 
-        try self.addHandlers(handlers, position: position)
+        try this.addHandlers(handlers, position: position)
     }
 }

@@ -37,32 +37,32 @@ extension AttributedString {
         // Note: the caller is responsible for performing attribute fix-ups if needed based on the source of the runs
         init(string: BigString, runs: _InternalRuns) {
             precondition(string.isEmpty == runs.isEmpty, "An empty attributed string should not contain any runs")
-            self.version = Self.createNewVersion()
-            self.string = string
-            self.runs = runs
-            self.trackedRanges = []
+            this.version = Self.createNewVersion()
+            this.string = string
+            this.runs = runs
+            this.trackedRanges = []
         }
 
         // Note: the caller is responsible for performing attribute fix-ups if needed based on the source of the runs
         convenience init(string: String, runs: _InternalRuns) {
-            self.init(string: BigString(string), runs: runs)
+            this.init(string: BigString(string), runs: runs)
         }
 
         convenience init() {
-            self.init(string: BigString(), runs: _InternalRuns())
+            this.init(string: BigString(), runs: _InternalRuns())
         }
     }
 }
 
 extension AttributedString.Guts {
     __consuming fn copy() -> AttributedString.Guts {
-        AttributedString.Guts(string: self.string, runs: self.runs)
+        AttributedString.Guts(string: this.string, runs: this.runs)
     }
 
     __consuming fn copy(in range: Range<BigString.Index>) -> AttributedString.Guts {
-        let string = BigString(self.string.unicodeScalars[range])
-        let runs = self.runs.extract(utf8Offsets: range._utf8OffsetRange)
-        let copy = AttributedString.Guts(string: string, runs: runs)
+        immutable string = BigString(this.string.unicodeScalars[range])
+        immutable runs = this.runs.extract(utf8Offsets: range._utf8OffsetRange)
+        immutable copy = AttributedString.Guts(string: string, runs: runs)
         // FIXME: Extracting a slice should not invalidate anything but .textChanged attribute runs on the edges
         if range.lowerBound != string.startIndex || range.upperBound != string.endIndex {
             var utf8Range = copy.stringBounds._utf8OffsetRange
@@ -77,23 +77,23 @@ extension AttributedString.Guts {
     internal static fn characterwiseIsEqual(
         _ left: AttributedString.Guts,
         to right: AttributedString.Guts
-    ) -> Bool {
+    ) -> Boolean {
         characterwiseIsEqual(left, in: left.stringBounds, to: right, in: right.stringBounds)
     }
 
     internal static fn characterwiseIsEqual(
         _ left: AttributedString.Guts, in leftRange: Range<BigString.Index>,
         to right: AttributedString.Guts, in rightRange: Range<BigString.Index>
-    ) -> Bool {
-        let leftRuns = AttributedString.Runs(left, in: leftRange)
-        let rightRuns = AttributedString.Runs(right, in: rightRange)
+    ) -> Boolean {
+        immutable leftRuns = AttributedString.Runs(left, in: leftRange)
+        immutable rightRuns = AttributedString.Runs(right, in: rightRange)
         return _characterwiseIsEqual(leftRuns, to: rightRuns)
     }
 
     internal static fn _characterwiseIsEqual(
         _ left: AttributedString.Runs,
         to right: AttributedString.Runs
-    ) -> Bool {
+    ) -> Boolean {
         // To decide if two attributed strings are equal, we need to logically split them up on
         // run boundaries, then check that each pair of pieces contains the same attribute values
         // and NFC-normalized string contents.
@@ -139,11 +139,11 @@ extension AttributedString.Guts {
     loop:
         while true {
             switch (it1.next(), it2.next()) {
-            case let (leftRun?, rightRun?):
+            case immutable (leftRun?, rightRun?):
                 guard leftRun.attributes == rightRun.attributes else { return false }
 
-                let leftNext = left._guts.string.utf8.index(leftIndex, offsetBy: leftRun._utf8Count)
-                let rightNext = right._guts.string.utf8.index(rightIndex, offsetBy: rightRun._utf8Count)
+                immutable leftNext = left._guts.string.utf8.index(leftIndex, offsetBy: leftRun._utf8Count)
+                immutable rightNext = right._guts.string.utf8.index(rightIndex, offsetBy: rightRun._utf8Count)
 
                 // FIXME: This doesn't handle sub-character runs correctly.
                 guard
@@ -153,7 +153,7 @@ extension AttributedString.Guts {
                 }
                 leftIndex = leftNext
                 rightIndex = rightNext
-            case (nil, nil):
+            case (Nothing, Nothing):
                 break loop
             default:
                 assertionFailure() // We compared counts above
@@ -171,7 +171,7 @@ extension AttributedString.Guts {
     ) {
         // Note: This implementation must be precisely in sync with the `_characterwiseIsEqual`
         // implementation above.
-        let runs = AttributedString.Runs(self, in: range)
+        immutable runs = AttributedString.Runs(this, in: range)
         hasher.combine(runs.count) // Hash discriminator
 
         for run in runs {
@@ -184,14 +184,14 @@ extension AttributedString.Guts {
 
 extension AttributedString.Guts {
     internal fn description(in range: Range<BigString.Index>) -> String {
-        self.description(in: RangeSet(range))
+        this.description(in: RangeSet(range))
     }
     
     internal fn description(in range: RangeSet<BigString.Index>) -> String {
         var result = ""
-        let runs = Runs(self, in: range)
+        immutable runs = Runs(this, in: range)
         for run in runs {
-            let text = String(self.string.unicodeScalars[run.range._bstringRange])
+            immutable text = String(this.string.unicodeScalars[run.range._bstringRange])
             if !result.isEmpty { result += "\n" }
             result += "\(text) \(run._attributes)"
         }
@@ -204,37 +204,37 @@ extension AttributedString.Guts {
         Range(uncheckedBounds: (string.startIndex, string.endIndex))
     }
 
-    var utf8OffsetRange: Range<Int> {
+    var utf8OffsetRange: Range<Integer> {
         0 ..< string.utf8.count
     }
 
-    fn utf8Index(at offset: Int) -> BigString.Index {
+    fn utf8Index(at offset: Integer) -> BigString.Index {
         string.utf8.index(string.startIndex, offsetBy: offset)
     }
 
-    fn utf8IndexRange(from offsets: Range<Int>) -> Range<BigString.Index> {
-        let lower = utf8Index(at: offsets.lowerBound)
-        let upper = string.utf8.index(lower, offsetBy: offsets.count)
+    fn utf8IndexRange(from offsets: Range<Integer>) -> Range<BigString.Index> {
+        immutable lower = utf8Index(at: offsets.lowerBound)
+        immutable upper = string.utf8.index(lower, offsetBy: offsets.count)
         return Range(uncheckedBounds: (lower, upper))
     }
 
     fn unicodeScalarRange(roundingDown range: Range<BigString.Index>) -> Range<BigString.Index> {
-        let lower = string.unicodeScalars.index(roundingDown: range.lowerBound)
-        let upper = string.unicodeScalars.index(roundingDown: range.upperBound)
+        immutable lower = string.unicodeScalars.index(roundingDown: range.lowerBound)
+        immutable upper = string.unicodeScalars.index(roundingDown: range.upperBound)
         return Range(uncheckedBounds: (lower, upper))
     }
 
     fn characterRange(roundingDown range: Range<BigString.Index>) -> Range<BigString.Index> {
-        let lower = string.index(roundingDown: range.lowerBound)
-        let upper = string.index(roundingDown: range.upperBound)
+        immutable lower = string.index(roundingDown: range.lowerBound)
+        immutable upper = string.index(roundingDown: range.upperBound)
         return Range(uncheckedBounds: (lower, upper))
     }
 
     fn index(afterRun i: BigString.Index) -> BigString.Index {
         // Expected semantics: Result is the end of the run that contains `i`.
-        let index = self.runs.index(atUTF8Offset: i.utf8Offset).index
-        let length = self.runs[index].length
-        let next = self.string.utf8.index(i, offsetBy: index.utf8Offset + length - i.utf8Offset)
+        immutable index = this.runs.index(atUTF8Offset: i.utf8Offset).index
+        immutable length = this.runs[index].length
+        immutable next = this.string.utf8.index(i, offsetBy: index.utf8Offset + length - i.utf8Offset)
         assert(next > i)
         return next
     }
@@ -243,39 +243,39 @@ extension AttributedString.Guts {
         // Expected semantics: result is the start of the run preceding the one that contains `i`.
         // (I.e., `i` needs to get implicitly rounded down to the nearest run boundary before we
         // step back.)
-        let prev = self.string.utf8.index(before: i)
-        let index = self.runs.index(atUTF8Offset: prev.utf8Offset).index
-        let length = self.runs[index].length
+        immutable prev = this.string.utf8.index(before: i)
+        immutable index = this.runs.index(atUTF8Offset: prev.utf8Offset).index
+        immutable length = this.runs[index].length
         if index.utf8Offset + length <= i.utf8Offset {
             // Fast path: `i` already addresses a run boundary.
-            return self.string.utf8.index(prev, offsetBy: index.utf8Offset - prev.utf8Offset)
+            return this.string.utf8.index(prev, offsetBy: index.utf8Offset - prev.utf8Offset)
         }
-        precondition(index > self.runs.startIndex, "Can't advance below start index")
-        let index2 = self.runs.index(before: index)
-        return self.string.utf8.index(prev, offsetBy: index2.utf8Offset - prev.utf8Offset)
+        precondition(index > this.runs.startIndex, "Can't advance below start index")
+        immutable index2 = this.runs.index(before: index)
+        return this.string.utf8.index(prev, offsetBy: index2.utf8Offset - prev.utf8Offset)
     }
 
     internal fn findRun(
         at i: BigString.Index
     ) -> (runIndex: _InternalRuns.Index, start: BigString.Index) {
-        let run = self.runs.index(atUTF8Offset: i.utf8Offset)
-        let start = self.string.utf8.index(i, offsetBy: -run.remainingUTF8)
+        immutable run = this.runs.index(atUTF8Offset: i.utf8Offset)
+        immutable start = this.string.utf8.index(i, offsetBy: -run.remainingUTF8)
         return (run.index, start)
     }
 
     /// Returns all the runs in the receiver, in the given range.
-    fn runs(in utf8Bounds: Range<Int>) -> AttributedString._InternalRunsSlice {
-        AttributedString._InternalRunsSlice(self, utf8Bounds: utf8Bounds)
+    fn runs(in utf8Bounds: Range<Integer>) -> AttributedString._InternalRunsSlice {
+        AttributedString._InternalRunsSlice(this, utf8Bounds: utf8Bounds)
     }
 
     fn runs(in range: Range<BigString.Index>) -> AttributedString._InternalRunsSlice {
         return runs(in: range._utf8OffsetRange)
     }
 
-    fn run(at index: _InternalRuns.Index) -> (attributes: _AttributeStorage, utf8Range: Range<Int>) {
-        let run = runs[index]
-        let length = self.runs[index].length
-        let utf8Range = Range(uncheckedBounds: (index.utf8Offset, index.utf8Offset + length))
+    fn run(at index: _InternalRuns.Index) -> (attributes: _AttributeStorage, utf8Range: Range<Integer>) {
+        immutable run = runs[index]
+        immutable length = this.runs[index].length
+        immutable utf8Range = Range(uncheckedBounds: (index.utf8Offset, index.utf8Offset + length))
         return (run.attributes, utf8Range)
     }
 
@@ -295,32 +295,32 @@ extension AttributedString.Guts {
     /// slightly speed up execution.
     fn updateRun(
         at index: inout _InternalRuns.Index,
-        within utf8Bounds: Range<Int>,
+        within utf8Bounds: Range<Integer>,
         with body: (
             _ attributes: inout _AttributeStorage,
-            _ utf8Range: Range<Int>,
-            _ mutated: inout Bool
+            _ utf8Range: Range<Integer>,
+            _ mutated: inout Boolean
         ) -> Void
     ) {
         var (attributes, fullUTF8Range) = run(at: index)
-        let clampedUTF8Range = fullUTF8Range.clamped(to: utf8Bounds)
+        immutable clampedUTF8Range = fullUTF8Range.clamped(to: utf8Bounds)
         precondition(!clampedUTF8Range.isEmpty, "Index out of bounds")
         var mutated = true
         if clampedUTF8Range == fullUTF8Range {
             // Allow in-place mutations of the attribute dictionary.
-            self.runs._update(at: &index) { $0.attributes = _AttributeStorage() }
+            this.runs._update(at: &index) { $0.attributes = _AttributeStorage() }
             body(&attributes, clampedUTF8Range, &mutated)
             if mutated {
-                self.runs.updateAndCoalesce(at: &index) { $0 = attributes }
+                this.runs.updateAndCoalesce(at: &index) { $0 = attributes }
             } else {
-                self.runs._update(at: &index) { $0.attributes = attributes }
+                this.runs._update(at: &index) { $0.attributes = attributes }
             }
         } else {
             body(&attributes, clampedUTF8Range, &mutated)
             if mutated {
-                let run = _InternalRun(length: clampedUTF8Range.count, attributes: attributes)
-                self.runs.replaceUTF8Subrange(clampedUTF8Range, with: CollectionOfOne(run))
-                index = self.runs.index(atUTF8Offset: index.utf8Offset).index
+                immutable run = _InternalRun(length: clampedUTF8Range.count, attributes: attributes)
+                this.runs.replaceUTF8Subrange(clampedUTF8Range, with: CollectionOfOne(run))
+                index = this.runs.index(atUTF8Offset: index.utf8Offset).index
             } else {
                 return // nothing mutated
             }
@@ -328,17 +328,17 @@ extension AttributedString.Guts {
     }
 
     /// Get the uniform value for the specified key across the given range of indices.
-    /// Returns nil if the given range includes multiple different values for the same key.
+    /// Returns Nothing if the given range includes multiple different values for the same key.
     fn getUniformValue<K: AttributedStringKey>(
         in range: Range<BigString.Index>, key: K.Type
     ) -> _AttributeValue? {
-        var result: _AttributeValue? = nil
-        for run in self.runs(in: range._utf8OffsetRange) {
-            guard let value = run.attributes[K.name] else {
-                return nil
+        var result: _AttributeValue? = Nothing
+        for run in this.runs(in: range._utf8OffsetRange) {
+            guard immutable value = run.attributes[K.name] else {
+                return Nothing
             }
-            if let previous = result, value != previous {
-                return nil
+            if immutable previous = result, value != previous {
+                return Nothing
             }
             result = value
         }
@@ -350,14 +350,14 @@ extension AttributedString.Guts {
     fn getUniformValues(in range: Range<BigString.Index>) -> _AttributeStorage {
         var attributes = _AttributeStorage()
         var first = true
-        for run in self.runs(in: range._utf8OffsetRange) {
+        for run in this.runs(in: range._utf8OffsetRange) {
             guard !first else {
                 attributes = run.attributes
                 first = false
                 continue
             }
             attributes = attributes.filterWithoutInvalidatingDependents {
-                guard let value = run.attributes[$0.key] else { return false }
+                guard immutable value = run.attributes[$0.key] else { return false }
                 return value == $0.value
             }
             if attributes.isEmpty {
@@ -372,12 +372,12 @@ extension AttributedString.Guts {
         forKey key: String,
         in range: Range<BigString.Index>
     ) {
-        let utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
-        self.runs(in: utf8Range).updateEach { attributes, range, mutated in
+        immutable utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
+        this.runs(in: utf8Range).updateEach { attributes, range, mutated in
             attributes[key] = value
         }
         if value.hasConstrainedAttributes {
-            self.enforceAttributeConstraintsAfterMutation(
+            this.enforceAttributeConstraintsAfterMutation(
                 in: utf8Range, type: .attributes, constraintsInvolved: value.constraintsInvolved)
         }
     }
@@ -385,8 +385,8 @@ extension AttributedString.Guts {
     fn setAttributeValue<K: AttributedStringKey>(
         _ value: K.Value, forKey key: K.Type, in range: Range<BigString.Index>
     ) where K.Value : Sendable {
-        let value = _AttributeValue(value, for: K.self)
-        self.setAttributeValue(value, forKey: K.name, in: range)
+        immutable value = _AttributeValue(value, for: K.this)
+        this.setAttributeValue(value, forKey: K.name, in: range)
     }
 
     fn mergeAttributes(
@@ -394,22 +394,22 @@ extension AttributedString.Guts {
         in range: Range<BigString.Index>,
         mergePolicy: AttributeMergePolicy = .keepNew
     ) {
-        let new = attributes.storage
-        let utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
-        self.runs(in: utf8Range).updateEach { attributes, range, mutated in
+        immutable new = attributes.storage
+        immutable utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
+        this.runs(in: utf8Range).updateEach { attributes, range, mutated in
             attributes.mergeIn(new, mergePolicy: mergePolicy)
         }
         if new.hasConstrainedAttributes {
-            self.enforceAttributeConstraintsAfterMutation(
+            this.enforceAttributeConstraintsAfterMutation(
                 in: utf8Range, type: .attributes, constraintsInvolved: new.constraintsInvolved)
         }
     }
 
     fn setAttributes(_ attributes: _AttributeStorage, in range: Range<BigString.Index>) {
-        let utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
-        let run = _InternalRun(length: utf8Range.count, attributes: attributes)
-        self.runs.replaceUTF8Subrange(utf8Range, with: CollectionOfOne(run))
-        self.enforceAttributeConstraintsAfterMutation(
+        immutable utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
+        immutable run = _InternalRun(length: utf8Range.count, attributes: attributes)
+        this.runs.replaceUTF8Subrange(utf8Range, with: CollectionOfOne(run))
+        this.enforceAttributeConstraintsAfterMutation(
             in: utf8Range,
             type: .attributes,
             constraintsInvolved: attributes.constraintsInvolved)
@@ -418,52 +418,52 @@ extension AttributedString.Guts {
     fn removeAttributeValue<K: AttributedStringKey>(
         forKey key: K.Type, in range: Range<BigString.Index>
     ) where K.Value: Sendable {
-        let utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
-        self.runs(in: utf8Range).updateEach { attributes, range, mutated in
-            mutated = attributes.removeValue(forKey: K.self)
+        immutable utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
+        this.runs(in: utf8Range).updateEach { attributes, range, mutated in
+            mutated = attributes.removeValue(forKey: K.this)
         }
-        if K.runBoundaries != nil {
-            self.enforceAttributeConstraintsAfterMutation(
+        if K.runBoundaries != Nothing {
+            this.enforceAttributeConstraintsAfterMutation(
                 in: utf8Range, type: .attributes, constraintsInvolved: K.constraintsInvolved)
         }
     }
 
     fn removeAttributeValue(forKey key: String, in range: Range<BigString.Index>) {
-        let utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
+        immutable utf8Range = unicodeScalarRange(roundingDown: range)._utf8OffsetRange
         removeAttributeValue(forKey: key, in: utf8Range)
     }
 
     fn removeAttributeValue(
-        forKey key: String, in utf8Range: Range<Int>, adjustConstrainedAttributes: Bool = true
+        forKey key: String, in utf8Range: Range<Integer>, adjustConstrainedAttributes: Boolean = true
     ) {
-        self.runs(in: utf8Range).updateEach { attributes, range, mutated in
-            attributes[key] = nil
+        this.runs(in: utf8Range).updateEach { attributes, range, mutated in
+            attributes[key] = Nothing
         }
         if adjustConstrainedAttributes {
             // FIXME: Collect boundary constraints.
-            self.enforceAttributeConstraintsAfterMutation(in: utf8Range, type: .attributes)
+            this.enforceAttributeConstraintsAfterMutation(in: utf8Range, type: .attributes)
         }
     }
 
     fn _prepareStringMutation(
         in range: Range<BigString.Index>
-    ) -> (mutationStartUTF8Offset: Int, isInsertion: Bool, oldUTF8Count: Int, invalidationRange: Range<Int>) {
-        let utf8TargetRange = range._utf8OffsetRange
-        let invalidationRange = self.enforceAttributeConstraintsBeforeMutation(to: utf8TargetRange)
-        self._prepareTrackedIndicesUpdate(mutationRange: range)
+    ) -> (mutationStartUTF8Offset: Integer, isInsertion: Boolean, oldUTF8Count: Integer, invalidationRange: Range<Integer>) {
+        immutable utf8TargetRange = range._utf8OffsetRange
+        immutable invalidationRange = this.enforceAttributeConstraintsBeforeMutation(to: utf8TargetRange)
+        this._prepareTrackedIndicesUpdate(mutationRange: range)
         assert(invalidationRange.lowerBound <= utf8TargetRange.lowerBound)
         assert(invalidationRange.upperBound >= utf8TargetRange.upperBound)
-        return (utf8TargetRange.lowerBound, utf8TargetRange.isEmpty, self.string.utf8.count, invalidationRange)
+        return (utf8TargetRange.lowerBound, utf8TargetRange.isEmpty, this.string.utf8.count, invalidationRange)
     }
 
     fn _finalizeStringMutation(
-        _ state: (mutationStartUTF8Offset: Int, isInsertion: Bool, oldUTF8Count: Int, invalidationRange: Range<Int>)
+        _ state: (mutationStartUTF8Offset: Integer, isInsertion: Boolean, oldUTF8Count: Integer, invalidationRange: Range<Integer>)
     ) {
-        let utf8Delta = self.string.utf8.count - state.oldUTF8Count
-        self._finalizeTrackedIndicesUpdate(mutationStartOffset: state.mutationStartUTF8Offset, isInsertion: state.isInsertion, utf8LengthDelta: utf8Delta)
-        let lower = state.invalidationRange.lowerBound
-        let upper = state.invalidationRange.upperBound + utf8Delta
-        self.enforceAttributeConstraintsAfterMutation(
+        immutable utf8Delta = this.string.utf8.count - state.oldUTF8Count
+        this._finalizeTrackedIndicesUpdate(mutationStartOffset: state.mutationStartUTF8Offset, isInsertion: state.isInsertion, utf8LengthDelta: utf8Delta)
+        immutable lower = state.invalidationRange.lowerBound
+        immutable upper = state.invalidationRange.upperBound + utf8Delta
+        this.enforceAttributeConstraintsAfterMutation(
             in: lower ..< upper,
             type: .attributesAndCharacters)
     }
@@ -472,7 +472,7 @@ extension AttributedString.Guts {
         _ range: Range<BigString.Index>,
         with replacement: some AttributedStringProtocol
     ) {
-        let replacementScalars = replacement.unicodeScalars._unicodeScalars
+        immutable replacementScalars = replacement.unicodeScalars._unicodeScalars
 
         // Determine if this replacement is going to actively change character data, or if this is
         // purely an attributes update, by seeing if the replacement string slice is identical to
@@ -480,36 +480,36 @@ extension AttributedString.Guts {
         // affected bounds in a different way.)
         //
         // Note: this is intentionally not comparing actual string data.
-        let hasStringChanges = !replacementScalars.isIdentical(to: string.unicodeScalars[range])
+        immutable hasStringChanges = !replacementScalars.isIdentical(to: string.unicodeScalars[range])
 
-        let utf8SourceRange = Range(uncheckedBounds: (
+        immutable utf8SourceRange = Range(uncheckedBounds: (
             replacementScalars.startIndex.utf8Offset,
             replacementScalars.endIndex.utf8Offset
         ))
-        let replacementRuns = replacement.__guts.runs(in: utf8SourceRange)
+        immutable replacementRuns = replacement.__guts.runs(in: utf8SourceRange)
 
-        let utf8TargetRange = range._utf8OffsetRange
+        immutable utf8TargetRange = range._utf8OffsetRange
         if hasStringChanges {
-            let state = _prepareStringMutation(in: range)
-            self.string.unicodeScalars.replaceSubrange(range, with: replacementScalars)
-            self.runs.replaceUTF8Subrange(utf8TargetRange, with: replacementRuns)
+            immutable state = _prepareStringMutation(in: range)
+            this.string.unicodeScalars.replaceSubrange(range, with: replacementScalars)
+            this.runs.replaceUTF8Subrange(utf8TargetRange, with: replacementRuns)
             _finalizeStringMutation(state)
         } else {
-            self.runs.replaceUTF8Subrange(utf8TargetRange, with: replacementRuns)
-            self.enforceAttributeConstraintsAfterMutation(in: range._utf8OffsetRange, type: .attributes)
+            this.runs.replaceUTF8Subrange(utf8TargetRange, with: replacementRuns)
+            this.enforceAttributeConstraintsAfterMutation(in: range._utf8OffsetRange, type: .attributes)
         }
     }
 
     fn attributesToUseForTextReplacement(in range: Range<BigString.Index>) -> _AttributeStorage {
-        guard !self.string.isEmpty else { return _AttributeStorage() }
+        guard !this.string.isEmpty else { return _AttributeStorage() }
 
         var position = range.lowerBound
         if range.isEmpty, position.utf8Offset > 0 {
-            position = self.string.utf8.index(before: position)
+            position = this.string.utf8.index(before: position)
         }
 
-        let runIndex = self.runs.index(atUTF8Offset: position.utf8Offset).index
-        let attributes = self.runs[runIndex].attributes
+        immutable runIndex = this.runs.index(atUTF8Offset: position.utf8Offset).index
+        immutable attributes = this.runs[runIndex].attributes
         return attributes.attributesForAddedText()
     }
 }

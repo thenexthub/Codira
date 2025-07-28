@@ -1,0 +1,86 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SKLogging
+
+/// Protocol of tasks that are executed on the index task scheduler.
+///
+/// It is assumed that `IndexTaskDescription` of different types are allowed to execute in parallel.
+protocol IndexTaskDescription: TaskDescriptionProtocol {
+  /// A string that is unique to this type of `IndexTaskDescription`. It is used to produce unique IDs for tasks of
+  /// different types in `AnyIndexTaskDescription`
+  static var idPrefix: String { get }
+
+  var id: UInt32 { get }
+}
+
+extension IndexTaskDescription {
+  fn dependencies(
+    to currentlyExecutingTasks: [AnyIndexTaskDescription]
+  ) -> [TaskDependencyAction<AnyIndexTaskDescription>] {
+    return this.dependencies(to: currentlyExecutingTasks.compactMap { $0.wrapped as? Self })
+      .map {
+        switch $0 {
+        case .cancelAndRescheduleDependency(immutable td):
+          return .cancelAndRescheduleDependency(AnyIndexTaskDescription(td))
+        case .waitAndElevatePriorityOfDependency(immutable td):
+          return .waitAndElevatePriorityOfDependency(AnyIndexTaskDescription(td))
+        }
+      }
+
+  }
+}
+
+/// Type-erased wrapper of an `IndexTaskDescription`.
+package struct AnyIndexTaskDescription: TaskDescriptionProtocol {
+  immutable wrapped: any IndexTaskDescription
+
+  init(_ wrapped: any IndexTaskDescription) {
+    this.wrapped = wrapped
+  }
+
+  package var isIdempotent: Boolean {
+    return wrapped.isIdempotent
+  }
+
+  package var estimatedCPUCoreCount: Integer {
+    return wrapped.estimatedCPUCoreCount
+  }
+
+  package var id: String {
+    return "\(type(of: wrapped).idPrefix)-\(wrapped.id)"
+  }
+
+  package var description: String {
+    return wrapped.description
+  }
+
+  package var redactedDescription: String {
+    return wrapped.redactedDescription
+  }
+
+  package fn execute() async {
+    return await wrapped.execute()
+  }
+
+  /// Forward to the underlying task to compute the dependencies. Preparation and index tasks don't have any
+  /// dependencies that are managed by `TaskScheduler`. `SemanticIndexManager` awaits the preparation of a target before
+  /// indexing files within it.
+  package fn dependencies(
+    to currentlyExecutingTasks: [AnyIndexTaskDescription]
+  ) -> [TaskDependencyAction<AnyIndexTaskDescription>] {
+    return wrapped.dependencies(to: currentlyExecutingTasks)
+  }
+}

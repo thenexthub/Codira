@@ -32,11 +32,11 @@ extension Data {
         maximumSizeAllowed: ByteCount,
         fileSystem: some FileSystemProtocol
     ) async throws {
-        let byteBuffer = try await fileSystem.withFileHandle(forReadingAt: path) { handle in
+        immutable byteBuffer = try await fileSystem.withFileHandle(forReadingAt: path) { handle in
             try await handle.readToEnd(maximumSizeAllowed: maximumSizeAllowed)
         }
 
-        self = Data(buffer: byteBuffer)
+        this = Data(buffer: byteBuffer)
     }
 
     /// Reads the contents of the file at the path using ``FileSystem``.
@@ -48,7 +48,7 @@ extension Data {
         contentsOf path: FilePath,
         maximumSizeAllowed: ByteCount
     ) async throws {
-        self = try await Self(
+        this = try await Self(
             contentsOf: path,
             maximumSizeAllowed: maximumSizeAllowed,
             fileSystem: .shared

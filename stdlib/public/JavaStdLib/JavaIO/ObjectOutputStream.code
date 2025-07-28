@@ -1,0 +1,206 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.io.ObjectOutputStream", implements: ObjectOutput.this, ObjectStreamConstants.this)
+open class ObjectOutputStream: OutputStream {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: OutputStream?, environment: JNIEnvironment? = Nothing) throws
+
+  @JavaMethod
+  open fn writeStreamHeader() throws
+
+  @JavaMethod
+  open fn writeObjectOverride(_ arg0: JavaObject?) throws
+
+  @JavaMethod
+  open fn drain() throws
+
+  @JavaMethod
+  open fn writeUnshared(_ arg0: JavaObject?) throws
+
+  @JavaMethod
+  open fn replaceObject(_ arg0: JavaObject?) throws -> JavaObject!
+
+  @JavaMethod
+  open fn annotateProxyClass(_ arg0: JavaClass<JavaObject>?) throws
+
+  @JavaMethod
+  open fn writeClassDescriptor(_ arg0: ObjectStreamClass?) throws
+
+  @JavaMethod
+  open fn annotateClass(_ arg0: JavaClass<JavaObject>?) throws
+
+  @JavaMethod
+  open fn useProtocolVersion(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn enableReplaceObject(_ arg0: Boolean) -> Boolean
+
+  @JavaMethod
+  open fn reset() throws
+
+  @JavaMethod
+  open override fn flush() throws
+
+  @JavaMethod
+  open fn defaultWriteObject() throws
+
+  @JavaMethod
+  open fn writeObject(_ arg0: JavaObject?) throws
+
+  @JavaMethod
+  open fn putFields() throws -> ObjectOutputStream.PutField!
+
+  @JavaMethod
+  open fn writeFields() throws
+
+  @JavaMethod
+  open override fn write(_ arg0: Int32) throws
+
+  @JavaMethod
+  open override fn write(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) throws
+
+  @JavaMethod
+  open override fn write(_ arg0: [Int8]) throws
+
+  @JavaMethod
+  open override fn close() throws
+
+  @JavaMethod
+  open fn writeInt(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeUTF(_ arg0: String) throws
+
+  @JavaMethod
+  open fn writeLong(_ arg0: Int64) throws
+
+  @JavaMethod
+  open fn writeByte(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeShort(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeBytes(_ arg0: String) throws
+
+  @JavaMethod
+  open fn writeChar(_ arg0: Int32) throws
+
+  @JavaMethod
+  open fn writeFloat(_ arg0: Float) throws
+
+  @JavaMethod
+  open fn writeDouble(_ arg0: Double) throws
+
+  @JavaMethod
+  open fn writeBoolean(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn writeChars(_ arg0: String) throws
+}
+extension JavaClass<ObjectOutputStream> {
+  @JavaStaticField(isFinal: true)
+  public var STREAM_MAGIC: Int16
+
+  @JavaStaticField(isFinal: true)
+  public var STREAM_VERSION: Int16
+
+  @JavaStaticField(isFinal: true)
+  public var TC_BASE: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_NULL: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_REFERENCE: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_CLASSDESC: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_OBJECT: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_STRING: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_ARRAY: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_CLASS: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_BLOCKDATA: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_ENDBLOCKDATA: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_RESET: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_BLOCKDATALONG: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_EXCEPTION: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_LONGSTRING: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_PROXYCLASSDESC: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_ENUM: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var TC_MAX: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var baseWireHandle: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var SC_WRITE_METHOD: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var SC_BLOCK_DATA: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var SC_SERIALIZABLE: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var SC_EXTERNALIZABLE: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var SC_ENUM: Int8
+
+  @JavaStaticField(isFinal: true)
+  public var SUBSTITUTION_PERMISSION: SerializablePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var SUBCLASS_IMPLEMENTATION_PERMISSION: SerializablePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var SERIAL_FILTER_PERMISSION: SerializablePermission!
+
+  @JavaStaticField(isFinal: true)
+  public var PROTOCOL_VERSION_1: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var PROTOCOL_VERSION_2: Int32
+}

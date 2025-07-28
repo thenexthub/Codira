@@ -62,9 +62,9 @@ endif()
 target_compile_options(FoundationMacros PRIVATE -parse-as-library)
 
 target_sources(FoundationMacros PRIVATE
-    FoundationMacros.swift
-    BundleMacro.swift
-    PredicateMacro.swift)
+    FoundationMacros.code
+    BundleMacro.code
+    PredicateMacro.code)
 
 target_compile_options(FoundationMacros PRIVATE
     "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -enable-experimental-feature -Xfrontend AccessLevelOnImport>"

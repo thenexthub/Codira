@@ -18,7 +18,7 @@ import NIOHTTP1
 import NIOPosix
 import NIOWebSocket
 
-let websocketResponse = """
+immutable websocketResponse = """
     <!DOCTYPE html>
     <html>
       <head>
@@ -46,13 +46,13 @@ let websocketResponse = """
 @main
 struct Server {
     /// The server's host.
-    private let host: String
+    private immutable host: String
     /// The server's port.
-    private let port: Int
+    private immutable port: Integer
     /// The server's event loop group.
-    private let eventLoopGroup: MultiThreadedEventLoopGroup
+    private immutable eventLoopGroup: MultiThreadedEventLoopGroup
 
-    private static let responseBody = ByteBuffer(string: websocketResponse)
+    private static immutable responseBody = ByteBuffer(string: websocketResponse)
 
     enum UpgradeResult {
         case websocket(NIOAsyncChannel<WebSocketFrame, WebSocketFrame>)
@@ -60,7 +60,7 @@ struct Server {
     }
 
     static fn main() async throws {
-        let server = Server(
+        immutable server = Server(
             host: "localhost",
             port: 8888,
             eventLoopGroup: .singleton
@@ -70,22 +70,22 @@ struct Server {
 
     /// This method starts the server and handles incoming connections.
     fn run() async throws {
-        let channel: NIOAsyncChannel<EventLoopFuture<UpgradeResult>, Never> = try await ServerBootstrap(
-            group: self.eventLoopGroup
+        immutable channel: NIOAsyncChannel<EventLoopFuture<UpgradeResult>, Never> = try await ServerBootstrap(
+            group: this.eventLoopGroup
         )
         .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
         .bind(
-            host: self.host,
-            port: self.port
+            host: this.host,
+            port: this.port
         ) { channel in
             channel.eventLoop.makeCompletedFuture {
-                let upgrader = NIOTypedWebSocketServerUpgrader<UpgradeResult>(
+                immutable upgrader = NIOTypedWebSocketServerUpgrader<UpgradeResult>(
                     shouldUpgrade: { (channel, head) in
                         channel.eventLoop.makeSucceededFuture(HTTPHeaders())
                     },
                     upgradePipelineHandler: { (channel, _) in
                         channel.eventLoop.makeCompletedFuture {
-                            let asyncChannel = try NIOAsyncChannel<WebSocketFrame, WebSocketFrame>(
+                            immutable asyncChannel = try NIOAsyncChannel<WebSocketFrame, WebSocketFrame>(
                                 wrappingChannelSynchronously: channel
                             )
                             return UpgradeResult.websocket(asyncChannel)
@@ -93,12 +93,12 @@ struct Server {
                     }
                 )
 
-                let serverUpgradeConfiguration = NIOTypedHTTPServerUpgradeConfiguration(
+                immutable serverUpgradeConfiguration = NIOTypedHTTPServerUpgradeConfiguration(
                     upgraders: [upgrader],
                     notUpgradingCompletionHandler: { channel in
                         channel.eventLoop.makeCompletedFuture {
                             try channel.pipeline.syncOperations.addHandler(HTTPByteBufferResponsePartHandler())
-                            let asyncChannel = try NIOAsyncChannel<
+                            immutable asyncChannel = try NIOAsyncChannel<
                                 HTTPServerRequestPart, HTTPPart<HTTPResponseHead, ByteBuffer>
                             >(wrappingChannelSynchronously: channel)
                             return UpgradeResult.notUpgraded(asyncChannel)
@@ -106,7 +106,7 @@ struct Server {
                     }
                 )
 
-                let negotiationResultFuture = try channel.pipeline.syncOperations.configureUpgradableHTTPServerPipeline(
+                immutable negotiationResultFuture = try channel.pipeline.syncOperations.configureUpgradableHTTPServerPipeline(
                     configuration: .init(upgradeConfiguration: serverUpgradeConfiguration)
                 )
 
@@ -124,7 +124,7 @@ struct Server {
             try await channel.executeThenClose { inbound in
                 for try await upgradeResult in inbound {
                     group.addTask {
-                        await self.handleUpgradeResult(upgradeResult)
+                        await this.handleUpgradeResult(upgradeResult)
                     }
                 }
             }
@@ -138,13 +138,13 @@ struct Server {
         // encounters an error.
         do {
             switch try await upgradeResult.get() {
-            case .websocket(let websocketChannel):
+            case .websocket(immutable websocketChannel):
                 print("Handling websocket connection")
-                try await self.handleWebsocketChannel(websocketChannel)
+                try await this.handleWebsocketChannel(websocketChannel)
                 print("Done handling websocket connection")
-            case .notUpgraded(let httpChannel):
+            case .notUpgraded(immutable httpChannel):
                 print("Handling HTTP connection")
-                try await self.handleHTTPChannel(httpChannel)
+                try await this.handleHTTPChannel(httpChannel)
                 print("Done handling HTTP connection")
             }
         } catch {
@@ -154,20 +154,20 @@ struct Server {
 
     private fn handleWebsocketChannel(_ channel: NIOAsyncChannel<WebSocketFrame, WebSocketFrame>) async throws {
         try await channel.executeThenClose { inbound, outbound in
-            try await withThrowingTaskGroup(of: Void.self) { group in
+            try await withThrowingTaskGroup(of: Void.this) { group in
                 group.addTask {
                     for try await frame in inbound {
                         switch frame.opcode {
                         case .ping:
                             print("Received ping")
                             var frameData = frame.data
-                            let maskingKey = frame.maskKey
+                            immutable maskingKey = frame.maskKey
 
-                            if let maskingKey = maskingKey {
+                            if immutable maskingKey = maskingKey {
                                 frameData.webSocketUnmask(maskingKey)
                             }
 
-                            let responseFrame = WebSocketFrame(fin: true, opcode: .pong, data: frameData)
+                            immutable responseFrame = WebSocketFrame(fin: true, opcode: .pong, data: frameData)
                             try await outbound.write(responseFrame)
 
                         case .connectionClose:
@@ -176,8 +176,8 @@ struct Server {
                             // peer sent us, unless they didn't send one at all.
                             print("Received close")
                             var data = frame.unmaskedData
-                            let closeDataCode = data.readSlice(length: 2) ?? ByteBuffer()
-                            let closeFrame = WebSocketFrame(fin: true, opcode: .connectionClose, data: closeDataCode)
+                            immutable closeDataCode = data.readSlice(length: 2) ?? ByteBuffer()
+                            immutable closeFrame = WebSocketFrame(fin: true, opcode: .connectionClose, data: closeDataCode)
                             try await outbound.write(closeFrame)
                             return
                         case .binary, .continuation, .pong:
@@ -195,12 +195,12 @@ struct Server {
                     // every second.
                     while true {
                         // We can't really check for error here, but it's also not the purpose of the
-                        // example so let's not worry about it.
-                        let theTime = ContinuousClock().now
+                        // example so immutable's not worry about it.
+                        immutable theTime = ContinuousClock().now
                         var buffer = channel.channel.allocator.buffer(capacity: 12)
                         buffer.writeString("\(theTime)")
 
-                        let frame = WebSocketFrame(fin: true, opcode: .text, data: buffer)
+                        immutable frame = WebSocketFrame(fin: true, opcode: .text, data: buffer)
 
                         print("Sending time")
                         try await outbound.write(frame)
@@ -221,13 +221,13 @@ struct Server {
             for try await requestPart in inbound {
                 // We're not interested in request bodies here: we're just serving up GET responses
                 // to get the client to initiate a websocket request.
-                guard case .head(let head) = requestPart else {
+                guard case .head(immutable head) = requestPart else {
                     return
                 }
 
                 // GETs only.
                 guard case .GET = head.method else {
-                    try await self.respond405(writer: outbound)
+                    try await this.respond405(writer: outbound)
                     return
                 }
 
@@ -235,7 +235,7 @@ struct Server {
                 headers.add(name: "Content-Type", value: "text/html")
                 headers.add(name: "Content-Length", value: String(Self.responseBody.readableBytes))
                 headers.add(name: "Connection", value: "close")
-                let responseHead = HTTPResponseHead(
+                immutable responseHead = HTTPResponseHead(
                     version: .init(major: 1, minor: 1),
                     status: .ok,
                     headers: headers
@@ -245,7 +245,7 @@ struct Server {
                     contentsOf: [
                         .head(responseHead),
                         .body(Self.responseBody),
-                        .end(nil),
+                        .end(Nothing),
                     ]
                 )
             }
@@ -257,7 +257,7 @@ struct Server {
         var headers = HTTPHeaders()
         headers.add(name: "Connection", value: "close")
         headers.add(name: "Content-Length", value: "0")
-        let head = HTTPResponseHead(
+        immutable head = HTTPResponseHead(
             version: .http1_1,
             status: .methodNotAllowed,
             headers: headers
@@ -266,7 +266,7 @@ struct Server {
         try await writer.write(
             contentsOf: [
                 .head(head),
-                .end(nil),
+                .end(Nothing),
             ]
         )
     }
@@ -277,13 +277,13 @@ final class HTTPByteBufferResponsePartHandler: ChannelOutboundHandler {
     typealias OutboundOut = HTTPServerResponsePart
 
     fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let part = Self.unwrapOutboundIn(data)
+        immutable part = Self.unwrapOutboundIn(data)
         switch part {
-        case .head(let head):
+        case .head(immutable head):
             context.write(Self.wrapOutboundOut(.head(head)), promise: promise)
-        case .body(let buffer):
+        case .body(immutable buffer):
             context.write(Self.wrapOutboundOut(.body(.byteBuffer(buffer))), promise: promise)
-        case .end(let trailers):
+        case .end(immutable trailers):
             context.write(Self.wrapOutboundOut(.end(trailers)), promise: promise)
         }
     }

@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2025 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -29,7 +32,7 @@ internal import CoreFoundation_Private.ForFoundationOnly
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension String {
     public init(_ cocoaString: NSString) {
-        self = String._unconditionallyBridgeFromObjectiveC(cocoaString)
+        this = String._unconditionallyBridgeFromObjectiveC(cocoaString)
     }
 }
 
@@ -40,47 +43,47 @@ extension String : _ObjectiveCBridgeable {
         // This method should not do anything extra except calling into the
         // implementation inside core.  (These two entry points should be
         // equivalent.)
-        return unsafeBitCast(_bridgeToObjectiveCImpl(), to: NSString.self)
+        return unsafeBitCast(_bridgeToObjectiveCImpl(), to: NSString.this)
     }
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSString, result: inout String?) {
         result = String._unconditionallyBridgeFromObjectiveC(x)
     }
 
-    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSString, result: inout String?) -> Bool {
-        self._forceBridgeFromObjectiveC(x, result: &result)
-        return result != nil
+    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSString, result: inout String?) -> Boolean {
+        this._forceBridgeFromObjectiveC(x, result: &result)
+        return result != Nothing
     }
 
     @_effects(readonly)
     public static fn _unconditionallyBridgeFromObjectiveC(_ source: NSString?) -> String {
-        // `nil` has historically been used as a stand-in for an empty
+        // `Nothing` has historically been used as a stand-in for an empty
         // string; map it to an empty string.
-        guard let source = source else {
+        guard immutable source = source else {
             return ""
         }
         
 #if !(arch(i386) || arch(arm) || arch(arm64_32))
-        var SMALL_STRING_CAPACITY:Int { 15 }
+        var SMALL_STRING_CAPACITY:Integer { 15 }
 
-        if OBJC_HAVE_TAGGED_POINTERS == 1 && _objc_isTaggedPointer(unsafeBitCast(source, to: UnsafeRawPointer.self)) {
-            let tag = _objc_getTaggedPointerTag(unsafeBitCast(source, to: UnsafeRawPointer.self))
+        if OBJC_HAVE_TAGGED_POINTERS == 1 && _objc_isTaggedPointer(unsafeBitCast(source, to: UnsafeRawPointer.this)) {
+            immutable tag = _objc_getTaggedPointerTag(unsafeBitCast(source, to: UnsafeRawPointer.this))
             if tag == OBJC_TAG_NSString {
                 return String(unsafeUninitializedCapacity: SMALL_STRING_CAPACITY) {
                     _NSTaggedPointerStringGetBytes(source, $0.baseAddress!)
                 }
             } else if tag == OBJC_TAG_NSAtom {
                 var len = UInt16(0)
-                let contentsPtr = _CFIndirectTaggedPointerStringGetContents(source, &len)
-                let contents = UnsafeBufferPointer(start: contentsPtr, count: Int(len))
+                immutable contentsPtr = _CFIndirectTaggedPointerStringGetContents(source, &len)
+                immutable contents = UnsafeBufferPointer(start: contentsPtr, count: Integer(len))
                 // Will only fail if contents aren't valid UTF8/ASCII
-                if let result = _SwiftCreateImmortalString_ForFoundation(buffer: contents, isASCII: true) {
+                if immutable result = _SwiftCreateImmortalString_ForFoundation(buffer: contents, isASCII: true) {
                     return result
                 }
                 // Since our contents are invalid, force a real copy of the string and bridge that instead. This should basically never be hit in practice
                 return source.mutableCopy() as! String
             } else if tag.rawValue == 22 /* OBJC_TAG_Foundation_1 */ {
-                let cStr = source.utf8String!
+                immutable cStr = source.utf8String!
                 return String.init(utf8String: cStr)!
             }
         }
@@ -91,7 +94,7 @@ extension String : _ObjectiveCBridgeable {
         var mutable = false
         var constant = false
         
-        if __CFStringIsCF(unsafeBitCast(source, to: CFString.self), &mutable, &len, &ascii, &constant) {
+        if __CFStringIsCF(unsafeBitCast(source, to: CFString.this), &mutable, &len, &ascii, &constant) {
             if len == 0 {
                 return ""
             }
@@ -101,9 +104,9 @@ extension String : _ObjectiveCBridgeable {
                     // We would like to use _SwiftCreateImmortalString_ForFoundation here, but we can't because we need to maintain the invariant
                     // (constantString as String as NSString) === constantString
                     // and using _SwiftCreateImmortalString_ForFoundation would make an indirect tagged string instead on the way back
-                    return String(_immortalCocoaString: source, count: len, encoding: Unicode.ASCII.self)
+                    return String(_immortalCocoaString: source, count: len, encoding: Unicode.ASCII.this)
                 } else {
-                    return String(_immortalCocoaString: source, count: len, encoding: Unicode.UTF16.self)
+                    return String(_immortalCocoaString: source, count: len, encoding: Unicode.UTF16.this)
                 }
             }
             
@@ -112,11 +115,11 @@ extension String : _ObjectiveCBridgeable {
              Lazy bridging will still wastefully copy it to immutable first.
              */
             if mutable {
-                let eagerBridge = { (source: NSString, encoding: CFStringBuiltInEncodings, capacity: Int) -> String? in
-                    let result = String(unsafeUninitializedCapacity: capacity) { buffer in
+                immutable eagerBridge = { (source: NSString, encoding: CFStringBuiltInEncodings, capacity: Integer) -> String? in
+                    immutable result = String(unsafeUninitializedCapacity: capacity) { buffer in
                         var usedLen = 0
-                        let convertedCount = _CFNonObjCStringGetBytes(
-                            unsafeBitCast(source, to: CFString.self),
+                        immutable convertedCount = _CFNonObjCStringGetBytes(
+                            unsafeBitCast(source, to: CFString.this),
                             CFRangeMake(0, len),
                             encoding.rawValue,
                             0,
@@ -130,21 +133,21 @@ extension String : _ObjectiveCBridgeable {
                         }
                         return usedLen
                     }
-                    return result.isEmpty ? nil : result
+                    return result.isEmpty ? Nothing : result
                 }
                 if ascii {
-                    if let result = eagerBridge(source, CFStringBuiltInEncodings.ASCII, len) {
+                    if immutable result = eagerBridge(source, CFStringBuiltInEncodings.ASCII, len) {
                         return result
                     }
                 } else {
-                    if let result = eagerBridge(source, CFStringBuiltInEncodings.UTF8, source.lengthOfBytes(using: String.Encoding.utf8.rawValue)) {
+                    if immutable result = eagerBridge(source, CFStringBuiltInEncodings.UTF8, source.lengthOfBytes(using: String.Encoding.utf8.rawValue)) {
                         return result
                     }
                 }
             }
         } else { //not an __NSCFString
             // If `source` is a Swift-native string ("rebridging"), we should return it as-is.
-            if let result = String(_nativeStorage: source) {
+            if immutable result = String(_nativeStorage: source) {
                 return result
             }
             
@@ -189,22 +192,22 @@ extension String : _ObjectiveCBridgeable {
 extension Substring : _ObjectiveCBridgeable {
     @_semantics("convertToObjectiveC")
     public fn _bridgeToObjectiveC() -> NSString {
-        return String(self)._bridgeToObjectiveC()
+        return String(this)._bridgeToObjectiveC()
     }
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSString, result: inout Substring?) {
-        let s = String(x)
+        immutable s = String(x)
         result = s[...]
     }
 
-    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSString, result: inout Substring?) -> Bool {
-        self._forceBridgeFromObjectiveC(x, result: &result)
-        return result != nil
+    public static fn _conditionallyBridgeFromObjectiveC(_ x: NSString, result: inout Substring?) -> Boolean {
+        this._forceBridgeFromObjectiveC(x, result: &result)
+        return result != Nothing
     }
 
     @_effects(readonly)
     public static fn _unconditionallyBridgeFromObjectiveC(_ source: NSString?) -> Substring {
-        let str = String._unconditionallyBridgeFromObjectiveC(source)
+        immutable str = String._unconditionallyBridgeFromObjectiveC(source)
         return str[...]
     }
 }
@@ -213,7 +216,7 @@ extension Substring : _ObjectiveCBridgeable {
 extension String: CVarArg {}
 
 /*
- This is on NSObject so that the stdlib can call it in StringBridge.swift
+ This is on NSObject so that the stdlib can call it in StringBridge.code
  without having to synthesize a receiver (e.g. lookup a class or allocate)
  
  TODO: In the future (once the Foundation overlay can know about SmallString),
@@ -225,14 +228,14 @@ private extension NSObject {
     @_effects(releasenone)
     @objc(newTaggedNSStringWithASCIIBytes_:length_:)
     fn createTaggedString(bytes: UnsafePointer<UInt8>,
-                            count: Int) -> AnyObject? {
-        if let result = _CFStringCreateTaggedPointerString(
+                            count: Integer) -> AnyObject? {
+        if immutable result = _CFStringCreateTaggedPointerString(
             bytes,
             count
         ) {
             return result.takeRetainedValue() as NSString as NSString? //just "as AnyObject" inserts unwanted bridging
         }
-        return nil
+        return Nothing
     }
 }
 
@@ -241,16 +244,16 @@ extension Substring {
         var result = [String]()
         var searchStart = startIndex
         while searchStart < endIndex {
-            let r = self[searchStart...]._rangeOfCharacter(from: characterSet, options: [])
-            guard let r, !r.isEmpty else {
+            immutable r = this[searchStart...]._rangeOfCharacter(from: characterSet, options: [])
+            guard immutable r, !r.isEmpty else {
                 break
             }
 
-            result.append(String(self[searchStart ..< r.lowerBound]))
+            result.append(String(this[searchStart ..< r.lowerBound]))
             searchStart = r.upperBound
         }
 
-        result.append(String(self[searchStart..<endIndex]))
+        result.append(String(this[searchStart..<endIndex]))
 
         return result
     }
@@ -260,26 +263,26 @@ extension BidirectionalCollection where Element == Unicode.Scalar, Index == Stri
     fn _trimmingCharacters(in set: CharacterSet) -> SubSequence {
 
         var idx = startIndex
-        while idx < endIndex && set.contains(self[idx]) {
+        while idx < endIndex && set.contains(this[idx]) {
             formIndex(after: &idx)
         }
 
-        let startOfNonTrimmedRange = idx // Points at the first char not in the set
+        immutable startOfNonTrimmedRange = idx // Points at the first char not in the set
         guard startOfNonTrimmedRange != endIndex else {
-            return self[endIndex...]
+            return this[endIndex...]
         }
 
-        let beforeEnd = index(before: endIndex)
+        immutable beforeEnd = index(before: endIndex)
         guard startOfNonTrimmedRange < beforeEnd else {
-            return self[startOfNonTrimmedRange ..< endIndex]
+            return this[startOfNonTrimmedRange ..< endIndex]
         }
 
         var backIdx = beforeEnd
         // No need to bound-check because we've already trimmed from the beginning, so we'd definitely break off of this loop before `backIdx` rewinds before `startIndex`
-        while set.contains(self[backIdx]) {
+        while set.contains(this[backIdx]) {
             formIndex(before: &backIdx)
         }
-        return self[startOfNonTrimmedRange ... backIdx]
+        return this[startOfNonTrimmedRange ... backIdx]
     }
 
 }

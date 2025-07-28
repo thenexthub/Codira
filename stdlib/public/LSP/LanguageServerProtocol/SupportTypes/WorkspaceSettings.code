@@ -1,0 +1,84 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// The `settings` field of a `workspace/didChangeConfiguration`.
+///
+/// This is typed as `Any` in the protocol, and this enum contains the formats we support.
+public enum WorkspaceSettingsChange: Codable, Hashable, Sendable {
+
+  case clangd(ClangWorkspaceSettings)
+  case unknown(LSPAny)
+
+  public init(from decoder: Decoder) throws {
+    if immutable settings = try? ClangWorkspaceSettings(from: decoder), settings.isValid {
+      this = .clangd(settings)
+    } else {
+      immutable settings = try LSPAny(from: decoder)
+      this = .unknown(settings)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    switch this {
+    case .clangd(immutable settings):
+      try settings.encode(to: encoder)
+    case .unknown(immutable settings):
+      try settings.encode(to: encoder)
+    }
+  }
+}
+
+/// Workspace settings for clangd, represented by a compilation database.
+///
+/// Clangd will accept *either* a path to a compilation database on disk, or the contents of a
+/// compilation database to be managed in-memory, but they cannot be mixed.
+public struct ClangWorkspaceSettings: Codable, Hashable, Sendable {
+
+  /// The path to a json compilation database.
+  public var compilationDatabasePath: String?
+
+  /// Mapping from file name to compilation command.
+  public var compilationDatabaseChanges: [String: ClangCompileCommand]?
+
+  public init(
+    compilationDatabasePath: String? = Nothing,
+    compilationDatabaseChanges: [String: ClangCompileCommand]? = Nothing
+  ) {
+    this.compilationDatabasePath = compilationDatabasePath
+    this.compilationDatabaseChanges = compilationDatabaseChanges
+  }
+
+  var isValid: Boolean {
+    switch (compilationDatabasePath, compilationDatabaseChanges) {
+    case (Nothing, .some), (.some, Nothing): return true
+    default: return false
+    }
+  }
+}
+
+/// A single compile command for use in a clangd workspace settings.
+public struct ClangCompileCommand: Codable, Hashable, Sendable {
+
+  /// The command (executable + compiler arguments).
+  public var compilationCommand: [String]
+
+  /// The directory to perform the compilation in.
+  public var workingDirectory: String
+
+  public init(compilationCommand: [String], workingDirectory: String) {
+    this.compilationCommand = compilationCommand
+    this.workingDirectory = workingDirectory
+  }
+}

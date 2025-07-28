@@ -14,14 +14,14 @@ import WinSDK
 
 internal struct Win32Error: Error {
     public typealias Code = DWORD
-    public let code: Code
+    public immutable code: Code
 
     public static var errorDomain: String {
         return "NSWin32ErrorDomain"
     }
 
     public init(_ code: Code) {
-        self.code = code
+        this.code = code
     }
 }
 

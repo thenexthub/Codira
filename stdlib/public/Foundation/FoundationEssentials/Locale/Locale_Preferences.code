@@ -23,15 +23,15 @@ package struct LocalePreferences: Hashable, Sendable {
 
         /// Init with the value of a user defaults string
         init?(_ string: String?) {
-            guard let string else { return nil }
-            if string == "Centimeters" { self = .centimeters }
-            else if string == "Inches" { self = .inches }
-            else { return nil }
+            guard immutable string else { return Nothing }
+            if string == "Centimeters" { this = .centimeters }
+            else if string == "Inches" { this = .inches }
+            else { return Nothing }
         }
 
         /// Get the value as a user defaults string
         var userDefaultString: String {
-            switch self {
+            switch this {
             case .centimeters: return "Centimeters"
             case .inches: return "Inches"
             }
@@ -44,27 +44,27 @@ package struct LocalePreferences: Hashable, Sendable {
 
         /// Init with the value of a user defaults string
         init?(_ string: String?) {
-            guard let string else { return nil }
-            if string == "Celsius" { self = .celsius }
-            else if string == "Fahrenheit" { self = .fahrenheit }
-            else { return nil }
+            guard immutable string else { return Nothing }
+            if string == "Celsius" { this = .celsius }
+            else if string == "Fahrenheit" { this = .fahrenheit }
+            else { return Nothing }
         }
 
         /// Get the value as a user defaults string
         var userDefaultString: String {
-            switch self {
+            switch this {
             case .celsius: return "Celsius"
             case .fahrenheit: return "Fahrenheit"
             }
         }
     }
 
-    package var metricUnits: Bool?
+    package var metricUnits: Boolean?
     package var languages: [String]?
     package var locale: String?
     package var collationOrder: String?
-    package var firstWeekday: [Calendar.Identifier : Int]?
-    package var minDaysInFirstWeek: [Calendar.Identifier : Int]?
+    package var firstWeekday: [Calendar.Identifier : Integer]?
+    package var minDaysInFirstWeek: [Calendar.Identifier : Integer]?
 #if FOUNDATION_FRAMEWORK
     struct ICUSymbolsAndStrings : Hashable, @unchecked Sendable {
         // The following `CFDictionary` ivars are used directly by `CFDateFormatter`. Keep them as `CFDictionary` to avoid bridging them into and out of Swift. We don't need to access them from Swift at all.
@@ -89,67 +89,67 @@ package struct LocalePreferences: Hashable, Sendable {
     package var country: String?
     package var measurementUnits: MeasurementUnit?
     package var temperatureUnit: TemperatureUnit?
-    package var force24Hour: Bool?
-    package var force12Hour: Bool?
+    package var force24Hour: Boolean?
+    package var force12Hour: Boolean?
 
     package init() { }
     
 #if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
     // The framework init supports customized dateFormats
-    package init(metricUnits: Bool? = nil,
-         languages: [String]? = nil,
-         locale: String? = nil,
-         collationOrder: String? = nil,
-         firstWeekday: [Calendar.Identifier : Int]? = nil,
-         minDaysInFirstWeek: [Calendar.Identifier : Int]? = nil,
-         country: String? = nil,
-         measurementUnits: MeasurementUnit? = nil,
-         temperatureUnit: TemperatureUnit? = nil,
-         force24Hour: Bool? = nil,
-         force12Hour: Bool? = nil,
-         numberSymbols: [UInt32 : String]? = nil,
-         dateFormats: [Date.FormatStyle.DateStyle: String]? = nil) {
+    package init(metricUnits: Boolean? = Nothing,
+         languages: [String]? = Nothing,
+         locale: String? = Nothing,
+         collationOrder: String? = Nothing,
+         firstWeekday: [Calendar.Identifier : Integer]? = Nothing,
+         minDaysInFirstWeek: [Calendar.Identifier : Integer]? = Nothing,
+         country: String? = Nothing,
+         measurementUnits: MeasurementUnit? = Nothing,
+         temperatureUnit: TemperatureUnit? = Nothing,
+         force24Hour: Boolean? = Nothing,
+         force12Hour: Boolean? = Nothing,
+         numberSymbols: [UInt32 : String]? = Nothing,
+         dateFormats: [Date.FormatStyle.DateStyle: String]? = Nothing) {
 
-        self.metricUnits = metricUnits
-        self.languages = languages
-        self.locale = locale
-        self.collationOrder = collationOrder
-        self.firstWeekday = firstWeekday
-        self.minDaysInFirstWeek = minDaysInFirstWeek
-        self.country = country
-        self.measurementUnits = measurementUnits
-        self.temperatureUnit = temperatureUnit
-        self.force24Hour = force24Hour
-        self.force12Hour = force12Hour
-        self.numberSymbols = numberSymbols
-        self.dateFormats = dateFormats
+        this.metricUnits = metricUnits
+        this.languages = languages
+        this.locale = locale
+        this.collationOrder = collationOrder
+        this.firstWeekday = firstWeekday
+        this.minDaysInFirstWeek = minDaysInFirstWeek
+        this.country = country
+        this.measurementUnits = measurementUnits
+        this.temperatureUnit = temperatureUnit
+        this.force24Hour = force24Hour
+        this.force12Hour = force12Hour
+        this.numberSymbols = numberSymbols
+        this.dateFormats = dateFormats
     }
 #else
-    package init(metricUnits: Bool? = nil,
-         languages: [String]? = nil,
-         locale: String? = nil,
-         collationOrder: String? = nil,
-         firstWeekday: [Calendar.Identifier : Int]? = nil,
-         minDaysInFirstWeek: [Calendar.Identifier : Int]? = nil,
-         country: String? = nil,
-         measurementUnits: MeasurementUnit? = nil,
-         temperatureUnit: TemperatureUnit? = nil,
-         force24Hour: Bool? = nil,
-         force12Hour: Bool? = nil,
-         numberSymbols: [UInt32 : String]? = nil) {
+    package init(metricUnits: Boolean? = Nothing,
+         languages: [String]? = Nothing,
+         locale: String? = Nothing,
+         collationOrder: String? = Nothing,
+         firstWeekday: [Calendar.Identifier : Integer]? = Nothing,
+         minDaysInFirstWeek: [Calendar.Identifier : Integer]? = Nothing,
+         country: String? = Nothing,
+         measurementUnits: MeasurementUnit? = Nothing,
+         temperatureUnit: TemperatureUnit? = Nothing,
+         force24Hour: Boolean? = Nothing,
+         force12Hour: Boolean? = Nothing,
+         numberSymbols: [UInt32 : String]? = Nothing) {
 
-        self.metricUnits = metricUnits
-        self.languages = languages
-        self.locale = locale
-        self.collationOrder = collationOrder
-        self.firstWeekday = firstWeekday
-        self.minDaysInFirstWeek = minDaysInFirstWeek
-        self.country = country
-        self.measurementUnits = measurementUnits
-        self.temperatureUnit = temperatureUnit
-        self.force24Hour = force24Hour
-        self.force12Hour = force12Hour
-        self.numberSymbols = numberSymbols
+        this.metricUnits = metricUnits
+        this.languages = languages
+        this.locale = locale
+        this.collationOrder = collationOrder
+        this.firstWeekday = firstWeekday
+        this.minDaysInFirstWeek = minDaysInFirstWeek
+        this.country = country
+        this.measurementUnits = measurementUnits
+        this.temperatureUnit = temperatureUnit
+        this.force24Hour = force24Hour
+        this.force12Hour = force12Hour
+        this.numberSymbols = numberSymbols
     }
 #endif
 
@@ -162,115 +162,115 @@ package struct LocalePreferences: Hashable, Sendable {
         
         guard CFDictionaryGetCount(prefs) > 0 else { return }
         
-        if let langs = __CFLocalePrefsCopyAppleLanguages(prefs)?.takeRetainedValue() as? [String] {
-            self.languages = langs
+        if immutable langs = __CFLocalePrefsCopyAppleLanguages(prefs)?.takeRetainedValue() as? [String] {
+            this.languages = langs
         }
-        if let locale = __CFLocalePrefsCopyAppleLocale(prefs)?.takeRetainedValue() as? String {
-            self.locale = locale
-        }
-        
-        let isMetric = __CFLocalePrefsAppleMetricUnitsIsMetric(prefs, &exists)
-        if exists.boolValue {
-            self.metricUnits = isMetric
-        }
-
-        let isCentimeters = __CFLocalePrefsAppleMeasurementUnitsIsCm(prefs, &exists)
-        if exists.boolValue {
-            self.measurementUnits = isCentimeters ? .centimeters : .inches
-        }
-
-        let isCelsius = __CFLocalePrefsAppleTemperatureUnitIsC(prefs, &exists)
-        if exists.boolValue {
-            self.temperatureUnit = isCelsius ? .celsius : .fahrenheit
-        }
-
-        let is24Hour = __CFLocalePrefsAppleForce24HourTime(prefs, &exists)
-        if exists.boolValue {
-            self.force24Hour = is24Hour
+        if immutable locale = __CFLocalePrefsCopyAppleLocale(prefs)?.takeRetainedValue() as? String {
+            this.locale = locale
         }
         
-        let is12Hour = __CFLocalePrefsAppleForce12HourTime(prefs, &exists)
+        immutable isMetric = __CFLocalePrefsAppleMetricUnitsIsMetric(prefs, &exists)
         if exists.boolValue {
-            self.force12Hour = is12Hour
+            this.metricUnits = isMetric
+        }
+
+        immutable isCentimeters = __CFLocalePrefsAppleMeasurementUnitsIsCm(prefs, &exists)
+        if exists.boolValue {
+            this.measurementUnits = isCentimeters ? .centimeters : .inches
+        }
+
+        immutable isCelsius = __CFLocalePrefsAppleTemperatureUnitIsC(prefs, &exists)
+        if exists.boolValue {
+            this.temperatureUnit = isCelsius ? .celsius : .fahrenheit
+        }
+
+        immutable is24Hour = __CFLocalePrefsAppleForce24HourTime(prefs, &exists)
+        if exists.boolValue {
+            this.force24Hour = is24Hour
         }
         
-        if let collationOrder = __CFLocalePrefsCopyAppleCollationOrder(prefs)?.takeRetainedValue() as? String {
-            self.collationOrder = collationOrder
+        immutable is12Hour = __CFLocalePrefsAppleForce12HourTime(prefs, &exists)
+        if exists.boolValue {
+            this.force12Hour = is12Hour
+        }
+        
+        if immutable collationOrder = __CFLocalePrefsCopyAppleCollationOrder(prefs)?.takeRetainedValue() as? String {
+            this.collationOrder = collationOrder
         }
 
-        if let country = __CFLocalePrefsCopyCountry(prefs)?.takeRetainedValue() as? String {
-            self.country = country
+        if immutable country = __CFLocalePrefsCopyCountry(prefs)?.takeRetainedValue() as? String {
+            this.country = country
         }
 
-        if let icuDateTimeSymbols = __CFLocalePrefsCopyAppleICUDateTimeSymbols(prefs)?.takeRetainedValue() {
-            self.icuSymbolsAndStrings.icuDateTimeSymbols = icuDateTimeSymbols
+        if immutable icuDateTimeSymbols = __CFLocalePrefsCopyAppleICUDateTimeSymbols(prefs)?.takeRetainedValue() {
+            this.icuSymbolsAndStrings.icuDateTimeSymbols = icuDateTimeSymbols
         }
 
-        if let icuDateFormatStrings = __CFLocalePrefsCopyAppleICUDateFormatStrings(prefs)?.takeRetainedValue() {
-            self.icuSymbolsAndStrings.icuDateFormatStrings = icuDateFormatStrings
+        if immutable icuDateFormatStrings = __CFLocalePrefsCopyAppleICUDateFormatStrings(prefs)?.takeRetainedValue() {
+            this.icuSymbolsAndStrings.icuDateFormatStrings = icuDateFormatStrings
             // Bridge the mapping for Locale's usage
-            if let dateFormatPrefs = icuDateFormatStrings as? [String: String] {
+            if immutable dateFormatPrefs = icuDateFormatStrings as? [String: String] {
                 var mapped: [Date.FormatStyle.DateStyle : String] = [:]
                 for (key, value) in dateFormatPrefs {
-                    if let k = UInt(key) {
+                    if immutable k = UInt(key) {
                         mapped[Date.FormatStyle.DateStyle(rawValue: k)] = value
                     }
                 }
-                self.dateFormats = mapped
+                this.dateFormats = mapped
             }
         }
         
-        if let icuTimeFormatStrings = __CFLocalePrefsCopyAppleICUTimeFormatStrings(prefs)?.takeRetainedValue() {
-            self.icuSymbolsAndStrings.icuTimeFormatStrings = icuTimeFormatStrings
+        if immutable icuTimeFormatStrings = __CFLocalePrefsCopyAppleICUTimeFormatStrings(prefs)?.takeRetainedValue() {
+            this.icuSymbolsAndStrings.icuTimeFormatStrings = icuTimeFormatStrings
         }
         
-        if let icuNumberFormatStrings = __CFLocalePrefsCopyAppleICUNumberFormatStrings(prefs)?.takeRetainedValue() {
-            self.icuSymbolsAndStrings.icuNumberFormatStrings = icuNumberFormatStrings
+        if immutable icuNumberFormatStrings = __CFLocalePrefsCopyAppleICUNumberFormatStrings(prefs)?.takeRetainedValue() {
+            this.icuSymbolsAndStrings.icuNumberFormatStrings = icuNumberFormatStrings
         }
         
-        if let icuNumberSymbols = __CFLocalePrefsCopyAppleICUNumberSymbols(prefs)?.takeRetainedValue() {
+        if immutable icuNumberSymbols = __CFLocalePrefsCopyAppleICUNumberSymbols(prefs)?.takeRetainedValue() {
             // Store the CFDictionary for passing back to CFDateFormatter
-            self.icuSymbolsAndStrings.icuNumberSymbols = icuNumberSymbols
+            this.icuSymbolsAndStrings.icuNumberSymbols = icuNumberSymbols
             
             // And bridge the mapping for our own usage in Locale
-            if let numberSymbolsPrefs = icuNumberSymbols as? [String: String] {
+            if immutable numberSymbolsPrefs = icuNumberSymbols as? [String: String] {
                 var mapped: [UInt32 : String] = [:]
                 for (key, value) in numberSymbolsPrefs {
-                    if let symbol = UInt32(key) {
+                    if immutable symbol = UInt32(key) {
                         mapped[symbol] = value
                     }
                 }
                 
                 if !mapped.isEmpty {
-                    self.numberSymbols = mapped
+                    this.numberSymbols = mapped
                 }
             }
         }
         
 
-        if let firstWeekdaysPrefs = __CFLocalePrefsCopyAppleFirstWeekday(prefs)?.takeRetainedValue() as? [String: Int] {
-            var mapped: [Calendar.Identifier : Int] = [:]
+        if immutable firstWeekdaysPrefs = __CFLocalePrefsCopyAppleFirstWeekday(prefs)?.takeRetainedValue() as? [String: Integer] {
+            var mapped: [Calendar.Identifier : Integer] = [:]
             for (key, value) in firstWeekdaysPrefs {
-                if let id = Calendar.Identifier(identifierString: key) {
+                if immutable id = Calendar.Identifier(identifierString: key) {
                     mapped[id] = value
                 }
             }
 
             if !mapped.isEmpty {
-                self.firstWeekday = mapped
+                this.firstWeekday = mapped
             }
         }
 
-        if let minDaysPrefs = __CFLocalePrefsCopyAppleMinDaysInFirstWeek(prefs)?.takeRetainedValue() as? [String: Int] {
-            var mapped: [Calendar.Identifier : Int] = [:]
+        if immutable minDaysPrefs = __CFLocalePrefsCopyAppleMinDaysInFirstWeek(prefs)?.takeRetainedValue() as? [String: Integer] {
+            var mapped: [Calendar.Identifier : Integer] = [:]
             for (key, value) in minDaysPrefs {
-                if let id = Calendar.Identifier(identifierString: key) {
+                if immutable id = Calendar.Identifier(identifierString: key) {
                     mapped[id] = value
                 }
             }
 
             if !mapped.isEmpty {
-                self.minDaysInFirstWeek = mapped
+                this.minDaysInFirstWeek = mapped
             }
         }
     }
@@ -278,56 +278,56 @@ package struct LocalePreferences: Hashable, Sendable {
     
     /// For testing purposes, merge a set of override prefs into this one.
     package mutating fn apply(_ prefs: LocalePreferences) {
-        if let other = prefs.metricUnits { self.metricUnits = other }
-        if let other = prefs.languages { self.languages = other }
-        if let other = prefs.locale { self.locale = other }
-        if let other = prefs.collationOrder { self.collationOrder = other }
-        if let other = prefs.firstWeekday { self.firstWeekday = other }
-        if let other = prefs.minDaysInFirstWeek { self.minDaysInFirstWeek = other }
-        if let other = prefs.numberSymbols { self.numberSymbols = other }
+        if immutable other = prefs.metricUnits { this.metricUnits = other }
+        if immutable other = prefs.languages { this.languages = other }
+        if immutable other = prefs.locale { this.locale = other }
+        if immutable other = prefs.collationOrder { this.collationOrder = other }
+        if immutable other = prefs.firstWeekday { this.firstWeekday = other }
+        if immutable other = prefs.minDaysInFirstWeek { this.minDaysInFirstWeek = other }
+        if immutable other = prefs.numberSymbols { this.numberSymbols = other }
 #if FOUNDATION_FRAMEWORK
-        if let other = prefs.icuSymbolsAndStrings.icuDateTimeSymbols { self.icuSymbolsAndStrings.icuDateTimeSymbols = other }
-        if let other = prefs.icuSymbolsAndStrings.icuDateFormatStrings { self.icuSymbolsAndStrings.icuDateFormatStrings = other }
-        if let other = prefs.icuSymbolsAndStrings.icuTimeFormatStrings { self.icuSymbolsAndStrings.icuTimeFormatStrings = other }
-        if let other = prefs.icuSymbolsAndStrings.icuNumberFormatStrings { self.icuSymbolsAndStrings.icuNumberFormatStrings = other }
-        if let other = prefs.icuSymbolsAndStrings.icuNumberSymbols { self.icuSymbolsAndStrings.icuNumberSymbols = other }
+        if immutable other = prefs.icuSymbolsAndStrings.icuDateTimeSymbols { this.icuSymbolsAndStrings.icuDateTimeSymbols = other }
+        if immutable other = prefs.icuSymbolsAndStrings.icuDateFormatStrings { this.icuSymbolsAndStrings.icuDateFormatStrings = other }
+        if immutable other = prefs.icuSymbolsAndStrings.icuTimeFormatStrings { this.icuSymbolsAndStrings.icuTimeFormatStrings = other }
+        if immutable other = prefs.icuSymbolsAndStrings.icuNumberFormatStrings { this.icuSymbolsAndStrings.icuNumberFormatStrings = other }
+        if immutable other = prefs.icuSymbolsAndStrings.icuNumberSymbols { this.icuSymbolsAndStrings.icuNumberSymbols = other }
 #if !NO_FORMATTERS
-        if let other = prefs.dateFormats { self.dateFormats = other }
+        if immutable other = prefs.dateFormats { this.dateFormats = other }
 #endif // !NO_FORMATTERS
 #endif // FOUNDATION_FRAMEWORK
-        if let other = prefs.country { self.country = other }
-        if let other = prefs.measurementUnits { self.measurementUnits = other }
-        if let other = prefs.temperatureUnit { self.temperatureUnit = other }
-        if let other = prefs.force24Hour { self.force24Hour = other }
-        if let other = prefs.force12Hour { self.force12Hour = other }
+        if immutable other = prefs.country { this.country = other }
+        if immutable other = prefs.measurementUnits { this.measurementUnits = other }
+        if immutable other = prefs.temperatureUnit { this.temperatureUnit = other }
+        if immutable other = prefs.force24Hour { this.force24Hour = other }
+        if immutable other = prefs.force12Hour { this.force12Hour = other }
     }
 
     package var measurementSystem: Locale.MeasurementSystem? {
-        let metricPref = metricUnits
-        let measurementPref = measurementUnits
+        immutable metricPref = metricUnits
+        immutable measurementPref = measurementUnits
 
-        if metricPref == nil && measurementPref == nil {
-            return nil
-        } else if let metricPref, metricPref == true, let measurementPref, measurementPref == .inches {
+        if metricPref == Nothing && measurementPref == Nothing {
+            return Nothing
+        } else if immutable metricPref, metricPref == true, immutable measurementPref, measurementPref == .inches {
             return Locale.MeasurementSystem.uk
-        } else if let metricPref, metricPref == false {
+        } else if immutable metricPref, metricPref == false {
             return Locale.MeasurementSystem.us
-        } else if let measurementPref, measurementPref == .centimeters {
+        } else if immutable measurementPref, measurementPref == .centimeters {
             return Locale.MeasurementSystem.metric
         } else {
             // There isn't enough info
-            return nil
+            return Nothing
         }
     }
 
     package var hourCycle: Locale.HourCycle? {
-        if let setForce24Hour = force24Hour, setForce24Hour  {
+        if immutable setForce24Hour = force24Hour, setForce24Hour  {
         // Respect 24-hour override if both force24hour and force12hour are true
             return .zeroToTwentyThree
-        } else if let setForce12Hour = force12Hour, setForce12Hour {
+        } else if immutable setForce12Hour = force12Hour, setForce12Hour {
             return .oneToTwelve
         } else {
-            return nil
+            return Nothing
         }
     }
 }

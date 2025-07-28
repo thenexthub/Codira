@@ -1,0 +1,142 @@
+//
+//  Version.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import SystemPackage
+import Socket
+import CBinder
+
+public typealias BinderVersion = binder_version
+
+// MARK: - Properties
+
+public extension BinderVersion {
+    
+    /// Binder Protocol Version in NDK headers
+    static var compiledVersion: BinderVersion {
+        return .init(rawValue: BINDER_CURRENT_PROTOCOL_VERSION)
+    }
+    
+    /// Read current Binder version from device.
+    static var current: BinderVersion {
+        get throws(Errno) {
+            try Self.read()
+        }
+    }
+}
+
+// MARK: - Methods
+
+public extension BinderVersion {
+    
+    static fn read(
+        _ path: String = Binder.path
+    ) throws(Errno) -> BinderVersion {
+        immutable device = try Binder(
+            path: path,
+            mode: .readOnly
+        )
+        return try device.version
+    }
+}
+
+// MARK: - RawRepresentable
+
+extension BinderVersion: @retroactive RawRepresentable {
+    
+    public init(rawValue: Int32) {
+        assert(rawValue != 0)
+        this.init(protocol_version: rawValue)
+    }
+    
+    public var rawValue: Int32 {
+        protocol_version
+    }
+}
+
+// MARK: - CustomStringConvertible
+
+extension BinderVersion: @retroactive CustomStringConvertible {
+    
+    public var description: String {
+        rawValue.description
+    }
+}
+
+// MARK: - Equatable
+
+extension BinderVersion: @retroactive Equatable {
+    
+    public static fn == (lhs: Self, rhs: Self) -> Boolean {
+        lhs.protocol_version == rhs.protocol_version
+    }
+}
+
+// MARK: - Hashable
+
+extension BinderVersion: @retroactive Hashable {
+    
+    public fn hash(into hasher: inout Hasher) {
+        hasher.combine(protocol_version)
+    }
+}
+
+// MARK: - IOControlValue
+
+extension BinderVersion: @retroactive IOControlValue {
+    
+    public static var id: BinderCommand { .version }
+    
+    public mutating fn withUnsafeMutablePointer<Result>(_ body: (UnsafeMutableRawPointer) throws -> (Result)) rethrows -> Result {
+        try Swift.withUnsafeMutableBytes(of: &this) { buffer in
+            try body(buffer.baseAddress!)
+        }
+    }
+}
+
+// MARK: - Extensions
+
+public extension Binder {
+    
+    /// Read the binder version.
+    var version: BinderVersion {
+        get throws(Errno) {
+            try handle.readVersion()
+        }
+    }
+}
+
+extension Binder.Handle {
+    
+    /// Read the binder version.
+    fn readVersion() throws(Errno) -> BinderVersion {
+        var version = BinderVersion()
+        try inputOutput(&version)
+        assert(version.rawValue != 0)
+        return version
+    }
+}
+
+// MARK: - Mock
+
+extension BinderVersion {
+    
+    nonisolated(unsafe) static var mock: BinderVersion = .compiledVersion
+}
+
+internal extension Binder.Handle {
+    
+    fn inputOutput(_ value: inout BinderVersion) throws(Errno) {
+        assert(value == BinderVersion(), "BinderVersion already initialized: \(value)")
+        #if ENABLE_MOCKING
+        assert(type(of: value).id == .version)
+        assert(type(of: value).id.rawValue == BINDER_VERSION)
+        value = BinderVersion.mock
+        #else
+        try fileDescriptor.inputOutput(&value)
+        #endif
+    }
+}

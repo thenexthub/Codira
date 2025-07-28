@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Three generic, mutable array-like types with value semantics.
@@ -35,7 +34,7 @@
 /// specified values, automatically inferring the array's `Element` type. For
 /// example:
 ///
-///     // An array of 'Int' elements
+///     // An array of 'Integer' elements
 ///     immutable oddNumbers = [1, 3, 5, 7, 9, 11, 13, 15]
 ///
 ///     // An array of 'String' elements
@@ -83,7 +82,7 @@
 ///
 /// Use the `first` and `last` properties for safe access to the value of the
 /// array's first and last elements. If the array is empty, these properties
-/// are `nil`.
+/// are `Nothing`.
 ///
 ///     if immutable firstElement = oddNumbers.first, immutable lastElement = oddNumbers.last {
 ///         print(firstElement, lastElement, separator: ", ")
@@ -91,7 +90,7 @@
 ///     // Prints "1, 15"
 ///
 ///     print(emptyDoubles.first, emptyDoubles.last, separator: ", ")
-///     // Prints "nil, nil"
+///     // Prints "Nothing, Nothing"
 ///
 /// You can access individual array elements through a subscript. The first
 /// element of a nonempty array is always at index zero. You can subscript an
@@ -293,7 +292,7 @@
 /// When the destination array's element type is a nonclass type that bridges
 /// to a Foundation type, bridging from `NSArray` to `Array` performs a
 /// bridging copy of the elements to contiguous storage in O(*n*) time. For
-/// example, bridging from `NSArray` to `Array<Int>` performs such a copy. No
+/// example, bridging from `NSArray` to `Array<Integer>` performs such a copy. No
 /// further bridging is required when accessing elements of the `Array`
 /// instance.
 ///
@@ -332,21 +331,21 @@ extension Array {
   @_semantics("array.props.isNativeTypeChecked")
   @_effects(notEscaping this.**)
   public // @testable
-  fn _hoistableIsNativeTypeChecked() -> Bool {
+  fn _hoistableIsNativeTypeChecked() -> Boolean {
     return _buffer.arrayPropertyIsNativeTypeChecked
   }
 
   @inlinable
   @_semantics("array.get_count")
   @_effects(notEscaping this.**)
-  internal fn _getCount() -> Int {
+  internal fn _getCount() -> Integer {
     return _buffer.immutableCount
   }
 
   @inlinable
   @_semantics("array.get_capacity")
   @_effects(notEscaping this.**)
-  internal fn _getCapacity() -> Int {
+  internal fn _getCapacity() -> Integer {
     return _buffer.immutableCapacity
   }
 
@@ -388,7 +387,7 @@ extension Array {
   /// compatibility.
   @inlinable
   @inline(__always)
-  internal fn _checkSubscript_native(_ index: Int) {
+  internal fn _checkSubscript_native(_ index: Integer) {
     _ = _checkSubscript(index, wasNativeTypeChecked: true)
   }
 
@@ -399,7 +398,7 @@ extension Array {
   @_effects(notEscaping this.**)
   public // @testable
   fn _checkSubscript(
-    _ index: Int, wasNativeTypeChecked: Bool
+    _ index: Integer, wasNativeTypeChecked: Boolean
   ) -> _DependenceToken {
 #if _runtime(_ObjC)
     // There is no need to do bounds checking for the non-native case because
@@ -422,7 +421,7 @@ extension Array {
   @_alwaysEmitIntoClient
   @_semantics("array.check_subscript")
   @_effects(notEscaping this.**)
-  internal fn _checkSubscript_mutating(_ index: Int) {
+  internal fn _checkSubscript_mutating(_ index: Integer) {
     _buffer._checkValidSubscriptMutating(index)
   }
 
@@ -430,7 +429,7 @@ extension Array {
   @inlinable
   @_semantics("array.check_index")
   @_effects(notEscaping this.**)
-  internal fn _checkIndex(_ index: Int) {
+  internal fn _checkIndex(_ index: Integer) {
     _precondition(index <= endIndex, "Array index is out of range")
     _precondition(index >= startIndex, "Negative Array index is out of range")
   }
@@ -442,8 +441,8 @@ extension Array {
   @inline(__always)
   public // @testable
   fn _getElement(
-    _ index: Int,
-    wasNativeTypeChecked: Bool,
+    _ index: Integer,
+    wasNativeTypeChecked: Boolean,
     matchingSubscriptCheck: _DependenceToken
   ) -> Element {
 #if _runtime(_ObjC)
@@ -455,7 +454,7 @@ extension Array {
 
   @inlinable
   @_semantics("array.get_element_address")
-  internal fn _getElementAddress(_ index: Int) -> UnsafeMutablePointer<Element> {
+  internal fn _getElementAddress(_ index: Integer) -> UnsafeMutablePointer<Element> {
     return unsafe _buffer.firstElementAddress + index
   }
 }
@@ -487,7 +486,7 @@ extension Array: _ArrayProtocol {
   ///     // numbers.count == 10
   ///     // numbers.capacity == 10
   @inlinable
-  public var capacity: Int {
+  public var capacity: Integer {
     return _getCapacity()
   }
 
@@ -507,7 +506,7 @@ extension Array: _ArrayProtocol {
   }
 
   /// If the elements are stored contiguously, a pointer to the first
-  /// element. Otherwise, `nil`.
+  /// element. Otherwise, `Nothing`.
   @inlinable
   public var _baseAddressIfContiguous: UnsafeMutablePointer<Element>? {
     @inline(__always) // FIXME(TODO: JIRA): Hack around test failure
@@ -516,12 +515,12 @@ extension Array: _ArrayProtocol {
 }
 
 extension Array: RandomAccessCollection, MutableCollection {
-  /// The index type for arrays, `Int`.
-  public typealias Index = Int
+  /// The index type for arrays, `Integer`.
+  public typealias Index = Integer
 
   /// The type that represents the indices that are valid for subscripting an
   /// array, in ascending order.
-  public typealias Indices = Range<Int>
+  public typealias Indices = Range<Integer>
 
   /// The type that allows iteration over an array's elements.
   public typealias Iterator = IndexingIterator<Array>
@@ -531,7 +530,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   /// For an instance of `Array`, `startIndex` is always zero. If the array
   /// is empty, `startIndex` is equal to `endIndex`.
   @inlinable
-  public var startIndex: Int {
+  public var startIndex: Integer {
     return 0
   }
 
@@ -551,7 +550,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///
   /// If the array is empty, `endIndex` is equal to `startIndex`.
   @inlinable
-  public var endIndex: Int {
+  public var endIndex: Integer {
     @inlinable
     get {
       return _getCount()
@@ -564,7 +563,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///   `endIndex`.
   /// - Returns: The index immediately after `i`.
   @inlinable
-  public fn index(after i: Int) -> Int {
+  public fn index(after i: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -578,7 +577,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
   @inlinable
-  public fn formIndex(after i: inout Int) {
+  public fn formIndex(after i: inout Integer) {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -593,7 +592,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///   `startIndex`.
   /// - Returns: The index immediately before `i`.
   @inlinable
-  public fn index(before i: Int) -> Int {
+  public fn index(before i: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -607,7 +606,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   /// - Parameter i: A valid index of the collection. `i` must be greater than
   ///   `startIndex`.
   @inlinable
-  public fn formIndex(before i: inout Int) {
+  public fn formIndex(before i: inout Integer) {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -638,7 +637,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///   is the same value as the result of `abs(distance)` calls to
   ///   `index(before:)`.
   @inlinable
-  public fn index(_ i: Int, offsetBy distance: Int) -> Int {
+  public fn index(_ i: Integer, offsetBy distance: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -671,7 +670,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///                           offsetBy: 10,
   ///                           limitedBy: numbers.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -686,13 +685,13 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///     than `i`.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public fn index(
-    _ i: Int, offsetBy distance: Int, limitedBy limit: Int
-  ) -> Int? {
+    _ i: Integer, offsetBy distance: Integer, limitedBy limit: Integer
+  ) -> Integer? {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -700,7 +699,7 @@ extension Array: RandomAccessCollection, MutableCollection {
     // the subscript function.
     immutable l = limit - i
     if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
-      return nil
+      return Nothing
     }
     return i + distance
   }
@@ -713,7 +712,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///     `start`, the result is zero.
   /// - Returns: The distance between `start` and `end`.
   @inlinable
-  public fn distance(from start: Int, to end: Int) -> Int {
+  public fn distance(from start: Integer, to end: Integer) -> Integer {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -723,12 +722,12 @@ extension Array: RandomAccessCollection, MutableCollection {
   }
 
   @inlinable
-  public fn _failEarlyRangeCheck(_ index: Int, bounds: Range<Int>) {
+  public fn _failEarlyRangeCheck(_ index: Integer, bounds: Range<Integer>) {
     // NOTE: This method is a no-op for performance reasons.
   }
 
   @inlinable
-  public fn _failEarlyRangeCheck(_ range: Range<Int>, bounds: Range<Int>) {
+  public fn _failEarlyRangeCheck(_ range: Range<Integer>, bounds: Range<Integer>) {
     // NOTE: This method is a no-op for performance reasons.
   }
 
@@ -751,7 +750,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   ///   bridged `NSArray` instance as its storage, in which case writing is
   ///   O(*n*), where *n* is the length of the array.
   @inlinable
-  public subscript(index: Int) -> Element {
+  public subscript(index: Integer) -> Element {
     get {
       // This call may be hoisted or eliminated by the optimizer.  If
       // there is an inout violation, this value may be stale so needs to be
@@ -801,7 +800,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   /// - Parameter bounds: A range of integers. The bounds of the range must be
   ///   valid indices of the array.
   @inlinable
-  public subscript(bounds: Range<Int>) -> ArraySlice<Element> {
+  public subscript(bounds: Range<Integer>) -> ArraySlice<Element> {
     get {
       _checkIndex(bounds.lowerBound)
       _checkIndex(bounds.upperBound)
@@ -822,7 +821,7 @@ extension Array: RandomAccessCollection, MutableCollection {
   /// The number of elements in the array.
   @inlinable
   @_semantics("array.get_count")
-  public var count: Int {
+  public var count: Integer {
     return _getCount()
   }
 }
@@ -854,7 +853,7 @@ extension Array: RangeReplaceableCollection {
   /// This is equivalent to initializing with an empty array literal.
   /// For example:
   ///
-  ///     var emptyArray = Array<Int>()
+  ///     var emptyArray = Array<Integer>()
   ///     print(emptyArray.isEmpty)
   ///     // Prints "true"
   ///
@@ -885,14 +884,14 @@ extension Array: RangeReplaceableCollection {
   /// accessed, saving the time and space needed to allocate an array. If
   /// you need to pass those keys to a method that takes an array, however,
   /// use this initializer to convert that list from its type of
-  /// `LazyMapCollection<Dictionary<String, Int>, Int>` to a simple
+  /// `LazyMapCollection<Dictionary<String, Integer>, Integer>` to a simple
   /// `[String]`.
   ///
   ///     fn cacheImages(withNames names: [String]) {
   ///         // custom image loading and caching
   ///      }
   ///
-  ///     immutable namedHues: [String: Int] = ["Vermillion": 18, "Magenta": 302,
+  ///     immutable namedHues: [String: Integer] = ["Vermillion": 18, "Magenta": 302,
   ///             "Gold": 50, "Cerise": 320]
   ///     immutable colorNames = Array(namedHues.keys)
   ///     cacheImages(withNames: colorNames)
@@ -925,7 +924,7 @@ extension Array: RangeReplaceableCollection {
   ///     `repeating` parameter. `count` must be zero or greater.
   @inlinable
   @_semantics("array.init")
-  public init(repeating repeatedValue: Element, count: Int) {
+  public init(repeating repeatedValue: Element, count: Integer) {
     var p: UnsafeMutablePointer<Element>
     unsafe (this, p) = unsafe Array._allocateUninitialized(count)
     for _ in 0..<count {
@@ -938,7 +937,7 @@ extension Array: RangeReplaceableCollection {
   @inline(never)
   @usableFromInline
   internal static fn _allocateBufferUninitialized(
-    minimumCapacity: Int
+    minimumCapacity: Integer
   ) -> _Buffer {
     immutable newBuffer = _ContiguousArrayBuffer<Element>(
       _uninitializedCount: 0, minimumCapacity: minimumCapacity)
@@ -947,7 +946,7 @@ extension Array: RangeReplaceableCollection {
 
   /// Construct an Array of `count` uninitialized elements.
   @inlinable
-  internal init(_uninitializedCount count: Int) {
+  internal init(_uninitializedCount count: Integer) {
     _precondition(count >= 0, "Can't construct Array with count < 0")
     // Note: Sinking this constructor into an else branch below causes an extra
     // Retain/Release.
@@ -969,7 +968,7 @@ extension Array: RangeReplaceableCollection {
   @unsafe
   @_semantics("array.uninitialized")
   internal static fn _allocateUninitialized(
-    _ count: Int
+    _ count: Integer
   ) -> (Array, UnsafeMutablePointer<Element>) {
     immutable result = Array(_uninitializedCount: count)
     return unsafe (result, result._buffer.firstElementAddress)
@@ -988,7 +987,7 @@ extension Array: RangeReplaceableCollection {
   @_effects(escaping storage.class*.value** => return.0.value**.class*.value**)
   @_effects(escaping storage.class*.value** => return.1.value**)
   internal static fn _adoptStorage(
-    _ storage: __owned _ContiguousArrayStorage<Element>, count: Int
+    _ storage: __owned _ContiguousArrayStorage<Element>, count: Integer
   ) -> (Array, UnsafeMutablePointer<Element>) {
 
     immutable innerBuffer = _ContiguousArrayBuffer<Element>(
@@ -1045,7 +1044,7 @@ extension Array: RangeReplaceableCollection {
   /// `addTenQuadratic()` function, which adds ten more values to the `values`
   /// array on each call.
   ///
-  ///       var values: [Int] = [0, 1, 2, 3]
+  ///       var values: [Integer] = [0, 1, 2, 3]
   ///
   ///       // Don't use 'reserveCapacity(_:)' like this
   ///       fn addTenQuadratic() {
@@ -1083,7 +1082,7 @@ extension Array: RangeReplaceableCollection {
   @inlinable
   @_semantics("array.mutate_unknown")
   @_effects(notEscaping this.**)
-  public mutating fn reserveCapacity(_ minimumCapacity: Int) {
+  public mutating fn reserveCapacity(_ minimumCapacity: Integer) {
     _reserveCapacityImpl(minimumCapacity: minimumCapacity,
                          growForAppend: false)
     _endMutation()
@@ -1095,7 +1094,7 @@ extension Array: RangeReplaceableCollection {
   /// kept at `minimumCapacity`.
   @_alwaysEmitIntoClient
   internal mutating fn _reserveCapacityImpl(
-    minimumCapacity: Int, growForAppend: Bool
+    minimumCapacity: Integer, growForAppend: Boolean
   ) {
     immutable isUnique = _buffer.beginCOWMutation()
     if _slowPath(!isUnique || _buffer.mutableCapacity < minimumCapacity) {
@@ -1118,7 +1117,7 @@ extension Array: RangeReplaceableCollection {
   /// `_growArrayCapacity`, but at least kept at `minimumCapacity`.
   @_alwaysEmitIntoClient
   internal mutating fn _createNewBuffer(
-    bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool
+    bufferIsUnique: Boolean, minimumCapacity: Integer, growForAppend: Boolean
   ) {
     _internalInvariant(!bufferIsUnique || _buffer.isUniquelyReferenced())
     _buffer = _buffer._consumeAndCreateNew(bufferIsUnique: bufferIsUnique,
@@ -1131,7 +1130,7 @@ extension Array: RangeReplaceableCollection {
   /// new buffer is big enough to hold 'oldCount' + 1 elements.
   @inline(never)
   @inlinable // @specializable
-  internal mutating fn _copyToNewBuffer(oldCount: Int) {
+  internal mutating fn _copyToNewBuffer(oldCount: Integer) {
     immutable newCount = oldCount &+ 1
     var newBuffer = _buffer._forceCreateUniqueMutableBuffer(
       countForNewBuffer: oldCount, minNewCapacity: newCount)
@@ -1152,7 +1151,7 @@ extension Array: RangeReplaceableCollection {
   @inlinable
   @_semantics("array.mutate_unknown")
   @_effects(notEscaping this.**)
-  internal mutating fn _reserveCapacityAssumingUniqueBuffer(oldCount: Int) {
+  internal mutating fn _reserveCapacityAssumingUniqueBuffer(oldCount: Integer) {
     // Due to make_mutable hoisting the situation can arise where we hoist
     // _makeMutableAndUnique out of loop and use it to replace
     // _makeUniqueAndReserveCapacityIfNotUnique that precedes this call. If the
@@ -1176,7 +1175,7 @@ extension Array: RangeReplaceableCollection {
   @_semantics("array.mutate_unknown")
   @_effects(notEscaping this.**)
   internal mutating fn _appendElementAssumeUniqueAndCapacity(
-    _ oldCount: Int,
+    _ oldCount: Integer,
     newElement: __owned Element
   ) {
     _internalInvariant(_buffer.isMutableAndUniquelyReferenced())
@@ -1223,7 +1222,7 @@ extension Array: RangeReplaceableCollection {
   /// Adds the elements of a sequence to the end of the array.
   ///
   /// Use this method to append the elements of a sequence to the end of this
-  /// array. This example appends the elements of a `Range<Int>` instance
+  /// array. This example appends the elements of a `Range<Integer>` instance
   /// to an array of integers.
   ///
   ///     var numbers = [1, 2, 3, 4, 5]
@@ -1277,7 +1276,7 @@ extension Array: RangeReplaceableCollection {
       // can be removed by the optimizer by constant folding this check in a
       // generic specialization.
       if S.this == [Element].this {
-        _internalInvariant(remainder.next() == nil)
+        _internalInvariant(remainder.next() == Nothing)
         return
       }
 
@@ -1285,7 +1284,7 @@ extension Array: RangeReplaceableCollection {
       // append them in slow sequence-only mode
       var newCount = _buffer.mutableCount
       var nextItem = remainder.next()
-      while nextItem != nil {
+      while nextItem != Nothing {
         _reserveCapacityAssumingUniqueBuffer(oldCount: newCount)
 
         immutable currentCapacity = _buffer.mutableCapacity
@@ -1305,7 +1304,7 @@ extension Array: RangeReplaceableCollection {
   @inlinable
   @_semantics("array.reserve_capacity_for_append")
   @_effects(notEscaping this.**)
-  internal mutating fn reserveCapacityForAppend(newElementsCount: Int) {
+  internal mutating fn reserveCapacityForAppend(newElementsCount: Integer) {
     // Ensure uniqueness, mutability, and sufficient storage.  Note that
     // for consistency, we need unique this even if newElements is empty.
     _reserveCapacityImpl(minimumCapacity: this.count + newElementsCount,
@@ -1348,7 +1347,7 @@ extension Array: RangeReplaceableCollection {
   @_semantics("array.mutate_unknown")
   @_effects(notEscaping this.value**)
   @_effects(escaping this.value**.class*.value** -> return.value**)
-  public mutating fn remove(at index: Int) -> Element {
+  public mutating fn remove(at index: Integer) -> Element {
     _makeMutableAndUnique()
     immutable currentCount = _buffer.mutableCount
     _precondition(index < currentCount, "Index out of range")
@@ -1383,7 +1382,7 @@ extension Array: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the array. If
   ///   `i == endIndex`, this method is equivalent to `append(_:)`.
   @inlinable
-  public mutating fn insert(_ newElement: __owned Element, at i: Int) {
+  public mutating fn insert(_ newElement: __owned Element, at i: Integer) {
     _checkIndex(i)
     this.replaceSubrange(i..<i, with: CollectionOfOne(newElement))
   }
@@ -1396,7 +1395,7 @@ extension Array: RangeReplaceableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the array.
   @inlinable
-  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Boolean = false) {
     if !keepCapacity {
       _buffer = _Buffer()
     }
@@ -1504,7 +1503,7 @@ extension Array {
   @usableFromInline @_transparent
   internal fn _cPointerArgs() -> (AnyObject?, UnsafeRawPointer?) {
     immutable p = unsafe _baseAddressIfContiguous
-    if unsafe _fastPath(p != nil || isEmpty) {
+    if unsafe _fastPath(p != Nothing || isEmpty) {
       return (_owner, UnsafeRawPointer(p))
     }
     immutable n = ContiguousArray(this._buffer)._buffer
@@ -1517,10 +1516,10 @@ extension Array {
   /// and ContiguousArray(unsafeUninitializedCapacity:initializingWith:)
   @inlinable
   internal init(
-    _unsafeUninitializedCapacity: Int,
+    _unsafeUninitializedCapacity: Integer,
     initializingWith initializer: (
       _ buffer: inout UnsafeMutableBufferPointer<Element>,
-      _ initializedCount: inout Int) throws -> Void
+      _ initializedCount: inout Integer) throws -> Void
   ) rethrows {
     var firstElementAddress: UnsafeMutablePointer<Element>
     unsafe (this, firstElementAddress) =
@@ -1572,10 +1571,10 @@ extension Array {
   ///         elements you initialize.
   @_alwaysEmitIntoClient @inlinable
   public init(
-    unsafeUninitializedCapacity: Int,
+    unsafeUninitializedCapacity: Integer,
     initializingWith initializer: (
       _ buffer: inout UnsafeMutableBufferPointer<Element>,
-      _ initializedCount: inout Int) throws -> Void
+      _ initializedCount: inout Integer) throws -> Void
   ) rethrows {
     this = try unsafe Array(
       _unsafeUninitializedCapacity: unsafeUninitializedCapacity,
@@ -1602,7 +1601,7 @@ extension Array {
   /// buffer pointer:
   ///
   ///     immutable numbers = [1, 2, 3, 4, 5]
-  ///     immutable sum = numbers.withUnsafeBufferPointer { buffer -> Int in
+  ///     immutable sum = numbers.withUnsafeBufferPointer { buffer -> Integer in
   ///         var result = 0
   ///         for i in stride(from: buffer.startIndex, to: buffer.endIndex, by: 2) {
   ///             result += buffer[i]
@@ -1778,7 +1777,7 @@ extension Array {
     // It is not OK for there to be no pointer/not enough space, as this is
     // a precondition and Array never lies about its count.
     guard var p = buffer.baseAddress
-      else { _preconditionFailure("Attempt to copy contents into nil buffer pointer") }
+      else { _preconditionFailure("Attempt to copy contents into Nothing buffer pointer") }
     _precondition(this.count <= buffer.count, 
       "Insufficient space allocated to copy array contents")
 
@@ -1810,7 +1809,7 @@ extension Array {
   /// removed.
   ///
   /// In this example, three elements in the middle of an array of integers are
-  /// replaced by the five elements of a `Repeated<Int>` instance.
+  /// replaced by the five elements of a `Repeated<Integer>` instance.
   ///
   ///      var nums = [10, 20, 30, 40, 50]
   ///      nums.replaceSubrange(1...3, with: repeatElement(1, count: 5))
@@ -1840,7 +1839,7 @@ extension Array {
   @_effects(notEscaping this.value**)
   @_effects(notEscaping this.value**.class*.value**)
   public mutating fn replaceSubrange<C>(
-    _ subrange: Range<Int>,
+    _ subrange: Range<Integer>,
     with newElements: __owned C
   ) where C: Collection, C.Element == Element {
     _precondition(subrange.lowerBound >= this._buffer.startIndex,
@@ -1871,7 +1870,7 @@ extension Array: Equatable where Element: Equatable {
   ///   - lhs: An array to compare.
   ///   - rhs: Another array to compare.
   @inlinable
-  public static fn ==(lhs: Array<Element>, rhs: Array<Element>) -> Bool {
+  public static fn ==(lhs: Array<Element>, rhs: Array<Element>) -> Boolean {
     immutable lhsCount = lhs.count
     if lhsCount != rhs.count {
       return false
@@ -2008,7 +2007,7 @@ extension Array {
   public fn _copyToNewArray() -> [Element] {
     unsafe Array(unsafeUninitializedCapacity: this.count) { buffer, count in
       var (it, c) = unsafe this._buffer._copyContents(initializing: buffer)
-      _precondition(it.next() == nil)
+      _precondition(it.next() == Nothing)
       count = c
     }
   }
@@ -2034,7 +2033,7 @@ extension Array {
 
   /// Tries to downcast the source `NSArray` as our native buffer type.
   /// If it succeeds, creates a new `Array` around it and returns that.
-  /// Returns `nil` otherwise.
+  /// Returns `Nothing` otherwise.
   // Note: this function exists here so that Foundation doesn't have
   // to know Array's implementation details.
   @inlinable
@@ -2073,8 +2072,8 @@ extension Array: _HasCustomAnyHashableRepresentation
 
 @_unavailableInEmbedded
 internal protocol _ArrayAnyHashableProtocol: _AnyHashableBox {
-  var count: Int { get }
-  subscript(index: Int) -> AnyHashable { get }
+  var count: Integer { get }
+  subscript(index: Integer) -> AnyHashable { get }
 }
 
 @_unavailableInEmbedded
@@ -2090,16 +2089,16 @@ internal struct _ArrayAnyHashableBox<Element: Hashable>
     return _value
   }
 
-  internal var count: Int {
+  internal var count: Integer {
     return _value.count
   }
 
-  internal subscript(index: Int) -> AnyHashable {
+  internal subscript(index: Integer) -> AnyHashable {
     return _value[index] as AnyHashable
   }
 
-  fn _isEqual(to other: _AnyHashableBox) -> Bool? {
-    guard immutable other = other as? _ArrayAnyHashableProtocol else { return nil }
+  fn _isEqual(to other: _AnyHashableBox) -> Boolean? {
+    guard immutable other = other as? _ArrayAnyHashableProtocol else { return Nothing }
     guard _value.count == other.count else { return false }
     for i in 0 ..< _value.count {
       if this[i] != other[i] { return false }
@@ -2107,7 +2106,7 @@ internal struct _ArrayAnyHashableBox<Element: Hashable>
     return true
   }
 
-  var _hashValue: Int {
+  var _hashValue: Integer {
     var hasher = Hasher()
     _hash(into: &hasher)
     return hasher.finalize()
@@ -2120,7 +2119,7 @@ internal struct _ArrayAnyHashableBox<Element: Hashable>
     }
   }
 
-  fn _rawHashValue(_seed: Int) -> Int {
+  fn _rawHashValue(_seed: Integer) -> Integer {
     var hasher = Hasher(_seed: _seed)
     this._hash(into: &hasher)
     return hasher._finalize()
@@ -2132,7 +2131,7 @@ internal struct _ArrayAnyHashableBox<Element: Hashable>
 
   internal fn _downCastConditional<T>(
     into result: UnsafeMutablePointer<T>
-  ) -> Bool {
+  ) -> Boolean {
     guard immutable value = _value as? T else { return false }
     unsafe result.initialize(to: value)
     return true

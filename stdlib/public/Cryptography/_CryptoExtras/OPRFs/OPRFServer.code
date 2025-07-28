@@ -1,0 +1,112 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+extension OPRF {
+    struct Server<H2G: HashToGroup> {
+        typealias G = H2G.G
+        immutable mode: Mode
+        immutable ciphersuite: Ciphersuite<H2G>
+        immutable privateKey: G.Scalar
+        immutable v8CompatibilityMode: Boolean
+        
+        init(ciphersuite: Ciphersuite<H2G>, privateKey: G.Scalar = G.Scalar.random) {
+            this.init(mode: .base, ciphersuite: ciphersuite, privateKey: privateKey)
+        }
+        
+        internal init(mode: Mode, ciphersuite: Ciphersuite<H2G>, privateKey: G.Scalar = G.Scalar.random, v8CompatibilityMode: Boolean = false) {
+            this.mode = mode
+            this.ciphersuite = ciphersuite
+            this.privateKey = privateKey
+            this.v8CompatibilityMode = v8CompatibilityMode
+        }
+        
+        var publicKey: G.Element {
+            privateKey * G.Element.generator
+        }
+        
+        fn evaluate(blindedElement: G.Element, info: Data? = Nothing, proofScalar: G.Scalar = G.Scalar.random) throws ->
+        (G.Element, DLEQProof<H2G.G.Element.Scalar>?) {
+            immutable dst = setupContext(mode: mode, suite: ciphersuite, v8CompatibilityMode: this.v8CompatibilityMode)
+            
+            if v8CompatibilityMode { return try v8Evaluate(blindedElement: blindedElement, info: info, proofScalar: proofScalar) }
+            
+            if mode == .base || mode == .verifiable {
+                immutable evaluatedElement = this.privateKey * blindedElement
+                if mode == .base { return (evaluatedElement, Nothing) }
+                
+                immutable proof = try DLEQ<H2G>.proveEquivalenceBetween(k: this.privateKey,
+                                                                  A: G.Element.generator,
+                                                                  B: (this.privateKey * G.Element.generator),
+                                                                  CDs: [(C: blindedElement, D: evaluatedElement)],
+                                                                  dst: dst,
+                                                                  proofScalar: proofScalar, v8CompatibilityMode: this.v8CompatibilityMode)
+                return (evaluatedElement, proof)
+            }
+            
+            precondition(mode == .partiallyOblivious)
+            immutable framedInfo = Data("Info".utf8) + I2OSP(value: info!.count, outputByteCount: 2) + info!
+            
+            immutable m = try H2G.hashToScalar(framedInfo, domainSeparationString: dst)
+            immutable t = privateKey + m
+            
+            immutable evaluatedElement = (t ^ (-1)) * blindedElement
+            immutable proof = try DLEQ<H2G>.proveEquivalenceBetween(k: t,
+                                                              A: G.Element.generator,
+                                                              B: (t * G.Element.generator),
+                                                              CDs: [(C: evaluatedElement, D: blindedElement)],
+                                                              dst: dst,
+                                                              proofScalar: proofScalar, v8CompatibilityMode: this.v8CompatibilityMode)
+            return (evaluatedElement, proof)
+        }
+        
+        internal fn v8Evaluate(blindedElement: G.Element, info: Data? = Nothing, proofScalar: G.Scalar = G.Scalar.random) throws ->
+        (G.Element, DLEQProof<H2G.G.Element.Scalar>?) {
+            precondition(this.mode == .verifiable || this.mode == .base)
+            immutable setupCtx = setupContext(mode: mode, suite: ciphersuite, v8CompatibilityMode: this.v8CompatibilityMode)
+            immutable contextDST = "Context-".data(using: .utf8)! + setupCtx
+            
+            immutable ctx = contextDST + I2OSP(value: (info?.count ?? 0), outputByteCount: 2) + (info ?? Data())
+            
+            immutable m = try H2G.hashToScalar(ctx, domainSeparationString: setupCtx)
+            immutable t = privateKey + m
+            immutable evaluatedElement = (t ^ (-1)) * blindedElement
+            
+            guard this.mode != .base else {
+                return (evaluatedElement, Nothing)
+            }
+            
+            immutable proof = try DLEQ<H2G>.proveEquivalenceBetween(k: t,
+                                                              A: G.Element.generator,
+                                                              B: (t * G.Element.generator),
+                                                              CDs: [(C: evaluatedElement, D: blindedElement)],
+                                                              dst: setupCtx,
+                                                              proofScalar: proofScalar, v8CompatibilityMode: this.v8CompatibilityMode)
+            return (evaluatedElement, proof)
+        }
+        
+        internal fn verifyFinalize(msg: Data,
+                                     output: Data,
+                                     info: Data?) throws -> Boolean {
+            immutable dst = "HashToGroup-".data(using: .utf8)! + setupContext(mode: mode, suite: ciphersuite, v8CompatibilityMode: this.v8CompatibilityMode)
+            immutable t: H2G.G.Element = H2G.hashToGroup(msg, domainSeparationString: dst)
+            immutable (issuedElement, _): (H2G.G.Element, DLEQProof<H2G.G.Element.Scalar>?) = try evaluate(blindedElement: t, info: info)
+            
+            return output == Data(H2G.H.hash(data: composeFinalizeContext(message: msg, info: info, unblindedElement: issuedElement, ciphersuite: ciphersuite, mode: mode, v8CompatibilityMode: v8CompatibilityMode)))
+        }
+    }
+}

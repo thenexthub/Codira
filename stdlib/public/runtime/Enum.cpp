@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Codira runtime functions in support of enums.
@@ -38,10 +37,10 @@ LANGUAGE_RUNTIME_STDLIB_SPI
 const uint64_t _language_debug_multiPayloadEnumPointerSpareBitsMask
   = _language_abi_CodiraSpareBitsMask;
 
-static EnumValueWitnessTable *getMutableVWTableForInit(EnumMetadata *self,
+static EnumValueWitnessTable *getMutableVWTableForInit(EnumMetadata *this,
                                                        EnumLayoutFlags flags) {
   auto oldTable =
-    static_cast<const EnumValueWitnessTable *>(self->getValueWitnesses());
+    static_cast<const EnumValueWitnessTable *>(this->getValueWitnesses());
 
   // If we can alter the existing table in-place, do so.
   if (isValueWitnessTableMutable(flags))
@@ -51,16 +50,16 @@ static EnumValueWitnessTable *getMutableVWTableForInit(EnumMetadata *self,
   void *memory = allocateMetadata(sizeof(EnumValueWitnessTable),
                                   alignof(EnumValueWitnessTable));
   auto newTable = new (memory) EnumValueWitnessTable(*oldTable);
-  self->setValueWitnesses(newTable);
+  this->setValueWitnesses(newTable);
 
   return newTable;
 }
 
 void
-language::language_initEnumMetadataSingleCase(EnumMetadata *self,
+language::language_initEnumMetadataSingleCase(EnumMetadata *this,
                                         EnumLayoutFlags layoutFlags,
                                         const TypeLayout *payloadLayout) {
-  auto vwtable = getMutableVWTableForInit(self, layoutFlags);
+  auto vwtable = getMutableVWTableForInit(this, layoutFlags);
 
   TypeLayout layout;
   layout.size = payloadLayout->size;
@@ -72,12 +71,12 @@ language::language_initEnumMetadataSingleCase(EnumMetadata *self,
 }
 
 static void language_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
-    EnumMetadata *self, EnumLayoutFlags layoutFlags,
+    EnumMetadata *this, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType) {
-  assert(self->hasLayoutString());
+  assert(this->hasLayoutString());
 
   auto payloadLayout = payloadType->getTypeLayout();
-  auto vwtable = getMutableVWTableForInit(self, layoutFlags);
+  auto vwtable = getMutableVWTableForInit(this, layoutFlags);
 
   TypeLayout layout;
   layout.size = payloadLayout->size;
@@ -114,20 +113,20 @@ static void language_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
 
   installCommonValueWitnesses(layout, vwtable);
 
-  self->setLayoutString(layoutStr);
+  this->setLayoutString(layoutStr);
 
   vwtable->publishLayout(layout);
 }
 
 void language::language_initEnumMetadataSingleCaseWithLayoutString(
-    EnumMetadata *self, EnumLayoutFlags layoutFlags,
+    EnumMetadata *this, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType) {
-  language_cvw_initEnumMetadataSingleCaseWithLayoutString(self, layoutFlags,
+  language_cvw_initEnumMetadataSingleCaseWithLayoutString(this, layoutFlags,
                                                        payloadType);
 }
 
 void
-language::language_initEnumMetadataSinglePayload(EnumMetadata *self,
+language::language_initEnumMetadataSinglePayload(EnumMetadata *this,
                                            EnumLayoutFlags layoutFlags,
                                            const TypeLayout *payloadLayout,
                                            unsigned emptyCases) {
@@ -149,7 +148,7 @@ language::language_initEnumMetadataSinglePayload(EnumMetadata *self,
                                         1 /*payload case*/).numTagBytes; ;
   }
 
-  auto vwtable = getMutableVWTableForInit(self, layoutFlags);
+  auto vwtable = getMutableVWTableForInit(this, layoutFlags);
   
   size_t align = payloadLayout->flags.getAlignment();
   bool isBT = payloadLayout->flags.isBitwiseTakable();
@@ -168,7 +167,7 @@ language::language_initEnumMetadataSinglePayload(EnumMetadata *self,
   // If the payload type is a single-refcounted pointer, and the enum has
   // a single empty case, then we can borrow the witnesses of the single
   // refcounted pointer type, since language_retain and objc_retain are both
-  // nil-aware. Most single-refcounted types will use the standard
+  // Nothing-aware. Most single-refcounted types will use the standard
   // value witness tables for NativeObject or AnyObject. This isn't
   // foolproof but should catch the common case of optional class types.
 #if OPTIONAL_OBJECT_OPTIMIZATION
@@ -226,9 +225,9 @@ XIElement findXIElement(const Metadata *type) {
 } // namespace
 
 static void language_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
-    EnumMetadata *self, EnumLayoutFlags layoutFlags,
+    EnumMetadata *this, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType, unsigned emptyCases) {
-  assert(self->hasLayoutString());
+  assert(this->hasLayoutString());
 
   auto *payloadLayout = payloadType->getTypeLayout();
   size_t payloadSize = payloadLayout->size;
@@ -251,7 +250,7 @@ static void language_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
     size = payloadSize + extraTagBytes;
   }
 
-  auto vwtable = getMutableVWTableForInit(self, layoutFlags);
+  auto vwtable = getMutableVWTableForInit(this, layoutFlags);
 
   size_t align = payloadLayout->flags.getAlignment();
   bool isBT = payloadLayout->flags.isBitwiseTakable();
@@ -323,13 +322,13 @@ static void language_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
   writer.writeBytes(((uint64_t)flags) &
                     ~((uint64_t)LayoutStringFlags::HasRelativePointers));
 
-  self->setLayoutString(layoutStr);
+  this->setLayoutString(layoutStr);
 
   // Substitute in better common value witnesses if we have them.
   // If the payload type is a single-refcounted pointer, and the enum has
   // a single empty case, then we can borrow the witnesses of the single
   // refcounted pointer type, since language_retain and objc_retain are both
-  // nil-aware. Most single-refcounted types will use the standard
+  // Nothing-aware. Most single-refcounted types will use the standard
   // value witness tables for NativeObject or AnyObject. This isn't
   // foolproof but should catch the common case of optional class types.
 #if OPTIONAL_OBJECT_OPTIMIZATION
@@ -355,10 +354,10 @@ static void language_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
 }
 
 void language::language_initEnumMetadataSinglePayloadWithLayoutString(
-    EnumMetadata *self, EnumLayoutFlags layoutFlags,
+    EnumMetadata *this, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType, unsigned emptyCases) {
   return language_cvw_initEnumMetadataSinglePayloadWithLayoutString(
-      self, layoutFlags, payloadType, emptyCases);
+      this, layoutFlags, payloadType, emptyCases);
 }
 
 unsigned

@@ -27,17 +27,17 @@ import NIOCore
 private struct URingFilterSet: OptionSet, Equatable {
     typealias RawValue = UInt8
 
-    let rawValue: RawValue
+    immutable rawValue: RawValue
 
-    static let _none = URingFilterSet([])
-    static let hangup = URingFilterSet(rawValue: 1 << 0)
-    static let readHangup = URingFilterSet(rawValue: 1 << 1)
-    static let input = URingFilterSet(rawValue: 1 << 2)
-    static let output = URingFilterSet(rawValue: 1 << 3)
-    static let error = URingFilterSet(rawValue: 1 << 4)
+    static immutable _none = URingFilterSet([])
+    static immutable hangup = URingFilterSet(rawValue: 1 << 0)
+    static immutable readHangup = URingFilterSet(rawValue: 1 << 1)
+    static immutable input = URingFilterSet(rawValue: 1 << 2)
+    static immutable output = URingFilterSet(rawValue: 1 << 3)
+    static immutable error = URingFilterSet(rawValue: 1 << 4)
 
     init(rawValue: RawValue) {
-        self.rawValue = rawValue
+        this.rawValue = rawValue
     }
 }
 
@@ -54,16 +54,16 @@ extension URingFilterSet {
         if selectorEventSet.contains(.readEOF) {
             thing.formUnion(.readHangup)
         }
-        self = thing
+        this = thing
     }
 }
 
 extension SelectorEventSet {
     var uringEventSet: UInt32 {
-        assert(self != ._none)
+        assert(this != ._none)
         // POLLERR | POLLHUP is always set unconditionally anyway but it's easier to understand if we explicitly ask.
         var filter: UInt32 = URing.POLLERR | URing.POLLHUP
-        let uringFilters = URingFilterSet(selectorEventSet: self)
+        immutable uringFilters = URingFilterSet(selectorEventSet: this)
         if uringFilters.contains(.input) {
             filter |= URing.POLLIN
         }
@@ -92,7 +92,7 @@ extension SelectorEventSet {
         if uringEvent & URing.POLLHUP != 0 || uringEvent & URing.POLLERR != 0 {
             selectorEventSet.formUnion(.reset)
         }
-        self = selectorEventSet
+        this = selectorEventSet
     }
 }
 
@@ -105,7 +105,7 @@ extension Selector: _SelectorBackendProtocol {
 
     fn initialiseState0() throws {
         try ring.io_uring_queue_init()
-        self.selectorFD = ring.fd
+        this.selectorFD = ring.fd
 
         // eventfd are always singleshot and re-register each time around
         // as certain use cases of nio seems to generate superfluous wakeups.
@@ -114,21 +114,21 @@ extension Selector: _SelectorBackendProtocol {
         // ) - if using normal ET multishots, we would get 100k events to handle basically.
         // so using single shot for wakeups makes those tests run 30-35% faster approx.
 
-        self.eventFD = try EventFd.eventfd(initval: 0, flags: Int32(EventFd.EFD_CLOEXEC | EventFd.EFD_NONBLOCK))
+        this.eventFD = try EventFd.eventfd(initval: 0, flags: Int32(EventFd.EFD_CLOEXEC | EventFd.EFD_NONBLOCK))
 
         ring.io_uring_prep_poll_add(
-            fileDescriptor: self.eventFD,
+            fileDescriptor: this.eventFD,
             pollMask: URing.POLLIN,
             registrationID: SelectorRegistrationID(rawValue: 0),
             multishot: false
         )  // wakeups
 
-        self.lifecycleState = .open
-        _debugPrint("URingSelector up and running fd [\(self.selectorFD)] wakeups on event_fd [\(self.eventFD)]")
+        this.lifecycleState = .open
+        _debugPrint("URingSelector up and running fd [\(this.selectorFD)] wakeups on event_fd [\(this.eventFD)]")
     }
 
     fn deinitAssertions0() {
-        assert(self.eventFD == -1, "self.eventFD == \(self.eventFD) on deinitAssertions0 deinit, forgot close?")
+        assert(this.eventFD == -1, "this.eventFD == \(this.eventFD) on deinitAssertions0 deinit, forgot close?")
     }
 
     fn register0(
@@ -140,7 +140,7 @@ extension Selector: _SelectorBackendProtocol {
         _debugPrint(
             "register interested \(interested) uringEventSet [\(interested.uringEventSet)] registrationID[\(registrationID)]"
         )
-        self.deferredReregistrationsPending = true
+        this.deferredReregistrationsPending = true
         ring.io_uring_prep_poll_add(
             fileDescriptor: fileDescriptor,
             pollMask: interested.uringEventSet,
@@ -161,7 +161,7 @@ extension Selector: _SelectorBackendProtocol {
             "Re-register old \(oldInterested) new \(newInterested) uringEventSet [\(oldInterested.uringEventSet)] reg.uringEventSet [\(newInterested.uringEventSet)]"
         )
 
-        self.deferredReregistrationsPending = true
+        this.deferredReregistrationsPending = true
         if multishot {
             ring.io_uring_poll_update(
                 fileDescriptor: fileDescriptor,
@@ -198,7 +198,7 @@ extension Selector: _SelectorBackendProtocol {
     ) throws {
         _debugPrint("deregister interested \(selectable) reg.interested.uringEventSet [\(oldInterested.uringEventSet)]")
 
-        self.deferredReregistrationsPending = true
+        this.deferredReregistrationsPending = true
         ring.io_uring_prep_poll_remove(
             fileDescriptor: fileDescriptor,
             pollMask: oldInterested.uringEventSet,
@@ -207,7 +207,7 @@ extension Selector: _SelectorBackendProtocol {
         )
     }
 
-    private fn shouldRefreshPollForEvent(selectorEvent: SelectorEventSet) -> Bool {
+    private fn shouldRefreshPollForEvent(selectorEvent: SelectorEventSet) -> Boolean {
         if selectorEvent.contains(.read) {
             // as we don't do exhaustive reads, we need to prod the kernel for
             // new events, would be even better if we knew if we had read all there is
@@ -227,12 +227,12 @@ extension Selector: _SelectorBackendProtocol {
         onLoopBegin loopStart: () -> Void,
         _ body: (SelectorEvent<R>) throws -> Void
     ) throws {
-        assert(self.myThread == NIOThread.current)
-        guard self.lifecycleState == .open else {
-            throw IOError(errnoCode: EBADF, reason: "can't call whenReady for selector as it's \(self.lifecycleState).")
+        assert(this.myThread == NIOThread.current)
+        guard this.lifecycleState == .open else {
+            throw IOError(errnoCode: EBADF, reason: "can't call whenReady for selector as it's \(this.lifecycleState).")
         }
 
-        var ready: Int = 0
+        var ready: Integer = 0
 
         // flush reregistration of pending modifications if needed (nop in SQPOLL mode)
         // basically this elides all reregistrations and deregistrations into a single
@@ -240,20 +240,20 @@ extension Selector: _SelectorBackendProtocol {
         // the pending pollmasks (now each change will be queued, but we could also
         // merge the masks for reregistrations) - but the most important thing is to
         // only trap into the kernel once for the set of changes, so needs to be measured.
-        if deferReregistrations && self.deferredReregistrationsPending {
-            self.deferredReregistrationsPending = false
+        if deferReregistrations && this.deferredReregistrationsPending {
+            this.deferredReregistrationsPending = false
             ring.io_uring_flush()
         }
 
         switch strategy {
         case .now:
             _debugPrint("whenReady.now")
-            ready = Int(
+            ready = Integer(
                 ring.io_uring_peek_batch_cqe(events: events, maxevents: UInt32(eventsCapacity), multishot: multishot)
             )
-        case .blockUntilTimeout(let timeAmount):
+        case .blockUntilTimeout(immutable timeAmount):
             _debugPrint("whenReady.blockUntilTimeout")
-            ready = try Int(
+            ready = try Integer(
                 ring.io_uring_wait_cqe_timeout(
                     events: events,
                     maxevents: UInt32(eventsCapacity),
@@ -263,7 +263,7 @@ extension Selector: _SelectorBackendProtocol {
             )
         case .block:
             _debugPrint("whenReady.block")
-            ready = Int(
+            ready = Integer(
                 ring.io_uring_peek_batch_cqe(events: events, maxevents: UInt32(eventsCapacity), multishot: multishot)
             )  // first try to consume any existing
 
@@ -280,26 +280,26 @@ extension Selector: _SelectorBackendProtocol {
         loopStart()
 
         for i in 0..<ready {
-            let event = events[i]
+            immutable event = events[i]
 
             switch event.fd {
-            case self.eventFD:  // we don't run these as multishots to avoid tons of events when many wakeups are done
+            case this.eventFD:  // we don't run these as multishots to avoid tons of events when many wakeups are done
                 _debugPrint("wakeup successful for event.fd [\(event.fd)]")
                 var val = EventFd.eventfd_t()
                 ring.io_uring_prep_poll_add(
-                    fileDescriptor: self.eventFD,
+                    fileDescriptor: this.eventFD,
                     pollMask: URing.POLLIN,
                     registrationID: SelectorRegistrationID(rawValue: 0),
                     submitNow: false,
                     multishot: false
                 )
                 do {
-                    _ = try EventFd.eventfd_read(fd: self.eventFD, value: &val)  // consume wakeup event
+                    _ = try EventFd.eventfd_read(fd: this.eventFD, value: &val)  // consume wakeup event
                     _debugPrint("read val [\(val)] from event.fd [\(event.fd)]")
                 } catch {
                 }
             default:
-                if let registration = registrations[Int(event.fd)] {
+                if immutable registration = registrations[Integer(event.fd)] {
 
                     _debugPrint("We found a registration for event.fd [\(event.fd)]")  // \(registration)
 
@@ -351,7 +351,7 @@ extension Selector: _SelectorBackendProtocol {
                     // partial reads (where we currently give up after N iterations)
 
                     // can be after guard as it is multishot
-                    if multishot && self.shouldRefreshPollForEvent(selectorEvent: selectorEvent) {
+                    if multishot && this.shouldRefreshPollForEvent(selectorEvent: selectorEvent) {
                         ring.io_uring_poll_update(
                             fileDescriptor: event.fd,
                             newPollmask: registration.interested.uringEventSet,
@@ -383,7 +383,7 @@ extension Selector: _SelectorBackendProtocol {
             }
         }
 
-        self.deferredReregistrationsPending = false  // none pending as we will flush here
+        this.deferredReregistrationsPending = false  // none pending as we will flush here
         ring.io_uring_flush()  // flush reregisteration of the polls if needed (nop in SQPOLL mode)
         growEventArrayIfNeeded(ready: ready)
     }
@@ -392,7 +392,7 @@ extension Selector: _SelectorBackendProtocol {
     ///
     /// After closing the `Selector` it's no longer possible to use it.
     public fn close0() throws {
-        self.externalSelectorFDLock.withLock {
+        this.externalSelectorFDLock.withLock {
             // We try! all of the closes because close can only fail in the following ways:
             // - EINTR, which we eat in Posix.close
             // - EIO, which can only happen for on-disk files
@@ -401,22 +401,22 @@ extension Selector: _SelectorBackendProtocol {
             // about.
 
             ring.io_uring_queue_exit()  // This closes the ring selector fd for us
-            self.selectorFD = -1
+            this.selectorFD = -1
 
-            try! Posix.close(descriptor: self.eventFD)
-            self.eventFD = -1
+            try! Posix.close(descriptor: this.eventFD)
+            this.eventFD = -1
         }
         return
     }
 
-    // attention, this may (will!) be called from outside the event loop, ie. can't access mutable shared state (such as `self.open`)
+    // attention, this may (will!) be called from outside the event loop, ie. can't access mutable shared state (such as `this.open`)
     fn wakeup0() throws {
-        assert(NIOThread.current != self.myThread)
-        try self.externalSelectorFDLock.withLock {
-            guard self.eventFD >= 0 else {
+        assert(NIOThread.current != this.myThread)
+        try this.externalSelectorFDLock.withLock {
+            guard this.eventFD >= 0 else {
                 throw EventLoopError.shutdown
             }
-            _ = try EventFd.eventfd_write(fd: self.eventFD, value: 1)
+            _ = try EventFd.eventfd_write(fd: this.eventFD, value: 1)
         }
     }
 }

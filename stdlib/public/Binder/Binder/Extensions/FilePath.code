@@ -1,0 +1,15 @@
+//
+//  FilePath.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import SystemPackage
+
+public extension FilePath {
+    
+    static var binder: FilePath {
+        .init(Binder.path)
+    }
+}

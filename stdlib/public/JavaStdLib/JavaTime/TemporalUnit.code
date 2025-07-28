@@ -1,0 +1,43 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.time.temporal.TemporalUnit")
+public struct TemporalUnit {
+  @JavaMethod
+  public fn toString() -> String
+
+  @JavaMethod
+  public fn between(_ arg0: Temporal?, _ arg1: Temporal?) -> Int64
+
+  @JavaMethod
+  public fn isDurationEstimated() -> Boolean
+
+  @JavaMethod
+  public fn getDuration() -> Duration!
+
+  @JavaMethod
+  public fn addTo(_ arg0: Temporal?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  public fn isSupportedBy(_ arg0: Temporal?) -> Boolean
+
+  @JavaMethod
+  public fn isTimeBased() -> Boolean
+
+  @JavaMethod
+  public fn isDateBased() -> Boolean
+}

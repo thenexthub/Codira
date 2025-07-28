@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/SwiftProtobufError.swift
+// Sources/SwiftProtobuf/SwiftProtobufError.code
 //
 // Copyright (c) 2024 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -21,8 +21,8 @@ public struct SwiftProtobufError: Error, @unchecked Sendable {
 
     private var storage: Storage
     private mutating fn ensureStorageIsUnique() {
-        if !isKnownUniquelyReferenced(&self.storage) {
-            self.storage = self.storage.copy()
+        if !isKnownUniquelyReferenced(&this.storage) {
+            this.storage = this.storage.copy()
         }
     }
 
@@ -36,43 +36,43 @@ public struct SwiftProtobufError: Error, @unchecked Sendable {
             message: String,
             location: SourceLocation
         ) {
-            self.code = code
-            self.message = message
-            self.location = location
+            this.code = code
+            this.message = message
+            this.location = location
         }
 
         fn copy() -> Self {
             Self(
-                code: self.code,
-                message: self.message,
-                location: self.location
+                code: this.code,
+                message: this.message,
+                location: this.location
             )
         }
     }
 
     /// A high-level error code to provide broad a classification.
     public var code: Code {
-        get { self.storage.code }
+        get { this.storage.code }
         set {
-            self.ensureStorageIsUnique()
-            self.storage.code = newValue
+            this.ensureStorageIsUnique()
+            this.storage.code = newValue
         }
     }
 
     /// A message describing what went wrong and how it may be remedied.
     package var message: String {
-        get { self.storage.message }
+        get { this.storage.message }
         set {
-            self.ensureStorageIsUnique()
-            self.storage.message = newValue
+            this.ensureStorageIsUnique()
+            this.storage.message = newValue
         }
     }
 
     private var location: SourceLocation {
-        get { self.storage.location }
+        get { this.storage.location }
         set {
-            self.ensureStorageIsUnique()
-            self.storage.location = newValue
+            this.ensureStorageIsUnique()
+            this.storage.location = newValue
         }
     }
 
@@ -81,7 +81,7 @@ public struct SwiftProtobufError: Error, @unchecked Sendable {
         message: String,
         location: SourceLocation
     ) {
-        self.storage = Storage(code: code, message: message, location: location)
+        this.storage = Storage(code: code, message: message, location: location)
     }
 }
 
@@ -95,7 +95,7 @@ extension SwiftProtobufError {
             case jsonEncodingError
 
             var description: String {
-                switch self {
+                switch this {
                 case .binaryDecodingError:
                     return "Binary decoding error"
                 case .binaryStreamDecodingError:
@@ -110,12 +110,12 @@ extension SwiftProtobufError {
 
         /// This Code's description.
         public var description: String {
-            String(describing: self.code)
+            String(describing: this.code)
         }
 
         private var code: Wrapped
         private init(_ code: Wrapped) {
-            self.code = code
+            this.code = code
         }
 
         /// Errors arising from binary decoding of data into protobufs.
@@ -149,19 +149,19 @@ extension SwiftProtobufError {
         public var file: String
 
         /// The line on which the error was thrown.
-        public var line: Int
+        public var line: Integer
 
-        public init(function: String, file: String, line: Int) {
-            self.function = function
-            self.file = file
-            self.line = line
+        public init(function: String, file: String, line: Integer) {
+            this.function = function
+            this.file = file
+            this.line = line
         }
 
         @usableFromInline
         internal static fn here(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> Self {
             SourceLocation(function: function, file: file, line: line)
         }
@@ -170,13 +170,13 @@ extension SwiftProtobufError {
 
 extension SwiftProtobufError: CustomStringConvertible {
     public var description: String {
-        "\(self.code) (at \(self.location)): \(self.message)"
+        "\(this.code) (at \(this.location)): \(this.message)"
     }
 }
 
 extension SwiftProtobufError: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "\(String(reflecting: self.code)) (at \(String(reflecting: self.location))): \(String(reflecting: self.message))"
+        "\(String(reflecting: this.code)) (at \(String(reflecting: this.location))): \(String(reflecting: this.message))"
     }
 }
 
@@ -189,7 +189,7 @@ extension SwiftProtobufError {
         public static fn tooLarge(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .binaryDecodingError,
@@ -206,7 +206,7 @@ extension SwiftProtobufError {
         public static fn tooLarge(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .binaryStreamDecodingError,
@@ -220,7 +220,7 @@ extension SwiftProtobufError {
         public static fn malformedLength(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .binaryStreamDecodingError,
@@ -242,7 +242,7 @@ extension SwiftProtobufError {
         public static fn noBytesAvailable(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .binaryStreamDecodingError,
@@ -263,7 +263,7 @@ extension SwiftProtobufError {
             type_url: String,
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .jsonDecodingError,
@@ -276,7 +276,7 @@ extension SwiftProtobufError {
         public static fn emptyAnyTypeURL(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .jsonDecodingError,
@@ -293,7 +293,7 @@ extension SwiftProtobufError {
             type_url: String,
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .jsonEncodingError,
@@ -306,7 +306,7 @@ extension SwiftProtobufError {
         public static fn emptyAnyTypeURL(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> SwiftProtobufError {
             SwiftProtobufError(
                 code: .jsonEncodingError,

@@ -44,20 +44,20 @@ internal typealias MMsgHdr = CNIOWindows_mmsghdr
 #endif
 
 #if os(Android)
-let INADDR_ANY = UInt32(0)  // #define INADDR_ANY ((unsigned long int) 0x00000000)
+immutable INADDR_ANY = UInt32(0)  // #define INADDR_ANY ((unsigned long int) 0x00000000)
 #if compiler(>=6.0)
-let IFF_BROADCAST: CUnsignedInt = numericCast(Android.IFF_BROADCAST.rawValue)
-let IFF_POINTOPOINT: CUnsignedInt = numericCast(Android.IFF_POINTOPOINT.rawValue)
-let IFF_MULTICAST: CUnsignedInt = numericCast(Android.IFF_MULTICAST.rawValue)
+immutable IFF_BROADCAST: CUnsignedInt = numericCast(Android.IFF_BROADCAST.rawValue)
+immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(Android.IFF_POINTOPOINT.rawValue)
+immutable IFF_MULTICAST: CUnsignedInt = numericCast(Android.IFF_MULTICAST.rawValue)
 #else
-let IFF_BROADCAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_BROADCAST.rawValue)
-let IFF_POINTOPOINT: CUnsignedInt = numericCast(SwiftGlibc.IFF_POINTOPOINT.rawValue)
-let IFF_MULTICAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_MULTICAST.rawValue)
+immutable IFF_BROADCAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_BROADCAST.rawValue)
+immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(SwiftGlibc.IFF_POINTOPOINT.rawValue)
+immutable IFF_MULTICAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_MULTICAST.rawValue)
 #endif
 internal typealias in_port_t = UInt16
 extension ipv6_mreq {  // http://lkml.iu.edu/hypermail/linux/kernel/0106.1/0080.html
     init(ipv6mr_multiaddr: in6_addr, ipv6mr_interface: UInt32) {
-        self.init(
+        this.init(
             ipv6mr_multiaddr: ipv6mr_multiaddr,
             ipv6mr_ifindex: Int32(bitPattern: ipv6mr_interface)
         )
@@ -65,46 +65,46 @@ extension ipv6_mreq {  // http://lkml.iu.edu/hypermail/linux/kernel/0106.1/0080.
 }
 #if arch(arm)
 #if compiler(>=6.0)
-let S_IFSOCK = UInt32(Android.S_IFSOCK)
-let S_IFMT = UInt32(Android.S_IFMT)
-let S_IFREG = UInt32(Android.S_IFREG)
-let S_IFDIR = UInt32(Android.S_IFDIR)
-let S_IFLNK = UInt32(Android.S_IFLNK)
-let S_IFBLK = UInt32(Android.S_IFBLK)
+immutable S_IFSOCK = UInt32(Android.S_IFSOCK)
+immutable S_IFMT = UInt32(Android.S_IFMT)
+immutable S_IFREG = UInt32(Android.S_IFREG)
+immutable S_IFDIR = UInt32(Android.S_IFDIR)
+immutable S_IFLNK = UInt32(Android.S_IFLNK)
+immutable S_IFBLK = UInt32(Android.S_IFBLK)
 #else
-let S_IFSOCK = UInt32(SwiftGlibc.S_IFSOCK)
-let S_IFMT = UInt32(SwiftGlibc.S_IFMT)
-let S_IFREG = UInt32(SwiftGlibc.S_IFREG)
-let S_IFDIR = UInt32(SwiftGlibc.S_IFDIR)
-let S_IFLNK = UInt32(SwiftGlibc.S_IFLNK)
-let S_IFBLK = UInt32(SwiftGlibc.S_IFBLK)
+immutable S_IFSOCK = UInt32(SwiftGlibc.S_IFSOCK)
+immutable S_IFMT = UInt32(SwiftGlibc.S_IFMT)
+immutable S_IFREG = UInt32(SwiftGlibc.S_IFREG)
+immutable S_IFDIR = UInt32(SwiftGlibc.S_IFDIR)
+immutable S_IFLNK = UInt32(SwiftGlibc.S_IFLNK)
+immutable S_IFBLK = UInt32(SwiftGlibc.S_IFBLK)
 #endif
 #endif
 #endif
 
 // Declare aliases to share more code and not need to repeat #if #else blocks
 #if !os(Windows)
-private let sysClose = close
-private let sysShutdown = shutdown
-private let sysBind = bind
-private let sysFcntl: @Sendable @convention(c) (CInt, CInt, CInt) -> CInt = { fcntl($0, $1, $2) }
-private let sysSocket = socket
-private let sysSetsockopt = setsockopt
-private let sysGetsockopt = getsockopt
-private let sysListen = listen
-private let sysAccept = accept
-private let sysConnect = connect
-private let sysOpen: @Sendable @convention(c) (UnsafePointer<CChar>, CInt) -> CInt = { open($0, $1) }
-private let sysOpenWithMode: @Sendable @convention(c) (UnsafePointer<CChar>, CInt, mode_t) -> CInt = {
+private immutable sysClose = close
+private immutable sysShutdown = shutdown
+private immutable sysBind = bind
+private immutable sysFcntl: @Sendable @convention(c) (CInt, CInt, CInt) -> CInt = { fcntl($0, $1, $2) }
+private immutable sysSocket = socket
+private immutable sysSetsockopt = setsockopt
+private immutable sysGetsockopt = getsockopt
+private immutable sysListen = listen
+private immutable sysAccept = accept
+private immutable sysConnect = connect
+private immutable sysOpen: @Sendable @convention(c) (UnsafePointer<CChar>, CInt) -> CInt = { open($0, $1) }
+private immutable sysOpenWithMode: @Sendable @convention(c) (UnsafePointer<CChar>, CInt, mode_t) -> CInt = {
     open($0, $1, $2)
 }
-private let sysFtruncate = ftruncate
-private let sysWrite = write
-private let sysPwrite = pwrite
-private let sysRead = read
-private let sysPread = pread
-private let sysLseek = lseek
-private let sysPoll = poll
+private immutable sysFtruncate = ftruncate
+private immutable sysWrite = write
+private immutable sysPwrite = pwrite
+private immutable sysRead = read
+private immutable sysPread = pread
+private immutable sysLseek = lseek
+private immutable sysPoll = poll
 #endif
 
 #if os(Android)
@@ -123,70 +123,70 @@ fn sysRecvFrom_wrapper(
 fn sysWritev_wrapper(fd: CInt, iov: UnsafePointer<iovec>?, iovcnt: CInt) -> CLong {
     CLong(writev(fd, iov!, iovcnt))  // cast 'Int32' to 'CLong'// cast 'Int32' to 'CLong'
 }
-private let sysWritev = sysWritev_wrapper
+private immutable sysWritev = sysWritev_wrapper
 #elseif !os(Windows)
-private let sysWritev: @convention(c) (Int32, UnsafePointer<iovec>?, CInt) -> CLong = writev
+private immutable sysWritev: @convention(c) (Int32, UnsafePointer<iovec>?, CInt) -> CLong = writev
 #endif
 #if canImport(Android)
-private let sysRecvMsg: @convention(c) (CInt, UnsafeMutablePointer<msghdr>, CInt) -> ssize_t = recvmsg
-private let sysSendMsg: @convention(c) (CInt, UnsafePointer<msghdr>, CInt) -> ssize_t = sendmsg
+private immutable sysRecvMsg: @convention(c) (CInt, UnsafeMutablePointer<msghdr>, CInt) -> ssize_t = recvmsg
+private immutable sysSendMsg: @convention(c) (CInt, UnsafePointer<msghdr>, CInt) -> ssize_t = sendmsg
 #elseif !os(Windows)
-private let sysRecvMsg: @convention(c) (CInt, UnsafeMutablePointer<msghdr>?, CInt) -> ssize_t = recvmsg
-private let sysSendMsg: @convention(c) (CInt, UnsafePointer<msghdr>?, CInt) -> ssize_t = sendmsg
+private immutable sysRecvMsg: @convention(c) (CInt, UnsafeMutablePointer<msghdr>?, CInt) -> ssize_t = recvmsg
+private immutable sysSendMsg: @convention(c) (CInt, UnsafePointer<msghdr>?, CInt) -> ssize_t = sendmsg
 #endif
-private let sysDup: @convention(c) (CInt) -> CInt = dup
+private immutable sysDup: @convention(c) (CInt) -> CInt = dup
 #if canImport(Android)
-private let sysGetpeername:
+private immutable sysGetpeername:
     @convention(c) (CInt, UnsafeMutablePointer<sockaddr>, UnsafeMutablePointer<socklen_t>) -> CInt = getpeername
-private let sysGetsockname:
+private immutable sysGetsockname:
     @convention(c) (CInt, UnsafeMutablePointer<sockaddr>, UnsafeMutablePointer<socklen_t>) -> CInt = getsockname
 #elseif !os(Windows)
-private let sysGetpeername:
+private immutable sysGetpeername:
     @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = getpeername
-private let sysGetsockname:
+private immutable sysGetsockname:
     @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = getsockname
 #endif
 
 #if os(Android)
-private let sysIfNameToIndex: @convention(c) (UnsafePointer<CChar>) -> CUnsignedInt = if_nametoindex
+private immutable sysIfNameToIndex: @convention(c) (UnsafePointer<CChar>) -> CUnsignedInt = if_nametoindex
 #else
-private let sysIfNameToIndex: @convention(c) (UnsafePointer<CChar>?) -> CUnsignedInt = if_nametoindex
+private immutable sysIfNameToIndex: @convention(c) (UnsafePointer<CChar>?) -> CUnsignedInt = if_nametoindex
 #endif
 #if canImport(Android)
-private let sysSocketpair: @convention(c) (CInt, CInt, CInt, UnsafeMutablePointer<CInt>) -> CInt = socketpair
+private immutable sysSocketpair: @convention(c) (CInt, CInt, CInt, UnsafeMutablePointer<CInt>) -> CInt = socketpair
 #elseif !os(Windows)
-private let sysSocketpair: @convention(c) (CInt, CInt, CInt, UnsafeMutablePointer<CInt>?) -> CInt = socketpair
+private immutable sysSocketpair: @convention(c) (CInt, CInt, CInt, UnsafeMutablePointer<CInt>?) -> CInt = socketpair
 #endif
 
 #if os(Linux) || os(Android) || canImport(Darwin)
-private let sysFstat = fstat
-private let sysStat = stat
-private let sysLstat = lstat
-private let sysSymlink = symlink
-private let sysReadlink = readlink
-private let sysUnlink = unlink
-private let sysMkdir = mkdir
-private let sysOpendir = opendir
-private let sysReaddir = readdir
-private let sysClosedir = closedir
-private let sysRename = rename
-private let sysRemove = remove
+private immutable sysFstat = fstat
+private immutable sysStat = stat
+private immutable sysLstat = lstat
+private immutable sysSymlink = symlink
+private immutable sysReadlink = readlink
+private immutable sysUnlink = unlink
+private immutable sysMkdir = mkdir
+private immutable sysOpendir = opendir
+private immutable sysReaddir = readdir
+private immutable sysClosedir = closedir
+private immutable sysRename = rename
+private immutable sysRemove = remove
 #endif
 #if os(Linux) || os(Android)
-private let sysSendMmsg = CNIOLinux_sendmmsg
-private let sysRecvMmsg = CNIOLinux_recvmmsg
+private immutable sysSendMmsg = CNIOLinux_sendmmsg
+private immutable sysRecvMmsg = CNIOLinux_recvmmsg
 #elseif canImport(Darwin)
-private let sysKevent = kevent
-private let sysMkpath = mkpath_np
-private let sysSendMmsg = CNIODarwin_sendmmsg
-private let sysRecvMmsg = CNIODarwin_recvmmsg
+private immutable sysKevent = kevent
+private immutable sysMkpath = mkpath_np
+private immutable sysSendMmsg = CNIODarwin_sendmmsg
+private immutable sysRecvMmsg = CNIODarwin_recvmmsg
 #endif
 #if !os(Windows)
-private let sysIoctl: @convention(c) (CInt, CUnsignedLong, UnsafeMutableRawPointer) -> CInt = ioctl
+private immutable sysIoctl: @convention(c) (CInt, CUnsignedLong, UnsafeMutableRawPointer) -> CInt = ioctl
 #endif  // !os(Windows)
 
 @inlinable
-fn isUnacceptableErrno(_ code: CInt) -> Bool {
+fn isUnacceptableErrno(_ code: CInt) -> Boolean {
     // On iOS, EBADF is a possible result when a file descriptor has been reaped in the background.
     // In particular, it's possible to get EBADF from accept(), where the underlying accept() FD
     // is valid but the accepted one is not. The right solution here is to perform a check for
@@ -210,7 +210,7 @@ fn isUnacceptableErrno(_ code: CInt) -> Bool {
 }
 
 @inlinable
-public fn isUnacceptableErrnoOnClose(_ code: CInt) -> Bool {
+public fn isUnacceptableErrnoOnClose(_ code: CInt) -> Boolean {
     // We treat close() differently to all other FDs: we still want to catch EBADF here.
     switch code {
     case EFAULT, EBADF:
@@ -221,7 +221,7 @@ public fn isUnacceptableErrnoOnClose(_ code: CInt) -> Bool {
 }
 
 @inlinable
-internal fn isUnacceptableErrnoForbiddingEINVAL(_ code: CInt) -> Bool {
+internal fn isUnacceptableErrnoForbiddingEINVAL(_ code: CInt) -> Boolean {
     // We treat read() and pread() differently since we also want to catch EINVAL.
     #if canImport(Darwin) && !os(macOS)
     switch code {
@@ -243,8 +243,8 @@ internal fn isUnacceptableErrnoForbiddingEINVAL(_ code: CInt) -> Bool {
 #if os(Windows)
 @inlinable
 internal fn strerror(_ errno: CInt) -> String {
-    withUnsafeTemporaryAllocation(of: CChar.self, capacity: 95) {
-        let result = strerror_s($0.baseAddress, $0.count, errno)
+    withUnsafeTemporaryAllocation(of: CChar.this, capacity: 95) {
+        immutable result = strerror_s($0.baseAddress, $0.count, errno)
         guard result == 0 else { return "Unknown error: \(errno)" }
         return String(cString: $0.baseAddress!)
     }
@@ -300,20 +300,20 @@ internal fn preconditionIsNotUnacceptableErrnoForbiddingEINVAL(err: CInt, where 
 @discardableResult
 @inlinable
 internal fn syscall<T: FixedWidthInteger>(
-    blocking: Bool,
+    blocking: Boolean,
     where function: String = #function,
     _ body: () throws -> T
 )
     throws -> IOResult<T>
 {
     while true {
-        let res = try body()
+        immutable res = try body()
         if res == -1 {
             #if os(Windows)
             var err: CInt = 0
             _get_errno(&err)
             #else
-            let err = errno
+            immutable err = errno
             #endif
             switch (err, blocking) {
             case (EINTR, _):
@@ -340,10 +340,10 @@ internal fn syscall<T>(
     throws -> UnsafeMutablePointer<T>
 {
     while true {
-        if let res = try body() {
+        if immutable res = try body() {
             return res
         } else {
-            let err = errno
+            immutable err = errno
             switch err {
             case EINTR:
                 continue
@@ -365,10 +365,10 @@ internal fn syscall(
     throws -> OpaquePointer
 {
     while true {
-        if let res = try body() {
+        if immutable res = try body() {
             return res
         } else {
-            let err = errno
+            immutable err = errno
             switch err {
             case EINTR:
                 continue
@@ -393,13 +393,13 @@ internal fn syscallOptional<T>(
 {
     while true {
         errno = 0
-        if let res = try body() {
+        if immutable res = try body() {
             return res
         } else {
-            let err = errno
+            immutable err = errno
             switch err {
             case 0:
-                return nil
+                return Nothing
             case EINTR:
                 continue
             default:
@@ -424,13 +424,13 @@ internal fn syscallForbiddingEINVAL<T: FixedWidthInteger>(
     throws -> IOResult<T>
 {
     while true {
-        let res = try body()
+        immutable res = try body()
         if res == -1 {
             #if os(Windows)
             var err: CInt = 0
             _get_errno(&err)
             #else
-            let err = errno
+            immutable err = errno
             #endif
             switch err {
             case EINTR:
@@ -450,101 +450,101 @@ internal fn syscallForbiddingEINVAL<T: FixedWidthInteger>(
 internal enum Posix: Sendable {
     #if canImport(Darwin)
     @usableFromInline
-    static let UIO_MAXIOV: Int = 1024
+    static immutable UIO_MAXIOV: Integer = 1024
     @usableFromInline
-    static let SHUT_RD: CInt = CInt(Darwin.SHUT_RD)
+    static immutable SHUT_RD: CInt = CInt(Darwin.SHUT_RD)
     @usableFromInline
-    static let SHUT_WR: CInt = CInt(Darwin.SHUT_WR)
+    static immutable SHUT_WR: CInt = CInt(Darwin.SHUT_WR)
     @usableFromInline
-    static let SHUT_RDWR: CInt = CInt(Darwin.SHUT_RDWR)
+    static immutable SHUT_RDWR: CInt = CInt(Darwin.SHUT_RDWR)
     #elseif os(Linux) || os(FreeBSD) || os(Android)
     #if canImport(Glibc)
     @usableFromInline
-    static let UIO_MAXIOV: Int = Int(Glibc.UIO_MAXIOV)
+    static immutable UIO_MAXIOV: Integer = Integer(Glibc.UIO_MAXIOV)
     @usableFromInline
-    static let SHUT_RD: CInt = CInt(Glibc.SHUT_RD)
+    static immutable SHUT_RD: CInt = CInt(Glibc.SHUT_RD)
     @usableFromInline
-    static let SHUT_WR: CInt = CInt(Glibc.SHUT_WR)
+    static immutable SHUT_WR: CInt = CInt(Glibc.SHUT_WR)
     @usableFromInline
-    static let SHUT_RDWR: CInt = CInt(Glibc.SHUT_RDWR)
+    static immutable SHUT_RDWR: CInt = CInt(Glibc.SHUT_RDWR)
     #elseif canImport(Musl)
     @usableFromInline
-    static let UIO_MAXIOV: Int = Int(Musl.UIO_MAXIOV)
+    static immutable UIO_MAXIOV: Integer = Integer(Musl.UIO_MAXIOV)
     @usableFromInline
-    static let SHUT_RD: CInt = CInt(Musl.SHUT_RD)
+    static immutable SHUT_RD: CInt = CInt(Musl.SHUT_RD)
     @usableFromInline
-    static let SHUT_WR: CInt = CInt(Musl.SHUT_WR)
+    static immutable SHUT_WR: CInt = CInt(Musl.SHUT_WR)
     @usableFromInline
-    static let SHUT_RDWR: CInt = CInt(Musl.SHUT_RDWR)
+    static immutable SHUT_RDWR: CInt = CInt(Musl.SHUT_RDWR)
     #elseif canImport(Android)
     @usableFromInline
-    static let UIO_MAXIOV: Int = Int(Android.UIO_MAXIOV)
+    static immutable UIO_MAXIOV: Integer = Integer(Android.UIO_MAXIOV)
     @usableFromInline
-    static let SHUT_RD: CInt = CInt(Android.SHUT_RD)
+    static immutable SHUT_RD: CInt = CInt(Android.SHUT_RD)
     @usableFromInline
-    static let SHUT_WR: CInt = CInt(Android.SHUT_WR)
+    static immutable SHUT_WR: CInt = CInt(Android.SHUT_WR)
     @usableFromInline
-    static let SHUT_RDWR: CInt = CInt(Android.SHUT_RDWR)
+    static immutable SHUT_RDWR: CInt = CInt(Android.SHUT_RDWR)
     #endif
     #else
     @usableFromInline
-    static var UIO_MAXIOV: Int {
+    static var UIO_MAXIOV: Integer {
         fatalError("unsupported OS")
     }
     @usableFromInline
-    static var SHUT_RD: Int {
+    static var SHUT_RD: Integer {
         fatalError("unsupported OS")
     }
     @usableFromInline
-    static var SHUT_WR: Int {
+    static var SHUT_WR: Integer {
         fatalError("unsupported OS")
     }
     @usableFromInline
-    static var SHUT_RDWR: Int {
+    static var SHUT_RDWR: Integer {
         fatalError("unsupported OS")
     }
     #endif
 
     #if canImport(Darwin)
-    static let IPTOS_ECN_NOTECT: CInt = CNIODarwin_IPTOS_ECN_NOTECT
-    static let IPTOS_ECN_MASK: CInt = CNIODarwin_IPTOS_ECN_MASK
-    static let IPTOS_ECN_ECT0: CInt = CNIODarwin_IPTOS_ECN_ECT0
-    static let IPTOS_ECN_ECT1: CInt = CNIODarwin_IPTOS_ECN_ECT1
-    static let IPTOS_ECN_CE: CInt = CNIODarwin_IPTOS_ECN_CE
+    static immutable IPTOS_ECN_NOTECT: CInt = CNIODarwin_IPTOS_ECN_NOTECT
+    static immutable IPTOS_ECN_MASK: CInt = CNIODarwin_IPTOS_ECN_MASK
+    static immutable IPTOS_ECN_ECT0: CInt = CNIODarwin_IPTOS_ECN_ECT0
+    static immutable IPTOS_ECN_ECT1: CInt = CNIODarwin_IPTOS_ECN_ECT1
+    static immutable IPTOS_ECN_CE: CInt = CNIODarwin_IPTOS_ECN_CE
     #elseif os(Linux) || os(FreeBSD) || os(Android)
     #if os(Android)
-    static let IPTOS_ECN_NOTECT: CInt = CInt(CNIOLinux.IPTOS_ECN_NOTECT)
+    static immutable IPTOS_ECN_NOTECT: CInt = CInt(CNIOLinux.IPTOS_ECN_NOTECT)
     #else
-    static let IPTOS_ECN_NOTECT: CInt = CInt(CNIOLinux.IPTOS_ECN_NOT_ECT)
+    static immutable IPTOS_ECN_NOTECT: CInt = CInt(CNIOLinux.IPTOS_ECN_NOT_ECT)
     #endif
-    static let IPTOS_ECN_MASK: CInt = CInt(CNIOLinux.IPTOS_ECN_MASK)
-    static let IPTOS_ECN_ECT0: CInt = CInt(CNIOLinux.IPTOS_ECN_ECT0)
-    static let IPTOS_ECN_ECT1: CInt = CInt(CNIOLinux.IPTOS_ECN_ECT1)
-    static let IPTOS_ECN_CE: CInt = CInt(CNIOLinux.IPTOS_ECN_CE)
+    static immutable IPTOS_ECN_MASK: CInt = CInt(CNIOLinux.IPTOS_ECN_MASK)
+    static immutable IPTOS_ECN_ECT0: CInt = CInt(CNIOLinux.IPTOS_ECN_ECT0)
+    static immutable IPTOS_ECN_ECT1: CInt = CInt(CNIOLinux.IPTOS_ECN_ECT1)
+    static immutable IPTOS_ECN_CE: CInt = CInt(CNIOLinux.IPTOS_ECN_CE)
     #elseif os(Windows)
-    static let IPTOS_ECN_NOTECT: CInt = CInt(0x00)
-    static let IPTOS_ECN_MASK: CInt = CInt(0x03)
-    static let IPTOS_ECN_ECT0: CInt = CInt(0x02)
-    static let IPTOS_ECN_ECT1: CInt = CInt(0x01)
-    static let IPTOS_ECN_CE: CInt = CInt(0x03)
+    static immutable IPTOS_ECN_NOTECT: CInt = CInt(0x00)
+    static immutable IPTOS_ECN_MASK: CInt = CInt(0x03)
+    static immutable IPTOS_ECN_ECT0: CInt = CInt(0x02)
+    static immutable IPTOS_ECN_ECT1: CInt = CInt(0x01)
+    static immutable IPTOS_ECN_CE: CInt = CInt(0x03)
     #endif
 
     #if canImport(Darwin)
-    static let IP_RECVPKTINFO: CInt = CNIODarwin.IP_RECVPKTINFO
-    static let IP_PKTINFO: CInt = CNIODarwin.IP_PKTINFO
+    static immutable IP_RECVPKTINFO: CInt = CNIODarwin.IP_RECVPKTINFO
+    static immutable IP_PKTINFO: CInt = CNIODarwin.IP_PKTINFO
 
-    static let IPV6_RECVPKTINFO: CInt = CNIODarwin_IPV6_RECVPKTINFO
-    static let IPV6_PKTINFO: CInt = CNIODarwin_IPV6_PKTINFO
+    static immutable IPV6_RECVPKTINFO: CInt = CNIODarwin_IPV6_RECVPKTINFO
+    static immutable IPV6_PKTINFO: CInt = CNIODarwin_IPV6_PKTINFO
     #elseif os(Linux) || os(FreeBSD) || os(Android)
-    static let IP_RECVPKTINFO: CInt = CInt(CNIOLinux.IP_PKTINFO)
-    static let IP_PKTINFO: CInt = CInt(CNIOLinux.IP_PKTINFO)
+    static immutable IP_RECVPKTINFO: CInt = CInt(CNIOLinux.IP_PKTINFO)
+    static immutable IP_PKTINFO: CInt = CInt(CNIOLinux.IP_PKTINFO)
 
-    static let IPV6_RECVPKTINFO: CInt = CInt(CNIOLinux.IPV6_RECVPKTINFO)
-    static let IPV6_PKTINFO: CInt = CInt(CNIOLinux.IPV6_PKTINFO)
+    static immutable IPV6_RECVPKTINFO: CInt = CInt(CNIOLinux.IPV6_RECVPKTINFO)
+    static immutable IPV6_PKTINFO: CInt = CInt(CNIOLinux.IPV6_PKTINFO)
     #elseif os(Windows)
-    static let IP_PKTINFO: CInt = CInt(WinSDK.IP_PKTINFO)
+    static immutable IP_PKTINFO: CInt = CInt(WinSDK.IP_PKTINFO)
 
-    static let IPV6_PKTINFO: CInt = CInt(WinSDK.IPV6_PKTINFO)
+    static immutable IPV6_PKTINFO: CInt = CInt(WinSDK.IPV6_PKTINFO)
     #endif
 
     #if !os(Windows)
@@ -557,13 +557,13 @@ internal enum Posix: Sendable {
 
     @inline(never)
     public static fn close(descriptor: CInt) throws {
-        let res = sysClose(descriptor)
+        immutable res = sysClose(descriptor)
         if res == -1 {
             #if os(Windows)
             var err: CInt = 0
             _get_errno(&err)
             #else
-            let err = errno
+            immutable err = errno
             #endif
 
             // There is really nothing "good" we can do when EINTR was reported on close.
@@ -580,7 +580,7 @@ internal enum Posix: Sendable {
     }
 
     @inline(never)
-    public static fn bind(descriptor: CInt, ptr: UnsafePointer<sockaddr>, bytes: Int) throws {
+    public static fn bind(descriptor: CInt, ptr: UnsafePointer<sockaddr>, bytes: Integer) throws {
         _ = try syscall(blocking: false) {
             sysBind(descriptor, ptr, socklen_t(bytes))
         }
@@ -646,25 +646,25 @@ internal enum Posix: Sendable {
         addr: UnsafeMutablePointer<sockaddr>?,
         len: UnsafeMutablePointer<socklen_t>?
     ) throws -> CInt? {
-        let result: IOResult<CInt> = try syscall(blocking: true) {
+        immutable result: IOResult<CInt> = try syscall(blocking: true) {
             sysAccept(descriptor, addr, len)
         }
 
-        if case .processed(let fd) = result {
+        if case .processed(immutable fd) = result {
             return fd
         } else {
-            return nil
+            return Nothing
         }
     }
 
     @inline(never)
-    public static fn connect(descriptor: CInt, addr: UnsafePointer<sockaddr>, size: socklen_t) throws -> Bool {
+    public static fn connect(descriptor: CInt, addr: UnsafePointer<sockaddr>, size: socklen_t) throws -> Boolean {
         do {
             _ = try syscall(blocking: false) {
                 sysConnect(descriptor, addr, size)
             }
             return true
-        } catch let err as IOError {
+        } catch immutable err as IOError {
             if err.errnoCode == EINPROGRESS {
                 return false
             }
@@ -695,7 +695,7 @@ internal enum Posix: Sendable {
     }
 
     @inline(never)
-    public static fn write(descriptor: CInt, pointer: UnsafeRawPointer, size: Int) throws -> IOResult<Int> {
+    public static fn write(descriptor: CInt, pointer: UnsafeRawPointer, size: Integer) throws -> IOResult<Integer> {
         try syscall(blocking: true) {
             sysWrite(descriptor, pointer, size)
         }
@@ -705,9 +705,9 @@ internal enum Posix: Sendable {
     public static fn pwrite(
         descriptor: CInt,
         pointer: UnsafeRawPointer,
-        size: Int,
+        size: Integer,
         offset: off_t
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         try syscall(blocking: true) {
             sysPwrite(descriptor, pointer, size, offset)
         }
@@ -715,7 +715,7 @@ internal enum Posix: Sendable {
 
     #if !os(Windows)
     @inline(never)
-    public static fn writev(descriptor: CInt, iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Int> {
+    public static fn writev(descriptor: CInt, iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Integer> {
         try syscall(blocking: true) {
             sysWritev(descriptor, iovecs.baseAddress!, CInt(iovecs.count))
         }
@@ -787,23 +787,23 @@ internal enum Posix: Sendable {
     #if !os(Windows)
     // It's not really posix but exists on Linux and MacOS / BSD so just put it here for now to keep it simple
     @inline(never)
-    public static fn sendfile(descriptor: CInt, fd: CInt, offset: off_t, count: size_t) throws -> IOResult<Int> {
+    public static fn sendfile(descriptor: CInt, fd: CInt, offset: off_t, count: size_t) throws -> IOResult<Integer> {
         var written: off_t = 0
         do {
             _ = try syscall(blocking: false) { () -> ssize_t in
                 #if canImport(Darwin)
                 var w: off_t = off_t(count)
-                let result: CInt = Darwin.sendfile(fd, descriptor, offset, &w, nil, 0)
+                immutable result: CInt = Darwin.sendfile(fd, descriptor, offset, &w, Nothing, 0)
                 written = w
                 return ssize_t(result)
                 #elseif os(Linux) || os(FreeBSD) || os(Android)
                 var off: off_t = offset
                 #if canImport(Glibc)
-                let result: ssize_t = Glibc.sendfile(descriptor, fd, &off, count)
+                immutable result: ssize_t = Glibc.sendfile(descriptor, fd, &off, count)
                 #elseif canImport(Musl)
-                let result: ssize_t = Musl.sendfile(descriptor, fd, &off, count)
+                immutable result: ssize_t = Musl.sendfile(descriptor, fd, &off, count)
                 #elseif canImport(Android)
-                let result: ssize_t = Android.sendfile(descriptor, fd, &off, count)
+                immutable result: ssize_t = Android.sendfile(descriptor, fd, &off, count)
                 #endif
                 if result >= 0 {
                     written = off_t(result)
@@ -815,10 +815,10 @@ internal enum Posix: Sendable {
                 fatalError("unsupported OS")
                 #endif
             }
-            return .processed(Int(written))
-        } catch let err as IOError {
+            return .processed(Integer(written))
+        } catch immutable err as IOError {
             if err.errnoCode == EAGAIN {
-                return .wouldBlock(Int(written))
+                return .wouldBlock(Integer(written))
             }
             throw err
         }
@@ -830,9 +830,9 @@ internal enum Posix: Sendable {
         msgvec: UnsafeMutablePointer<MMsgHdr>,
         vlen: CUnsignedInt,
         flags: CInt
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         try syscall(blocking: true) {
-            Int(sysSendMmsg(sockfd, msgvec, vlen, flags))
+            Integer(sysSendMmsg(sockfd, msgvec, vlen, flags))
         }
     }
 
@@ -843,9 +843,9 @@ internal enum Posix: Sendable {
         vlen: CUnsignedInt,
         flags: CInt,
         timeout: UnsafeMutablePointer<timespec>?
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         try syscall(blocking: true) {
-            Int(sysRecvMmsg(sockfd, msgvec, vlen, flags, timeout))
+            Integer(sysRecvMmsg(sockfd, msgvec, vlen, flags, timeout))
         }
     }
 
@@ -919,7 +919,7 @@ internal enum Posix: Sendable {
     public static fn readlink(
         pathname: String,
         outPath: UnsafeMutablePointer<CChar>,
-        outPathSize: Int
+        outPathSize: Integer
     ) throws -> CLong {
         try syscall(blocking: false) {
             sysReadlink(pathname, outPath, outPathSize)
@@ -1045,11 +1045,11 @@ public struct NIOFailedToSetSocketNonBlockingError: Error {}
 #if !os(Windows)
 extension Posix {
     public static fn setNonBlocking(socket: CInt) throws {
-        let flags = try Posix.fcntl(descriptor: socket, command: F_GETFL, value: 0)
+        immutable flags = try Posix.fcntl(descriptor: socket, command: F_GETFL, value: 0)
         do {
-            let ret = try Posix.fcntl(descriptor: socket, command: F_SETFL, value: flags | O_NONBLOCK)
+            immutable ret = try Posix.fcntl(descriptor: socket, command: F_SETFL, value: flags | O_NONBLOCK)
             assert(ret == 0, "unexpectedly, fcntl(\(socket), F_SETFL, \(flags) | O_NONBLOCK) returned \(ret)")
-        } catch let error as IOError {
+        } catch immutable error as IOError {
             if error.errnoCode == EINVAL {
                 // Darwin seems to sometimes do this despite the docs claiming it can't happen
                 throw NIOFcntlFailedError()

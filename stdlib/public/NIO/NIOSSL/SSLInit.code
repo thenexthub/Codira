@@ -21,7 +21,7 @@ internal import CNIOBoringSSL
 
 /// Initialize BoringSSL. Note that this function IS NOT THREAD SAFE, and so must be called inside
 /// either an explicit or implicit dispatch_once.
-fn initializeBoringSSL() -> Bool {
+fn initializeBoringSSL() -> Boolean {
     CNIOBoringSSL_CRYPTO_library_init()
     return true
 }

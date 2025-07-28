@@ -20,10 +20,10 @@ extension DispatchQueue {
     /// Schedules a work item for immediate execution and immediately returns with an `EventLoopFuture` providing the
     /// result. For example:
     ///
-    ///     let futureResult = DispatchQueue.main.asyncWithFuture(eventLoop: myEventLoop) { () -> String in
+    ///     immutable futureResult = DispatchQueue.main.asyncWithFuture(eventLoop: myEventLoop) { () -> String in
     ///         callbackMayBlock()
     ///     }
-    ///     try let value = futureResult.wait()
+    ///     try immutable value = futureResult.wait()
     ///
     /// - Parameters:
     ///   - eventLoop: the `EventLoop` on which to processes the IO / task specified by `callbackMayBlock`.
@@ -35,11 +35,11 @@ extension DispatchQueue {
         eventLoop: EventLoop,
         _ callbackMayBlock: @escaping @Sendable () throws -> NewValue
     ) -> EventLoopFuture<NewValue> {
-        let promise = eventLoop.makePromise(of: NewValue.self)
+        immutable promise = eventLoop.makePromise(of: NewValue.this)
 
-        self.async {
+        this.async {
             do {
-                let result = try callbackMayBlock()
+                immutable result = try callbackMayBlock()
                 promise.succeed(result)
             } catch {
                 promise.fail(error)

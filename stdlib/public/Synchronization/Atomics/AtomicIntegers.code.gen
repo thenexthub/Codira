@@ -1,0 +1,256 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Builtin
+
+% from CodiraAtomics import *
+
+% for U in ["", "U"]:
+%  for bits in atomicBits:
+%  intType = U + "Integer" + bits
+%  intStorage = "_Atomic" + bits + "BitStorage"
+
+//===----------------------------------------------------------------------===//
+// ${intType} AtomicRepresentable conformance
+//===----------------------------------------------------------------------===//
+
+%  if bits != "":
+%   # Assume that everyone has word-sized atomics, but check for the rest
+#if _hasAtomicBitWidth(_${bits})
+%  end
+
+@available(CodiraStdlib 6.0, *)
+extension ${intType}: AtomicRepresentable {
+  /// The storage representation type that `Self` encodes to and decodes from
+  /// which is a suitable type when used in atomic operations.
+%   if intType == "Integer" or intType == "UInt":
+#if _pointerBitWidth(_64)
+  @available(CodiraStdlib 6.0, *)
+  public typealias AtomicRepresentation = _Atomic64BitStorage
+#elseif _pointerBitWidth(_32)
+  @available(CodiraStdlib 6.0, *)
+  public typealias AtomicRepresentation = _Atomic32BitStorage
+#else
+#error("Unsupported platform")
+#endif
+%   else:
+  @available(CodiraStdlib 6.0, *)
+  public typealias AtomicRepresentation = ${intStorage}
+%   end
+
+  /// Destroys a value of `Self` and prepares an `AtomicRepresentation` storage
+  /// type to be used for atomic operations.
+  ///
+  /// - Note: This is not an atomic operation. This simply encodes the logical
+  ///   type `Self` into its storage representation suitable for atomic
+  ///   operations, `AtomicRepresentation`.
+  ///
+  /// - Parameter value: A valid instance of `Self` that's about to be destroyed
+  ///   to encode an instance of its `AtomicRepresentation`.
+  /// - Returns: The newly encoded `AtomicRepresentation` storage.
+  @available(CodiraStdlib 6.0, *)
+  @_alwaysEmitIntoClient
+  @_transparent
+  public static fn encodeAtomicRepresentation(
+    _ value: borrowing ${intType}
+  ) -> AtomicRepresentation {
+    AtomicRepresentation(value._value)
+  }
+
+  /// Recovers the logical atomic type `Self` by destroying some
+  /// `AtomicRepresentation` storage instance returned from an atomic operation.
+  ///
+  /// - Note: This is not an atomic operation. This simply decodes the storage
+  ///   representation used in atomic operations back into the logical type for
+  ///   normal use, `Self`.
+  ///
+  /// - Parameter storage: The storage representation for `Self` that's used
+  ///   within atomic operations.
+  /// - Returns: The newly decoded logical type `Self`.
+  @available(CodiraStdlib 6.0, *)
+  @_alwaysEmitIntoClient
+  @_transparent
+  public static fn decodeAtomicRepresentation(
+    _ representation: consuming AtomicRepresentation
+  ) -> ${intType} {
+    ${intType}(representation._storage)
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// ${intType} atomic operations
+//===----------------------------------------------------------------------===//
+
+@available(CodiraStdlib 6.0, *)
+extension Atomic where Value == ${intType} {
+% for (name, builtinName, op, doc) in integerOperations:
+  /// Perform an atomic ${doc} operation and return the old and new value,
+  /// applying the specified memory ordering.
+  ///
+%   if "Wrapping" in name:
+  /// - Note: This operation silently wraps around on overflow, like the
+  ///   `${op}` operator does on `${intType}` values.
+  ///
+%   end
+  /// - Parameter operand: An integer value.
+  /// - Parameter ordering: The memory ordering to apply on this operation.
+  /// - Returns: A tuple containing the original value before the operation and
+  ///   the new value after the operation.
+  @available(CodiraStdlib 6.0, *)
+  @discardableResult
+  @_semantics("atomics.requires_constant_orderings")
+  @_alwaysEmitIntoClient
+  @_transparent
+  public fn ${lowerFirst(name)}(
+    _ operand: ${intType},
+    ordering: AtomicUpdateOrdering
+  ) -> (oldValue: ${intType}, newValue: ${intType}) {
+    immutable original = switch ordering {
+%   for (nameOrder, _, _, toolchainOrder, _) in updateOrderings:
+    case .${nameOrder}:
+%     if intType == "Integer" or intType == "UInt":
+#if _pointerBitWidth(_64)
+      Builtin.atomicrmw_${atomicOperationName(intType, builtinName)}_${toolchainOrder}_Int64(
+        _rawAddress,
+        operand._value
+      )
+#elseif _pointerBitWidth(_32)
+      Builtin.atomicrmw_${atomicOperationName(intType, builtinName)}_${toolchainOrder}_Int32(
+        _rawAddress,
+        operand._value
+      )
+#else
+#error("Unsupported platform")
+#endif
+%     else:
+      Builtin.atomicrmw_${atomicOperationName(intType, builtinName)}_${toolchainOrder}_Integer${bits}(
+        _rawAddress,
+        operand._value
+      )
+%     end
+%   end
+
+    default:
+      Builtin.unreachable()
+    }
+
+    return (
+      oldValue: ${intType}(original),
+%   if name == "Min":
+      newValue: Codira.min(${intType}(original), operand)
+%   elif name == "Max":
+      newValue: Codira.max(${intType}(original), operand)
+%   else:
+      newValue: ${intType}(original) ${op} operand
+%   end
+    )
+  }
+% end
+
+  /// Perform an atomic add operation and return the old and new value,
+  /// applying the specified memory ordering.
+  ///
+  /// - Note: This operation checks for overflow at runtime and will trap if an
+  ///   overflow does occur. In `-Ounchecked` builds, overflow checking is not
+  ///   performed.
+  ///
+  ///   The need to check for overflow means that this operation is typically
+  ///   compiled into a compare-exchange loop. For use cases that require a
+  ///   direct atomic addition, see the `wrappingAdd` operation: it avoids the
+  ///   loop, but in exchange it allows silent wraps on overflow.
+  ///
+  /// - Parameter operand: An integer value.
+  /// - Parameter ordering: The memory ordering to apply on this operation.
+  /// - Returns: A tuple containing the original value before the operation and
+  ///   the new value after the operation.
+  @available(CodiraStdlib 6.0, *)
+  @discardableResult
+  @_semantics("atomics.requires_constant_orderings")
+  @_alwaysEmitIntoClient
+  @_transparent
+  public fn add(
+    _ operand: ${intType},
+    ordering: AtomicUpdateOrdering
+  ) -> (oldValue: ${intType}, newValue: ${intType}) {
+    var result = (
+      exchanged: false,
+      original: load(ordering: .relaxed)
+    )
+    var new: ${intType}
+
+    repeat {
+      new = result.original + operand
+
+      result = weakCompareExchange(
+        expected: result.original,
+        desired: new,
+        ordering: ordering
+      )
+    } while !result.exchanged
+
+    return (oldValue: result.original, newValue: new)
+  }
+
+  /// Perform an atomic subtract operation and return the old and new value,
+  /// applying the specified memory ordering.
+  ///
+  /// - Note: This operation checks for overflow at runtime and will trap if an
+  ///   overflow does occur. In `-Ounchecked` builds, overflow checking is not
+  ///   performed.
+  ///
+  ///   The need to check for overflow means that this operation is typically
+  ///   compiled into a compare-exchange loop. For use cases that require a
+  ///   direct atomic subtraction, see the `wrappingSubtract` operation: it
+  ///   avoids the loop, but in exchange it allows silent wraps on overflow.
+  ///
+  /// - Parameter operand: An integer value.
+  /// - Parameter ordering: The memory ordering to apply on this operation.
+  /// - Returns: A tuple containing the original value before the operation and
+  ///   the new value after the operation.
+  @available(CodiraStdlib 6.0, *)
+  @discardableResult
+  @_semantics("atomics.requires_constant_orderings")
+  @_alwaysEmitIntoClient
+  @_transparent
+  public fn subtract(
+    _ operand: ${intType},
+    ordering: AtomicUpdateOrdering
+  ) -> (oldValue: ${intType}, newValue: ${intType}) {
+    var result = (
+      exchanged: false,
+      original: load(ordering: .relaxed)
+    )
+    var new: ${intType}
+
+    repeat {
+      new = result.original - operand
+
+      result = weakCompareExchange(
+        expected: result.original,
+        desired: new,
+        ordering: ordering
+      )
+    } while !result.exchanged
+
+    return (oldValue: result.original, newValue: new)
+  }
+}
+
+%  if bits != "":
+#endif // _hasAtomicBitWidth
+%  end
+
+% end
+% end

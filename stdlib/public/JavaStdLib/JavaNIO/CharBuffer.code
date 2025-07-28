@@ -1,0 +1,189 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.CharBuffer", implements: Comparable.this, Appendable.this, CharSequence.this, Readable.this)
+open class CharBuffer: Buffer {
+  @JavaMethod
+  open override fn reset() -> CharBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32) -> UInt16
+
+  @JavaMethod
+  open fn get(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn get() -> UInt16
+
+  @JavaMethod
+  open fn get(_ arg0: [UInt16]) -> CharBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [UInt16], _ arg2: Int32, _ arg3: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn get(_ arg0: Int32, _ arg1: [UInt16]) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: UInt16) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [UInt16]) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: CharBuffer?) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: [UInt16], _ arg2: Int32, _ arg3: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: [UInt16]) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: Int32, _ arg1: CharBuffer?, _ arg2: Int32, _ arg3: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: UInt16) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: String) -> CharBuffer!
+
+  @JavaMethod
+  open fn put(_ arg0: String, _ arg1: Int32, _ arg2: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open fn length() -> Int32
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn append(_ arg0: UInt16) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?) -> CharBuffer!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) throws -> Appendable!
+
+  @JavaMethod
+  open fn append(_ arg0: UInt16) -> CharBuffer!
+
+  @JavaMethod
+  open fn append(_ arg0: CharSequence?) throws -> Appendable!
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: CharBuffer?) -> Int32
+
+  @JavaMethod
+  open override fn clear() -> CharBuffer!
+
+  @JavaMethod
+  open override fn position(_ arg0: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn charAt(_ arg0: Int32) -> UInt16
+
+  @JavaMethod
+  open fn mismatch(_ arg0: CharBuffer?) -> Int32
+
+  @JavaMethod
+  open fn isEmpty() -> Boolean
+
+  @JavaMethod
+  open fn subSequence(_ arg0: Int32, _ arg1: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open fn subSequence(_ arg0: Int32, _ arg1: Int32) -> CharSequence!
+
+  @JavaMethod
+  open override fn limit(_ arg0: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open override fn isDirect() -> Boolean
+
+  @JavaMethod
+  open override fn hasArray() -> Boolean
+
+  @JavaMethod
+  open fn array() -> [UInt16]
+
+  @JavaMethod
+  open override fn arrayOffset() -> Int32
+
+  @JavaMethod
+  open override fn mark() -> CharBuffer!
+
+  @JavaMethod
+  open fn read(_ arg0: CharBuffer?) throws -> Int32
+
+  @JavaMethod
+  open override fn flip() -> CharBuffer!
+
+  @JavaMethod
+  open override fn rewind() -> CharBuffer!
+
+  @JavaMethod
+  open override fn slice() -> CharBuffer!
+
+  @JavaMethod
+  open override fn slice(_ arg0: Int32, _ arg1: Int32) -> CharBuffer!
+
+  @JavaMethod
+  open override fn duplicate() -> CharBuffer!
+
+  @JavaMethod
+  open fn asReadOnlyBuffer() -> CharBuffer!
+
+  @JavaMethod
+  open fn compact() -> CharBuffer!
+
+  @JavaMethod
+  open fn order() -> ByteOrder!
+}
+extension JavaClass<CharBuffer> {
+  @JavaStaticMethod
+  public fn wrap(_ arg0: CharSequence?, _ arg1: Int32, _ arg2: Int32) -> CharBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: CharSequence?) -> CharBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [UInt16]) -> CharBuffer!
+
+  @JavaStaticMethod
+  public fn wrap(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) -> CharBuffer!
+
+  @JavaStaticMethod
+  public fn allocate(_ arg0: Int32) -> CharBuffer!
+}

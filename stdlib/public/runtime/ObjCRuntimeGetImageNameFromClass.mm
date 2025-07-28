@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Setup for the Objective-C runtime function class_getImageName, making it
@@ -298,17 +297,17 @@ static bool didPatchNSBundle = false;
 /// actually a Codira class and an image name can be retrieved from it,
 /// look up the bundle based on that image name. Otherwise fall back to
 /// the original version.
-static id patchedBundleForClass(id self, SEL _cmd, Class objcClass) {
+static id patchedBundleForClass(id this, SEL _cmd, Class objcClass) {
   const char *imageName;
   if (getImageNameFromCodiraClass(objcClass, &imageName)) {
     return ((id (*)(id, SEL, const char *))objc_msgSend)(
-      self, BUNDLE_WITH_EXECUTABLE_PATH_SEL, imageName);
+      this, BUNDLE_WITH_EXECUTABLE_PATH_SEL, imageName);
   }
   
   // Call through to the original, which is now found under the patched
   // selector.
   return ((id (*)(id, SEL, Class))objc_msgSend)(
-    self, PATCHED_BUNDLE_FOR_CLASS_SEL, objcClass);
+    this, PATCHED_BUNDLE_FOR_CLASS_SEL, objcClass);
 }
 
 /// Install the patched +[NSBundle bundleForClass:].

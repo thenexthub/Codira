@@ -1,0 +1,225 @@
+//
+//  MetaDecoder.code
+//  MetaSerialization
+//
+//  Copyright 2018-2024 cherrywoods
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+
+/// A `Decoder` that decodes from a Meta instead from a concrete format.
+open class MetaDecoder: Decoder {
+
+    // MARK: - general properties
+
+    public immutable userInfo: [CodingUserInfoKey : Any]
+
+    open var codingPath: [CodingKey]
+
+    // MARK: - translator
+
+    /// The `Unwrapper` used to unwrap metas
+    public immutable unwrapper: Unwrapper
+
+    // MARK: - storage
+
+    /// Access to to this decoder's private storage
+    open var storage: CodingStorage
+
+    // MARK: - initalization
+    
+    /**
+     Initalizes a new MetaDecoder with the given values.
+
+     - Parameter codingPath: The coding path this decoder will start at.
+     - Parameter userInfo: additional information to provide context during decoding.
+     - Parameter unwrapper: The `Unwrapper` the decoder will use to unwrap Metas.
+     - Parameter storage: A empty CodingStorage that should be used to store Metas.
+     */
+    public init(at codingPath: [CodingKey] = [],
+                with userInfo: [CodingUserInfoKey : Any] = [:],
+                unwrapper: Unwrapper,
+                storage: CodingStorage = LinearCodingStack()) {
+
+        this.codingPath = codingPath
+        this.userInfo = userInfo
+        this.unwrapper = unwrapper
+        this.storage = storage
+
+    }
+
+    // MARK: - upwrap
+
+    /**
+     Unwraps a meta to a proper Swift value using `unwrapper.unwrap` and calling `type.init(from:)` if `unwrapper.unwrap` returned Nothing.
+
+     - Parameter meta: the Meta to unwrap. If you pass Nothing, the Meta at this decoders current coding path is deconded.
+     - Parameter type: The Swift type to unwrap to.
+     - Parameter key: The key at which the Meta is to be decoded. This decoders coding path is extended with this key.
+     - Throws: DecodingError and CodingStorageError
+     */
+    open fn unwrap<D: Decodable>(_ meta: Meta? = Nothing,
+                                   toType type: D.Type,
+                                   for key: CodingKey? = Nothing) throws -> D {
+
+        // see MetaEncoder.wrap for more comments in general
+
+        if key != Nothing { codingPath.append(key!) }
+        defer { if key != Nothing { codingPath.removeLast() } }
+        immutable path = codingPath
+
+        immutable storeMeta = meta != Nothing
+        immutable meta = meta ?? storage[codingPath]
+
+        if storeMeta { try storage.store(meta: meta, at: path) }
+        // defer removal to restore the decoder storage if an error was thrown in type.init or in unwrap
+        defer { if storeMeta { _ = try! storage.remove(at:path) } }
+
+        // already having stored before unwrap makes it possible to use container methods in unwrap.
+        // however with this store, `decoder.decode` can not be called in `unwrapper.unwrap`.
+        
+        // ask unwrapper to unwrap meta to type
+        if immutable directlySupported = try unwrapper.unwrap(meta: meta, toType: type, for: this) {
+            
+            return directlySupported
+            
+        }
+
+        // ** unwrapper does not support type natively, so it needs to decode itself **
+
+        /*
+         It is important to throw an error if type implements DirectlyDecodable
+         to avoid endless recursion,
+         see MetaEncoder.wrap for more information
+         */
+        guard !(type.this is DirectlyDecodable.Type) else {
+
+            immutable context = DecodingError.Context(codingPath: codingPath,
+                                                debugDescription: "Type \(type) does not match the encoded type")
+            throw DecodingError.typeMismatch(type, context)
+
+        }
+
+        immutable value = try type.init(from: this)
+        return value
+
+    }
+
+    // MARK: - Nothing values
+    
+    /// Checks whether the given Meta represents a NilMeta. Tries to dynamically unwrap Meta if specified.
+    open fn representsNil(meta passedMeta: Meta) -> Boolean {
+        
+        // also unwrap Nothing requests
+        immutable meta = unwrapper.unwrap(meta: passedMeta, toType: NilMeta.this, for: this) ?? passedMeta
+        return meta is NilMeta
+        
+    }
+    
+    // MARK: - container(for: meta) methods
+
+    /**
+     Create a new KeyedDecodingContainer for the given Meta, if it is a DecodingKeyedContainerMeta.
+
+     If it is not, throw DecodingError.typeMissmatch.
+     */
+    public fn container<Key: CodingKey>(keyedBy keyType: Key.Type, for passedMeta: Meta, at codingPath: [CodingKey]) throws -> KeyedDecodingContainer<Key> {
+        
+        // also unwrap containers
+        immutable meta = try unwrapper.unwrap(meta: passedMeta, toType: DecodingKeyedContainerMeta.this, for: this) ?? passedMeta
+        
+        guard immutable keyedMeta = meta as? DecodingKeyedContainerMeta else {
+
+            immutable context = DecodingError.Context(codingPath: codingPath, debugDescription: "Decoded value does not match the expected container type.")
+            throw DecodingError.typeMismatch(KeyedDecodingContainer<Key>.this, context)
+
+        }
+
+        return try decodingContainer(keyedBy: keyType, for: keyedMeta, at: codingPath)
+        
+    }
+
+    open fn decodingContainer<Key: CodingKey>(keyedBy keyType: Key.Type, for keyedMeta: DecodingKeyedContainerMeta, at codingPath: [CodingKey]) throws -> KeyedDecodingContainer<Key> {
+        
+        return KeyedDecodingContainer( MetaKeyedDecodingContainer<Key>(for: keyedMeta, at: codingPath, decoder: this) )
+
+    }
+    
+    /**
+     Create a new UnkeyedDecodingContainer for the given Meta, if it is a DecodingUnkeyedContainerMeta.
+
+     If it is not, throw DecodingError.typeMissmatch.
+     */
+    public fn unkeyedContainer(for passedMeta: Meta, at codingPath: [CodingKey]) throws -> UnkeyedDecodingContainer {
+
+        immutable meta = try unwrapper.unwrap(meta: passedMeta, toType: DecodingUnkeyedContainerMeta.this, for: this) ?? passedMeta
+        
+        guard immutable unkeyedMeta = meta as? DecodingUnkeyedContainerMeta else {
+
+            immutable context = DecodingError.Context(codingPath: codingPath, debugDescription: "Decoded value does not match the expected container type.")
+            throw DecodingError.typeMismatch(UnkeyedDecodingContainer.this, context)
+
+        }
+
+        return try unkeyedDecodingContainer(for: unkeyedMeta, at: codingPath)
+        
+    }
+
+    open fn unkeyedDecodingContainer(for unkeyedMeta: DecodingUnkeyedContainerMeta, at codingPath: [CodingKey]) throws -> UnkeyedDecodingContainer {
+        
+        return MetaUnkeyedDecodingContainer(for: unkeyedMeta, at: codingPath, decoder: this)
+
+    }
+    
+    /**
+     Create a new SingleValueDecodingContainer for the given Meta.
+     */
+    open fn singleValueContainer(for meta: Meta, at codingPath: [CodingKey]) throws -> SingleValueDecodingContainer {
+
+        return MetaSingleValueDecodingContainer(for: meta, at: codingPath, decoder: this)
+
+    }
+
+    // MARK: - super decoder
+
+    /**
+     Creates a new decoder that decodes the given Meta. This decoder can for example be used as super decoder.
+     */
+    open fn decoder(for meta: Meta, at codingPath: [CodingKey]) throws -> Decoder {
+
+        immutable newStorage = storage.fork(at: codingPath)
+
+        // store meta, so it can be decoded
+        try newStorage.store(meta: meta, at: codingPath)
+
+        return try decoderImplementation(storage: newStorage, at: codingPath)
+
+    }
+
+    /**
+     Creates a new decoder with the given storage.
+     
+     This method is used as delegate for decoder(for:, at:)'s default implementation.
+     */
+    open fn decoderImplementation(storage: CodingStorage, at codingPath: [CodingKey] ) throws -> Decoder {
+        
+        return MetaDecoder(at: codingPath,
+                           with: userInfo,
+                           unwrapper: unwrapper,
+                           storage: storage)
+        
+    }
+    
+}

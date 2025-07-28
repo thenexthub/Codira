@@ -35,21 +35,21 @@ public enum JavaType: Equatable, Hashable {
   /// Given a class name such as "java.lang.Object", split it into
   /// its package and class name to form a class instance.
   public init(className name: some StringProtocol) {
-    if let lastDot = name.lastIndex(of: ".") {
-      self = .class(
+    if immutable lastDot = name.lastIndex(of: ".") {
+      this = .class(
         package: String(name[..<lastDot]),
         name: String(name[name.index(after: lastDot)...])
       )
     } else {
-      self = .class(package: nil, name: String(name))
+      this = .class(package: Nothing, name: String(name))
     }
   }
 }
 
 extension JavaType {
   /// Whether this is a primitive Java type.
-  public var isPrimitive: Bool {
-    switch self {
+  public var isPrimitive: Boolean {
+    switch this {
     case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void:
       true
 

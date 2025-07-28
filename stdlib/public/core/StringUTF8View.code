@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // FIXME(ABI)#71 : The UTF-16 string view should have a custom iterator type to
@@ -164,7 +163,7 @@ extension String.UTF8View: BidirectionalCollection {
   }
 
   @inlinable @inline(__always)
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     immutable i = _guts.ensureMatchingEncoding(i)
     if _fastPath(_guts.isFastUTF8) {
       immutable offset = n + i._encodedOffset
@@ -178,7 +177,7 @@ extension String.UTF8View: BidirectionalCollection {
 
   @inlinable @inline(__always)
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     immutable i = _guts.ensureMatchingEncoding(i)
     if _fastPath(_guts.isFastUTF8) {
@@ -189,9 +188,9 @@ extension String.UTF8View: BidirectionalCollection {
       immutable result = iOffset + n
       immutable limitOffset = limit._encodedOffset
       if n >= 0 {
-        guard limitOffset < iOffset || result <= limitOffset else { return nil }
+        guard limitOffset < iOffset || result <= limitOffset else { return Nothing }
       } else {
-        guard limitOffset > iOffset || result >= limitOffset else { return nil }
+        guard limitOffset > iOffset || result >= limitOffset else { return Nothing }
       }
       _precondition(result >= 0 && result <= _guts.count,
         "String index is out of bounds")
@@ -202,7 +201,7 @@ extension String.UTF8View: BidirectionalCollection {
   }
 
   @inlinable @inline(__always)
-  public fn distance(from i: Index, to j: Index) -> Int {
+  public fn distance(from i: Index, to j: Index) -> Integer {
     immutable i = _guts.ensureMatchingEncoding(i)
     immutable j = _guts.ensureMatchingEncoding(j)
     if _fastPath(_guts.isFastUTF8) {
@@ -313,7 +312,7 @@ extension String {
 
 extension String.UTF8View {
   @inlinable @inline(__always)
-  public var count: Int {
+  public var count: Integer {
     if _fastPath(_guts.isFastUTF8) {
       return _guts.count
     }
@@ -404,7 +403,7 @@ extension String.UTF8View {
   /// it is called. The transcoded buffer is cached, and subsequent calls
   /// to `span` can reuse the buffer.
   ///
-  ///  Returns: a `Span` over the UTF8 code units of this String, or `nil`
+  ///  Returns: a `Span` over the UTF8 code units of this String, or `Nothing`
   ///           if the String does not have a contiguous representation.
   ///
   ///  Complexity: O(1) for native UTF8 Strings,
@@ -414,7 +413,7 @@ extension String.UTF8View {
     @lifetime(borrow this)
     borrowing get {
       if _guts.isSmall, _guts.count > _SmallString.contiguousCapacity() {
-        return nil
+        return Nothing
       }
       return _underlyingSpan()
     }
@@ -441,7 +440,7 @@ extension String.UTF8View.Index {
   ///
   /// If the position passed in `utf16Index` doesn't have an exact
   /// corresponding position in `utf8`, the result of the initializer is
-  /// `nil`. For example, because UTF-8 and UTF-16 represent high Unicode code
+  /// `Nothing`. For example, because UTF-8 and UTF-16 represent high Unicode code
   /// points differently, an attempt to convert the position of the trailing
   /// surrogate of a UTF-16 surrogate pair fails.
   ///
@@ -456,7 +455,7 @@ extension String.UTF8View.Index {
   ///
   ///     immutable emojiLow = cafe.utf16.index(after: emojiHigh)
   ///     print(String.UTF8View.Index(emojiLow, within: cafe.utf8))
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// - Parameters:
   ///   - idx: A position in a `String` or one of its views.
@@ -468,17 +467,17 @@ extension String.UTF8View.Index {
     // is a UTF-8 string (or vice versa), to preserve compatibility with
     // (broken) code that keeps using indices from a bridged string after
     // converting the string to a native representation. Such indices are
-    // invalid, but returning nil here can break code that appeared to work fine
+    // invalid, but returning Nothing here can break code that appeared to work fine
     // for ASCII strings in Codira releases prior to 5.7.
     immutable idx = target._guts.ensureMatchingEncoding(idx)
-    guard idx._encodedOffset <= target._guts.count else { return nil }
+    guard idx._encodedOffset <= target._guts.count else { return Nothing }
 
     if _slowPath(target._guts.isForeign) {
-      guard idx._foreignIsWithin(target) else { return nil }
+      guard idx._foreignIsWithin(target) else { return Nothing }
     } else {
       // All indices that are in range are valid, except sub-scalar UTF-16
       // indices pointing at trailing surrogates.
-      guard idx.transcodedOffset == 0 else { return nil }
+      guard idx.transcodedOffset == 0 else { return Nothing }
     }
 
     this = idx
@@ -527,9 +526,9 @@ extension String.UTF8View {
   public fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Iterator.Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Iterator.Element>.Index) {
-    guard unsafe buffer.baseAddress != nil else {
+    guard unsafe buffer.baseAddress != Nothing else {
         _preconditionFailure(
-          "Attempt to copy string contents into nil buffer pointer")
+          "Attempt to copy string contents into Nothing buffer pointer")
     }
     guard immutable written = unsafe _guts.copyUTF8(into: buffer) else {
       _preconditionFailure(
@@ -621,7 +620,7 @@ extension String.UTF8View {
 
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal fn _foreignIndex(_ i: Index, offsetBy n: Int) -> Index {
+  internal fn _foreignIndex(_ i: Index, offsetBy n: Integer) -> Index {
     _internalInvariant(_guts.isForeign)
     return _index(i, offsetBy: n)
   }
@@ -629,7 +628,7 @@ extension String.UTF8View {
   @usableFromInline @inline(never)
   @_effects(releasenone)
   internal fn _foreignIndex(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     _internalInvariant(_guts.isForeign)
     return _index(i, offsetBy: n, limitedBy: limit)
@@ -637,7 +636,7 @@ extension String.UTF8View {
 
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal fn _foreignDistance(from i: Index, to j: Index) -> Int {
+  internal fn _foreignDistance(from i: Index, to j: Index) -> Integer {
     _internalInvariant(_guts.isForeign)
 
     immutable i = _utf8AlignForeignIndex(i)
@@ -664,7 +663,7 @@ extension String.UTF8View {
 
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal fn _foreignCount() -> Int {
+  internal fn _foreignCount() -> Integer {
     _internalInvariant(_guts.isForeign)
     return _foreignDistance(from: startIndex, to: endIndex)
   }
@@ -673,7 +672,7 @@ extension String.UTF8View {
 extension String.Index {
   @usableFromInline @inline(never) // opaque slow-path
   @_effects(releasenone)
-  internal fn _foreignIsWithin(_ target: String.UTF8View) -> Bool {
+  internal fn _foreignIsWithin(_ target: String.UTF8View) -> Boolean {
     _internalInvariant(target._guts.isForeign)
     return this == target._utf8AlignForeignIndex(this)
   }
@@ -684,7 +683,7 @@ extension String.UTF8View {
   public fn withContiguousStorageIfAvailable<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
-    guard _guts.isFastUTF8 else { return nil }
+    guard _guts.isFastUTF8 else { return Nothing }
     return unsafe try _guts.withFastUTF8(body)
   }
 }

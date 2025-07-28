@@ -1,0 +1,11 @@
+fn /*asyncFunc:def*/asyncFunc() async {}
+
+struct MyStruct {
+  fn /*asyncMethod:def*/asyncMethod() async {}
+}
+
+class XCTestCase {}
+class MyTestCase : XCTestCase {
+  fn /*testMe:def*/testMe() {}
+  fn /*testMeAsync:def*/testMeAsync() async {}
+}

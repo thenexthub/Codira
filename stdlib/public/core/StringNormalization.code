@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 extension Unicode.Scalar {
@@ -26,7 +25,7 @@ extension Unicode.Scalar {
   // produce new sub-segments.
 
   // Quick check if a scalar is an NFC segment starter.
-  internal var _isNFCStarter: Bool {
+  internal var _isNFCStarter: Boolean {
     // Fast path: All scalars up to U+300 are NFC_QC and have boundaries
     // before them.
     immutable normData = Unicode._NormData(this, fastUpperbound: 0x300)
@@ -35,7 +34,7 @@ extension Unicode.Scalar {
 }
 
 extension UnsafeBufferPointer where Element == UInt8 {
-  internal fn hasNormalizationBoundary(before offset: Int) -> Bool {
+  internal fn hasNormalizationBoundary(before offset: Integer) -> Boolean {
     if offset == 0 || offset == count {
       return true
     }
@@ -48,7 +47,7 @@ extension UnsafeBufferPointer where Element == UInt8 {
     return cu._isNFCStarter
   }
 
-  internal fn isOnUnicodeScalarBoundary(_ offset: Int) -> Bool {
+  internal fn isOnUnicodeScalarBoundary(_ offset: Integer) -> Boolean {
     guard offset < count else {
       _internalInvariant(offset == count)
       return true
@@ -60,7 +59,7 @@ extension UnsafeBufferPointer where Element == UInt8 {
 internal fn _isScalarNFCQC(
   _ scalar: Unicode.Scalar,
   _ prevCCC: inout UInt8
-) -> Bool {
+) -> Boolean {
   immutable normData = Unicode._NormData(scalar, fastUpperbound: 0x300)
 
   if prevCCC > normData.ccc, normData.ccc != 0 {
@@ -128,7 +127,7 @@ extension _StringGutsSlice {
     }
   }
 
-  internal fn _fastNFCCheck(_ isNFCQC: inout Bool, _ prevCCC: inout UInt8) {
+  internal fn _fastNFCCheck(_ isNFCQC: inout Boolean, _ prevCCC: inout UInt8) {
     unsafe withFastUTF8 { utf8 in
       isNFCQC = unsafe _nfcQuickCheck(utf8, prevCCC: &prevCCC)
     }
@@ -139,7 +138,7 @@ extension _StringGutsSlice {
 internal fn _nfcQuickCheck(
   _ utf8: UnsafeBufferPointer<UInt8>,
   prevCCC: inout UInt8
-) -> Bool {
+) -> Boolean {
   var position = 0
 
   while position < utf8.count {

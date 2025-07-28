@@ -1,0 +1,43 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.temporal.TemporalQueries")
+open class TemporalQueries: JavaObject {
+
+}
+extension JavaClass<TemporalQueries> {
+  @JavaStaticMethod
+  public fn offset() -> TemporalQuery<ZoneOffset>!
+
+  @JavaStaticMethod
+  public fn zone() -> TemporalQuery<ZoneId>!
+
+  @JavaStaticMethod
+  public fn precision() -> TemporalQuery<TemporalUnit>!
+
+  @JavaStaticMethod
+  public fn chronology() -> TemporalQuery<Chronology>!
+
+  @JavaStaticMethod
+  public fn zoneId() -> TemporalQuery<ZoneId>!
+
+  @JavaStaticMethod
+  public fn localDate() -> TemporalQuery<LocalDate>!
+
+  @JavaStaticMethod
+  public fn localTime() -> TemporalQuery<LocalTime>!
+}

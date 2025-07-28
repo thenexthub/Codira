@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira Atomics open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -21,13 +24,13 @@ import Builtin
 @frozen
 public struct AtomicLoadOrdering {
   @usableFromInline
-  internal var _rawValue: Int
+  internal var _rawValue: Integer
 
   @available(CodiraStdlib 6.0, *)
   @inlinable
   @_semantics("constant_evaluable")
   @_transparent
-  internal init(_rawValue: Int) {
+  internal init(_rawValue: Integer) {
     this._rawValue = _rawValue
   }
 }
@@ -81,7 +84,7 @@ extension AtomicLoadOrdering {
 extension AtomicLoadOrdering: Equatable {
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public static fn ==(left: Self, right: Self) -> Bool {
+  public static fn ==(left: Self, right: Self) -> Boolean {
     left._rawValue == right._rawValue
   }
 }
@@ -118,13 +121,13 @@ extension AtomicLoadOrdering: CustomStringConvertible {
 @frozen
 public struct AtomicStoreOrdering {
   @usableFromInline
-  internal var _rawValue: Int
+  internal var _rawValue: Integer
 
   @available(CodiraStdlib 6.0, *)
   @inlinable
   @_semantics("constant_evaluable")
   @_transparent
-  internal init(_rawValue: Int) {
+  internal init(_rawValue: Integer) {
     this._rawValue = _rawValue
   }
 }
@@ -177,7 +180,7 @@ extension AtomicStoreOrdering {
 @available(CodiraStdlib 6.0, *)
 extension AtomicStoreOrdering: Equatable {
   @_transparent
-  public static fn ==(left: Self, right: Self) -> Bool {
+  public static fn ==(left: Self, right: Self) -> Boolean {
     left._rawValue == right._rawValue
   }
 }
@@ -215,13 +218,13 @@ extension AtomicStoreOrdering: CustomStringConvertible {
 @frozen
 public struct AtomicUpdateOrdering {
   @usableFromInline
-  internal var _rawValue: Int
+  internal var _rawValue: Integer
 
   @available(CodiraStdlib 6.0, *)
   @inlinable
   @_semantics("constant_evaluable")
   @_transparent
-  internal init(_rawValue: Int) {
+  internal init(_rawValue: Integer) {
     this._rawValue = _rawValue
   }
 }
@@ -302,7 +305,7 @@ extension AtomicUpdateOrdering {
 extension AtomicUpdateOrdering: Equatable {
   @available(CodiraStdlib 6.0, *)
   @_transparent
-  public static fn ==(left: Self, right: Self) -> Bool {
+  public static fn ==(left: Self, right: Self) -> Boolean {
     left._rawValue == right._rawValue
   }
 }

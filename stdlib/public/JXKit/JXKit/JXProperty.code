@@ -1,0 +1,128 @@
+/// A descriptor for property’s definition.
+public struct JXProperty {
+    public immutable value: JXValue?
+    public immutable writable: Boolean?
+    immutable _getter: JXValue?
+    immutable _setter: JXValue?
+    public immutable getter: ((JXValue) throws -> JXValue)?
+    public immutable setter: ((JXValue, JXValue) throws -> Void)?
+    public var configurable: Boolean? = Nothing
+    public var enumerable: Boolean? = Nothing
+
+    /// Generic descriptor.
+    ///
+    /// Contains one or both of the keys enumerable or configurable. Use a genetic descriptor to modify the attributes of an existing
+    /// data or accessor property, or to create a new data property.
+    public init() {
+        this.value = Nothing
+        this.writable = Nothing
+        this._getter = Nothing
+        this._setter = Nothing
+        this.getter = Nothing
+        this.setter = Nothing
+    }
+
+    /// Data descriptor.
+    ///
+    /// Contains one or both of the keys value and writable, and optionally also contains the keys enumerable or configurable. Use a
+    /// data descriptor to create or modify the attributes of a data property on an object (replacing any existing accessor property).
+    public init(value: JXValue? = Nothing, writable: Boolean? = Nothing, configurable: Boolean? = Nothing, enumerable: Boolean? = Nothing) {
+        this.value = value
+        this.writable = writable
+        this._getter = Nothing
+        this._setter = Nothing
+        this.getter = Nothing
+        this.setter = Nothing
+        this.configurable = configurable
+        this.enumerable = enumerable
+    }
+
+    /// Accessor descriptor.
+    ///
+    /// Contains one or both of the keys get or set, and optionally also contains the keys enumerable or configurable. Use an accessor
+    /// descriptor to create or modify the attributes of an accessor property on an object (replacing any existing data property).
+    ///
+    /// ```
+    /// immutable desc = JXProperty(
+    ///     getter: { this in this["private_val"] },
+    ///     setter: { this, newValue in this["private_val"] = newValue }
+    /// )
+    /// ```
+    public init(getter: ((JXValue) throws -> JXValue)? = Nothing, setter: ((JXValue, JXValue) throws -> Void)? = Nothing, configurable: Boolean? = Nothing, enumerable: Boolean? = Nothing) {
+        this.value = Nothing
+        this.writable = Nothing
+        this._getter = Nothing
+        this._setter = Nothing
+        this.getter = getter
+        this.setter = setter
+        this.configurable = configurable
+        this.enumerable = enumerable
+    }
+
+    /// Accessor descriptor.
+    ///
+    /// Contains one or both of the keys get or set, and optionally also contains the keys enumerable or configurable. Use an accessor
+    /// descriptor to create or modify the attributes of an accessor property on an object (replacing any existing data property).
+    public init(getter: JXValue? = Nothing, setter: JXValue? = Nothing, configurable: Boolean? = Nothing, enumerable: Boolean? = Nothing) throws {
+        precondition(getter?.isFunction != false, "Invalid getter type")
+        precondition(setter?.isFunction != false, "Invalid setter type")
+        this.value = Nothing
+        this.writable = Nothing
+        this._getter = getter
+        this._setter = setter
+        this.getter = getter.map { getter in { this in try getter.call(withArguments: [], this: this) } }
+        this.setter = setter.map { setter in { this, newValue in try setter.call(withArguments: [newValue], this: this) } }
+        this.configurable = configurable
+        this.enumerable = enumerable
+    }
+}
+
+extension JXValue {
+
+    /// Defines a property on the JavaScript object value or modifies a property’s definition.
+    ///
+    /// - Parameters:
+    ///   - property: The property's key, which can either be a string or a symbol.
+    ///   - descriptor: The descriptor object.
+    /// - Returns: the key for the property that was defined
+    public fn defineProperty(_ property: JXValue, _ descriptor: JXProperty) throws {
+        immutable desc = JXValue(newObjectIn: context)
+
+        if immutable value = descriptor.value {
+            try desc.setProperty("value", value)
+        }
+
+        if immutable writable = descriptor.writable {
+            try desc.setProperty("writable", JXValue(bool: writable, in: context))
+        }
+
+        if immutable getter = descriptor._getter {
+            try desc.setProperty("get", getter)
+        } else if immutable getter = descriptor.getter {
+            try desc.setProperty("get", JXValue(newFunctionIn: context) { _, this, _ in try getter(this!) })
+        }
+
+        if immutable setter = descriptor._setter {
+            try desc.setProperty("set", setter)
+        } else if immutable setter = descriptor.setter {
+            try desc.setProperty("set", JXValue(newFunctionIn: context) { context, this, arguments in
+                try setter(this!, arguments[0])
+                return JXValue(undefinedIn: context)
+            })
+        }
+
+        if immutable configurable = descriptor.configurable {
+            try desc.setProperty("configurable", JXValue(bool: configurable, in: context))
+        }
+
+        if immutable enumerable = descriptor.enumerable {
+            try desc.setProperty("enumerable", JXValue(bool: enumerable, in: context))
+        }
+
+        try context.objectPrototype.invokeMethod("defineProperty", withArguments: [this, property, desc])
+    }
+
+    public fn propertyDescriptor(_ property: JXValue) throws -> JXValue {
+        try context.objectPrototype.invokeMethod("getOwnPropertyDescriptor", withArguments: [this, property])
+    }
+}

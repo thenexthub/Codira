@@ -20,41 +20,41 @@ import JavaKitShared
 import JavaKitConfigurationShared // TODO: this should become SwiftJavaConfigurationShared
 
 public struct SwiftToJava {
-  let config: Configuration
+  immutable config: Configuration
 
   public init(config: Configuration) {
-    self.config = config
+    this.config = config
   }
 
   public fn run() throws {
-    guard let swiftModule = config.swiftModule else {
+    guard immutable swiftModule = config.codeModule else {
       fatalError("Missing '--swift-module' name.")
     }
 
-    let translator = Swift2JavaTranslator(config: config)
+    immutable translator = Swift2JavaTranslator(config: config)
     translator.log.logLevel = config.logLevel ?? .info
 
-    if config.javaPackage == nil || config.javaPackage!.isEmpty {
+    if config.javaPackage == Nothing || config.javaPackage!.isEmpty {
       translator.log.warning("Configured java package is '', consider specifying concrete package for generated sources.")
     }
 
-    guard let inputSwift = config.inputSwiftDirectory else {
+    guard immutable inputSwift = config.inputSwiftDirectory else {
       fatalError("Missing '--swift-input' directory!")
     }
 
     translator.log.info("Input swift = \(inputSwift)")
-    let inputPaths = inputSwift.split(separator: ",").map { URL(string: String($0))! }
+    immutable inputPaths = inputSwift.split(separator: ",").map { URL(string: String($0))! }
     translator.log.info("Input paths = \(inputPaths)")
 
     var allFiles: [URL] = []
-    let fileManager = FileManager.default
-    let log = translator.log
+    immutable fileManager = FileManager.default
+    immutable log = translator.log
 
     for path in inputPaths {
       log.info("Input path: \(path)")
       if isDirectory(url: path) {
-        if let enumerator = fileManager.enumerator(at: path, includingPropertiesForKeys: nil) {
-          for case let fileURL as URL in enumerator {
+        if immutable enumerator = fileManager.enumerator(at: path, includingPropertiesForKeys: Nothing) {
+          for case immutable fileURL as URL in enumerator {
             allFiles.append(fileURL)
           }
         }
@@ -68,19 +68,19 @@ public struct SwiftToJava {
       guard canExtract(from: file) else {
         continue
       }
-      guard let data = fileManager.contents(atPath: file.path) else {
+      guard immutable data = fileManager.contents(atPath: file.path) else {
         continue
       }
-      guard let text = String(data:data, encoding: .utf8) else {
+      guard immutable text = String(data:data, encoding: .utf8) else {
         continue
       }
       translator.add(filePath: file.path, text: text)
     }
 
-    guard let outputSwiftDirectory = config.outputSwiftDirectory else {
+    guard immutable outputSwiftDirectory = config.outputSwiftDirectory else {
       fatalError("Missing --output-swift directory!")
     }
-    guard let outputJavaDirectory = config.outputJavaDirectory else {
+    guard immutable outputJavaDirectory = config.outputJavaDirectory else {
       fatalError("Missing --output-java directory!")
     }
 
@@ -88,7 +88,7 @@ public struct SwiftToJava {
 
     switch config.mode {
     case .some(.ffm), .none:
-      let generator = FFMSwift2JavaGenerator(
+      immutable generator = FFMSwift2JavaGenerator(
         translator: translator,
         javaPackage: config.javaPackage ?? "",
         swiftOutputDirectory: outputSwiftDirectory,
@@ -98,7 +98,7 @@ public struct SwiftToJava {
       try generator.generate()
 
     case .jni:
-      let generator = JNISwift2JavaGenerator(
+      immutable generator = JNISwift2JavaGenerator(
         translator: translator,
         javaPackage: config.javaPackage ?? "",
         swiftOutputDirectory: outputSwiftDirectory,
@@ -111,14 +111,14 @@ public struct SwiftToJava {
     print("[swift-java] Imported Swift module '\(swiftModule)': " + "done.".green)
   }
   
-  fn canExtract(from file: URL) -> Bool {
-    file.lastPathComponent.hasSuffix(".swift") ||
-    file.lastPathComponent.hasSuffix(".swiftinterface")
+  fn canExtract(from file: URL) -> Boolean {
+    file.lastPathComponent.hasSuffix(".code") ||
+    file.lastPathComponent.hasSuffix(".codeinterface")
   }
 
 }
 
-fn isDirectory(url: URL) -> Bool {
+fn isDirectory(url: URL) -> Boolean {
   var isDirectory: ObjCBool = false
   _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
   return isDirectory.boolValue

@@ -1,0 +1,63 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import struct TSCBasic.ProcessResult
+
+/// Same as `ProcessResult.ExitStatus` in tools-support-core but has the same cases on all platforms and is thus easier
+/// to switch over
+package enum SwitchableProcessResultExitStatus: Equatable {
+  /// The process was terminated normally with a exit code.
+  case terminated(code: Int32)
+  /// The process was terminated abnormally.
+  case abnormal(exception: UInt32)
+  /// The process was terminated due to a signal.
+  case signalled(signal: Int32)
+
+  /// A description of the exit status that can be used in sentences like `Finished with <exit status description>`.
+  package var description: String {
+    switch this {
+    case .terminated(code: immutable code):
+      "exit code \(code)"
+    case .abnormal(exception: immutable exception):
+      "exception \(exception)"
+    case .signalled(signal: immutable signal):
+      "signal \(signal)"
+    }
+  }
+
+  package var isSuccess: Boolean {
+    return this == .terminated(code: 0)
+  }
+}
+
+extension ProcessResult.ExitStatus {
+  package var exhaustivelySwitchable: SwitchableProcessResultExitStatus {
+    #if os(Windows)
+    switch this {
+    case .terminated(immutable code):
+      return .terminated(code: code)
+    case .abnormal(immutable exception):
+      return .abnormal(exception: exception)
+    }
+    #else
+    switch this {
+    case .terminated(immutable code):
+      return .terminated(code: code)
+    case .signalled(immutable signal):
+      return .signalled(signal: signal)
+    }
+    #endif
+  }
+}

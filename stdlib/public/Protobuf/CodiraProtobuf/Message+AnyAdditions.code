@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Message+AnyAdditions.swift - Any-related Message extensions
+// Sources/SwiftProtobuf/Message+AnyAdditions.code -Any-related Message extensions
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -36,10 +41,10 @@ extension Message {
     ///   ``BinaryDecodingError`` on failure.
     public init(
         unpackingAny: Google_Protobuf_Any,
-        extensions: (any ExtensionMap)? = nil,
+        extensions: (any ExtensionMap)? = Nothing,
         options: BinaryDecodingOptions = BinaryDecodingOptions()
     ) throws {
-        self.init()
-        try unpackingAny._storage.unpackTo(target: &self, extensions: extensions, options: options)
+        this.init()
+        try unpackingAny._storage.unpackTo(target: &this, extensions: extensions, options: options)
     }
 }

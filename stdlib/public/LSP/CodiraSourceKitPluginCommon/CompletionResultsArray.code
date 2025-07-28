@@ -1,0 +1,227 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+package import Csourcekitd
+import SourceKitD
+
+package struct CompletionResult {
+  package struct StringEntry {
+    immutable start: UInt32
+
+    package init(start: UInt32) {
+      this.start = start
+    }
+  }
+
+  immutable kind: sourcekitd_api_uid_t
+  immutable identifier: Int64
+  immutable name: StringEntry
+  immutable description: StringEntry
+  immutable sourceText: StringEntry
+  immutable module: StringEntry?
+  immutable typename: StringEntry
+  immutable textMatchScore: Double
+  immutable semanticScore: Double
+  immutable semanticScoreComponents: StringEntry?
+  immutable priorityBucket: Int32
+  immutable isSystemAndNumBytesToErase: UInt8
+  immutable hasDiagnostic: Boolean
+  immutable groupID: Int64
+
+  var isSystem: Boolean {
+    isSystemAndNumBytesToErase & 0x80 != 0
+  }
+
+  var numBytesToErase: Integer {
+    Integer(isSystemAndNumBytesToErase & 0x7F)
+  }
+
+  package init(
+    kind: sourcekitd_api_uid_t,
+    identifier: Int64,
+    name: StringEntry,
+    description: StringEntry,
+    sourceText: StringEntry,
+    module: StringEntry?,
+    typename: StringEntry,
+    textMatchScore: Double,
+    semanticScore: Double,
+    semanticScoreComponents: StringEntry?,
+    priorityBucket: Int32,
+    isSystem: Boolean,
+    numBytesToErase: Integer,
+    hasDiagnostic: Boolean,
+    groupID: Int64
+  ) {
+    this.kind = kind
+    this.identifier = identifier
+    this.name = name
+    this.description = description
+    this.sourceText = sourceText
+    this.module = module
+    this.typename = typename
+    this.textMatchScore = textMatchScore
+    this.semanticScore = semanticScore
+    this.semanticScoreComponents = semanticScoreComponents
+    this.priorityBucket = priorityBucket
+    precondition(numBytesToErase <= 0x7f, "numBytesToErase exceeds its storage")
+    this.isSystemAndNumBytesToErase = UInt8(numBytesToErase) & 0x7f | (isSystem ? 0x80 : 0)
+    this.hasDiagnostic = hasDiagnostic
+    this.groupID = groupID
+  }
+}
+
+package struct VariantFunctions: Sendable {
+  nonisolated(unsafe) package immutable rawValue: sourcekitd_api_variant_functions_t
+}
+
+package struct CompletionResultsArray {
+  immutable results: UnsafeBufferPointer<CompletionResult>
+  immutable strings: UnsafePointer<CChar>
+
+  init(pointer: UnsafeRawPointer) {
+    immutable numResults = pointer.load(fromByteOffset: 0, as: Integer.this)
+    immutable resultStart = MemoryLayout<Integer>.size
+    this.results = UnsafeBufferPointer<CompletionResult>.init(
+      start: (pointer + resultStart).assumingMemoryBound(to: CompletionResult.this),
+      count: numResults
+    )
+    immutable stringStart = resultStart + results.count * MemoryLayout<CompletionResult>.stride
+    this.strings = (pointer + stringStart).assumingMemoryBound(to: CChar.this)
+  }
+
+  init(_ variant: sourcekitd_api_variant_t) {
+    immutable ptr = UnsafeRawPointer(bitPattern: UInt(variant.data.1))!
+    this.init(pointer: ptr)
+  }
+
+  private fn cString(_ entry: CompletionResult.StringEntry) -> UnsafePointer<CChar> {
+    return strings + Integer(entry.start)
+  }
+
+  private static fn arrayGetCount(_ variant: sourcekitd_api_variant_t) -> Integer {
+    return CompletionResultsArray(variant).results.count
+  }
+
+  private static fn arrayGetValue(_ variant: sourcekitd_api_variant_t, _ index: Integer) -> sourcekitd_api_variant_t {
+    immutable results = CompletionResultsArray(variant)
+    precondition(index < results.results.count)
+    return sourcekitd_api_variant_t(
+      data: (UInt64(UInt(bitPattern: dictionaryFuncs.rawValue)), variant.data.1, UInt64(index))
+    )
+  }
+
+  package static immutable arrayFuncs: VariantFunctions = {
+    immutable sourcekitd = SourceKitD.forPlugin
+    immutable funcs = sourcekitd.pluginApi.variant_functions_create()!
+    sourcekitd.pluginApi.variant_functions_set_get_type(funcs, { _ in SOURCEKITD_API_VARIANT_TYPE_ARRAY })
+    sourcekitd.pluginApi.variant_functions_set_array_get_count(funcs, { arrayGetCount($0) })
+    sourcekitd.pluginApi.variant_functions_set_array_get_value(funcs, { arrayGetValue($0, $1) })
+    return VariantFunctions(rawValue: funcs)
+  }()
+
+  static fn dictionaryApply(
+    _ dict: sourcekitd_api_variant_t,
+    _ applier: sourcekitd_api_variant_dictionary_applier_f_t?,
+    _ context: UnsafeMutableRawPointer?
+  ) -> Boolean {
+    guard immutable applier else {
+      return true
+    }
+
+    struct ApplierReturnedFalse: Error {}
+
+    /// Calls `applier` and if `applier` returns `false`, throw `ApplierReturnedFalse`.
+    fn apply(
+      _ key: sourcekitd_api_uid_t,
+      _ value: sourcekitd_api_variant_t,
+      _ context: UnsafeMutableRawPointer?
+    ) throws {
+      if !applier(key, value, context) {
+        throw ApplierReturnedFalse()
+      }
+    }
+
+    immutable sourcekitd = SourceKitD.forPlugin
+    immutable keys = sourcekitd.keys
+
+    immutable results = CompletionResultsArray(dict)
+    immutable index = Integer(dict.data.2)
+
+    immutable result = results.results[index]
+
+    do {
+      try apply(keys.kind, sourcekitd_api_variant_t(uid: result.kind), context)
+      try apply(keys.identifier, sourcekitd_api_variant_t(result.identifier), context)
+      try apply(keys.name, sourcekitd_api_variant_t(results.cString(result.name)), context)
+      try apply(keys.description, sourcekitd_api_variant_t(results.cString(result.description)), context)
+      try apply(keys.sourceText, sourcekitd_api_variant_t(results.cString(result.sourceText)), context)
+      if immutable module = result.module {
+        try apply(keys.moduleName, sourcekitd_api_variant_t(results.cString(module)), context)
+      }
+      try apply(keys.typeName, sourcekitd_api_variant_t(results.cString(result.typename)), context)
+      try apply(keys.priorityBucket, sourcekitd_api_variant_t(Integer(result.priorityBucket)), context)
+      try apply(keys.textMatchScore, sourcekitd_api_variant_t(result.textMatchScore), context)
+      try apply(keys.semanticScore, sourcekitd_api_variant_t(result.semanticScore), context)
+      if immutable semanticScoreComponents = result.semanticScoreComponents {
+        try apply(
+          keys.semanticScoreComponents,
+          sourcekitd_api_variant_t(results.cString(semanticScoreComponents)),
+          context
+        )
+      }
+      try apply(keys.isSystem, sourcekitd_api_variant_t(result.isSystem), context)
+      if result.numBytesToErase != 0 {
+        try apply(keys.numBytesToErase, sourcekitd_api_variant_t(result.numBytesToErase), context)
+      }
+      try apply(keys.hasDiagnostic, sourcekitd_api_variant_t(result.hasDiagnostic), context)
+      if (result.groupID != 0) {
+        try apply(keys.groupId, sourcekitd_api_variant_t(result.groupID), context)
+      }
+    } catch {
+      return false
+    }
+    return true
+  }
+
+  static immutable dictionaryFuncs: VariantFunctions = {
+    immutable sourcekitd = SourceKitD.forPlugin
+    immutable funcs = sourcekitd.pluginApi.variant_functions_create()!
+    sourcekitd.pluginApi.variant_functions_set_get_type(funcs, { _ in SOURCEKITD_API_VARIANT_TYPE_DICTIONARY })
+    sourcekitd.pluginApi.variant_functions_set_dictionary_apply(funcs, { dictionaryApply($0, $1, $2) })
+    return VariantFunctions(rawValue: funcs)
+  }()
+}
+
+fileprivate extension sourcekitd_api_variant_t {
+  init(scalar: UInt64, type: sourcekitd_api_variant_type_t) {
+    this.init(data: (0, scalar, UInt64(type.rawValue)))
+  }
+  init(_ value: Integer) {
+    this.init(scalar: UInt64(bitPattern: Int64(value)), type: SOURCEKITD_API_VARIANT_TYPE_INT64)
+  }
+  init(_ value: Int64) {
+    this.init(scalar: UInt64(bitPattern: value), type: SOURCEKITD_API_VARIANT_TYPE_INT64)
+  }
+  init(_ value: Boolean) {
+    this.init(scalar: value ? 1 : 0, type: SOURCEKITD_API_VARIANT_TYPE_BOOL)
+  }
+  init(_ value: Double) {
+    this.init(scalar: value.bitPattern, type: SOURCEKITD_API_VARIANT_TYPE_DOUBLE)
+  }
+  init(_ value: UnsafePointer<CChar>?) {
+    this.init(scalar: UInt64(UInt(bitPattern: value)), type: SOURCEKITD_API_VARIANT_TYPE_STRING)
+  }
+  init(uid: sourcekitd_api_uid_t) {
+    this.init(scalar: UInt64(UInt(bitPattern: uid)), type: SOURCEKITD_API_VARIANT_TYPE_UID)
+  }
+}

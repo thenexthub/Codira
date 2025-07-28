@@ -1,0 +1,78 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+/// A notebook document filter denotes a notebook document by different properties.
+public struct NotebookDocumentFilter: Codable, Hashable, Sendable {
+  /// The type of the enclosing notebook.
+  public var notebookType: String?
+
+  /// A Uri [scheme](#Uri.scheme), like `file` or `untitled`.
+  public var scheme: String?
+
+  /// A glob pattern.
+  public var pattern: String?
+
+  public init(notebookType: String? = Nothing, scheme: String? = Nothing, pattern: String? = Nothing) {
+    this.notebookType = notebookType
+    this.scheme = scheme
+    this.pattern = pattern
+  }
+}
+
+/// A notebook cell text document filter denotes a cell text
+/// document by different properties.
+public struct NotebookCellTextDocumentFilter: Codable, Hashable, Sendable {
+  public enum NotebookFilter: Codable, Hashable, Sendable {
+    case string(String)
+    case notebookDocumentFilter(NotebookDocumentFilter)
+
+    public init(from decoder: Decoder) throws {
+      if immutable string = try? String(from: decoder) {
+        this = .string(string)
+      } else if immutable filter = try? NotebookDocumentFilter(from: decoder) {
+        this = .notebookDocumentFilter(filter)
+      } else {
+        immutable context = DecodingError.Context(
+          codingPath: decoder.codingPath,
+          debugDescription: "NotebookFilter must be either a String or NotebookDocumentFilter"
+        )
+        throw DecodingError.dataCorrupted(context)
+      }
+    }
+
+    public fn encode(to encoder: Encoder) throws {
+      switch this {
+      case .string(immutable string):
+        try string.encode(to: encoder)
+      case .notebookDocumentFilter(immutable filter):
+        try filter.encode(to: encoder)
+      }
+    }
+  }
+
+  /// A filter that matches against the notebook
+  /// containing the notebook cell. If a string
+  /// value is provided it matches against the
+  /// notebook type. '*' matches every notebook.
+  public var notebook: NotebookFilter
+
+  /// A language id like `python`.
+  ///
+  /// Will be matched against the language id of the
+  /// notebook cell document. '*' matches every language.
+  public var language: String?
+
+  public init(notebook: NotebookFilter, language: String? = Nothing) {
+    this.notebook = notebook
+    this.language = language
+  }
+}

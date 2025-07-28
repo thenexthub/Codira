@@ -1,0 +1,94 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.ZoneOffset", implements: TemporalAccessor.this, TemporalAdjuster.this, Comparable.this, Serializable.this)
+open class ZoneOffset: ZoneId {
+  @JavaMethod
+  open fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: ZoneOffset?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open override fn getId() -> String
+
+  @JavaMethod
+  open fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open override fn normalized() -> ZoneId!
+
+  @JavaMethod
+  open fn adjustInto(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open override fn getRules() -> ZoneRules!
+
+  @JavaMethod
+  open fn getTotalSeconds() -> Int32
+}
+extension JavaClass<ZoneOffset> {
+  @JavaStaticField(isFinal: true)
+  public var UTC: ZoneOffset!
+
+  @JavaStaticField(isFinal: true)
+  public var MIN: ZoneOffset!
+
+  @JavaStaticField(isFinal: true)
+  public var MAX: ZoneOffset!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: String) -> ZoneOffset!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> ZoneOffset!
+
+  @JavaStaticMethod
+  public fn ofHours(_ arg0: Int32) -> ZoneOffset!
+
+  @JavaStaticMethod
+  public fn ofHoursMinutesSeconds(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> ZoneOffset!
+
+  @JavaStaticMethod
+  public fn ofTotalSeconds(_ arg0: Int32) -> ZoneOffset!
+
+  @JavaStaticMethod
+  public fn ofHoursMinutes(_ arg0: Int32, _ arg1: Int32) -> ZoneOffset!
+}

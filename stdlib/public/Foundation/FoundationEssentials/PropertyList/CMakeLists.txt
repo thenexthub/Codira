@@ -13,16 +13,16 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    BPlistDecodingFormat.swift
-    BPlistEncodingFormat.swift
-    BPlistScanner.swift
-    OpenStepPlist.swift
-    PlistDecoder.swift
-    PlistDecoderGeneric.swift
-    PlistDictionaryDecoder.swift
-    PlistDictionaryEncoder.swift
-    PlistEncoder.swift
-    PlistEncoderGeneric.swift
-    XMLPlistDecodingFormat.swift
-    XMLPlistEncodingFormat.swift
-    XMLPlistScanner.swift)
+    BPlistDecodingFormat.code
+    BPlistEncodingFormat.code
+    BPlistScanner.code
+    OpenStepPlist.code
+    PlistDecoder.code
+    PlistDecoderGeneric.code
+    PlistDictionaryDecoder.code
+    PlistDictionaryEncoder.code
+    PlistEncoder.code
+    PlistEncoderGeneric.code
+    XMLPlistDecodingFormat.code
+    XMLPlistEncodingFormat.code
+    XMLPlistScanner.code)

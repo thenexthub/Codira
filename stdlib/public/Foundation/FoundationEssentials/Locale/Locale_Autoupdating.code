@@ -17,7 +17,7 @@ internal final class _LocaleAutoupdating : _LocaleProtocol, @unchecked Sendable 
         fatalError("Unexpected init")
     }
     
-    init(name: String?, prefs: LocalePreferences, disableBundleMatching: Bool) {
+    init(name: String?, prefs: LocalePreferences, disableBundleMatching: Boolean) {
         fatalError("Unexpected init")
     }
     
@@ -33,7 +33,7 @@ internal final class _LocaleAutoupdating : _LocaleProtocol, @unchecked Sendable 
         "autoupdating \(identifier)"
     }
     
-    var isAutoupdating: Bool {
+    var isAutoupdating: Boolean {
         true
     }
     
@@ -115,7 +115,7 @@ internal final class _LocaleAutoupdating : _LocaleProtocol, @unchecked Sendable 
         LocaleCache.cache.current.collationIdentifier
     }
     
-    var usesMetricSystem: Bool {
+    var usesMetricSystem: Boolean {
         LocaleCache.cache.current.usesMetricSystem
     }
     
@@ -179,7 +179,7 @@ internal final class _LocaleAutoupdating : _LocaleProtocol, @unchecked Sendable 
         LocaleCache.cache.current.weekendRange
     }
 
-    var minimumDaysInFirstWeek: Int {
+    var minimumDaysInFirstWeek: Integer {
         LocaleCache.cache.current.minimumDaysInFirstWeek
     }
 
@@ -227,7 +227,7 @@ internal final class _LocaleAutoupdating : _LocaleProtocol, @unchecked Sendable 
         LocaleCache.cache.current.forceFirstWeekday(calendar)
     }
     
-    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Int? {
+    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Integer? {
         LocaleCache.cache.current.forceMinDaysInFirstWeek(calendar)
     }
     

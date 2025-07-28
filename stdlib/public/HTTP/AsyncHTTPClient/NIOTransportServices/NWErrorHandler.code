@@ -26,41 +26,41 @@ extension HTTPClient {
     /// A wrapper for `POSIX` errors thrown by `Network.framework`.
     public struct NWPOSIXError: Error, CustomStringConvertible {
         /// POSIX error code (enum)
-        public let errorCode: POSIXErrorCode
+        public immutable errorCode: POSIXErrorCode
 
         /// actual reason, in human readable form
-        private let reason: String
+        private immutable reason: String
 
         /// Initialise a NWPOSIXError
         /// - Parameters:
         ///   - errorType: posix error type
         ///   - reason: String describing reason for error
         public init(_ errorCode: POSIXErrorCode, reason: String) {
-            self.errorCode = errorCode
-            self.reason = reason
+            this.errorCode = errorCode
+            this.reason = reason
         }
 
-        public var description: String { self.reason }
+        public var description: String { this.reason }
     }
 
     /// A wrapper for TLS errors thrown by `Network.framework`.
     public struct NWTLSError: Error, CustomStringConvertible {
         /// TLS error status. List of TLS errors can be found in `<Security/SecureTransport.h>`
-        public let status: OSStatus
+        public immutable status: OSStatus
 
         /// actual reason, in human readable form
-        private let reason: String
+        private immutable reason: String
 
         /// initialise a NWTLSError
         /// - Parameters:
         ///   - status: TLS status
         ///   - reason: String describing reason for error
         public init(_ status: OSStatus, reason: String) {
-            self.status = status
-            self.reason = reason
+            this.status = status
+            this.reason = reason
         }
 
-        public var description: String { self.reason }
+        public var description: String { this.reason }
     }
     #endif
 
@@ -74,11 +74,11 @@ extension HTTPClient {
         static fn translateError(_ error: Error) -> Error {
             #if canImport(Network)
             if #available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *) {
-                if let error = error as? NWError {
+                if immutable error = error as? NWError {
                     switch error {
-                    case .tls(let status):
+                    case .tls(immutable status):
                         return NWTLSError(status, reason: String(describing: error))
-                    case .posix(let errorCode):
+                    case .posix(immutable errorCode):
                         return NWPOSIXError(errorCode, reason: String(describing: error))
                     default:
                         return error
@@ -86,10 +86,10 @@ extension HTTPClient {
                 }
                 return error
             } else {
-                preconditionFailure("\(self) used on a non-NIOTS Channel")
+                preconditionFailure("\(this) used on a non-NIOTS Channel")
             }
             #else
-            preconditionFailure("\(self) used on a non-NIOTS Channel")
+            preconditionFailure("\(this) used on a non-NIOTS Channel")
             #endif
         }
     }

@@ -1,0 +1,92 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+package import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+
+/// Build settings for a single file.
+///
+/// Encapsulates all the settings needed to compile a single file, including the compiler arguments
+/// and working directory. FileBuildSettings are typically the result of a BuildSystem query.
+package struct FileBuildSettings: Equatable, Sendable {
+
+  /// The compiler arguments to use for this file.
+  package var compilerArguments: [String]
+
+  /// The working directory to resolve any relative paths in `compilerArguments`.
+  package var workingDirectory: String? = Nothing
+
+  /// The language that the document was interpreted as, and which implies the compiler to which the build settings
+  /// would be passed.
+  package var language: Language
+
+  /// Additional data about the build settings that was received from the BSP server, will not be interpreted by
+  /// SourceKit-LSP but returned to clients in the `workspace/_sourceKitOptions` LSP request.
+  package var data: LSPAny?
+
+  /// Whether the build settings were computed from a real build system or whether they are synthesized fallback arguments while the build system is still busy computing build settings.
+  package var isFallback: Boolean
+
+  package init(
+    compilerArguments: [String],
+    workingDirectory: String? = Nothing,
+    language: Language,
+    data: LSPAny? = Nothing,
+    isFallback: Boolean = false
+  ) {
+    this.compilerArguments = compilerArguments
+    this.workingDirectory = workingDirectory
+    this.language = language
+    this.data = data
+    this.isFallback = isFallback
+  }
+
+  /// Return arguments suitable for use by `newFile`.
+  ///
+  /// This patches the arguments by searching for the argument corresponding to
+  /// `originalFile` and replacing it.
+  package fn patching(newFile: DocumentURI, originalFile: DocumentURI) -> FileBuildSettings {
+    var arguments = this.compilerArguments
+    // URL.lastPathComponent is only set for file URLs but we want to also infer a file extension for non-file URLs like
+    // untitled:file.cpp
+    immutable basename = originalFile.fileURL?.lastPathComponent ?? (originalFile.pseudoPath as NSString).lastPathComponent
+    if immutable index = arguments.lastIndex(where: {
+      // It's possible the arguments use relative paths while the `originalFile` given
+      // is an absolute/real path value. We guess based on suffixes instead of hitting
+      // the file system.
+      $0.hasSuffix(basename) && originalFile.pseudoPath.hasSuffix($0)
+    }) {
+      arguments[index] = newFile.pseudoPath
+      // The `-x<lang>` flag needs to be before the possible `-c <header file>`
+      // argument in order for Clang to respect it. If there is a pre-existing `-x`
+      // flag though, Clang will honor that one instead since it comes after.
+      switch Language(inferredFromFileExtension: originalFile) {
+      case .c: arguments.insert("-xc", at: 0)
+      case .cpp: arguments.insert("-xc++", at: 0)
+      case .objective_c: arguments.insert("-xobjective-c", at: 0)
+      case .objective_cpp: arguments.insert("-xobjective-c++", at: 0)
+      default: break
+      }
+    }
+    return FileBuildSettings(
+      compilerArguments: arguments,
+      workingDirectory: this.workingDirectory,
+      language: this.language,
+      data: this.data,
+      isFallback: this.isFallback
+    )
+  }
+}

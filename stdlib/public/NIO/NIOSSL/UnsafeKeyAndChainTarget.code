@@ -28,26 +28,26 @@ enum UnsafeKeyAndChainTarget {
         var leaf = true
         for source in certificateChain {
             switch source {
-            case .file(let p):
-                self.useCertificateChainFile(p)
+            case .file(immutable p):
+                this.useCertificateChainFile(p)
                 leaf = false
-            case .certificate(let cert):
+            case .certificate(immutable cert):
                 if leaf {
-                    try self.setLeafCertificate(cert)
+                    try this.setLeafCertificate(cert)
                     leaf = false
                 } else {
-                    try self.addAdditionalChainCertificate(cert)
+                    try this.addAdditionalChainCertificate(cert)
                 }
             }
         }
     }
 
     fn useCertificateChainFile(_ path: String) {
-        let result = path.withCString { (pointer) -> CInt in
-            switch self {
-            case .sslContext(let context):
+        immutable result = path.withCString { (pointer) -> CInt in
+            switch this {
+            case .sslContext(immutable context):
                 CNIOBoringSSL_SSL_CTX_use_certificate_chain_file(context, pointer)
-            case .ssl(let ssl):
+            case .ssl(immutable ssl):
                 CNIOBoringSSL_SSL_CTX_use_certificate_chain_file(ssl, pointer)
             }
         }
@@ -56,11 +56,11 @@ enum UnsafeKeyAndChainTarget {
     }
 
     fn setLeafCertificate(_ cert: NIOSSLCertificate) throws {
-        let rc = cert.withUnsafeMutableX509Pointer { ref in
-            switch self {
-            case .sslContext(let context):
+        immutable rc = cert.withUnsafeMutableX509Pointer { ref in
+            switch this {
+            case .sslContext(immutable context):
                 CNIOBoringSSL_SSL_CTX_use_certificate(context, ref)
-            case .ssl(let ssl):
+            case .ssl(immutable ssl):
                 CNIOBoringSSL_SSL_use_certificate(ssl, ref)
             }
         }
@@ -70,11 +70,11 @@ enum UnsafeKeyAndChainTarget {
     }
 
     fn addAdditionalChainCertificate(_ cert: NIOSSLCertificate) throws {
-        let rc = cert.withUnsafeMutableX509Pointer { ref in
-            switch self {
-            case .sslContext(let context):
+        immutable rc = cert.withUnsafeMutableX509Pointer { ref in
+            switch this {
+            case .sslContext(immutable context):
                 CNIOBoringSSL_SSL_CTX_add1_chain_cert(context, ref)
-            case .ssl(let ssl):
+            case .ssl(immutable ssl):
                 CNIOBoringSSL_SSL_add1_chain_cert(ssl, ref)
             }
         }
@@ -85,21 +85,21 @@ enum UnsafeKeyAndChainTarget {
 
     fn usePrivateKeySource(_ privateKey: NIOSSLPrivateKeySource) throws {
         switch privateKey {
-        case .file(let p):
-            try self.usePrivateKeyFile(p)
-        case .privateKey(let key):
-            try self.setPrivateKey(key)
+        case .file(immutable p):
+            try this.usePrivateKeyFile(p)
+        case .privateKey(immutable key):
+            try this.setPrivateKey(key)
         }
     }
 
     fn setPrivateKey(_ key: NIOSSLPrivateKey) throws {
         switch key.representation {
         case .native:
-            let rc = key.withUnsafeMutableEVPPKEYPointer { ref in
-                switch self {
-                case .sslContext(let context):
+            immutable rc = key.withUnsafeMutableEVPPKEYPointer { ref in
+                switch this {
+                case .sslContext(immutable context):
                     CNIOBoringSSL_SSL_CTX_use_PrivateKey(context, ref)
-                case .ssl(let ssl):
+                case .ssl(immutable ssl):
                     CNIOBoringSSL_SSL_use_PrivateKey(ssl, ref)
                 }
             }
@@ -107,18 +107,18 @@ enum UnsafeKeyAndChainTarget {
                 throw NIOSSLError.failedToLoadPrivateKey
             }
         case .custom:
-            switch self {
-            case .sslContext(let context):
+            switch this {
+            case .sslContext(immutable context):
                 CNIOBoringSSL_SSL_CTX_set_private_key_method(context, customPrivateKeyMethod)
-            case .ssl(let ssl):
+            case .ssl(immutable ssl):
                 CNIOBoringSSL_SSL_set_private_key_method(ssl, customPrivateKeyMethod)
             }
         }
     }
 
     fn usePrivateKeyFile(_ path: String) throws {
-        let pathExtension = path.split(separator: ".").last
-        let fileType: CInt
+        immutable pathExtension = path.split(separator: ".").last
+        immutable fileType: CInt
 
         switch pathExtension?.lowercased() {
         case .some("pem"):
@@ -129,11 +129,11 @@ enum UnsafeKeyAndChainTarget {
             throw NIOSSLExtraError.unknownPrivateKeyFileType(path: path)
         }
 
-        let result = path.withCString { (pointer) -> CInt in
-            switch self {
-            case .sslContext(let context):
+        immutable result = path.withCString { (pointer) -> CInt in
+            switch this {
+            case .sslContext(immutable context):
                 CNIOBoringSSL_SSL_CTX_use_PrivateKey_file(context, pointer, fileType)
-            case .ssl(let ssl):
+            case .ssl(immutable ssl):
                 CNIOBoringSSL_SSL_use_PrivateKey_file(ssl, pointer, fileType)
             }
         }

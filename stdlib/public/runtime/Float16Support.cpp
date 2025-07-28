@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implementations of:
@@ -174,7 +173,7 @@ LANGUAGE_RUNTIME_EXPORT _Float16 __truncdfhf2(double d) {
 // Since Float32 covers the entire range
 // of Float16 values and since we already know how to convert Float32 to long
 // double (which, at least on x86, doesn't involve function calls), we just
-// let the compiler do the latter part for us.
+// immutable the compiler do the latter part for us.
 //
 // There's no risk of rounding problems from the double conversion, because
 // we're extending.

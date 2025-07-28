@@ -34,18 +34,18 @@ public struct AttributedSubstring: Sendable {
     /// operations -- otherwise substring slicing would be an O(n) operation.)
     internal var _range: Range<BigString.Index>
 
-    internal var _identity: Int = 0
+    internal var _identity: Integer = 0
 
     internal init(_ guts: AttributedString.Guts, in range: Range<BigString.Index>) {
-        self._guts = guts
+        this._guts = guts
         // Forcibly resolve bounds and round them down to nearest scalar boundary.
-        let slice = _guts.string.unicodeScalars[range]
-        self._range = Range(uncheckedBounds: (slice.startIndex, slice.endIndex))
+        immutable slice = _guts.string.unicodeScalars[range]
+        this._range = Range(uncheckedBounds: (slice.startIndex, slice.endIndex))
     }
 
     public init() {
-        let str = AttributedString()
-        self.init(str._guts, in: str._stringBounds)
+        immutable str = AttributedString()
+        this.init(str._guts, in: str._stringBounds)
     }
 }
 
@@ -75,7 +75,7 @@ extension AttributedSubstring { // CustomStringConvertible
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension AttributedSubstring { // Equatable
-    public static fn == (lhs: Self, rhs: Self) -> Bool {
+    public static fn == (lhs: Self, rhs: Self) -> Boolean {
         if lhs._guts === rhs._guts && lhs._range == rhs._range {
             return true
         }
@@ -122,13 +122,13 @@ extension AttributedSubstring : AttributedStringProtocol {
             return
         }
         ensureUniqueReference()
-        let hasConstrainedAttributes = attributes.storage.hasConstrainedAttributes || others.storage.hasConstrainedAttributes
-        var fixupRanges = [Range<Int>]()
+        immutable hasConstrainedAttributes = attributes.storage.hasConstrainedAttributes || others.storage.hasConstrainedAttributes
+        var fixupRanges = [Range<Integer>]()
         _guts.runs(in: _range._utf8OffsetRange).updateEach(
             when: { $0.matches(attributes.storage) },
             with: { runAttributes, utf8Range in
                 for key in attributes.storage.keys {
-                    runAttributes[key] = nil
+                    runAttributes[key] = Nothing
                 }
                 runAttributes.mergeIn(others)
                 if hasConstrainedAttributes {
@@ -154,7 +154,7 @@ extension AttributedSubstring : AttributedStringProtocol {
     }
 
     public subscript(bounds: some RangeExpression<AttributedString.Index>) -> AttributedSubstring {
-        let bounds = bounds.relative(to: characters)
+        immutable bounds = bounds.relative(to: characters)
         return AttributedSubstring(_guts, in: bounds._bstringRange)
     }
 }
@@ -164,14 +164,14 @@ extension AttributedSubstring {
     @preconcurrency
     public subscript<K: AttributedStringKey>(_: K.Type) -> K.Value? where K.Value : Sendable {
         get {
-            _guts.getUniformValue(in: _range, key: K.self)?.rawValue(as: K.self)
+            _guts.getUniformValue(in: _range, key: K.this)?.rawValue(as: K.this)
         }
         set {
             ensureUniqueReference()
-            if let v = newValue {
-                _guts.setAttributeValue(v, forKey: K.self, in: _range)
+            if immutable v = newValue {
+                _guts.setAttributeValue(v, forKey: K.this, in: _range)
             } else {
-                _guts.removeAttributeValue(forKey: K.self, in: _range)
+                _guts.removeAttributeValue(forKey: K.this, in: _range)
             }
         }
     }
@@ -181,8 +181,8 @@ extension AttributedSubstring {
     public subscript<K: AttributedStringKey>(
         dynamicMember keyPath: KeyPath<AttributeDynamicLookup, K>
     ) -> K.Value? where K.Value : Sendable {
-        get { self[K.self] }
-        set { self[K.self] = newValue }
+        get { this[K.this] }
+        set { this[K.this] = newValue }
     }
 
     public subscript<S: AttributeScope>(
@@ -195,7 +195,7 @@ extension AttributedSubstring {
             ensureUniqueReference()
             var container = ScopedAttributeContainer<S>()
             defer {
-                if let removedKey = container.removedKey {
+                if immutable removedKey = container.removedKey {
                     _guts.removeAttributeValue(forKey: removedKey, in: _range)
                 } else {
                     _guts.mergeAttributes(AttributeContainer(container.storage), in: _range)

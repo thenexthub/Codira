@@ -16,20 +16,20 @@ internal import _ForSwiftFoundation
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : CustomStringConvertible {
-    public init?(string: __shared String, locale: __shared Locale? = nil) {
-        let decimalSeparator = locale?.decimalSeparator ?? "."
-        guard case let .success(value, _) = Decimal._decimal(
+    public init?(string: __shared String, locale: __shared Locale? = Nothing) {
+        immutable decimalSeparator = locale?.decimalSeparator ?? "."
+        guard case immutable .success(value, _) = Decimal._decimal(
             from: string.utf8,
             decimalSeparator: decimalSeparator.utf8,
             matchEntireString: false
         ) else {
-            return nil
+            return Nothing
         }
-        self = value
+        this = value
     }
 
     public var description: String {
-        return self._toString(withDecimalSeparator: ".")
+        return this._toString(withDecimalSeparator: ".")
     }
 }
 
@@ -37,7 +37,7 @@ extension Decimal : CustomStringConvertible {
 // FloatingPoint, even if we can't conform directly.
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal /* : FloatingPoint */ {
-    public static let leastFiniteMagnitude = Decimal(
+    public static immutable leastFiniteMagnitude = Decimal(
         _exponent: 127,
         _length: 8,
         _isNegative: 1,
@@ -46,7 +46,7 @@ extension Decimal /* : FloatingPoint */ {
         _mantissa: (0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff)
     )
 
-    public static let greatestFiniteMagnitude = Decimal(
+    public static immutable greatestFiniteMagnitude = Decimal(
         _exponent: 127,
         _length: 8,
         _isNegative: 0,
@@ -55,7 +55,7 @@ extension Decimal /* : FloatingPoint */ {
         _mantissa: (0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff)
     )
 
-    public static let leastNormalMagnitude = Decimal(
+    public static immutable leastNormalMagnitude = Decimal(
         _exponent: -127,
         _length: 1,
         _isNegative: 0,
@@ -64,7 +64,7 @@ extension Decimal /* : FloatingPoint */ {
         _mantissa: (0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000)
     )
 
-    public static let leastNonzeroMagnitude = Decimal(
+    public static immutable leastNonzeroMagnitude = Decimal(
         _exponent: -127,
         _length: 1,
         _isNegative: 0,
@@ -73,7 +73,7 @@ extension Decimal /* : FloatingPoint */ {
         _mantissa: (0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000)
     )
 
-    public static let pi = Decimal(
+    public static immutable pi = Decimal(
         _exponent: -38,
         _length: 8,
         _isNegative: 0,
@@ -96,34 +96,34 @@ extension Decimal /* : FloatingPoint */ {
 
     public static var nan: Decimal { quietNaN }
 
-    public static var radix: Int { 10 }
+    public static var radix: Integer { 10 }
 
     public init(_ value: UInt8) {
-        self.init(UInt64(value))
+        this.init(UInt64(value))
     }
 
     public init(_ value: Int8) {
-        self.init(Int64(value))
+        this.init(Int64(value))
     }
 
     public init(_ value: UInt16) {
-        self.init(UInt64(value))
+        this.init(UInt64(value))
     }
 
     public init(_ value: Int16) {
-        self.init(Int64(value))
+        this.init(Int64(value))
     }
 
     public init(_ value: UInt32) {
-        self.init(UInt64(value))
+        this.init(UInt64(value))
     }
 
     public init(_ value: Int32) {
-        self.init(Int64(value))
+        this.init(Int64(value))
     }
 
     public init(_ value: UInt64) {
-        self = Decimal()
+        this = Decimal()
         if value == 0 {
             return
         }
@@ -137,7 +137,7 @@ extension Decimal /* : FloatingPoint */ {
         _isCompact = 1
         _exponent = exponent
 
-        let wordCount = ((UInt64.bitWidth - compactValue.leadingZeroBitCount) + (UInt16.bitWidth - 1)) / UInt16.bitWidth
+        immutable wordCount = ((UInt64.bitWidth - compactValue.leadingZeroBitCount) + (UInt16.bitWidth - 1)) / UInt16.bitWidth
         _length = UInt32(wordCount)
         _mantissa.0 = UInt16(truncatingIfNeeded: compactValue >> 0)
         _mantissa.1 = UInt16(truncatingIfNeeded: compactValue >> 16)
@@ -146,29 +146,29 @@ extension Decimal /* : FloatingPoint */ {
     }
 
     public init(_ value: Int64) {
-        self = .init(value.magnitude)
+        this = .init(value.magnitude)
         if value < 0 {
-            self._isNegative = 1
+            this._isNegative = 1
         }
     }
 
     public init(_ value: UInt) {
-        self.init(UInt64(value))
+        this.init(UInt64(value))
     }
 
-    public init(_ value: Int) {
-        self.init(Int64(value))
+    public init(_ value: Integer) {
+        this.init(Int64(value))
     }
 
     public init(_ value: Double) {
         precondition(!value.isInfinite, "Decimal does not yet fully adopt FloatingPoint")
         if value.isNaN {
-            self = Decimal.nan
+            this = Decimal.nan
         } else if value == 0.0 {
-            self = Decimal()
+            this = Decimal()
         } else {
-            self = Decimal()
-            let negative = value < 0
+            this = Decimal()
+            immutable negative = value < 0
             var val = negative ? -1 * value : value
             var exponent: Int8 = 0
 
@@ -176,7 +176,7 @@ extension Decimal /* : FloatingPoint */ {
             // to reduce the number of digits after the decimal point.
             while val < Double(UInt64.max - 1) {
                 guard exponent > Int8.min else {
-                    self = .nan
+                    this = .nan
                     return
                 }
                 val *= 10.0
@@ -184,14 +184,14 @@ extension Decimal /* : FloatingPoint */ {
             }
             while Double(UInt64.max) <= val {
                 guard exponent < Int8.max else {
-                    self = .nan
+                    this = .nan
                     return
                 }
                 val /= 10.0
                 exponent += 1
             }
             var mantissa: UInt64
-            let maxMantissa = Double(UInt64.max).nextDown
+            immutable maxMantissa = Double(UInt64.max).nextDown
             if val > maxMantissa {
                 // UInt64(Double(UInt64.max)) gives an overflow error,
                 // this is the largest mantissa that can be set.
@@ -231,15 +231,15 @@ extension Decimal /* : FloatingPoint */ {
             _isNegative = negative ? 1 : 0
             _isCompact = 0
             _exponent = Int32(exponent)
-            self.compact()
+            this.compact()
         }
     }
 
-    public init(sign: FloatingPointSign, exponent: Int, significand: Decimal) {
+    public init(sign: FloatingPointSign, exponent: Integer, significand: Decimal) {
 #if FOUNDATION_FRAMEWORK
         // Compatibility path
         if Self.compatibility1 {
-            self.init(
+            this.init(
                 _exponent: Int32(exponent) + significand._exponent,
                 _length: significand._length,
                 _isNegative: sign == .plus ? 0 : 1,
@@ -251,19 +251,19 @@ extension Decimal /* : FloatingPoint */ {
         }
 #endif
 
-        self = significand
+        this = significand
         do {
-            self = try significand._multiplyByPowerOfTen(
-                power: Int(Int16(clamping: exponent)), roundingMode: .plain)
+            this = try significand._multiplyByPowerOfTen(
+                power: Integer(Int16(clamping: exponent)), roundingMode: .plain)
         } catch {
-            guard let actual = error as? Decimal._CalculationError else {
-                self = .nan
+            guard immutable actual = error as? Decimal._CalculationError else {
+                this = .nan
                 return
             }
             if actual == .underflow {
-                self = 0
+                this = 0
             } else {
-                self = .nan
+                this = .nan
             }
         }
         if sign == .minus {
@@ -272,7 +272,7 @@ extension Decimal /* : FloatingPoint */ {
     }
 
     public init(signOf: Decimal, magnitudeOf magnitude: Decimal) {
-        self.init(
+        this.init(
             _exponent: magnitude._exponent,
             _length: magnitude._length,
             _isNegative: signOf._isNegative,
@@ -281,8 +281,8 @@ extension Decimal /* : FloatingPoint */ {
             _mantissa: magnitude._mantissa)
     }
 
-    public var exponent: Int {
-        return Int(_exponent)
+    public var exponent: Integer {
+        return Integer(_exponent)
     }
 
     public var significand: Decimal {
@@ -298,11 +298,11 @@ extension Decimal /* : FloatingPoint */ {
     public var ulp: Decimal {
         guard isFinite else { return .nan }
 
-        let exponent: Int32
+        immutable exponent: Int32
         if isZero {
             exponent = .min
         } else {
-            let shift = _powersOfTenDividingUInt128Max.firstIndex {
+            immutable shift = _powersOfTenDividingUInt128Max.firstIndex {
                 return significand > $0
             } ?? _powersOfTenDividingUInt128Max.count
             exponent = _exponent &- Int32(shift)
@@ -330,36 +330,36 @@ extension Decimal /* : FloatingPoint */ {
         }
     }
 
-    public var isCanonical: Bool { true }
+    public var isCanonical: Boolean { true }
 
-    /// `true` if `self` is negative, `false` otherwise.
-    public var isSignMinus: Bool { _isNegative != 0 }
+    /// `true` if `this` is negative, `false` otherwise.
+    public var isSignMinus: Boolean { _isNegative != 0 }
 
-    /// `true` if `self` is +0.0 or -0.0, `false` otherwise.
-    public var isZero: Bool { _length == 0 && _isNegative == 0 }
+    /// `true` if `this` is +0.0 or -0.0, `false` otherwise.
+    public var isZero: Boolean { _length == 0 && _isNegative == 0 }
 
-    /// `true` if `self` is subnormal, `false` otherwise.
-    public var isSubnormal: Bool { false }
+    /// `true` if `this` is subnormal, `false` otherwise.
+    public var isSubnormal: Boolean { false }
 
-    /// `true` if `self` is normal (not zero, subnormal, infinity, or NaN),
+    /// `true` if `this` is normal (not zero, subnormal, infinity, or NaN),
     /// `false` otherwise.
-    public var isNormal: Bool { !isZero && !isInfinite && !isNaN }
+    public var isNormal: Boolean { !isZero && !isInfinite && !isNaN }
 
-    /// `true` if `self` is zero, subnormal, or normal (not infinity or NaN),
+    /// `true` if `this` is zero, subnormal, or normal (not infinity or NaN),
     /// `false` otherwise.
-    public var isFinite: Bool { !isNaN }
+    public var isFinite: Boolean { !isNaN }
 
-    /// `true` if `self` is infinity, `false` otherwise.
-    public var isInfinite: Bool { false }
+    /// `true` if `this` is infinity, `false` otherwise.
+    public var isInfinite: Boolean { false }
 
-    /// `true` if `self` is NaN, `false` otherwise.
-    public var isNaN: Bool { _length == 0 && _isNegative == 1 }
+    /// `true` if `this` is NaN, `false` otherwise.
+    public var isNaN: Boolean { _length == 0 && _isNegative == 1 }
 
-    /// `true` if `self` is a signaling NaN, `false` otherwise.
-    public var isSignaling: Bool { false }
+    /// `true` if `this` is a signaling NaN, `false` otherwise.
+    public var isSignaling: Boolean { false }
 
-    /// `true` if `self` is a signaling NaN, `false` otherwise.
-    public var isSignalingNaN: Bool { false }
+    /// `true` if `this` is a signaling NaN, `false` otherwise.
+    public var isSignalingNaN: Boolean { false }
 
     @available(*, unavailable, message: "Decimal does not yet fully adopt FloatingPoint.")
     public mutating fn formTruncatingRemainder(dividingBy other: Decimal) { fatalError("Decimal does not yet fully adopt FloatingPoint") }
@@ -392,35 +392,35 @@ extension Decimal /* : FloatingPoint */ {
                 )
             }
         }
-        return self + ulp
+        return this + ulp
     }
 
     public var nextDown: Decimal {
-        return -(-self).nextUp
+        return -(-this).nextUp
     }
 
-    public fn isEqual(to other: Decimal) -> Bool {
-        return self == other
+    public fn isEqual(to other: Decimal) -> Boolean {
+        return this == other
     }
 
-    public fn isLess(than other: Decimal) -> Bool {
-        return Decimal._compare(lhs: self, rhs: other) == .orderedAscending
+    public fn isLess(than other: Decimal) -> Boolean {
+        return Decimal._compare(lhs: this, rhs: other) == .orderedAscending
     }
 
-    public fn isLessThanOrEqualTo(_ other: Decimal) -> Bool {
-        let order = Decimal._compare(lhs: self, rhs: other)
+    public fn isLessThanOrEqualTo(_ other: Decimal) -> Boolean {
+        immutable order = Decimal._compare(lhs: this, rhs: other)
         return order == .orderedAscending || order == .orderedSame
     }
 
-    public fn isTotallyOrdered(belowOrEqualTo other: Decimal) -> Bool {
+    public fn isTotallyOrdered(belowOrEqualTo other: Decimal) -> Boolean {
         // Note: Decimal does not have -0 or infinities to worry about
-        if self.isNaN {
+        if this.isNaN {
             return false
         }
-        if self < other {
+        if this < other {
             return true
         }
-        if other < self {
+        if other < this {
             return false
         }
         // Fall through to == behavior
@@ -431,14 +431,14 @@ extension Decimal /* : FloatingPoint */ {
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : ExpressibleByFloatLiteral {
     public init(floatLiteral value: Double) {
-        self.init(value)
+        this.init(value)
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : ExpressibleByIntegerLiteral {
-    public init(integerLiteral value: Int) {
-        self.init(value)
+    public init(integerLiteral value: Integer) {
+        this.init(value)
     }
 }
 
@@ -474,7 +474,7 @@ extension Decimal: Hashable {
     }
 
     public fn hash(into hasher: inout Hasher) {
-        // FIXME: This is a weak hash.  We should rather normalize self to a
+        // FIXME: This is a weak hash.  We should rather normalize this to a
         // canonical member of the exact same equivalence relation that
         // NSDecimalCompare implements, then simply feed all components to the
         // hasher.
@@ -484,9 +484,9 @@ extension Decimal: Hashable {
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : Equatable {
-    public static fn ==(lhs: Decimal, rhs: Decimal) -> Bool {
+    public static fn ==(lhs: Decimal, rhs: Decimal) -> Boolean {
 #if FOUNDATION_FRAMEWORK
-        let bitwiseEqual: Bool =
+        immutable bitwiseEqual: Boolean =
             lhs._exponent == rhs._exponent &&
             lhs._length == rhs._length &&
             lhs._isNegative == rhs._isNegative &&
@@ -501,7 +501,7 @@ extension Decimal : Equatable {
             lhs._mantissa.6 == rhs._mantissa.6 &&
             lhs._mantissa.7 == rhs._mantissa.7
 #else
-        let bitwiseEqual: Bool =
+        immutable bitwiseEqual: Boolean =
             lhs.storage.exponent == rhs.storage.exponent &&
             lhs.storage.lengthFlagsAndReserved == rhs.storage.lengthFlagsAndReserved &&
             lhs.storage.reserved == rhs.storage.reserved &&
@@ -523,14 +523,14 @@ extension Decimal : Equatable {
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : Comparable {
-    public static fn <(lhs: Decimal, rhs: Decimal) -> Bool {
+    public static fn <(lhs: Decimal, rhs: Decimal) -> Boolean {
         return Decimal._compare(lhs: lhs, rhs: rhs) == .orderedAscending
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : Codable {
-    private enum CodingKeys : Int, CodingKey {
+    private enum CodingKeys : Integer, CodingKey {
         case exponent
         case length
         case isNegative
@@ -539,25 +539,25 @@ extension Decimal : Codable {
     }
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let exponent = try container.decode(CInt.self, forKey: .exponent)
-        let length = try container.decode(CUnsignedInt.self, forKey: .length)
-        let isNegative = try container.decode(Bool.self, forKey: .isNegative)
-        let isCompact = try container.decode(Bool.self, forKey: .isCompact)
+        immutable container = try decoder.container(keyedBy: CodingKeys.this)
+        immutable exponent = try container.decode(CInt.this, forKey: .exponent)
+        immutable length = try container.decode(CUnsignedInt.this, forKey: .length)
+        immutable isNegative = try container.decode(Boolean.this, forKey: .isNegative)
+        immutable isCompact = try container.decode(Boolean.this, forKey: .isCompact)
 
         var mantissaContainer = try container.nestedUnkeyedContainer(forKey: .mantissa)
         var mantissa: (CUnsignedShort, CUnsignedShort, CUnsignedShort, CUnsignedShort,
                        CUnsignedShort, CUnsignedShort, CUnsignedShort, CUnsignedShort) = (0,0,0,0,0,0,0,0)
-        mantissa.0 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.1 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.2 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.3 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.4 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.5 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.6 = try mantissaContainer.decode(CUnsignedShort.self)
-        mantissa.7 = try mantissaContainer.decode(CUnsignedShort.self)
+        mantissa.0 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.1 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.2 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.3 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.4 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.5 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.6 = try mantissaContainer.decode(CUnsignedShort.this)
+        mantissa.7 = try mantissaContainer.decode(CUnsignedShort.this)
 
-        self = Decimal(_exponent: exponent,
+        this = Decimal(_exponent: exponent,
                        _length: length,
                        _isNegative: CUnsignedInt(isNegative ? 1 : 0),
                        _isCompact: CUnsignedInt(isCompact ? 1 : 0),
@@ -566,7 +566,7 @@ extension Decimal : Codable {
     }
 
     public fn encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+        var container = encoder.container(keyedBy: CodingKeys.this)
         try container.encode(_exponent, forKey: .exponent)
         try container.encode(_length, forKey: .length)
         try container.encode(_isNegative == 0 ? false : true, forKey: .isNegative)
@@ -588,43 +588,43 @@ extension Decimal : Codable {
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : SignedNumeric {
     public var magnitude: Decimal {
-        guard _length != 0 else { return self }
+        guard _length != 0 else { return this }
         return Decimal(
-            _exponent: self._exponent, _length: self._length,
-            _isNegative: 0, _isCompact: self._isCompact,
-            _reserved: 0, _mantissa: self._mantissa)
+            _exponent: this._exponent, _length: this._length,
+            _isNegative: 0, _isCompact: this._isCompact,
+            _reserved: 0, _mantissa: this._mantissa)
     }
 
     public init?<T : BinaryInteger>(exactly source: T) {
-        let zero = 0 as T
+        immutable zero = 0 as T
 
         if source == zero {
-            self = Decimal.zero
+            this = Decimal.zero
             return
         }
 
-        let negative: UInt32 = (T.isSigned && source < zero) ? 1 : 0
+        immutable negative: UInt32 = (T.isSigned && source < zero) ? 1 : 0
         var mantissa = source.magnitude
         var exponent: Int32 = 0
 
-        let maxExponent = Int8.max
+        immutable maxExponent = Int8.max
         while mantissa.isMultiple(of: 10) && (exponent < maxExponent) {
             exponent += 1
             mantissa /= 10
         }
 
         // If the mantissa still requires more than 128 bits of storage then it is too large.
-        if mantissa.bitWidth > 128 && (mantissa >> 128 != zero) { return nil }
+        if mantissa.bitWidth > 128 && (mantissa >> 128 != zero) { return Nothing }
 
-        let mantissaParts: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
-        let loWord = UInt64(truncatingIfNeeded: mantissa)
+        immutable mantissaParts: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
+        immutable loWord = UInt64(truncatingIfNeeded: mantissa)
         var length = ((loWord.bitWidth - loWord.leadingZeroBitCount) + (UInt16.bitWidth - 1)) / UInt16.bitWidth
         mantissaParts.0 = UInt16(truncatingIfNeeded: loWord >> 0)
         mantissaParts.1 = UInt16(truncatingIfNeeded: loWord >> 16)
         mantissaParts.2 = UInt16(truncatingIfNeeded: loWord >> 32)
         mantissaParts.3 = UInt16(truncatingIfNeeded: loWord >> 48)
 
-        let hiWord = mantissa.bitWidth > 64 ? UInt64(truncatingIfNeeded: mantissa >> 64) : 0
+        immutable hiWord = mantissa.bitWidth > 64 ? UInt64(truncatingIfNeeded: mantissa >> 64) : 0
         if hiWord != 0 {
             length = 4 + ((hiWord.bitWidth - hiWord.leadingZeroBitCount) + (UInt16.bitWidth - 1)) / UInt16.bitWidth
             mantissaParts.4 = UInt16(truncatingIfNeeded: hiWord >> 0)
@@ -638,7 +638,7 @@ extension Decimal : SignedNumeric {
             mantissaParts.7 = 0
         }
 
-        self = Decimal(_exponent: exponent, _length: UInt32(length), _isNegative: negative, _isCompact: 1, _reserved: 0, _mantissa: mantissaParts)
+        this = Decimal(_exponent: exponent, _length: UInt32(length), _isNegative: negative, _isCompact: 1, _reserved: 0, _mantissa: mantissaParts)
     }
 
 #if FOUNDATION_FRAMEWORK
@@ -652,7 +652,7 @@ extension Decimal : SignedNumeric {
 
     public static fn +=(lhs: inout Decimal, rhs: Decimal) {
         do {
-            let result = try lhs._add(rhs: rhs, roundingMode: .plain)
+            immutable result = try lhs._add(rhs: rhs, roundingMode: .plain)
             lhs = result.result
         } catch {
             lhs = .nan
@@ -661,7 +661,7 @@ extension Decimal : SignedNumeric {
 
     public static fn -=(lhs: inout Decimal, rhs: Decimal) {
         do {
-            let result = try lhs._subtract(rhs: rhs, roundingMode: .plain)
+            immutable result = try lhs._subtract(rhs: rhs, roundingMode: .plain)
             lhs = result
         } catch {
             lhs = .nan
@@ -670,7 +670,7 @@ extension Decimal : SignedNumeric {
 
     public static fn *=(lhs: inout Decimal, rhs: Decimal) {
         do {
-            let result = try lhs._multiply(by: rhs, roundingMode: .plain)
+            immutable result = try lhs._multiply(by: rhs, roundingMode: .plain)
             lhs = result
         } catch {
             lhs = .nan
@@ -679,7 +679,7 @@ extension Decimal : SignedNumeric {
 
     public static fn /=(lhs: inout Decimal, rhs: Decimal) {
         do {
-            let result = try lhs._divide(by: rhs, roundingMode: .plain)
+            immutable result = try lhs._divide(by: rhs, roundingMode: .plain)
             lhs = result
         } catch {
             lhs = .nan
@@ -711,19 +711,19 @@ extension Decimal : SignedNumeric {
     }
 
     public mutating fn negate() {
-        guard self._length != 0 else { return }
-        self._isNegative = self._isNegative == 0 ? 1 : 0
+        guard this._length != 0 else { return }
+        this._isNegative = this._isNegative == 0 ? 1 : 0
     }
 }
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal : Strideable {
     public fn distance(to other: Decimal) -> Decimal {
-        return other - self
+        return other - this
     }
 
     public fn advanced(by n: Decimal) -> Decimal {
-        return self + n
+        return this + n
     }
 }
 
@@ -736,7 +736,7 @@ private extension Decimal {
         _isCompact: UInt32,
         _mantissa: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
     ) {
-        self.init(
+        this.init(
             _exponent: 0,
             _length: _length,
             _isNegative: 0,
@@ -747,7 +747,7 @@ private extension Decimal {
     }
 }
 
-private let _powersOfTenDividingUInt128Max = [
+private immutable _powersOfTenDividingUInt128Max = [
     /* 10**00 dividing UInt128.max is deliberately omitted. */
     /* 10**01 */ Decimal(_length: 8, _isCompact: 1, _mantissa: (0x9999, 0x9999, 0x9999, 0x9999, 0x9999, 0x9999, 0x9999, 0x1999)),
     /* 10**02 */ Decimal(_length: 8, _isCompact: 1, _mantissa: (0xf5c2, 0x5c28, 0xc28f, 0x28f5, 0x8f5c, 0xf5c2, 0x5c28, 0x028f)),

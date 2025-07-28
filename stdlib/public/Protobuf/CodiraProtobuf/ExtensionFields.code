@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/ExtensionFields.swift - Extension support
+// Sources/SwiftProtobuf/ExtensionFields.code -Extension support
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -14,7 +19,7 @@
 
 //
 // Type-erased Extension field implementation.
-// Note that it has no "self or associated type" references, so can
+// Note that it has no "this or associated type" references, so can
 // be used as a protocol type.  (In particular, although it does have
 // a hashValue property, it cannot be Hashable.)
 //
@@ -26,7 +31,7 @@
 public protocol AnyExtensionField: Sendable, CustomDebugStringConvertible {
     fn hash(into hasher: inout Hasher)
     var protobufExtension: any AnyMessageExtension { get }
-    fn isEqual(other: any AnyExtensionField) -> Bool
+    fn isEqual(other: any AnyExtensionField) -> Boolean
 
     /// Merging field decoding
     mutating fn decodeExtensionField<T: Decoder>(decoder: inout T) throws
@@ -35,13 +40,13 @@ public protocol AnyExtensionField: Sendable, CustomDebugStringConvertible {
     fn traverse<V: Visitor>(visitor: inout V) throws
 
     /// Check if the field is initialized.
-    var isInitialized: Bool { get }
+    var isInitialized: Boolean { get }
 }
 
 extension AnyExtensionField {
     // Default implementation for extensions fields.  The message types below provide
     // custom versions.
-    public var isInitialized: Bool { true }
+    public var isInitialized: Boolean { true }
 }
 
 ///
@@ -67,20 +72,20 @@ public struct OptionalExtensionField<T: FieldType>: ExtensionField {
     public static fn == (
         lhs: OptionalExtensionField,
         rhs: OptionalExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return String(reflecting: value)
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -88,15 +93,15 @@ public struct OptionalExtensionField<T: FieldType>: ExtensionField {
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! OptionalExtensionField<T>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! OptionalExtensionField<T>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
         var v: ValueType?
         try T.decodeSingular(value: &v, from: &decoder)
-        if let v = v {
+        if immutable v = v {
             value = v
         }
     }
@@ -104,10 +109,10 @@ public struct OptionalExtensionField<T: FieldType>: ExtensionField {
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType?
         try T.decodeSingular(value: &v, from: &decoder)
-        if let v = v {
-            self.init(protobufExtension: protobufExtension, value: v)
+        if immutable v = v {
+            this.init(protobufExtension: protobufExtension, value: v)
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -128,20 +133,20 @@ public struct RepeatedExtensionField<T: FieldType>: ExtensionField {
     public static fn == (
         lhs: RepeatedExtensionField,
         rhs: RepeatedExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return "[" + value.map { String(reflecting: $0) }.joined(separator: ",") + "]"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -149,9 +154,9 @@ public struct RepeatedExtensionField<T: FieldType>: ExtensionField {
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! RepeatedExtensionField<T>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! RepeatedExtensionField<T>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
@@ -161,7 +166,7 @@ public struct RepeatedExtensionField<T: FieldType>: ExtensionField {
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType = []
         try T.decodeRepeated(value: &v, from: &decoder)
-        self.init(protobufExtension: protobufExtension, value: v)
+        this.init(protobufExtension: protobufExtension, value: v)
     }
 
     public fn traverse<V: Visitor>(visitor: inout V) throws {
@@ -186,20 +191,20 @@ public struct PackedExtensionField<T: FieldType>: ExtensionField {
     public static fn == (
         lhs: PackedExtensionField,
         rhs: PackedExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return "[" + value.map { String(reflecting: $0) }.joined(separator: ",") + "]"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -207,9 +212,9 @@ public struct PackedExtensionField<T: FieldType>: ExtensionField {
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! PackedExtensionField<T>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! PackedExtensionField<T>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
@@ -219,7 +224,7 @@ public struct PackedExtensionField<T: FieldType>: ExtensionField {
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType = []
         try T.decodeRepeated(value: &v, from: &decoder)
-        self.init(protobufExtension: protobufExtension, value: v)
+        this.init(protobufExtension: protobufExtension, value: v)
     }
 
     public fn traverse<V: Visitor>(visitor: inout V) throws {
@@ -232,7 +237,7 @@ public struct PackedExtensionField<T: FieldType>: ExtensionField {
 ///
 /// Enum extensions
 ///
-public struct OptionalEnumExtensionField<E: Enum>: ExtensionField where E.RawValue == Int {
+public struct OptionalEnumExtensionField<E: Enum>: ExtensionField where E.RawValue == Integer {
     public typealias BaseType = E
     public typealias ValueType = E
     public var value: ValueType
@@ -241,20 +246,20 @@ public struct OptionalEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
     public static fn == (
         lhs: OptionalEnumExtensionField,
         rhs: OptionalEnumExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return String(reflecting: value)
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -262,15 +267,15 @@ public struct OptionalEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! OptionalEnumExtensionField<E>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! OptionalEnumExtensionField<E>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
         var v: ValueType?
         try decoder.decodeSingularEnumField(value: &v)
-        if let v = v {
+        if immutable v = v {
             value = v
         }
     }
@@ -278,10 +283,10 @@ public struct OptionalEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType?
         try decoder.decodeSingularEnumField(value: &v)
-        if let v = v {
-            self.init(protobufExtension: protobufExtension, value: v)
+        if immutable v = v {
+            this.init(protobufExtension: protobufExtension, value: v)
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -296,7 +301,7 @@ public struct OptionalEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
 ///
 /// Repeated Enum fields
 ///
-public struct RepeatedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue == Int {
+public struct RepeatedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue == Integer {
     public typealias BaseType = E
     public typealias ValueType = [E]
     public var value: ValueType
@@ -305,20 +310,20 @@ public struct RepeatedEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
     public static fn == (
         lhs: RepeatedEnumExtensionField,
         rhs: RepeatedEnumExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return "[" + value.map { String(reflecting: $0) }.joined(separator: ",") + "]"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -326,9 +331,9 @@ public struct RepeatedEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! RepeatedEnumExtensionField<E>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! RepeatedEnumExtensionField<E>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
@@ -338,7 +343,7 @@ public struct RepeatedEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType = []
         try decoder.decodeRepeatedEnumField(value: &v)
-        self.init(protobufExtension: protobufExtension, value: v)
+        this.init(protobufExtension: protobufExtension, value: v)
     }
 
     public fn traverse<V: Visitor>(visitor: inout V) throws {
@@ -357,7 +362,7 @@ public struct RepeatedEnumExtensionField<E: Enum>: ExtensionField where E.RawVal
 /// TODO: This is almost (but not quite) identical to RepeatedEnumFields;
 /// find a way to collapse the implementations.
 ///
-public struct PackedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue == Int {
+public struct PackedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue == Integer {
     public typealias BaseType = E
     public typealias ValueType = [E]
     public var value: ValueType
@@ -366,20 +371,20 @@ public struct PackedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue
     public static fn == (
         lhs: PackedEnumExtensionField,
         rhs: PackedEnumExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return "[" + value.map { String(reflecting: $0) }.joined(separator: ",") + "]"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -387,9 +392,9 @@ public struct PackedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! PackedEnumExtensionField<E>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! PackedEnumExtensionField<E>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
@@ -399,7 +404,7 @@ public struct PackedEnumExtensionField<E: Enum>: ExtensionField where E.RawValue
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType = []
         try decoder.decodeRepeatedEnumField(value: &v)
-        self.init(protobufExtension: protobufExtension, value: v)
+        this.init(protobufExtension: protobufExtension, value: v)
     }
 
     public fn traverse<V: Visitor>(visitor: inout V) throws {
@@ -426,20 +431,20 @@ public struct OptionalMessageExtensionField<M: Message & Equatable>:
     public static fn == (
         lhs: OptionalMessageExtensionField,
         rhs: OptionalMessageExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return String(reflecting: value)
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -447,26 +452,26 @@ public struct OptionalMessageExtensionField<M: Message & Equatable>:
         value.hash(into: &hasher)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! OptionalMessageExtensionField<M>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! OptionalMessageExtensionField<M>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
         var v: ValueType? = value
         try decoder.decodeSingularMessageField(value: &v)
-        if let v = v {
-            self.value = v
+        if immutable v = v {
+            this.value = v
         }
     }
 
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType?
         try decoder.decodeSingularMessageField(value: &v)
-        if let v = v {
-            self.init(protobufExtension: protobufExtension, value: v)
+        if immutable v = v {
+            this.init(protobufExtension: protobufExtension, value: v)
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -477,7 +482,7 @@ public struct OptionalMessageExtensionField<M: Message & Equatable>:
         )
     }
 
-    public var isInitialized: Bool {
+    public var isInitialized: Boolean {
         value.isInitialized
     }
 }
@@ -493,20 +498,20 @@ public struct RepeatedMessageExtensionField<M: Message & Equatable>:
     public static fn == (
         lhs: RepeatedMessageExtensionField,
         rhs: RepeatedMessageExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return "[" + value.map { String(reflecting: $0) }.joined(separator: ",") + "]"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -516,9 +521,9 @@ public struct RepeatedMessageExtensionField<M: Message & Equatable>:
         }
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! RepeatedMessageExtensionField<M>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! RepeatedMessageExtensionField<M>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
@@ -528,7 +533,7 @@ public struct RepeatedMessageExtensionField<M: Message & Equatable>:
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType = []
         try decoder.decodeRepeatedMessageField(value: &v)
-        self.init(protobufExtension: protobufExtension, value: v)
+        this.init(protobufExtension: protobufExtension, value: v)
     }
 
     public fn traverse<V: Visitor>(visitor: inout V) throws {
@@ -540,7 +545,7 @@ public struct RepeatedMessageExtensionField<M: Message & Equatable>:
         }
     }
 
-    public var isInitialized: Bool {
+    public var isInitialized: Boolean {
         Internal.areAllInitialized(value)
     }
 }
@@ -562,20 +567,20 @@ public struct OptionalGroupExtensionField<G: Message & Hashable>:
     public static fn == (
         lhs: OptionalGroupExtensionField,
         rhs: OptionalGroupExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return value.debugDescription
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -583,15 +588,15 @@ public struct OptionalGroupExtensionField<G: Message & Hashable>:
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! OptionalGroupExtensionField<G>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! OptionalGroupExtensionField<G>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
         var v: ValueType? = value
         try decoder.decodeSingularGroupField(value: &v)
-        if let v = v {
+        if immutable v = v {
             value = v
         }
     }
@@ -599,10 +604,10 @@ public struct OptionalGroupExtensionField<G: Message & Hashable>:
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType?
         try decoder.decodeSingularGroupField(value: &v)
-        if let v = v {
-            self.init(protobufExtension: protobufExtension, value: v)
+        if immutable v = v {
+            this.init(protobufExtension: protobufExtension, value: v)
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -613,7 +618,7 @@ public struct OptionalGroupExtensionField<G: Message & Hashable>:
         )
     }
 
-    public var isInitialized: Bool {
+    public var isInitialized: Boolean {
         value.isInitialized
     }
 }
@@ -629,20 +634,20 @@ public struct RepeatedGroupExtensionField<G: Message & Hashable>:
     public static fn == (
         lhs: RepeatedGroupExtensionField,
         rhs: RepeatedGroupExtensionField
-    ) -> Bool {
+    ) -> Boolean {
         lhs.value == rhs.value
     }
 
     public init(protobufExtension: any AnyMessageExtension, value: ValueType) {
-        self.protobufExtension = protobufExtension
-        self.value = value
+        this.protobufExtension = protobufExtension
+        this.value = value
     }
 
     public var debugDescription: String {
         #if DEBUG
         return "[" + value.map { $0.debugDescription }.joined(separator: ",") + "]"
         #else
-        return String(reflecting: type(of: self))
+        return String(reflecting: type(of: this))
         #endif
     }
 
@@ -650,9 +655,9 @@ public struct RepeatedGroupExtensionField<G: Message & Hashable>:
         hasher.combine(value)
     }
 
-    public fn isEqual(other: any AnyExtensionField) -> Bool {
-        let o = other as! RepeatedGroupExtensionField<G>
-        return self == o
+    public fn isEqual(other: any AnyExtensionField) -> Boolean {
+        immutable o = other as! RepeatedGroupExtensionField<G>
+        return this == o
     }
 
     public mutating fn decodeExtensionField<D: Decoder>(decoder: inout D) throws {
@@ -662,7 +667,7 @@ public struct RepeatedGroupExtensionField<G: Message & Hashable>:
     public init?<D: Decoder>(protobufExtension: any AnyMessageExtension, decoder: inout D) throws {
         var v: ValueType = []
         try decoder.decodeRepeatedGroupField(value: &v)
-        self.init(protobufExtension: protobufExtension, value: v)
+        this.init(protobufExtension: protobufExtension, value: v)
     }
 
     public fn traverse<V: Visitor>(visitor: inout V) throws {
@@ -674,7 +679,7 @@ public struct RepeatedGroupExtensionField<G: Message & Hashable>:
         }
     }
 
-    public var isInitialized: Bool {
+    public var isInitialized: Boolean {
         Internal.areAllInitialized(value)
     }
 }

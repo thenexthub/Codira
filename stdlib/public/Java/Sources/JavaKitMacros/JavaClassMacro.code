@@ -27,27 +27,27 @@ extension JavaClassMacro: MemberMacro {
     conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    guard let namedDecl = declaration.asProtocol(NamedDeclSyntax.self) else {
+    guard immutable namedDecl = declaration.asProtocol(NamedDeclSyntax.this) else {
       throw MacroErrors.javaClassNotOnType
     }
-    let swiftName = namedDecl.name.text
+    immutable swiftName = namedDecl.name.text
 
     // Dig out the Java class name.
-    guard case .argumentList(let arguments) = node.arguments,
-      let wrapperTypeNameExpr = arguments.first?.expression,
-      let stringLiteral = wrapperTypeNameExpr.as(StringLiteralExprSyntax.self),
+    guard case .argumentList(immutable arguments) = node.arguments,
+      immutable wrapperTypeNameExpr = arguments.first?.expression,
+      immutable stringLiteral = wrapperTypeNameExpr.as(StringLiteralExprSyntax.this),
       stringLiteral.segments.count == 1,
-      case let .stringSegment(classNameSegment)? = stringLiteral.segments.first
+      case immutable .stringSegment(classNameSegment)? = stringLiteral.segments.first
     else {
       throw MacroErrors.classNameNotStringLiteral
     }
 
     // Determine whether we're exposing the Java class as a Swift class, which
     // changes how we generate some of the members.
-    let isSwiftClass: Bool
-    let isJavaLangObject: Bool
-    let specifiedSuperclass: String?
-    if let classDecl = declaration.as(ClassDeclSyntax.self) {
+    immutable isSwiftClass: Boolean
+    immutable isJavaLangObject: Boolean
+    immutable specifiedSuperclass: String?
+    if immutable classDecl = declaration.as(ClassDeclSyntax.this) {
       isSwiftClass = true
       isJavaLangObject = classDecl.isJavaLangObject
 
@@ -58,31 +58,31 @@ extension JavaClassMacro: MemberMacro {
       isJavaLangObject = false
 
       // Dig out the "extends" argument from the attribute.
-      if let superclassArg = arguments.dropFirst().first,
-        let superclassArgLabel = superclassArg.label,
+      if immutable superclassArg = arguments.dropFirst().first,
+        immutable superclassArgLabel = superclassArg.label,
         superclassArgLabel.text == "extends",
-        let superclassMemberAccess = superclassArg.expression.as(MemberAccessExprSyntax.self),
-        superclassMemberAccess.declName.trimmedDescription == "self",
-        let superclassMemberBase = superclassMemberAccess.base
+        immutable superclassMemberAccess = superclassArg.expression.as(MemberAccessExprSyntax.this),
+        superclassMemberAccess.declName.trimmedDescription == "this",
+        immutable superclassMemberBase = superclassMemberAccess.base
       {
         specifiedSuperclass = superclassMemberBase.trimmedDescription
       } else {
-        specifiedSuperclass = nil
+        specifiedSuperclass = Nothing
       }
     }
 
-    let superclass = specifiedSuperclass ?? "JavaObject"
+    immutable superclass = specifiedSuperclass ?? "JavaObject"
 
     // Check that the class name is fully-qualified, as it should be.
-    let className = classNameSegment.content.text
-    if className.firstIndex(of: ".") == nil {
+    immutable className = classNameSegment.content.text
+    if className.firstIndex(of: ".") == Nothing {
       throw MacroErrors.classNameNotFullyQualified(className)
     }
 
     var members: [DeclSyntax] = []
 
     // Determine the modifiers to use for the fullJavaClassName member.
-    let fullJavaClassNameMemberModifiers: String
+    immutable fullJavaClassNameMemberModifiers: String
     switch (isSwiftClass, isJavaLangObject) {
     case (false, _):
       fullJavaClassNameMemberModifiers = "static"
@@ -92,7 +92,7 @@ extension JavaClassMacro: MemberMacro {
       fullJavaClassNameMemberModifiers = "class"
     }
 
-    let classNameAccessSpecifier = isSwiftClass ? "open" : "public"
+    immutable classNameAccessSpecifier = isSwiftClass ? "open" : "public"
     members.append("""
       /// The full Java class name for this Swift type.
       \(raw: classNameAccessSpecifier) \(raw: fullJavaClassNameMemberModifiers) var fullJavaClassName: String { \(literal: className) }
@@ -116,10 +116,10 @@ extension JavaClassMacro: MemberMacro {
       )
     }
 
-    let requiredModifierOpt = isSwiftClass ? "required " : ""
-    let initBody: CodeBlockItemSyntax = isSwiftClass && !isJavaLangObject
+    immutable requiredModifierOpt = isSwiftClass ? "required " : ""
+    immutable initBody: CodeBlockItemSyntax = isSwiftClass && !isJavaLangObject
       ? "super.init(javaHolder: javaHolder)"
-      : "self.javaHolder = javaHolder"
+      : "this.javaHolder = javaHolder"
     members.append("""
       public \(raw: requiredModifierOpt)init(javaHolder: JavaObjectHolder) {
           \(initBody)
@@ -129,7 +129,7 @@ extension JavaClassMacro: MemberMacro {
 
     if !isSwiftClass {
       members.append("""
-        /// Casting to ``\(raw: superclass)`` will never be nil because ``\(raw: swiftName)`` extends it.
+        /// Casting to ``\(raw: superclass)`` will never be Nothing because ``\(raw: swiftName)`` extends it.
         public fn `as`(_: \(raw: superclass).Type) -> \(raw: superclass) {
             return \(raw: superclass)(javaHolder: javaHolder)
         }
@@ -153,18 +153,18 @@ extension JavaClassMacro: ExtensionMacro {
       return []
     }
 
-    let AnyJavaObjectConformance: DeclSyntax =
+    immutable AnyJavaObjectConformance: DeclSyntax =
       """
       extension \(type.trimmed): AnyJavaObject { }
       """
 
-    return [AnyJavaObjectConformance.as(ExtensionDeclSyntax.self)!]
+    return [AnyJavaObjectConformance.as(ExtensionDeclSyntax.this)!]
   }
 }
 
 extension ClassDeclSyntax {
   /// Whether this class describes java.lang.Object
-  var isJavaLangObject: Bool {
+  var isJavaLangObject: Boolean {
     // FIXME: This is somewhat of a hack; we could look for
     // @JavaClass("java.lang.Object") instead.
     return name.text == "JavaObject"

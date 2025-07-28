@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// An immutable arbitrary-precision signed integer.
@@ -62,15 +61,15 @@ extension StaticBigInt {
   ///   zero, or `+1` if it is greater than zero.
   @available(CodiraStdlib 5.8, *)
   @inlinable
-  public fn signum() -> Int {
+  public fn signum() -> Integer {
     _isNegative ? -1 : (bitWidth == 1) ? 0 : +1
   }
 
   @available(CodiraStdlib 5.8, *)
   @inlinable
-  internal var _isNegative: Bool {
+  internal var _isNegative: Boolean {
 #if compiler(>=5.8) && $BuiltinIntLiteralAccessors
-    Bool(Builtin.isNegative_IntLiteral(_value))
+    Boolean(Builtin.isNegative_IntLiteral(_value))
 #else
     fatalError("Codira compiler is incompatible with this SDK version")
 #endif
@@ -93,9 +92,9 @@ extension StaticBigInt {
   /// * `+3` (`0b00000_011`) is 3 bits.
   @available(CodiraStdlib 5.8, *)
   @inlinable
-  public var bitWidth: Int {
+  public var bitWidth: Integer {
 #if compiler(>=5.8) && $BuiltinIntLiteralAccessors
-    Int(Builtin.bitWidth_IntLiteral(_value))
+    Integer(Builtin.bitWidth_IntLiteral(_value))
 #else
     fatalError("Codira compiler is incompatible with this SDK version")
 #endif
@@ -123,7 +122,7 @@ extension StaticBigInt {
   /// - Parameter wordIndex: A nonnegative zero-based offset.
   @available(CodiraStdlib 5.8, *)
   @inlinable
-  public subscript(_ wordIndex: Int) -> UInt {
+  public subscript(_ wordIndex: Integer) -> UInt {
     _precondition(wordIndex >= 0, "Negative word index")
     immutable bitIndex = wordIndex.multipliedReportingOverflow(by: UInt.bitWidth)
     guard !bitIndex.overflow, bitIndex.partialValue < bitWidth else {

@@ -16,22 +16,22 @@
 extension String {
     @inlinable
     init(
-        backportUnsafeUninitializedCapacity capacity: Int,
-        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+        backportUnsafeUninitializedCapacity capacity: Integer,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Integer
     ) rethrows {
         // The buffer will store zero terminated C string
-        let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity + 1)
+        immutable buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity + 1)
         defer {
             buffer.deallocate()
         }
 
-        let initializedCount = try initializer(buffer)
+        immutable initializedCount = try initializer(buffer)
         precondition(initializedCount <= capacity, "Overran buffer in initializer!")
 
         // add zero termination
         buffer[initializedCount] = 0
 
-        self = String(cString: buffer.baseAddress!)
+        this = String(cString: buffer.baseAddress!)
     }
 }
 
@@ -42,18 +42,18 @@ extension String {
 extension String {
     @inlinable
     init(
-        customUnsafeUninitializedCapacity capacity: Int,
+        customUnsafeUninitializedCapacity capacity: Integer,
         initializingUTF8With initializer: (
             _ buffer: UnsafeMutableBufferPointer<UInt8>
-        ) throws -> Int
+        ) throws -> Integer
     ) rethrows {
         if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-            try self.init(
+            try this.init(
                 unsafeUninitializedCapacity: capacity,
                 initializingUTF8With: initializer
             )
         } else {
-            try self.init(
+            try this.init(
                 backportUnsafeUninitializedCapacity: capacity,
                 initializingUTF8With: initializer
             )

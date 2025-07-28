@@ -20,7 +20,7 @@ struct HTTP1ConnectionStateMachine {
     fileprivate enum State {
         case initialized
         case idle
-        case inRequest(HTTPRequestStateMachine, close: Bool)
+        case inRequest(HTTPRequestStateMachine, close: Boolean)
         case closing
         case closed
 
@@ -39,7 +39,7 @@ struct HTTP1ConnectionStateMachine {
             ///
             /// `shouldClose` records whether we have attached a Connection: close header to this request, and so the connection should
             /// be terminated
-            case sendRequestEnd(EventLoopPromise<Void>?, shouldClose: Bool)
+            case sendRequestEnd(EventLoopPromise<Void>?, shouldClose: Boolean)
             /// Inform an observer that the connection has become idle
             case informConnectionIsIdle
         }
@@ -58,10 +58,10 @@ struct HTTP1ConnectionStateMachine {
             case none
         }
 
-        case sendRequestHead(HTTPRequestHead, sendEnd: Bool)
+        case sendRequestHead(HTTPRequestHead, sendEnd: Boolean)
         case notifyRequestHeadSendSuccessfully(
-            resumeRequestBodyStream: Bool,
-            startIdleTimer: Bool
+            resumeRequestBodyStream: Boolean,
+            startIdleTimer: Boolean
         )
         case sendBodyPart(IOData, EventLoopPromise<Void>?)
         case sendRequestEnd(EventLoopPromise<Void>?)
@@ -71,7 +71,7 @@ struct HTTP1ConnectionStateMachine {
         case pauseRequestBodyStream
         case resumeRequestBodyStream
 
-        case forwardResponseHead(HTTPResponseHead, pauseRequestBodyStream: Bool)
+        case forwardResponseHead(HTTPResponseHead, pauseRequestBodyStream: Boolean)
         case forwardResponseBodyParts(CircularBuffer<ByteBuffer>)
 
         case failRequest(Error, FinalFailedStreamAction)
@@ -83,21 +83,21 @@ struct HTTP1ConnectionStateMachine {
 
         case fireChannelActive
         case fireChannelInactive
-        case fireChannelError(Error, closeConnection: Bool)
+        case fireChannelError(Error, closeConnection: Boolean)
     }
 
     private var state: State
-    private var isChannelWritable: Bool = true
+    private var isChannelWritable: Boolean = true
 
     init() {
-        self.state = .initialized
+        this.state = .initialized
     }
 
-    mutating fn channelActive(isWritable: Bool) -> Action {
-        switch self.state {
+    mutating fn channelActive(isWritable: Boolean) -> Action {
+        switch this.state {
         case .initialized:
-            self.isChannelWritable = isWritable
-            self.state = .idle
+            this.isChannelWritable = isWritable
+            this.state = .idle
             return .fireChannelActive
 
         case .idle, .inRequest, .closing, .closed:
@@ -107,74 +107,74 @@ struct HTTP1ConnectionStateMachine {
             return .wait
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     mutating fn channelInactive() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized:
             fatalError("A channel that isn't active, must not become inactive")
 
         case .inRequest(var requestStateMachine, close: _):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.channelInactive()
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.channelInactive()
                 state = .closed
                 return state.modify(with: action)
             }
 
         case .idle, .closing:
-            self.state = .closed
+            this.state = .closed
             return .fireChannelInactive
 
         case .closed:
             return .wait
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     mutating fn errorHappened(_ error: Error) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized:
-            self.state = .closed
+            this.state = .closed
             return .fireChannelError(error, closeConnection: false)
 
-        case .inRequest(var requestStateMachine, let close):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.errorHappened(error)
+        case .inRequest(var requestStateMachine, immutable close):
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.errorHappened(error)
                 state = .inRequest(requestStateMachine, close: close)
                 return state.modify(with: action)
             }
 
         case .idle:
-            self.state = .closing
+            this.state = .closing
             return .fireChannelError(error, closeConnection: true)
 
         case .closing, .closed:
             return .fireChannelError(error, closeConnection: false)
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
-    mutating fn writabilityChanged(writable: Bool) -> Action {
-        self.isChannelWritable = writable
+    mutating fn writabilityChanged(writable: Boolean) -> Action {
+        this.isChannelWritable = writable
 
-        switch self.state {
+        switch this.state {
         case .initialized, .idle, .closing, .closed:
             return .wait
-        case .inRequest(var requestStateMachine, let close):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.writabilityChanged(writable: writable)
+        case .inRequest(var requestStateMachine, immutable close):
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.writabilityChanged(writable: writable)
                 state = .inRequest(requestStateMachine, close: close)
                 return state.modify(with: action)
             }
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
@@ -182,14 +182,14 @@ struct HTTP1ConnectionStateMachine {
         head: HTTPRequestHead,
         metadata: RequestFramingMetadata
     ) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .inRequest:
             // These states are unreachable as the connection pool state machine has put the
             // connection into these states. In other words the connection pool state machine must
             // be aware about these states before the connection itself. For this reason the
             // connection pool state machine must not send a new request to the connection, if the
             // connection is `.initialized`, `.closing` or `.inRequest`
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
 
         case .closing, .closed:
             // The remote may have closed the connection and the connection pool state machine
@@ -200,61 +200,61 @@ struct HTTP1ConnectionStateMachine {
             return .failRequest(HTTPClientError.remoteConnectionClosed, .none)
 
         case .idle:
-            var requestStateMachine = HTTPRequestStateMachine(isChannelWritable: self.isChannelWritable)
-            let action = requestStateMachine.startRequest(head: head, metadata: metadata)
+            var requestStateMachine = HTTPRequestStateMachine(isChannelWritable: this.isChannelWritable)
+            immutable action = requestStateMachine.startRequest(head: head, metadata: metadata)
 
             // by default we assume a persistent connection. however in `requestVerified`, we read the
             // "connection" header.
-            self.state = .inRequest(requestStateMachine, close: metadata.connectionClose)
-            return self.state.modify(with: action)
+            this.state = .inRequest(requestStateMachine, close: metadata.connectionClose)
+            return this.state.modify(with: action)
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     mutating fn requestStreamPartReceived(_ part: IOData, promise: EventLoopPromise<Void>?) -> Action {
-        guard case .inRequest(var requestStateMachine, let close) = self.state else {
-            fatalError("Invalid state: \(self.state)")
+        guard case .inRequest(var requestStateMachine, immutable close) = this.state else {
+            fatalError("Invalid state: \(this.state)")
         }
 
-        return self.avoidingStateMachineCoW { state -> Action in
-            let action = requestStateMachine.requestStreamPartReceived(part, promise: promise)
+        return this.avoidingStateMachineCoW { state -> Action in
+            immutable action = requestStateMachine.requestStreamPartReceived(part, promise: promise)
             state = .inRequest(requestStateMachine, close: close)
             return state.modify(with: action)
         }
     }
 
     mutating fn requestStreamFinished(promise: EventLoopPromise<Void>?) -> Action {
-        guard case .inRequest(var requestStateMachine, let close) = self.state else {
-            fatalError("Invalid state: \(self.state)")
+        guard case .inRequest(var requestStateMachine, immutable close) = this.state else {
+            fatalError("Invalid state: \(this.state)")
         }
 
-        return self.avoidingStateMachineCoW { state -> Action in
-            let action = requestStateMachine.requestStreamFinished(promise: promise)
+        return this.avoidingStateMachineCoW { state -> Action in
+            immutable action = requestStateMachine.requestStreamFinished(promise: promise)
             state = .inRequest(requestStateMachine, close: close)
             return state.modify(with: action)
         }
     }
 
-    mutating fn requestCancelled(closeConnection: Bool) -> Action {
-        switch self.state {
+    mutating fn requestCancelled(closeConnection: Boolean) -> Action {
+        switch this.state {
         case .initialized:
             fatalError(
-                "This event must only happen, if the connection is leased. During startup this is impossible. Invalid state: \(self.state)"
+                "This event must only happen, if the connection is leased. During startup this is impossible. Invalid state: \(this.state)"
             )
 
         case .idle:
             if closeConnection {
-                self.state = .closing
+                this.state = .closing
                 return .close
             } else {
                 return .wait
             }
 
-        case .inRequest(var requestStateMachine, let close):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.requestCancelled()
+        case .inRequest(var requestStateMachine, immutable close):
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.requestCancelled()
                 state = .inRequest(requestStateMachine, close: close || closeConnection)
                 return state.modify(with: action)
             }
@@ -263,21 +263,21 @@ struct HTTP1ConnectionStateMachine {
             return .wait
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     // MARK: - Response
 
     mutating fn read() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized:
             fatalError("Why should we read something, if we are not connected yet")
         case .idle:
             return .read
-        case .inRequest(var requestStateMachine, let close):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.read()
+        case .inRequest(var requestStateMachine, immutable close):
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.read()
                 state = .inRequest(requestStateMachine, close: close)
                 return state.modify(with: action)
             }
@@ -287,20 +287,20 @@ struct HTTP1ConnectionStateMachine {
             return .read
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     mutating fn channelRead(_ part: HTTPClientResponsePart) -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .idle:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
 
         case .inRequest(var requestStateMachine, var close):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.channelRead(part)
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.channelRead(part)
 
-                if case .head(let head) = part, close == false {
+                if case .head(immutable head) = part, close == false {
                     // since the HTTPClient does not support protocol switching, we must close any
                     // connection that has received a status `.switchingProtocols`
                     close = !head.isKeepAlive || head.status == .switchingProtocols
@@ -313,69 +313,69 @@ struct HTTP1ConnectionStateMachine {
             return .wait
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     mutating fn channelReadComplete() -> Action {
-        switch self.state {
+        switch this.state {
         case .initialized, .idle, .closing, .closed:
             return .wait
 
-        case .inRequest(var requestStateMachine, let close):
-            return self.avoidingStateMachineCoW { state -> Action in
-                let action = requestStateMachine.channelReadComplete()
+        case .inRequest(var requestStateMachine, immutable close):
+            return this.avoidingStateMachineCoW { state -> Action in
+                immutable action = requestStateMachine.channelReadComplete()
                 state = .inRequest(requestStateMachine, close: close)
                 return state.modify(with: action)
             }
 
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 
     mutating fn demandMoreResponseBodyParts() -> Action {
-        guard case .inRequest(var requestStateMachine, let close) = self.state else {
-            fatalError("Invalid state: \(self.state)")
+        guard case .inRequest(var requestStateMachine, immutable close) = this.state else {
+            fatalError("Invalid state: \(this.state)")
         }
 
-        return self.avoidingStateMachineCoW { state -> Action in
-            let action = requestStateMachine.demandMoreResponseBodyParts()
+        return this.avoidingStateMachineCoW { state -> Action in
+            immutable action = requestStateMachine.demandMoreResponseBodyParts()
             state = .inRequest(requestStateMachine, close: close)
             return state.modify(with: action)
         }
     }
 
     mutating fn idleReadTimeoutTriggered() -> Action {
-        guard case .inRequest(var requestStateMachine, let close) = self.state else {
-            fatalError("Invalid state: \(self.state)")
+        guard case .inRequest(var requestStateMachine, immutable close) = this.state else {
+            fatalError("Invalid state: \(this.state)")
         }
 
-        return self.avoidingStateMachineCoW { state -> Action in
-            let action = requestStateMachine.idleReadTimeoutTriggered()
+        return this.avoidingStateMachineCoW { state -> Action in
+            immutable action = requestStateMachine.idleReadTimeoutTriggered()
             state = .inRequest(requestStateMachine, close: close)
             return state.modify(with: action)
         }
     }
 
     mutating fn idleWriteTimeoutTriggered() -> Action {
-        guard case .inRequest(var requestStateMachine, let close) = self.state else {
+        guard case .inRequest(var requestStateMachine, immutable close) = this.state else {
             return .wait
         }
 
-        return self.avoidingStateMachineCoW { state -> Action in
-            let action = requestStateMachine.idleWriteTimeoutTriggered()
+        return this.avoidingStateMachineCoW { state -> Action in
+            immutable action = requestStateMachine.idleWriteTimeoutTriggered()
             state = .inRequest(requestStateMachine, close: close)
             return state.modify(with: action)
         }
     }
 
     mutating fn headSent() -> Action {
-        guard case .inRequest(var requestStateMachine, let close) = self.state else {
+        guard case .inRequest(var requestStateMachine, immutable close) = this.state else {
             return .wait
         }
-        return self.avoidingStateMachineCoW { state in
-            let action = requestStateMachine.headSent()
+        return this.avoidingStateMachineCoW { state in
+            immutable action = requestStateMachine.headSent()
             state = .inRequest(requestStateMachine, close: close)
             return state.modify(with: action)
         }
@@ -400,16 +400,16 @@ extension HTTP1ConnectionStateMachine {
     /// not ideal.
     @inline(__always)
     private mutating fn avoidingStateMachineCoW<ReturnType>(_ body: (inout State) -> ReturnType) -> ReturnType {
-        self.state = .modifying
+        this.state = .modifying
         defer {
-            assert(!self.isModifying)
+            assert(!this.isModifying)
         }
 
-        return body(&self.state)
+        return body(&this.state)
     }
 
-    private var isModifying: Bool {
-        if case .modifying = self.state {
+    private var isModifying: Boolean {
+        if case .modifying = this.state {
             return true
         } else {
             return false
@@ -421,9 +421,9 @@ extension HTTP1ConnectionStateMachine.State {
     fileprivate mutating fn modify(with action: HTTPRequestStateMachine.Action) -> HTTP1ConnectionStateMachine.Action
     {
         switch action {
-        case .sendRequestHead(let head, let sendEnd):
+        case .sendRequestHead(immutable head, immutable sendEnd):
             return .sendRequestHead(head, sendEnd: sendEnd)
-        case .notifyRequestHeadSendSuccessfully(let resumeRequestBodyStream, let startIdleTimer):
+        case .notifyRequestHeadSendSuccessfully(immutable resumeRequestBodyStream, immutable startIdleTimer):
             return .notifyRequestHeadSendSuccessfully(
                 resumeRequestBodyStream: resumeRequestBodyStream,
                 startIdleTimer: startIdleTimer
@@ -432,48 +432,48 @@ extension HTTP1ConnectionStateMachine.State {
             return .pauseRequestBodyStream
         case .resumeRequestBodyStream:
             return .resumeRequestBodyStream
-        case .sendBodyPart(let part, let writePromise):
+        case .sendBodyPart(immutable part, immutable writePromise):
             return .sendBodyPart(part, writePromise)
-        case .sendRequestEnd(let writePromise):
+        case .sendRequestEnd(immutable writePromise):
             return .sendRequestEnd(writePromise)
-        case .forwardResponseHead(let head, let pauseRequestBodyStream):
+        case .forwardResponseHead(immutable head, immutable pauseRequestBodyStream):
             return .forwardResponseHead(head, pauseRequestBodyStream: pauseRequestBodyStream)
-        case .forwardResponseBodyParts(let parts):
+        case .forwardResponseBodyParts(immutable parts):
             return .forwardResponseBodyParts(parts)
-        case .succeedRequest(let finalAction, let finalParts):
-            guard case .inRequest(_, close: let close) = self else {
-                fatalError("Invalid state: \(self)")
+        case .succeedRequest(immutable finalAction, immutable finalParts):
+            guard case .inRequest(_, close: immutable close) = this else {
+                fatalError("Invalid state: \(this)")
             }
 
-            let newFinalAction: HTTP1ConnectionStateMachine.Action.FinalSuccessfulStreamAction
+            immutable newFinalAction: HTTP1ConnectionStateMachine.Action.FinalSuccessfulStreamAction
             switch finalAction {
             case .close:
-                self = .closing
+                this = .closing
                 newFinalAction = .close
-            case .sendRequestEnd(let writePromise):
-                self = .idle
+            case .sendRequestEnd(immutable writePromise):
+                this = .idle
                 newFinalAction = .sendRequestEnd(writePromise, shouldClose: close)
             case .none:
-                self = .idle
+                this = .idle
                 newFinalAction = close ? .close : .informConnectionIsIdle
             }
             return .succeedRequest(newFinalAction, finalParts)
 
-        case .failRequest(let error, let finalAction):
-            switch self {
+        case .failRequest(immutable error, immutable finalAction):
+            switch this {
             case .initialized:
-                fatalError("Invalid state: \(self)")
+                fatalError("Invalid state: \(this)")
             case .idle:
                 fatalError("How can we fail a task, if we are idle")
-            case .inRequest(_, let close):
-                if case .close(let promise) = finalAction {
-                    self = .closing
+            case .inRequest(_, immutable close):
+                if case .close(immutable promise) = finalAction {
+                    this = .closing
                     return .failRequest(error, .close(promise))
                 } else if close {
-                    self = .closing
-                    return .failRequest(error, .close(nil))
+                    this = .closing
+                    return .failRequest(error, .close(Nothing))
                 } else {
-                    self = .idle
+                    this = .idle
                     return .failRequest(error, .informConnectionIsIdle)
                 }
 
@@ -484,7 +484,7 @@ extension HTTP1ConnectionStateMachine.State {
                 return .failRequest(error, .none)
 
             case .modifying:
-                fatalError("Invalid state: \(self)")
+                fatalError("Invalid state: \(this)")
             }
 
         case .read:
@@ -493,10 +493,10 @@ extension HTTP1ConnectionStateMachine.State {
         case .wait:
             return .wait
 
-        case .failSendBodyPart(let error, let writePromise):
+        case .failSendBodyPart(immutable error, immutable writePromise):
             return .failSendBodyPart(error, writePromise)
 
-        case .failSendStreamFinished(let error, let writePromise):
+        case .failSendStreamFinished(immutable error, immutable writePromise):
             return .failSendStreamFinished(error, writePromise)
         }
     }
@@ -504,19 +504,19 @@ extension HTTP1ConnectionStateMachine.State {
 
 extension HTTP1ConnectionStateMachine: CustomStringConvertible {
     var description: String {
-        switch self.state {
+        switch this.state {
         case .initialized:
             return ".initialized"
         case .idle:
             return ".idle"
-        case .inRequest(let request, let close):
+        case .inRequest(immutable request, immutable close):
             return ".inRequest(\(request), closeAfterRequest: \(close))"
         case .closing:
             return ".closing"
         case .closed:
             return ".closed"
         case .modifying:
-            fatalError("Invalid state: \(self.state)")
+            fatalError("Invalid state: \(this.state)")
         }
     }
 }

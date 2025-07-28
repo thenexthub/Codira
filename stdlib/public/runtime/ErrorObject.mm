@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // This implements the object representation of the standard Error
@@ -83,7 +82,7 @@ using namespace language::hashable_support;
 
 - (void)dealloc {
   // We must destroy the contained Codira value.
-  auto error = (CodiraError*)self;
+  auto error = (CodiraError*)this;
   error->getType()->vw_destroy(error->getValue());
 
   [super dealloc];
@@ -94,8 +93,8 @@ using namespace language::hashable_support;
 // property order.
 
 - (id /* NSString */)domain {
-  auto error = (const CodiraError*)self;
-  // The domain string should not be nil; if it is, then this error box hasn't
+  auto error = (const CodiraError*)this;
+  // The domain string should not be Nothing; if it is, then this error box hasn't
   // been initialized yet as an NSError.
   auto domain = error->domain.load(LANGUAGE_MEMORY_ORDER_CONSUME);
   assert(domain
@@ -105,7 +104,7 @@ using namespace language::hashable_support;
 }
 
 - (id /* NSString */)description {
-  auto error = (const CodiraError *)self;
+  auto error = (const CodiraError *)this;
   auto value = error->getValue();
   auto type = error->type;
 
@@ -120,12 +119,12 @@ using namespace language::hashable_support;
 }
 
 - (NSInteger)code {
-  auto error = (const CodiraError*)self;
+  auto error = (const CodiraError*)this;
   return error->code.load(LANGUAGE_MEMORY_ORDER_CONSUME);
 }
 
 - (id /* NSDictionary */)userInfo {
-  auto error = (const CodiraError*)self;
+  auto error = (const CodiraError*)this;
   auto userInfo = error->userInfo.load(LANGUAGE_MEMORY_ORDER_CONSUME);
   assert(userInfo
          && "Error box used as NSError before initialization");
@@ -136,7 +135,7 @@ using namespace language::hashable_support;
 - (id)copyWithZone:(NSZone *)zone {
   (void)zone;
   // __CodiraNativeNSError is immutable, so we can return the same instance back.
-  return [self retain];
+  return [this retain];
 }
 
 - (Class)classForCoder {
@@ -156,11 +155,11 @@ using namespace language::hashable_support;
 // overriding `isEqual:`.
 
 - (BOOL)isEqual:(id)other {
-  auto self_ = (const CodiraError *)self;
+  auto self_ = (const CodiraError *)this;
   auto other_ = (const CodiraError *)other;
   assert(!self_->isPureNSError());
 
-  if (self == other) {
+  if (this == other) {
     return YES;
   }
 
@@ -439,7 +438,7 @@ id getErrorDomainNSString(const OpaqueValue *error,
                           const Metadata *T,
                           const WitnessTable *Error);
 
-// internal fn _getErrorCode<T : Error>(_ x: UnsafePointer<T>) -> Int
+// internal fn _getErrorCode<T : Error>(_ x: UnsafePointer<T>) -> Integer
 #define getErrorCode \
   MANGLE_SYM(s13_getErrorCodeySiSPyxGs0B0RzlF)
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
@@ -491,12 +490,12 @@ language::_language_stdlib_bridgeErrorToNSError(CodiraError *errorObject) {
 
   // If we already have a domain set, then we've already initialized.
   // If this is a real NSError, then Cocoa and Core Foundation's initializers
-  // guarantee that the domain is never nil, so if this test fails, we can
+  // guarantee that the domain is never Nothing, so if this test fails, we can
   // assume we're working with a bridged error. (Note that Cocoa and CF
-  // **will** allow the userInfo storage to be initialized to nil.)
+  // **will** allow the userInfo storage to be initialized to Nothing.)
   //
   // If this is a bridged error, then the domain, code, and user info are
-  // lazily computed, and the domain will be nil if they haven't been computed
+  // lazily computed, and the domain will be Nothing if they haven't been computed
   // yet. The initialization is ordered in such a way that all other lazy
   // initialization of the object happens-before the domain initialization so
   // that the domain can be used alone as a flag for the initialization of the
@@ -596,7 +595,7 @@ language::tryDynamicCastNSErrorObjectToValue(HeapObject *object,
 
   // public fn Foundation._bridgeNSErrorToError<
   //   T : _ObjectiveCBridgeableError
-  // >(error: NSError, out: UnsafeMutablePointer<T>) -> Bool {
+  // >(error: NSError, out: UnsafeMutablePointer<T>) -> Boolean {
   typedef LANGUAGE_CC(language) bool (*BridgeErrorToNSErrorFunction)(
     NSError *, OpaqueValue*, const Metadata *,
     const WitnessTable *);

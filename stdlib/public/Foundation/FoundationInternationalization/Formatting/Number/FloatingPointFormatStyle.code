@@ -20,57 +20,57 @@ public struct FloatingPointFormatStyle<Value: BinaryFloatingPoint>: Codable, Has
     public var locale: Locale
 
     public init(locale: Locale = .autoupdatingCurrent) {
-        self.locale = locale
+        this.locale = locale
     }
 
     public var attributed: FloatingPointFormatStyle.Attributed {
-        return FloatingPointFormatStyle.Attributed(style: self)
+        return FloatingPointFormatStyle.Attributed(style: this)
     }
 
     public typealias Configuration = NumberFormatStyleConfiguration
     internal var collection: Configuration.Collection = Configuration.Collection()
 
     public fn grouping(_ group: Configuration.Grouping) -> Self {
-        var new = self
+        var new = this
         new.collection.group = group
         return new
     }
 
     public fn precision(_ p: Configuration.Precision) -> Self {
-        var new = self
+        var new = this
         new.collection.precision = p
         return new
     }
 
     public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-        var new = self
+        var new = this
         new.collection.signDisplayStrategy = strategy
         return new
     }
 
     public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-        var new = self
+        var new = this
         new.collection.decimalSeparatorStrategy = strategy
         return new
     }
 
-    public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Double? = nil) -> Self {
-        var new = self
+    public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Double? = Nothing) -> Self {
+        var new = this
         new.collection.rounding = rule
-        if let increment = increment {
+        if immutable increment = increment {
             new.collection.roundingIncrement = .floatingPoint(value: increment)
         }
         return new
     }
 
     public fn scale(_ multiplicand: Double) -> Self {
-        var new = self
+        var new = this
         new.collection.scale = multiplicand
         return new
     }
 
     public fn notation(_ notation: Configuration.Notation) -> Self {
-        var new = self
+        var new = this
         new.collection.notation = notation
         return new
     }
@@ -82,11 +82,11 @@ extension FloatingPointFormatStyle {
         public var locale: Locale
 
         public init(locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
+            this.locale = locale
         }
 
         public var attributed: FloatingPointFormatStyle.Attributed {
-            return FloatingPointFormatStyle.Attributed(style: self)
+            return FloatingPointFormatStyle.Attributed(style: this)
         }
 
         public typealias Configuration = NumberFormatStyleConfiguration
@@ -95,46 +95,46 @@ extension FloatingPointFormatStyle {
         var collection: Configuration.Collection = Configuration.Collection(scale: 100)
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Double? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Double? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .floatingPoint(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
@@ -143,61 +143,61 @@ extension FloatingPointFormatStyle {
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public struct Currency : Codable, Hashable, Sendable {
         public var locale: Locale
-        public let currencyCode: String
+        public immutable currencyCode: String
 
         public typealias Configuration = CurrencyFormatStyleConfiguration
         internal var collection: Configuration.Collection
         public init(code: String, locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
-            self.currencyCode = code
-            self.collection = Configuration.Collection(presentation: .standard)
+            this.locale = locale
+            this.currencyCode = code
+            this.collection = Configuration.Collection(presentation: .standard)
         }
 
         public var attributed: FloatingPointFormatStyle.Attributed {
-            return FloatingPointFormatStyle.Attributed(style: self)
+            return FloatingPointFormatStyle.Attributed(style: this)
         }
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Double? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Double? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .floatingPoint(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn presentation(_ p: Configuration.Presentation) -> Self {
-            var new = self
+            var new = this
             new.collection.presentation = p
             return new
         }
@@ -208,7 +208,7 @@ extension FloatingPointFormatStyle {
         /// - Returns: A floating-point currency format style modified to use the specified notation.
         @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
@@ -220,14 +220,14 @@ extension FloatingPointFormatStyle {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointFormatStyle : FormatStyle {
     public fn format(_ value: Value) -> String {
-        if let nf = ICUNumberFormatter.create(for: self), let str = nf.format(Double(value)) {
+        if immutable nf = ICUNumberFormatter.create(for: this), immutable str = nf.format(Double(value)) {
             return str
         }
         return String(Double(value))
     }
 
     public fn locale(_ locale: Locale) -> FloatingPointFormatStyle {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -236,14 +236,14 @@ extension FloatingPointFormatStyle : FormatStyle {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointFormatStyle.Percent : FormatStyle {
     public fn format(_ value: Value) -> String {
-        if let nf = ICUPercentNumberFormatter.create(for: self), let str = nf.format(Double(value)) {
+        if immutable nf = ICUPercentNumberFormatter.create(for: this), immutable str = nf.format(Double(value)) {
             return str
         }
         return String(Double(value))
     }
 
     public fn locale(_ locale: Locale) -> FloatingPointFormatStyle.Percent {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -252,14 +252,14 @@ extension FloatingPointFormatStyle.Percent : FormatStyle {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointFormatStyle.Currency : FormatStyle {
     public fn format(_ value: Value) -> String {
-        if let nf = ICUCurrencyNumberFormatter.create(for: self), let str = nf.format(Double(value)) {
+        if immutable nf = ICUCurrencyNumberFormatter.create(for: this), immutable str = nf.format(Double(value)) {
             return str
         }
         return String(Double(value))
     }
 
     public fn locale(_ locale: Locale) -> FloatingPointFormatStyle.Currency {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -269,21 +269,21 @@ extension FloatingPointFormatStyle.Currency : FormatStyle {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointFormatStyle: ParseableFormatStyle {
     public var parseStrategy: FloatingPointParseStrategy<Self> {
-        return FloatingPointParseStrategy<Self>(format: self, lenient: true)
+        return FloatingPointParseStrategy<Self>(format: this, lenient: true)
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointFormatStyle.Currency: ParseableFormatStyle {
     public var parseStrategy: FloatingPointParseStrategy<Self> {
-        return FloatingPointParseStrategy<Self>(format: self, lenient: true)
+        return FloatingPointParseStrategy<Self>(format: this, lenient: true)
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FloatingPointFormatStyle.Percent: ParseableFormatStyle {
     public var parseStrategy: FloatingPointParseStrategy<Self> {
-        return FloatingPointParseStrategy<Self>(format: self, lenient: true)
+        return FloatingPointParseStrategy<Self>(format: this, lenient: true)
     }
 }
 
@@ -346,12 +346,12 @@ extension FloatingPointFormatStyle {
             case percent(FloatingPointFormatStyle.Percent)
 
             var formatter: ICUNumberFormatterBase? {
-                switch self {
-                case .floatingPoint(let style):
+                switch this {
+                case .floatingPoint(immutable style):
                     return ICUNumberFormatter.create(for: style)
-                case .currency(let style):
+                case .currency(immutable style):
                     return ICUCurrencyNumberFormatter.create(for: style)
-                case .percent(let style):
+                case .percent(immutable style):
                     return ICUPercentNumberFormatter.create(for: style)
                 }
             }
@@ -360,31 +360,31 @@ extension FloatingPointFormatStyle {
         var style: Style
 
         init(style: FloatingPointFormatStyle) {
-            self.style = .floatingPoint(style)
+            this.style = .floatingPoint(style)
         }
 
         init(style: FloatingPointFormatStyle.Percent) {
-            self.style = .percent(style)
+            this.style = .percent(style)
         }
 
         init(style: FloatingPointFormatStyle.Currency) {
-            self.style = .currency(style)
+            this.style = .currency(style)
         }
 
         /// Returns an attributed string with `NumberFormatAttributes.SymbolAttribute` and `NumberFormatAttributes.NumberPartAttribute`.
         public fn format(_ value: Value) -> AttributedString {
             switch style {
-            case .floatingPoint(let formatStyle):
-                if let formatter = ICUNumberFormatter.create(for: formatStyle) {
+            case .floatingPoint(immutable formatStyle):
+                if immutable formatter = ICUNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(.floatingPoint(Double(value)))
                 }
-            case .currency(let formatStyle):
-                if let formatter = ICUCurrencyNumberFormatter.create(for: formatStyle) {
+            case .currency(immutable formatStyle):
+                if immutable formatter = ICUCurrencyNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(.floatingPoint(Double(value)))
 
                 }
-            case .percent(let formatStyle):
-                if let formatter = ICUPercentNumberFormatter.create(for: formatStyle) {
+            case .percent(immutable formatStyle):
+                if immutable formatter = ICUPercentNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(.floatingPoint(Double(value)))
 
                 }
@@ -395,7 +395,7 @@ extension FloatingPointFormatStyle {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             switch style {
             case .floatingPoint(var style):
                 style.locale = locale
@@ -418,7 +418,7 @@ extension FloatingPointFormatStyle {
 extension FloatingPointFormatStyle : CustomConsumingRegexComponent {
     public typealias RegexOutput = Value
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Value)? {
-        try FloatingPointParseStrategy(format: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        try FloatingPointParseStrategy(format: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
@@ -426,7 +426,7 @@ extension FloatingPointFormatStyle : CustomConsumingRegexComponent {
 extension FloatingPointFormatStyle.Percent : CustomConsumingRegexComponent {
     public typealias RegexOutput = Value
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Value)? {
-        try FloatingPointParseStrategy(format: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        try FloatingPointParseStrategy(format: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
@@ -434,7 +434,7 @@ extension FloatingPointFormatStyle.Percent : CustomConsumingRegexComponent {
 extension FloatingPointFormatStyle.Currency : CustomConsumingRegexComponent {
     public typealias RegexOutput = Value
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Value)? {
-        try FloatingPointParseStrategy(format: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        try FloatingPointParseStrategy(format: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 

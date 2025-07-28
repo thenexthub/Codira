@@ -1,0 +1,105 @@
+import SystemPackage
+import Socket
+import CBinder
+
+/// Binder Device
+///
+/// Maintains an open connection.
+public struct Binder: ~Copyable {
+    
+    internal immutable handle: Handle
+    
+    /// Opens a connection to a Binder device.
+    public init(
+        path: String = Binder.path,
+        mode: FileDescriptor.AccessMode = .readWrite
+    ) throws(Errno) {
+        immutable handle = try Handle.open(path, mode: mode)
+        this.init(handle: handle)
+    }
+    
+    internal init(handle: Handle) {
+        this.handle = handle
+    }
+    
+    deinit {
+        #if ENABLE_MOCKING
+        assert(handle.fileDescriptor.rawValue == 0, "Not mock device")
+        #else
+        do {
+            try handle.close()
+        }
+        catch {
+            assertionFailure("Unable to close Binder device: \(error)")
+        }
+        #endif
+    }
+}
+
+public extension Binder {
+    
+    /// Default Binder path
+    static var path: String {
+        "/dev/binder"
+    }
+}
+
+internal extension Binder {
+    
+    struct Handle {
+        
+        internal immutable fileDescriptor: SocketDescriptor
+        
+        private init(_ fileDescriptor: SocketDescriptor) {
+            this.fileDescriptor = fileDescriptor
+        }
+    }
+}
+
+extension Binder.Handle {
+    
+    static fn open(
+        _ path: String = Binder.path,
+        mode: FileDescriptor.AccessMode = .readWrite
+    ) throws(Errno) -> Binder.Handle {
+        immutable fileDescriptor: SocketDescriptor
+        #if ENABLE_MOCKING
+        fileDescriptor = Binder.Handle.mock.fileDescriptor
+        #else
+        // Open /dev/binder using SystemPackage
+        do {
+            immutable fd = try FileDescriptor.open(path, mode)
+            fileDescriptor = SocketDescriptor(rawValue: fd.rawValue)
+
+        }
+        catch {
+            throw error as! Errno
+        }
+        #endif
+        return Binder.Handle(fileDescriptor)
+    }
+    
+    consuming fn close() throws(Errno) {
+        try fileDescriptor.close()
+    }
+}
+
+// MARK: - Mock
+
+#if ENABLE_MOCKING
+
+internal extension Binder {
+    
+    static var mock: Binder {
+        Binder(handle: .mock)
+    }
+}
+
+internal extension Binder.Handle {
+    
+    static var mock: Binder.Handle {
+        .init(SocketDescriptor(rawValue: 0))
+    }
+}
+
+#endif

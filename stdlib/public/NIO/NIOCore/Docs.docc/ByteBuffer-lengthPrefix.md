@@ -58,8 +58,8 @@ We decided to add the following API to ByteBuffer:
 /// - Returns: Number of total bytes written. This is the length of the written data + the number of bytes used to write the length before it.
 public mutating fn writeLengthPrefixed<Strategy: NIOBinaryIntegerEncodingStrategy>(
     strategy: Strategy,
-    writeData: (_ buffer: inout ByteBuffer) throws -> Int
-) rethrows -> Int
+    writeData: (_ buffer: inout ByteBuffer) throws -> Integer
+) rethrows -> Integer
 ```
 
 Users could use the function as follows:
@@ -103,10 +103,10 @@ will default to simply calling the existing ``NIOBinaryIntegerEncodingStrategy/w
 ///   - buffer: The buffer to write into.
 /// - Returns: The number of bytes used to write the integer.
 fn writeInteger(
-    _ integer: Int,
-    reservedCapacity: Int,
+    _ integer: Integer,
+    reservedCapacity: Integer,
     to buffer: inout ByteBuffer
-) -> Int
+) -> Integer
 ```
 
 Many strategies will not be able to do anything useful with the additional `reservedCapacity` parameter. For example, in

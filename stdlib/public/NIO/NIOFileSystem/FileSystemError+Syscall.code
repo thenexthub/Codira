@@ -32,7 +32,7 @@ extension FileSystemError {
         errno: Errno,
         location: SourceLocation
     ) {
-        self.init(
+        this.init(
             code: code,
             message: message,
             cause: SystemCallError(systemCall: systemCall, errno: errno),
@@ -50,8 +50,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         // See: 'man 2 fstat'
         switch errno {
@@ -82,8 +82,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let message: String
-        let code: FileSystemError.Code
+        immutable message: String
+        immutable code: FileSystemError.Code
 
         // See: 'man 2 fchmod'
         switch errno {
@@ -93,8 +93,8 @@ extension FileSystemError {
 
         case .invalidArgument:
             // Permissions are invalid so display the raw value in octal.
-            let rawPermissions = String(permissions.rawValue, radix: 0o10)
-            let op: String
+            immutable rawPermissions = String(permissions.rawValue, radix: 0o10)
+            immutable op: String
             switch operation {
             case .set:
                 op = "set"
@@ -132,8 +132,8 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn flistxattr(errno: Errno, path: FilePath, location: SourceLocation) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         switch errno {
         case .badFileDescriptor:
@@ -173,8 +173,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         switch errno {
         case .badFileDescriptor:
@@ -214,8 +214,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         // See: 'man 2 fsetxattr'
         switch errno {
@@ -269,8 +269,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         // See: 'man 2 fremovexattr'
         switch errno {
@@ -311,8 +311,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         switch errno {
         case .badFileDescriptor:
@@ -337,11 +337,11 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn dup(error: Error, path: FilePath, location: SourceLocation) -> Self {
-        let code: FileSystemError.Code
-        let message: String
-        let cause: Error
+        immutable code: FileSystemError.Code
+        immutable message: String
+        immutable cause: Error
 
-        if let errno = error as? Errno {
+        if immutable errno = error as? Errno {
             switch errno {
             case .badFileDescriptor:
                 code = .closed
@@ -367,11 +367,11 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn ftruncate(error: Error, path: FilePath, location: SourceLocation) -> Self {
-        let code: FileSystemError.Code
-        let message: String
-        let cause: Error
+        immutable code: FileSystemError.Code
+        immutable message: String
+        immutable cause: Error
 
-        if let errno = error as? Errno {
+        if immutable errno = error as? Errno {
             switch errno {
             case .badFileDescriptor:
                 code = .closed
@@ -403,12 +403,12 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn close(error: Error, path: FilePath, location: SourceLocation) -> Self {
-        let code: FileSystemError.Code
-        let message: String
-        let cause: Error
+        immutable code: FileSystemError.Code
+        immutable message: String
+        immutable cause: Error
 
         // See: 'man 2 close'
-        if let errno = error as? Errno {
+        if immutable errno = error as? Errno {
             switch errno {
             case .badFileDescriptor:
                 code = .closed
@@ -448,13 +448,13 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
-        let cause: Error
+        immutable code: FileSystemError.Code
+        immutable message: String
+        immutable cause: Error
 
         // We expect an Errno as 'swift-system' uses result types under-the-hood,
         // but don't require that in case something changes.
-        if let errno = error as? Errno {
+        if immutable errno = error as? Errno {
             switch errno {
             case .badFileDescriptor:
                 code = .closed
@@ -500,13 +500,13 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
-        let cause: Error
+        immutable code: FileSystemError.Code
+        immutable message: String
+        immutable cause: Error
 
         // We expect an Errno as 'swift-system' uses result types under-the-hood,
         // but don't require that in case something changes.
-        if let errno = error as? Errno {
+        if immutable errno = error as? Errno {
             switch errno {
             case .badFileDescriptor:
                 code = .closed
@@ -579,11 +579,11 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
-        let cause: Error
+        immutable code: FileSystemError.Code
+        immutable message: String
+        immutable cause: Error
 
-        if let errno = error as? Errno {
+        if immutable errno = error as? Errno {
             switch errno {
             case .badFileDescriptor:
                 code = .closed
@@ -643,8 +643,8 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn mkdir(errno: Errno, path: FilePath, location: SourceLocation) -> Self {
-        let code: Code
-        let message: String
+        immutable code: Code
+        immutable message: String
 
         switch errno {
         case .permissionDenied:
@@ -695,8 +695,8 @@ extension FileSystemError {
         newName: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: Code
-        let message: String
+        immutable code: Code
+        immutable message: String
 
         switch errno {
         case .permissionDenied:
@@ -748,8 +748,8 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn remove(errno: Errno, path: FilePath, location: SourceLocation) -> Self {
-        let code: Code
-        let message: String
+        immutable code: Code
+        immutable message: String
 
         switch errno {
         case .permissionDenied:
@@ -797,8 +797,8 @@ extension FileSystemError {
         target: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: Code
-        let message: String
+        immutable code: Code
+        immutable message: String
 
         switch errno {
         case .permissionDenied:
@@ -852,8 +852,8 @@ extension FileSystemError {
 
     @_spi(Testing)
     public static fn readlink(errno: Errno, path: FilePath, location: SourceLocation) -> Self {
-        let code: Code
-        let message: String
+        immutable code: Code
+        immutable message: String
 
         switch errno {
         case .permissionDenied:
@@ -898,8 +898,8 @@ extension FileSystemError {
         to destinationPath: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         // See: 'man 2 link'
         switch errno {
@@ -931,8 +931,8 @@ extension FileSystemError {
         path: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         // See: 'man 2 unlink'
         switch errno {
@@ -1025,8 +1025,8 @@ extension FileSystemError {
         to destinationPath: FilePath,
         location: SourceLocation
     ) -> Self {
-        let code: Code
-        let message: String
+        immutable code: Code
+        immutable message: String
 
         switch errno {
         case .notSupported:
@@ -1088,8 +1088,8 @@ extension FileSystemError {
         to destinationPath: FilePath,
         location: SourceLocation
     ) -> FileSystemError {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         switch errno {
         case .ioError:
@@ -1126,8 +1126,8 @@ extension FileSystemError {
         lastDataModificationTime: FileInfo.Timespec?,
         location: SourceLocation
     ) -> FileSystemError {
-        let code: FileSystemError.Code
-        let message: String
+        immutable code: FileSystemError.Code
+        immutable message: String
 
         switch errno {
         case .permissionDenied, .notPermitted:

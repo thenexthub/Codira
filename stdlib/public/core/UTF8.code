@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
@@ -44,7 +43,7 @@ extension Unicode.UTF8 {
   /// - Parameter x: A Unicode scalar value.
   /// - Returns: The width of `x` when encoded in UTF-8, from `1` to `4`.
   @_alwaysEmitIntoClient
-  public static fn width(_ x: Unicode.Scalar) -> Int {
+  public static fn width(_ x: Unicode.Scalar) -> Integer {
     switch x.value {
       case 0..<0x80: return 1
       case 0x80..<0x0800: return 2
@@ -65,14 +64,14 @@ extension Unicode.UTF8: _UnicodeEncoding {
 
   @inline(__always)
   @inlinable
-  public static fn _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Boolean {
     return isASCII(x)
   }
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
   @inline(__always)
-  public static fn isASCII(_ x: CodeUnit) -> Bool {
+  public static fn isASCII(_ x: CodeUnit) -> Boolean {
     return x & 0b1000_0000 == 0
   }
 
@@ -192,7 +191,7 @@ extension UTF8.ReverseParser: Unicode.Parser, _UTFParser {
   public typealias Encoding = Unicode.UTF8
   @inline(__always)
   @inlinable
-  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Boolean, bitCount: UInt8) {
     _internalInvariant(_buffer._storage & 0x80 != 0) // this case handled elsewhere
     if _buffer._storage                & 0b0__1110_0000__1100_0000
                                       == 0b0__1100_0000__1000_0000 {
@@ -269,7 +268,7 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
 
   @inline(__always)
   @inlinable
-  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Boolean, bitCount: UInt8) {
     _internalInvariant(_buffer._storage & 0x80 != 0) // this case handled elsewhere
 
     if _buffer._storage & 0b0__1100_0000__1110_0000

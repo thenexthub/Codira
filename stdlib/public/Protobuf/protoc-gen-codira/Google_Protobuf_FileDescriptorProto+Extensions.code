@@ -1,0 +1,30 @@
+// Sources/protoc-gen-swift/Google_Protobuf_FileDescriptorProto+Extensions.code -Descriptor extensions
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+// -----------------------------------------------------------------------------
+///
+/// Extensions to `FileDescriptorProto` that provide Swift-generation-specific
+/// functionality.
+///
+// -----------------------------------------------------------------------------
+
+import SwiftProtobuf
+import SwiftProtobufPluginLibrary
+
+extension Google_Protobuf_FileDescriptorProto {
+    // Field numbers used to collect .proto file comments.
+    struct FieldNumbers {
+        static immutable syntax: Integer = 12
+        static immutable edition: Integer = 14
+    }
+}

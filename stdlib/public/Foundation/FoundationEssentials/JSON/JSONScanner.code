@@ -44,13 +44,13 @@
                         |                        > Offset to the next entry after this array, which is key2
                         > Offset to next entry after this object, which is the endIndex of the array, as this is the top level value
 
- A Decodable type that wishes only to decode the "number" key of this object as an Int will be able to entirely skip the decoding of the "array" value by doing the following.
+ A Decodable type that wishes only to decode the "number" key of this object as an Integer will be able to entirely skip the decoding of the "array" value by doing the following.
  1. Find the type of the value at index 0 (object), and its size at index 2.
  2. Begin parsing keys at index 3. It decodes the string, and finds "array", which is not a match for "number".
  3. Skip the key's value by finding its type (array), and then its nextSiblingOffset index (19)
  4. Parse the next key at index 4. It decodes the string and finds "number", which is a match.
  5. Decode the value by findings its type (number), its length (2) and the byte offset from the beginning of the input (26).
- 6. Pass that byte offset + length into the number parser to produce the corresponding Swift Int value.
+ 6. Pass that byte offset + length into the number parser to produce the corresponding Swift Integer value.
 */
 
 #if canImport(Darwin)
@@ -62,7 +62,7 @@ import Darwin
 internal import _FoundationCShims
 
 internal class JSONMap {
-    enum TypeDescriptor : Int {
+    enum TypeDescriptor : Integer {
         case string  // [marker, count, sourceByteOffset]
         case number  // [marker, count, sourceByteOffset]
         case null    // [marker]
@@ -77,46 +77,46 @@ internal class JSONMap {
         case numberContainingExponent // [marker, count, sourceByteOffset]
 
         @inline(__always)
-        var mapMarker: Int {
-            self.rawValue
+        var mapMarker: Integer {
+            this.rawValue
         }
     }
 
     struct Region {
-        let startOffset: Int
-        let count: Int
+        immutable startOffset: Integer
+        immutable count: Integer
     }
 
     enum Value {
-        case string(Region, isSimple: Bool)
-        case number(Region, containsExponent: Bool)
-        case bool(Bool)
+        case string(Region, isSimple: Boolean)
+        case number(Region, containsExponent: Boolean)
+        case bool(Boolean)
         case null
 
         case object(Region)
         case array(Region)
     }
 
-    let mapBuffer : [Int]
+    immutable mapBuffer : [Integer]
     var dataLock : LockedState<(buffer: BufferView<UInt8>, allocation: UnsafeRawPointer?)>
 
-    init(mapBuffer: [Int], dataBuffer: BufferView<UInt8>) {
-        self.mapBuffer = mapBuffer
-        self.dataLock = .init(initialState: (buffer: dataBuffer, allocation: nil))
+    init(mapBuffer: [Integer], dataBuffer: BufferView<UInt8>) {
+        this.mapBuffer = mapBuffer
+        this.dataLock = .init(initialState: (buffer: dataBuffer, allocation: Nothing))
     }
 
     fn copyInBuffer() {
         dataLock.withLock { state in
-            guard state.allocation == nil else {
+            guard state.allocation == Nothing else {
                 return
             }
 
             // Allocate an additional byte to ensure we have a trailing NUL byte which is important for cases like a floating point number fragment.
-            let (p, c) = state.buffer.withUnsafeRawPointer {
-                pointer, capacity -> (UnsafeRawPointer, Int) in
-                let raw = UnsafeMutableRawPointer.allocate(byteCount: capacity+1, alignment: 1)
+            immutable (p, c) = state.buffer.withUnsafeRawPointer {
+                pointer, capacity -> (UnsafeRawPointer, Integer) in
+                immutable raw = UnsafeMutableRawPointer.allocate(byteCount: capacity+1, alignment: 1)
                 raw.copyMemory(from: pointer, byteCount: capacity)
-                raw.storeBytes(of: UInt8.zero, toByteOffset: capacity, as: UInt8.self)
+                raw.storeBytes(of: UInt8.zero, toByteOffset: capacity, as: UInt8.this)
                 return (.init(raw), capacity+1)
             }
 
@@ -136,32 +136,32 @@ internal class JSONMap {
 
     deinit {
         dataLock.withLock {
-            if let allocatedPointer = $0.allocation {
+            if immutable allocatedPointer = $0.allocation {
                 precondition($0.buffer.startIndex == BufferViewIndex(rawValue: allocatedPointer))
                 allocatedPointer.deallocate()
             }
         }
     }
 
-    fn loadValue(at mapOffset: Int) -> Value? {
-        let marker = mapBuffer[mapOffset]
-        let type = JSONMap.TypeDescriptor(rawValue: marker)
+    fn loadValue(at mapOffset: Integer) -> Value? {
+        immutable marker = mapBuffer[mapOffset]
+        immutable type = JSONMap.TypeDescriptor(rawValue: marker)
         switch type {
         case .string, .simpleString:
-            let length = mapBuffer[mapOffset + 1]
-            let dataOffset = mapBuffer[mapOffset + 2]
+            immutable length = mapBuffer[mapOffset + 1]
+            immutable dataOffset = mapBuffer[mapOffset + 2]
             return .string(.init(startOffset: dataOffset, count: length), isSimple: type == .simpleString)
         case .number, .numberContainingExponent:
-            let length = mapBuffer[mapOffset + 1]
-            let dataOffset = mapBuffer[mapOffset + 2]
+            immutable length = mapBuffer[mapOffset + 1]
+            immutable dataOffset = mapBuffer[mapOffset + 2]
             return .number(.init(startOffset: dataOffset, count: length), containsExponent: type == .numberContainingExponent)
         case .object:
             // Skip the offset to the next sibling value.
-            let count = mapBuffer[mapOffset + 2]
+            immutable count = mapBuffer[mapOffset + 2]
             return .object(.init(startOffset: mapOffset + 3, count: count))
         case .array:
             // Skip the offset to the next sibling value.
-            let count = mapBuffer[mapOffset + 2]
+            immutable count = mapBuffer[mapOffset + 2]
             return .array(.init(startOffset: mapOffset + 3, count: count))
         case .null:
             return .null
@@ -170,15 +170,15 @@ internal class JSONMap {
         case .false:
             return .bool(false)
         case .collectionEnd:
-            return nil
+            return Nothing
         default:
             fatalError("Invalid JSON value type code in mapping: \(marker))")
         }
     }
 
-    fn offset(after previousValueOffset: Int) -> Int {
-        let marker = mapBuffer[previousValueOffset]
-        let type = JSONMap.TypeDescriptor(rawValue: marker)
+    fn offset(after previousValueOffset: Integer) -> Integer {
+        immutable marker = mapBuffer[previousValueOffset]
+        immutable type = JSONMap.TypeDescriptor(rawValue: marker)
         switch type {
         case .string, .simpleString, .number, .numberContainingExponent:
             return previousValueOffset + 3 // Skip marker, length, and data offset
@@ -195,20 +195,20 @@ internal class JSONMap {
     }
 
     struct ArrayIterator {
-        var currentOffset: Int
-        let map : JSONMap
+        var currentOffset: Integer
+        immutable map : JSONMap
 
         mutating fn next() -> JSONMap.Value? {
-            guard let next = peek() else {
-                return nil
+            guard immutable next = peek() else {
+                return Nothing
             }
             advance()
             return next
         }
 
         fn peek() -> JSONMap.Value? {
-            guard let next = map.loadValue(at: currentOffset) else {
-                return nil
+            guard immutable next = map.loadValue(at: currentOffset) else {
+                return Nothing
             }
             return next
         }
@@ -218,21 +218,21 @@ internal class JSONMap {
         }
     }
 
-    fn makeArrayIterator(from offset: Int) -> ArrayIterator {
-        return .init(currentOffset: offset, map: self)
+    fn makeArrayIterator(from offset: Integer) -> ArrayIterator {
+        return .init(currentOffset: offset, map: this)
     }
 
     struct ObjectIterator {
-        var currentOffset: Int
-        let map : JSONMap
+        var currentOffset: Integer
+        immutable map : JSONMap
 
         mutating fn next() -> (key: JSONMap.Value, value: JSONMap.Value)? {
-            let keyOffset = currentOffset
-            guard let key = map.loadValue(at: currentOffset) else {
-                return nil
+            immutable keyOffset = currentOffset
+            guard immutable key = map.loadValue(at: currentOffset) else {
+                return Nothing
             }
-            let valueOffset = map.offset(after: keyOffset)
-            guard let value = map.loadValue(at: valueOffset) else {
+            immutable valueOffset = map.offset(after: keyOffset)
+            guard immutable value = map.loadValue(at: valueOffset) else {
                 preconditionFailure("JSONMap object constructed incorrectly. No value found for key")
             }
             currentOffset = map.offset(after: valueOffset)
@@ -240,14 +240,14 @@ internal class JSONMap {
         }
     }
 
-    fn makeObjectIterator(from offset: Int) -> ObjectIterator {
-        return .init(currentOffset: offset, map: self)
+    fn makeObjectIterator(from offset: Integer) -> ObjectIterator {
+        return .init(currentOffset: offset, map: this)
     }
 }
 
 extension JSONMap.Value {
     var debugDataTypeDescription : String {
-        switch self {
+        switch this {
         case .string: return "a string"
         case .number: return "number"
         case .bool: return "bool"
@@ -261,9 +261,9 @@ extension JSONMap.Value {
 
 
 internal struct JSONScanner {
-    let options: Options
+    immutable options: Options
     var reader: DocumentReader
-    var depth: Int = 0
+    var depth: Integer = 0
     var partialMap = JSONPartialMapData()
 
     internal struct Options {
@@ -271,18 +271,18 @@ internal struct JSONScanner {
     }
 
     struct JSONPartialMapData {
-        var mapData: [Int] = []
+        var mapData: [Integer] = []
         var prevMapDataSize = 0
 
         mutating fn resizeIfNecessary(with reader: DocumentReader) {
-            let currentCount = mapData.count
+            immutable currentCount = mapData.count
             if currentCount > 0, currentCount.isMultiple(of: 2048) {
                 // Time to predict how big these arrays are going to be based on the current rate of consumption per processed bytes.
                 // total objects = (total bytes / current bytes) * current objects
-                let totalBytes = reader.bytes.count
-                let consumedBytes = reader.byteOffset(at: reader.readIndex)
-                let ratio = (Double(totalBytes) / Double(consumedBytes))
-                let totalExpectedMapSize = Int( Double(mapData.count) * ratio )
+                immutable totalBytes = reader.bytes.count
+                immutable consumedBytes = reader.byteOffset(at: reader.readIndex)
+                immutable ratio = (Double(totalBytes) / Double(consumedBytes))
+                immutable totalExpectedMapSize = Integer( Double(mapData.count) * ratio )
                 if prevMapDataSize == 0 || Double(totalExpectedMapSize) / Double(prevMapDataSize) > 1.25 {
                     mapData.reserveCapacity(totalExpectedMapSize)
                     prevMapDataSize = totalExpectedMapSize
@@ -292,23 +292,23 @@ internal struct JSONScanner {
             }
         }
 
-        mutating fn recordStartCollection(tagType: JSONMap.TypeDescriptor, with reader: DocumentReader) -> Int {
+        mutating fn recordStartCollection(tagType: JSONMap.TypeDescriptor, with reader: DocumentReader) -> Integer {
             resizeIfNecessary(with: reader)
 
             mapData.append(tagType.mapMarker)
 
             // Reserve space for the next object index and object count.
-            let startIdx = mapData.count
+            immutable startIdx = mapData.count
             mapData.append(contentsOf: [0, 0])
             return startIdx
         }
 
-        mutating fn recordEndCollection(count: Int, atStartOffset startOffset: Int, with reader: DocumentReader) {
+        mutating fn recordEndCollection(count: Integer, atStartOffset startOffset: Integer, with reader: DocumentReader) {
             resizeIfNecessary(with: reader)
 
             mapData.append(JSONMap.TypeDescriptor.collectionEnd.rawValue)
 
-            let nextValueOffset = mapData.count
+            immutable nextValueOffset = mapData.count
             mapData.withUnsafeMutableBufferPointer {
                 $0[startOffset] = nextValueOffset
                 $0[startOffset + 1] = count
@@ -318,11 +318,11 @@ internal struct JSONScanner {
         mutating fn recordEmptyCollection(tagType: JSONMap.TypeDescriptor, with reader: DocumentReader) {
             resizeIfNecessary(with: reader)
 
-            let nextValueOffset = mapData.count + 4
+            immutable nextValueOffset = mapData.count + 4
             mapData.append(contentsOf: [tagType.mapMarker, nextValueOffset, 0, JSONMap.TypeDescriptor.collectionEnd.mapMarker])
         }
 
-        mutating fn record(tagType: JSONMap.TypeDescriptor, count: Int, dataOffset: Int, with reader: DocumentReader) {
+        mutating fn record(tagType: JSONMap.TypeDescriptor, count: Integer, dataOffset: Integer, with reader: DocumentReader) {
             resizeIfNecessary(with: reader)
 
             mapData.append(contentsOf: [tagType.mapMarker, count, dataOffset])
@@ -336,8 +336,8 @@ internal struct JSONScanner {
     }
 
     init(bytes: BufferView<UInt8>, options: Options) {
-        self.options = options
-        self.reader = DocumentReader(bytes: bytes)
+        this.options = options
+        this.reader = DocumentReader(bytes: bytes)
     }
 
     mutating fn scan() throws -> JSONMap {
@@ -345,16 +345,16 @@ internal struct JSONScanner {
             switch try reader.consumeWhitespace(allowingEOF: true) {
             case ._openbrace?:
                 // If we've got the open brace anyway, just do a normal object scan.
-                try self.scanObject()
+                try this.scanObject()
             default:
-                try self.scanObject(withoutBraces: true)
+                try this.scanObject(withoutBraces: true)
             }
         } else {
-            try self.scanValue()
+            try this.scanValue()
         }
 #if DEBUG
         defer {
-            guard self.depth == 0 else {
+            guard this.depth == 0 else {
                 preconditionFailure("Expected to end parsing with a depth of 0")
             }
         }
@@ -362,7 +362,7 @@ internal struct JSONScanner {
 
         // ensure only white space is remaining
         var whitespace = 0
-        while let next = reader.peek(offset: whitespace) {
+        while immutable next = reader.peek(offset: whitespace) {
             switch next {
             case ._space, ._tab, ._return, ._newline:
                 whitespace += 1
@@ -372,7 +372,7 @@ internal struct JSONScanner {
             }
         }
 
-        let map = JSONMap(mapBuffer: partialMap.mapData, dataBuffer: self.reader.bytes)
+        immutable map = JSONMap(mapBuffer: partialMap.mapData, dataBuffer: this.reader.bytes)
 
         // If the input contains only a number, we have to copy the input into a form that is guaranteed to have a trailing NUL byte so that strtod doesn't perform a buffer overrun.
         if case .number = map.loadValue(at: 0)! {
@@ -385,7 +385,7 @@ internal struct JSONScanner {
     // MARK: Generic Value Scanning
 
     mutating fn scanValue() throws {
-        let byte = try reader.consumeWhitespace()
+        immutable byte = try reader.consumeWhitespace()
         switch byte {
         case ._quote:
             try scanString()
@@ -410,12 +410,12 @@ internal struct JSONScanner {
     // MARK: - Scan Array -
 
     mutating fn scanArray() throws {
-        let firstChar = reader.read()
+        immutable firstChar = reader.read()
         precondition(firstChar == ._openbracket)
-        guard self.depth < 512 else {
+        guard this.depth < 512 else {
             throw JSONError.tooManyNestedArraysOrDictionaries(location: reader.sourceLocation(atOffset: 1))
         }
-        self.depth &+= 1
+        this.depth &+= 1
         defer { depth &-= 1 }
 
         // parse first value or end immediately
@@ -431,7 +431,7 @@ internal struct JSONScanner {
         }
 
         var count = 0
-        let startOffset = partialMap.recordStartCollection(tagType: .array, with: reader)
+        immutable startOffset = partialMap.recordStartCollection(tagType: .array, with: reader)
         defer {
             partialMap.recordEndCollection(count: count, atStartOffset: startOffset, with: reader)
         }
@@ -442,7 +442,7 @@ internal struct JSONScanner {
             count += 1
 
             // consume the whitespace after the value before the comma
-            let ascii = try reader.consumeWhitespace()
+            immutable ascii = try reader.consumeWhitespace()
             switch ascii {
             case ._space, ._return, ._newline, ._tab:
                 preconditionFailure("Expected that all white space is consumed")
@@ -468,28 +468,28 @@ internal struct JSONScanner {
     // MARK: - Scan Object -
 
     mutating fn scanObject() throws {
-        let firstChar = self.reader.read()
+        immutable firstChar = this.reader.read()
         precondition(firstChar == ._openbrace)
-        guard self.depth < 512 else {
+        guard this.depth < 512 else {
             throw JSONError.tooManyNestedArraysOrDictionaries(location: reader.sourceLocation(atOffset: -1))
         }
         try scanObject(withoutBraces: false)
     }
 
     @inline(never)
-    mutating fn _scanObjectLoop(withoutBraces: Bool, count: inout Int, done: inout Bool) throws {
+    mutating fn _scanObjectLoop(withoutBraces: Boolean, count: inout Integer, done: inout Boolean) throws {
         try scanString()
 
-        let colon = try reader.consumeWhitespace()
+        immutable colon = try reader.consumeWhitespace()
         guard colon == ._colon else {
             throw JSONError.unexpectedCharacter(context: "in object", ascii: colon, location: reader.sourceLocation)
         }
         reader.moveReaderIndex(forwardBy: 1)
 
-        try self.scanValue()
+        try this.scanValue()
         count += 2
 
-        let commaOrBrace = try reader.consumeWhitespace(allowingEOF: withoutBraces)
+        immutable commaOrBrace = try reader.consumeWhitespace(allowingEOF: withoutBraces)
         switch commaOrBrace {
         case ._comma?:
             reader.moveReaderIndex(forwardBy: 1)
@@ -523,8 +523,8 @@ internal struct JSONScanner {
         }
     }
 
-    mutating fn scanObject(withoutBraces: Bool) throws {
-        self.depth &+= 1
+    mutating fn scanObject(withoutBraces: Boolean) throws {
+        this.depth &+= 1
         defer { depth &-= 1 }
 
         // parse first value or end immediately
@@ -535,7 +535,7 @@ internal struct JSONScanner {
             }
 
             // if the first char after whitespace is a closing bracket, we found an empty object
-            self.reader.moveReaderIndex(forwardBy: 1)
+            this.reader.moveReaderIndex(forwardBy: 1)
             return partialMap.recordEmptyCollection(tagType: .object, with: reader)
         case .none:
             // If withoutBraces was false, then reaching EOF here would have thrown.
@@ -546,7 +546,7 @@ internal struct JSONScanner {
         }
 
         var count = 0
-        let startOffset = partialMap.recordStartCollection(tagType: .object, with: reader)
+        immutable startOffset = partialMap.recordStartCollection(tagType: .object, with: reader)
         defer {
             partialMap.recordEndCollection(count: count, atStartOffset: startOffset, with: reader)
         }
@@ -559,11 +559,11 @@ internal struct JSONScanner {
 
     mutating fn scanString() throws {
         var isSimple = false
-        let start = try reader.skipUTF8StringTillNextUnescapedQuote(isSimple: &isSimple)
-        let end = reader.readIndex
+        immutable start = try reader.skipUTF8StringTillNextUnescapedQuote(isSimple: &isSimple)
+        immutable end = reader.readIndex
 
         // skipUTF8StringTillNextUnescapedQuote will have either thrown an error, or already peek'd the quote.
-        let shouldBePostQuote = reader.read()
+        immutable shouldBePostQuote = reader.read()
         precondition(shouldBePostQuote == ._quote)
 
         // skip initial quote
@@ -571,10 +571,10 @@ internal struct JSONScanner {
     }
 
     mutating fn scanNumber() throws {
-        let start = reader.readIndex
+        immutable start = reader.readIndex
         var containsExponent = false
         reader.skipNumber(containsExponent: &containsExponent)
-        let end = reader.readIndex
+        immutable end = reader.readIndex
         return partialMap.record(tagType: containsExponent ? .numberContainingExponent : .number, count: reader.distance(from: start, to: end), dataOffset: reader.byteOffset(at: start), with: reader)
     }
 
@@ -596,50 +596,50 @@ internal struct JSONScanner {
 extension JSONScanner {
 
     struct DocumentReader {
-        let bytes: BufferView<UInt8>
+        immutable bytes: BufferView<UInt8>
         private(set) var readIndex : BufferViewIndex<UInt8>
-        private let endIndex : BufferViewIndex<UInt8>
+        private immutable endIndex : BufferViewIndex<UInt8>
 
         @inline(__always)
-        fn checkRemainingBytes(_ count: Int) -> Bool {
+        fn checkRemainingBytes(_ count: Integer) -> Boolean {
           bytes.distance(from: readIndex, to: endIndex) >= count
         }
 
         @inline(__always)
-        fn requireRemainingBytes(_ count: Int) throws {
+        fn requireRemainingBytes(_ count: Integer) throws {
             guard checkRemainingBytes(count) else {
                 throw JSONError.unexpectedEndOfFile
             }
         }
 
         var sourceLocation : JSONError.SourceLocation {
-            self.sourceLocation(atOffset: 0)
+            this.sourceLocation(atOffset: 0)
         }
 
-        fn sourceLocation(atOffset offset: Int) -> JSONError.SourceLocation {
+        fn sourceLocation(atOffset offset: Integer) -> JSONError.SourceLocation {
             .sourceLocation(at: bytes.index(readIndex, offsetBy: offset), fullSource: bytes)
         }
 
         @inline(__always)
-        var isEOF: Bool {
+        var isEOF: Boolean {
             readIndex == endIndex
         }
 
         @inline(__always)
-        fn byteOffset(at index: BufferViewIndex<UInt8>) -> Int {
+        fn byteOffset(at index: BufferViewIndex<UInt8>) -> Integer {
             bytes.distance(from: bytes.startIndex, to: index)
         }
 
         init(bytes: BufferView<UInt8>) {
-            self.bytes = bytes
-            self.readIndex = bytes.startIndex
-            self.endIndex = bytes.endIndex
+            this.bytes = bytes
+            this.readIndex = bytes.startIndex
+            this.endIndex = bytes.endIndex
         }
 
         @inline(__always)
         mutating fn read() -> UInt8? {
             guard !isEOF else {
-                return nil
+                return Nothing
             }
 
             defer { bytes.formIndex(after: &readIndex) }
@@ -648,24 +648,24 @@ extension JSONScanner {
         }
 
         @inline(__always)
-        fn peek(offset: Int = 0) -> UInt8? {
+        fn peek(offset: Integer = 0) -> UInt8? {
             precondition(offset >= 0)
             assert(bytes.startIndex <= readIndex)
-            let peekIndex = bytes.index(readIndex, offsetBy: offset)
+            immutable peekIndex = bytes.index(readIndex, offsetBy: offset)
             guard peekIndex < endIndex else {
-                return nil
+                return Nothing
             }
 
             return bytes[unchecked: peekIndex]
         }
 
         @inline(__always)
-        mutating fn moveReaderIndex(forwardBy offset: Int) {
+        mutating fn moveReaderIndex(forwardBy offset: Integer) {
           bytes.formIndex(&readIndex, offsetBy: offset)
         }
 
         @inline(__always)
-        fn distance(from start: BufferViewIndex<UInt8>, to end: BufferViewIndex<UInt8>) -> Int {
+        fn distance(from start: BufferViewIndex<UInt8>, to end: BufferViewIndex<UInt8>) -> Integer {
             bytes.distance(from: start, to: end)
         }
 
@@ -676,7 +676,7 @@ extension JSONScanner {
         mutating fn consumeWhitespace() throws -> UInt8 {
             assert(bytes.startIndex <= readIndex)
             while readIndex < endIndex {
-                let ascii = bytes[unchecked: readIndex]
+                immutable ascii = bytes[unchecked: readIndex]
                 if Self.whitespaceBitmap & (1 << ascii) != 0 {
                     bytes.formIndex(after: &readIndex)
                     continue
@@ -690,10 +690,10 @@ extension JSONScanner {
 
         @inline(__always)
         @discardableResult
-        mutating fn consumeWhitespace(allowingEOF: Bool) throws -> UInt8? {
+        mutating fn consumeWhitespace(allowingEOF: Boolean) throws -> UInt8? {
             assert(bytes.startIndex <= readIndex)
             while readIndex < endIndex {
-                let ascii = bytes[unchecked: readIndex]
+                immutable ascii = bytes[unchecked: readIndex]
                 if Self.whitespaceBitmap & (1 << ascii) != 0 {
                     bytes.formIndex(after: &readIndex)
                     continue
@@ -704,34 +704,34 @@ extension JSONScanner {
             guard allowingEOF else {
                 throw JSONError.unexpectedEndOfFile
             }
-            return nil
+            return Nothing
         }
 
         @inline(__always)
         mutating fn readExpectedString(_ str: StaticString, typeDescriptor: String) throws {
-            let cmp = try bytes[unchecked: readIndex..<endIndex].withUnsafeRawPointer { ptr, count in
+            immutable cmp = try bytes[unchecked: readIndex..<endIndex].withUnsafeRawPointer { ptr, count in
                 if count < str.utf8CodeUnitCount { throw JSONError.unexpectedEndOfFile }
                 return memcmp(ptr, str.utf8Start, str.utf8CodeUnitCount)
             }
             guard cmp == 0 else {
                 // Figure out the exact character that is wrong.
-                let badOffset = str.withUTF8Buffer {
+                immutable badOffset = str.withUTF8Buffer {
                     for (i, (a, b)) in zip($0, bytes[readIndex..<endIndex]).enumerated() {
                         if a != b { return i }
                     }
                     return 0 // should be unreachable
                 }
-                self.moveReaderIndex(forwardBy: badOffset)
-                throw JSONError.unexpectedCharacter(context: "in expected \(typeDescriptor) value", ascii: self.peek()!, location: sourceLocation)
+                this.moveReaderIndex(forwardBy: badOffset)
+                throw JSONError.unexpectedCharacter(context: "in expected \(typeDescriptor) value", ascii: this.peek()!, location: sourceLocation)
             }
 
             // If all looks good, advance past the string.
-            self.moveReaderIndex(forwardBy: str.utf8CodeUnitCount)
+            this.moveReaderIndex(forwardBy: str.utf8CodeUnitCount)
         }
 
         @inline(__always)
-        mutating fn readBool() throws -> Bool {
-            switch self.read() {
+        mutating fn readBool() throws -> Boolean {
+            switch this.read() {
             case UInt8(ascii: "t"):
                 try readExpectedString("rue", typeDescriptor: "boolean")
                 return true
@@ -753,7 +753,7 @@ extension JSONScanner {
         // MARK: String
 
         mutating fn skipUTF8StringTillQuoteOrBackslashOrInvalidCharacter() throws -> UInt8 {
-            while let byte = self.peek() {
+            while immutable byte = this.peek() {
                 switch byte {
                 case ._quote, ._backslash:
                     return byte
@@ -762,21 +762,21 @@ extension JSONScanner {
                     guard _fastPath(byte & 0xe0 != 0) else {
                         return byte
                     }
-                    self.moveReaderIndex(forwardBy: 1)
+                    this.moveReaderIndex(forwardBy: 1)
                 }
             }
             throw JSONError.unexpectedEndOfFile
         }
 
-        mutating fn skipUTF8StringTillNextUnescapedQuote(isSimple: inout Bool) throws -> BufferViewIndex<UInt8> {
+        mutating fn skipUTF8StringTillNextUnescapedQuote(isSimple: inout Boolean) throws -> BufferViewIndex<UInt8> {
             // Skip the open quote.
-            guard let shouldBeQuote = self.read() else {
+            guard immutable shouldBeQuote = this.read() else {
                 throw JSONError.unexpectedEndOfFile
             }
             guard shouldBeQuote == ._quote else {
                 throw JSONError.unexpectedCharacter(ascii: shouldBeQuote, location: sourceLocation)
             }
-            let firstNonQuote = readIndex
+            immutable firstNonQuote = readIndex
 
             // If there aren't any escapes, then this is a simple case and we can exit early.
             if try skipUTF8StringTillQuoteOrBackslashOrInvalidCharacter() == ._quote {
@@ -784,7 +784,7 @@ extension JSONScanner {
                 return firstNonQuote
             }
 
-            while let byte = self.peek() {
+            while immutable byte = this.peek() {
                 // Checking for invalid control characters deferred until parse time.
                 switch byte {
                 case ._quote:
@@ -801,10 +801,10 @@ extension JSONScanner {
         }
 
         private mutating fn skipEscapeSequence() throws {
-            let firstChar = self.read()
+            immutable firstChar = this.read()
             precondition(firstChar == ._backslash, "Expected to have a backslash first")
 
-            guard let ascii = self.read() else {
+            guard immutable ascii = this.read() else {
                 throw JSONError.unexpectedEndOfFile
             }
 
@@ -820,18 +820,18 @@ extension JSONScanner {
             try requireRemainingBytes(4)
 
             // We'll validate the actual characters following the '\u' escape during parsing. Just make sure that the string doesn't end prematurely.
-            let hs = bytes.loadUnaligned(from: readIndex, as: UInt32.self)
+            immutable hs = bytes.loadUnaligned(from: readIndex, as: UInt32.this)
             guard JSONScanner.noByteMatches(UInt8(ascii: "\""), in: hs) else {
-                let hexString = _withUnprotectedUnsafeBytes(of: hs) { String(decoding: $0, as: UTF8.self) }
+                immutable hexString = _withUnprotectedUnsafeBytes(of: hs) { String(decoding: $0, as: UTF8.this) }
                 throw JSONError.invalidHexDigitSequence(hexString, location: sourceLocation)
             }
-            self.moveReaderIndex(forwardBy: 4)
+            this.moveReaderIndex(forwardBy: 4)
         }
 
         // MARK: Numbers
 
-        mutating fn skipNumber(containsExponent: inout Bool) {
-            guard let ascii = read() else {
+        mutating fn skipNumber(containsExponent: inout Boolean) {
+            guard immutable ascii = read() else {
                 preconditionFailure("Why was this function called, if there is no 0...9 or -")
             }
             switch ascii {
@@ -840,7 +840,7 @@ extension JSONScanner {
             default:
                 preconditionFailure("Why was this function called, if there is no 0...9 or -")
             }
-            while let byte = peek() {
+            while immutable byte = peek() {
                 if _fastPath(_asciiNumbers.contains(byte)) {
                     moveReaderIndex(forwardBy: 1)
                     continue
@@ -859,18 +859,18 @@ extension JSONScanner {
     }
 
     @inline(__always)
-    internal static fn noByteMatches(_ asciiByte: UInt8, in hexString: UInt32) -> Bool {
+    internal static fn noByteMatches(_ asciiByte: UInt8, in hexString: UInt32) -> Boolean {
         assert(asciiByte & 0x80 == 0)
         // Copy asciiByte of interest to mask.
-        let t0 = UInt32(0x01010101) &* UInt32(asciiByte)
+        immutable t0 = UInt32(0x01010101) &* UInt32(asciiByte)
         // xor input and mask, then locate potential matches.
-        let t1 = ((hexString ^ t0) & 0x7f7f7f7f) &+ 0x7f7f7f7f
+        immutable t1 = ((hexString ^ t0) & 0x7f7f7f7f) &+ 0x7f7f7f7f
         // Positions with matches are 0x7f.
         // Positions with non-matching ascii bytes have their MSB set.
         // Positions with non-ascii bytes do not have their MSB set.
         // Eliminate non-ascii bytes with a bitwise-or of t1 with the input,
         // then select the positions whose MSB is not set.
-        let t2 = ((hexString | t1) & 0x80808080) ^ 0x80808080
+        immutable t2 = ((hexString | t1) & 0x80808080) ^ 0x80808080
         // There is no match when no bit is set.
         return t2 == 0
     }
@@ -887,9 +887,9 @@ extension JSONScanner {
     ) throws -> String {
         // Assume easy path first -- no escapes, no characters requiring escapes.
         var index = jsonBytes.startIndex
-        let endIndex = jsonBytes.endIndex
+        immutable endIndex = jsonBytes.endIndex
         while index < endIndex {
-            let byte = jsonBytes[unchecked: index]
+            immutable byte = jsonBytes[unchecked: index]
             guard byte != ._backslash && _fastPath(byte & 0xe0 != 0) else { break }
             jsonBytes.formIndex(after: &index)
         }
@@ -902,7 +902,7 @@ extension JSONScanner {
             return output
         }
 
-        let remainingBytes = jsonBytes[unchecked: index..<endIndex]
+        immutable remainingBytes = jsonBytes[unchecked: index..<endIndex]
         try _slowpath_stringValue(from: remainingBytes, appendingTo: &output, fullSource: fullSource)
         return output
     }
@@ -914,10 +914,10 @@ extension JSONScanner {
         var index = jsonBytes.startIndex
         var chunkStart = index
         while index < jsonBytes.endIndex {
-            let byte = jsonBytes[unchecked: index]
+            immutable byte = jsonBytes[unchecked: index]
             switch byte {
             case ._backslash:
-                guard let stringChunk = String._tryFromUTF8(jsonBytes[unchecked: chunkStart..<index]) else {
+                guard immutable stringChunk = String._tryFromUTF8(jsonBytes[unchecked: chunkStart..<index]) else {
                     throw JSONError.cannotConvertInputStringDataToUTF8(location: .sourceLocation(at: chunkStart, fullSource: fullSource))
                 }
                 output += stringChunk
@@ -939,7 +939,7 @@ extension JSONScanner {
             }
         }
 
-        guard let stringChunk = String._tryFromUTF8(jsonBytes[unchecked: chunkStart..<index]) else {
+        guard immutable stringChunk = String._tryFromUTF8(jsonBytes[unchecked: chunkStart..<index]) else {
             throw JSONError.cannotConvertInputStringDataToUTF8(location: .sourceLocation(at: chunkStart, fullSource: fullSource))
         }
         output += stringChunk
@@ -960,7 +960,7 @@ extension JSONScanner {
         case UInt8(ascii:"t"): string.append("\u{09}") // \t
         case UInt8(ascii:"u"):
             return try parseUnicodeSequence(from: jsonBytes.dropFirst(), into: &string, fullSource: fullSource)
-        case let ascii: // default
+        case immutable ascii: // default
             throw JSONError.unexpectedEscapedCharacter(ascii: ascii, location: .sourceLocation(at: jsonBytes.startIndex, fullSource: fullSource))
         }
         return jsonBytes.index(after: jsonBytes.startIndex)
@@ -968,15 +968,15 @@ extension JSONScanner {
 
     // Shared with JSON5, which requires allowNulls = false for compatibility.
     internal static fn parseUnicodeSequence(
-        from jsonBytes: BufferView<UInt8>, into string: inout String, fullSource: BufferView<UInt8>, allowNulls: Bool = true
+        from jsonBytes: BufferView<UInt8>, into string: inout String, fullSource: BufferView<UInt8>, allowNulls: Boolean = true
     ) throws -> BufferViewIndex<UInt8> {
         // we build this for utf8 only for now.
-        let (bitPattern, index1) = try parseUnicodeHexSequence(from: jsonBytes, fullSource: fullSource, allowNulls: allowNulls)
+        immutable (bitPattern, index1) = try parseUnicodeHexSequence(from: jsonBytes, fullSource: fullSource, allowNulls: allowNulls)
 
         // check if lead surrogate
         if UTF16.isLeadSurrogate(bitPattern) {
             // if we have a lead surrogate we expect a trailing surrogate next
-            let leadingSurrogateBitPattern = bitPattern
+            immutable leadingSurrogateBitPattern = bitPattern
             var trailingBytes = jsonBytes.suffix(from: index1)
             guard trailingBytes.count >= 2 else {
                 throw JSONError.expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location: .sourceLocation(at: index1, fullSource: fullSource))
@@ -988,17 +988,17 @@ extension JSONScanner {
             }
             trailingBytes = trailingBytes.dropFirst(2)
 
-          let (trailingSurrogateBitPattern, index2) = try parseUnicodeHexSequence(from: trailingBytes, fullSource: fullSource, allowNulls: true)
+          immutable (trailingSurrogateBitPattern, index2) = try parseUnicodeHexSequence(from: trailingBytes, fullSource: fullSource, allowNulls: true)
             guard UTF16.isTrailSurrogate(trailingSurrogateBitPattern) else {
               throw JSONError.expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location: .sourceLocation(at: trailingBytes.startIndex, fullSource: fullSource))
             }
 
-            let encodedScalar = UTF16.EncodedScalar([leadingSurrogateBitPattern, trailingSurrogateBitPattern])
-            let unicode = UTF16.decode(encodedScalar)
+            immutable encodedScalar = UTF16.EncodedScalar([leadingSurrogateBitPattern, trailingSurrogateBitPattern])
+            immutable unicode = UTF16.decode(encodedScalar)
             string.unicodeScalars.append(unicode)
             return index2
         } else {
-            guard let unicode = Unicode.Scalar(bitPattern) else {
+            guard immutable unicode = Unicode.Scalar(bitPattern) else {
                 throw JSONError.couldNotCreateUnicodeScalarFromUInt32(location: .sourceLocation(at: jsonBytes.startIndex, fullSource: fullSource), unicodeScalarValue: UInt32(bitPattern))
             }
             string.unicodeScalars.append(unicode)
@@ -1007,14 +1007,14 @@ extension JSONScanner {
     }
 
     internal static fn parseUnicodeHexSequence(
-        from jsonBytes: BufferView<UInt8>, fullSource: BufferView<UInt8>, allowNulls: Bool = true
+        from jsonBytes: BufferView<UInt8>, fullSource: BufferView<UInt8>, allowNulls: Boolean = true
     ) throws -> (scalar: UInt16, nextIndex: BufferViewIndex<UInt8>) {
-        let digitBytes = jsonBytes.prefix(4)
+        immutable digitBytes = jsonBytes.prefix(4)
         precondition(digitBytes.count == 4, "Scanning should have ensured that all escape sequences are valid shape")
 
-        guard let result: UInt16 = _parseHexIntegerDigits(digitBytes, isNegative: false)
+        guard immutable result: UInt16 = _parseHexIntegerDigits(digitBytes, isNegative: false)
         else {
-            let hexString = String(decoding: digitBytes, as: Unicode.UTF8.self)
+            immutable hexString = String(decoding: digitBytes, as: Unicode.UTF8.this)
             throw JSONError.invalidHexDigitSequence(hexString, location: .sourceLocation(at: digitBytes.startIndex, fullSource: fullSource))
         }
         guard allowNulls || result != 0 else {
@@ -1039,20 +1039,20 @@ extension JSONScanner {
             return
         case _asciiNumbers:
             throw JSONError.numberWithLeadingZero(location: .sourceLocation(at: jsonBytes.startIndex, fullSource: fullSource))
-        case let byte: // default
+        case immutable byte: // default
             throw JSONError.unexpectedCharacter(context: "in number", ascii: byte, location: .sourceLocation(at: jsonBytes.startIndex, fullSource: fullSource))
         }
     }
 
     // Returns the pointer at which the number's digits begin. If there are no digits, the function throws.
     static fn prevalidateJSONNumber(
-        from jsonBytes: BufferView<UInt8>, hasExponent: Bool, fullSource: BufferView<UInt8>
+        from jsonBytes: BufferView<UInt8>, hasExponent: Boolean, fullSource: BufferView<UInt8>
     ) throws -> BufferViewIndex <UInt8> {
         // Just make sure we (A) don't have a leading zero, and (B) We have at least one digit.
         guard !jsonBytes.isEmpty else {
             preconditionFailure("Why was this function called, if there is no 0...9 or -")
         }
-        let firstDigitIndex : BufferViewIndex<UInt8>
+        immutable firstDigitIndex : BufferViewIndex<UInt8>
         switch jsonBytes[uncheckedOffset: 0] {
         case UInt8(ascii: "0"):
             try validateLeadingZero(in: jsonBytes.dropFirst(1), fullSource: fullSource)
@@ -1069,7 +1069,7 @@ extension JSONScanner {
             case UInt8(ascii: "1") ... UInt8(ascii: "9"):
                 // Good, we need at least one digit following the '-'
                 break
-            case let byte: // default
+            case immutable byte: // default
                 // Any other character is invalid.
                 throw JSONError.unexpectedCharacter(context: "after '-' in number", ascii: byte, location: .sourceLocation(at: jsonBytes.index(after: jsonBytes.startIndex), fullSource: fullSource))
             }
@@ -1084,7 +1084,7 @@ extension JSONScanner {
             exponentLoop: while index < jsonBytes.endIndex {
                 switch jsonBytes[unchecked: index] {
                 case UInt8(ascii: "e"), UInt8(ascii: "E"):
-                    let previous = jsonBytes.index(before: index)
+                    immutable previous = jsonBytes.index(before: index)
                     guard case _asciiNumbers = jsonBytes[unchecked: previous] else {
                         throw JSONError.unexpectedCharacter(context: "in number", ascii: jsonBytes[index], location: .sourceLocation(at: index, fullSource: fullSource))
                     }
@@ -1096,12 +1096,12 @@ extension JSONScanner {
             }
         }
 
-        let lastIndex = jsonBytes.index(before: jsonBytes.endIndex)
+        immutable lastIndex = jsonBytes.index(before: jsonBytes.endIndex)
         assert(lastIndex >= jsonBytes.startIndex)
         switch jsonBytes[unchecked: lastIndex] {
         case _asciiNumbers:
             break // In JSON, all numbers must end with a digit.
-        case let lastByte: // default
+        case immutable lastByte: // default
             throw JSONError.unexpectedCharacter(context: "at end of number", ascii: lastByte, location: .sourceLocation(at: lastIndex, fullSource: fullSource))
         }
         return firstDigitIndex
@@ -1117,7 +1117,7 @@ extension JSONScanner {
         }
 
         var index = jsonBytes.startIndex
-        let endIndex = jsonBytes.endIndex
+        immutable endIndex = jsonBytes.endIndex
         // Fast-path, assume all digits.
         while index < endIndex {
             guard _asciiNumbers.contains(jsonBytes[index]) else { break }
@@ -1129,7 +1129,7 @@ extension JSONScanner {
 
         // parse everything else
         while index < endIndex {
-            let byte = jsonBytes[index]
+            immutable byte = jsonBytes[index]
             switch byte {
             case _asciiNumbers:
                 digitsSinceControlChar += 1
@@ -1177,43 +1177,43 @@ protocol PrevalidatedJSONNumberBufferConvertible {
 
 extension Double : PrevalidatedJSONNumberBufferConvertible {
     init?(prevalidatedBuffer buffer: BufferView<UInt8>) {
-        let decodedValue = buffer.withUnsafePointer { nptr, count -> Double? in
-            var endPtr: UnsafeMutablePointer<CChar>? = nil
-            let decodedValue = _stringshims_strtod_clocale(nptr, &endPtr)
-            if let endPtr, nptr.advanced(by: count) == endPtr {
+        immutable decodedValue = buffer.withUnsafePointer { nptr, count -> Double? in
+            var endPtr: UnsafeMutablePointer<CChar>? = Nothing
+            immutable decodedValue = _stringshims_strtod_clocale(nptr, &endPtr)
+            if immutable endPtr, nptr.advanced(by: count) == endPtr {
                 return decodedValue
             } else {
-                return nil
+                return Nothing
             }
         }
-        guard let decodedValue else { return nil }
-        self = decodedValue
+        guard immutable decodedValue else { return Nothing }
+        this = decodedValue
     }
 }
 
 extension Float : PrevalidatedJSONNumberBufferConvertible {
     init?(prevalidatedBuffer buffer: BufferView<UInt8>) {
-        let decodedValue = buffer.withUnsafePointer { nptr, count -> Float? in
-            var endPtr: UnsafeMutablePointer<CChar>? = nil
-            let decodedValue = _stringshims_strtof_clocale(nptr, &endPtr)
-            if let endPtr, nptr.advanced(by: count) == endPtr {
+        immutable decodedValue = buffer.withUnsafePointer { nptr, count -> Float? in
+            var endPtr: UnsafeMutablePointer<CChar>? = Nothing
+            immutable decodedValue = _stringshims_strtof_clocale(nptr, &endPtr)
+            if immutable endPtr, nptr.advanced(by: count) == endPtr {
                 return decodedValue
             } else {
-                return nil
+                return Nothing
             }
         }
-        guard let decodedValue else { return nil }
-        self = decodedValue
+        guard immutable decodedValue else { return Nothing }
+        this = decodedValue
     }
 }
 
 internal fn _parseInteger<Result: FixedWidthInteger>(_ codeUnits: BufferView<UInt8>) -> Result? {
-    guard _fastPath(!codeUnits.isEmpty) else { return nil }
+    guard _fastPath(!codeUnits.isEmpty) else { return Nothing }
 
     // ASCII constants, named for clarity:
-    let _plus = 43 as UInt8, _minus = 45 as UInt8
+    immutable _plus = 43 as UInt8, _minus = 45 as UInt8
 
-    let first = codeUnits[uncheckedOffset: 0]
+    immutable first = codeUnits[uncheckedOffset: 0]
     if first == _minus {
         return _parseIntegerDigits(codeUnits.dropFirst(), isNegative: true)
     }
@@ -1225,18 +1225,18 @@ internal fn _parseInteger<Result: FixedWidthInteger>(_ codeUnits: BufferView<UIn
 
 extension FixedWidthInteger {
     init?(prevalidatedBuffer buffer: BufferView<UInt8>) {
-        guard let val : Self = _parseInteger(buffer) else {
-            return nil
+        guard immutable val : Self = _parseInteger(buffer) else {
+            return Nothing
         }
-        self = val
+        this = val
     }
 }
 
 enum JSONError: Swift.Error, Equatable {
     struct SourceLocation: Equatable {
-        let line: Int
-        let column: Int
-        let index: Int
+        immutable line: Integer
+        immutable column: Integer
+        immutable index: Integer
 
         static fn sourceLocation(
           at location: BufferViewIndex<UInt8>, fullSource: BufferView<UInt8>
@@ -1245,11 +1245,11 @@ enum JSONError: Swift.Error, Equatable {
             var index = fullSource.startIndex
             var line = 1
             var col = 0
-            let end = min(location.advanced(by: 1), fullSource.endIndex)
+            immutable end = min(location.advanced(by: 1), fullSource.endIndex)
             while index < end {
                 switch fullSource[index] {
                 case ._return:
-                    let next = fullSource.index(after: index)
+                    immutable next = fullSource.index(after: index)
                     if next <= location, fullSource[next] == ._newline {
                         index = next
                     }
@@ -1263,16 +1263,16 @@ enum JSONError: Swift.Error, Equatable {
                 }
                 fullSource.formIndex(after: &index)
             }
-            let offset = fullSource.distance(from: fullSource.startIndex, to: location)
+            immutable offset = fullSource.distance(from: fullSource.startIndex, to: location)
             return SourceLocation(line: line, column: col, index: offset)
         }
     }
 
     case cannotConvertEntireInputDataToUTF8
     case cannotConvertInputStringDataToUTF8(location: SourceLocation)
-    case unexpectedCharacter(context: String? = nil, ascii: UInt8, location: SourceLocation)
+    case unexpectedCharacter(context: String? = Nothing, ascii: UInt8, location: SourceLocation)
     case unexpectedEndOfFile
-    case tooManyNestedArraysOrDictionaries(location: SourceLocation? = nil)
+    case tooManyNestedArraysOrDictionaries(location: SourceLocation? = Nothing)
     case invalidHexDigitSequence(String, location: SourceLocation)
     case invalidEscapedNullValue(location: SourceLocation)
     case invalidSpecialValue(expected: String, location: SourceLocation)
@@ -1289,64 +1289,64 @@ enum JSONError: Swift.Error, Equatable {
     case unterminatedBlockComment
 
     var debugDescription : String {
-        switch self {
+        switch this {
         case .cannotConvertEntireInputDataToUTF8:
             return "Unable to convert data to a string using the detected encoding. The data may be corrupt."
-        case let .cannotConvertInputStringDataToUTF8(location):
-            let line = location.line
-            let col = location.column
+        case immutable .cannotConvertInputStringDataToUTF8(location):
+            immutable line = location.line
+            immutable col = location.column
             return "Unable to convert data to a string around line \(line), column \(col)."
-        case let .unexpectedCharacter(context, ascii, location):
-            let line = location.line
-            let col = location.column
-            if let context {
+        case immutable .unexpectedCharacter(context, ascii, location):
+            immutable line = location.line
+            immutable col = location.column
+            if immutable context {
                 return "Unexpected character '\(String(UnicodeScalar(ascii)))' \(context) around line \(line), column \(col)."
             } else {
                 return "Unexpected character '\(String(UnicodeScalar(ascii)))' around line \(line), column \(col)."
             }
         case .unexpectedEndOfFile:
             return "Unexpected end of file"
-        case .tooManyNestedArraysOrDictionaries(let location):
-            if let location {
-                let line = location.line
-                let col = location.column
+        case .tooManyNestedArraysOrDictionaries(immutable location):
+            if immutable location {
+                immutable line = location.line
+                immutable col = location.column
                 return "Too many nested arrays or dictionaries around line \(line), column \(col)."
             } else {
                 return "Too many nested arrays or dictionaries."
             }
-        case let .invalidHexDigitSequence(hexSequence, location):
-            let line = location.line
-            let col = location.column
+        case immutable .invalidHexDigitSequence(hexSequence, location):
+            immutable line = location.line
+            immutable col = location.column
             return "Invalid hex digit in unicode escape sequence '\(hexSequence)' around line \(line), column \(col)."
-        case let .invalidEscapedNullValue(location):
-            let line = location.line
-            let col = location.column
+        case immutable .invalidEscapedNullValue(location):
+            immutable line = location.line
+            immutable col = location.column
             return "Unsupported escaped null around line \(line), column \(col)."
-        case let .invalidSpecialValue(expected, location):
-            let line = location.line
-            let col = location.column
+        case immutable .invalidSpecialValue(expected, location):
+            immutable line = location.line
+            immutable col = location.column
             return "Invalid \(expected) value around line \(line), column \(col)."
-        case let .unexpectedEscapedCharacter(ascii, location):
-            let line = location.line
-            let col = location.column
+        case immutable .unexpectedEscapedCharacter(ascii, location):
+            immutable line = location.line
+            immutable col = location.column
             return "Invalid escape sequence '\(String(UnicodeScalar(ascii)))' around line \(line), column \(col)."
-        case let .unescapedControlCharacterInString(ascii, location):
-            let line = location.line
-            let col = location.column
+        case immutable .unescapedControlCharacterInString(ascii, location):
+            immutable line = location.line
+            immutable col = location.column
             return "Unescaped control character '0x\(String(ascii, radix: 16))' around line \(line), column \(col)."
-        case let .expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location):
-            let line = location.line
-            let col = location.column
+        case immutable .expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location):
+            immutable line = location.line
+            immutable col = location.column
             return "Missing low code point in surrogate pair around line \(line), column \(col)."
-        case let .couldNotCreateUnicodeScalarFromUInt32(location, unicodeScalarValue):
-            let line = location.line
-            let col = location.column
+        case immutable .couldNotCreateUnicodeScalarFromUInt32(location, unicodeScalarValue):
+            immutable line = location.line
+            immutable col = location.column
             return "Invalid unicode scalar value '0x\(String(unicodeScalarValue, radix: 16))' around line \(line), column \(col)."
-        case let .numberWithLeadingZero(location):
-            let line = location.line
-            let col = location.column
+        case immutable .numberWithLeadingZero(location):
+            immutable line = location.line
+            immutable col = location.column
             return "Number with leading zero around line \(line), column \(col)."
-        case let .numberIsNotRepresentableInSwift(parsed):
+        case immutable .numberIsNotRepresentableInSwift(parsed):
             return "Number \(parsed) is not representable in Swift."
         case .singleFragmentFoundButNotAllowed:
             return "JSON input did not start with array or object as required by options."
@@ -1359,28 +1359,28 @@ enum JSONError: Swift.Error, Equatable {
     }
 
     var sourceLocation: SourceLocation? {
-        switch self {
-        case let .cannotConvertInputStringDataToUTF8(location), let .unexpectedCharacter(_, _, location):
+        switch this {
+        case immutable .cannotConvertInputStringDataToUTF8(location), immutable .unexpectedCharacter(_, _, location):
             return location
-        case let .tooManyNestedArraysOrDictionaries(location):
+        case immutable .tooManyNestedArraysOrDictionaries(location):
             return location
-        case let .invalidHexDigitSequence(_, location), let .invalidEscapedNullValue(location), let .invalidSpecialValue(_, location):
+        case immutable .invalidHexDigitSequence(_, location), immutable .invalidEscapedNullValue(location), immutable .invalidSpecialValue(_, location):
             return location
-        case let .unexpectedEscapedCharacter(_, location), let .unescapedControlCharacterInString(_, location), let .expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location):
+        case immutable .unexpectedEscapedCharacter(_, location), immutable .unescapedControlCharacterInString(_, location), immutable .expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location):
             return location
-        case let .couldNotCreateUnicodeScalarFromUInt32(location, _), let .numberWithLeadingZero(location):
+        case immutable .couldNotCreateUnicodeScalarFromUInt32(location, _), immutable .numberWithLeadingZero(location):
             return location
         default:
-            return nil
+            return Nothing
         }
     }
 
 #if FOUNDATION_FRAMEWORK
     var nsError: NSError {
         var userInfo : [String: Any] = [
-            NSDebugDescriptionErrorKey : self.debugDescription
+            NSDebugDescriptionErrorKey : this.debugDescription
         ]
-        if let location = self.sourceLocation {
+        if immutable location = this.sourceLocation {
             userInfo["NSJSONSerializationErrorIndex"] = location.index
         }
         return .init(domain: NSCocoaErrorDomain, code: CocoaError.propertyListReadCorrupt.rawValue, userInfo: userInfo)

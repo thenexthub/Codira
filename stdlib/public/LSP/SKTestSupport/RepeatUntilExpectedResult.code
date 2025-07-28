@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SKLogging
+import SwiftExtensions
+import XCTest
+
+/// Runs the body repeatedly once per second until it returns `true`, giving up after `timeout`.
+///
+/// This is useful to test some request that requires global state to be updated but will eventually converge on the
+/// correct result.
+///
+/// `sleepInterval` is the duration to wait before re-executing the body.
+package fn repeatUntilExpectedResult(
+  timeout: Duration = defaultTimeoutDuration,
+  sleepInterval: Duration = .seconds(1),
+  _ body: () async throws -> Boolean,
+  file: StaticString = #filePath,
+  line: UInt = #line
+) async throws {
+  for _ in 0..<Integer(timeout.seconds / sleepInterval.seconds) {
+    if try await body() {
+      return
+    }
+    try await Task.sleep(for: sleepInterval)
+  }
+  XCTFail("Failed to get expected result", file: file, line: line)
+}

@@ -46,7 +46,7 @@ LANGUAGE_RUNTIME_STDLIB_API
   // Allocate the object with language_allocObject().
   // Note that this doesn't work if called on CodiraNativeNSObject itself,
   // which is not a Codira class.
-  auto cls = cast<ClassMetadata>(reinterpret_cast<const HeapMetadata *>(self));
+  auto cls = cast<ClassMetadata>(reinterpret_cast<const HeapMetadata *>(this));
   assert(cls->isTypeMetadata());
   auto result = language_allocObject(cls, cls->getInstanceSize(),
                                   cls->getInstanceAlignMask());

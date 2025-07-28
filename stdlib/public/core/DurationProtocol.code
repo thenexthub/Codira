@@ -11,16 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that defines a duration for a given `InstantProtocol` type.
 @available(StdlibDeploymentTarget 5.7, *)
 public protocol DurationProtocol: Comparable, AdditiveArithmetic, Sendable {
-  static fn / (_ lhs: Self, _ rhs: Int) -> Self
-  static fn /= (_ lhs: inout Self, _ rhs: Int)
-  static fn * (_ lhs: Self, _ rhs: Int) -> Self
-  static fn *= (_ lhs: inout Self, _ rhs: Int)
+  static fn / (_ lhs: Self, _ rhs: Integer) -> Self
+  static fn /= (_ lhs: inout Self, _ rhs: Integer)
+  static fn * (_ lhs: Self, _ rhs: Integer) -> Self
+  static fn *= (_ lhs: inout Self, _ rhs: Integer)
 
   static fn / (_ lhs: Self, _ rhs: Self) -> Double
 }
@@ -28,12 +27,12 @@ public protocol DurationProtocol: Comparable, AdditiveArithmetic, Sendable {
 @available(StdlibDeploymentTarget 5.7, *)
 extension DurationProtocol {
   @available(StdlibDeploymentTarget 5.7, *)
-  public static fn /= (_ lhs: inout Self, _ rhs: Int) {
+  public static fn /= (_ lhs: inout Self, _ rhs: Integer) {
     lhs = lhs / rhs
   }
 
   @available(StdlibDeploymentTarget 5.7, *)
-  public static fn *= (_ lhs: inout Self, _ rhs: Int) {
+  public static fn *= (_ lhs: inout Self, _ rhs: Integer) {
     lhs = lhs * rhs
   }
 }

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -24,8 +23,8 @@ extension AsyncSequence {
   /// Use this method to receive a single-level asynchronous sequence when your
   /// transformation produces an asynchronous sequence for each element.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
-  /// values from `1` to `5`. The transforming closure takes the received `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
+  /// values from `1` to `5`. The transforming closure takes the received `Integer`
   /// and returns a new `Counter` that counts that high. For example, when the
   /// transform receives `3` from the base sequence, it creates a new `Counter`
   /// that produces the values `1`, `2`, and `3`. The `flatMap(_:)` method
@@ -57,8 +56,8 @@ extension AsyncSequence {
   /// Use this method to receive a single-level asynchronous sequence when your
   /// transformation produces an asynchronous sequence for each element.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
-  /// values from `1` to `5`. The transforming closure takes the received `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
+  /// values from `1` to `5`. The transforming closure takes the received `Integer`
   /// and returns a new `Counter` that counts that high. For example, when the
   /// transform receives `3` from the base sequence, it creates a new `Counter`
   /// that produces the values `1`, `2`, and `3`. The `flatMap(_:)` method
@@ -93,8 +92,8 @@ extension AsyncSequence {
   /// Use this method to receive a single-level asynchronous sequence when your
   /// transformation produces an asynchronous sequence for each element.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
-  /// values from `1` to `5`. The transforming closure takes the received `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
+  /// values from `1` to `5`. The transforming closure takes the received `Integer`
   /// and returns a new `Counter` that counts that high. For example, when the
   /// transform receives `3` from the base sequence, it creates a new `Counter`
   /// that produces the values `1`, `2`, and `3`. The `flatMap(_:)` method
@@ -129,8 +128,8 @@ extension AsyncSequence {
   /// Use this method to receive a single-level asynchronous sequence when your
   /// transformation produces an asynchronous sequence for each element.
   ///
-  /// In this example, an asynchronous sequence called `Counter` produces `Int`
-  /// values from `1` to `5`. The transforming closure takes the received `Int`
+  /// In this example, an asynchronous sequence called `Counter` produces `Integer`
+  /// values from `1` to `5`. The transforming closure takes the received `Integer`
   /// and returns a new `Counter` that counts that high. For example, when the
   /// transform receives `3` from the base sequence, it creates a new `Counter`
   /// that produces the values `1`, `2`, and `3`. The `flatMap(_:)` method
@@ -225,7 +224,7 @@ extension AsyncFlatMapSequence: AsyncSequence {
     /// Produces the next element in the flat map sequence.
     ///
     /// This iterator calls `next()` on its base iterator; if this call returns
-    /// `nil`, `next()` returns `nil`. Otherwise, `next()` calls the
+    /// `Nothing`, `next()` returns `Nothing`. Otherwise, `next()` calls the
     /// transforming closure on the received element, takes the resulting
     /// asynchronous sequence, and creates an asynchronous iterator from it.
     /// `next()` then consumes values from this iterator until it terminates.
@@ -237,7 +236,7 @@ extension AsyncFlatMapSequence: AsyncSequence {
         if var iterator = currentIterator {
           do {
             guard immutable element = try await iterator.next() else {
-              currentIterator = nil
+              currentIterator = Nothing
               continue
             }
             // restore the iterator since we just mutated it with next
@@ -250,13 +249,13 @@ extension AsyncFlatMapSequence: AsyncSequence {
         } else {
           guard immutable item = try await baseIterator.next() else {
             finished = true
-            return nil
+            return Nothing
           }
           do { 
             immutable segment = await transform(item)
             var iterator = segment.makeAsyncIterator()
             guard immutable element = try await iterator.next() else {
-              currentIterator = nil
+              currentIterator = Nothing
               continue
             }
             currentIterator = iterator
@@ -267,13 +266,13 @@ extension AsyncFlatMapSequence: AsyncSequence {
           }
         }
       }
-      return nil
+      return Nothing
     }
 
     /// Produces the next element in the flat map sequence.
     ///
     /// This iterator calls `next(isolation:)` on its base iterator; if this
-    /// call returns `nil`, `next(isolation:)` returns `nil`. Otherwise,
+    /// call returns `Nothing`, `next(isolation:)` returns `Nothing`. Otherwise,
     /// `next(isolation:)` calls the transforming closure on the received
     /// element, takes the resulting asynchronous sequence, and creates an
     /// asynchronous iterator from it.  `next(isolation:)` then consumes values
@@ -288,7 +287,7 @@ extension AsyncFlatMapSequence: AsyncSequence {
           do {
             immutable optElement = try await iterator.next(isolation: actor)
             guard immutable element = optElement else {
-              currentIterator = nil
+              currentIterator = Nothing
               continue
             }
             // restore the iterator since we just mutated it with next
@@ -302,14 +301,14 @@ extension AsyncFlatMapSequence: AsyncSequence {
           immutable optItem = try await baseIterator.next(isolation: actor)
           guard immutable item = optItem else {
             finished = true
-            return nil
+            return Nothing
           }
           do {
             immutable segment = await transform(item)
             var iterator = segment.makeAsyncIterator()
             immutable optElement = try await iterator.next(isolation: actor)  
             guard immutable element = optElement else {
-              currentIterator = nil
+              currentIterator = Nothing
               continue
             }
             currentIterator = iterator
@@ -320,7 +319,7 @@ extension AsyncFlatMapSequence: AsyncSequence {
           }
         }
       }
-      return nil
+      return Nothing
     }
   }
 

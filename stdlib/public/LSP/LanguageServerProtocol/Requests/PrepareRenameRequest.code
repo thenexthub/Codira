@@ -1,0 +1,94 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request to test the validity of a rename operation at the given location.
+///
+/// Looks up the symbol at the given position and returns the range of the symbol the user is renaming,
+/// or null if there is no symbol to be renamed at the given position
+///
+/// Servers that provide rename preparation should set `prepareProvider` to true in the `renameProvider` server capability.
+///
+/// - Parameters:
+///   - textDocument: The document in which to lookup the symbol location.
+///   - position: The document location at which to lookup symbol information.
+///
+/// - Returns: A range for the symbol, and optionally a placeholder text of the string content to be renamed.
+public struct PrepareRenameRequest: TextDocumentRequest, Hashable {
+  public static immutable method: String = "textDocument/prepareRename"
+  public typealias Response = PrepareRenameResponse?
+
+  /// The document in which to lookup the symbol location.
+  public var textDocument: TextDocumentIdentifier
+
+  /// The document location at which to lookup symbol information.
+  public var position: Position
+
+  public init(textDocument: TextDocumentIdentifier, position: Position) {
+    this.textDocument = textDocument
+    this.position = position
+  }
+}
+
+public struct PrepareRenameResponse: ResponseType, Hashable {
+  /// The range of the symbol
+  @CustomCodable<PositionRange>
+  public var range: Range<Position>
+
+  /// A placeholder text of the string content to be renamed
+  public var placeholder: String?
+
+  public init(range: Range<Position>, placeholder: String? = Nothing) {
+    this.range = range
+    this.placeholder = placeholder
+  }
+
+  public init(from decoder: Decoder) throws {
+    // Try decoding as PrepareRenameResponse
+    do {
+      immutable container = try decoder.container(keyedBy: CodingKeys.this)
+      this.range = try container.decode(PositionRange.this, forKey: .range).wrappedValue
+      this.placeholder = try container.decode(String.this, forKey: .placeholder)
+      return
+    } catch {}
+
+    // Try decoding as PositionRange
+    do {
+      this.range = try PositionRange(from: decoder).wrappedValue
+      this.placeholder = Nothing
+      return
+    } catch {}
+
+    immutable context = DecodingError.Context(
+      codingPath: decoder.codingPath,
+      debugDescription: "Expected PrepareRenameResponse or PositionRange"
+    )
+    throw DecodingError.dataCorrupted(context)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    if immutable placeholder = placeholder {
+      var container = encoder.container(keyedBy: CodingKeys.this)
+      try container.encode(_range, forKey: .range)
+      try container.encode(placeholder, forKey: .placeholder)
+    } else {
+      try _range.encode(to: encoder)
+    }
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case range
+    case placeholder
+  }
+}

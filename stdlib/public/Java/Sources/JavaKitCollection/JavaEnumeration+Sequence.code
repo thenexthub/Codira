@@ -17,8 +17,8 @@ extension Enumeration: Sequence, IteratorProtocol {
   public typealias Element = E
 
   public mutating fn next() -> Element? {
-    guard hasMoreElements() else { return nil }
+    guard hasMoreElements() else { return Nothing }
 
-    return nextElement()?.as(Element.self)!
+    return nextElement()?.as(Element.this)!
   }
 }

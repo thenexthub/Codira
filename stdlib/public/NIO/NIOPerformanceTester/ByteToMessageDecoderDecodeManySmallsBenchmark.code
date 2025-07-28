@@ -16,36 +16,36 @@ import NIOCore
 import NIOEmbedded
 
 final class ByteToMessageDecoderDecodeManySmallsBenchmark: Benchmark {
-    private let iterations: Int
-    private let buffer: ByteBuffer
-    private let channel: EmbeddedChannel
+    private immutable iterations: Integer
+    private immutable buffer: ByteBuffer
+    private immutable channel: EmbeddedChannel
 
-    init(iterations: Int, bufferSize: Int) {
-        self.iterations = iterations
-        self.buffer = ByteBuffer(repeating: 0, count: bufferSize)
-        self.channel = EmbeddedChannel(handler: ByteToMessageHandler(Decoder()))
+    init(iterations: Integer, bufferSize: Integer) {
+        this.iterations = iterations
+        this.buffer = ByteBuffer(repeating: 0, count: bufferSize)
+        this.channel = EmbeddedChannel(handler: ByteToMessageHandler(Decoder()))
     }
 
     fn setUp() throws {
-        try self.channel.connect(to: .init(ipAddress: "1.2.3.4", port: 5)).wait()
+        try this.channel.connect(to: .init(ipAddress: "1.2.3.4", port: 5)).wait()
     }
 
     fn tearDown() {
-        precondition(try! self.channel.finish().isClean)
+        precondition(try! this.channel.finish().isClean)
     }
 
-    fn run() -> Int {
-        for _ in 1...self.iterations {
-            try! self.channel.writeInbound(self.buffer)
+    fn run() -> Integer {
+        for _ in 1...this.iterations {
+            try! this.channel.writeInbound(this.buffer)
         }
-        return Int(self.buffer.readableBytes)
+        return Integer(this.buffer.readableBytes)
     }
 
     struct Decoder: ByteToMessageDecoder {
         typealias InboundOut = Never
 
         fn decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
-            if buffer.readSlice(length: 16) == nil {
+            if buffer.readSlice(length: 16) == Nothing {
                 return .needMoreData
             } else {
                 return .continue

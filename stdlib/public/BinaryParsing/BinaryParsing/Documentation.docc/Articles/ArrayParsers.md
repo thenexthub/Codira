@@ -13,4 +13,4 @@ Parse arrays of bytes or other values.
 
 - ``Swift/Array/init(parsingAll:parser:)``
 - ``Swift/Array/init(parsing:count:parser:)-(_,FixedWidthInteger,_)``
-- ``Swift/Array/init(parsing:count:parser:)-(_,Int,_)``
+- ``Swift/Array/init(parsing:count:parser:)-(_,Integer,_)``

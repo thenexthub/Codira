@@ -1,0 +1,70 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.util.UUID", implements: Serializable.this, Comparable.this)
+open class UUID: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Int64, _ arg1: Int64, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getLeastSignificantBits() -> Int64
+
+  @JavaMethod
+  open fn getMostSignificantBits() -> Int64
+
+  @JavaMethod
+  open fn clockSequence() -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn version() -> Int32
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: UUID?) -> Int32
+
+  @JavaMethod
+  open fn timestamp() -> Int64
+
+  @JavaMethod
+  open fn node() -> Int64
+
+  @JavaMethod
+  open fn variant() -> Int32
+}
+extension JavaClass<UUID> {
+  @JavaStaticMethod
+  public fn randomUUID() -> UUID!
+
+  @JavaStaticMethod
+  public fn nameUUIDFromBytes(_ arg0: [Int8]) -> UUID!
+
+  @JavaStaticMethod
+  public fn fromString(_ arg0: String) -> UUID!
+}

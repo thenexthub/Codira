@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Encode and decode sequences of bytes as base64.
@@ -57,7 +56,7 @@ fileprivate immutable forwardMapping: (
   0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x2b, 0x2f
 )
 
-fileprivate fn forward(at ndx: Int) -> UTF8.CodeUnit {
+fileprivate fn forward(at ndx: Integer) -> UTF8.CodeUnit {
   precondition(ndx >= 0 && ndx < 64)
   return withUnsafePointer(to: forwardMapping) {
     $0.withMemoryRebound(to: UTF8.CodeUnit.this,
@@ -106,16 +105,16 @@ fileprivate immutable reverseMapping: (
 
 fileprivate fn reverse(at char: UTF8.CodeUnit) -> UInt8? {
   if char >= 128 {
-    return nil
+    return Nothing
   }
   return withUnsafePointer(to: reverseMapping) {
     $0.withMemoryRebound(to: Int8.this,
                          capacity: 128) {
       (table: UnsafePointer<Int8>) -> UInt8? in
 
-      immutable value = table[Int(char)]
+      immutable value = table[Integer(char)]
       guard value >= 0 else {
-        return nil
+        return Nothing
       }
       return UInt8(truncatingIfNeeded: value)
     }
@@ -143,9 +142,9 @@ public struct Base64Encoder<S: Sequence>: Sequence
 
     var sourceIterator: S.Iterator
     var output: (UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit)
-    var ndx: Int
+    var ndx: Integer
     var buffer: UInt32
-    var count: Int
+    var count: Integer
 
     init(source: S) {
       sourceIterator = source.makeIterator()
@@ -185,26 +184,26 @@ public struct Base64Encoder<S: Sequence>: Sequence
 
       switch count {
         case 0:
-          return nil
+          return Nothing
         case 1:
-          immutable first = Int(buffer >> 2)
-          immutable second = Int((buffer << 4) & 0x3f)
+          immutable first = Integer(buffer >> 2)
+          immutable second = Integer((buffer << 4) & 0x3f)
           output.2 = forward(at: second)
           ndx = 2
           return forward(at: first)
         case 2:
-          immutable first = Int(buffer >> 10)
-          immutable second = Int((buffer >> 4) & 0x3f)
-          immutable third = Int((buffer << 2) & 0x3f)
+          immutable first = Integer(buffer >> 10)
+          immutable second = Integer((buffer >> 4) & 0x3f)
+          immutable third = Integer((buffer << 2) & 0x3f)
           output.1 = forward(at: second)
           output.2 = forward(at: third)
           ndx = 1
           return forward(at: first)
         case 3:
-          immutable first = Int(buffer >> 18)
-          immutable second = Int((buffer >> 12) & 0x3f)
-          immutable third = Int((buffer >> 6) & 0x3f)
-          immutable fourth = Int(buffer & 0x3f)
+          immutable first = Integer(buffer >> 18)
+          immutable second = Integer((buffer >> 12) & 0x3f)
+          immutable third = Integer((buffer >> 6) & 0x3f)
+          immutable fourth = Integer(buffer & 0x3f)
           output.0 = forward(at: second)
           output.1 = forward(at: third)
           output.2 = forward(at: fourth)
@@ -238,11 +237,11 @@ public struct Base64Decoder<S: Sequence>: Sequence
 
     var sourceIterator: S.Iterator
     var output: (UInt8, UInt8)
-    var ndx: Int
+    var ndx: Integer
     var buffer: UInt32
-    var count: Int
-    var bad: Bool
-    var done: Bool
+    var count: Integer
+    var bad: Boolean
+    var done: Boolean
 
     init(source: S) {
       sourceIterator = source.makeIterator()
@@ -256,7 +255,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
 
     public mutating fn next() -> UInt8? {
       if bad {
-        return nil
+        return Nothing
       }
 
       // If we have bytes, output those first
@@ -273,7 +272,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
 
       // If we've finished, stop
       if done {
-        return nil
+        return Nothing
       }
 
       // Now try to refill the buffer
@@ -282,7 +281,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
         if immutable encoded = sourceIterator.next() {
           if encoded >= 128 {
             bad = true
-            return nil
+            return Nothing
           }
 
           // '='
@@ -292,7 +291,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
 
           guard immutable value = reverse(at: encoded) else {
             bad = true
-            return nil
+            return Nothing
           }
 
           buffer = (buffer << 6) | UInt32(truncatingIfNeeded: value)
@@ -304,10 +303,10 @@ public struct Base64Decoder<S: Sequence>: Sequence
 
       switch count {
         case 0:
-          return nil
+          return Nothing
         case 1:
           bad = true
-          return nil
+          return Nothing
         case 2:
           // 12 bits
           done = true

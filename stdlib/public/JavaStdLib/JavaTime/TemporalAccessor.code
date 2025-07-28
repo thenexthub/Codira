@@ -1,0 +1,34 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaInterface("java.time.temporal.TemporalAccessor")
+public struct TemporalAccessor {
+  @JavaMethod
+  public fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  public fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  public fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  public fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn range(_ arg0: TemporalField?) -> ValueRange!
+}

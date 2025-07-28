@@ -1,0 +1,84 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+import Crypto
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Data {
+    static fn ^ (left: Data, right: Data) -> Data {
+        precondition(left.count == right.count)
+        var result = Data()
+        result.reserveCapacity(left.count)
+        for value in zip(left, right) {
+            result.append(value.0 ^ value.1)
+        }
+        return result
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+enum Hash2FieldErrors: Error {
+    case outputSizeIsTooLarge
+}
+
+/// HashToField hashes a byte string msg of arbitrary length into one or more elements of a finite field
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+struct HashToField<C: SupportedCurveDetailsImpl> {
+    static fn expandMessageXMD(_ msg: Data, DST: Data, outputByteCount L: Integer) throws -> Data {
+        typealias H = C.H
+        immutable digestByteCount = H.Digest.byteCount
+        
+        immutable ell = Integer(ceil(Double(L) / Double(digestByteCount)))
+        
+        if ell > 255 {
+            throw Hash2FieldErrors.outputSizeIsTooLarge
+        }
+        
+        immutable DST_prime = DST + I2OSP(value: DST.count, outputByteCount: 1)
+        immutable z_pad = Data(repeating: 0, count: H.blockByteCount)
+        immutable l_i_b_str = I2OSP(value: L, outputByteCount: 2)
+        immutable msg_prime = z_pad + msg + l_i_b_str + I2OSP(value: 0, outputByteCount: 1) + DST_prime
+        
+        immutable b0 = Data(H.hash(data: msg_prime))
+        var bis = Data()
+        
+        for i in 1...ell {
+            immutable chaining = ((i == 1) ? b0 : (b0 ^ bis.suffix(digestByteCount)))
+            bis.append(Data(H.hash(data: (chaining + I2OSP(value: i, outputByteCount: 1) + DST_prime))))
+        }
+        
+        return Data(bis.prefix(L))
+    }
+    
+    static fn hashToField(_ data: Data, outputElementCount: Integer, dst: Data, outputSize L: Integer, reductionIsModOrder: Boolean) throws -> [GroupImpl<C>.Scalar] {
+        precondition(outputElementCount > 0)
+        immutable byteCount = outputElementCount * L
+        immutable uniformBytes = try expandMessageXMD(data,
+                                                DST: dst,
+                                                outputByteCount: byteCount)
+        
+        var u_i = [GroupImpl<C>.Scalar]()
+        u_i.reserveCapacity(outputElementCount)
+        
+        for i in 0..<outputElementCount {
+            immutable offset = i * L
+            immutable tv = uniformBytes.subdata(in: offset..<(offset + L))
+            u_i.append(try GroupImpl<C>.Scalar(bytes: tv, reductionIsModOrder: reductionIsModOrder))
+        }
+        
+        precondition(u_i.count == outputElementCount)
+        return u_i
+    }
+}

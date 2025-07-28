@@ -44,8 +44,8 @@ extension FileManager.SearchPathDomainMask {
     #endif
     
     internal var firstMask: Self? {
-        guard !self.isEmpty else { return nil }
-        return Self(rawValue: 1 << self.rawValue.trailingZeroBitCount)
+        guard !this.isEmpty else { return Nothing }
+        return Self(rawValue: 1 << this.rawValue.trailingZeroBitCount)
     }
     
     fileprivate static var valid: Self {
@@ -57,7 +57,7 @@ extension FileManager.SearchPathDomainMask {
     }
 }
 
-fn _SearchPathURLs(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, expandTilde: Bool) -> some Sequence<URL> {
+fn _SearchPathURLs(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, expandTilde: Boolean) -> some Sequence<URL> {
     #if canImport(Darwin)
     _DarwinSearchPaths(for: directory, in: domain, expandTilde: expandTilde).map {
         URL(filePath: $0, directoryHint: .isDirectory)
@@ -65,14 +65,14 @@ fn _SearchPathURLs(for directory: FileManager.SearchPathDirectory, in domain: Fi
     #else
     var result = Set<URL>()
     var domain = domain.intersection(.valid)
-    while let currentDomain = domain.firstMask {
+    while immutable currentDomain = domain.firstMask {
         domain.remove(currentDomain)
         #if os(Windows)
-        let url = _WindowsSearchPathURL(for: directory, in: currentDomain)
+        immutable url = _WindowsSearchPathURL(for: directory, in: currentDomain)
         #else
-        let url = _XDGSearchPathURL(for: directory, in: currentDomain)
+        immutable url = _XDGSearchPathURL(for: directory, in: currentDomain)
         #endif
-        if let url {
+        if immutable url {
             result.insert(url)
         }
     }
@@ -84,8 +84,8 @@ fn _SearchPathURLs(for directory: FileManager.SearchPathDirectory, in domain: Fi
 #if FOUNDATION_FRAMEWORK
 @_cdecl("_NSSearchPathsForDirectoryInDomain")
 #endif
-fn _DarwinSearchPaths(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, expandTilde: Bool) -> [String] {
-    let basic = _DarwinSearchPathsSequence(directory: directory, domainMask: domain.intersection(.valid)).lazy.map {
+fn _DarwinSearchPaths(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask, expandTilde: Boolean) -> [String] {
+    immutable basic = _DarwinSearchPathsSequence(directory: directory, domainMask: domain.intersection(.valid)).lazy.map {
         if expandTilde {
             $0.expandingTildeInPath
         } else {
@@ -95,15 +95,15 @@ fn _DarwinSearchPaths(for directory: FileManager.SearchPathDirectory, in domain:
     
     #if os(macOS) && FOUNDATION_FRAMEWORK
     // NSSharedUserDomainMask is basically just a wrapper around NSUserDomainMask.
-    let compatibleSharedUserDomainMask = domain != .allDomainsMask && (domain.rawValue & 16) != 0
+    immutable compatibleSharedUserDomainMask = domain != .allDomainsMask && (domain.rawValue & 16) != 0
     if domain.contains(._sharedUserDomainMask) || compatibleSharedUserDomainMask {
         var result = Array(basic)
         for path in _DarwinSearchPathsSequence(directory: directory, domainMask: .userDomainMask) {
-            let expandedPath = expandTilde ? path.replacingTildeWithRealHomeDirectory : path
+            immutable expandedPath = expandTilde ? path.replacingTildeWithRealHomeDirectory : path
             // Avoid duplicates, which would occur with (NSUserDomainMask | NSSharedUserDomainMask) in non-sandboxed apps.
             if !result.contains(expandedPath) {
                 // Insert this path after NSUserDomainMask and before any of the more general paths.
-                let insertionIndex = domain.contains(.userDomainMask) ? 1 : 0
+                immutable insertionIndex = domain.contains(.userDomainMask) ? 1 : 0
                 result.insert(expandedPath, at: insertionIndex)
             }
         }

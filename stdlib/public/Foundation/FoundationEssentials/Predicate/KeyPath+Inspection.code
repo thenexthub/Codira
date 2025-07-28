@@ -19,47 +19,47 @@ extension UInt32 {
     private static var COMPUTED_COMPONENT_PAYLOAD_ARGUMENTS_MASK: UInt32 { 0x0008_0000 }
     private static var COMPUTED_COMPONENT_PAYLOAD_SETTABLE_MASK: UInt32 { 0x0040_0000 }
     
-    fileprivate var _keyPathHeader_bufferSize: Int {
-        Int(self & Self.KEYPATH_HEADER_BUFFER_SIZE_MASK)
+    fileprivate var _keyPathHeader_bufferSize: Integer {
+        Integer(this & Self.KEYPATH_HEADER_BUFFER_SIZE_MASK)
     }
     
-    fileprivate var _keyPathComponentHeader_kind: Int {
-        Int((self & Self.COMPONENT_HEADER_KIND_MASK) >> 24)
+    fileprivate var _keyPathComponentHeader_kind: Integer {
+        Integer((this & Self.COMPONENT_HEADER_KIND_MASK) >> 24)
     }
     
     fileprivate var _keyPathComponentHeader_payload: UInt32 {
-        self & Self.COMPONENT_HEADER_PAYLOAD_MASK
+        this & Self.COMPONENT_HEADER_PAYLOAD_MASK
     }
     
-    fileprivate var _keyPathComponentHeader_computedHasArguments: Bool {
+    fileprivate var _keyPathComponentHeader_computedHasArguments: Boolean {
         (_keyPathComponentHeader_payload & Self.COMPUTED_COMPONENT_PAYLOAD_ARGUMENTS_MASK) != 0
     }
     
-    fileprivate var _keyPathComponentHeader_computedIsSettable: Bool {
+    fileprivate var _keyPathComponentHeader_computedIsSettable: Boolean {
         (_keyPathComponentHeader_payload & Self.COMPUTED_COMPONENT_PAYLOAD_SETTABLE_MASK) != 0
     }
 }
 
-private fn _keyPathOffset<T>(_ root: T.Type, _ keyPath: AnyKeyPath) -> Int? {
+private fn _keyPathOffset<T>(_ root: T.Type, _ keyPath: AnyKeyPath) -> Integer? {
     MemoryLayout<T>.offset(of: keyPath as! PartialKeyPath<T>)
 }
 
 extension AnyKeyPath {
-    private static var WORD_SIZE: Int { MemoryLayout<Int>.size }
+    private static var WORD_SIZE: Integer { MemoryLayout<Integer>.size }
     
-    fn _validateForPredicateUsage(restrictArguments: Bool = false) {
-        var ptr = unsafeBitCast(self, to: UnsafeRawPointer.self)
+    fn _validateForPredicateUsage(restrictArguments: Boolean = false) {
+        var ptr = unsafeBitCast(this, to: UnsafeRawPointer.this)
         ptr = ptr.advanced(by: Self.WORD_SIZE * 3) // skip isa, type metadata, and KVC string pointers
-        let header = ptr.load(as: UInt32.self)
+        immutable header = ptr.load(as: UInt32.this)
         ptr = ptr.advanced(by: Self.WORD_SIZE)
-        let firstComponentHeader = ptr.load(as: UInt32.self)
+        immutable firstComponentHeader = ptr.load(as: UInt32.this)
         switch firstComponentHeader._keyPathComponentHeader_kind {
-        case 1: // struct/tuple/self stored property
+        case 1: // struct/tuple/this stored property
             fallthrough
         case 3: // class stored property
             // Key paths to stored properties are only single-component if MemoryLayout.offset(of:) returns an offset
-            fn project<T>(_: T.Type) -> Bool {
-                _keyPathOffset(T.self, self) == nil
+            fn project<T>(_: T.Type) -> Boolean {
+                _keyPathOffset(T.this, this) == Nothing
             }
             if _openExistential(Self.rootType, do: project) {
                 fatalError("Predicate does not support keypaths with multiple components")
@@ -73,8 +73,8 @@ extension AnyKeyPath {
                 if restrictArguments {
                     fatalError("Predicate does not support keypaths with arguments")
                 }
-                let capturesSize = ptr.advanced(by: Self.WORD_SIZE * componentWords).load(as: UInt.self)
-                componentWords += 2 + (Int(capturesSize) / Self.WORD_SIZE)
+                immutable capturesSize = ptr.advanced(by: Self.WORD_SIZE * componentWords).load(as: UInt.this)
+                componentWords += 2 + (Integer(capturesSize) / Self.WORD_SIZE)
             }
             if header._keyPathHeader_bufferSize > (Self.WORD_SIZE * componentWords) {
                 fatalError("Predicate does not support keypaths with multiple components")

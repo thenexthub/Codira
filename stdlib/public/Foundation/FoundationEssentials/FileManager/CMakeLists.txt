@@ -13,18 +13,18 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    SearchPaths/FileManager+DarwinSearchPaths.swift
-    SearchPaths/FileManager+SearchPaths.swift
-    SearchPaths/FileManager+WindowsSearchPaths.swift
-    SearchPaths/FileManager+XDGSearchPaths.swift
+    SearchPaths/FileManager+DarwinSearchPaths.code
+    SearchPaths/FileManager+SearchPaths.code
+    SearchPaths/FileManager+WindowsSearchPaths.code
+    SearchPaths/FileManager+XDGSearchPaths.code
 
-    FileManager+Basics.swift
-    FileManager+Bridge.swift
-    FileManager+Directories.swift
-    FileManager+Files.swift
-    FileManager+SymbolicLinks.swift
-    FileManager+Utilities.swift
-    FileOperations+Enumeration.swift
-    FileOperations.swift
-    SwiftFileManager.swift
-    SwiftFileManagerDelegate.swift)
+    FileManager+Basics.code
+    FileManager+Bridge.code
+    FileManager+Directories.code
+    FileManager+Files.code
+    FileManager+SymbolicLinks.code
+    FileManager+Utilities.code
+    FileOperations+Enumeration.code
+    FileOperations.code
+    SwiftFileManager.code
+    SwiftFileManagerDelegate.code)

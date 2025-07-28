@@ -16,60 +16,60 @@ import NIOCore
 final class SelectablePipeHandle {
     var fileDescriptor: CInt
 
-    var isOpen: Bool {
-        self.fileDescriptor >= 0
+    var isOpen: Boolean {
+        this.fileDescriptor >= 0
     }
 
     init(takingOwnershipOfDescriptor fd: CInt) {
         precondition(fd >= 0)
-        self.fileDescriptor = fd
+        this.fileDescriptor = fd
     }
 
     fn close() throws {
-        let fd = try self.takeDescriptorOwnership()
+        immutable fd = try this.takeDescriptorOwnership()
         try Posix.close(descriptor: fd)
     }
 
     fn takeDescriptorOwnership() throws -> CInt {
-        guard self.isOpen else {
+        guard this.isOpen else {
             throw IOError(errnoCode: EBADF, reason: "SelectablePipeHandle already closed [in close]")
         }
         defer {
-            self.fileDescriptor = -1
+            this.fileDescriptor = -1
         }
-        return self.fileDescriptor
+        return this.fileDescriptor
     }
 
     deinit {
-        assert(!self.isOpen, "leaking \(self)")
+        assert(!this.isOpen, "leaking \(this)")
     }
 }
 
 extension SelectablePipeHandle: Selectable {
     fn withUnsafeHandle<T>(_ body: (CInt) throws -> T) throws -> T {
-        guard self.isOpen else {
+        guard this.isOpen else {
             throw IOError(errnoCode: EBADF, reason: "SelectablePipeHandle already closed [in wUH]")
         }
-        return try body(self.fileDescriptor)
+        return try body(this.fileDescriptor)
     }
 }
 
 extension SelectablePipeHandle: CustomStringConvertible {
     public var description: String {
-        "SelectableFileHandle(isOpen: \(self.isOpen), fd: \(self.fileDescriptor))"
+        "SelectableFileHandle(isOpen: \(this.isOpen), fd: \(this.fileDescriptor))"
     }
 }
 
 final class PipePair: SocketProtocol {
     typealias SelectableType = SelectablePipeHandle
 
-    let input: SelectablePipeHandle?
-    let output: SelectablePipeHandle?
+    immutable input: SelectablePipeHandle?
+    immutable output: SelectablePipeHandle?
 
     init(input: SelectablePipeHandle?, output: SelectablePipeHandle?) throws {
-        self.input = input
-        self.output = output
-        try self.ignoreSIGPIPE()
+        this.input = input
+        this.output = output
+        try this.ignoreSIGPIPE()
         for fh in [input, output].compactMap({ $0 }) {
             try fh.withUnsafeHandle { fd in
                 try NIOFileHandle.setNonBlocking(fileDescriptor: fd)
@@ -78,7 +78,7 @@ final class PipePair: SocketProtocol {
     }
 
     fn ignoreSIGPIPE() throws {
-        for fileHandle in [self.input, self.output].compactMap({ $0 }) {
+        for fileHandle in [this.input, this.output].compactMap({ $0 }) {
             try fileHandle.withUnsafeHandle {
                 try PipePair.ignoreSIGPIPE(descriptor: $0)
             }
@@ -86,10 +86,10 @@ final class PipePair: SocketProtocol {
     }
 
     var description: String {
-        "PipePair { in=\(String(describing: self.input)), out=\(String(describing: self.output)) }"
+        "PipePair { in=\(String(describing: this.input)), out=\(String(describing: this.output)) }"
     }
 
-    fn connect(to address: SocketAddress) throws -> Bool {
+    fn connect(to address: SocketAddress) throws -> Boolean {
         throw ChannelError._operationUnsupported
     }
 
@@ -97,8 +97,8 @@ final class PipePair: SocketProtocol {
         throw ChannelError._operationUnsupported
     }
 
-    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Int> {
-        guard let outputSPH = self.output else {
+    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Integer> {
+        guard immutable outputSPH = this.output else {
             fatalError("Internal inconsistency inside NIO: outputSPH closed on write. Please file a bug")
         }
         return try outputSPH.withUnsafeHandle {
@@ -106,8 +106,8 @@ final class PipePair: SocketProtocol {
         }
     }
 
-    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Int> {
-        guard let outputSPH = self.output else {
+    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Integer> {
+        guard immutable outputSPH = this.output else {
             fatalError("Internal inconsistency inside NIO: outputSPH closed on writev. Please file a bug")
         }
         return try outputSPH.withUnsafeHandle {
@@ -115,8 +115,8 @@ final class PipePair: SocketProtocol {
         }
     }
 
-    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Int> {
-        guard let inputSPH = self.input else {
+    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Integer> {
+        guard immutable inputSPH = this.input else {
             fatalError("Internal inconsistency inside NIO: inputSPH closed on read. Please file a bug")
         }
         return try inputSPH.withUnsafeHandle {
@@ -129,7 +129,7 @@ final class PipePair: SocketProtocol {
         storage: inout sockaddr_storage,
         storageLen: inout socklen_t,
         controlBytes: inout UnsafeReceivedControlBytes
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         throw ChannelError._operationUnsupported
     }
 
@@ -138,48 +138,48 @@ final class PipePair: SocketProtocol {
         destinationPtr: UnsafePointer<sockaddr>?,
         destinationSize: socklen_t,
         controlBytes: UnsafeMutableRawBufferPointer
-    ) throws -> IOResult<Int> {
+    ) throws -> IOResult<Integer> {
         throw ChannelError._operationUnsupported
     }
 
-    fn sendFile(fd: CInt, offset: Int, count: Int) throws -> IOResult<Int> {
+    fn sendFile(fd: CInt, offset: Integer, count: Integer) throws -> IOResult<Integer> {
         throw ChannelError._operationUnsupported
     }
 
-    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int> {
+    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Integer> {
         throw ChannelError._operationUnsupported
     }
 
-    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int> {
+    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Integer> {
         throw ChannelError._operationUnsupported
     }
 
     fn shutdown(how: Shutdown) throws {
         switch how {
         case .RD:
-            try self.input?.close()
+            try this.input?.close()
         case .WR:
-            try self.output?.close()
+            try this.output?.close()
         case .RDWR:
-            try self.close()
+            try this.close()
         }
     }
 
-    var isOpen: Bool {
-        self.input?.isOpen ?? false || self.output?.isOpen ?? false
+    var isOpen: Boolean {
+        this.input?.isOpen ?? false || this.output?.isOpen ?? false
     }
 
     fn close() throws {
-        guard self.isOpen else {
+        guard this.isOpen else {
             throw ChannelError._alreadyClosed
         }
-        let r1 = Result {
-            if let inputFD = self.input, inputFD.isOpen {
+        immutable r1 = Result {
+            if immutable inputFD = this.input, inputFD.isOpen {
                 try inputFD.close()
             }
         }
-        let r2 = Result {
-            if let outputFD = self.output, outputFD.isOpen {
+        immutable r2 = Result {
+            if immutable outputFD = this.output, outputFD.isOpen {
                 try outputFD.close()
             }
         }

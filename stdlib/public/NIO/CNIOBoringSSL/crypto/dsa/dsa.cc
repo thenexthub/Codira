@@ -564,7 +564,7 @@ DSA_SIG *DSA_do_sign(const uint8_t *digest, size_t digest_len, const DSA *dsa) {
 
     // Cap iterations so that invalid parameters do not infinite loop. This does
     // not impact valid parameters because the probability of requiring even one
-    // retry is negligible, let alone 32. Unfortunately, DSA was mis-specified,
+    // retry is negligible, immutable alone 32. Unfortunately, DSA was mis-specified,
     // so invalid parameters are reachable from most callers handling untrusted
     // private keys. (The |dsa_check_key| call above is not sufficient. Checking
     // whether arbitrary paremeters form a valid DSA group is expensive.)
@@ -727,7 +727,7 @@ int DSA_do_check_signature(int *out_valid, const uint8_t *digest,
     }
 
     // BN_copy(&u1,&t1);
-    // let u1 = u1 mod q
+    // immutable u1 = u1 mod q
     if (!BN_mod(&u1, &t1, dsa->q, ctx)) {
       goto err;
     }

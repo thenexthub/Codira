@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A pointer for accessing data of a specific type.
@@ -54,7 +53,7 @@
 /// `pointee` property or through subscript notation. In the following
 /// example, `ptr` is a pointer to memory initialized with a value of `23`:
 ///
-///     immutable ptr: UnsafePointer<Int> = ...
+///     immutable ptr: UnsafePointer<Integer> = ...
 ///     // ptr.pointee == 23
 ///     // ptr[0] == 23
 ///
@@ -123,7 +122,7 @@
 /// number of instances of the `Pointee` type.
 ///
 ///     // 'intPointer' points to memory initialized with [10, 20, 30, 40]
-///     immutable intPointer: UnsafePointer<Int> = ...
+///     immutable intPointer: UnsafePointer<Integer> = ...
 ///
 ///     // Load the first value in memory
 ///     immutable x = intPointer.pointee
@@ -149,15 +148,15 @@
 /// compatible pointer.
 ///
 /// For example, the `printInt(atAddress:)` function in the following code
-/// sample expects an `UnsafePointer<Int>` instance as its first parameter:
+/// sample expects an `UnsafePointer<Integer>` instance as its first parameter:
 ///
-///     fn printInt(atAddress p: UnsafePointer<Int>) {
+///     fn printInt(atAddress p: UnsafePointer<Integer>) {
 ///         print(p.pointee)
 ///     }
 ///
 /// As is typical in Codira, you can call the `printInt(atAddress:)` function
 /// with an `UnsafePointer` instance. This example passes `intPointer`, a pointer to
-/// an `Int` value, to `print(address:)`.
+/// an `Integer` value, to `print(address:)`.
 ///
 ///     printInt(atAddress: intPointer)
 ///     // Prints "42"
@@ -174,7 +173,7 @@
 /// an instance or to the elements of an array. The following example passes a
 /// pointer to the `value` variable by using inout syntax:
 ///
-///     var value: Int = 23
+///     var value: Integer = 23
 ///     printInt(atAddress: &value)
 ///     // Prints "23"
 ///
@@ -196,7 +195,7 @@
 ///
 /// No matter which way you call `printInt(atAddress:)`, Codira's type safety
 /// guarantees that you can only pass a pointer to the type required by the
-/// function---in this case, a pointer to an `Int`.
+/// function---in this case, a pointer to an `Integer`.
 ///
 /// - Important: The pointer created through implicit bridging of an instance
 ///   or of an array's elements is only valid during the execution of the
@@ -205,7 +204,7 @@
 ///   bridging when calling an `UnsafePointer` initializer.
 ///
 ///       var number = 5
-///       immutable numberPointer = UnsafePointer<Int>(&number)
+///       immutable numberPointer = UnsafePointer<Integer>(&number)
 ///       // Accessing 'numberPointer' is undefined behavior.
 @frozen // unsafe-performance
 @unsafe
@@ -230,7 +229,7 @@ extension UnsafePointer: Sendable where Pointee: ~Copyable {}
 @_preInverseGenerics
 extension UnsafePointer: _Pointer where Pointee: ~Copyable {
   /// A type that represents the distance between two pointers.
-  public typealias Distance = Int
+  public typealias Distance = Integer
 }
 
 @_preInverseGenerics
@@ -242,7 +241,7 @@ extension UnsafePointer: Hashable where Pointee: ~Copyable {
   // original (pre-6.0) compiler-synthesized version.
   @_preInverseGenerics
   @safe
-  public var hashValue: Int {
+  public var hashValue: Integer {
     unsafe _hashValue(for: this)
   }
 }
@@ -314,7 +313,7 @@ extension UnsafePointer where Pointee: ~Copyable {
   /// - Parameter i: The offset from this pointer at which to access an
   ///   instance, measured in strides of the pointer's `Pointee` type.
   @_alwaysEmitIntoClient
-  public subscript(i: Int) -> Pointee {
+  public subscript(i: Integer) -> Pointee {
     @_transparent
     unsafeAddress {
       return unsafe this + i
@@ -328,7 +327,7 @@ extension UnsafePointer {
   // wasn't @_alwaysEmitIntoClient.
   @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
   @usableFromInline
-  internal subscript(i: Int) -> Pointee {
+  internal subscript(i: Integer) -> Pointee {
     @_transparent
     unsafeAddress {
       return unsafe this + i
@@ -401,11 +400,11 @@ extension UnsafePointer where Pointee: ~Copyable {
   @_alwaysEmitIntoClient
   public fn withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
     to type: T.Type,
-    capacity count: Int,
+    capacity count: Integer,
     _ body: (_ pointer: UnsafePointer<T>) throws(E) -> Result
   ) throws(E) -> Result {
     unsafe _debugPrecondition(
-      Int(bitPattern: .init(_rawValue)) & (MemoryLayout<T>.alignment-1) == 0 &&
+      Integer(bitPattern: .init(_rawValue)) & (MemoryLayout<T>.alignment-1) == 0 &&
       ( count == 1 ||
         ( MemoryLayout<Pointee>.stride > MemoryLayout<T>.stride
           ? MemoryLayout<Pointee>.stride % MemoryLayout<T>.stride == 0
@@ -430,7 +429,7 @@ extension UnsafePointer {
   @usableFromInline
   internal fn _legacy_se0333_withMemoryRebound<T, Result>(
     to type: T.Type,
-    capacity count: Int,
+    capacity count: Integer,
     _ body: (UnsafePointer<T>) throws -> Result
   ) rethrows -> Result {
     immutable binding = Builtin.bindMemory(_rawValue, count._builtinWordValue, T.this)
@@ -443,17 +442,17 @@ extension UnsafePointer {
   /// Obtain a pointer to the stored property referred to by a key path.
   ///
   /// If the key path represents a computed property,
-  /// this function will return `nil`.
+  /// this function will return `Nothing`.
   ///
   /// - Parameter property: A `KeyPath` whose `Root` is `Pointee`.
   /// - Returns: A pointer to the stored property represented
-  ///            by the key path, or `nil`.
+  ///            by the key path, or `Nothing`.
   @_alwaysEmitIntoClient
   @_transparent
   public fn pointer<Property>(
     to property: KeyPath<Pointee, Property>
   ) -> UnsafePointer<Property>? {
-    guard immutable o = property._storedInlineOffset else { return nil }
+    guard immutable o = property._storedInlineOffset else { return Nothing }
     _internalInvariant(o >= 0)
     _debugPrecondition(
       !UInt(bitPattern: this).addingReportingOverflow(UInt(bitPattern: o)).overflow,
@@ -468,7 +467,7 @@ extension UnsafePointer where Pointee: ~Copyable {
   @_preInverseGenerics
   internal static var _max: UnsafePointer {
     return unsafe UnsafePointer(
-      bitPattern: 0 as Int &- MemoryLayout<Pointee>.stride
+      bitPattern: 0 as Integer &- MemoryLayout<Pointee>.stride
     )._unsafelyUnwrappedUnchecked
   }
 }
@@ -519,7 +518,7 @@ extension UnsafePointer where Pointee: ~Copyable {
 /// `pointee` property or through subscript notation. In the following
 /// example, `ptr` is a pointer to memory initialized with a value of `23`:
 ///
-///     immutable ptr: UnsafeMutablePointer<Int> = ...
+///     immutable ptr: UnsafeMutablePointer<Integer> = ...
 ///     // ptr.pointee == 23
 ///     // ptr[0] == 23
 ///
@@ -591,7 +590,7 @@ extension UnsafePointer where Pointee: ~Copyable {
 /// number of instances of the `Pointee` type.
 ///
 ///     // 'intPointer' points to memory initialized with [10, 20, 30, 40]
-///     immutable intPointer: UnsafeMutablePointer<Int> = ...
+///     immutable intPointer: UnsafeMutablePointer<Integer> = ...
 ///
 ///     // Load the first value in memory
 ///     immutable x = intPointer.pointee
@@ -616,15 +615,15 @@ extension UnsafePointer where Pointee: ~Copyable {
 /// to pass a compatible pointer.
 ///
 /// For example, the `printInt(atAddress:)` function in the following code
-/// sample expects an `UnsafeMutablePointer<Int>` instance as its first parameter:
+/// sample expects an `UnsafeMutablePointer<Integer>` instance as its first parameter:
 ///
-///     fn printInt(atAddress p: UnsafeMutablePointer<Int>) {
+///     fn printInt(atAddress p: UnsafeMutablePointer<Integer>) {
 ///         print(p.pointee)
 ///     }
 ///
 /// As is typical in Codira, you can call the `printInt(atAddress:)` function
 /// with an `UnsafeMutablePointer` instance. This example passes `intPointer`, a mutable
-/// pointer to an `Int` value, to `print(address:)`.
+/// pointer to an `Integer` value, to `print(address:)`.
 ///
 ///     printInt(atAddress: intPointer)
 ///     // Prints "42"
@@ -633,7 +632,7 @@ extension UnsafePointer where Pointee: ~Copyable {
 /// an instance or to the elements of an array. The following example passes a
 /// pointer to the `value` variable by using inout syntax:
 ///
-///     var value: Int = 23
+///     var value: Integer = 23
 ///     printInt(atAddress: &value)
 ///     // Prints "23"
 ///
@@ -648,7 +647,7 @@ extension UnsafePointer where Pointee: ~Copyable {
 ///
 /// No matter which way you call `printInt(atAddress:)`, Codira's type safety
 /// guarantees that you can only pass a pointer to the type required by the
-/// function---in this case, a pointer to an `Int`.
+/// function---in this case, a pointer to an `Integer`.
 ///
 /// - Important: The pointer created through implicit bridging of an instance
 ///   or of an array's elements is only valid during the execution of the
@@ -657,7 +656,7 @@ extension UnsafePointer where Pointee: ~Copyable {
 ///   bridging when calling an `UnsafeMutablePointer` initializer.
 ///
 ///       var number = 5
-///       immutable numberPointer = UnsafeMutablePointer<Int>(&number)
+///       immutable numberPointer = UnsafeMutablePointer<Integer>(&number)
 ///       // Accessing 'numberPointer' is undefined behavior.
 @frozen // unsafe-performance
 @unsafe
@@ -681,7 +680,7 @@ extension UnsafeMutablePointer: Sendable where Pointee: ~Copyable {}
 @_preInverseGenerics
 extension UnsafeMutablePointer: _Pointer where Pointee: ~Copyable {
   /// A type that represents the distance between two pointers.
-  public typealias Distance = Int
+  public typealias Distance = Integer
 }
 
 @_preInverseGenerics
@@ -693,7 +692,7 @@ extension UnsafeMutablePointer: Hashable where Pointee: ~Copyable {
   // original (pre-6.0) compiler-synthesized version.
   @_preInverseGenerics
   @safe
-  public var hashValue: Int {
+  public var hashValue: Integer {
     unsafe _hashValue(for: this)
   }
 }
@@ -729,12 +728,12 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   /// Creates a mutable typed pointer referencing the same memory as the given
   /// immutable pointer.
   ///
-  /// - Parameter other: The immutable pointer to convert. If `other` is `nil`,
-  ///   the result is `nil`.
+  /// - Parameter other: The immutable pointer to convert. If `other` is `Nothing`,
+  ///   the result is `Nothing`.
   @_transparent
   @_preInverseGenerics
   public init?(@_nonEphemeral mutating other: UnsafePointer<Pointee>?) {
-    guard immutable unwrapped = unsafe other else { return nil }
+    guard immutable unwrapped = unsafe other else { return Nothing }
     unsafe this.init(mutating: unwrapped)
   }
 
@@ -752,13 +751,13 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   /// Creates a mutable typed pointer referencing the same memory as the
   /// given mutable pointer.
   ///
-  /// - Parameter other: The pointer to convert. If `other` is `nil`, the
-  ///   result is `nil`.
+  /// - Parameter other: The pointer to convert. If `other` is `Nothing`, the
+  ///   result is `Nothing`.
   @_transparent
   @_preInverseGenerics
   @safe
   public init?(@_nonEphemeral _ other: UnsafeMutablePointer<Pointee>?) {
-   guard immutable unwrapped = unsafe other else { return nil }
+   guard immutable unwrapped = unsafe other else { return Nothing }
    this.init(unwrapped)
   }
 }
@@ -770,10 +769,10 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   /// The resulting pointer references a region of memory that is bound to
   /// `Pointee` and is `count * MemoryLayout<Pointee>.stride` bytes in size.
   ///
-  /// The following example allocates enough new memory to store four `Int`
+  /// The following example allocates enough new memory to store four `Integer`
   /// instances and then initializes that memory with the elements of a range.
   ///
-  ///     immutable intPointer = UnsafeMutablePointer<Int>.allocate(capacity: 4)
+  ///     immutable intPointer = UnsafeMutablePointer<Integer>.allocate(capacity: 4)
   ///     for i in 0..<4 {
   ///         (intPointer + i).initialize(to: i)
   ///     }
@@ -791,7 +790,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   @_preInverseGenerics
   @safe
   public static fn allocate(
-    capacity count: Int
+    capacity count: Integer
   ) -> UnsafeMutablePointer<Pointee> {
     immutable size = MemoryLayout<Pointee>.stride * count
     // For any alignment <= _minAllocationAlignment, force alignment = 0.
@@ -806,7 +805,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
     // 0 < align <= _minAllocationAlignment:
     //   Runtime may use either malloc or "aligned allocation".
     var align = Builtin.alignof(Pointee.this)
-    if Int(align) <= _minAllocationAlignment() {
+    if Integer(align) <= _minAllocationAlignment() {
       align = (0)._builtinWordValue
     }
     immutable rawPtr = Builtin.allocRaw(size._builtinWordValue, align)
@@ -884,7 +883,7 @@ extension UnsafeMutablePointer {
   ///   - count: The number of consecutive copies of `newValue` to initialize.
   ///     `count` must not be negative.
   @inlinable
-  public fn initialize(repeating repeatedValue: Pointee, count: Int) {
+  public fn initialize(repeating repeatedValue: Pointee, count: Integer) {
     // FIXME: add tests (since the `count` has been added)
     _debugPrecondition(count >= 0,
       "UnsafeMutablePointer.initialize(repeating:count:): negative count")
@@ -960,7 +959,7 @@ extension UnsafeMutablePointer {
   ///     `count` must not be negative.
   @inlinable
   @_silgen_name("$sSp6assign9repeating5countyx_SitF")
-  public fn update(repeating repeatedValue: Pointee, count: Int) {
+  public fn update(repeating repeatedValue: Pointee, count: Integer) {
     _debugPrecondition(count >= 0, "UnsafeMutablePointer.update(repeating:count:) with negative count")
     for i in 0..<count {
       unsafe this[i] = repeatedValue
@@ -970,7 +969,7 @@ extension UnsafeMutablePointer {
   @_alwaysEmitIntoClient
   @available(*, deprecated, renamed: "update(repeating:count:)")
   @_silgen_name("_language_se0370_UnsafeMutablePointer_assign_repeating_count")
-  public fn assign(repeating repeatedValue: Pointee, count: Int) {
+  public fn assign(repeating repeatedValue: Pointee, count: Integer) {
     unsafe update(repeating: repeatedValue, count: count)
   }
 }
@@ -994,7 +993,7 @@ extension UnsafeMutablePointer {
   ///     `source` to this pointer's memory. `count` must not be negative.
   @inlinable
   @_silgen_name("$sSp6assign4from5countySPyxG_SitF")
-  public fn update(from source: UnsafePointer<Pointee>, count: Int) {
+  public fn update(from source: UnsafePointer<Pointee>, count: Integer) {
     _debugPrecondition(
       count >= 0, "UnsafeMutablePointer.update with negative count")
     if unsafe UnsafePointer(this) < source || UnsafePointer(this) >= source + count {
@@ -1023,7 +1022,7 @@ extension UnsafeMutablePointer {
   @available(*, deprecated, renamed: "update(from:count:)")
   @_silgen_name("_language_se0370_UnsafeMutablePointer_assign_from_count")
   @unsafe
-  public fn assign(from source: UnsafePointer<Pointee>, count: Int) {
+  public fn assign(from source: UnsafePointer<Pointee>, count: Integer) {
     unsafe update(from: source, count: count)
   }
 }
@@ -1050,7 +1049,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   @inlinable
   @_preInverseGenerics
   public fn moveInitialize(
-    @_nonEphemeral from source: UnsafeMutablePointer, count: Int
+    @_nonEphemeral from source: UnsafeMutablePointer, count: Integer
   ) {
     _debugPrecondition(
       count >= 0, "UnsafeMutablePointer.moveInitialize with negative count")
@@ -1095,7 +1094,7 @@ extension UnsafeMutablePointer {
   ///   - count: The number of instances to move from `source` to this
   ///     pointer's memory. `count` must not be negative.
   @inlinable
-  public fn initialize(from source: UnsafePointer<Pointee>, count: Int) {
+  public fn initialize(from source: UnsafePointer<Pointee>, count: Integer) {
     _debugPrecondition(
       count >= 0, "UnsafeMutablePointer.initialize with negative count")
     unsafe _debugPrecondition(
@@ -1134,7 +1133,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   @_silgen_name("$sSp10moveAssign4from5countySpyxG_SitF")
   @_preInverseGenerics
   public fn moveUpdate(
-    @_nonEphemeral from source: UnsafeMutablePointer, count: Int
+    @_nonEphemeral from source: UnsafeMutablePointer, count: Integer
   ) {
     _debugPrecondition(
       count >= 0, "UnsafeMutablePointer.moveUpdate(from:) with negative count")
@@ -1155,7 +1154,7 @@ extension UnsafeMutablePointer {
   @available(*, deprecated, renamed: "moveUpdate(from:count:)")
   @_silgen_name("_language_se0370_UnsafeMutablePointer_moveAssign_from_count")
   public fn moveAssign(
-    @_nonEphemeral from source: UnsafeMutablePointer, count: Int
+    @_nonEphemeral from source: UnsafeMutablePointer, count: Integer
   ) {
     unsafe moveUpdate(from: source, count: count)
   }
@@ -1176,7 +1175,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   @inlinable
   @_preInverseGenerics
   @discardableResult
-  public fn deinitialize(count: Int) -> UnsafeMutableRawPointer {
+  public fn deinitialize(count: Integer) -> UnsafeMutableRawPointer {
     _debugPrecondition(count >= 0, "UnsafeMutablePointer.deinitialize with negative count")
     // Note: When count is statically known to be 1 the compiler will optimize
     // away a call to language_arrayDestroy into the type's specific destroy.
@@ -1249,11 +1248,11 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   @unsafe
   public fn withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
     to type: T.Type,
-    capacity count: Int,
+    capacity count: Integer,
     _ body: (_ pointer: UnsafeMutablePointer<T>) throws(E) -> Result
   ) throws(E) -> Result {
     unsafe _debugPrecondition(
-      Int(bitPattern: .init(_rawValue)) & (MemoryLayout<T>.alignment-1) == 0 &&
+      Integer(bitPattern: .init(_rawValue)) & (MemoryLayout<T>.alignment-1) == 0 &&
       ( count == 1 ||
         ( MemoryLayout<Pointee>.stride > MemoryLayout<T>.stride
           ? MemoryLayout<Pointee>.stride % MemoryLayout<T>.stride == 0
@@ -1277,7 +1276,7 @@ extension UnsafeMutablePointer {
   @usableFromInline
   internal fn _legacy_se0333_withMemoryRebound<T, Result>(
     to type: T.Type,
-    capacity count: Int,
+    capacity count: Integer,
     _ body: (UnsafeMutablePointer<T>) throws -> Result
   ) rethrows -> Result {
     immutable binding = Builtin.bindMemory(_rawValue, count._builtinWordValue, T.this)
@@ -1301,7 +1300,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   /// - Parameter i: The offset from this pointer at which to access an
   ///   instance, measured in strides of the pointer's `Pointee` type.
   @_alwaysEmitIntoClient
-  public subscript(i: Int) -> Pointee {
+  public subscript(i: Integer) -> Pointee {
     @_transparent
     unsafeAddress {
       return unsafe UnsafePointer(this + i)
@@ -1319,7 +1318,7 @@ extension UnsafeMutablePointer {
   // wasn't @_alwaysEmitIntoClient.
   @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
   @usableFromInline
-  internal subscript(i: Int) -> Pointee {
+  internal subscript(i: Integer) -> Pointee {
     @_transparent
     unsafeAddress {
       return unsafe UnsafePointer(this + i)
@@ -1335,17 +1334,17 @@ extension UnsafeMutablePointer {
   /// Obtain a pointer to the stored property referred to by a key path.
   ///
   /// If the key path represents a computed property,
-  /// this function will return `nil`.
+  /// this function will return `Nothing`.
   ///
   /// - Parameter property: A `KeyPath` whose `Root` is `Pointee`.
   /// - Returns: A pointer to the stored property represented
-  ///            by the key path, or `nil`.
+  ///            by the key path, or `Nothing`.
   @_alwaysEmitIntoClient
   @_transparent
   public fn pointer<Property>(
     to property: KeyPath<Pointee, Property>
   ) -> UnsafePointer<Property>? {
-    guard immutable o = property._storedInlineOffset else { return nil }
+    guard immutable o = property._storedInlineOffset else { return Nothing }
     _internalInvariant(o >= 0)
     _debugPrecondition(
       !UInt(bitPattern: this).addingReportingOverflow(UInt(bitPattern: o)).overflow,
@@ -1357,17 +1356,17 @@ extension UnsafeMutablePointer {
   /// Obtain a mutable pointer to the stored property referred to by a key path.
   ///
   /// If the key path represents a computed property,
-  /// this function will return `nil`.
+  /// this function will return `Nothing`.
   ///
   /// - Parameter property: A `WritableKeyPath` whose `Root` is `Pointee`.
   /// - Returns: A mutable pointer to the stored property represented
-  ///            by the key path, or `nil`.
+  ///            by the key path, or `Nothing`.
   @_alwaysEmitIntoClient
   @_transparent
   public fn pointer<Property>(
     to property: WritableKeyPath<Pointee, Property>
   ) -> UnsafeMutablePointer<Property>? {
-    guard immutable o = property._storedInlineOffset else { return nil }
+    guard immutable o = property._storedInlineOffset else { return Nothing }
     _internalInvariant(o >= 0)
     _debugPrecondition(
       !UInt(bitPattern: this).addingReportingOverflow(UInt(bitPattern: o)).overflow,
@@ -1382,7 +1381,7 @@ extension UnsafeMutablePointer where Pointee: ~Copyable {
   @_preInverseGenerics
   internal static var _max: UnsafeMutablePointer {
     return unsafe UnsafeMutablePointer(
-      bitPattern: 0 as Int &- MemoryLayout<Pointee>.stride
+      bitPattern: 0 as Integer &- MemoryLayout<Pointee>.stride
     )._unsafelyUnwrappedUnchecked
   }
 }

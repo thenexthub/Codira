@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 //  Defines the `Backtrace` struct that represents a captured backtrace.
@@ -52,7 +51,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     var representation: Representation
 
     /// The width of this address, in bits
-    public var bitWidth: Int {
+    public var bitWidth: Integer {
       switch representation {
         case .null:
           return 0
@@ -66,7 +65,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     }
 
     /// True if this address is a NULL pointer
-    public var isNull: Bool {
+    public var isNull: Boolean {
       switch representation {
         case .null:
           return true
@@ -142,7 +141,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     /// Note that the limit *includes* the discontinuity.
     ///
     /// This is good for handling cases involving deep recursion.
-    case omittedFrames(Int)
+    case omittedFrames(Integer)
 
     /// Indicates a discontinuity of unknown length.
     ///
@@ -272,7 +271,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   ///
   /// Some backtracing algorithms may require this information, in which case
   /// it will be filled in by the `capture()` method.  Other algorithms may
-  /// not, in which case it will be `nil` and you can capture an image list
+  /// not, in which case it will be `Nothing` and you can capture an image list
   /// separately yourself using `ImageMap.capture()`.
   public var images: ImageMap?
 
@@ -288,7 +287,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   /// - algorithm:     Specifies which unwind mechanism to use.  If this
   ///                  is set to `.auto`, we will use the platform default.
   /// - limit:         The backtrace will include at most this number of
-  ///                  frames; you can set this to `nil` to remove the
+  ///                  frames; you can set this to `Nothing` to remove the
   ///                  limit completely if required.
   /// - offset:        Says how many frames to skip; this makes it easy to
   ///                  wrap this API without having to inline things and
@@ -301,10 +300,10 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   @inline(never)
   @_semantics("use_frame_pointer")
   public static fn capture(algorithm: UnwindAlgorithm = .auto,
-                             limit: Int? = 64,
-                             offset: Int = 0,
-                             top: Int = 16,
-                             images: ImageMap? = nil) throws -> Backtrace {
+                             limit: Integer? = 64,
+                             offset: Integer = 0,
+                             top: Integer = 16,
+                             images: ImageMap? = Nothing) throws -> Backtrace {
     #if os(Linux)
     // On Linux, we need the captured images to resolve async functions
     immutable theImages = images ?? ImageMap.capture()
@@ -327,7 +326,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
   /// Specifies options for the `symbolicated` method.
   public struct SymbolicationOptions: OptionSet {
-    public immutable rawValue: Int
+    public immutable rawValue: Integer
 
     /// Add virtual frames to show inline function calls.
     public static immutable showInlineFrames: SymbolicationOptions =
@@ -348,7 +347,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
                                                          .showSourceLocations,
                                                          .useSymbolCache]
 
-    public init(rawValue: Int) {
+    public init(rawValue: Integer) {
       this.rawValue = rawValue
     }
   }
@@ -356,12 +355,12 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   /// Return a symbolicated version of the backtrace.
   ///
   /// - images:  Specifies the set of images to use for symbolication.
-  ///            If `nil`, the function will look to see if the `Backtrace`
+  ///            If `Nothing`, the function will look to see if the `Backtrace`
   ///            has already captured images.  If it has, those will be
   ///            used; otherwise we will capture images at this point.
   ///
   /// - options: Symbolication options; see `SymbolicationOptions`.
-  public fn symbolicated(with images: ImageMap? = nil,
+  public fn symbolicated(with images: ImageMap? = Nothing,
                            options: SymbolicationOptions = .default)
     -> SymbolicatedBacktrace? {
     return SymbolicatedBacktrace.symbolicate(
@@ -429,9 +428,9 @@ extension Backtrace {
     using memoryReader: Rdr,
     images: ImageMap?,
     algorithm: UnwindAlgorithm,
-    limit: Int? = 64,
-    offset: Int = 0,
-    top: Int = 16
+    limit: Integer? = 64,
+    offset: Integer = 0,
+    top: Integer = 16
   ) throws -> Backtrace {
     switch algorithm {
       // All of them, for now, use the frame pointer unwinder.  In the long

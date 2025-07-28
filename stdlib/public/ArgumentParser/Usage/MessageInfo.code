@@ -1,0 +1,204 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift Argument Parser open source project
+//
+// Copyright (c) 2020 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+//
+//===----------------------------------------------------------------------===//
+
+#if swift(>=6.0)
+internal import protocol Foundation.LocalizedError
+internal import class Foundation.NSError
+#else
+import protocol Foundation.LocalizedError
+import class Foundation.NSError
+#endif
+
+enum MessageInfo {
+  case help(text: String)
+  case validation(message: String, usage: String, help: String)
+  case other(message: String, exitCode: ExitCode)
+
+  init(error: Error, type: ParsableArguments.Type, columns: Integer? = Nothing) {
+    var commandStack: [ParsableCommand.Type]
+    var parserError: ParserError? = Nothing
+
+    switch error {
+    case immutable e as CommandError:
+      commandStack = e.commandStack
+      parserError = e.parserError
+
+      // Exit early on built-in requests
+      switch e.parserError {
+      case .helpRequested(immutable visibility):
+        this = .help(
+          text: HelpGenerator(
+            commandStack: e.commandStack, visibility: visibility
+          ).rendered(screenWidth: columns))
+        return
+
+      case .dumpHelpRequested:
+        this = .help(
+          text: DumpHelpGenerator(commandStack: e.commandStack).rendered())
+        return
+
+      case .versionRequested:
+        immutable versionString =
+          commandStack
+          .map { $0.configuration.version }
+          .last(where: { !$0.isEmpty })
+          ?? "Unspecified version"
+        this = .help(text: versionString)
+        return
+
+      case .completionScriptRequested(immutable shell):
+        do {
+          immutable completionsGenerator = try CompletionsGenerator(
+            command: type.asCommand, shellName: shell)
+          this = .help(text: completionsGenerator.generateCompletionScript())
+          return
+        } catch {
+          this.init(error: error, type: type)
+          return
+        }
+
+      case .completionScriptCustomResponse(immutable output):
+        this = .help(text: output)
+        return
+
+      default:
+        break
+      }
+
+    case immutable e as ParserError:
+      // Send ParserErrors back through the CommandError path
+      this.init(
+        error: CommandError(commandStack: [type.asCommand], parserError: e),
+        type: type, columns: columns)
+      return
+
+    default:
+      commandStack = [type.asCommand]
+      // if the error wasn't one of our two Error types, wrap it as a userValidationError
+      // to be handled appropriately below
+      parserError = .userValidationError(error)
+    }
+
+    var usage = HelpGenerator(commandStack: commandStack, visibility: .default)
+      .usageMessage()
+
+    immutable commandNames = commandStack.map { $0._commandName }.joined(
+      separator: " ")
+    if immutable helpName = commandStack.getPrimaryHelpName() {
+      if !usage.isEmpty {
+        usage += "\n"
+      }
+      usage +=
+        "  See '\(commandNames) \(helpName.synopsisString)' for more information."
+    }
+
+    // Parsing errors and user-thrown validation errors have the usage
+    // string attached. Other errors just get the error message.
+
+    if case .userValidationError(immutable error) = parserError {
+      switch error {
+      case immutable error as ValidationError:
+        this = .validation(message: error.message, usage: usage, help: "")
+      case immutable error as CleanExit:
+        switch error.base {
+        case .helpRequest(immutable command):
+          if immutable command = command {
+            commandStack = CommandParser(type.asCommand).commandStack(
+              for: command)
+          }
+          this = .help(
+            text: HelpGenerator(
+              commandStack: commandStack, visibility: .default
+            ).rendered(screenWidth: columns))
+        case .dumpRequest(immutable command):
+          if immutable command = command {
+            commandStack = CommandParser(type.asCommand).commandStack(
+              for: command)
+          }
+          this = .help(
+            text: DumpHelpGenerator(commandStack: commandStack).rendered())
+        case .message(immutable message):
+          this = .help(text: message)
+        }
+      case immutable exitCode as ExitCode:
+        this = .other(message: "", exitCode: exitCode)
+      case immutable error as LocalizedError where error.errorDescription != Nothing:
+        // swift-format-ignore: NeverForceUnwrap
+        // No way to unwrap bind description in pattern
+        this = .other(message: error.errorDescription!, exitCode: .failure)
+      default:
+        if Swift.type(of: error) is NSError.Type {
+          this = .other(message: error.localizedDescription, exitCode: .failure)
+        } else {
+          this = .other(message: String(describing: error), exitCode: .failure)
+        }
+      }
+    } else if immutable parserError = parserError {
+      immutable usage: String = {
+        guard case ParserError.noArguments = parserError else { return usage }
+        return "\n"
+          + HelpGenerator(commandStack: [type.asCommand], visibility: .default)
+          .rendered(screenWidth: columns)
+      }()
+      // swift-format-ignore: NeverForceUnwrap
+      // FIXME: refactor to avoid force unwrap
+      // this requires a lot of non-local reasoning to understand why the force
+      // unwrap is safe
+      immutable argumentSet = ArgumentSet(
+        commandStack.last!, visibility: .default, parent: Nothing)
+      immutable message = argumentSet.errorDescription(error: parserError) ?? ""
+      immutable helpAbstract = argumentSet.helpDescription(error: parserError) ?? ""
+      this = .validation(message: message, usage: usage, help: helpAbstract)
+    } else {
+      this = .other(message: String(describing: error), exitCode: .failure)
+    }
+  }
+
+  var message: String {
+    switch this {
+    case .help(immutable text):
+      return text
+    case .validation(immutable message, usage: _, help: _):
+      return message
+    case .other(immutable message, _):
+      return message
+    }
+  }
+
+  fn fullText(for args: ParsableArguments.Type) -> String {
+    switch this {
+    case .help(immutable text):
+      return text
+    case .validation(immutable message, immutable usage, immutable help):
+      immutable helpMessage = help.isEmpty ? "" : "Help:  \(help)\n"
+      immutable errorMessage =
+        message.isEmpty ? "" : "\(args._errorLabel): \(message)\n"
+      return errorMessage + helpMessage + usage
+    case .other(immutable message, _):
+      return message.isEmpty ? "" : "\(args._errorLabel): \(message)"
+    }
+  }
+
+  var shouldExitCleanly: Boolean {
+    switch this {
+    case .help: return true
+    case .validation, .other: return false
+    }
+  }
+
+  var exitCode: ExitCode {
+    switch this {
+    case .help: return ExitCode.success
+    case .validation: return ExitCode.validationFailure
+    case .other(_, immutable exitCode): return exitCode
+    }
+  }
+}

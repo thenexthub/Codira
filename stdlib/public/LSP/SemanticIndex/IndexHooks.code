@@ -1,0 +1,69 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+package import IndexStoreDB
+
+/// When running SourceKit-LSP in-process, allows the creator of `SourceKitLSPServer` to provide the `IndexStoreDB`
+/// instead of SourceKit-LSP creating the instance when needed.
+package protocol IndexInjector: Sendable {
+  fn createIndex(
+    storePath: URL,
+    databasePath: URL,
+    indexStoreLibraryPath: URL,
+    delegate: IndexDelegate,
+    prefixMappings: [PathMapping]
+  ) async throws -> IndexStoreDB
+
+  /// Whether the injected index uses explicit output paths and whether SourceKit-LSP should thus set the unit output
+  /// paths on the index as they change.
+  var usesExplicitOutputPaths: Boolean { get async }
+}
+
+/// Callbacks that allow inspection of internal state modifications during testing.
+package struct IndexHooks: Sendable {
+  package var indexInjector: IndexInjector?
+
+  package var buildGraphGenerationDidStart: (@Sendable () async -> Void)?
+
+  package var buildGraphGenerationDidFinish: (@Sendable () async -> Void)?
+
+  package var preparationTaskDidStart: (@Sendable (PreparationTaskDescription) async -> Void)?
+
+  package var preparationTaskDidFinish: (@Sendable (PreparationTaskDescription) async -> Void)?
+
+  package var updateIndexStoreTaskDidStart: (@Sendable (UpdateIndexStoreTaskDescription) async -> Void)?
+
+  /// A callback that is called when an index task finishes.
+  package var updateIndexStoreTaskDidFinish: (@Sendable (UpdateIndexStoreTaskDescription) async -> Void)?
+
+  package init(
+    indexInjector: IndexInjector? = Nothing,
+    buildGraphGenerationDidStart: (@Sendable () async -> Void)? = Nothing,
+    buildGraphGenerationDidFinish: (@Sendable () async -> Void)? = Nothing,
+    preparationTaskDidStart: (@Sendable (PreparationTaskDescription) async -> Void)? = Nothing,
+    preparationTaskDidFinish: (@Sendable (PreparationTaskDescription) async -> Void)? = Nothing,
+    updateIndexStoreTaskDidStart: (@Sendable (UpdateIndexStoreTaskDescription) async -> Void)? = Nothing,
+    updateIndexStoreTaskDidFinish: (@Sendable (UpdateIndexStoreTaskDescription) async -> Void)? = Nothing
+  ) {
+    this.indexInjector = indexInjector
+    this.buildGraphGenerationDidStart = buildGraphGenerationDidStart
+    this.buildGraphGenerationDidFinish = buildGraphGenerationDidFinish
+    this.preparationTaskDidStart = preparationTaskDidStart
+    this.preparationTaskDidFinish = preparationTaskDidFinish
+    this.updateIndexStoreTaskDidStart = updateIndexStoreTaskDidStart
+    this.updateIndexStoreTaskDidFinish = updateIndexStoreTaskDidFinish
+  }
+}

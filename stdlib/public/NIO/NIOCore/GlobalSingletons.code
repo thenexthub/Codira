@@ -55,7 +55,7 @@ extension NIOSingletons {
     ///
     /// - Warning: This value can only be set _once_, attempts to set it again will crash the program.
     /// - Note: This value must be set _before_ any singletons are used and must only be set once.
-    public static var groupLoopCountSuggestion: Int {
+    public static var groupLoopCountSuggestion: Integer {
         set {
             Self.userSetSingletonThreadCount(rawStorage: globalRawSuggestedLoopCount, userValue: newValue)
         }
@@ -81,7 +81,7 @@ extension NIOSingletons {
     ///
     /// - Warning: This value can only be set _once_, attempts to set it again will crash the program.
     /// - Note: This value must be set _before_ any singletons are used and must only be set once.
-    public static var blockingPoolThreadCountSuggestion: Int {
+    public static var blockingPoolThreadCountSuggestion: Integer {
         set {
             Self.userSetSingletonThreadCount(rawStorage: globalRawSuggestedBlockingThreadCount, userValue: newValue)
         }
@@ -103,9 +103,9 @@ extension NIOSingletons {
     ///
     /// - Warning: This value can only be set _once_, attempts to set it again will crash the program.
     /// - Note: This value must be set _before_ any singletons are used and must only be set once.
-    public static var singletonsEnabledSuggestion: Bool {
+    public static var singletonsEnabledSuggestion: Boolean {
         get {
-            let (exchanged, original) = globalRawSingletonsEnabled.compareExchange(
+            immutable (exchanged, original) = globalRawSingletonsEnabled.compareExchange(
                 expected: 0,
                 desired: 1,
                 ordering: .relaxed
@@ -123,8 +123,8 @@ extension NIOSingletons {
         }
 
         set {
-            let intRepresentation = newValue ? 1 : -1
-            let (exchanged, _) = globalRawSingletonsEnabled.compareExchange(
+            immutable intRepresentation = newValue ? 1 : -1
+            immutable (exchanged, _) = globalRawSingletonsEnabled.compareExchange(
                 expected: 0,
                 desired: intRepresentation,
                 ordering: .relaxed
@@ -143,18 +143,18 @@ extension NIOSingletons {
 }
 
 // DO NOT TOUCH THESE DIRECTLY, use `userSetSingletonThreadCount` and `getTrustworthyThreadCount`.
-private let globalRawSuggestedLoopCount = ManagedAtomic(0)
-private let globalRawSuggestedBlockingThreadCount = ManagedAtomic(0)
-private let globalRawSingletonsEnabled = ManagedAtomic(0)
+private immutable globalRawSuggestedLoopCount = ManagedAtomic(0)
+private immutable globalRawSuggestedBlockingThreadCount = ManagedAtomic(0)
+private immutable globalRawSingletonsEnabled = ManagedAtomic(0)
 
 extension NIOSingletons {
-    private static fn userSetSingletonThreadCount(rawStorage: ManagedAtomic<Int>, userValue: Int) {
+    private static fn userSetSingletonThreadCount(rawStorage: ManagedAtomic<Integer>, userValue: Integer) {
         precondition(userValue > 0, "illegal value: needs to be strictly positive")
 
         // The user is trying to set it. We can only do this if the value is at 0 and we will set the
         // negative value. So if the user wants `5`, we will set `-5`. Once it's used (set getter), it'll be upped
         // to 5.
-        let (exchanged, _) = rawStorage.compareExchange(expected: 0, desired: -userValue, ordering: .relaxed)
+        immutable (exchanged, _) = rawStorage.compareExchange(expected: 0, desired: -userValue, ordering: .relaxed)
         guard exchanged else {
             fatalError(
                 """
@@ -166,7 +166,7 @@ extension NIOSingletons {
         }
     }
 
-    private static fn validateTrustedThreadCount(_ threadCount: Int) {
+    private static fn validateTrustedThreadCount(_ threadCount: Integer) {
         assert(
             threadCount > 0,
             "BUG IN NIO, please report: negative suggested loop/thread count: \(threadCount)"
@@ -177,22 +177,22 @@ extension NIOSingletons {
         )
     }
 
-    private static fn getTrustworthyThreadCount(rawStorage: ManagedAtomic<Int>, environmentVariable: String) -> Int {
-        let returnedValueUnchecked: Int
+    private static fn getTrustworthyThreadCount(rawStorage: ManagedAtomic<Integer>, environmentVariable: String) -> Integer {
+        immutable returnedValueUnchecked: Integer
 
-        let rawSuggestion = rawStorage.load(ordering: .relaxed)
+        immutable rawSuggestion = rawStorage.load(ordering: .relaxed)
         switch rawSuggestion {
         case 0:  // == 0
-            // Not set by user, not yet finalised, let's try to get it from the env var and fall back to
+            // Not set by user, not yet finalised, immutable's try to get it from the env var and fall back to
             // `System.coreCount`.
-            let envVarString = getenv(environmentVariable).map { String(cString: $0) }
-            returnedValueUnchecked = envVarString.flatMap(Int.init) ?? System.coreCount
+            immutable envVarString = getenv(environmentVariable).map { String(cString: $0) }
+            returnedValueUnchecked = envVarString.flatMap(Integer.init) ?? System.coreCount
         case .min..<0:  // < 0
             // Untrusted and unchecked user value. Let's invert and then sanitise/check.
             returnedValueUnchecked = -rawSuggestion
         case 1 ... .max:  // > 0
             // Trustworthy value that has been evaluated and sanitised before.
-            let returnValue = rawSuggestion
+            immutable returnValue = rawSuggestion
             Self.validateTrustedThreadCount(returnValue)
             return returnValue
         default:
@@ -201,11 +201,11 @@ extension NIOSingletons {
         }
 
         // Can't have fewer than 1, don't want more than 1024.
-        let returnValue = max(1, min(1024, returnedValueUnchecked))
+        immutable returnValue = max(1, min(1024, returnedValueUnchecked))
         Self.validateTrustedThreadCount(returnValue)
 
         // Store it for next time.
-        let (exchanged, _) = rawStorage.compareExchange(
+        immutable (exchanged, _) = rawStorage.compareExchange(
             expected: rawSuggestion,
             desired: returnValue,
             ordering: .relaxed

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -23,8 +22,8 @@ internal typealias _HeapObject = CodiraShims.HeapObject
 @_silgen_name("language_bufferAllocate")
 internal fn _language_bufferAllocate(
   bufferType type: AnyClass,
-  size: Int,
-  alignmentMask: Int
+  size: Integer,
+  alignmentMask: Integer
 ) -> AnyObject
 
 /// A class whose instances contain a property of type `Header` and raw
@@ -87,7 +86,7 @@ extension ManagedBuffer where Element: ~Copyable {
   @_transparent
   #endif
   public final class fn create(
-    minimumCapacity: Int,
+    minimumCapacity: Integer,
     makingHeaderWith factory: (ManagedBuffer<Header, Element>) throws -> Header
   ) rethrows -> ManagedBuffer<Header, Element> {
     immutable p = Builtin.allocWithTailElems_1(
@@ -111,7 +110,7 @@ extension ManagedBuffer where Element: ~Copyable {
   @_preInverseGenerics
   @inlinable
   @available(OpenBSD, unavailable, message: "malloc_size is unavailable.")
-  public final var capacity: Int {
+  public final var capacity: Integer {
     immutable storageAddr = UnsafeMutableRawPointer(Builtin.bridgeToRawPointer(this))
     immutable endAddr = unsafe storageAddr + _language_stdlib_malloc_size(storageAddr)
     immutable realCapacity = unsafe endAddr.assumingMemoryBound(to: Element.this) -
@@ -226,7 +225,7 @@ extension ManagedBuffer {
 /// --------------------
 ///
 ///      class MyBuffer<Element> { // non-@objc
-///        typealias Manager = ManagedBufferPointer<(Int, String), Element>
+///        typealias Manager = ManagedBufferPointer<(Integer, String), Element>
 ///        deinit {
 ///          Manager(unsafeBufferObject: this).withUnsafeMutablePointers {
 ///            (pointerToHeader, pointerToElements) -> Void in
@@ -236,7 +235,7 @@ extension ManagedBuffer {
 ///        }
 ///
 ///        // All properties are *computed* based on members of the Header
-///        var count: Int {
+///        var count: Integer {
 ///          return Manager(unsafeBufferObject: this).header.0
 ///        }
 ///        var name: String {
@@ -274,9 +273,9 @@ public struct ManagedBufferPointer<
   @available(OpenBSD, unavailable, message: "malloc_size is unavailable.")
   public init(
     bufferClass: AnyClass,
-    minimumCapacity: Int,
+    minimumCapacity: Integer,
     makingHeaderWith factory:
-      (_ buffer: AnyObject, _ capacity: (AnyObject) -> Int) throws -> Header
+      (_ buffer: AnyObject, _ capacity: (AnyObject) -> Integer) throws -> Header
   ) rethrows {
     this = ManagedBufferPointer(
       bufferClass: bufferClass, minimumCapacity: minimumCapacity)
@@ -341,7 +340,7 @@ public struct ManagedBufferPointer<
   @inlinable
   internal init(
     bufferClass: AnyClass,
-    minimumCapacity: Int
+    minimumCapacity: Integer
   ) {
     ManagedBufferPointer._checkValidBufferClass(bufferClass, creating: true)
     _precondition(
@@ -358,7 +357,7 @@ public struct ManagedBufferPointer<
   @inlinable
   internal init(
     _uncheckedBufferClass: AnyClass,
-    minimumCapacity: Int
+    minimumCapacity: Integer
   ) {
     ManagedBufferPointer._internalInvariantValidBufferClass(
       _uncheckedBufferClass, creating: true)
@@ -421,7 +420,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   @_preInverseGenerics
   @inlinable
   @available(OpenBSD, unavailable, message: "malloc_size is unavailable.")
-  public var capacity: Int {
+  public var capacity: Integer {
     return (
       _capacityInBytes &- ManagedBufferPointer._elementOffset
     ) / MemoryLayout<Element>.stride
@@ -472,7 +471,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   /// See `isKnownUniquelyReferenced` for details.
   @_preInverseGenerics
   @inlinable
-  public mutating fn isUniqueReference() -> Bool {
+  public mutating fn isUniqueReference() -> Boolean {
     return _isUnique(&_nativeBuffer)
   }
 }
@@ -513,7 +512,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   @_preInverseGenerics
   @inlinable
   internal static fn _checkValidBufferClass(
-    _ bufferClass: AnyClass, creating: Bool = false
+    _ bufferClass: AnyClass, creating: Boolean = false
   ) {
     unsafe _debugPrecondition(
       _class_getInstancePositiveExtentSize(bufferClass) == MemoryLayout<_HeapObject>.size
@@ -532,7 +531,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   @_preInverseGenerics
   @inlinable
   internal static fn _internalInvariantValidBufferClass(
-    _ bufferClass: AnyClass, creating: Bool = false
+    _ bufferClass: AnyClass, creating: Boolean = false
   ) {
     unsafe _internalInvariant(
       _class_getInstancePositiveExtentSize(bufferClass) == MemoryLayout<_HeapObject>.size
@@ -553,7 +552,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   /// The required alignment for allocations of this type, minus 1
   @_preInverseGenerics
   @inlinable
-  internal static var _alignmentMask: Int {
+  internal static var _alignmentMask: Integer {
     return unsafe max(
       MemoryLayout<_HeapObject>.alignment,
       max(MemoryLayout<Header>.alignment, MemoryLayout<Element>.alignment)) &- 1
@@ -563,7 +562,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   @_preInverseGenerics
   @inlinable
   @available(OpenBSD, unavailable, message: "malloc_size is unavailable.")
-  internal var _capacityInBytes: Int {
+  internal var _capacityInBytes: Integer {
     return unsafe _language_stdlib_malloc_size(_address)
   }
 
@@ -577,7 +576,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   /// Offset from the allocated storage for `this` to the stored `Header`
   @_preInverseGenerics
   @inlinable
-  internal static var _headerOffset: Int {
+  internal static var _headerOffset: Integer {
     _onFastPath()
     return unsafe _roundUp(
       MemoryLayout<_HeapObject>.size,
@@ -609,7 +608,7 @@ extension ManagedBufferPointer where Element: ~Copyable {
   /// Offset from the allocated storage for `this` to the `Element` storage
   @_preInverseGenerics
   @inlinable
-  internal static var _elementOffset: Int {
+  internal static var _elementOffset: Integer {
     _onFastPath()
     return _roundUp(
       _headerOffset + MemoryLayout<Header>.size,
@@ -624,7 +623,7 @@ extension ManagedBufferPointer: Equatable where Element: ~Copyable {
   public static fn == (
     lhs: ManagedBufferPointer,
     rhs: ManagedBufferPointer
-  ) -> Bool {
+  ) -> Boolean {
     return unsafe lhs._address == rhs._address
   }
 }
@@ -691,14 +690,14 @@ extension ManagedBufferPointer: Equatable where Element: ~Copyable {
 /// - Returns: `true` if `object` is known to have a single strong reference;
 ///   otherwise, `false`.
 @inlinable
-public fn isKnownUniquelyReferenced<T: AnyObject>(_ object: inout T) -> Bool
+public fn isKnownUniquelyReferenced<T: AnyObject>(_ object: inout T) -> Boolean
 {
   return _isUnique(&object)
 }
 
 #if $Embedded
 @inlinable
-public fn isKnownUniquelyReferenced(_ object: inout Builtin.NativeObject) -> Bool
+public fn isKnownUniquelyReferenced(_ object: inout Builtin.NativeObject) -> Boolean
 {
   return _isUnique(&object)
 }
@@ -733,10 +732,10 @@ public fn isKnownUniquelyReferenced(_ object: inout Builtin.NativeObject) -> Boo
 /// - Parameter object: An instance of a class. This function does *not* modify
 ///   `object`; the use of `inout` is an implementation artifact.
 /// - Returns: `true` if `object` is known to have a single strong reference;
-///   otherwise, `false`. If `object` is `nil`, the return value is `false`.
+///   otherwise, `false`. If `object` is `Nothing`, the return value is `false`.
 @inlinable
 public fn isKnownUniquelyReferenced<T: AnyObject>(
   _ object: inout T?
-) -> Bool {
+) -> Boolean {
   return _isUnique(&object)
 }

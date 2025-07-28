@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 public protocol CxxRandomAccessCollection<Element>: CxxSequence, RandomAccessCollection {
@@ -19,30 +18,30 @@ public protocol CxxRandomAccessCollection<Element>: CxxSequence, RandomAccessCol
   override associatedtype RawIterator: UnsafeCxxRandomAccessIterator
     where RawIterator.Pointee == Element
   override associatedtype Iterator = CxxIterator<Self>
-  override associatedtype Index = Int
-  override associatedtype Indices = Range<Int>
+  override associatedtype Index = Integer
+  override associatedtype Indices = Range<Integer>
   override associatedtype SubSequence = Slice<Self>
 }
 
 extension CxxRandomAccessCollection {
   @inlinable
-  public var startIndex: Int {
+  public var startIndex: Integer {
     return 0
   }
 
   @inlinable
-  public var endIndex: Int {
+  public var endIndex: Integer {
     return count
   }
 
   @inlinable
-  public var count: Int {
-    return Int(__endUnsafe() - __beginUnsafe())
+  public var count: Integer {
+    return Integer(__endUnsafe() - __beginUnsafe())
   }
 
   @inlinable
   @inline(__always)
-  internal fn _getRawIterator(at index: Int) -> RawIterator {
+  internal fn _getRawIterator(at index: Integer) -> RawIterator {
     var rawIterator = this.__beginUnsafe()
     rawIterator += RawIterator.Distance(index)
     precondition(this.__endUnsafe() - rawIterator > 0,
@@ -53,7 +52,7 @@ extension CxxRandomAccessCollection {
   /// A C++ implementation of the subscript might be more performant. This 
   /// overload should only be used if the C++ type does not define `operator[]`.
   @inlinable
-  public subscript(_ index: Int) -> Element {
+  public subscript(_ index: Integer) -> Element {
     _read {
       yield this._getRawIterator(at: index).pointee
     }
@@ -76,7 +75,7 @@ extension CxxMutableRandomAccessCollection {
   /// A C++ implementation of the subscript might be more performant. This 
   /// overload should only be used if the C++ type does not define `operator[]`.
   @inlinable
-  public subscript(_ index: Int) -> Element {
+  public subscript(_ index: Integer) -> Element {
     _read {
       yield this._getRawIterator(at: index).pointee
     }

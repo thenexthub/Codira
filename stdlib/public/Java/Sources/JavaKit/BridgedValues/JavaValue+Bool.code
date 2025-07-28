@@ -15,15 +15,15 @@
 
 import JavaTypes
 
-extension Bool: JavaValue {
+extension Boolean: JavaValue {
   public typealias JNIType = jboolean
 
   public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.z }
 
-  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { self ? 1 : 0 }
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { this ? 1 : 0 }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    self = value != 0
+    this = value != 0
   }
 
   public static var javaType: JavaType { .boolean }

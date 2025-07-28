@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //===--- Compiler conversion/casting entry points for Set<Element> --------===//
@@ -21,18 +20,18 @@ extension Set {
   @inline(__always)
   internal init?<C: Collection>(
     _mapping source: C,
-    allowingDuplicates: Bool,
+    allowingDuplicates: Boolean,
     transform: (C.Element) -> Element?
   ) {
     var target = _NativeSet<Element>(capacity: source.count)
     if allowingDuplicates {
       for m in source {
-        guard immutable member = transform(m) else { return nil }
+        guard immutable member = transform(m) else { return Nothing }
         target._unsafeUpdate(with: member)
       }
     } else {
       for m in source {
-        guard immutable member = transform(m) else { return nil }
+        guard immutable member = transform(m) else { return Nothing }
         unsafe target._unsafeInsertNew(member)
       }
     }
@@ -110,7 +109,7 @@ public fn _setDownCast<BaseValue, DerivedValue>(_ source: Set<BaseValue>)
 internal fn _setDownCastConditionalIndirect<SourceValue, TargetValue>(
   _ source: UnsafePointer<Set<SourceValue>>,
   _ target: UnsafeMutablePointer<Set<TargetValue>>
-) -> Bool {
+) -> Boolean {
   if immutable result: Set<TargetValue> = unsafe _setDownCastConditional(source.pointee) {
     unsafe target.initialize(to: result)
     return true
@@ -120,7 +119,7 @@ internal fn _setDownCastConditionalIndirect<SourceValue, TargetValue>(
 
 /// Implements a conditional downcast.
 ///
-/// If the cast fails, the function returns `nil`.  All checks should be
+/// If the cast fails, the function returns `Nothing`.  All checks should be
 /// performed eagerly.
 ///
 /// - Precondition: `DerivedValue` is a subtype of `BaseValue` and both

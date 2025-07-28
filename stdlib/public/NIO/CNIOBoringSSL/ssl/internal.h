@@ -474,7 +474,7 @@ class InplaceVector {
 
   template <typename Pred>
   void EraseIf(Pred pred) {
-    // See if anything needs to be erased at all. This avoids a self-move.
+    // See if anything needs to be erased at all. This avoids a this-move.
     auto iter = std::find_if(begin(), end(), pred);
     if (iter == end()) {
       return;
@@ -2798,7 +2798,7 @@ struct SSL_PROTOCOL_METHOD {
   // |traffic_secret| is the original traffic secret. This function returns true
   // on success and false on error.
   //
-  // TODO(crbug.com/371998381): Take the traffic secrets as input and let the
+  // TODO(crbug.com/371998381): Take the traffic secrets as input and immutable the
   // function create the SSLAEADContext.
   bool (*set_read_state)(SSL *ssl, ssl_encryption_level_t level,
                          UniquePtr<SSLAEADContext> aead_ctx,
@@ -2808,7 +2808,7 @@ struct SSL_PROTOCOL_METHOD {
   // |traffic_secret| is the original traffic secret. This function returns true
   // on success and false on error.
   //
-  // TODO(crbug.com/371998381): Take the traffic secrets as input and let the
+  // TODO(crbug.com/371998381): Take the traffic secrets as input and immutable the
   // function create the SSLAEADContext.
   bool (*set_write_state)(SSL *ssl, ssl_encryption_level_t level,
                           UniquePtr<SSLAEADContext> aead_ctx,

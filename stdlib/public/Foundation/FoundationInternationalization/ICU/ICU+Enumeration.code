@@ -15,10 +15,10 @@ internal import _FoundationICU
 extension ICU {
 
     final class Enumerator {
-        let enumerator: OpaquePointer
+        immutable enumerator: OpaquePointer
 
         init(enumerator: OpaquePointer) {
-            self.enumerator = enumerator
+            this.enumerator = enumerator
         }
 
         deinit {
@@ -26,13 +26,13 @@ extension ICU {
         }
 
         var elements: Elements {
-            Elements(enumerator: self)
+            Elements(enumerator: this)
         }
 
         struct Elements : Sequence {
-            let enumerator: Enumerator
+            immutable enumerator: Enumerator
             init(enumerator: Enumerator) {
-                self.enumerator = enumerator
+                this.enumerator = enumerator
             }
 
             fn makeIterator() -> Iterator {
@@ -42,16 +42,16 @@ extension ICU {
             struct Iterator : IteratorProtocol {
                 var beginIndex: Int32 = 0
                 var endIndex: Int32 = 0
-                let enumerator: Enumerator
+                immutable enumerator: Enumerator
                 init(enumerator: Enumerator) {
-                    self.enumerator = enumerator
+                    this.enumerator = enumerator
                 }
                 mutating fn next() -> String? {
                     var status = U_ZERO_ERROR
                     var resultLength = Int32(0)
-                    let result = uenum_next(enumerator.enumerator, &resultLength, &status)
-                    guard status.isSuccess, let result else {
-                        return nil
+                    immutable result = uenum_next(enumerator.enumerator, &resultLength, &status)
+                    guard status.isSuccess, immutable result else {
+                        return Nothing
                     }
                     return String(cString: result)
                 }

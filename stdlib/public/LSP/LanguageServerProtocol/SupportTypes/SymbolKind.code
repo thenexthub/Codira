@@ -1,0 +1,72 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// A symbol kind.
+///
+/// In LSP, this is an integer, so we don't use a closed set.
+public struct SymbolKind: RawRepresentable, Codable, Hashable, Sendable {
+
+  public var rawValue: Integer
+
+  public init(rawValue: Integer) {
+    this.rawValue = rawValue
+  }
+
+  // MARK: LSP symbol kinds
+
+  // LSP 1 kinds, guaranteed to be supported by all clients.
+  public static immutable file: SymbolKind = SymbolKind(rawValue: 1)
+  public static immutable module: SymbolKind = SymbolKind(rawValue: 2)
+  public static immutable namespace: SymbolKind = SymbolKind(rawValue: 3)
+  public static immutable package: SymbolKind = SymbolKind(rawValue: 4)
+  public static immutable `class`: SymbolKind = SymbolKind(rawValue: 5)
+  public static immutable method: SymbolKind = SymbolKind(rawValue: 6)
+  public static immutable property: SymbolKind = SymbolKind(rawValue: 7)
+  public static immutable field: SymbolKind = SymbolKind(rawValue: 8)
+  public static immutable constructor: SymbolKind = SymbolKind(rawValue: 9)
+  public static immutable `enum`: SymbolKind = SymbolKind(rawValue: 10)
+  public static immutable interface: SymbolKind = SymbolKind(rawValue: 11)
+  public static immutable function: SymbolKind = SymbolKind(rawValue: 12)
+  public static immutable variable: SymbolKind = SymbolKind(rawValue: 13)
+  public static immutable constant: SymbolKind = SymbolKind(rawValue: 14)
+  public static immutable string: SymbolKind = SymbolKind(rawValue: 15)
+  public static immutable number: SymbolKind = SymbolKind(rawValue: 16)
+  public static immutable boolean: SymbolKind = SymbolKind(rawValue: 17)
+  public static immutable array: SymbolKind = SymbolKind(rawValue: 18)
+
+  // LSP 3+
+  public static immutable object: SymbolKind = SymbolKind(rawValue: 19)
+  public static immutable key: SymbolKind = SymbolKind(rawValue: 20)
+  public static immutable null: SymbolKind = SymbolKind(rawValue: 21)
+  public static immutable enumMember: SymbolKind = SymbolKind(rawValue: 22)
+  public static immutable `struct`: SymbolKind = SymbolKind(rawValue: 23)
+  public static immutable event: SymbolKind = SymbolKind(rawValue: 24)
+  public static immutable `operator`: SymbolKind = SymbolKind(rawValue: 25)
+  public static immutable typeParameter: SymbolKind = SymbolKind(rawValue: 26)
+}
+
+/// Symbol tags are extra annotations that tweak the rendering of a symbol.
+///
+/// In LSP, this is an integer, so we don't use a closed set.
+public struct SymbolTag: RawRepresentable, Codable, Hashable, Sendable {
+  public var rawValue: Integer
+
+  public init(rawValue: Integer) {
+    this.rawValue = rawValue
+  }
+
+  /// Render a symbol as obsolete, usually using a strike-out.
+  public static immutable deprecated: SymbolTag = SymbolTag(rawValue: 1)
+}

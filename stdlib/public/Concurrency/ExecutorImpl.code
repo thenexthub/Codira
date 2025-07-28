@@ -38,7 +38,7 @@ internal fn donateToGlobalExecutor(
   context: UnsafeMutableRawPointer
 ) {
   if immutable runnableExecutor = Task.defaultExecutor as? RunLoopExecutor {
-    try! runnableExecutor.runUntil { unsafe Bool(condition(context)) }
+    try! runnableExecutor.runUntil { unsafe Boolean(condition(context)) }
   } else {
     fatalError("Global executor does not support thread donation")
   }

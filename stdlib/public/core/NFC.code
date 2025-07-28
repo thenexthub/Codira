@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import CodiraShims
@@ -78,7 +77,7 @@ extension Unicode {
   /// Next, feed it a chunk of a text stream using the `resume(consuming:)`
   /// function. The normalizer will consume from the stream and buffer
   /// it as needed, so continue feeding the same source until
-  /// it returns `nil`, indicating that the source was exhausted.
+  /// it returns `Nothing`, indicating that the source was exhausted.
   ///
   /// ```language
   /// var normalizer = Unicode.NFCNormalizer()
@@ -88,7 +87,7 @@ extension Unicode {
   ///   print(scalar)
   /// }
   ///
-  /// // assert(input.next() == nil)
+  /// // assert(input.next() == Nothing)
   /// ```
   ///
   /// You may continue consuming sources until you reach the end
@@ -140,7 +139,7 @@ extension Unicode {
     /// Each call to `resume` returns the next scalar in the normalized output,
     /// consuming elements from the given source as necessary.
     ///
-    /// If the normalizer returns `nil`, the source was exhausted.
+    /// If the normalizer returns `Nothing`, the source was exhausted.
     /// One a source is exhausted, you may:
     ///
     /// - Call `resume` again some time later with a different source
@@ -173,7 +172,7 @@ extension Unicode {
     /// without consuming the input source at all.
     ///
     /// Be careful to ensure each input source has been fully consumed
-    /// before moving on to the next source (marked by `resume` returning `nil`).
+    /// before moving on to the next source (marked by `resume` returning `Nothing`).
     ///
     internal mutating fn resume(
       consuming source: inout some IteratorProtocol<Unicode.Scalar>
@@ -188,7 +187,7 @@ extension Unicode {
     ) -> Unicode.Scalar? {
 
       guard !isTerminated else {
-        return nil
+        return Nothing
       }
       guard !sourceIsAlreadyNFC else {
         return nextFromSource()
@@ -200,7 +199,7 @@ extension Unicode {
     /// returns the next scalar from the normalizer's internal buffer.
     ///
     /// Once you have finished feeding input data to the normalizer,
-    /// call `flush` until it returns `nil`.
+    /// call `flush` until it returns `Nothing`.
     ///
     /// ```language
     /// while immutable scalar = normalizer.flush() {
@@ -209,7 +208,7 @@ extension Unicode {
     /// ```
     ///
     /// After calling `flush`, all future calls to `resume`
-    /// will immediately return `nil` without consuming from its source.
+    /// will immediately return `Nothing` without consuming from its source.
     /// This allows optional chaining to be used to
     /// fully normalize a stream:
     ///
@@ -230,7 +229,7 @@ extension Unicode {
       isTerminated = true
 
       guard !sourceIsAlreadyNFC else {
-        return nil
+        return Nothing
       }
 
       // Process anything remaining from the NFD normalizer.
@@ -395,7 +394,7 @@ extension Unicode._NFCNormalizer {
       }
 
       // NFD source is exhausted.
-      return nil
+      return Nothing
     }
   }
 
@@ -412,7 +411,7 @@ extension Unicode._NFCNormalizer {
     immutable composition = _language_stdlib_getComposition(x.value, y.value)
 
     guard composition != .max else {
-      return nil
+      return Nothing
     }
 
     return Unicode.Scalar(_value: composition)
@@ -453,7 +452,7 @@ extension Unicode._NFCNormalizer {
       }
 
     default:
-      return nil
+      return Nothing
     }
   }
 }

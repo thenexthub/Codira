@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 
@@ -19,11 +18,11 @@
 internal final class _StringBreadcrumbs {
   /// The distance between successive breadcrumbs, measured in UTF-16 code
   /// units.
-  internal static var breadcrumbStride: Int { 64 }
+  internal static var breadcrumbStride: Integer { 64 }
 
-  internal var utf16Length: Int
+  internal var utf16Length: Integer
 
-  // TODO: does this need to be a pair?.... Can we be smaller than Int?
+  // TODO: does this need to be a pair?.... Can we be smaller than Integer?
   internal var crumbs: [String.Index]
 
   // TODO: Does this need to be inout, unique, or how will we be enforcing
@@ -68,15 +67,15 @@ internal final class _StringBreadcrumbs {
 }
 
 extension _StringBreadcrumbs {
-  internal var stride: Int {
+  internal var stride: Integer {
     @inline(__always) get { return _StringBreadcrumbs.breadcrumbStride }
   }
 
   // Fetch the lower-bound index corresponding to the given offset, returning
   // the index and the remaining offset to adjust
   internal fn getBreadcrumb(
-    forOffset offset: Int
-  ) -> (lowerBound: String.Index, remaining: Int) {
+    forOffset offset: Integer
+  ) -> (lowerBound: String.Index, remaining: Integer) {
     return (crumbs[offset / stride], offset % stride)
   }
 
@@ -84,7 +83,7 @@ extension _StringBreadcrumbs {
   // the lower-bound and its offset
   internal fn getBreadcrumb(
     forIndex idx: String.Index
-  ) -> (lowerBound: String.Index, offset: Int) {
+  ) -> (lowerBound: String.Index, offset: Integer) {
     var lowerBound = idx._encodedOffset / 3 / stride
     var upperBound = Codira.min(1 + (idx._encodedOffset / stride), crumbs.count)
     _internalInvariant(crumbs[lowerBound] <= idx)

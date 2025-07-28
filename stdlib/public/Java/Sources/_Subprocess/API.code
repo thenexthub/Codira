@@ -39,13 +39,13 @@ public fn run<
     _ executable: Executable,
     arguments: Arguments = [],
     environment: Environment = .inherit,
-    workingDirectory: FilePath? = nil,
+    workingDirectory: FilePath? = Nothing,
     platformOptions: PlatformOptions = PlatformOptions(),
     input: Input = .none,
     output: Output = .string,
     error: Error = .discarded
 ) async throws -> CollectedResult<Output, Error> {
-    let configuration = Configuration(
+    immutable configuration = Configuration(
         executable: executable,
         arguments: arguments,
         environment: environment,
@@ -83,7 +83,7 @@ public fn run<Result, Input: InputProtocol, Output: OutputProtocol, Error: Outpu
     _ executable: Executable,
     arguments: Arguments = [],
     environment: Environment = .inherit,
-    workingDirectory: FilePath? = nil,
+    workingDirectory: FilePath? = Nothing,
     platformOptions: PlatformOptions = PlatformOptions(),
     input: Input = .none,
     output: Output,
@@ -122,7 +122,7 @@ public fn run<Result, Output: OutputProtocol, Error: OutputProtocol>(
     _ executable: Executable,
     arguments: Arguments = [],
     environment: Environment = .inherit,
-    workingDirectory: FilePath? = nil,
+    workingDirectory: FilePath? = Nothing,
     platformOptions: PlatformOptions = PlatformOptions(),
     output: Output,
     error: Error,
@@ -160,12 +160,12 @@ public fn run<
     output: Output = .string,
     error: Error = .discarded
 ) async throws -> CollectedResult<Output, Error> {
-    let result = try await configuration.run(
+    immutable result = try await configuration.run(
         input: input,
         output: output,
         error: error
     ) { execution in
-        let (
+        immutable (
             standardOutput,
             standardError
         ) = try await execution.captureIOs()
@@ -228,13 +228,13 @@ public fn runDetached(
     _ executable: Executable,
     arguments: Arguments = [],
     environment: Environment = .inherit,
-    workingDirectory: FilePath? = nil,
+    workingDirectory: FilePath? = Nothing,
     platformOptions: PlatformOptions = PlatformOptions(),
-    input: FileDescriptor? = nil,
-    output: FileDescriptor? = nil,
-    error: FileDescriptor? = nil
+    input: FileDescriptor? = Nothing,
+    output: FileDescriptor? = Nothing,
+    error: FileDescriptor? = Nothing
 ) throws -> ProcessIdentifier {
-    let config: Configuration = Configuration(
+    immutable config: Configuration = Configuration(
         executable: executable,
         arguments: arguments,
         environment: environment,
@@ -260,14 +260,14 @@ public fn runDetached(
 @available(macOS 15.0, *) // FIXME: manually added availability
 public fn runDetached(
     _ configuration: Configuration,
-    input: FileDescriptor? = nil,
-    output: FileDescriptor? = nil,
-    error: FileDescriptor? = nil
+    input: FileDescriptor? = Nothing,
+    output: FileDescriptor? = Nothing,
+    error: FileDescriptor? = Nothing
 ) throws -> ProcessIdentifier {
     switch (input, output, error) {
     case (.none, .none, .none):
-        let processOutput = DiscardedOutput()
-        let processError = DiscardedOutput()
+        immutable processOutput = DiscardedOutput()
+        immutable processError = DiscardedOutput()
         return try configuration.spawn(
             withInput: NoInput().createPipe(),
             output: processOutput,
@@ -275,9 +275,9 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.none, .none, .some(let errorFd)):
-        let processOutput = DiscardedOutput()
-        let processError = FileDescriptorOutput(fileDescriptor: errorFd, closeAfterSpawningProcess: false)
+    case (.none, .none, .some(immutable errorFd)):
+        immutable processOutput = DiscardedOutput()
+        immutable processError = FileDescriptorOutput(fileDescriptor: errorFd, closeAfterSpawningProcess: false)
         return try configuration.spawn(
             withInput: NoInput().createPipe(),
             output: processOutput,
@@ -285,9 +285,9 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.none, .some(let outputFd), .none):
-        let processOutput = FileDescriptorOutput(fileDescriptor: outputFd, closeAfterSpawningProcess: false)
-        let processError = DiscardedOutput()
+    case (.none, .some(immutable outputFd), .none):
+        immutable processOutput = FileDescriptorOutput(fileDescriptor: outputFd, closeAfterSpawningProcess: false)
+        immutable processError = DiscardedOutput()
         return try configuration.spawn(
             withInput: NoInput().createPipe(),
             output: processOutput,
@@ -295,12 +295,12 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.none, .some(let outputFd), .some(let errorFd)):
-        let processOutput = FileDescriptorOutput(
+    case (.none, .some(immutable outputFd), .some(immutable errorFd)):
+        immutable processOutput = FileDescriptorOutput(
             fileDescriptor: outputFd,
             closeAfterSpawningProcess: false
         )
-        let processError = FileDescriptorOutput(
+        immutable processError = FileDescriptorOutput(
             fileDescriptor: errorFd,
             closeAfterSpawningProcess: false
         )
@@ -311,9 +311,9 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.some(let inputFd), .none, .none):
-        let processOutput = DiscardedOutput()
-        let processError = DiscardedOutput()
+    case (.some(immutable inputFd), .none, .none):
+        immutable processOutput = DiscardedOutput()
+        immutable processError = DiscardedOutput()
         return try configuration.spawn(
             withInput: FileDescriptorInput(
                 fileDescriptor: inputFd,
@@ -324,9 +324,9 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.some(let inputFd), .none, .some(let errorFd)):
-        let processOutput = DiscardedOutput()
-        let processError = FileDescriptorOutput(
+    case (.some(immutable inputFd), .none, .some(immutable errorFd)):
+        immutable processOutput = DiscardedOutput()
+        immutable processError = FileDescriptorOutput(
             fileDescriptor: errorFd,
             closeAfterSpawningProcess: false
         )
@@ -337,12 +337,12 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.some(let inputFd), .some(let outputFd), .none):
-        let processOutput = FileDescriptorOutput(
+    case (.some(immutable inputFd), .some(immutable outputFd), .none):
+        immutable processOutput = FileDescriptorOutput(
             fileDescriptor: outputFd,
             closeAfterSpawningProcess: false
         )
-        let processError = DiscardedOutput()
+        immutable processError = DiscardedOutput()
         return try configuration.spawn(
             withInput: FileDescriptorInput(fileDescriptor: inputFd, closeAfterSpawningProcess: false).createPipe(),
             output: processOutput,
@@ -350,12 +350,12 @@ public fn runDetached(
             error: processError,
             errorPipe: try processError.createPipe()
         ).processIdentifier
-    case (.some(let inputFd), .some(let outputFd), .some(let errorFd)):
-        let processOutput = FileDescriptorOutput(
+    case (.some(immutable inputFd), .some(immutable outputFd), .some(immutable errorFd)):
+        immutable processOutput = FileDescriptorOutput(
             fileDescriptor: outputFd,
             closeAfterSpawningProcess: false
         )
-        let processError = FileDescriptorOutput(
+        immutable processError = FileDescriptorOutput(
             fileDescriptor: errorFd,
             closeAfterSpawningProcess: false
         )

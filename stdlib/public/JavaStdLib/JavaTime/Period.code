@@ -1,0 +1,151 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.time.Period", implements: ChronoPeriod.this, Serializable.this)
+open class Period: JavaObject {
+  @JavaMethod
+  open fn get(_ arg0: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn normalized() -> ChronoPeriod!
+
+  @JavaMethod
+  open fn normalized() -> Period!
+
+  @JavaMethod
+  open fn isZero() -> Boolean
+
+  @JavaMethod
+  open fn getMonths() -> Int32
+
+  @JavaMethod
+  open fn isNegative() -> Boolean
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Period!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> ChronoPeriod!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> ChronoPeriod!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Period!
+
+  @JavaMethod
+  open fn getUnits() -> List<TemporalUnit>!
+
+  @JavaMethod
+  open fn negated() -> Period!
+
+  @JavaMethod
+  open fn negated() -> ChronoPeriod!
+
+  @JavaMethod
+  open fn multipliedBy(_ arg0: Int32) -> ChronoPeriod!
+
+  @JavaMethod
+  open fn multipliedBy(_ arg0: Int32) -> Period!
+
+  @JavaMethod
+  open fn plusDays(_ arg0: Int64) -> Period!
+
+  @JavaMethod
+  open fn minusDays(_ arg0: Int64) -> Period!
+
+  @JavaMethod
+  open fn addTo(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn subtractFrom(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn plusMonths(_ arg0: Int64) -> Period!
+
+  @JavaMethod
+  open fn toTotalMonths() -> Int64
+
+  @JavaMethod
+  open fn getDays() -> Int32
+
+  @JavaMethod
+  open fn plusYears(_ arg0: Int64) -> Period!
+
+  @JavaMethod
+  open fn minusMonths(_ arg0: Int64) -> Period!
+
+  @JavaMethod
+  open fn getChronology() -> Chronology!
+
+  @JavaMethod
+  open fn getChronology() -> IsoChronology!
+
+  @JavaMethod
+  open fn minusYears(_ arg0: Int64) -> Period!
+
+  @JavaMethod
+  open fn getYears() -> Int32
+
+  @JavaMethod
+  open fn withYears(_ arg0: Int32) -> Period!
+
+  @JavaMethod
+  open fn withMonths(_ arg0: Int32) -> Period!
+
+  @JavaMethod
+  open fn withDays(_ arg0: Int32) -> Period!
+}
+extension JavaClass<Period> {
+  @JavaStaticField(isFinal: true)
+  public var ZERO: Period!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> Period!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAmount?) -> Period!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?) -> Period!
+
+  @JavaStaticMethod
+  public fn between(_ arg0: LocalDate?, _ arg1: LocalDate?) -> Period!
+
+  @JavaStaticMethod
+  public fn ofDays(_ arg0: Int32) -> Period!
+
+  @JavaStaticMethod
+  public fn ofYears(_ arg0: Int32) -> Period!
+
+  @JavaStaticMethod
+  public fn ofMonths(_ arg0: Int32) -> Period!
+
+  @JavaStaticMethod
+  public fn ofWeeks(_ arg0: Int32) -> Period!
+}

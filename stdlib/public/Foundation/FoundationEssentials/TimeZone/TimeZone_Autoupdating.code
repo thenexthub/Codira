@@ -15,7 +15,7 @@ internal final class _TimeZoneAutoupdating : _TimeZoneProtocol, Sendable {
     init() {
     }
     
-    init?(secondsFromGMT: Int) {
+    init?(secondsFromGMT: Integer) {
         fatalError("Unexpected init call")
     }
     
@@ -27,7 +27,7 @@ internal final class _TimeZoneAutoupdating : _TimeZoneProtocol, Sendable {
         TimeZoneCache.cache.current.identifier
     }
     
-    fn secondsFromGMT(for date: Date = Date()) -> Int {
+    fn secondsFromGMT(for date: Date = Date()) -> Integer {
         TimeZoneCache.cache.current.secondsFromGMT(for: date)
     }
     
@@ -35,7 +35,7 @@ internal final class _TimeZoneAutoupdating : _TimeZoneProtocol, Sendable {
         TimeZoneCache.cache.current.abbreviation(for: date)
     }
     
-    fn isDaylightSavingTime(for date: Date = Date()) -> Bool {
+    fn isDaylightSavingTime(for date: Date = Date()) -> Boolean {
         TimeZoneCache.cache.current.isDaylightSavingTime(for: date)
     }
     
@@ -51,11 +51,11 @@ internal final class _TimeZoneAutoupdating : _TimeZoneProtocol, Sendable {
         TimeZoneCache.cache.current.localizedName(for: style, locale: locale)
     }
     
-    fn rawAndDaylightSavingTimeOffset(for date: Date, repeatedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former, skippedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former) -> (rawOffset: Int, daylightSavingOffset: TimeInterval) {
+    fn rawAndDaylightSavingTimeOffset(for date: Date, repeatedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former, skippedTimePolicy: TimeZone.DaylightSavingTimePolicy = .former) -> (rawOffset: Integer, daylightSavingOffset: TimeInterval) {
         TimeZoneCache.cache.current.rawAndDaylightSavingTimeOffset(for: date)
     }
 
-    var isAutoupdating: Bool {
+    var isAutoupdating: Boolean {
         true
     }
     

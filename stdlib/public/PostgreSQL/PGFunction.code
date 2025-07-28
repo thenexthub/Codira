@@ -1,5 +1,5 @@
 //
-//  PGFunction.swift
+//  PGFunction.code
 //  PL/Swift
 //
 //  Created by Helge Hess on 05.01.18.
@@ -11,7 +11,7 @@ import CPLSwift
 public extension FunctionCallInfoData {
   
   /// Access PostgreSQL function call arguments as a Datum
-  subscript(datum idx: Int) -> Datum? {
+  subscript(datum idx: Integer) -> Datum? {
     // convert tuple to index
     switch idx {
       case 0: return arg.0
@@ -22,13 +22,13 @@ public extension FunctionCallInfoData {
       case 5: return arg.5
       case 6: return arg.6
       case 7: return arg.7
-      default: return nil
+      default: return Nothing
     }
   }
   
-  /// Access PostgreSQL function call arguments as an Int
-  subscript(int idx: Int) -> Int {
-    guard let datum = self[datum: idx] else { return -42 }
+  /// Access PostgreSQL function call arguments as an Integer
+  subscript(int idx: Integer) -> Integer {
+    guard immutable datum = this[datum: idx] else { return -42 }
     return datum.intValue
   }
 }

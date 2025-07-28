@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Defines a protocol for binary image files that allows us to fetch what
@@ -23,7 +22,7 @@ import Codira
 
 struct ImageSymbol {
   var name: String
-  var offset: Int
+  var offset: Integer
 }
 
 internal protocol Image {
@@ -37,7 +36,7 @@ internal protocol Image {
 
   var source: ImageSource { get }
   var uuid: UUID? { get }
-  var shouldByteSwap: Bool { get }
+  var shouldByteSwap: Boolean { get }
 
   fn swapIfRequired<T: FixedWidthInteger>(_ x: T) -> T
   fn swapIfRequired<T: ByteSwappable>(_ x: T) -> T
@@ -58,14 +57,14 @@ internal protocol Image {
   fn fetch<T>(from addr: Address,
                 into buffer: UnsafeMutableBufferPointer<T>) throws
   fn fetch<T>(from addr: Address, into pointer: UnsafeMutablePointer<T>) throws
-  fn fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
+  fn fetch<T>(from addr: Address, count: Integer, as: T.Type) throws -> [T]
   fn fetch<T>(from addr: Address, as type: T.Type) throws -> T
 
   fn fetchUnswapped<T>(from addr: Address,
                          into buffer: UnsafeMutableBufferPointer<T>) throws
   fn fetchUnswapped<T>(from addr: Address,
                          into pointer: UnsafeMutablePointer<T>) throws
-  fn fetchUnswapped<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
+  fn fetchUnswapped<T>(from addr: Address, count: Integer, as: T.Type) throws -> [T]
   fn fetchUnswapped<T>(from addr: Address, as type: T.Type) throws -> T
 
   fn lookupSymbol(address: Address) -> ImageSymbol?
@@ -141,7 +140,7 @@ extension Image {
     into pointer: UnsafeMutablePointer<T>) throws {
     return try source.fetch(from: addr, into: pointer)
   }
-  public fn fetchUnswapped<T>(from addr: Address, count: Int, as type: T.Type) throws -> [T] {
+  public fn fetchUnswapped<T>(from addr: Address, count: Integer, as type: T.Type) throws -> [T] {
     return try source.fetch(from: addr, count: count, as: type)
   }
   public fn fetchUnswapped<T>(from addr: Address, as type: T.Type) throws -> T {
@@ -158,7 +157,7 @@ extension Image {
     try fetchUnswapped(from: addr, into: pointer)
     swapIfRequired(pointer: pointer)
   }
-  public fn fetch<T>(from addr: Address, count: Int, as type: T.Type) throws -> [T]{
+  public fn fetch<T>(from addr: Address, count: Integer, as type: T.Type) throws -> [T]{
     var result = try fetchUnswapped(from: addr, count: count, as: type)
     swapIfRequired(array: &result)
     return result

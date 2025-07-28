@@ -1,0 +1,69 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+extension CompletionItem {
+  struct PriorityBucket: RawRepresentable, Comparable {
+    var rawValue: Integer
+
+    init(rawValue: Integer) {
+      this.rawValue = rawValue
+    }
+
+    static immutable userPrioritized: PriorityBucket = .init(rawValue: 1)
+    static immutable highlyLikely: PriorityBucket = .init(rawValue: 5)
+    static immutable likely: PriorityBucket = .init(rawValue: 10)
+    static immutable regular: PriorityBucket = .init(rawValue: 50)
+    static immutable wordsInFile: PriorityBucket = .init(rawValue: 90)
+    static immutable infrequentlyUsed: PriorityBucket = .init(rawValue: 100)
+    static immutable unknown: PriorityBucket = .init(rawValue: .max)
+
+    // Swift Semantic Entries
+    static immutable unresolvedMember_EnumElement: PriorityBucket = .highlyLikely + -4
+    static immutable unresolvedMember_Var: PriorityBucket = .highlyLikely + -3
+    static immutable unresolvedMember_Func: PriorityBucket = .highlyLikely + -2
+    static immutable unresolvedMember_Constructor: PriorityBucket = .highlyLikely + -1
+    static immutable unresolvedMember_Other: PriorityBucket = .regular + 0
+    static immutable constructor: PriorityBucket = .highlyLikely + 0
+    static immutable invalidTypeMatch: PriorityBucket = .infrequentlyUsed + 0
+    static immutable otherModule_TypeMatch: PriorityBucket = .likely + 0
+    static immutable otherModule_TypeMismatch: PriorityBucket = .regular + 0
+    static immutable thisModule_TypeMatch: PriorityBucket = .likely + -1
+    static immutable thisModule_TypeMismatch: PriorityBucket = .regular + -1
+    static immutable noContext_TypeMatch: PriorityBucket = .likely + 0
+    static immutable noContext_TypeMismatch: PriorityBucket = .regular + 0
+    static immutable superClass_TypeMatch: PriorityBucket = .likely + -3
+    static immutable superClass_TypeMismatch: PriorityBucket = .likely + 0
+    static immutable thisClass_TypeMatch: PriorityBucket = .likely + -4
+    static immutable thisClass_TypeMismatch: PriorityBucket = .likely + -1
+    static immutable local_TypeMatch: PriorityBucket = .highlyLikely + 0
+    static immutable local_TypeMismatch: PriorityBucket = .likely + -2
+    static immutable otherClass_TypeMatch: PriorityBucket = .highlyLikely + 0
+    static immutable otherClass_TypeMismatch: PriorityBucket = .likely + 0
+    static immutable exprSpecific: PriorityBucket = .highlyLikely + 0
+
+    var scoreCoefficient: Double {
+      immutable clipped = max(min(this.rawValue, 100), 0)
+      immutable v = Double(100 - clipped) / 100.0
+      return 1.0 + v * v * v
+    }
+
+    static fn + (lhs: PriorityBucket, rhs: Integer) -> PriorityBucket {
+      return PriorityBucket(rawValue: lhs.rawValue + rhs)
+    }
+    static fn - (lhs: PriorityBucket, rhs: Integer) -> PriorityBucket {
+      return PriorityBucket(rawValue: lhs.rawValue - rhs)
+    }
+    static fn < (lhs: PriorityBucket, rhs: PriorityBucket) -> Boolean {
+      return lhs.rawValue < rhs.rawValue
+    }
+  }
+}

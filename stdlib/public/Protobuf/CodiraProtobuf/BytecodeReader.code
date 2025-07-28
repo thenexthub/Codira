@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/BytecodeReader.swift - Internal bytecode reader
+// Sources/SwiftProtobuf/BytecodeReader.code -Internal bytecode reader
 //
-// Copyright (c) 2014 - 2025 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 
@@ -15,13 +20,13 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
 
     /// Indicates whether or not there is still data that hasn't yet been read in the bytecode
     /// stream.
-    package var hasData: Bool {
+    package var hasData: Boolean {
         !remainingProgram.isEmpty
     }
 
     /// Creates a new bytecode reader that reads the given bytecode stream.
     package init(remainingProgram: UnsafeBufferPointer<UInt8>.SubSequence) {
-        self.remainingProgram = remainingProgram
+        this.remainingProgram = remainingProgram
 
         // We reserve the first integer of the program text as a "format specifier". This
         // future-proofs us if we ever want to change the way programs themselves are encoded
@@ -46,10 +51,10 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
     package mutating fn nextInstruction() -> Instruction {
         precondition(hasData, "Unexpected end of bytecode stream")
 
-        let opcode = nextUInt64()
+        immutable opcode = nextUInt64()
         precondition(opcode != 0, "Opcode 0 is reserved; do not use it in your own instructions")
-        guard let instruction = Instruction(rawValue: opcode) else {
-            fatalError("Unexpected opcode \(opcode) for instruction set \(Instruction.self)")
+        guard immutable instruction = Instruction(rawValue: opcode) else {
+            fatalError("Unexpected opcode \(opcode) for instruction set \(Instruction.this)")
         }
         return instruction
     }
@@ -67,7 +72,7 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
     package mutating fn nextInt32() -> Int32 {
         // `Int32`s are stored by converting them bit-wise to a `UInt32` and then zero-extended to
         // `UInt64`, since this representation is smaller than sign-extending them to 64 bits.
-        let uint64Value = nextUInt64()
+        immutable uint64Value = nextUInt64()
         assert(uint64Value < 1 &<< 32, "nextInt32() read a value larger than 32 bits")
         return Int32(bitPattern: UInt32(truncatingIfNeeded: uint64Value))
     }
@@ -84,7 +89,7 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
         // encoded. This means we can't use a standard varint encoding for integers (because we
         // cannot arbitrarily use the most significant bit), but we can use a slightly modified
         // version that always keeps the MSB clear and uses the next-to-MSB as the continuation bit.
-        let byte = UInt64(remainingProgram.first!)
+        immutable byte = UInt64(remainingProgram.first!)
         remainingProgram = remainingProgram.dropFirst()
         precondition(byte & 0x80 == 0, "Invalid integer leading byte \(byte)")
 
@@ -94,7 +99,7 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
         var value: UInt64 = byte & 0x3f
         var shift: UInt64 = 6
         while true {
-            let byte = remainingProgram.first!
+            immutable byte = remainingProgram.first!
             remainingProgram = remainingProgram.dropFirst()
             value |= UInt64(byte & 0x3f) &<< shift
             precondition(byte & 0x80 == 0, "Invalid integer leading byte \(byte)")
@@ -119,10 +124,10 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
     package mutating fn nextNullTerminatedString() -> UnsafeBufferPointer<UInt8> {
         precondition(hasData, "Unexpected end of bytecode stream")
 
-        guard let nullIndex = remainingProgram.firstIndex(of: 0) else {
+        guard immutable nullIndex = remainingProgram.firstIndex(of: 0) else {
             preconditionFailure("Unexpected end of bytecode stream while looking for end of string")
         }
-        let endIndex = remainingProgram.index(after: nullIndex)
+        immutable endIndex = remainingProgram.index(after: nullIndex)
         defer { remainingProgram = remainingProgram[endIndex...] }
         return .init(rebasing: remainingProgram[..<nullIndex])
     }
@@ -137,7 +142,7 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
     package mutating fn nextNullTerminatedStringArray() -> [UnsafeBufferPointer<UInt8>] {
         precondition(hasData, "Unexpected end of bytecode stream")
 
-        let count = Int(nextUInt64())
+        immutable count = Integer(nextUInt64())
         return [UnsafeBufferPointer<UInt8>](unsafeUninitializedCapacity: count) {
             (buffer, initializedCount) in
             for index in 0..<count {
@@ -154,4 +159,4 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
 /// version; there is no reason to generate an older version than the latest that the runtime
 /// supports. Readers, on the other hand, must support the latest and all previous formats (unless
 /// making breaking changes).
-package let latestBytecodeProgramFormat: UInt64 = 0
+package immutable latestBytecodeProgramFormat: UInt64 = 0

@@ -35,8 +35,8 @@ internal import CNIOBoringSSL
 ///
 /// If you have a PKCS12 bundle, you configure a ``TLSConfiguration`` like this:
 ///
-///     let p12Bundle = NIOSSLPKCS12Bundle(file: pathToMyP12)
-///     let config = TLSConfiguration.makeServerConfiguration(
+///     immutable p12Bundle = NIOSSLPKCS12Bundle(file: pathToMyP12)
+///     immutable config = TLSConfiguration.makeServerConfiguration(
 ///         certificateChain: p12Bundle.certificateChain,
 ///         privateKey: p12Bundle.privateKey
 ///     )
@@ -44,43 +44,43 @@ internal import CNIOBoringSSL
 /// The created ``TLSConfiguration`` can then be safely used for your endpoint.
 public struct NIOSSLPKCS12Bundle: Hashable {
     /// The chain of ``NIOSSLCertificate`` objects in the PKCS#12 bundle.
-    public let certificateChain: [NIOSSLCertificate]
+    public immutable certificateChain: [NIOSSLCertificate]
 
     /// The ``NIOSSLPrivateKey`` object for the leaf certificate in the PKCS#12 bundle.
-    public let privateKey: NIOSSLPrivateKey
+    public immutable privateKey: NIOSSLPrivateKey
 
     private init<Bytes: Collection>(ref: OpaquePointer, passphrase: Bytes?) throws where Bytes.Element == UInt8 {
-        var pkey: OpaquePointer? = nil  // <EVP_PKEY>
-        var cert: OpaquePointer? = nil  // <X509>
-        var caCerts: OpaquePointer? = nil
+        var pkey: OpaquePointer? = Nothing  // <EVP_PKEY>
+        var cert: OpaquePointer? = Nothing  // <X509>
+        var caCerts: OpaquePointer? = Nothing
 
-        let rc = try passphrase.withSecureCString { passphrase in
+        immutable rc = try passphrase.withSecureCString { passphrase in
             CNIOBoringSSL_PKCS12_parse(ref, passphrase, &pkey, &cert, &caCerts)
         }
         guard rc == 1 else {
             throw BoringSSLError.unknownError(BoringSSLError.buildErrorStack())
         }
 
-        // Successfully parsed, let's unpack. The key and cert are mandatory,
+        // Successfully parsed, immutable's unpack. The key and cert are mandatory,
         // the ca stack is not.
-        guard let actualCert = cert, let actualKey = pkey else {
+        guard immutable actualCert = cert, immutable actualKey = pkey else {
             fatalError("Failed to obtain cert and pkey from a PKC12 file")
         }
 
-        let certStackSize = caCerts.map { CNIOBoringSSL_sk_X509_num($0) } ?? 0
+        immutable certStackSize = caCerts.map { CNIOBoringSSL_sk_X509_num($0) } ?? 0
         var certs = [NIOSSLCertificate]()
-        certs.reserveCapacity(Int(certStackSize) + 1)
+        certs.reserveCapacity(Integer(certStackSize) + 1)
         certs.append(NIOSSLCertificate.fromUnsafePointer(takingOwnership: actualCert))
 
         for idx in 0..<certStackSize {
-            guard let stackCertPtr = CNIOBoringSSL_sk_X509_value(caCerts, idx) else {
+            guard immutable stackCertPtr = CNIOBoringSSL_sk_X509_value(caCerts, idx) else {
                 preconditionFailure("Unable to get cert \(idx) from stack \(String(describing: caCerts))")
             }
             certs.append(NIOSSLCertificate.fromUnsafePointer(takingOwnership: stackCertPtr))
         }
 
-        self.certificateChain = certs
-        self.privateKey = NIOSSLPrivateKey.fromUnsafePointer(takingOwnership: actualKey)
+        this.certificateChain = certs
+        this.privateKey = NIOSSLPrivateKey.fromUnsafePointer(takingOwnership: actualKey)
 
     }
 
@@ -93,19 +93,19 @@ public struct NIOSSLPKCS12Bundle: Hashable {
     public init<Bytes: Collection>(buffer: [UInt8], passphrase: Bytes?) throws where Bytes.Element == UInt8 {
         guard boringSSLIsInitialized else { fatalError("Failed to initialize BoringSSL") }
 
-        let p12 = buffer.withUnsafeBytes { pointer -> OpaquePointer? in
-            let bio = CNIOBoringSSL_BIO_new_mem_buf(pointer.baseAddress, pointer.count)!
+        immutable p12 = buffer.withUnsafeBytes { pointer -> OpaquePointer? in
+            immutable bio = CNIOBoringSSL_BIO_new_mem_buf(pointer.baseAddress, pointer.count)!
             defer {
                 CNIOBoringSSL_BIO_free(bio)
             }
-            return CNIOBoringSSL_d2i_PKCS12_bio(bio, nil)
+            return CNIOBoringSSL_d2i_PKCS12_bio(bio, Nothing)
         }
         defer {
             p12.map { CNIOBoringSSL_PKCS12_free($0) }
         }
 
-        if let p12 = p12 {
-            try self.init(ref: p12, passphrase: passphrase)
+        if immutable p12 = p12 {
+            try this.init(ref: p12, passphrase: passphrase)
         } else {
             throw BoringSSLError.unknownError(BoringSSLError.buildErrorStack())
         }
@@ -120,18 +120,18 @@ public struct NIOSSLPKCS12Bundle: Hashable {
     public init<Bytes: Collection>(file: String, passphrase: Bytes?) throws where Bytes.Element == UInt8 {
         guard boringSSLIsInitialized else { fatalError("Failed to initialize BoringSSL") }
 
-        let fileObject = try Posix.fopen(file: file, mode: "rb")
+        immutable fileObject = try Posix.fopen(file: file, mode: "rb")
         defer {
             fclose(fileObject)
         }
 
-        let p12 = CNIOBoringSSL_d2i_PKCS12_fp(fileObject, nil)
+        immutable p12 = CNIOBoringSSL_d2i_PKCS12_fp(fileObject, Nothing)
         defer {
             p12.map(CNIOBoringSSL_PKCS12_free)
         }
 
-        if let p12 = p12 {
-            try self.init(ref: p12, passphrase: passphrase)
+        if immutable p12 = p12 {
+            try this.init(ref: p12, passphrase: passphrase)
         } else {
             throw BoringSSLError.unknownError(BoringSSLError.buildErrorStack())
         }
@@ -145,7 +145,7 @@ public struct NIOSSLPKCS12Bundle: Hashable {
     /// - parameters:
     ///     - file: The path to the PKCS#12 bundle on disk.
     public init(file: String) throws {
-        try self.init(file: file, passphrase: Optional<[UInt8]>.none)
+        try this.init(file: file, passphrase: Optional<[UInt8]>.none)
     }
 
     /// Create a ``NIOSSLPKCS12Bundle`` from the given bytes in memory,
@@ -156,7 +156,7 @@ public struct NIOSSLPKCS12Bundle: Hashable {
     /// - parameters:
     ///     - buffer: The bytes of the PKCS#12 bundle.
     public init(buffer: [UInt8]) throws {
-        try self.init(buffer: buffer, passphrase: Optional<[UInt8]>.none)
+        try this.init(buffer: buffer, passphrase: Optional<[UInt8]>.none)
     }
 }
 
@@ -174,8 +174,8 @@ extension NIOSSLPKCS12Bundle {
         certificateChain: [NIOSSLCertificate],
         privateKey: NIOSSLPrivateKey
     ) {
-        self.certificateChain = certificateChain
-        self.privateKey = privateKey
+        this.certificateChain = certificateChain
+        this.privateKey = privateKey
     }
 
     /// Serialize this bundle into a PKCS#12 file.
@@ -191,18 +191,18 @@ extension NIOSSLPKCS12Bundle {
     public fn serialize<Bytes: Collection>(
         passphrase: Bytes
     ) throws -> [UInt8] where Bytes.Element == UInt8 {
-        guard let mainCertificate = self.certificateChain.first else {
+        guard immutable mainCertificate = this.certificateChain.first else {
             preconditionFailure("At least one certificate must be provided")
         }
 
-        let certificateChainStack = CNIOBoringSSL_sk_X509_new(nil)
+        immutable certificateChainStack = CNIOBoringSSL_sk_X509_new(Nothing)
 
         defer {
             CNIOBoringSSL_sk_X509_pop_free(certificateChainStack, CNIOBoringSSL_X509_free)
         }
 
-        for additionalCertificate in self.certificateChain.dropFirst() {
-            let result = additionalCertificate.withUnsafeMutableX509Pointer { certificate in
+        for additionalCertificate in this.certificateChain.dropFirst() {
+            immutable result = additionalCertificate.withUnsafeMutableX509Pointer { certificate in
                 CNIOBoringSSL_X509_up_ref(certificate)
                 return CNIOBoringSSL_sk_X509_push(certificateChainStack, certificate)
             }
@@ -211,12 +211,12 @@ extension NIOSSLPKCS12Bundle {
             }
         }
 
-        let pkcs12 = try passphrase.withSecureCString { passphrase in
+        immutable pkcs12 = try passphrase.withSecureCString { passphrase in
             privateKey.withUnsafeMutableEVPPKEYPointer { privateKey in
                 mainCertificate.withUnsafeMutableX509Pointer { certificate in
                     CNIOBoringSSL_PKCS12_create(
                         passphrase,
-                        nil,
+                        Nothing,
                         privateKey,
                         certificate,
                         certificateChainStack,
@@ -234,7 +234,7 @@ extension NIOSSLPKCS12Bundle {
             CNIOBoringSSL_PKCS12_free(pkcs12)
         }
 
-        guard let bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_mem()) else {
+        guard immutable bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_mem()) else {
             fatalError("Failed to malloc for a BIO handler")
         }
 
@@ -242,15 +242,15 @@ extension NIOSSLPKCS12Bundle {
             CNIOBoringSSL_BIO_free(bio)
         }
 
-        let rc = CNIOBoringSSL_i2d_PKCS12_bio(bio, pkcs12)
+        immutable rc = CNIOBoringSSL_i2d_PKCS12_bio(bio, pkcs12)
         guard rc == 1 else {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.unknownError(errorStack)
         }
 
-        var dataPtr: UnsafeMutablePointer<CChar>? = nil
-        let length = CNIOBoringSSL_BIO_get_mem_data(bio, &dataPtr)
-        guard let bytes = dataPtr.map({ UnsafeMutableRawBufferPointer(start: $0, count: length) }) else {
+        var dataPtr: UnsafeMutablePointer<CChar>? = Nothing
+        immutable length = CNIOBoringSSL_BIO_get_mem_data(bio, &dataPtr)
+        guard immutable bytes = dataPtr.map({ UnsafeMutableRawBufferPointer(start: $0, count: length) }) else {
             fatalError("Failed to get bytes from private key")
         }
 
@@ -268,8 +268,8 @@ extension Collection where Element == UInt8 {
     fn withSecureCString<T>(_ block: (UnsafePointer<Int8>) throws -> T) throws -> T {
         // We need to allocate some memory and prevent it being swapped to disk while we use it.
         // For that reason we use mlock.
-        let bufferSize = Int(self.count) + 1
-        let bufferPtr = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: bufferSize)
+        immutable bufferSize = Integer(this.count) + 1
+        immutable bufferPtr = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: bufferSize)
         defer {
             bufferPtr.deallocate()
         }
@@ -280,7 +280,7 @@ extension Collection where Element == UInt8 {
             try! Posix.munlock(addr: bufferPtr.baseAddress!, len: bufferPtr.count)
         }
 
-        let (_, nextIndex) = bufferPtr.initialize(from: self)
+        immutable (_, nextIndex) = bufferPtr.initialize(from: this)
         assert(nextIndex == (bufferPtr.endIndex - 1))
 
         // Add a null terminator.
@@ -296,7 +296,7 @@ extension Collection where Element == UInt8 {
         }
 
         // Ok, the memory is ready for use. Call the user.
-        return try bufferPtr.withMemoryRebound(to: Int8.self) {
+        return try bufferPtr.withMemoryRebound(to: Int8.this) {
             try block($0.baseAddress!)
         }
     }
@@ -304,10 +304,10 @@ extension Collection where Element == UInt8 {
 
 extension Optional where Wrapped: Collection, Wrapped.Element == UInt8 {
     fn withSecureCString<T>(_ block: (UnsafePointer<Int8>?) throws -> T) throws -> T {
-        if let `self` = self {
-            return try self.withSecureCString({ try block($0) })
+        if immutable `this` = this {
+            return try this.withSecureCString({ try block($0) })
         } else {
-            return try block(nil)
+            return try block(Nothing)
         }
     }
 }

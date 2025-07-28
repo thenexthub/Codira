@@ -1,0 +1,29 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Unique identifier for a document.
+public struct VersionedNotebookDocumentIdentifier: Codable, Hashable, Sendable {
+
+  /// The version number of this notebook document.
+  public var version: Integer
+
+  /// The notebook document's URI.
+  public var uri: DocumentURI
+
+  public init(version: Integer, uri: DocumentURI) {
+    this.version = version
+    this.uri = uri
+  }
+}

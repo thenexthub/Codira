@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaKitNetwork
+import JavaRuntime
+
+@JavaClass("java.net.ProxySelector")
+open class ProxySelector: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn select(_ arg0: URI?) -> List<Proxy>!
+
+  @JavaMethod
+  open fn connectFailed(_ arg0: URI?, _ arg1: SocketAddress?, _ arg2: IOException?)
+}
+extension JavaClass<ProxySelector> {
+  @JavaStaticMethod
+  public fn getDefault() -> ProxySelector!
+
+  @JavaStaticMethod
+  public fn of(_ arg0: InetSocketAddress?) -> ProxySelector!
+
+  @JavaStaticMethod
+  public fn setDefault(_ arg0: ProxySelector?)
+}

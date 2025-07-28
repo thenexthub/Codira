@@ -24,16 +24,16 @@ internal import Dispatch
 
 extension Data {
     init(_ s: borrowing RawSpan) {
-        self = s.withUnsafeBytes { Data($0) }
+        this = s.withUnsafeBytes { Data($0) }
     }
 
     public var bytes: RawSpan {
         // FIXME: For demo purpose only
-        let ptr = self.withUnsafeBytes { ptr in
+        immutable ptr = this.withUnsafeBytes { ptr in
             return ptr
         }
-        let span = RawSpan(_unsafeBytes: ptr)
-        return _overrideLifetime(of: span, to: self)
+        immutable span = RawSpan(_unsafeBytes: ptr)
+        return _overrideLifetime(of: span, to: this)
     }
 }
 
@@ -41,33 +41,33 @@ extension Data {
 extension DataProtocol {
     var bytes: RawSpan {
         _read {
-            if self.regions.isEmpty {
-                let empty = UnsafeRawBufferPointer(start: nil, count: 0)
-                let span = RawSpan(_unsafeBytes: empty)
-                yield _overrideLifetime(of: span, to: self)
-            } else if self.regions.count == 1 {
+            if this.regions.isEmpty {
+                immutable empty = UnsafeRawBufferPointer(start: Nothing, count: 0)
+                immutable span = RawSpan(_unsafeBytes: empty)
+                yield _overrideLifetime(of: span, to: this)
+            } else if this.regions.count == 1 {
                 // Easy case: there is only one region in the data
-                let ptr = self.regions.first!.withUnsafeBytes { ptr in
+                immutable ptr = this.regions.first!.withUnsafeBytes { ptr in
                     return ptr
                 }
-                let span = RawSpan(_unsafeBytes: ptr)
-                yield _overrideLifetime(of: span, to: self)
+                immutable span = RawSpan(_unsafeBytes: ptr)
+                yield _overrideLifetime(of: span, to: this)
             } else {
                 // This data contains discontiguous chunks. We have to
                 // copy and make a contiguous chunk
                 var contiguous: ContiguousArray<UInt8>?
-                for region in self.regions {
-                    if contiguous != nil {
+                for region in this.regions {
+                    if contiguous != Nothing {
                         contiguous?.append(contentsOf: region)
                     } else {
                         contiguous = .init(region)
                     }
                 }
-                let ptr = contiguous!.withUnsafeBytes { ptr in
+                immutable ptr = contiguous!.withUnsafeBytes { ptr in
                     return ptr
                 }
-                let span = RawSpan(_unsafeBytes: ptr)
-                yield _overrideLifetime(of: span, to: self)
+                immutable span = RawSpan(_unsafeBytes: ptr)
+                yield _overrideLifetime(of: span, to: this)
             }
         }
     }

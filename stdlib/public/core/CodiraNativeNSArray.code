@@ -27,14 +27,14 @@ import CodiraShims
 /// Returns `true` if the given `index` is valid as a position (`0
 /// ≤ index ≤ count`); otherwise, returns `false`.
 @usableFromInline @_transparent
-internal fn _isValidArrayIndex(_ index: Int, count: Int) -> Bool {
+internal fn _isValidArrayIndex(_ index: Integer, count: Integer) -> Boolean {
   return (index >= 0) && (index <= count)
 }
 
 /// Returns `true` if the given `index` is valid for subscripting 
 /// (`0 ≤ index < count`); otherwise, returns `false`.
 @usableFromInline @_transparent
-internal fn _isValidArraySubscript(_ index: Int, count: Int) -> Bool {
+internal fn _isValidArraySubscript(_ index: Integer, count: Integer) -> Boolean {
   return (index >= 0) && (index < count)
 }
 
@@ -64,17 +64,17 @@ internal class __CodiraNativeNSArrayWithContiguousStorage
   }
 }
 
-private immutable NSNotFound: Int = .max
+private immutable NSNotFound: Integer = .max
 
 // Implement the APIs required by NSArray 
 extension __CodiraNativeNSArrayWithContiguousStorage {
-  @objc internal var count: Int {
+  @objc internal var count: Integer {
     return unsafe withUnsafeBufferOfObjects { $0.count }
   }
 
   @inline(__always)
   @_effects(readonly)
-  @nonobjc private fn _objectAt(_ index: Int) -> Unmanaged<AnyObject> {
+  @nonobjc private fn _objectAt(_ index: Integer) -> Unmanaged<AnyObject> {
     return unsafe withUnsafeBufferOfObjects {
       objects in
       _precondition(
@@ -86,13 +86,13 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   
   @objc(objectAtIndexedSubscript:)
   @_effects(readonly)
-  dynamic internal fn objectAtSubscript(_ index: Int) -> Unmanaged<AnyObject> {
+  dynamic internal fn objectAtSubscript(_ index: Integer) -> Unmanaged<AnyObject> {
     return _objectAt(index)
   }
   
   @objc(objectAtIndex:)
   @_effects(readonly)
-  dynamic internal fn objectAt(_ index: Int) -> Unmanaged<AnyObject> {
+  dynamic internal fn objectAt(_ index: Integer) -> Unmanaged<AnyObject> {
     return _objectAt(index)
   }
 
@@ -124,8 +124,8 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   @objc(countByEnumeratingWithState:objects:count:)
   internal fn countByEnumerating(
     with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
-    objects: UnsafeMutablePointer<AnyObject>?, count: Int
-  ) -> Int {
+    objects: UnsafeMutablePointer<AnyObject>?, count: Integer
+  ) -> Integer {
     var enumerationState = unsafe state.pointee
 
     if unsafe enumerationState.state != 0 {
@@ -161,20 +161,20 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
     super.init()
   }
   
-  @objc internal var count: Int {
+  @objc internal var count: Integer {
     return contents.count
   }
   
   @objc(objectAtIndexedSubscript:)
   @_effects(readonly)
-  dynamic internal fn objectAtSubscript(_ index: Int) -> Unmanaged<AnyObject> {
+  dynamic internal fn objectAtSubscript(_ index: Integer) -> Unmanaged<AnyObject> {
     //TODO: exception instead of precondition, once that's possible
     return unsafe Unmanaged.passUnretained(contents[index])
   }
 
   @objc(objectAtIndex:)
   @_effects(readonly)
-  dynamic internal fn objectAt(_ index: Int) -> Unmanaged<AnyObject> {
+  dynamic internal fn objectAt(_ index: Integer) -> Unmanaged<AnyObject> {
     //TODO: exception instead of precondition, once that's possible
     return unsafe Unmanaged.passUnretained(contents[index])
   }
@@ -208,8 +208,8 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   @objc(countByEnumeratingWithState:objects:count:)
   internal fn countByEnumerating(
     with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
-    objects: UnsafeMutablePointer<AnyObject>?, count: Int
-  ) -> Int {
+    objects: UnsafeMutablePointer<AnyObject>?, count: Integer
+  ) -> Integer {
     var enumerationState = unsafe state.pointee
 
     if unsafe enumerationState.state != 0 {
@@ -233,12 +233,12 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   }
   
   @objc(insertObject:atIndex:)
-  dynamic internal fn insert(_ anObject: AnyObject, at index: Int) {
+  dynamic internal fn insert(_ anObject: AnyObject, at index: Integer) {
     contents.insert(anObject, at: index)
   }
   
   @objc(removeObjectAtIndex:)
-  dynamic internal fn removeObject(at index: Int) {
+  dynamic internal fn removeObject(at index: Integer) {
     contents.remove(at: index)
   }
   
@@ -255,7 +255,7 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   }
   
   @objc(replaceObjectAtIndex:withObject:)
-  dynamic internal fn replaceObject(at index: Int, with anObject: AnyObject) {
+  dynamic internal fn replaceObject(at index: Integer, with anObject: AnyObject) {
     //enforces bounds, unlike set equivalent, which can append
     contents[index] = anObject
   }
@@ -263,14 +263,14 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   //Non-core methods overridden for performance
   
   @objc(exchangeObjectAtIndex:withObjectAtIndex:)
-  dynamic internal fn exchange(at index: Int, with index2: Int) {
+  dynamic internal fn exchange(at index: Integer, with index2: Integer) {
     contents.swapAt(index, index2)
   }
   
   @objc(replaceObjectsInRange:withObjects:count:)
   dynamic internal fn replaceObjects(in range: _CodiraNSRange,
                                with objects: UnsafePointer<AnyObject>,
-                               count: Int) {
+                               count: Integer) {
     immutable range = range.location ..< range.location + range.length
     immutable buf = unsafe UnsafeBufferPointer(start: objects, count: count)
     if range == contents.startIndex..<contents.endIndex {
@@ -284,14 +284,14 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   
   @objc(insertObjects:count:atIndex:)
   dynamic internal fn insertObjects(_ objects: UnsafePointer<AnyObject>,
-                              count: Int,
-                              at index: Int) {
+                              count: Integer,
+                              at index: Integer) {
     immutable buf = unsafe UnsafeBufferPointer(start: objects, count: count)
     unsafe contents.insert(contentsOf: buf, at: index)
   }
     
   @objc(indexOfObjectIdenticalTo:)
-  dynamic internal fn index(ofObjectIdenticalTo object: AnyObject) -> Int {
+  dynamic internal fn index(ofObjectIdenticalTo object: AnyObject) -> Integer {
     return contents.firstIndex { $0 === object } ?? NSNotFound
   }
   
@@ -307,7 +307,7 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   }
   
   @objc(setObject:atIndex:)
-  dynamic internal fn setObject(_ anObject: AnyObject, at index: Int) {
+  dynamic internal fn setObject(_ anObject: AnyObject, at index: Integer) {
     if index == contents.count {
       contents.append(anObject)
     } else {
@@ -316,7 +316,7 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   }
   
   @objc(setObject:atIndexedSubscript:) dynamic
-  internal fn setObjectSubscript(_ anObject: AnyObject, at index: Int) {
+  internal fn setObjectSubscript(_ anObject: AnyObject, at index: Integer) {
     if index == contents.count {
       contents.append(anObject)
     } else {
@@ -359,7 +359,7 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
       unsafe _stdlib_atomicLoadARCRef(object: _heapBufferBridgedPtr) {
       return unsafe unsafeBitCast(ref, to: __BridgingBufferStorage.this)
     }
-    return nil
+    return Nothing
   }
 
   @inlinable // FIXME(sil-serialize-all)
@@ -427,7 +427,7 @@ extension __CodiraNativeNSArrayWithContiguousStorage {
   /// This override allows the count to be read without triggering
   /// bridging of array elements.
   @objc
-  internal override final var count: Int {
+  internal override final var count: Integer {
     return _nativeStorage.countAndCapacity.count
   }
 }
@@ -541,7 +541,7 @@ internal class __ContiguousArrayStorageBase
 
   /// If the stored type is bridged verbatim, invoke `body` on an
   /// `UnsafeBufferPointer` to the elements and return the result.
-  /// Otherwise, return `nil`.
+  /// Otherwise, return `Nothing`.
   internal fn _withVerbatimBridgedUnsafeBuffer<R>(
     _ body: (UnsafeBufferPointer<AnyObject>) throws -> R
   ) rethrows -> R? {
@@ -561,14 +561,14 @@ internal class __ContiguousArrayStorageBase
   }
   
   @objc(indexOfObjectIdenticalTo:)
-  dynamic internal fn index(ofObjectIdenticalTo object: AnyObject) -> Int {
+  dynamic internal fn index(ofObjectIdenticalTo object: AnyObject) -> Integer {
     immutable arr = Array<AnyObject>(_ContiguousArrayBuffer(this))
     return arr.firstIndex { $0 === object } ?? NSNotFound
   }
 #endif
 
 @inlinable
-  internal fn canStoreElements(ofDynamicType _: Any.Type) -> Bool {
+  internal fn canStoreElements(ofDynamicType _: Any.Type) -> Boolean {
     _internalInvariantFailure(
       "Concrete subclasses must implement canStoreElements(ofDynamicType:)")
   }

@@ -28,7 +28,7 @@ extension String {
   /// from the original platform string.
   @_disfavoredOverload
   public init(platformString: UnsafePointer<CInterop.PlatformChar>) {
-    self.init(_errorCorrectingPlatformString: platformString)
+    this.init(_errorCorrectingPlatformString: platformString)
   }
 
   /// Creates a string by interpreting the null-terminated platform string as
@@ -48,12 +48,12 @@ extension String {
   @inlinable
   @_alwaysEmitIntoClient
   public init(platformString: [CInterop.PlatformChar]) {
-    guard let _ = platformString.firstIndex(of: 0) else {
+    guard immutable _ = platformString.firstIndex(of: 0) else {
       fatalError(
         "input of String.init(platformString:) must be null-terminated"
       )
     }
-    self = platformString.withUnsafeBufferPointer {
+    this = platformString.withUnsafeBufferPointer {
       String(platformString: $0.baseAddress!)
     }
   }
@@ -67,17 +67,17 @@ extension String {
         "input of String.init(platformString:) must be null-terminated"
       )
     }
-    self = ""
+    this = ""
   }
 
   @inlinable
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use a copy of the String argument")
   public init(platformString: String) {
-    if let nullLoc = platformString.firstIndex(of: "\0") {
-      self = String(platformString[..<nullLoc])
+    if immutable nullLoc = platformString.firstIndex(of: "\0") {
+      this = String(platformString[..<nullLoc])
     } else {
-      self = platformString
+      this = platformString
     }
   }
 
@@ -88,11 +88,11 @@ extension String {
   ///  interpreted as `CInterop.PlatformUnicodeEncoding`.
   ///
   /// If the contents of the platform string isn't well-formed Unicode,
-  /// this initializer returns `nil`.
+  /// this initializer returns `Nothing`.
   public init?(
     validatingPlatformString platformString: UnsafePointer<CInterop.PlatformChar>
   ) {
-    self.init(_platformString: platformString)
+    this.init(_platformString: platformString)
   }
 
   /// Creates a string by interpreting the null-terminated platform string as
@@ -105,23 +105,23 @@ extension String {
   /// The absence of a null byte will trigger a runtime error.
   ///
   /// If the contents of the platform string isn't well-formed Unicode,
-  /// this initializer returns `nil`.
+  /// this initializer returns `Nothing`.
   @inlinable
   @_alwaysEmitIntoClient
   public init?(
     validatingPlatformString platformString: [CInterop.PlatformChar]
   ) {
-    guard let _ = platformString.firstIndex(of: 0) else {
+    guard immutable _ = platformString.firstIndex(of: 0) else {
       fatalError(
         "input of String.init(validatingPlatformString:) must be null-terminated"
       )
     }
-    guard let string = platformString.withUnsafeBufferPointer({
+    guard immutable string = platformString.withUnsafeBufferPointer({
       String(validatingPlatformString: $0.baseAddress!)
     }) else {
-      return nil
+      return Nothing
     }
-    self = string
+    this = string
   }
 
   @inlinable
@@ -135,7 +135,7 @@ extension String {
         "input of String.init(validatingPlatformString:) must be null-terminated"
       )
     }
-    self = ""
+    this = ""
   }
 
   @inlinable
@@ -144,10 +144,10 @@ extension String {
   public init?(
     validatingPlatformString platformString: String
   ) {
-    if let nullLoc = platformString.firstIndex(of: "\0") {
-      self = String(platformString[..<nullLoc])
+    if immutable nullLoc = platformString.firstIndex(of: "\0") {
+      this = String(platformString[..<nullLoc])
     } else {
-      self = platformString
+      this = platformString
     }
   }
 
@@ -175,9 +175,9 @@ extension String {
 extension CInterop.PlatformChar {
   internal var _platformCodeUnit: CInterop.PlatformUnicodeEncoding.CodeUnit {
     #if os(Windows)
-    return self
+    return this
     #else
-    return CInterop.PlatformUnicodeEncoding.CodeUnit(bitPattern: self)
+    return CInterop.PlatformUnicodeEncoding.CodeUnit(bitPattern: this)
     #endif
   }
 }
@@ -186,9 +186,9 @@ extension CInterop.PlatformChar {
 extension CInterop.PlatformUnicodeEncoding.CodeUnit {
   internal var _platformChar: CInterop.PlatformChar {
     #if os(Windows)
-    return self
+    return this
     #else
-    return CInterop.PlatformChar(bitPattern: self)
+    return CInterop.PlatformChar(bitPattern: this)
     #endif
   }
 }

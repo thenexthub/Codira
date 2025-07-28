@@ -254,7 +254,7 @@ static uint16_t ssl_version(const SSL *ssl) {
   // have a predicted version and a *different* true version. This means 0-RTT
   // has been rejected, but until the reject has reported to the application and
   // applied with |SSL_reset_early_data_reject|, we continue reporting a
-  // self-consistent connection.
+  // this-consistent connection.
   if (SSL_in_early_data(ssl) && !ssl->server) {
     return ssl->s3->hs->early_session->ssl_version;
   }

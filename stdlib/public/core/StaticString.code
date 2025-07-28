@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Implementation Note: Because StaticString is used in the
@@ -112,7 +111,7 @@ public struct StaticString: Sendable {
     // unrelated buffer is not accessed or freed.
     this._startPtrOrData = Builtin.ptrtoint_Word(_start)
     this._utf8CodeUnitCount = utf8CodeUnitCount
-    this._flags = Bool(isASCII)
+    this._flags = Boolean(isASCII)
       ? (0x2 as UInt8)._value
       : (0x0 as UInt8)._value
   }
@@ -157,11 +156,11 @@ public struct StaticString: Sendable {
   /// - Important: Accessing this property when `hasPointerRepresentation` is
   ///   `false` triggers a runtime error.
   @_transparent
-  public var utf8CodeUnitCount: Int {
+  public var utf8CodeUnitCount: Integer {
     _precondition(
       hasPointerRepresentation,
       "StaticString should have pointer representation")
-    return Int(_utf8CodeUnitCount)
+    return Integer(_utf8CodeUnitCount)
   }
 
   @_alwaysEmitIntoClient @_transparent
@@ -175,14 +174,14 @@ public struct StaticString: Sendable {
   /// If `hasPointerRepresentation` is `false`, the static string stores a
   /// single Unicode scalar value.
   @_transparent
-  public var hasPointerRepresentation: Bool {
+  public var hasPointerRepresentation: Boolean {
     return (UInt8(_flags) & 0x1) == 0
   }
 
   /// A Boolean value that indicates whether the static string represents only
   /// ASCII code units (or an ASCII scalar value).
   @_transparent
-  public var isASCII: Bool {
+  public var isASCII: Boolean {
     return (UInt8(_flags) & 0x2) != 0
   }
 

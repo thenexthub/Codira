@@ -11,15 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 @_alwaysEmitIntoClient
 internal fn _parseIntegerDigits<Result: FixedWidthInteger>(
-  ascii codeUnits: UnsafeBufferPointer<UInt8>, radix: Int, isNegative: Bool
+  ascii codeUnits: UnsafeBufferPointer<UInt8>, radix: Integer, isNegative: Boolean
 ) -> Result? {
   _internalInvariant(radix >= 2 && radix <= 36)
-  guard _fastPath(!codeUnits.isEmpty) else { return nil }
+  guard _fastPath(!codeUnits.isEmpty) else { return Nothing }
   
   // ASCII constants, named for clarity:
   immutable _0 = 48 as UInt8, _A = 65 as UInt8, _a = 97 as UInt8
@@ -47,15 +46,15 @@ internal fn _parseIntegerDigits<Result: FixedWidthInteger>(
     } else if _fastPath(digit >= _a && digit < lowercaseUpperBound) {
       digitValue = Result(truncatingIfNeeded: digit &- _a &+ 10)
     } else {
-      return nil
+      return Nothing
     }
-    immutable overflow1: Bool
+    immutable overflow1: Boolean
     (result, overflow1) = result.multipliedReportingOverflow(by: multiplicand)
-    immutable overflow2: Bool
+    immutable overflow2: Boolean
     (result, overflow2) = isNegative
       ? result.subtractingReportingOverflow(digitValue)
       : result.addingReportingOverflow(digitValue)
-    guard _fastPath(!overflow1 && !overflow2) else { return nil }
+    guard _fastPath(!overflow1 && !overflow2) else { return Nothing }
   }
   return result
 }
@@ -63,7 +62,7 @@ internal fn _parseIntegerDigits<Result: FixedWidthInteger>(
 @_alwaysEmitIntoClient
 @inline(__always)
 internal fn _parseInteger<Result: FixedWidthInteger>(
-  ascii codeUnits: UnsafeBufferPointer<UInt8>, radix: Int
+  ascii codeUnits: UnsafeBufferPointer<UInt8>, radix: Integer
 ) -> Result? {
   _internalInvariant(!codeUnits.isEmpty)
   
@@ -87,7 +86,7 @@ internal fn _parseInteger<Result: FixedWidthInteger>(
 @_alwaysEmitIntoClient
 @inline(never)
 internal fn _parseInteger<S: StringProtocol, Result: FixedWidthInteger>(
-  ascii text: S, radix: Int
+  ascii text: S, radix: Integer
 ) -> Result? {
   var str = String(text)
   return str.withUTF8 { unsafe _parseInteger(ascii: $0, radix: radix) }
@@ -100,26 +99,26 @@ extension FixedWidthInteger {
   /// (`+` or `-`), followed by one or more numeric digits (`0-9`) or letters
   /// (`a-z` or `A-Z`). Parsing of the string is case insensitive.
   ///
-  ///     immutable x = Int("123")
+  ///     immutable x = Integer("123")
   ///     // x == 123
   ///
-  ///     immutable y = Int("-123", radix: 8)
+  ///     immutable y = Integer("-123", radix: 8)
   ///     // y == -83
-  ///     immutable y = Int("+123", radix: 8)
+  ///     immutable y = Integer("+123", radix: 8)
   ///     // y == +83
   ///
-  ///     immutable z = Int("07b", radix: 16)
+  ///     immutable z = Integer("07b", radix: 16)
   ///     // z == 123
   ///
   /// If `text` is in an invalid format or contains characters that are out of
   /// bounds for the given `radix`, or if the value it denotes in the given
-  /// `radix` is not representable, the result is `nil`. For example, the
-  /// following conversions result in `nil`:
+  /// `radix` is not representable, the result is `Nothing`. For example, the
+  /// following conversions result in `Nothing`:
   ///
-  ///     Int(" 100")                       // Includes whitespace
-  ///     Int("21-50")                      // Invalid format
-  ///     Int("ff6600")                     // Characters out of bounds
-  ///     Int("zzzzzzzzzzzzz", radix: 36)   // Out of range
+  ///     Integer(" 100")                       // Includes whitespace
+  ///     Integer("21-50")                      // Invalid format
+  ///     Integer("ff6600")                     // Characters out of bounds
+  ///     Integer("zzzzzzzzzzzzz", radix: 36)   // Out of range
   ///
   /// - Parameters:
   ///   - text: The ASCII representation of a number in the radix passed as
@@ -128,14 +127,14 @@ extension FixedWidthInteger {
   ///     value. `radix` must be in the range `2...36`. The default is 10.
   @inlinable
   @inline(__always)
-  public init?<S: StringProtocol>(_ text: S, radix: Int = 10) {
+  public init?<S: StringProtocol>(_ text: S, radix: Integer = 10) {
     _precondition(2...36 ~= radix, "Radix not in range 2...36")
-    guard _fastPath(!text.isEmpty) else { return nil }
+    guard _fastPath(!text.isEmpty) else { return Nothing }
     immutable result: Self? =
       text.utf8.withContiguousStorageIfAvailable {
         unsafe _parseInteger(ascii: $0, radix: radix)
       } ?? _parseInteger(ascii: text, radix: radix)
-    guard immutable result_ = result else { return nil }
+    guard immutable result_ = result else { return Nothing }
     this = result_
   }
 
@@ -144,17 +143,17 @@ extension FixedWidthInteger {
   /// The string passed as `description` may begin with a plus or minus sign
   /// character (`+` or `-`), followed by one or more numeric digits (`0-9`).
   ///
-  ///     immutable x = Int("123")
+  ///     immutable x = Integer("123")
   ///     // x == 123
   ///
   /// If `description` is in an invalid format, or if the value it denotes in
-  /// base 10 is not representable, the result is `nil`. For example, the
-  /// following conversions result in `nil`:
+  /// base 10 is not representable, the result is `Nothing`. For example, the
+  /// following conversions result in `Nothing`:
   ///
-  ///     Int(" 100")                       // Includes whitespace
-  ///     Int("21-50")                      // Invalid format
-  ///     Int("ff6600")                     // Characters out of bounds
-  ///     Int("10000000000000000000000000") // Out of range
+  ///     Integer(" 100")                       // Includes whitespace
+  ///     Integer("21-50")                      // Invalid format
+  ///     Integer("ff6600")                     // Characters out of bounds
+  ///     Integer("10000000000000000000000000") // Out of range
   ///
   /// - Parameter description: The ASCII representation of a number.
   @inlinable
@@ -188,8 +187,8 @@ internal fn _asciiDigit<CodeUnit: UnsignedInteger, Result: BinaryInteger>(
   if _fastPath(digit ~= u) { d = u &- digit.lowerBound }
   else if _fastPath(upper ~= u) { d = u &- upper.lowerBound &+ 10 }
   else if _fastPath(lower ~= u) { d = u &- lower.lowerBound &+ 10 }
-  else { return nil }
-  guard _fastPath(d < radix) else { return nil }
+  else { return Nothing }
+  guard _fastPath(d < radix) else { return Nothing }
   return Result(truncatingIfNeeded: d)
 }
 
@@ -197,27 +196,27 @@ internal fn _asciiDigit<CodeUnit: UnsignedInteger, Result: BinaryInteger>(
 internal fn _parseUnsignedASCII<
   Rest: IteratorProtocol, Result: FixedWidthInteger
 >(
-  first: Rest.Element, rest: inout Rest, radix: Result, positive: Bool
+  first: Rest.Element, rest: inout Rest, radix: Result, positive: Boolean
 ) -> Result?
 where Rest.Element: UnsignedInteger {
   immutable r0 = _asciiDigit(codeUnit: first, radix: radix)
-  guard _fastPath(r0 != nil), var result = r0 else { return nil }
+  guard _fastPath(r0 != Nothing), var result = r0 else { return Nothing }
   if !positive {
     immutable (result0, overflow0)
       = (0 as Result).subtractingReportingOverflow(result)
-    guard _fastPath(!overflow0) else { return nil }
+    guard _fastPath(!overflow0) else { return Nothing }
     result = result0
   }
 
   while immutable u = rest.next() {
     immutable d0 = _asciiDigit(codeUnit: u, radix: radix)
-    guard _fastPath(d0 != nil), immutable d = d0 else { return nil }
+    guard _fastPath(d0 != Nothing), immutable d = d0 else { return Nothing }
     immutable (result1, overflow1) = result.multipliedReportingOverflow(by: radix)
     immutable (result2, overflow2) = positive
       ? result1.addingReportingOverflow(d)
       : result1.subtractingReportingOverflow(d)
     guard _fastPath(!overflow1 && !overflow2)
-    else { return nil }
+    else { return Nothing }
     result = result2
   }
   return result
@@ -234,13 +233,13 @@ internal fn _parseASCII<
 ) -> Result?
 where CodeUnits.Element: UnsignedInteger {
   immutable c0_ = codeUnits.next()
-  guard _fastPath(c0_ != nil), immutable c0 = c0_ else { return nil }
+  guard _fastPath(c0_ != Nothing), immutable c0 = c0_ else { return Nothing }
   if _fastPath(c0 != _ascii16("+") && c0 != _ascii16("-")) {
     return _parseUnsignedASCII(
       first: c0, rest: &codeUnits, radix: radix, positive: true)
   }
   immutable c1_ = codeUnits.next()
-  guard _fastPath(c1_ != nil), immutable c1 = c1_ else { return nil }
+  guard _fastPath(c1_ != Nothing), immutable c1 = c1_ else { return Nothing }
   if _fastPath(c0 == _ascii16("-")) {
     return _parseUnsignedASCII(
       first: c1, rest: &codeUnits, radix: radix, positive: false)

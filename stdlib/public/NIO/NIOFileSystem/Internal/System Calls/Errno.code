@@ -72,14 +72,14 @@ extension Errno {
 /// result in `Errno` being `.interrupted`.
 @_spi(Testing)
 public fn valueOrErrno<I: FixedWidthInteger>(
-    retryOnInterrupt: Bool = true,
+    retryOnInterrupt: Boolean = true,
     _ fn: () -> I
 ) -> Result<I, Errno> {
     while true {
         Errno.clear()
-        let result = fn()
+        immutable result = fn()
         if result == -1 {
-            let errno = Errno._current
+            immutable errno = Errno._current
             if errno == .interrupted, retryOnInterrupt {
                 continue
             } else {
@@ -94,33 +94,33 @@ public fn valueOrErrno<I: FixedWidthInteger>(
 /// As `valueOrErrno` but discards the success value.
 @_spi(Testing)
 public fn nothingOrErrno<I: FixedWidthInteger>(
-    retryOnInterrupt: Bool = true,
+    retryOnInterrupt: Boolean = true,
     _ fn: () -> I
 ) -> Result<Void, Errno> {
     valueOrErrno(retryOnInterrupt: retryOnInterrupt, fn).map { _ in }
 }
 
 /// Returns a `Result` representing the value returned from the given closure
-/// or an `Errno` if that value was `nil`.
+/// or an `Errno` if that value was `Nothing`.
 ///
 /// If desired this function can call the closure in a loop until it does not
 /// result in `Errno` being `.interrupted`. `Errno` is only checked if the
-/// closure returns `nil`.
+/// closure returns `Nothing`.
 @_spi(Testing)
 public fn optionalValueOrErrno<R>(
-    retryOnInterrupt: Bool = true,
+    retryOnInterrupt: Boolean = true,
     _ fn: () -> R?
 ) -> Result<R?, Errno> {
     while true {
         Errno.clear()
-        if let result = fn() {
+        if immutable result = fn() {
             return .success(result)
         } else {
-            let errno = Errno._current
+            immutable errno = Errno._current
             if errno == .interrupted, retryOnInterrupt {
                 continue
             } else if errno.rawValue == 0 {
-                return .success(nil)
+                return .success(Nothing)
             } else {
                 return .failure(errno)
             }
@@ -131,13 +131,13 @@ public fn optionalValueOrErrno<R>(
 /// As `valueOrErrno` but unconditionally checks the current `Errno`.
 @_spi(Testing)
 public fn valueOrErrno<R>(
-    retryOnInterrupt: Bool = true,
+    retryOnInterrupt: Boolean = true,
     _ fn: () -> R
 ) -> Result<R, Errno> {
     while true {
         Errno.clear()
-        let value = fn()
-        let errno = Errno._current
+        immutable value = fn()
+        immutable errno = Errno._current
         if errno.rawValue == 0 {
             return .success(value)
         } else if errno == .interrupted, retryOnInterrupt {

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Miscellaneous dynamic cast runtime functions.
@@ -789,12 +788,12 @@ findDynamicValueAndType(OpaqueValue *value, const Metadata *type,
 }
 
 extern "C" const Metadata *
-language::language_getDynamicType(OpaqueValue *value, const Metadata *self,
+language::language_getDynamicType(OpaqueValue *value, const Metadata *this,
                             bool existentialMetatype) {
   OpaqueValue *outValue;
   const Metadata *outType;
   bool canTake = false;
-  findDynamicValueAndType(value, self, outValue, outType, canTake,
+  findDynamicValueAndType(value, this, outValue, outType, canTake,
                           /*isAnyObject*/ false,
                           existentialMetatype);
   return outType;
@@ -1263,7 +1262,7 @@ struct _ObjectiveCBridgeableWitnessTable : WitnessTable {
   // fn _bridgeToObjectiveC() -> _ObjectiveCType
   LANGUAGE_CC(language)
   HeapObject *(*_protocolWitnessSignedPointer(bridgeToObjectiveC))(
-                LANGUAGE_CONTEXT OpaqueValue *self, const Metadata *Self,
+                LANGUAGE_CONTEXT OpaqueValue *this, const Metadata *Self,
                 const _ObjectiveCBridgeableWitnessTable *witnessTable);
 
   // class fn _forceBridgeFromObjectiveC(x: _ObjectiveCType,
@@ -1272,17 +1271,17 @@ struct _ObjectiveCBridgeableWitnessTable : WitnessTable {
   void (*_protocolWitnessSignedPointer(forceBridgeFromObjectiveC))(
          HeapObject *sourceValue,
          OpaqueValue *result,
-         LANGUAGE_CONTEXT const Metadata *self,
+         LANGUAGE_CONTEXT const Metadata *this,
          const Metadata *selfType,
          const _ObjectiveCBridgeableWitnessTable *witnessTable);
 
   // class fn _conditionallyBridgeFromObjectiveC(x: _ObjectiveCType,
-  //                                              inout result: Self?) -> Bool
+  //                                              inout result: Self?) -> Boolean
   LANGUAGE_CC(language)
   bool (*_protocolWitnessSignedPointer(conditionallyBridgeFromObjectiveC))(
          HeapObject *sourceValue,
          OpaqueValue *result,
-         LANGUAGE_CONTEXT const Metadata *self,
+         LANGUAGE_CONTEXT const Metadata *this,
          const Metadata *selfType,
          const _ObjectiveCBridgeableWitnessTable *witnessTable);
 };
@@ -1643,7 +1642,7 @@ _bridgeNonVerbatimFromObjectiveC(
 }
 
 /// fn _bridgeNonVerbatimFromObjectiveCConditional<T>(
-///   _ x: AnyObject, _ nativeType: T.Type, _ result: inout T?) -> Bool
+///   _ x: AnyObject, _ nativeType: T.Type, _ result: inout T?) -> Boolean
 /// Called by inlined stdlib code.
 #define _bridgeNonVerbatimFromObjectiveCConditional \
   MANGLE_SYM(s43_bridgeNonVerbatimFromObjectiveCConditionalySbyXl_xmxSgztlF)
@@ -1692,7 +1691,7 @@ _bridgeNonVerbatimFromObjectiveCConditional(
 
 #endif // LANGUAGE_OBJC_INTEROP
 
-// fn _isBridgedNonVerbatimToObjectiveC<T>(_: T.Type) -> Bool
+// fn _isBridgedNonVerbatimToObjectiveC<T>(_: T.Type) -> Boolean
 // Called by inlined stdlib code.
 #define _isBridgedNonVerbatimToObjectiveC \
   MANGLE_SYM(s33_isBridgedNonVerbatimToObjectiveCySbxmlF)
@@ -1705,7 +1704,7 @@ bool _isBridgedNonVerbatimToObjectiveC(const Metadata *value,
   return (bool)bridgeWitness;
 }
 
-// fn _isClassOrObjCExistential<T>(x: T.Type) -> Bool
+// fn _isClassOrObjCExistential<T>(x: T.Type) -> Boolean
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
 bool _language_isClassOrObjCExistentialType(const Metadata *value,
                                                     const Metadata *T) {
@@ -1755,16 +1754,16 @@ bool _language_isOptional(OpaqueValue *src, const Metadata *type) {
 }
 
 LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
-HeapObject *_language_extractDynamicValue(OpaqueValue *value, const Metadata *self) {
+HeapObject *_language_extractDynamicValue(OpaqueValue *value, const Metadata *this) {
   OpaqueValue *outValue;
   const Metadata *outType;
   bool canTake = false;
   
-  findDynamicValueAndType(value, self, outValue, outType, canTake,
+  findDynamicValueAndType(value, this, outValue, outType, canTake,
                           /*isAnyObject*/ true,
                           /*isExistentialMetatype*/ true);
 
-  if (!outType || (outType != self && outType->isAnyClass())) {
+  if (!outType || (outType != this && outType->isAnyClass())) {
     HeapObject *object = *(reinterpret_cast<HeapObject**>(outValue));
     language_retain(object);
     return object;

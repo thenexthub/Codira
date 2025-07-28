@@ -1,4 +1,4 @@
-//===--- AsyncLet.h - async let object management -00------------*- C++ -*-===//
+//===--- AsyncLet.h - async immutable object management -00------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Object management routines for asynchronous task objects.
@@ -45,7 +44,7 @@ using namespace language;
 namespace {
 class alignas(Alignment_AsyncLet) AsyncLetImpl: public ChildTaskStatusRecord {
 public:
-  // This is where we could define a Status or other types important for async-let
+  // This is where we could define a Status or other types important for async-immutable
 
 private:
   // Flags stored in the low bits of the task pointer.
@@ -54,7 +53,7 @@ private:
     DidAllocateFromParentTask = 1 << 1,
   };
 
-  /// The task that was kicked off to initialize this `async let`,
+  /// The task that was kicked off to initialize this `async immutable`,
   /// and flags.
   toolchain::PointerIntPair<AsyncTask *, 2, unsigned> taskAndFlags;
 
@@ -69,12 +68,12 @@ public:
   explicit AsyncLetImpl(AsyncTask* task)
       : ChildTaskStatusRecord(task),
         taskAndFlags(task, 0) {
-    assert(task->hasChildFragment() && "async let task must be a child task.");
+    assert(task->hasChildFragment() && "async immutable task must be a child task.");
   }
 
-  /// Returns the task record representing this async let task.
+  /// Returns the task record representing this async immutable task.
   /// The record is stored in the parent task, and should be removed when the
-  /// async let goes out of scope.
+  /// async immutable goes out of scope.
   ChildTaskStatusRecord *getTaskRecord() {
     return reinterpret_cast<ChildTaskStatusRecord *>(this);
   }
@@ -105,16 +104,16 @@ public:
       taskAndFlags.setInt(taskAndFlags.getInt() & ~DidAllocateFromParentTask);
   }
 
-  // The compiler preallocates a large fixed space for the `async let`, with the
+  // The compiler preallocates a large fixed space for the `async immutable`, with the
   // intent that most of it be used for the child task context. The next two
   // methods return the address and size of that space.
 
-  /// Return a pointer to the unused space within the async let block.
+  /// Return a pointer to the unused space within the async immutable block.
   void *getPreallocatedSpace() {
     return (void*)(this + 1);
   }
 
-  /// Return the size of the unused space within the async let block.
+  /// Return the size of the unused space within the async immutable block.
   static constexpr size_t getSizeOfPreallocatedSpace() {
     return sizeof(AsyncLet) - sizeof(AsyncLetImpl);
   }
@@ -150,9 +149,9 @@ void language::asyncLet_addImpl(AsyncTask *task, AsyncLet *asyncLet,
   impl->setDidAllocateFromParentTask(didAllocateInParentTask);
 
   auto record = impl->getTaskRecord();
-  assert(impl == record && "the async-let IS the task record");
+  assert(impl == record && "the async-immutable IS the task record");
 
-  // ok, now that the async let task actually is initialized: attach it to the
+  // ok, now that the async immutable task actually is initialized: attach it to the
   // current task
   bool addedRecord = addStatusRecordToSelf(record,
       [&](ActiveTaskStatus parentStatus, ActiveTaskStatus& newStatus) {
@@ -198,7 +197,7 @@ void language::language_asyncLet_begin(AsyncLet *alet,
                                  void *closureEntryPoint,
                                  HeapObject *closureContext,
                                  void *resultBuffer) {
-  LANGUAGE_TASK_DEBUG_LOG("creating async let buffer of type %s at %p",
+  LANGUAGE_TASK_DEBUG_LOG("creating async immutable buffer of type %s at %p",
                        language_getTypeName(futureResultType, true).data,
                        resultBuffer);
 
@@ -260,8 +259,8 @@ static void language_asyncLet_getImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *calle
     return resumeFunction(callerContext);
   }
 
-  // Mark the async let as having its result populated.
-  // The only task that can ask this of the async let is the same parent task
+  // Mark the async immutable as having its result populated.
+  // The only task that can ask this of the async immutable is the same parent task
   // that's currently executing, so we can set it now and tail-call future_wait,
   // since by the time we can call back it will be populated.
   asImpl(alet)->setHasResultInBuffer();
@@ -285,7 +284,7 @@ static void _asyncLet_get_throwing_continuation(
   auto continuationContext = static_cast<AsyncLetContinuationContext*>(callContext);
   auto alet = continuationContext->alet;
 
-  // If the future completed successfully, its result is now in the async let
+  // If the future completed successfully, its result is now in the async immutable
   // buffer.
   if (!error) {
     asImpl(alet)->setHasResultInBuffer();
@@ -318,7 +317,7 @@ static void language_asyncLet_get_throwingImpl(
 
   // Unlike the non-throwing variant, whether we end up with a result depends
   // on the success of the task. If we raise an error, then the result buffer
-  // will not be populated. Save the async let binding so we can fetch it
+  // will not be populated. Save the async immutable binding so we can fetch it
   // after completion.
   return language_task_future_wait_throwing(
                          reinterpret_cast<OpaqueValue*>(resultBuffer),
@@ -343,11 +342,11 @@ static void language_asyncLet_endImpl(AsyncLet *alet) {
 
   // TODO: we need to implicitly await either before the end or here somehow.
 
-  // and finally, release the task and free the async-let
+  // and finally, release the task and free the async-immutable
   AsyncTask *parent = language_task_getCurrent();
-  assert(parent && "async-let must have a parent task");
+  assert(parent && "async-immutable must have a parent task");
 
-  LANGUAGE_TASK_DEBUG_LOG("async let end of task %p, parent: %p", task, parent);
+  LANGUAGE_TASK_DEBUG_LOG("async immutable end of task %p, parent: %p", task, parent);
   _language_task_dealloc_specific(parent, task);
 }
 
@@ -369,10 +368,10 @@ static void asyncLet_finish_after_task_completion(LANGUAGE_ASYNC_CONTEXT AsyncCo
   auto record = asImpl(alet)->getTaskRecord();
   removeStatusRecordFromSelf(record);
 
-  // and finally, release the task and destroy the async-let
-  assert(language_task_getCurrent() && "async-let must have a parent task");
+  // and finally, release the task and destroy the async-immutable
+  assert(language_task_getCurrent() && "async-immutable must have a parent task");
 
-  LANGUAGE_TASK_DEBUG_LOG("async let end of task %p, parent: %p", task,
+  LANGUAGE_TASK_DEBUG_LOG("async immutable end of task %p, parent: %p", task,
                        language_task_getCurrent());
   // Destruct the task.
   task->~AsyncTask();
@@ -390,7 +389,7 @@ LANGUAGE_CC(languageasync)
 static void _asyncLet_finish_continuation(
                     LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext,
                     LANGUAGE_CONTEXT void *error) {
-  // Retrieve the async let pointer from the context.
+  // Retrieve the async immutable pointer from the context.
   auto continuationContext
     = reinterpret_cast<AsyncLetContinuationContext*>(callContext);
   auto alet = continuationContext->alet;
@@ -407,7 +406,7 @@ static void _asyncLet_finish_continuation(
     alet->getTask()->futureFragment()->getResultType().vw_destroy(resultBuffer);
   }
 
-  // Clean up the async let now that the task has finished.
+  // Clean up the async immutable now that the task has finished.
   return asyncLet_finish_after_task_completion(callContext->Parent,
                                                alet,
                                                callContext->ResumeParent,
@@ -434,10 +433,10 @@ static void language_asyncLet_finishImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *ca
                                                  callContext,
                                                  nullptr);
   }
-  // Otherwise, cancel the task and let it finish first.
+  // Otherwise, cancel the task and immutable it finish first.
   language_task_cancel(task);
 
-  // Save the async let pointer in the context so we can clean it up once the
+  // Save the async immutable pointer in the context so we can clean it up once the
   // future completes.
   auto aletContext = static_cast<AsyncLetContinuationContext*>(callContext);
   aletContext->Parent = callerContext;
@@ -462,12 +461,12 @@ static void language_asyncLet_finishImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *ca
 LANGUAGE_CC(languageasync)
 static void _asyncLet_consume_continuation(
                                 LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext) {
-  // Retrieve the async let pointer from the context.
+  // Retrieve the async immutable pointer from the context.
   auto continuationContext
     = reinterpret_cast<AsyncLetContinuationContext*>(callContext);
   auto alet = continuationContext->alet;
 
-  // Clean up the async let now that the task has finished.
+  // Clean up the async immutable now that the task has finished.
   return asyncLet_finish_after_task_completion(callContext->Parent, alet,
                                                callContext->ResumeParent,
                                                callContext,
@@ -490,7 +489,7 @@ static void language_asyncLet_consumeImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *c
                                                  nullptr);
   }
 
-  // Save the async let pointer in the context so we can clean it up once the
+  // Save the async immutable pointer in the context so we can clean it up once the
   // future completes.
   auto aletContext = static_cast<AsyncLetContinuationContext*>(callContext);
   aletContext->Parent = callerContext;
@@ -510,7 +509,7 @@ LANGUAGE_CC(languageasync)
 static void _asyncLet_consume_throwing_continuation(
         LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext,
         LANGUAGE_CONTEXT void *error) {
-  // Get the async let pointer so we can destroy the task.
+  // Get the async immutable pointer so we can destroy the task.
   auto continuationContext = static_cast<AsyncLetContinuationContext*>(callContext);
   auto alet = continuationContext->alet;
 
@@ -547,7 +546,7 @@ static void language_asyncLet_consume_throwingImpl(
 
   // Unlike the non-throwing variant, whether we end up with a result depends
   // on the success of the task. If we raise an error, then the result buffer
-  // will not be populated. Save the async let binding so we can fetch it
+  // will not be populated. Save the async immutable binding so we can fetch it
   // after completion.
   return language_task_future_wait_throwing(
                          reinterpret_cast<OpaqueValue*>(resultBuffer),

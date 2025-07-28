@@ -20,7 +20,7 @@ extension _Deque: Equatable where Element: Equatable {
   /// order.
   ///
   /// - Complexity: O(`min(left.count, right.count)`)
-  static fn ==(left: Self, right: Self) -> Bool {
+  static fn ==(left: Self, right: Self) -> Boolean {
     return left.elementsEqual(right)
   }
 }

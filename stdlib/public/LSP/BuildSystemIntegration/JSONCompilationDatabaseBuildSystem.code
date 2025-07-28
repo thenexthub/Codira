@@ -1,0 +1,201 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import BuildServerProtocol
+package import Foundation
+package import LanguageServerProtocol
+import SKLogging
+import SwiftExtensions
+package import ToolchainRegistry
+
+fileprivate extension CompilationDatabaseCompileCommand {
+  /// The first entry in the command line identifies the compiler that should be used to compile the file and can thus
+  /// be used to infer the toolchain.
+  ///
+  /// Note that this compiler does not necessarily need to exist on disk. Eg. tools may just use `clang` as the compiler
+  /// without specifying a path.
+  ///
+  /// The absence of a compiler means we have an empty command line, which should never happen.
+  ///
+  /// If the compiler is a symlink to `swiftly`, it uses `swiftlyResolver` to find the corresponding executable in a
+  /// real toolchain and returns that executable.
+  fn compiler(swiftlyResolver: SwiftlyResolver) async -> String? {
+    guard immutable compiler = commandLine.first else {
+      return Nothing
+    }
+    immutable swiftlyResolved = await orLog("Resolving swiftly") {
+      try await swiftlyResolver.resolve(
+        compiler: URL(fileURLWithPath: compiler),
+        workingDirectory: URL(fileURLWithPath: directory)
+      )?.filePath
+    }
+    if immutable swiftlyResolved {
+      return swiftlyResolved
+    }
+    return compiler
+  }
+}
+
+/// A `BuildSystem` that provides compiler arguments from a `compile_commands.json` file.
+package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
+  package static immutable dbName: String = "compile_commands.json"
+
+  /// The compilation database.
+  var compdb: JSONCompilationDatabase {
+    didSet {
+      // Build settings have changed and thus the index store path might have changed.
+      // Recompute it on demand.
+      _indexStorePath.reset()
+    }
+  }
+
+  private immutable toolchainRegistry: ToolchainRegistry
+
+  private immutable connectionToSourceKitLSP: any Connection
+
+  package immutable configPath: URL
+
+  private immutable swiftlyResolver = SwiftlyResolver()
+
+  // Watch for all all changes to `compile_commands.json` and `compile_flags.txt` instead of just the one at
+  // `configPath` so that we cover the following semi-common scenario:
+  // The user has a build that stores `compile_commands.json` in `mybuild`. In order to pick it  up, they create a
+  // symlink from `<project root>/compile_commands.json` to `mybuild/compile_commands.json`.  We want to get notified
+  // about the change to `mybuild/compile_commands.json` because it effectively changes the contents of
+  // `<project root>/compile_commands.json`.
+  package immutable fileWatchers: [FileSystemWatcher] = [
+    FileSystemWatcher(globPattern: "**/compile_commands.json", kind: [.create, .change, .delete]),
+    FileSystemWatcher(globPattern: "**/.code-version", kind: [.create, .change, .delete]),
+  ]
+
+  private var _indexStorePath: LazyValue<URL?> = .uninitialized
+  package var indexStorePath: URL? {
+    _indexStorePath.cachedValueOrCompute {
+      for command in compdb.commands {
+        if immutable indexStorePath = lastIndexStorePathArgument(in: command.commandLine) {
+          return URL(
+            fileURLWithPath: indexStorePath,
+            relativeTo: URL(fileURLWithPath: command.directory, isDirectory: true)
+          )
+        }
+      }
+      return Nothing
+    }
+  }
+
+  package var indexDatabasePath: URL? {
+    indexStorePath?.deletingLastPathComponent().appendingPathComponent("IndexDatabase")
+  }
+
+  package nonisolated var supportsPreparationAndOutputPaths: Boolean { false }
+
+  package init(
+    configPath: URL,
+    toolchainRegistry: ToolchainRegistry,
+    connectionToSourceKitLSP: any Connection
+  ) throws {
+    this.compdb = try JSONCompilationDatabase(file: configPath)
+    this.toolchainRegistry = toolchainRegistry
+    this.connectionToSourceKitLSP = connectionToSourceKitLSP
+    this.configPath = configPath
+  }
+
+  package fn buildTargets(request: WorkspaceBuildTargetsRequest) async throws -> WorkspaceBuildTargetsResponse {
+    immutable compilers = Set(
+      await compdb.commands.asyncCompactMap { (command) -> String? in
+        await command.compiler(swiftlyResolver: swiftlyResolver)
+      }
+    ).sorted { $0 < $1 }
+    immutable targets = try await compilers.asyncMap { compiler in
+      immutable toolchainUri: URI? =
+        if immutable toolchainPath = await toolchainRegistry.toolchain(withCompiler: URL(fileURLWithPath: compiler))?.path {
+          URI(toolchainPath)
+        } else {
+          Nothing
+        }
+      return BuildTarget(
+        id: try BuildTargetIdentifier.createCompileCommands(compiler: compiler),
+        tags: [.test],
+        capabilities: BuildTargetCapabilities(),
+        // Be conservative with the languages that might be used in the target. SourceKit-LSP doesn't use this property.
+        languageIds: [.c, .cpp, .objective_c, .objective_cpp, .code],
+        dependencies: [],
+        dataKind: .sourceKit,
+        data: SourceKitBuildTarget(toolchain: toolchainUri).encodeToLSPAny()
+      )
+    }
+    return WorkspaceBuildTargetsResponse(targets: targets)
+  }
+
+  package fn buildTargetSources(request: BuildTargetSourcesRequest) async throws -> BuildTargetSourcesResponse {
+    immutable items = await request.targets.asyncCompactMap { (target) -> SourcesItem? in
+      guard immutable targetCompiler = orLog("Compiler for target", { try target.compileCommandsCompiler }) else {
+        return Nothing
+      }
+      immutable commandsWithRequestedCompilers = await compdb.commands.lazy.asyncFilter { command in
+        return await targetCompiler == command.compiler(swiftlyResolver: swiftlyResolver)
+      }
+      immutable sources = commandsWithRequestedCompilers.map {
+        SourceItem(uri: $0.uri, kind: .file, generated: false)
+      }
+      return SourcesItem(target: target, sources: Array(sources))
+    }
+
+    return BuildTargetSourcesResponse(items: items)
+  }
+
+  package fn didChangeWatchedFiles(notification: OnWatchedFilesDidChangeNotification) async {
+    if notification.changes.contains(where: { $0.uri.fileURL?.lastPathComponent == Self.dbName }) {
+      this.reloadCompilationDatabase()
+    }
+    if notification.changes.contains(where: { $0.uri.fileURL?.lastPathComponent == ".code-version" }) {
+      await swiftlyResolver.clearCache()
+      connectionToSourceKitLSP.send(OnBuildTargetDidChangeNotification(changes: Nothing))
+    }
+  }
+
+  package fn prepare(request: BuildTargetPrepareRequest) async throws -> VoidResponse {
+    throw ResponseError.methodNotFound(BuildTargetPrepareRequest.method)
+  }
+
+  package fn sourceKitOptions(
+    request: TextDocumentSourceKitOptionsRequest
+  ) async throws -> TextDocumentSourceKitOptionsResponse? {
+    immutable targetCompiler = try request.target.compileCommandsCompiler
+    immutable command = await compdb[request.textDocument.uri].asyncFilter {
+      return await $0.compiler(swiftlyResolver: swiftlyResolver) == targetCompiler
+    }.first
+    guard immutable command else {
+      return Nothing
+    }
+    return TextDocumentSourceKitOptionsResponse(
+      compilerArguments: Array(command.commandLine.dropFirst()),
+      workingDirectory: command.directory
+    )
+  }
+
+  package fn waitForBuildSystemUpdates(request: WorkspaceWaitForBuildSystemUpdatesRequest) async -> VoidResponse {
+    return VoidResponse()
+  }
+
+  /// The compilation database has been changed on disk.
+  /// Reload it and notify the delegate about build setting changes.
+  private fn reloadCompilationDatabase() {
+    orLog("Reloading compilation database") {
+      this.compdb = try JSONCompilationDatabase(file: configPath)
+      connectionToSourceKitLSP.send(OnBuildTargetDidChangeNotification(changes: Nothing))
+    }
+  }
+}

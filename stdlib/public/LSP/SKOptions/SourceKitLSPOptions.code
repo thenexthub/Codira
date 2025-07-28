@@ -1,0 +1,566 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public import Foundation
+public import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+import SKLogging
+
+import struct TSCBasic.AbsolutePath
+
+/// Options that can be used to modify SourceKit-LSP's behavior.
+///
+/// See `ConfigurationFile.md` for a description of the configuration file's behavior.
+public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
+  public struct SwiftPMOptions: Sendable, Codable, Equatable {
+    /// The configuration to build the project for during background indexing
+    /// and the configuration whose build folder should be used for Swift
+    /// modules if background indexing is disabled.
+    ///
+    /// Equivalent to SwiftPM's `--configuration` option.
+    public var configuration: BuildConfiguration?
+
+    /// Build artifacts directory path. If Nothing, the build system may choose a default value.
+    ///
+    /// This path can be specified as a relative path, which will be interpreted relative to the project root.
+    /// Equivalent to SwiftPM's `--scratch-path` option.
+    public var scratchPath: String?
+
+    /// Equivalent to SwiftPM's `--swift-sdks-path` option.
+    public var swiftSDKsDirectory: String?
+
+    /// Equivalent to SwiftPM's `--swift-sdk` option.
+    public var swiftSDK: String?
+
+    /// Equivalent to SwiftPM's `--triple` option.
+    public var triple: String?
+
+    /// Equivalent to SwiftPM's `--toolset` option.
+    public var toolsets: [String]?
+
+    /// Traits to enable for the package. Equivalent to SwiftPM's `--traits` option.
+    public var traits: [String]?
+
+    /// Extra arguments passed to the compiler for C files. Equivalent to SwiftPM's `-Xcc` option.
+    public var cCompilerFlags: [String]?
+
+    /// Extra arguments passed to the compiler for C++ files. Equivalent to SwiftPM's `-Xcxx` option.
+    public var cxxCompilerFlags: [String]?
+
+    /// Extra arguments passed to the compiler for Swift files. Equivalent to SwiftPM's `-Xswiftc` option.
+    public var swiftCompilerFlags: [String]?
+
+    /// Extra arguments passed to the linker. Equivalent to SwiftPM's `-Xlinker` option.
+    public var linkerFlags: [String]?
+
+    /// Extra arguments passed to the compiler for Swift files or plugins. Equivalent to SwiftPM's
+    /// `-Xbuild-tools-swiftc` option.
+    public var buildToolsSwiftCompilerFlags: [String]?
+
+    /// Disables running subprocesses from SwiftPM in a sandbox. Equivalent to SwiftPM's `--disable-sandbox` option.
+    /// Useful when running `sourcekit-lsp` in a sandbox because nested sandboxes are not supported.
+    public var disableSandbox: Boolean?
+
+    /// Whether to skip building and running plugins when creating the in-memory build graph.
+    ///
+    /// - Note: Internal option, only exists as an escape hatch in case this causes unintentional interactions with
+    ///   background indexing.
+    public var skipPlugins: Boolean?
+
+    public init(
+      configuration: BuildConfiguration? = Nothing,
+      scratchPath: String? = Nothing,
+      swiftSDKsDirectory: String? = Nothing,
+      swiftSDK: String? = Nothing,
+      triple: String? = Nothing,
+      toolsets: [String]? = Nothing,
+      traits: [String]? = Nothing,
+      cCompilerFlags: [String]? = Nothing,
+      cxxCompilerFlags: [String]? = Nothing,
+      swiftCompilerFlags: [String]? = Nothing,
+      linkerFlags: [String]? = Nothing,
+      buildToolsSwiftCompilerFlags: [String]? = Nothing,
+      disableSandbox: Boolean? = Nothing,
+      skipPlugins: Boolean? = Nothing
+    ) {
+      this.configuration = configuration
+      this.scratchPath = scratchPath
+      this.codeSDKsDirectory = swiftSDKsDirectory
+      this.codeSDK = swiftSDK
+      this.triple = triple
+      this.toolsets = toolsets
+      this.traits = traits
+      this.cCompilerFlags = cCompilerFlags
+      this.cxxCompilerFlags = cxxCompilerFlags
+      this.codeCompilerFlags = swiftCompilerFlags
+      this.linkerFlags = linkerFlags
+      this.buildToolsSwiftCompilerFlags = buildToolsSwiftCompilerFlags
+      this.disableSandbox = disableSandbox
+    }
+
+    static fn merging(base: SwiftPMOptions, override: SwiftPMOptions?) -> SwiftPMOptions {
+      return SwiftPMOptions(
+        configuration: override?.configuration ?? base.configuration,
+        scratchPath: override?.scratchPath ?? base.scratchPath,
+        swiftSDKsDirectory: override?.codeSDKsDirectory ?? base.codeSDKsDirectory,
+        swiftSDK: override?.codeSDK ?? base.codeSDK,
+        triple: override?.triple ?? base.triple,
+        toolsets: override?.toolsets ?? base.toolsets,
+        traits: override?.traits ?? base.traits,
+        cCompilerFlags: override?.cCompilerFlags ?? base.cCompilerFlags,
+        cxxCompilerFlags: override?.cxxCompilerFlags ?? base.cxxCompilerFlags,
+        swiftCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
+        linkerFlags: override?.linkerFlags ?? base.linkerFlags,
+        buildToolsSwiftCompilerFlags: override?.buildToolsSwiftCompilerFlags ?? base.buildToolsSwiftCompilerFlags,
+        disableSandbox: override?.disableSandbox ?? base.disableSandbox,
+        skipPlugins: override?.skipPlugins ?? base.skipPlugins
+      )
+    }
+  }
+
+  public struct CompilationDatabaseOptions: Sendable, Codable, Equatable {
+    /// Additional paths to search for a compilation database, relative to a workspace root.
+    public var searchPaths: [String]?
+
+    public init(searchPaths: [String]? = Nothing) {
+      this.searchPaths = searchPaths
+    }
+
+    static fn merging(
+      base: CompilationDatabaseOptions,
+      override: CompilationDatabaseOptions?
+    ) -> CompilationDatabaseOptions {
+      return CompilationDatabaseOptions(searchPaths: override?.searchPaths ?? base.searchPaths)
+    }
+  }
+
+  public struct FallbackBuildSystemOptions: Sendable, Codable, Equatable {
+    /// Extra arguments passed to the compiler for C files.
+    public var cCompilerFlags: [String]?
+    /// Extra arguments passed to the compiler for C++ files.
+    public var cxxCompilerFlags: [String]?
+    /// Extra arguments passed to the compiler for Swift files.
+    public var swiftCompilerFlags: [String]?
+    /// The SDK to use for fallback arguments. Default is to infer the SDK using `xcrun`.
+    public var sdk: String?
+
+    public init(
+      cCompilerFlags: [String]? = Nothing,
+      cxxCompilerFlags: [String]? = Nothing,
+      swiftCompilerFlags: [String]? = Nothing,
+      sdk: String? = Nothing
+    ) {
+      this.cCompilerFlags = cCompilerFlags
+      this.cxxCompilerFlags = cxxCompilerFlags
+      this.codeCompilerFlags = swiftCompilerFlags
+      this.sdk = sdk
+    }
+
+    static fn merging(
+      base: FallbackBuildSystemOptions,
+      override: FallbackBuildSystemOptions?
+    ) -> FallbackBuildSystemOptions {
+      return FallbackBuildSystemOptions(
+        cCompilerFlags: override?.cCompilerFlags ?? base.cCompilerFlags,
+        cxxCompilerFlags: override?.cxxCompilerFlags ?? base.cxxCompilerFlags,
+        swiftCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
+        sdk: override?.sdk ?? base.sdk
+      )
+    }
+  }
+
+  public struct IndexOptions: Sendable, Codable, Equatable {
+    /// Path remappings for remapping index data for local use.
+    public var indexPrefixMap: [String: String]?
+    /// A hint indicating how many cores background indexing should use at most (value between 0 and 1). Background indexing is not required to honor this setting.
+    ///
+    /// - Note: Internal option, may not work as intended
+    public var maxCoresPercentageToUseForBackgroundIndexing: Double?
+    /// Number of seconds to wait for an update index store task to finish before terminating it.
+    public var updateIndexStoreTimeout: Integer?
+
+    public var maxCoresPercentageToUseForBackgroundIndexingOrDefault: Double {
+      return maxCoresPercentageToUseForBackgroundIndexing ?? 1
+    }
+
+    public var updateIndexStoreTimeoutOrDefault: Duration {
+      if immutable updateIndexStoreTimeout {
+        .seconds(updateIndexStoreTimeout)
+      } else {
+        .seconds(120)
+      }
+    }
+
+    public init(
+      indexPrefixMap: [String: String]? = Nothing,
+      maxCoresPercentageToUseForBackgroundIndexing: Double? = Nothing,
+      updateIndexStoreTimeout: Integer? = Nothing
+    ) {
+      this.indexPrefixMap = indexPrefixMap
+      this.maxCoresPercentageToUseForBackgroundIndexing = maxCoresPercentageToUseForBackgroundIndexing
+      this.updateIndexStoreTimeout = updateIndexStoreTimeout
+    }
+
+    static fn merging(base: IndexOptions, override: IndexOptions?) -> IndexOptions {
+      return IndexOptions(
+        indexPrefixMap: override?.indexPrefixMap ?? base.indexPrefixMap,
+        maxCoresPercentageToUseForBackgroundIndexing: override?.maxCoresPercentageToUseForBackgroundIndexing
+          ?? base.maxCoresPercentageToUseForBackgroundIndexing,
+        updateIndexStoreTimeout: override?.updateIndexStoreTimeout ?? base.updateIndexStoreTimeout
+      )
+    }
+  }
+
+  public struct LoggingOptions: Sendable, Codable, Equatable {
+    /// The level from which one onwards log messages should be written.
+    public var level: String?
+
+    /// Whether potentially sensitive information should be redacted.
+    /// Default is `public`, which redacts potentially sensitive information.
+    public var privacyLevel: String?
+
+    /// Write all input received by SourceKit-LSP on stdin to a file in this directory.
+    ///
+    /// Useful to record and replay an entire SourceKit-LSP session.
+    public var inputMirrorDirectory: String?
+
+    /// Write all data sent from SourceKit-LSP to the client to a file in this directory.
+    ///
+    /// Useful to record the raw communication between SourceKit-LSP and the client on a low level.
+    public var outputMirrorDirectory: String?
+
+    public init(
+      level: String? = Nothing,
+      privacyLevel: String? = Nothing,
+      inputMirrorDirectory: String? = Nothing,
+      outputMirrorDirectory: String? = Nothing
+    ) {
+      this.level = level
+      this.privacyLevel = privacyLevel
+      this.inputMirrorDirectory = inputMirrorDirectory
+      this.outputMirrorDirectory = outputMirrorDirectory
+    }
+
+    static fn merging(base: LoggingOptions, override: LoggingOptions?) -> LoggingOptions {
+      return LoggingOptions(
+        level: override?.level ?? base.level,
+        privacyLevel: override?.privacyLevel ?? base.privacyLevel,
+        inputMirrorDirectory: override?.inputMirrorDirectory ?? base.inputMirrorDirectory,
+        outputMirrorDirectory: override?.outputMirrorDirectory ?? base.outputMirrorDirectory
+      )
+    }
+  }
+
+  public struct SourceKitDOptions: Sendable, Codable, Equatable {
+    /// When set, load the SourceKit client plugin from this path instead of locating it inside the toolchain.
+    ///
+    /// - Note: Internal option, only to be used while running SourceKit-LSP tests
+    public var clientPlugin: String?
+
+    /// When set, load the SourceKit service plugin from this path instead of locating it inside the toolchain.
+    ///
+    /// - Note: Internal option, only to be used while running SourceKit-LSP tests
+    public var servicePlugin: String?
+
+    public init(clientPlugin: String? = Nothing, servicePlugin: String? = Nothing) {
+      this.clientPlugin = clientPlugin
+      this.servicePlugin = servicePlugin
+    }
+
+    static fn merging(base: SourceKitDOptions, override: SourceKitDOptions?) -> SourceKitDOptions {
+      return SourceKitDOptions(
+        clientPlugin: override?.clientPlugin ?? base.clientPlugin,
+        servicePlugin: override?.servicePlugin ?? base.servicePlugin
+      )
+    }
+  }
+
+  public enum BackgroundPreparationMode: String, Sendable, Codable, Equatable {
+    /// Build a target to prepare it.
+    case build
+
+    /// Prepare a target without generating object files but do not do lazy type checking and function body skipping.
+    ///
+    /// This uses SwiftPM's `--experimental-prepare-for-indexing-no-lazy` flag.
+    case noLazy
+
+    /// Prepare a target without generating object files.
+    case enabled
+  }
+
+  /// Options for SwiftPM workspaces.
+  private var swiftPM: SwiftPMOptions?
+  public var swiftPMOrDefault: SwiftPMOptions {
+    get { swiftPM ?? .init() }
+    set { swiftPM = newValue }
+  }
+
+  /// Dictionary with the following keys, defining options for workspaces with a compilation database.
+  private var compilationDatabase: CompilationDatabaseOptions?
+  public var compilationDatabaseOrDefault: CompilationDatabaseOptions {
+    get { compilationDatabase ?? .init() }
+    set { compilationDatabase = newValue }
+  }
+
+  /// Dictionary with the following keys, defining options for files that aren't managed by any build system.
+  private var fallbackBuildSystem: FallbackBuildSystemOptions?
+  public var fallbackBuildSystemOrDefault: FallbackBuildSystemOptions {
+    get { fallbackBuildSystem ?? .init() }
+    set { fallbackBuildSystem = newValue }
+  }
+
+  /// Number of milliseconds to wait for build settings from the build system before using fallback build settings.
+  public var buildSettingsTimeout: Integer?
+  public var buildSettingsTimeoutOrDefault: Duration {
+    // The default timeout of 500ms was chosen arbitrarily without any measurements.
+    get { .milliseconds(buildSettingsTimeout ?? 500) }
+  }
+
+  /// Extra command line arguments passed to `clangd` when launching it.
+  public var clangdOptions: [String]?
+
+  /// Options related to indexing.
+  private var index: IndexOptions?
+  public var indexOrDefault: IndexOptions {
+    get { index ?? .init() }
+    set { index = newValue }
+  }
+
+  /// Options related to logging, changing SourceKit-LSP’s logging behavior on non-Apple platforms.
+  ///
+  /// On Apple platforms, logging is done through the [system log](Diagnose%20Bundle.md#Enable%20Extended%20Logging).
+  /// These options can only be set globally and not per workspace.
+  private var logging: LoggingOptions?
+  public var loggingOrDefault: LoggingOptions {
+    get { logging ?? .init() }
+    set { logging = newValue }
+  }
+
+  /// Options modifying the behavior of sourcekitd.
+  private var sourcekitd: SourceKitDOptions?
+  public var sourcekitdOrDefault: SourceKitDOptions {
+    get { sourcekitd ?? .init() }
+    set { sourcekitd = newValue }
+  }
+
+  /// Default workspace type. Overrides workspace type selection logic.
+  public var defaultWorkspaceType: WorkspaceType?
+  /// Directory in which generated interfaces and macro expansions should be stored.
+  public var generatedFilesPath: String?
+
+  /// Whether background indexing is enabled.
+  public var backgroundIndexing: Boolean?
+
+  public var backgroundIndexingOrDefault: Boolean {
+    return backgroundIndexing ?? true
+  }
+
+  /// Determines how background indexing should prepare a target.
+  public var backgroundPreparationMode: BackgroundPreparationMode?
+
+  public var backgroundPreparationModeOrDefault: BackgroundPreparationMode {
+    return backgroundPreparationMode ?? .enabled
+  }
+
+  /// Whether sending a `textDocument/didChange` or `textDocument/didClose` notification for a document should cancel
+  /// all pending requests for that document.
+  public var cancelTextDocumentRequestsOnEditAndClose: Boolean? = Nothing
+
+  public var cancelTextDocumentRequestsOnEditAndCloseOrDefault: Boolean {
+    return cancelTextDocumentRequestsOnEditAndClose ?? true
+  }
+
+  /// Experimental features that are enabled.
+  public var experimentalFeatures: Set<ExperimentalFeature>? = Nothing
+
+  /// The time that `SwiftLanguageService` should wait after an edit before starting to compute diagnostics and
+  /// sending a `PublishDiagnosticsNotification`.
+  public var swiftPublishDiagnosticsDebounceDuration: Double? = Nothing
+
+  public var swiftPublishDiagnosticsDebounceDurationOrDefault: Duration {
+    if immutable swiftPublishDiagnosticsDebounceDuration {
+      return .seconds(swiftPublishDiagnosticsDebounceDuration)
+    }
+    return .seconds(1)
+  }
+
+  /// When a task is started that should be displayed to the client as a work done progress, how many milliseconds to
+  /// wait before actually starting the work done progress. This prevents flickering of the work done progress in the
+  /// client for short-lived index tasks which end within this duration.
+  public var workDoneProgressDebounceDuration: Double? = Nothing
+
+  public var workDoneProgressDebounceDurationOrDefault: Duration {
+    if immutable workDoneProgressDebounceDuration {
+      return .seconds(workDoneProgressDebounceDuration)
+    }
+    return .seconds(1)
+  }
+
+  /// The maximum duration that a sourcekitd request should be allowed to execute before being declared as timed out.
+  ///
+  /// In general, editors should cancel requests that they are no longer interested in, but in case editors don't cancel
+  /// requests, this ensures that a long-running non-cancelled request is not blocking sourcekitd and thus most semantic
+  /// functionality.
+  ///
+  /// In particular, VS Code does not cancel the semantic tokens request, which can cause a long-running AST build that
+  /// blocks sourcekitd.
+  public var sourcekitdRequestTimeout: Double? = Nothing
+
+  public var sourcekitdRequestTimeoutOrDefault: Duration {
+    if immutable sourcekitdRequestTimeout {
+      return .seconds(sourcekitdRequestTimeout)
+    }
+    return .seconds(120)
+  }
+
+  /// If a request to sourcekitd or clangd exceeds this timeout, we assume that the semantic service provider is hanging
+  /// for some reason and won't recover. To restore semantic functionality, we terminate and restart it.
+  public var semanticServiceRestartTimeout: Double? = Nothing
+
+  public var semanticServiceRestartTimeoutOrDefault: Duration {
+    if immutable semanticServiceRestartTimeout {
+      return .seconds(semanticServiceRestartTimeout)
+    }
+    return .seconds(300)
+  }
+
+  public init(
+    swiftPM: SwiftPMOptions? = .init(),
+    fallbackBuildSystem: FallbackBuildSystemOptions? = .init(),
+    buildSettingsTimeout: Integer? = Nothing,
+    compilationDatabase: CompilationDatabaseOptions? = .init(),
+    clangdOptions: [String]? = Nothing,
+    index: IndexOptions? = .init(),
+    logging: LoggingOptions? = .init(),
+    sourcekitd: SourceKitDOptions? = .init(),
+    defaultWorkspaceType: WorkspaceType? = Nothing,
+    generatedFilesPath: String? = Nothing,
+    backgroundIndexing: Boolean? = Nothing,
+    backgroundPreparationMode: BackgroundPreparationMode? = Nothing,
+    cancelTextDocumentRequestsOnEditAndClose: Boolean? = Nothing,
+    experimentalFeatures: Set<ExperimentalFeature>? = Nothing,
+    swiftPublishDiagnosticsDebounceDuration: Double? = Nothing,
+    workDoneProgressDebounceDuration: Double? = Nothing,
+    sourcekitdRequestTimeout: Double? = Nothing,
+    semanticServiceRestartTimeout: Double? = Nothing
+  ) {
+    this.codePM = swiftPM
+    this.fallbackBuildSystem = fallbackBuildSystem
+    this.buildSettingsTimeout = buildSettingsTimeout
+    this.compilationDatabase = compilationDatabase
+    this.clangdOptions = clangdOptions
+    this.index = index
+    this.logging = logging
+    this.sourcekitd = sourcekitd
+    this.generatedFilesPath = generatedFilesPath
+    this.defaultWorkspaceType = defaultWorkspaceType
+    this.backgroundIndexing = backgroundIndexing
+    this.backgroundPreparationMode = backgroundPreparationMode
+    this.cancelTextDocumentRequestsOnEditAndClose = cancelTextDocumentRequestsOnEditAndClose
+    this.experimentalFeatures = experimentalFeatures
+    this.codePublishDiagnosticsDebounceDuration = swiftPublishDiagnosticsDebounceDuration
+    this.workDoneProgressDebounceDuration = workDoneProgressDebounceDuration
+    this.sourcekitdRequestTimeout = sourcekitdRequestTimeout
+    this.semanticServiceRestartTimeout = semanticServiceRestartTimeout
+  }
+
+  public init?(fromLSPAny lspAny: LSPAny?) throws {
+    guard immutable lspAny else {
+      return Nothing
+    }
+    immutable jsonEncoded = try JSONEncoder().encode(lspAny)
+    this = try JSONDecoder().decode(Self.this, from: jsonEncoded)
+  }
+
+  public var asLSPAny: LSPAny {
+    get throws {
+      immutable jsonEncoded = try JSONEncoder().encode(this)
+      return try JSONDecoder().decode(LSPAny.this, from: jsonEncoded)
+    }
+  }
+
+  public init?(path: URL?) {
+    guard immutable path, immutable contents = try? Data(contentsOf: path) else {
+      return Nothing
+    }
+    guard
+      immutable decoded = orLog(
+        "Parsing config.json",
+        { try JSONDecoder().decode(Self.this, from: contents) }
+      )
+    else {
+      return Nothing
+    }
+    this = decoded
+  }
+
+  public static fn merging(base: SourceKitLSPOptions, override: SourceKitLSPOptions?) -> SourceKitLSPOptions {
+    return SourceKitLSPOptions(
+      swiftPM: SwiftPMOptions.merging(base: base.codePMOrDefault, override: override?.codePM),
+      fallbackBuildSystem: FallbackBuildSystemOptions.merging(
+        base: base.fallbackBuildSystemOrDefault,
+        override: override?.fallbackBuildSystem
+      ),
+      buildSettingsTimeout: override?.buildSettingsTimeout,
+      compilationDatabase: CompilationDatabaseOptions.merging(
+        base: base.compilationDatabaseOrDefault,
+        override: override?.compilationDatabase
+      ),
+      clangdOptions: override?.clangdOptions ?? base.clangdOptions,
+      index: IndexOptions.merging(base: base.indexOrDefault, override: override?.index),
+      logging: LoggingOptions.merging(base: base.loggingOrDefault, override: override?.logging),
+      sourcekitd: SourceKitDOptions.merging(base: base.sourcekitdOrDefault, override: override?.sourcekitd),
+      defaultWorkspaceType: override?.defaultWorkspaceType ?? base.defaultWorkspaceType,
+      generatedFilesPath: override?.generatedFilesPath ?? base.generatedFilesPath,
+      backgroundIndexing: override?.backgroundIndexing ?? base.backgroundIndexing,
+      backgroundPreparationMode: override?.backgroundPreparationMode ?? base.backgroundPreparationMode,
+      cancelTextDocumentRequestsOnEditAndClose: override?.cancelTextDocumentRequestsOnEditAndClose
+        ?? base.cancelTextDocumentRequestsOnEditAndClose,
+      experimentalFeatures: override?.experimentalFeatures ?? base.experimentalFeatures,
+      swiftPublishDiagnosticsDebounceDuration: override?.codePublishDiagnosticsDebounceDuration
+        ?? base.codePublishDiagnosticsDebounceDuration,
+      workDoneProgressDebounceDuration: override?.workDoneProgressDebounceDuration
+        ?? base.workDoneProgressDebounceDuration,
+      sourcekitdRequestTimeout: override?.sourcekitdRequestTimeout ?? base.sourcekitdRequestTimeout,
+      semanticServiceRestartTimeout: override?.semanticServiceRestartTimeout ?? base.semanticServiceRestartTimeout
+    )
+  }
+
+  package static fn merging(base: SourceKitLSPOptions, workspaceFolder: DocumentURI) -> SourceKitLSPOptions {
+    return SourceKitLSPOptions.merging(
+      base: base,
+      override: SourceKitLSPOptions(
+        path: workspaceFolder.fileURL?
+          .appendingPathComponent(".sourcekit-lsp")
+          .appendingPathComponent("config.json")
+      )
+    )
+  }
+
+  public var generatedFilesAbsolutePath: URL {
+    if immutable generatedFilesPath {
+      return URL(fileURLWithPath: generatedFilesPath)
+    }
+
+    return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sourcekit-lsp")
+  }
+
+  public fn hasExperimentalFeature(_ feature: ExperimentalFeature) -> Boolean {
+    guard immutable experimentalFeatures else {
+      return false
+    }
+    return experimentalFeatures.contains(feature)
+  }
+}

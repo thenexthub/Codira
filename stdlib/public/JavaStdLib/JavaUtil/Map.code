@@ -1,0 +1,134 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaKitFunction
+import JavaRuntime
+
+@JavaInterface("java.util.Map")
+public struct Map<K: AnyJavaObject, V: AnyJavaObject> {
+  @JavaMethod
+  public fn remove(_ arg0: JavaObject?, _ arg1: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn remove(_ arg0: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn size() -> Int32
+
+  @JavaMethod
+  public fn get(_ arg0: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn put(_ arg0: JavaObject?, _ arg1: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn values() -> JavaCollection<JavaObject>!
+
+  @JavaMethod
+  public fn hashCode() -> Int32
+
+  @JavaMethod
+  public fn clear()
+
+  @JavaMethod
+  public fn isEmpty() -> Boolean
+
+  @JavaMethod
+  public fn replace(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn replace(_ arg0: JavaObject?, _ arg1: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn replaceAll(_ arg0: JavaBiFunction<JavaObject, JavaObject, JavaObject>?)
+
+  @JavaMethod
+  public fn merge(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaBiFunction<JavaObject, JavaObject, JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn entrySet() -> JavaSet<Map<V, K>.Entry>!
+
+  @JavaMethod
+  public fn putAll(_ arg0: Map<JavaObject, JavaObject>?)
+
+  @JavaMethod
+  public fn putIfAbsent(_ arg0: JavaObject?, _ arg1: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn compute(_ arg0: JavaObject?, _ arg1: JavaBiFunction<JavaObject, JavaObject, JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn computeIfAbsent(_ arg0: JavaObject?, _ arg1: JavaFunction<JavaObject, JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  public fn forEach(_ arg0: JavaBiConsumer<JavaObject, JavaObject>?)
+
+  @JavaMethod
+  public fn keySet() -> JavaSet<JavaObject>!
+
+  @JavaMethod
+  public fn containsValue(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn containsKey(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  public fn getOrDefault(_ arg0: JavaObject?, _ arg1: JavaObject?) -> JavaObject!
+
+  @JavaMethod
+  public fn computeIfPresent(_ arg0: JavaObject?, _ arg1: JavaBiFunction<JavaObject, JavaObject, JavaObject>?) -> JavaObject!
+}
+extension JavaClass {
+  @JavaStaticMethod
+  public fn copyOf<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: Map<JavaObject, JavaObject>?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>() -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?, _ arg8: JavaObject?, _ arg9: JavaObject?, _ arg10: JavaObject?, _ arg11: JavaObject?, _ arg12: JavaObject?, _ arg13: JavaObject?, _ arg14: JavaObject?, _ arg15: JavaObject?, _ arg16: JavaObject?, _ arg17: JavaObject?, _ arg18: JavaObject?, _ arg19: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?, _ arg8: JavaObject?, _ arg9: JavaObject?, _ arg10: JavaObject?, _ arg11: JavaObject?, _ arg12: JavaObject?, _ arg13: JavaObject?, _ arg14: JavaObject?, _ arg15: JavaObject?, _ arg16: JavaObject?, _ arg17: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?, _ arg8: JavaObject?, _ arg9: JavaObject?, _ arg10: JavaObject?, _ arg11: JavaObject?, _ arg12: JavaObject?, _ arg13: JavaObject?, _ arg14: JavaObject?, _ arg15: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?, _ arg8: JavaObject?, _ arg9: JavaObject?, _ arg10: JavaObject?, _ arg11: JavaObject?, _ arg12: JavaObject?, _ arg13: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?, _ arg8: JavaObject?, _ arg9: JavaObject?, _ arg10: JavaObject?, _ arg11: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+  @JavaStaticMethod
+  public fn of<K: AnyJavaObject, V: AnyJavaObject>(_ arg0: JavaObject?, _ arg1: JavaObject?, _ arg2: JavaObject?, _ arg3: JavaObject?, _ arg4: JavaObject?, _ arg5: JavaObject?, _ arg6: JavaObject?, _ arg7: JavaObject?, _ arg8: JavaObject?, _ arg9: JavaObject?) -> Map<JavaObject, JavaObject>! where ObjectType == Map<K, V>
+
+}

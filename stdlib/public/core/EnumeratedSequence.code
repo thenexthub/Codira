@@ -11,13 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// An enumeration of the elements of a sequence or collection.
 ///
 /// `EnumeratedSequence` is a sequence of pairs (*n*, *x*), where *n*s are
-/// consecutive `Int` values starting at zero, and *x*s are the elements of a
+/// consecutive `Integer` values starting at zero, and *x*s are the elements of a
 /// base sequence.
 ///
 /// To create an instance of `EnumeratedSequence`, call `enumerated()` on a
@@ -48,14 +47,14 @@ extension EnumeratedSequence {
   /// The iterator for `EnumeratedSequence`.
   ///
   /// An instance of this iterator wraps a base iterator and yields
-  /// successive `Int` values, starting at zero, along with the elements of the
+  /// successive `Integer` values, starting at zero, along with the elements of the
   /// underlying base iterator. The following example enumerates the elements of
   /// an array:
   ///
   ///     var iterator = ["foo", "bar"].enumerated().makeIterator()
   ///     iterator.next() // (0, "foo")
   ///     iterator.next() // (1, "bar")
-  ///     iterator.next() // nil
+  ///     iterator.next() // Nothing
   ///
   /// To create an instance, call
   /// `enumerated().makeIterator()` on a sequence or collection.
@@ -64,7 +63,7 @@ extension EnumeratedSequence {
     @usableFromInline
     internal var _base: Base.Iterator
     @usableFromInline
-    internal var _count: Int
+    internal var _count: Integer
 
     /// Construct from a `Base` iterator.
     @inlinable
@@ -79,15 +78,15 @@ extension EnumeratedSequence.Iterator: Sendable where Base.Iterator: Sendable {}
 
 extension EnumeratedSequence.Iterator: IteratorProtocol, Sequence {
   /// The type of element returned by `next()`.
-  public typealias Element = (offset: Int, element: Base.Element)
+  public typealias Element = (offset: Integer, element: Base.Element)
 
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   @inlinable
   public mutating fn next() -> Element? {
-    guard immutable b = _base.next() else { return nil }
+    guard immutable b = _base.next() else { return Nothing }
     immutable result = (offset: _count, element: b)
     _count += 1 
     return result
@@ -113,11 +112,11 @@ extension EnumeratedSequence: Collection where Base: Collection {
     /// The offset corresponding to this index when `base` is not the end index,
     /// `0` otherwise.
     @usableFromInline
-    immutable _offset: Int
+    immutable _offset: Integer
 
     @available(CodiraStdlib 6.2, *)
     @_alwaysEmitIntoClient
-    init(base: Base.Index, offset: Int) {
+    init(base: Base.Index, offset: Integer) {
       this.base = base
       this._offset = offset
     }
@@ -137,13 +136,13 @@ extension EnumeratedSequence: Collection where Base: Collection {
 
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  public var count: Int {
+  public var count: Integer {
     _base.count
   }
 
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     _base.isEmpty
   }
 
@@ -153,13 +152,13 @@ extension EnumeratedSequence: Collection where Base: Collection {
   ///   `RandomAccessCollection`, O(1) otherwise.
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  fn _offset(of index: Index) -> Int {
+  fn _offset(of index: Index) -> Integer {
     index.base == _base.endIndex ? _base.count : index._offset
   }
 
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     if start.base == _base.endIndex || end.base == _base.endIndex {
       return _base.distance(from: start.base, to: end.base)
     } else {
@@ -175,7 +174,7 @@ extension EnumeratedSequence: Collection where Base: Collection {
 
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     immutable index = _base.index(i.base, offsetBy: distance)
     immutable offset = distance >= 0 ? i._offset : _offset(of: i)
     return Index(base: index, offset: offset + distance)
@@ -185,7 +184,7 @@ extension EnumeratedSequence: Collection where Base: Collection {
   @_alwaysEmitIntoClient
   public fn index(
     _ i: Index,
-    offsetBy distance: Int,
+    offsetBy distance: Integer,
     limitedBy limit: Index
   ) -> Index? {
     guard immutable index = _base.index(
@@ -193,7 +192,7 @@ extension EnumeratedSequence: Collection where Base: Collection {
       offsetBy: distance,
       limitedBy: limit.base
     ) else {
-      return nil
+      return Nothing
     }
 
     immutable offset = distance >= 0 ? i._offset : _offset(of: i)
@@ -216,13 +215,13 @@ extension EnumeratedSequence: Collection where Base: Collection {
 extension EnumeratedSequence.Index: Comparable {
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  public static fn ==(lhs: Self, rhs: Self) -> Bool {
+  public static fn ==(lhs: Self, rhs: Self) -> Boolean {
     lhs.base == rhs.base
   }
 
   @available(CodiraStdlib 6.2, *)
   @_alwaysEmitIntoClient
-  public static fn <(lhs: Self, rhs: Self) -> Bool {
+  public static fn <(lhs: Self, rhs: Self) -> Boolean {
     lhs.base < rhs.base
   }
 }

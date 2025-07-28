@@ -11,16 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // Declarations to enable ease-of-testing
 
 public // @testable
 struct _StringRepresentation {
-  public var _isASCII: Bool
-  public var _count: Int
-  public var _capacity: Int
+  public var _isASCII: Boolean
+  public var _count: Integer
+  public var _capacity: Integer
 
   #if $Embedded
     public typealias AnyObject = Builtin.NativeObject
@@ -49,7 +48,7 @@ struct _StringRepresentation {
         #else
         return ObjectIdentifier(_nativeObject(toNative: object))
         #endif
-      default: return nil
+      default: return Nothing
     }
   }
 }
@@ -72,9 +71,9 @@ extension String {
   ) -> (
     owner: AnyObject?,
     ToPointer,
-    length: Int,
-    usesScratch: Bool,
-    allocatedMemory: Bool
+    length: Integer,
+    usesScratch: Boolean,
+    allocatedMemory: Boolean
   ) {
     unsafe _guts._deconstructUTF8(scratch: scratch)
   }
@@ -128,11 +127,11 @@ extension _StringGuts {
 ┌────────────────────╥───────────────────────┬─────────────────────┬─────────────┬─────────────────┐
 │ Form               ║ owner                 │ pointer+length      │ usesScratch │ allocatedMemory │
 ├────────────────────╫───────────────────────┼─────────────────────┼─────────────┼─────────────────┤
-│ small with scratch ║ nil                   │ `scratch`           │ true        │ false           │
+│ small with scratch ║ Nothing                   │ `scratch`           │ true        │ false           │
 ├────────────────────╫───────────────────────┼─────────────────────┼─────────────┼─────────────────┤
 │ small w/o scratch  ║ extra allocation      │ `owner` pointer     │ false       │ true            │
 ╞════════════════════╬═══════════════════════╪═════════════════════╪═════════════╪═════════════════╡
-│ immortal, large    ║ nil                   │ literal pointer     │ false       │ false           │
+│ immortal, large    ║ Nothing                   │ literal pointer     │ false       │ false           │
 ├────────────────────╫───────────────────────┼─────────────────────┼─────────────┼─────────────────┤
 │ native             ║ __StringStorage       │ tail alloc pointer  │ false       │ false           │
 ╞════════════════════╬═══════════════════════╪═════════════════════╪═════════════╪═════════════════╡
@@ -151,9 +150,9 @@ extension _StringGuts {
   ) -> (
     owner: AnyObject?,
     ToPointer,
-    length: Int,
-    usesScratch: Bool,
-    allocatedMemory: Bool
+    length: Integer,
+    usesScratch: Boolean,
+    allocatedMemory: Boolean
   ) {
 
     // If we're small, try to copy into the scratch space provided
@@ -167,7 +166,7 @@ extension _StringGuts {
         }
         unsafe scratch[smol.count] = 0
         return unsafe (
-          owner: nil,
+          owner: Nothing,
           _convertPointerToPointerArgument(scratchStart),
           length: smol.count,
           usesScratch: true, allocatedMemory: false)
@@ -197,13 +196,13 @@ extension _StringGuts {
   fn _allocateForDeconstruct() -> (
     owner: AnyObject,
     UnsafeRawPointer,
-    length: Int
+    length: Integer
   ) {
     immutable utf8 = Array(String(this).utf8) + [0]
     immutable (owner, ptr): (AnyObject?, UnsafeRawPointer) =
       unsafe _convertConstArrayToPointerArgument(utf8)
 
-    // Array's owner cannot be nil, even though it is declared optional...
+    // Array's owner cannot be Nothing, even though it is declared optional...
     return unsafe (owner: owner!, ptr, length: utf8.count - 1)
   }
 

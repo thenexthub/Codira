@@ -1,0 +1,166 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.Year", implements: Temporal.this, TemporalAdjuster.this, Comparable.this, Serializable.this)
+open class Year: JavaObject {
+  @JavaMethod
+  open fn atDay(_ arg0: Int32) -> LocalDate!
+
+  @JavaMethod
+  open fn isValidMonthDay(_ arg0: MonthDay?) -> Boolean
+
+  @JavaMethod
+  open fn atMonth(_ arg0: Month?) -> YearMonth!
+
+  @JavaMethod
+  open fn atMonth(_ arg0: Int32) -> YearMonth!
+
+  @JavaMethod
+  open fn atMonthDay(_ arg0: MonthDay?) -> LocalDate!
+
+  @JavaMethod
+  open fn get(_ arg0: TemporalField?) -> Int32
+
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open fn length() -> Int32
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: Year?) -> Int32
+
+  @JavaMethod
+  open fn getLong(_ arg0: TemporalField?) -> Int64
+
+  @JavaMethod
+  open fn getValue() -> Int32
+
+  @JavaMethod
+  open fn format(_ arg0: DateTimeFormatter?) -> String
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalUnit?) -> Boolean
+
+  @JavaMethod
+  open fn isSupported(_ arg0: TemporalField?) -> Boolean
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Temporal!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalAdjuster?) -> Year!
+
+  @JavaMethod
+  open fn with(_ arg0: TemporalField?, _ arg1: Int64) -> Year!
+
+  @JavaMethod
+  open fn query(_ arg0: TemporalQuery<JavaObject>?) -> JavaObject!
+
+  @JavaMethod
+  open fn range(_ arg0: TemporalField?) -> ValueRange!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Year!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Year!
+
+  @JavaMethod
+  open fn minus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn minus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Temporal!
+
+  @JavaMethod
+  open fn plus(_ arg0: TemporalAmount?) -> Year!
+
+  @JavaMethod
+  open fn plus(_ arg0: Int64, _ arg1: TemporalUnit?) -> Year!
+
+  @JavaMethod
+  open fn until(_ arg0: Temporal?, _ arg1: TemporalUnit?) -> Int64
+
+  @JavaMethod
+  open fn adjustInto(_ arg0: Temporal?) -> Temporal!
+
+  @JavaMethod
+  open fn isAfter(_ arg0: Year?) -> Boolean
+
+  @JavaMethod
+  open fn isBefore(_ arg0: Year?) -> Boolean
+
+  @JavaMethod
+  open fn plusYears(_ arg0: Int64) -> Year!
+
+  @JavaMethod
+  open fn minusYears(_ arg0: Int64) -> Year!
+
+  @JavaMethod
+  open fn isLeap() -> Boolean
+}
+extension JavaClass<Year> {
+  @JavaStaticField(isFinal: true)
+  public var MIN_VALUE: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MAX_VALUE: Int32
+
+  @JavaStaticMethod
+  public fn of(_ arg0: Int32) -> Year!
+
+  @JavaStaticMethod
+  public fn from(_ arg0: TemporalAccessor?) -> Year!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?, _ arg1: DateTimeFormatter?) -> Year!
+
+  @JavaStaticMethod
+  public fn parse(_ arg0: CharSequence?) -> Year!
+
+  @JavaStaticMethod
+  public fn now() -> Year!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: Clock?) -> Year!
+
+  @JavaStaticMethod
+  public fn now(_ arg0: ZoneId?) -> Year!
+
+  @JavaStaticMethod
+  public fn isLeap(_ arg0: Int64) -> Boolean
+}

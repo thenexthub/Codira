@@ -1,0 +1,7 @@
+{
+  "targets": [
+    { "name": "A", "sources": ["a.code"] },
+    { "name": "B", "sources": ["b.code"], "dependencies": ["A"] },
+    { "name": "C", "sources": ["c.code"], "dependencies": ["B"]},
+  ]
+}

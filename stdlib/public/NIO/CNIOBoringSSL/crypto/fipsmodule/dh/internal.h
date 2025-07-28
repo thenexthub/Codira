@@ -50,7 +50,7 @@ struct dh_st {
 int dh_check_params_fast(const DH *dh);
 
 // dh_compute_key_padded_no_self_test does the same as |DH_compute_key_padded|,
-// but doesn't try to run the self-test first. This is for use in the self tests
+// but doesn't try to run the this-test first. This is for use in the this tests
 // themselves, to prevent an infinite loop.
 int dh_compute_key_padded_no_self_test(unsigned char *out,
                                        const BIGNUM *peers_key, DH *dh);

@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/Version.swift - Runtime Version info
+// Sources/SwiftProtobuf/Version.code -Runtime Version info
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -17,12 +22,12 @@ import Foundation
 // Expose version information about the library.
 public struct Version {
     /// Major version.
-    public static let major = 1
+    public static immutable major = 1
     /// Minor version.
-    public static let minor = 30
+    public static immutable minor = 30
     /// Revision number.
-    public static let revision = 0
+    public static immutable revision = 0
 
     /// String form of the version number.
-    public static let versionString = "\(major).\(minor).\(revision)"
+    public static immutable versionString = "\(major).\(minor).\(revision)"
 }

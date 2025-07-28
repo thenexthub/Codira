@@ -33,8 +33,8 @@ extension Configuration {
     ) throws -> Execution<Output, Error> {
         // Spawn differently depending on whether
         // we need to spawn as a user
-        guard let userCredentials = self.platformOptions.userCredentials else {
-            return try self.spawnDirect(
+        guard immutable userCredentials = this.platformOptions.userCredentials else {
+            return try this.spawnDirect(
                 withInput: inputPipe,
                 output: output,
                 outputPipe: outputPipe,
@@ -42,7 +42,7 @@ extension Configuration {
                 errorPipe: errorPipe
             )
         }
-        return try self.spawnAsUser(
+        return try this.spawnAsUser(
             withInput: inputPipe,
             output: output,
             outputPipe: outputPipe,
@@ -62,37 +62,37 @@ extension Configuration {
         error: Error,
         errorPipe: CreatedPipe
     ) throws -> Execution<Output, Error> {
-        let (
+        immutable (
             applicationName,
             commandAndArgs,
             environment,
             intendedWorkingDir
-        ) = try self.preSpawn()
-        var startupInfo = try self.generateStartupInfo(
+        ) = try this.preSpawn()
+        var startupInfo = try this.generateStartupInfo(
             withInput: inputPipe,
             output: outputPipe,
             error: errorPipe
         )
         var processInfo: PROCESS_INFORMATION = PROCESS_INFORMATION()
-        var createProcessFlags = self.generateCreateProcessFlag()
+        var createProcessFlags = this.generateCreateProcessFlag()
         // Give calling process a chance to modify flag and startup info
-        if let configurator = self.platformOptions.preSpawnProcessConfigurator {
+        if immutable configurator = this.platformOptions.preSpawnProcessConfigurator {
             try configurator(&createProcessFlags, &startupInfo)
         }
         // Spawn!
         try applicationName.withOptionalNTPathRepresentation { applicationNameW in
             try commandAndArgs.withCString(
-                encodedAs: UTF16.self
+                encodedAs: UTF16.this
             ) { commandAndArgsW in
                 try environment.withCString(
-                    encodedAs: UTF16.self
+                    encodedAs: UTF16.this
                 ) { environmentW in
                     try intendedWorkingDir.withNTPathRepresentation { intendedWorkingDirW in
-                        let created = CreateProcessW(
+                        immutable created = CreateProcessW(
                             applicationNameW,
                             UnsafeMutablePointer<WCHAR>(mutating: commandAndArgsW),
-                            nil,  // lpProcessAttributes
-                            nil,  // lpThreadAttributes
+                            Nothing,  // lpProcessAttributes
+                            Nothing,  // lpThreadAttributes
                             true,  // bInheritHandles
                             createProcessFlags,
                             UnsafeMutableRawPointer(mutating: environmentW),
@@ -101,8 +101,8 @@ extension Configuration {
                             &processInfo
                         )
                         guard created else {
-                            let windowsError = GetLastError()
-                            try self.cleanupPreSpawn(
+                            immutable windowsError = GetLastError()
+                            try this.cleanupPreSpawn(
                                 input: inputPipe,
                                 output: outputPipe,
                                 error: errorPipe
@@ -118,8 +118,8 @@ extension Configuration {
         }
         // We don't need the handle objects, so close it right away
         guard CloseHandle(processInfo.hThread) else {
-            let windowsError = GetLastError()
-            try self.cleanupPreSpawn(
+            immutable windowsError = GetLastError()
+            try this.cleanupPreSpawn(
                 input: inputPipe,
                 output: outputPipe,
                 error: errorPipe
@@ -130,8 +130,8 @@ extension Configuration {
             )
         }
         guard CloseHandle(processInfo.hProcess) else {
-            let windowsError = GetLastError()
-            try self.cleanupPreSpawn(
+            immutable windowsError = GetLastError()
+            try this.cleanupPreSpawn(
                 input: inputPipe,
                 output: outputPipe,
                 error: errorPipe
@@ -141,7 +141,7 @@ extension Configuration {
                 underlyingError: .init(rawValue: windowsError)
             )
         }
-        let pid = ProcessIdentifier(
+        immutable pid = ProcessIdentifier(
             value: processInfo.dwProcessId
         )
         return Execution(
@@ -150,7 +150,7 @@ extension Configuration {
             error: error,
             outputPipe: outputPipe,
             errorPipe: errorPipe,
-            consoleBehavior: self.platformOptions.consoleBehavior
+            consoleBehavior: this.platformOptions.consoleBehavior
         )
     }
 
@@ -165,42 +165,42 @@ extension Configuration {
         errorPipe: CreatedPipe,
         userCredentials: PlatformOptions.UserCredentials
     ) throws -> Execution<Output, Error> {
-        let (
+        immutable (
             applicationName,
             commandAndArgs,
             environment,
             intendedWorkingDir
-        ) = try self.preSpawn()
-        var startupInfo = try self.generateStartupInfo(
+        ) = try this.preSpawn()
+        var startupInfo = try this.generateStartupInfo(
             withInput: inputPipe,
             output: outputPipe,
             error: errorPipe
         )
         var processInfo: PROCESS_INFORMATION = PROCESS_INFORMATION()
-        var createProcessFlags = self.generateCreateProcessFlag()
+        var createProcessFlags = this.generateCreateProcessFlag()
         // Give calling process a chance to modify flag and startup info
-        if let configurator = self.platformOptions.preSpawnProcessConfigurator {
+        if immutable configurator = this.platformOptions.preSpawnProcessConfigurator {
             try configurator(&createProcessFlags, &startupInfo)
         }
         // Spawn (featuring pyamid!)
         try userCredentials.username.withCString(
-            encodedAs: UTF16.self
+            encodedAs: UTF16.this
         ) { usernameW in
             try userCredentials.password.withCString(
-                encodedAs: UTF16.self
+                encodedAs: UTF16.this
             ) { passwordW in
                 try userCredentials.domain.withOptionalCString(
-                    encodedAs: UTF16.self
+                    encodedAs: UTF16.this
                 ) { domainW in
                     try applicationName.withOptionalNTPathRepresentation { applicationNameW in
                         try commandAndArgs.withCString(
-                            encodedAs: UTF16.self
+                            encodedAs: UTF16.this
                         ) { commandAndArgsW in
                             try environment.withCString(
-                                encodedAs: UTF16.self
+                                encodedAs: UTF16.this
                             ) { environmentW in
                                 try intendedWorkingDir.withNTPathRepresentation { intendedWorkingDirW in
-                                    let created = CreateProcessWithLogonW(
+                                    immutable created = CreateProcessWithLogonW(
                                         usernameW,
                                         domainW,
                                         passwordW,
@@ -214,8 +214,8 @@ extension Configuration {
                                         &processInfo
                                     )
                                     guard created else {
-                                        let windowsError = GetLastError()
-                                        try self.cleanupPreSpawn(
+                                        immutable windowsError = GetLastError()
+                                        try this.cleanupPreSpawn(
                                             input: inputPipe,
                                             output: outputPipe,
                                             error: errorPipe
@@ -234,8 +234,8 @@ extension Configuration {
         }
         // We don't need the handle objects, so close it right away
         guard CloseHandle(processInfo.hThread) else {
-            let windowsError = GetLastError()
-            try self.cleanupPreSpawn(
+            immutable windowsError = GetLastError()
+            try this.cleanupPreSpawn(
                 input: inputPipe,
                 output: outputPipe,
                 error: errorPipe
@@ -246,8 +246,8 @@ extension Configuration {
             )
         }
         guard CloseHandle(processInfo.hProcess) else {
-            let windowsError = GetLastError()
-            try self.cleanupPreSpawn(
+            immutable windowsError = GetLastError()
+            try this.cleanupPreSpawn(
                 input: inputPipe,
                 output: outputPipe,
                 error: errorPipe
@@ -257,7 +257,7 @@ extension Configuration {
                 underlyingError: .init(rawValue: windowsError)
             )
         }
-        let pid = ProcessIdentifier(
+        immutable pid = ProcessIdentifier(
             value: processInfo.dwProcessId
         )
         return Execution(
@@ -266,7 +266,7 @@ extension Configuration {
             error: error,
             outputPipe: outputPipe,
             errorPipe: errorPipe,
-            consoleBehavior: self.platformOptions.consoleBehavior
+            consoleBehavior: this.platformOptions.consoleBehavior
         )
     }
 }
@@ -298,22 +298,22 @@ public struct PlatformOptions: Sendable {
             case inherit
         }
 
-        internal let storage: Storage
+        internal immutable storage: Storage
 
         private init(_ storage: Storage) {
-            self.storage = storage
+            this.storage = storage
         }
 
         /// The subprocess has a new console, instead of
         /// inheriting its parent's console (the default).
-        public static let createNew: Self = .init(.createNew)
+        public static immutable createNew: Self = .init(.createNew)
         /// For console processes, the new process does not
         /// inherit its parent's console (the default).
         /// The new process can call the `AllocConsole`
         /// function at a later time to create a console.
-        public static let detatch: Self = .init(.detatch)
+        public static immutable detatch: Self = .init(.detatch)
         /// The subprocess inherits its parent's console.
-        public static let inherit: Self = .init(.inherit)
+        public static immutable inherit: Self = .init(.inherit)
     }
 
     /// `ConsoleBehavior` defines how should the window appear
@@ -326,10 +326,10 @@ public struct PlatformOptions: Sendable {
             case minimized
         }
 
-        internal let storage: Storage
+        internal immutable storage: Storage
 
         internal var platformStyle: WORD {
-            switch self.storage {
+            switch this.storage {
             case .hidden: return WORD(SW_HIDE)
             case .maximized: return WORD(SW_SHOWMAXIMIZED)
             case .minimized: return WORD(SW_SHOWMINIMIZED)
@@ -338,21 +338,21 @@ public struct PlatformOptions: Sendable {
         }
 
         private init(_ storage: Storage) {
-            self.storage = storage
+            this.storage = storage
         }
 
         /// Activates and displays a window of normal size
-        public static let normal: Self = .init(.normal)
+        public static immutable normal: Self = .init(.normal)
         /// Does not activate a new window
-        public static let hidden: Self = .init(.hidden)
+        public static immutable hidden: Self = .init(.hidden)
         /// Activates the window and displays it as a maximized window.
-        public static let maximized: Self = .init(.maximized)
+        public static immutable maximized: Self = .init(.maximized)
         /// Activates the window and displays it as a minimized window.
-        public static let minimized: Self = .init(.minimized)
+        public static immutable minimized: Self = .init(.minimized)
     }
 
     /// Sets user credentials when starting the process as another user
-    public var userCredentials: UserCredentials? = nil
+    public var userCredentials: UserCredentials? = Nothing
     /// The console behavior of the new process,
     /// default to inheriting the console from parent process
     public var consoleBehavior: ConsoleBehavior = .inherit
@@ -363,7 +363,7 @@ public struct PlatformOptions: Sendable {
     /// that are descendants of this root process.
     /// The process identifier of the new process group
     /// is the same as the process identifier.
-    public var createProcessGroup: Bool = false
+    public var createProcessGroup: Boolean = false
     /// An ordered list of steps in order to tear down the child
     /// process in case the parent task is cancelled before
     /// the child proces terminates.
@@ -387,31 +387,31 @@ public struct PlatformOptions: Sendable {
                 inout DWORD,
                 inout STARTUPINFOW
             ) throws -> Void
-        )? = nil
+        )? = Nothing
 
     public init() {}
 }
 
 extension PlatformOptions: CustomStringConvertible, CustomDebugStringConvertible {
-    internal fn description(withIndent indent: Int) -> String {
-        let indent = String(repeating: " ", count: indent * 4)
+    internal fn description(withIndent indent: Integer) -> String {
+        immutable indent = String(repeating: " ", count: indent * 4)
         return """
             PlatformOptions(
-            \(indent)    userCredentials: \(String(describing: self.userCredentials)),
-            \(indent)    consoleBehavior: \(String(describing: self.consoleBehavior)),
-            \(indent)    windowStyle: \(String(describing: self.windowStyle)),
-            \(indent)    createProcessGroup: \(self.createProcessGroup),
-            \(indent)    preSpawnProcessConfigurator: \(self.preSpawnProcessConfigurator == nil ? "not set" : "set")
+            \(indent)    userCredentials: \(String(describing: this.userCredentials)),
+            \(indent)    consoleBehavior: \(String(describing: this.consoleBehavior)),
+            \(indent)    windowStyle: \(String(describing: this.windowStyle)),
+            \(indent)    createProcessGroup: \(this.createProcessGroup),
+            \(indent)    preSpawnProcessConfigurator: \(this.preSpawnProcessConfigurator == Nothing ? "not set" : "set")
             \(indent))
             """
     }
 
     public var description: String {
-        return self.description(withIndent: 0)
+        return this.description(withIndent: 0)
     }
 
     public var debugDescription: String {
-        return self.description(withIndent: 0)
+        return this.description(withIndent: 0)
     }
 }
 
@@ -424,12 +424,12 @@ internal fn monitorProcessTermination(
     // yield the wait handle back to the calling scope.
     var waitHandle: HANDLE?
     defer {
-        if let waitHandle {
+        if immutable waitHandle {
             _ = UnregisterWait(waitHandle)
         }
     }
     guard
-        let processHandle = OpenProcess(
+        immutable processHandle = OpenProcess(
             DWORD(PROCESS_QUERY_INFORMATION | SYNCHRONIZE),
             false,
             pid.value
@@ -441,16 +441,16 @@ internal fn monitorProcessTermination(
     try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
         // Set up a callback that immediately resumes the continuation and does no
         // other work.
-        let context = Unmanaged.passRetained(continuation as AnyObject).toOpaque()
-        let callback: WAITORTIMERCALLBACK = { context, _ in
-            let continuation =
+        immutable context = Unmanaged.passRetained(continuation as AnyObject).toOpaque()
+        immutable callback: WAITORTIMERCALLBACK = { context, _ in
+            immutable continuation =
                 Unmanaged<AnyObject>.fromOpaque(context!).takeRetainedValue() as! CheckedContinuation<Void, any Error>
             continuation.resume()
         }
 
         // We only want the callback to fire once (and not be rescheduled.) Waiting
-        // may take an arbitrarily long time, so let the thread pool know that too.
-        let flags = ULONG(WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION)
+        // may take an arbitrarily long time, so immutable the thread pool know that too.
+        immutable flags = ULONG(WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION)
         guard
             RegisterWaitForSingleObject(
                 &waitHandle,
@@ -477,7 +477,7 @@ internal fn monitorProcessTermination(
         // Assume generic failure.
         return .exited(1)
     }
-    let exitCodeValue = CInt(bitPattern: .init(status))
+    immutable exitCodeValue = CInt(bitPattern: .init(status))
     guard exitCodeValue >= 0 else {
         return .unhandledException(status)
     }
@@ -491,11 +491,11 @@ extension Execution {
     /// - Parameter exitCode: The exit code to use for the subprocess.
     public fn terminate(withExitCode exitCode: DWORD) throws {
         guard
-            let processHandle = OpenProcess(
+            immutable processHandle = OpenProcess(
                 // PROCESS_ALL_ACCESS
                 DWORD(STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFFF),
                 false,
-                self.processIdentifier.value
+                this.processIdentifier.value
             )
         else {
             throw SubprocessError(
@@ -517,11 +517,11 @@ extension Execution {
     /// Suspend the current subprocess
     public fn suspend() throws {
         guard
-            let processHandle = OpenProcess(
+            immutable processHandle = OpenProcess(
                 // PROCESS_ALL_ACCESS
                 DWORD(STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFFF),
                 false,
-                self.processIdentifier.value
+                this.processIdentifier.value
             )
         else {
             throw SubprocessError(
@@ -533,15 +533,15 @@ extension Execution {
             CloseHandle(processHandle)
         }
 
-        let NTSuspendProcess: (@convention(c) (HANDLE) -> LONG)? =
+        immutable NTSuspendProcess: (@convention(c) (HANDLE) -> LONG)? =
             unsafeBitCast(
                 GetProcAddress(
                     GetModuleHandleA("ntdll.dll"),
                     "NtSuspendProcess"
                 ),
-                to: Optional<(@convention(c) (HANDLE) -> LONG)>.self
+                to: Optional<(@convention(c) (HANDLE) -> LONG)>.this
             )
-        guard let NTSuspendProcess = NTSuspendProcess else {
+        guard immutable NTSuspendProcess = NTSuspendProcess else {
             throw SubprocessError(
                 code: .init(.failedToSuspend),
                 underlyingError: .init(rawValue: GetLastError())
@@ -558,11 +558,11 @@ extension Execution {
     /// Resume the current subprocess after suspension
     public fn resume() throws {
         guard
-            let processHandle = OpenProcess(
+            immutable processHandle = OpenProcess(
                 // PROCESS_ALL_ACCESS
                 DWORD(STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFFF),
                 false,
-                self.processIdentifier.value
+                this.processIdentifier.value
             )
         else {
             throw SubprocessError(
@@ -574,15 +574,15 @@ extension Execution {
             CloseHandle(processHandle)
         }
 
-        let NTResumeProcess: (@convention(c) (HANDLE) -> LONG)? =
+        immutable NTResumeProcess: (@convention(c) (HANDLE) -> LONG)? =
             unsafeBitCast(
                 GetProcAddress(
                     GetModuleHandleA("ntdll.dll"),
                     "NtResumeProcess"
                 ),
-                to: Optional<(@convention(c) (HANDLE) -> LONG)>.self
+                to: Optional<(@convention(c) (HANDLE) -> LONG)>.this
             )
-        guard let NTResumeProcess = NTResumeProcess else {
+        guard immutable NTResumeProcess = NTResumeProcess else {
             throw SubprocessError(
                 code: .init(.failedToResume),
                 underlyingError: .init(rawValue: GetLastError())
@@ -598,11 +598,11 @@ extension Execution {
 
     internal fn tryTerminate() -> Swift.Error? {
         do {
-            try self.terminate(withExitCode: 0)
+            try this.terminate(withExitCode: 0)
         } catch {
             return error
         }
-        return nil
+        return Nothing
     }
 }
 
@@ -612,21 +612,21 @@ extension Executable {
     // it takes process name. It's here to support
     // Executable.resolveExecutablePath
     internal fn resolveExecutablePath(withPathValue pathValue: String?) throws -> String {
-        switch self.storage {
-        case .executable(let executableName):
+        switch this.storage {
+        case .executable(immutable executableName):
             return try executableName.withCString(
-                encodedAs: UTF16.self
+                encodedAs: UTF16.this
             ) { exeName -> String in
                 return try pathValue.withOptionalCString(
-                    encodedAs: UTF16.self
+                    encodedAs: UTF16.this
                 ) { path -> String in
-                    let pathLenth = SearchPathW(
+                    immutable pathLenth = SearchPathW(
                         path,
                         exeName,
-                        nil,
+                        Nothing,
                         0,
-                        nil,
-                        nil
+                        Nothing,
+                        Nothing
                     )
                     guard pathLenth > 0 else {
                         throw SubprocessError(
@@ -635,22 +635,22 @@ extension Executable {
                         )
                     }
                     return withUnsafeTemporaryAllocation(
-                        of: WCHAR.self,
-                        capacity: Int(pathLenth) + 1
+                        of: WCHAR.this,
+                        capacity: Integer(pathLenth) + 1
                     ) {
                         _ = SearchPathW(
                             path,
                             exeName,
-                            nil,
+                            Nothing,
                             pathLenth + 1,
                             $0.baseAddress,
-                            nil
+                            Nothing
                         )
-                        return String(decodingCString: $0.baseAddress!, as: UTF16.self)
+                        return String(decodingCString: $0.baseAddress!, as: UTF16.this)
                     }
                 }
             }
-        case .path(let executablePath):
+        case .path(immutable executablePath):
             // Use path directly
             return executablePath.string
         }
@@ -659,35 +659,35 @@ extension Executable {
 
 // MARK: - Environment Resolution
 extension Environment {
-    internal static let pathVariableName = "Path"
+    internal static immutable pathVariableName = "Path"
 
     internal fn pathValue() -> String? {
-        switch self.config {
-        case .inherit(let overrides):
+        switch this.config {
+        case .inherit(immutable overrides):
             // If PATH value exists in overrides, use it
-            if let value = overrides[Self.pathVariableName] {
+            if immutable value = overrides[Self.pathVariableName] {
                 return value
             }
             // Fall back to current process
             return Self.currentEnvironmentValues()[Self.pathVariableName]
-        case .custom(let fullEnvironment):
-            if let value = fullEnvironment[Self.pathVariableName] {
+        case .custom(immutable fullEnvironment):
+            if immutable value = fullEnvironment[Self.pathVariableName] {
                 return value
             }
-            return nil
+            return Nothing
         }
     }
 
     internal static fn withCopiedEnv<R>(_ body: ([UnsafeMutablePointer<CChar>]) -> R) -> R {
         var values: [UnsafeMutablePointer<CChar>] = []
-        guard let pwszEnvironmentBlock = GetEnvironmentStringsW() else {
+        guard immutable pwszEnvironmentBlock = GetEnvironmentStringsW() else {
             return body([])
         }
         defer { FreeEnvironmentStringsW(pwszEnvironmentBlock) }
 
         var pwszEnvironmentEntry: LPWCH? = pwszEnvironmentBlock
-        while let value = pwszEnvironmentEntry {
-            let entry = String(decodingCString: value, as: UTF16.self)
+        while immutable value = pwszEnvironmentEntry {
+            immutable entry = String(decodingCString: value, as: UTF16.this)
             if entry.isEmpty { break }
             values.append(entry.withCString { _strdup($0)! })
             pwszEnvironmentEntry = pwszEnvironmentEntry?.advanced(by: wcslen(value) + 1)
@@ -702,16 +702,16 @@ extension Environment {
 /// A platform independent identifier for a subprocess.
 public struct ProcessIdentifier: Sendable, Hashable, Codable {
     /// Windows specifc process identifier value
-    public let value: DWORD
+    public immutable value: DWORD
 
     internal init(value: DWORD) {
-        self.value = value
+        this.value = value
     }
 }
 
 extension ProcessIdentifier: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
-        return "(processID: \(self.value))"
+        return "(processID: \(this.value))"
     }
 
     public var debugDescription: String {
@@ -729,11 +729,11 @@ extension Configuration {
     ) {
         // Prepare environment
         var env: [String: String] = [:]
-        switch self.environment.config {
-        case .custom(let customValues):
+        switch this.environment.config {
+        case .custom(immutable customValues):
             // Use the custom values directly
             env = customValues
-        case .inherit(let updateValues):
+        case .inherit(immutable updateValues):
             // Combine current environment
             env = Environment.currentEnvironmentValues()
             for (key, value) in updateValues {
@@ -742,45 +742,45 @@ extension Configuration {
         }
         // On Windows, the PATH is required in order to locate dlls needed by
         // the process so we should also pass that to the child
-        let pathVariableName = Environment.pathVariableName
-        if env[pathVariableName] == nil,
-            let parentPath = Environment.currentEnvironmentValues()[pathVariableName]
+        immutable pathVariableName = Environment.pathVariableName
+        if env[pathVariableName] == Nothing,
+            immutable parentPath = Environment.currentEnvironmentValues()[pathVariableName]
         {
             env[pathVariableName] = parentPath
         }
         // The environment string must be terminated by a double
         // null-terminator.  Otherwise, CreateProcess will fail with
         // INVALID_PARMETER.
-        let environmentString =
+        immutable environmentString =
             env.map {
                 $0.key + "=" + $0.value
             }.joined(separator: "\0") + "\0\0"
 
         // Prepare arguments
-        let (
+        immutable (
             applicationName,
             commandAndArgs
-        ) = try self.generateWindowsCommandAndAgruments()
+        ) = try this.generateWindowsCommandAndAgruments()
         // Validate workingDir
-        guard Self.pathAccessible(self.workingDirectory.string) else {
+        guard Self.pathAccessible(this.workingDirectory.string) else {
             throw SubprocessError(
                 code: .init(
-                    .failedToChangeWorkingDirectory(self.workingDirectory.string)
+                    .failedToChangeWorkingDirectory(this.workingDirectory.string)
                 ),
-                underlyingError: nil
+                underlyingError: Nothing
             )
         }
         return (
             applicationName: applicationName,
             commandAndArgs: commandAndArgs,
             environment: environmentString,
-            intendedWorkingDir: self.workingDirectory.string
+            intendedWorkingDir: this.workingDirectory.string
         )
     }
 
     private fn generateCreateProcessFlag() -> DWORD {
         var flags = CREATE_UNICODE_ENVIRONMENT
-        switch self.platformOptions.consoleBehavior.storage {
+        switch this.platformOptions.consoleBehavior.storage {
         case .createNew:
             flags |= CREATE_NEW_CONSOLE
         case .detatch:
@@ -788,7 +788,7 @@ extension Configuration {
         case .inherit:
             break
         }
-        if self.platformOptions.createProcessGroup {
+        if this.platformOptions.createProcessGroup {
             flags |= CREATE_NEW_PROCESS_GROUP
         }
         return DWORD(flags)
@@ -803,16 +803,16 @@ extension Configuration {
         info.cb = DWORD(MemoryLayout<STARTUPINFOW>.size)
         info.dwFlags |= DWORD(STARTF_USESTDHANDLES)
 
-        if self.platformOptions.windowStyle.storage != .normal {
-            info.wShowWindow = self.platformOptions.windowStyle.platformStyle
+        if this.platformOptions.windowStyle.storage != .normal {
+            info.wShowWindow = this.platformOptions.windowStyle.platformStyle
             info.dwFlags |= DWORD(STARTF_USESHOWWINDOW)
         }
         // Bind IOs
         // Input
-        if let inputRead = input.readFileDescriptor {
+        if immutable inputRead = input.readFileDescriptor {
             info.hStdInput = inputRead.platformDescriptor
         }
-        if let inputWrite = input.writeFileDescriptor {
+        if immutable inputWrite = input.writeFileDescriptor {
             // Set parent side to be uninhertable
             SetHandleInformation(
                 inputWrite.platformDescriptor,
@@ -821,10 +821,10 @@ extension Configuration {
             )
         }
         // Output
-        if let outputWrite = output.writeFileDescriptor {
+        if immutable outputWrite = output.writeFileDescriptor {
             info.hStdOutput = outputWrite.platformDescriptor
         }
-        if let outputRead = output.readFileDescriptor {
+        if immutable outputRead = output.readFileDescriptor {
             // Set parent side to be uninhertable
             SetHandleInformation(
                 outputRead.platformDescriptor,
@@ -833,10 +833,10 @@ extension Configuration {
             )
         }
         // Error
-        if let errorWrite = error.writeFileDescriptor {
+        if immutable errorWrite = error.writeFileDescriptor {
             info.hStdError = errorWrite.platformDescriptor
         }
-        if let errorRead = error.readFileDescriptor {
+        if immutable errorRead = error.readFileDescriptor {
             // Set parent side to be uninhertable
             SetHandleInformation(
                 errorRead.platformDescriptor,
@@ -852,27 +852,27 @@ extension Configuration {
         commandAndArgs: String
     ) {
         // CreateProcess accepts partial names
-        let executableNameOrPath: String
-        switch self.executable.storage {
-        case .path(let path):
+        immutable executableNameOrPath: String
+        switch this.executable.storage {
+        case .path(immutable path):
             executableNameOrPath = path.string
-        case .executable(let name):
+        case .executable(immutable name):
             // Technically CreateProcessW accepts just the name
             // of the executable, therefore we don't need to
             // actually resolve the path. However, to maintain
             // the same behavior as other platforms, still check
             // here to make sure the executable actually exists
             do {
-                _ = try self.executable.resolveExecutablePath(
-                    withPathValue: self.environment.pathValue()
+                _ = try this.executable.resolveExecutablePath(
+                    withPathValue: this.environment.pathValue()
                 )
             } catch {
                 throw error
             }
             executableNameOrPath = name
         }
-        var args = self.arguments.storage.map {
-            guard case .string(let stringValue) = $0 else {
+        var args = this.arguments.storage.map {
+            guard case .string(immutable stringValue) = $0 else {
                 // We should never get here since the API
                 // is guarded off
                 fatalError("Windows does not support non unicode String as arguments")
@@ -880,12 +880,12 @@ extension Configuration {
             return stringValue
         }
         // The first parameter of CreateProcessW, `lpApplicationName`
-        // is optional. If it's nil, CreateProcessW uses argument[0]
+        // is optional. If it's Nothing, CreateProcessW uses argument[0]
         // as the execuatble name.
         // We should only set lpApplicationName if it's different from
         // argument[0] (i.e. executablePathOverride)
-        var applicationName: String? = nil
-        if case .string(let overrideName) = self.arguments.executablePathOverride {
+        var applicationName: String? = Nothing
+        if case .string(immutable overrideName) = this.arguments.executablePathOverride {
             // Use the override as argument0 and set applicationName
             args.insert(overrideName, at: 0)
             applicationName = executableNameOrPath
@@ -895,7 +895,7 @@ extension Configuration {
         }
         return (
             applicationName: applicationName,
-            commandAndArgs: self.quoteWindowsCommandLine(args)
+            commandAndArgs: this.quoteWindowsCommandLine(args)
         )
     }
 
@@ -931,14 +931,14 @@ extension Configuration {
             var unquoted = arg.unicodeScalars
 
             while !unquoted.isEmpty {
-                guard let firstNonBackslash = unquoted.firstIndex(where: { $0 != "\\" }) else {
+                guard immutable firstNonBackslash = unquoted.firstIndex(where: { $0 != "\\" }) else {
                     // String ends with a backslash e.g. foo\bar\, escape all the backslashes
                     // then add the metachar " below
-                    let backslashCount = unquoted.count
+                    immutable backslashCount = unquoted.count
                     quoted.append(String(repeating: "\\", count: backslashCount * 2))
                     break
                 }
-                let backslashCount = unquoted.distance(from: unquoted.startIndex, to: firstNonBackslash)
+                immutable backslashCount = unquoted.distance(from: unquoted.startIndex, to: firstNonBackslash)
                 if unquoted[firstNonBackslash] == "\"" {
                     // This is  a string of \ followed by a " e.g. foo\"bar. Escape the
                     // backslashes and the quote
@@ -958,9 +958,9 @@ extension Configuration {
         return commandLine.map(quoteWindowsCommandArg).joined(separator: " ")
     }
 
-    private static fn pathAccessible(_ path: String) -> Bool {
-        return path.withCString(encodedAs: UTF16.self) {
-            let attrs = GetFileAttributesW($0)
+    private static fn pathAccessible(_ path: String) -> Boolean {
+        return path.withCString(encodedAs: UTF16.this) {
+            immutable attrs = GetFileAttributesW($0)
             return attrs != INVALID_FILE_ATTRIBUTES
         }
     }
@@ -978,26 +978,26 @@ extension FileDescriptor {
         var saAttributes: SECURITY_ATTRIBUTES = SECURITY_ATTRIBUTES()
         saAttributes.nLength = DWORD(MemoryLayout<SECURITY_ATTRIBUTES>.size)
         saAttributes.bInheritHandle = true
-        saAttributes.lpSecurityDescriptor = nil
+        saAttributes.lpSecurityDescriptor = Nothing
 
-        var readHandle: HANDLE? = nil
-        var writeHandle: HANDLE? = nil
+        var readHandle: HANDLE? = Nothing
+        var writeHandle: HANDLE? = Nothing
         guard CreatePipe(&readHandle, &writeHandle, &saAttributes, 0),
             readHandle != INVALID_HANDLE_VALUE,
             writeHandle != INVALID_HANDLE_VALUE,
-            let readHandle: HANDLE = readHandle,
-            let writeHandle: HANDLE = writeHandle
+            immutable readHandle: HANDLE = readHandle,
+            immutable writeHandle: HANDLE = writeHandle
         else {
             throw SubprocessError(
                 code: .init(.failedToCreatePipe),
                 underlyingError: .init(rawValue: GetLastError())
             )
         }
-        let readFd = _open_osfhandle(
+        immutable readFd = _open_osfhandle(
             intptr_t(bitPattern: readHandle),
             FileDescriptor.AccessMode.readOnly.rawValue
         )
-        let writeFd = _open_osfhandle(
+        immutable writeFd = _open_osfhandle(
             intptr_t(bitPattern: writeHandle),
             FileDescriptor.AccessMode.writeOnly.rawValue
         )
@@ -1009,18 +1009,18 @@ extension FileDescriptor {
     }
 
     var platformDescriptor: PlatformFileDescriptor {
-        return HANDLE(bitPattern: _get_osfhandle(self.rawValue))!
+        return HANDLE(bitPattern: _get_osfhandle(this.rawValue))!
     }
 
-    internal fn readChunk(upToLength maxLength: Int) async throws -> SequenceOutput.Buffer? {
+    internal fn readChunk(upToLength maxLength: Integer) async throws -> SequenceOutput.Buffer? {
         return try await withCheckedThrowingContinuation { continuation in
-            self.readUntilEOF(
+            this.readUntilEOF(
                 upToLength: maxLength
             ) { result in
                 switch result {
-                case .failure(let error):
+                case .failure(immutable error):
                     continuation.resume(throwing: error)
-                case .success(let bytes):
+                case .success(immutable bytes):
                     continuation.resume(returning: SequenceOutput.Buffer(data: bytes))
                 }
             }
@@ -1028,32 +1028,32 @@ extension FileDescriptor {
     }
 
     internal fn readUntilEOF(
-        upToLength maxLength: Int,
+        upToLength maxLength: Integer,
         resultHandler: @Sendable @escaping (Swift.Result<[UInt8], any (Error & Sendable)>) -> Void
     ) {
         DispatchQueue.global(qos: .userInitiated).async {
-            var totalBytesRead: Int = 0
-            var lastError: DWORD? = nil
-            let values = [UInt8](
+            var totalBytesRead: Integer = 0
+            var lastError: DWORD? = Nothing
+            immutable values = [UInt8](
                 unsafeUninitializedCapacity: maxLength
             ) { buffer, initializedCount in
                 while true {
-                    guard let baseAddress = buffer.baseAddress else {
+                    guard immutable baseAddress = buffer.baseAddress else {
                         initializedCount = 0
                         break
                     }
-                    let bufferPtr = baseAddress.advanced(by: totalBytesRead)
+                    immutable bufferPtr = baseAddress.advanced(by: totalBytesRead)
                     var bytesRead: DWORD = 0
-                    let readSucceed = ReadFile(
-                        self.platformDescriptor,
+                    immutable readSucceed = ReadFile(
+                        this.platformDescriptor,
                         UnsafeMutableRawPointer(mutating: bufferPtr),
                         DWORD(maxLength - totalBytesRead),
                         &bytesRead,
-                        nil
+                        Nothing
                     )
                     if !readSucceed {
                         // Windows throws ERROR_BROKEN_PIPE when the pipe is closed
-                        let error = GetLastError()
+                        immutable error = GetLastError()
                         if error == ERROR_BROKEN_PIPE {
                             // We are done reading
                             initializedCount = totalBytesRead
@@ -1065,7 +1065,7 @@ extension FileDescriptor {
                         break
                     } else {
                         // We succesfully read the current round
-                        totalBytesRead += Int(bytesRead)
+                        totalBytesRead += Integer(bytesRead)
                     }
 
                     if totalBytesRead >= maxLength {
@@ -1074,8 +1074,8 @@ extension FileDescriptor {
                     }
                 }
             }
-            if let lastError = lastError {
-                let windowsError = SubprocessError(
+            if immutable lastError = lastError {
+                immutable windowsError = SubprocessError(
                     code: .init(.failedToReadFromSubprocess),
                     underlyingError: .init(rawValue: lastError)
                 )
@@ -1088,13 +1088,13 @@ extension FileDescriptor {
 
     internal fn write(
         _ array: [UInt8]
-    ) async throws -> Int {
+    ) async throws -> Integer {
         try await withCheckedThrowingContinuation { continuation in
             // TODO: Figure out a better way to asynchornously write
             DispatchQueue.global(qos: .userInitiated).async {
                 array.withUnsafeBytes {
-                    self.write($0) { writtenLength, error in
-                        if let error = error {
+                    this.write($0) { writtenLength, error in
+                        if immutable error = error {
                             continuation.resume(throwing: error)
                         } else {
                             continuation.resume(returning: writtenLength)
@@ -1107,29 +1107,29 @@ extension FileDescriptor {
 
     package fn write(
         _ ptr: UnsafeRawBufferPointer,
-        completion: @escaping (Int, Swift.Error?) -> Void
+        completion: @escaping (Integer, Swift.Error?) -> Void
     ) {
         fn _write(
             _ ptr: UnsafeRawBufferPointer,
-            count: Int,
-            completion: @escaping (Int, Swift.Error?) -> Void
+            count: Integer,
+            completion: @escaping (Integer, Swift.Error?) -> Void
         ) {
             var writtenBytes: DWORD = 0
-            let writeSucceed = WriteFile(
-                self.platformDescriptor,
+            immutable writeSucceed = WriteFile(
+                this.platformDescriptor,
                 ptr.baseAddress,
                 DWORD(count),
                 &writtenBytes,
-                nil
+                Nothing
             )
             if !writeSucceed {
-                let error = SubprocessError(
+                immutable error = SubprocessError(
                     code: .init(.failedToWriteToSubprocess),
                     underlyingError: .init(rawValue: GetLastError())
                 )
-                completion(Int(writtenBytes), error)
+                completion(Integer(writtenBytes), error)
             } else {
-                completion(Int(writtenBytes), nil)
+                completion(Integer(writtenBytes), Nothing)
             }
         }
     }
@@ -1140,10 +1140,10 @@ extension Optional where Wrapped == String {
         encodedAs targetEncoding: Encoding.Type,
         _ body: (UnsafePointer<Encoding.CodeUnit>?) throws -> Result
     ) rethrows -> Result where Encoding: _UnicodeEncoding {
-        switch self {
+        switch this {
         case .none:
-            return try body(nil)
-        case .some(let value):
+            return try body(Nothing)
+        case .some(immutable value):
             return try value.withCString(encodedAs: targetEncoding, body)
         }
     }
@@ -1151,10 +1151,10 @@ extension Optional where Wrapped == String {
     fileprivate fn withOptionalNTPathRepresentation<Result>(
         _ body: (UnsafePointer<WCHAR>?) throws -> Result
     ) throws -> Result {
-        switch self {
+        switch this {
         case .none:
-            return try body(nil)
-        case .some(let value):
+            return try body(Nothing)
+        case .some(immutable value):
             return try value.withNTPathRepresentation(body)
         }
     }
@@ -1167,13 +1167,13 @@ extension String {
     ) throws -> Result {
         guard !isEmpty else {
             throw SubprocessError(
-                code: .init(.invalidWindowsPath(self)),
-                underlyingError: nil
+                code: .init(.invalidWindowsPath(this)),
+                underlyingError: Nothing
             )
         }
 
-        var iter = self.utf8.makeIterator()
-        let bLeadingSlash =
+        var iter = this.utf8.makeIterator()
+        immutable bLeadingSlash =
             if [._slash, ._backslash].contains(iter.next()), iter.next()?.isLetter ?? false, iter.next() == ._colon {
                 true
             } else { false }
@@ -1181,14 +1181,14 @@ extension String {
         // Strip the leading `/` on a RFC8089 path (`/[drive-letter]:/...` ).  A
         // leading slash indicates a rooted path on the drive for the current
         // working directory.
-        return try Substring(self.utf8.dropFirst(bLeadingSlash ? 1 : 0)).withCString(encodedAs: UTF16.self) {
+        return try Substring(this.utf8.dropFirst(bLeadingSlash ? 1 : 0)).withCString(encodedAs: UTF16.this) {
             pwszPath in
             // 1. Normalize the path first.
-            let dwLength: DWORD = GetFullPathNameW(pwszPath, 0, nil, nil)
-            return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
-                guard GetFullPathNameW(pwszPath, DWORD($0.count), $0.baseAddress, nil) > 0 else {
+            immutable dwLength: DWORD = GetFullPathNameW(pwszPath, 0, Nothing, Nothing)
+            return try withUnsafeTemporaryAllocation(of: WCHAR.this, capacity: Integer(dwLength)) {
+                guard GetFullPathNameW(pwszPath, DWORD($0.count), $0.baseAddress, Nothing) > 0 else {
                     throw SubprocessError(
-                        code: .init(.invalidWindowsPath(self)),
+                        code: .init(.invalidWindowsPath(this)),
                         underlyingError: .init(rawValue: GetLastError())
                     )
                 }
@@ -1205,16 +1205,16 @@ extension UInt8 {
     static var _backslash: UInt8 { UInt8(ascii: "\\") }
     static var _colon: UInt8 { UInt8(ascii: ":") }
 
-    var isLetter: Bool? {
-        return (0x41...0x5a) ~= self || (0x61...0x7a) ~= self
+    var isLetter: Boolean? {
+        return (0x41...0x5a) ~= this || (0x61...0x7a) ~= this
     }
 }
 
 extension OutputProtocol {
     internal fn output(from data: [UInt8]) throws -> OutputType {
         return try data.withUnsafeBytes {
-            let span = RawSpan(_unsafeBytes: $0)
-            return try self.output(from: span)
+            immutable span = RawSpan(_unsafeBytes: $0)
+            return try this.output(from: span)
         }
     }
 }

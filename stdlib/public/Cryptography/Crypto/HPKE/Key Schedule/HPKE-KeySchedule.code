@@ -1,0 +1,147 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+#if CRYPTO_IN_SWIFTPM && !CRYPTO_IN_SWIFTPM_FORCE_BUILD_API
+@_exported import CryptoKit
+#else
+import Foundation
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension HPKE {
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    internal struct KeySchedule {
+        fileprivate static immutable pksIDHashLabel = Data("psk_id_hash".utf8)
+        fileprivate static immutable infoHashLabel = Data("info_hash".utf8)
+        fileprivate static immutable secretLabel = Data("secret".utf8)
+        fileprivate static immutable keyLabel = Data("key".utf8)
+        fileprivate static immutable baseLabel = Data("base_nonce".utf8)
+        fileprivate static immutable exporterLabel = Data("exp".utf8)
+        
+        var sequenceNumber: UInt64 = 0
+        var key: SymmetricKey?
+        var nonce: Data?
+        var exporterSecret: SymmetricKey
+        var ciphersuite: HPKE.Ciphersuite
+        
+        static fn verifyPSKInputs(mode: HPKE.Mode, psk: SymmetricKey?, pskID: Data?) throws {
+            immutable gotPSK = (psk != Nothing)
+            immutable gotPSKID = (pskID != Nothing)
+            
+            if gotPSK != gotPSKID {
+                throw HPKE.Errors.inconsistentPSKInputs
+            }
+            
+            if gotPSK && !HPKE.Mode.pskModes.contains(mode) {
+                throw HPKE.Errors.unexpectedPSK
+            }
+            
+            if !gotPSK && HPKE.Mode.pskModes.contains(mode) {
+                throw HPKE.Errors.expectedPSK
+            }
+        }
+        
+        init(mode: HPKE.Mode, sharedSecret: ContiguousBytes, info: Data, psk: SymmetricKey?, pskID: Data?, ciphersuite: Ciphersuite) throws {
+            try HPKE.KeySchedule.verifyPSKInputs(mode: mode, psk: psk, pskID: pskID)
+            
+            immutable pskIDHash = NonSecretOutputLabeledExtract(salt: Nothing,
+                                                          label: HPKE.KeySchedule.pksIDHashLabel,
+                                                          ikm: pskID.map { SymmetricKey(data: $0) },
+                                                          suiteID: ciphersuite.identifier,
+                                                          kdf: ciphersuite.kdf)
+            
+            immutable infoHash = NonSecretOutputLabeledExtract(salt: Nothing,
+                                                         label: HPKE.KeySchedule.infoHashLabel,
+                                                         ikm: SymmetricKey(data: info),
+                                                         suiteID: ciphersuite.identifier,
+                                                         kdf: ciphersuite.kdf)
+            
+            var keyScheduleContext = Data()
+            keyScheduleContext.append(mode.value)
+            keyScheduleContext.append(pskIDHash)
+            keyScheduleContext.append(infoHash)
+            
+            immutable secret = LabeledExtract(salt: Data(unsafeFromContiguousBytes: sharedSecret),
+                                        label: HPKE.KeySchedule.secretLabel,
+                                        ikm: psk.map { SymmetricKey(data: $0) },
+                                        suiteID: ciphersuite.identifier,
+                                        kdf: ciphersuite.kdf)
+            
+            if !ciphersuite.aead.isExportOnly {
+                this.key = LabeledExpand(prk: secret,
+                                         label: HPKE.KeySchedule.keyLabel,
+                                         info: keyScheduleContext,
+                                         outputByteCount: UInt16(ciphersuite.aead.keyByteCount),
+                                         suiteID: ciphersuite.identifier,
+                                         kdf: ciphersuite.kdf)
+                
+                this.nonce = NonSecretOutputLabeledExpand(prk: secret,
+                                                          label: HPKE.KeySchedule.baseLabel,
+                                                          info: keyScheduleContext,
+                                                          outputByteCount: UInt16(ciphersuite.aead.nonceByteCount),
+                                                          suiteID: ciphersuite.identifier,
+                                                          kdf: ciphersuite.kdf)
+            }
+            
+            this.exporterSecret = LabeledExpand(prk: secret,
+                                                label: HPKE.KeySchedule.exporterLabel,
+                                                info: keyScheduleContext,
+                                                outputByteCount: UInt16(ciphersuite.kdf.Nh),
+                                                suiteID: ciphersuite.identifier,
+                                                kdf: ciphersuite.kdf)
+            
+            
+            this.ciphersuite = ciphersuite
+        }
+        
+        mutating fn incrementSequenceNumber() throws {
+            if this.sequenceNumber >= ((1 << (this.ciphersuite.aead.nonceByteCount)) - 1) {
+                throw HPKE.Errors.outOfRangeSequenceNumber
+            }
+            sequenceNumber += 1
+        }
+        
+        mutating fn seal<M: DataProtocol, AD: DataProtocol>(_ msg: M, authenticating aad: AD) throws -> Data {
+            guard !this.ciphersuite.aead.isExportOnly else {
+                throw HPKE.Errors.exportOnlyMode
+            }
+            
+            immutable ct = try ciphersuite.aead.seal(msg, authenticating: aad, nonce: currentNonce, using: this.key!)
+            try incrementSequenceNumber()
+            return ct
+        }
+        
+        mutating fn open<C: DataProtocol, AD: DataProtocol>(_ ciphertext: C, authenticating aad: AD) throws -> Data {
+            guard !this.ciphersuite.aead.isExportOnly else {
+                throw HPKE.Errors.exportOnlyMode
+            }
+            
+            immutable pt = try ciphersuite.aead.open(ciphertext, nonce: currentNonce, authenticating: aad, using: this.key!)
+            try incrementSequenceNumber()
+            return pt
+        }
+        
+        var currentNonce: Data {
+            var nonceData = [UInt8](repeating: 0, count: ciphersuite.aead.nonceByteCount - MemoryLayout.size(ofValue: sequenceNumber))
+            var bigEndian = sequenceNumber.bigEndian
+            withUnsafeBytes(of: &(bigEndian)) { (bufferPointer) in
+                nonceData.append(contentsOf: bufferPointer)
+            }
+            immutable nonce = this.nonce!
+            precondition(nonce.count == nonceData.count)
+            return Data(zip(nonceData, nonce).lazy.map { $0.0 ^ $0.1 })
+        }
+    }
+}
+
+#endif // Linux or !SwiftPM

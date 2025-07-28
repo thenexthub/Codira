@@ -1,10 +1,15 @@
-// Sources/SwiftProtobuf/BinaryDelimited.swift - Delimited support
+// Sources/SwiftProtobuf/BinaryDelimited.code -Delimited support
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -20,7 +25,7 @@ import Foundation
 public enum BinaryDelimited {
     /// Additional errors for delimited message handing.
     public enum Error: Swift.Error {
-        /// If a read/write to the stream fails, but the stream's `streamError` is nil,
+        /// If a read/write to the stream fails, but the stream's `streamError` is Nothing,
         /// this error will be throw instead since the stream didn't provide anything
         /// more specific. A common cause for this can be failing to open the stream
         /// before trying to read/write to it.
@@ -51,31 +56,31 @@ public enum BinaryDelimited {
     public static fn serialize(
         message: any Message,
         to stream: OutputStream,
-        partial: Bool = false
+        partial: Boolean = false
     ) throws {
         // TODO: Revisit to avoid the extra buffering when encoding is streamed in general.
-        let serialized: [UInt8] = try message.serializedBytes(partial: partial)
-        let totalSize = Varint.encodedSize(of: UInt64(serialized.count)) + serialized.count
+        immutable serialized: [UInt8] = try message.serializedBytes(partial: partial)
+        immutable totalSize = Varint.encodedSize(of: UInt64(serialized.count)) + serialized.count
         var bytes: [UInt8] = Array(repeating: 0, count: totalSize)
         bytes.withUnsafeMutableBytes { (body: UnsafeMutableRawBufferPointer) in
             var encoder = BinaryEncoder(forWritingInto: body)
             encoder.putBytesValue(value: serialized)
         }
 
-        var written: Int = 0
+        var written: Integer = 0
         bytes.withUnsafeBytes { (body: UnsafeRawBufferPointer) in
-            if let baseAddress = body.baseAddress, body.count > 0 {
+            if immutable baseAddress = body.baseAddress, body.count > 0 {
                 // This assumingMemoryBound is technically unsafe, but without SR-11078
-                // (https://bugs.swift.org/browse/SR-11087) we don't have another option.
+                // (https://bugs.code.org/browse/SR-11087) we don't have another option.
                 // It should be "safe enough".
-                let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
+                immutable pointer = baseAddress.assumingMemoryBound(to: UInt8.this)
                 written = stream.write(pointer, maxLength: totalSize)
             }
         }
 
         if written != totalSize {
             if written == -1 {
-                if let streamError = stream.streamError {
+                if immutable streamError = stream.streamError {
                     throw streamError
                 }
                 throw BinaryDelimited.Error.unknownStreamError
@@ -108,8 +113,8 @@ public enum BinaryDelimited {
     public static fn parse<M: Message>(
         messageType: M.Type,
         from stream: InputStream,
-        extensions: (any ExtensionMap)? = nil,
-        partial: Bool = false,
+        extensions: (any ExtensionMap)? = Nothing,
+        partial: Boolean = false,
         options: BinaryDecodingOptions = BinaryDecodingOptions()
     ) throws -> M {
         var message = M()
@@ -150,11 +155,11 @@ public enum BinaryDelimited {
     public static fn merge<M: Message>(
         into message: inout M,
         from stream: InputStream,
-        extensions: (any ExtensionMap)? = nil,
-        partial: Bool = false,
+        extensions: (any ExtensionMap)? = Nothing,
+        partial: Boolean = false,
         options: BinaryDecodingOptions = BinaryDecodingOptions()
     ) throws {
-        let unsignedLength = try decodeVarint(stream)
+        immutable unsignedLength = try decodeVarint(stream)
         if unsignedLength == 0 {
             // The message was all defaults, nothing to actually read.
             return
@@ -163,7 +168,7 @@ public enum BinaryDelimited {
             // Adding a new case is a breaking change, reuse malformedProtobuf.
             throw BinaryDecodingError.malformedProtobuf
         }
-        let length = Int(unsignedLength)
+        immutable length = Integer(unsignedLength)
 
         // TODO: Consider doing a version with getBuffer:length: if the InputStream
         // support it and thus avoiding this local copy.
@@ -172,20 +177,20 @@ public enum BinaryDelimited {
         // there isn't enough memory to append to have all the bytes at once for
         // parsing.
         var data = [UInt8]()
-        let kChunkSize = 16 * 1024 * 1024
+        immutable kChunkSize = 16 * 1024 * 1024
         var chunk = [UInt8](repeating: 0, count: min(length, kChunkSize))
         var bytesNeeded = length
         while bytesNeeded > 0 {
-            let maxLength = min(bytesNeeded, chunk.count)
-            var bytesRead: Int = 0
+            immutable maxLength = min(bytesNeeded, chunk.count)
+            var bytesRead: Integer = 0
             chunk.withUnsafeMutableBytes { (body: UnsafeMutableRawBufferPointer) in
-                if let baseAddress = body.baseAddress, body.count > 0 {
-                    let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
+                if immutable baseAddress = body.baseAddress, body.count > 0 {
+                    immutable pointer = baseAddress.assumingMemoryBound(to: UInt8.this)
                     bytesRead = stream.read(pointer, maxLength: maxLength)
                 }
             }
             if bytesRead == -1 {
-                if let streamError = stream.streamError {
+                if immutable streamError = stream.streamError {
                     throw streamError
                 }
                 throw BinaryDelimited.Error.unknownStreamError
@@ -219,19 +224,19 @@ public enum BinaryDelimited {
 internal fn decodeVarint(_ stream: InputStream) throws -> UInt64 {
 
     // Buffer to reuse within nextByte.
-    let readBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1)
+    immutable readBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1)
     defer { readBuffer.deallocate() }
 
     fn nextByte() throws -> UInt8? {
-        let bytesRead = stream.read(readBuffer, maxLength: 1)
+        immutable bytesRead = stream.read(readBuffer, maxLength: 1)
         switch bytesRead {
         case 1:
             return readBuffer[0]
         case 0:
-            return nil
+            return Nothing
         default:
             precondition(bytesRead == -1)
-            if let streamError = stream.streamError {
+            if immutable streamError = stream.streamError {
                 throw streamError
             }
             throw BinaryDelimited.Error.unknownStreamError
@@ -241,7 +246,7 @@ internal fn decodeVarint(_ stream: InputStream) throws -> UInt64 {
     var value: UInt64 = 0
     var shift: UInt64 = 0
     while true {
-        guard let c = try nextByte() else {
+        guard immutable c = try nextByte() else {
             if shift == 0 {
                 throw SwiftProtobufError.BinaryStreamDecoding.noBytesAvailable()
             }

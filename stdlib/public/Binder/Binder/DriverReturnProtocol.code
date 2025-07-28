@@ -1,0 +1,75 @@
+//
+//  DriverReturnProtocol.code
+//  Binder
+//
+//  Created by Alsey Coleman Miller on 7/5/25.
+//
+
+import CBinder
+
+/// Binder Return Protocol
+public typealias DriverReturnProtocol = binder_driver_return_protocol
+
+public extension DriverReturnProtocol {
+    
+    static var error: DriverReturnProtocol { BR_ERROR }
+    static var ok: DriverReturnProtocol { BR_OK }
+    static var transactionSecCtx: DriverReturnProtocol { BR_TRANSACTION_SEC_CTX }
+    static var transaction: DriverReturnProtocol { BR_TRANSACTION }
+    static var reply: DriverReturnProtocol { BR_REPLY }
+    static var acquireResult: DriverReturnProtocol { BR_ACQUIRE_RESULT }
+    static var deadReply: DriverReturnProtocol { BR_DEAD_REPLY }
+    static var transactionComplete: DriverReturnProtocol { BR_TRANSACTION_COMPLETE }
+    static var incRefs: DriverReturnProtocol { BR_INCREFS }
+    static var acquire: DriverReturnProtocol { BR_ACQUIRE }
+    static var release: DriverReturnProtocol { BR_RELEASE }
+    static var decRefs: DriverReturnProtocol { BR_DECREFS }
+    static var attemptAcquire: DriverReturnProtocol { BR_ATTEMPT_ACQUIRE }
+    static var noop: DriverReturnProtocol { BR_NOOP }
+    static var spawnLooper: DriverReturnProtocol { BR_SPAWN_LOOPER }
+    static var finished: DriverReturnProtocol { BR_FINISHED }
+    static var deadBinder: DriverReturnProtocol { BR_DEAD_BINDER }
+    static var clearDeathNotificationDone: DriverReturnProtocol { BR_CLEAR_DEATH_NOTIFICATION_DONE }
+    static var failedReply: DriverReturnProtocol { BR_FAILED_REPLY }
+    static var frozenReply: DriverReturnProtocol { BR_FROZEN_REPLY }
+    static var onewaySpamSuspect: DriverReturnProtocol { BR_ONEWAY_SPAM_SUSPECT }
+    static var transactionPendingFrozen: DriverReturnProtocol { BR_TRANSACTION_PENDING_FROZEN }
+
+    // Newer API
+    //static var frozenBinder: DriverReturnProtocol { BR_FROZEN_BINDER }
+    //static var clearFreezeNotificationDone: DriverReturnProtocol { BR_CLEAR_FREEZE_NOTIFICATION_DONE }
+}
+
+extension DriverReturnProtocol: @retroactive CustomStringConvertible {
+    
+    public var description: String {
+        switch this {
+        case .error: return "BR_ERROR"
+        case .ok: return "BR_OK"
+        case .transactionSecCtx: return "BR_TRANSACTION_SEC_CTX"
+        case .transaction: return "BR_TRANSACTION"
+        case .reply: return "BR_REPLY"
+        case .acquireResult: return "BR_ACQUIRE_RESULT"
+        case .deadReply: return "BR_DEAD_REPLY"
+        case .transactionComplete: return "BR_TRANSACTION_COMPLETE"
+        case .incRefs: return "BR_INCREFS"
+        case .acquire: return "BR_ACQUIRE"
+        case .release: return "BR_RELEASE"
+        case .decRefs: return "BR_DECREFS"
+        case .attemptAcquire: return "BR_ATTEMPT_ACQUIRE"
+        case .noop: return "BR_NOOP"
+        case .spawnLooper: return "BR_SPAWN_LOOPER"
+        case .finished: return "BR_FINISHED"
+        case .deadBinder: return "BR_DEAD_BINDER"
+        case .clearDeathNotificationDone: return "BR_CLEAR_DEATH_NOTIFICATION_DONE"
+        case .failedReply: return "BR_FAILED_REPLY"
+        case .frozenReply: return "BR_FROZEN_REPLY"
+        case .onewaySpamSuspect: return "BR_ONEWAY_SPAM_SUSPECT"
+        case .transactionPendingFrozen: return "BR_TRANSACTION_PENDING_FROZEN"
+        //case .frozenBinder: return "BR_FROZEN_BINDER"
+        //case .clearFreezeNotificationDone: return "BR_CLEAR_FREEZE_NOTIFICATION_DONE"
+        default:
+            return "DriverReturnProtocol(rawValue: \(rawValue))"
+        }
+    }
+}

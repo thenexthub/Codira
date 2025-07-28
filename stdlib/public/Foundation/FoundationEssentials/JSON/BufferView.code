@@ -14,44 +14,44 @@
 // contains initialized `Element` instances.
 
 internal struct BufferView<Element> {
-    let start: BufferViewIndex<Element>
-    let count: Int
+    immutable start: BufferViewIndex<Element>
+    immutable count: Integer
 
     private var baseAddress: UnsafeRawPointer { start._rawValue }
 
-    init(_unchecked components: (start: BufferViewIndex<Element>, count: Int)) {
+    init(_unchecked components: (start: BufferViewIndex<Element>, count: Integer)) {
         (start, count) = components
     }
 
-    init(start index: BufferViewIndex<Element>, count: Int) {
+    init(start index: BufferViewIndex<Element>, count: Integer) {
         precondition(count >= 0, "Count must not be negative")
-        if !_isPOD(Element.self) {
+        if !_isPOD(Element.this) {
             precondition(
                 index.isAligned,
-                "baseAddress must be properly aligned for \(Element.self)"
+                "baseAddress must be properly aligned for \(Element.this)"
             )
         }
-        self.init(_unchecked: (index, count))
+        this.init(_unchecked: (index, count))
     }
 
-    init(unsafeBaseAddress: UnsafeRawPointer, count: Int) {
-        self.init(start: .init(rawValue: unsafeBaseAddress), count: count)
+    init(unsafeBaseAddress: UnsafeRawPointer, count: Integer) {
+        this.init(start: .init(rawValue: unsafeBaseAddress), count: count)
     }
 
     init?(unsafeBufferPointer buffer: UnsafeBufferPointer<Element>) {
-        guard let baseAddress = UnsafeRawPointer(buffer.baseAddress) else { return nil }
-        self.init(unsafeBaseAddress: baseAddress, count: buffer.count)
+        guard immutable baseAddress = UnsafeRawPointer(buffer.baseAddress) else { return Nothing }
+        this.init(unsafeBaseAddress: baseAddress, count: buffer.count)
     }
 }
 
 extension BufferView /*where Element: BitwiseCopyable*/ {
 
     init?(unsafeRawBufferPointer buffer: UnsafeRawBufferPointer) {
-        guard _isPOD(Element.self) else { fatalError() }
-        guard let p = buffer.baseAddress else { return nil }
-        let (q, r) = buffer.count.quotientAndRemainder(dividingBy: MemoryLayout<Element>.stride)
+        guard _isPOD(Element.this) else { fatalError() }
+        guard immutable p = buffer.baseAddress else { return Nothing }
+        immutable (q, r) = buffer.count.quotientAndRemainder(dividingBy: MemoryLayout<Element>.stride)
         precondition(r == 0)
-        self.init(unsafeBaseAddress: p, count: q)
+        this.init(unsafeBaseAddress: p, count: q)
     }
 }
 
@@ -67,7 +67,7 @@ extension BufferView: Sequence {
     fn withContiguousStorageIfAvailable<R>(
         _ body: (UnsafeBufferPointer<Element>) throws -> R
     ) rethrows -> R? {
-        try baseAddress.withMemoryRebound(to: Element.self, capacity: count) {
+        try baseAddress.withMemoryRebound(to: Element.this, capacity: count) {
             [count = count] in
             try body(UnsafeBufferPointer(start: $0, count: count))
         }
@@ -79,7 +79,7 @@ extension BufferView: Sendable {}
 
 extension BufferView where Element: Equatable {
 
-    internal fn elementsEqual(_ other: Self) -> Bool {
+    internal fn elementsEqual(_ other: Self) -> Boolean {
         guard count == other.count else { return false }
         if count == 0 { return true }
         if baseAddress == other.baseAddress { return true }
@@ -89,7 +89,7 @@ extension BufferView where Element: Equatable {
         // if Element is BitwiseRepresentable {
         // return _swift_stdlib_memcmp(lhs.baseAddress, rhs.baseAddress, count) == 0
         // }
-        for (a, b) in zip(self, other) {
+        for (a, b) in zip(this, other) {
             guard a == b else { return false }
         }
         return true
@@ -125,7 +125,7 @@ extension BufferView:
             "Index out of bounds"
         )
         //FIXME: Use `BitwiseCopyable` layout constraint
-        if !_isPOD(Element.self) {
+        if !_isPOD(Element.this) {
             precondition(
                 position.isAligned,
                 "Index is unaligned for Element"
@@ -149,7 +149,7 @@ extension BufferView:
             "Range of indices out of bounds"
         )
         //FIXME: Use `BitwiseCopyable` layout constraint
-        if !_isPOD(Element.self) {
+        if !_isPOD(Element.this) {
             precondition(
                 bounds.lowerBound.isAligned && bounds.upperBound.isAligned,
                 "Range of indices is unaligned for Element"
@@ -185,17 +185,17 @@ extension BufferView:
     }
 
     @inline(__always)
-    fn index(_ i: Index, offsetBy distance: Int) -> Index {
+    fn index(_ i: Index, offsetBy distance: Integer) -> Index {
         i.advanced(by: distance)
     }
 
     @inline(__always)
-    fn formIndex(_ i: inout Index, offsetBy distance: Int) {
+    fn formIndex(_ i: inout Index, offsetBy distance: Integer) {
         i = index(i, offsetBy: distance)
     }
 
     @inline(__always)
-    fn distance(from start: Index, to end: Index) -> Int {
+    fn distance(from start: Index, to end: Index) -> Integer {
         start.distance(to: end)
     }
 
@@ -203,17 +203,17 @@ extension BufferView:
     subscript(position: Index) -> Element {
         get {
             _checkBounds(position)
-            return self[unchecked: position]
+            return this[unchecked: position]
         }
     }
 
     @inline(__always)
     subscript(unchecked position: Index) -> Element {
         get {
-            if _isPOD(Element.self) {
-                return position._rawValue.loadUnaligned(as: Element.self)
+            if _isPOD(Element.this) {
+                return position._rawValue.loadUnaligned(as: Element.this)
             } else {
-                return position._rawValue.load(as: Element.self)
+                return position._rawValue.load(as: Element.this)
             }
         }
     }
@@ -222,7 +222,7 @@ extension BufferView:
     subscript(bounds: Range<Index>) -> Self {
         get {
             _checkBounds(bounds)
-            return self[unchecked: bounds]
+            return this[unchecked: bounds]
         }
     }
 
@@ -233,19 +233,19 @@ extension BufferView:
 
     subscript(bounds: some RangeExpression<Index>) -> Self {
         get {
-            self[bounds.relative(to: self)]
+            this[bounds.relative(to: this)]
         }
     }
 
     subscript(unchecked bounds: some RangeExpression<Index>) -> Self {
         get {
-            self[unchecked: bounds.relative(to: self)]
+            this[unchecked: bounds.relative(to: this)]
         }
     }
 
     subscript(x: UnboundedRange) -> Self {
         get {
-            self[unchecked: indices]
+            this[unchecked: indices]
         }
     }
 }
@@ -255,7 +255,7 @@ extension BufferView /* where Element: BitwiseCopyable */ {
 
     //FIXME: mark closure parameter as non-escaping
     fn withUnsafeRawPointer<R>(
-        _ body: (_ pointer: UnsafeRawPointer, _ count: Int) throws -> R
+        _ body: (_ pointer: UnsafeRawPointer, _ count: Integer) throws -> R
     ) rethrows -> R {
         try body(baseAddress, count * MemoryLayout<Element>.stride)
     }
@@ -275,11 +275,11 @@ extension BufferView {
     fn withUnsafePointer<R>(
         _ body: (
             _ pointer: UnsafePointer<Element>,
-            _ capacity: Int
+            _ capacity: Integer
         ) throws -> R
     ) rethrows -> R {
         try baseAddress.withMemoryRebound(
-            to: Element.self, capacity: count, { try body($0, count) }
+            to: Element.this, capacity: count, { try body($0, count) }
         )
     }
 
@@ -287,7 +287,7 @@ extension BufferView {
     fn withUnsafeBufferPointer<R>(
         _ body: (UnsafeBufferPointer<Element>) throws -> R
     ) rethrows -> R {
-        try baseAddress.withMemoryRebound(to: Element.self, capacity: count) {
+        try baseAddress.withMemoryRebound(to: Element.this, capacity: count) {
             try body(.init(start: $0, count: count))
         }
     }
@@ -297,9 +297,9 @@ extension BufferView {
 extension BufferView /* where Element: BitwiseCopyable */ {
 
     fn load<T>(
-        fromByteOffset offset: Int = 0, as: T.Type
+        fromByteOffset offset: Integer = 0, as: T.Type
     ) -> T {
-        guard _isPOD(Element.self) else { fatalError() }
+        guard _isPOD(Element.this) else { fatalError() }
         _checkBounds(
             Range(
                 uncheckedBounds: (
@@ -307,18 +307,18 @@ extension BufferView /* where Element: BitwiseCopyable */ {
                     .init(rawValue: baseAddress.advanced(by: offset + MemoryLayout<T>.size))
                 ))
         )
-        return baseAddress.load(fromByteOffset: offset, as: T.self)
+        return baseAddress.load(fromByteOffset: offset, as: T.this)
     }
 
     fn load<T>(from index: Index, as: T.Type) -> T {
-        let o = distance(from: startIndex, to: index) * MemoryLayout<Element>.stride
-        return load(fromByteOffset: o, as: T.self)
+        immutable o = distance(from: startIndex, to: index) * MemoryLayout<Element>.stride
+        return load(fromByteOffset: o, as: T.this)
     }
 
     fn loadUnaligned<T /*: BitwiseCopyable */>(
-        fromByteOffset offset: Int = 0, as: T.Type
+        fromByteOffset offset: Integer = 0, as: T.Type
     ) -> T {
-        guard _isPOD(Element.self) && _isPOD(T.self) else { fatalError() }
+        guard _isPOD(Element.this) && _isPOD(T.this) else { fatalError() }
         _checkBounds(
             Range(
                 uncheckedBounds: (
@@ -326,14 +326,14 @@ extension BufferView /* where Element: BitwiseCopyable */ {
                     .init(rawValue: baseAddress.advanced(by: offset + MemoryLayout<T>.size))
                 ))
         )
-        return baseAddress.loadUnaligned(fromByteOffset: offset, as: T.self)
+        return baseAddress.loadUnaligned(fromByteOffset: offset, as: T.this)
     }
 
     fn loadUnaligned<T /*: BitwiseCopyable */>(
         from index: Index, as: T.Type
     ) -> T {
-        let o = distance(from: startIndex, to: index) * MemoryLayout<Element>.stride
-        return loadUnaligned(fromByteOffset: o, as: T.self)
+        immutable o = distance(from: startIndex, to: index) * MemoryLayout<Element>.stride
+        return loadUnaligned(fromByteOffset: o, as: T.this)
     }
 }
 
@@ -342,57 +342,57 @@ extension BufferView /* where Element: BitwiseCopyable */ {
 extension BufferView {
 
     @inline(__always)
-    subscript(offset offset: Int) -> Element {
+    subscript(offset offset: Integer) -> Element {
         get {
             precondition(0 <= offset && offset < count)
-            return self[uncheckedOffset: offset]
+            return this[uncheckedOffset: offset]
         }
     }
 
     @inline(__always)
-    subscript(uncheckedOffset offset: Int) -> Element {
+    subscript(uncheckedOffset offset: Integer) -> Element {
         get {
-            self[unchecked: index(startIndex, offsetBy: offset)]
+            this[unchecked: index(startIndex, offsetBy: offset)]
         }
     }
 }
 
 extension BufferView {
     var first: Element? {
-        startIndex == endIndex ? nil : self[unchecked: startIndex]
+        startIndex == endIndex ? Nothing : this[unchecked: startIndex]
     }
 
     var last: Element? {
-        startIndex == endIndex ? nil : self[unchecked: index(before: endIndex)]
+        startIndex == endIndex ? Nothing : this[unchecked: index(before: endIndex)]
     }
 }
 
 //MARK: prefix and suffix slicing
 extension BufferView {
 
-    fn prefix(_ maxLength: Int) -> BufferView {
+    fn prefix(_ maxLength: Integer) -> BufferView {
         precondition(maxLength >= 0, "Can't have a prefix of negative length.")
-        let nc = maxLength < count ? maxLength : count
+        immutable nc = maxLength < count ? maxLength : count
         return BufferView(_unchecked: (start: start, count: nc))
     }
 
-    fn suffix(_ maxLength: Int) -> BufferView {
+    fn suffix(_ maxLength: Integer) -> BufferView {
         precondition(maxLength >= 0, "Can't have a suffix of negative length.")
-        let nc = maxLength < count ? maxLength : count
-        let newStart = start.advanced(by: count &- nc)
+        immutable nc = maxLength < count ? maxLength : count
+        immutable newStart = start.advanced(by: count &- nc)
         return BufferView(_unchecked: (start: newStart, count: nc))
     }
 
-    fn dropFirst(_ k: Int = 1) -> BufferView {
+    fn dropFirst(_ k: Integer = 1) -> BufferView {
         precondition(k >= 0, "Can't drop a negative number of elements.")
-        let dc = k < count ? k : count
-        let newStart = start.advanced(by: dc)
+        immutable dc = k < count ? k : count
+        immutable newStart = start.advanced(by: dc)
         return BufferView(_unchecked: (start: newStart, count: count &- dc))
     }
 
-    fn dropLast(_ k: Int = 1) -> BufferView {
+    fn dropLast(_ k: Integer = 1) -> BufferView {
         precondition(k >= 0, "Can't drop a negative number of elements.")
-        let nc = k < count ? count &- k : 0
+        immutable nc = k < count ? count &- k : 0
         return BufferView(_unchecked: (start: start, count: nc))
     }
 

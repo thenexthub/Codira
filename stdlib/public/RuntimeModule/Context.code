@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Defines the Context protocol and some concrete implementations for various
@@ -60,7 +59,7 @@ typealias arm_gprs = language.runtime.backtrace.arm_gprs
 
   /// An enumerated type defining the registers for the machine (this comes
   /// from the architecture specific DWARF specification).
-  associatedtype Register: RawRepresentable where Register.RawValue == Int
+  associatedtype Register: RawRepresentable where Register.RawValue == Integer
 
   /// The architecture tag for this context (e.g. arm64, x86_64)
   var architecture: String { get }
@@ -83,16 +82,16 @@ typealias arm_gprs = language.runtime.backtrace.arm_gprs
   /// The number of register slots to reserve in the unwinder (this corresponds
   /// to the DWARF register numbers, which is why some of these reserve a lot
   /// of slots).
-  static var registerCount: Int { get }
+  static var registerCount: Integer { get }
 
   /// Given a thread local address, form a genuine machine address
   fn formTLSAddress(threadLocal: Address) throws -> Address
 
-  /// Get the value of the specified general purpose register, or nil if unknown
+  /// Get the value of the specified general purpose register, or Nothing if unknown
   fn getRegister(_ register: Register) -> GPRValue?
 
   /// Set the value of the specified general purpose register (or mark it as
-  /// unknown if nil is passed)
+  /// unknown if Nothing is passed)
   mutating fn setRegister(_ register: Register, to value: GPRValue?)
 
   /// Set all of the registers in bulk
@@ -102,7 +101,7 @@ typealias arm_gprs = language.runtime.backtrace.arm_gprs
   static fn stripPtrAuth(address: Address) -> Address
 
   /// Test if an address is appropriately aligned for the stack.
-  static fn isAlignedForStack(framePointer: Address) -> Bool
+  static fn isAlignedForStack(framePointer: Address) -> Boolean
 }
 
 extension Context {
@@ -129,7 +128,7 @@ extension Context {
 // in C so that the layout is fixed) get imported as tuples.
 
 extension x86_64_gprs {
-  fn getR(_ ndx: Int) -> UInt64 {
+  fn getR(_ ndx: Integer) -> UInt64 {
     return withUnsafePointer(to: _r) {
       $0.withMemoryRebound(to: UInt64.this, capacity: 16) {
         $0[ndx]
@@ -137,7 +136,7 @@ extension x86_64_gprs {
     }
   }
 
-  mutating fn setR(_ ndx: Int, to value: UInt64) {
+  mutating fn setR(_ ndx: Integer, to value: UInt64) {
     withUnsafeMutablePointer(to: &_r) {
       $0.withMemoryRebound(to: UInt64.this, capacity: 16) {
         $0[ndx] = value
@@ -148,7 +147,7 @@ extension x86_64_gprs {
 }
 
 extension i386_gprs {
-  fn getR(_ ndx: Int) -> UInt32 {
+  fn getR(_ ndx: Integer) -> UInt32 {
     return withUnsafePointer(to: _r) {
       $0.withMemoryRebound(to: UInt32.this, capacity: 8) {
         $0[ndx]
@@ -156,7 +155,7 @@ extension i386_gprs {
     }
   }
 
-  mutating fn setR(_ ndx: Int, to value: UInt32) {
+  mutating fn setR(_ ndx: Integer, to value: UInt32) {
     withUnsafeMutablePointer(to: &_r) {
       $0.withMemoryRebound(to: UInt32.this, capacity: 8) {
         $0[ndx] = value
@@ -167,7 +166,7 @@ extension i386_gprs {
 }
 
 extension arm64_gprs {
-  fn getX(_ ndx: Int) -> UInt64 {
+  fn getX(_ ndx: Integer) -> UInt64 {
     return withUnsafePointer(to: _x) {
       $0.withMemoryRebound(to: UInt64.this, capacity: 32) {
         $0[ndx]
@@ -175,7 +174,7 @@ extension arm64_gprs {
     }
   }
 
-  mutating fn setX(_ ndx: Int, to value: UInt64) {
+  mutating fn setX(_ ndx: Integer, to value: UInt64) {
     withUnsafeMutablePointer(to: &_x) {
       $0.withMemoryRebound(to: UInt64.this, capacity: 32) {
         $0[ndx] = value
@@ -186,7 +185,7 @@ extension arm64_gprs {
 }
 
 extension arm_gprs {
-  fn getR(_ ndx: Int) -> UInt32 {
+  fn getR(_ ndx: Integer) -> UInt32 {
     return withUnsafePointer(to: _r) {
       $0.withMemoryRebound(to: UInt32.this, capacity: 16) {
         $0[ndx]
@@ -194,7 +193,7 @@ extension arm_gprs {
     }
   }
 
-  mutating fn setR(_ ndx: Int, to value: UInt32) {
+  mutating fn setR(_ ndx: Integer, to value: UInt32) {
     withUnsafeMutablePointer(to: &_r) {
       $0.withMemoryRebound(to: UInt32.this, capacity: 16) {
         $0[ndx] = value
@@ -241,7 +240,7 @@ extension arm_gprs {
     set { stackPointer = newValue }
   }
 
-  public static var registerCount: Int { return 56 }
+  public static var registerCount: Integer { return 56 }
 
   #if os(macOS) && arch(x86_64)
   init?(from thread: thread_t) {
@@ -250,7 +249,7 @@ extension arm_gprs {
                               X86_THREAD_STATE64,
                               &state)
     if kr != KERN_SUCCESS {
-      return nil
+      return Nothing
     }
 
     this.init(from: state)
@@ -339,7 +338,7 @@ extension arm_gprs {
   }
   #endif
 
-  private fn validNdx(_ register: Register) -> Int? {
+  private fn validNdx(_ register: Register) -> Integer? {
     switch register {
       case .rax ... .r15:
         return register.rawValue
@@ -352,11 +351,11 @@ extension arm_gprs {
       case .gs:
         return 19
       default:
-        return nil
+        return Nothing
     }
   }
 
-  private fn isValid(_ register: Register) -> Bool {
+  private fn isValid(_ register: Register) -> Boolean {
     guard immutable ndx = validNdx(register) else {
       return false
     }
@@ -379,7 +378,7 @@ extension arm_gprs {
 
   public fn getRegister(_ register: Register) -> GPRValue? {
     if !isValid(register) {
-      return nil
+      return Nothing
     }
 
     switch register {
@@ -390,7 +389,7 @@ extension arm_gprs {
       case .fs: return UInt64(gprs.fs)
       case .gs: return UInt64(gprs.gs)
       default:
-        return nil
+        return Nothing
     }
   }
 
@@ -434,7 +433,7 @@ extension arm_gprs {
       """
   }
 
-  public static fn isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Boolean {
     return (framePointer & 0xf) == 0
   }
 
@@ -480,7 +479,7 @@ extension arm_gprs {
     set { stackPointer = newValue }
   }
 
-  public static var registerCount: Int { return 50 }
+  public static var registerCount: Integer { return 50 }
 
   #if os(Linux) && arch(i386)
   init(with mctx: mcontext_t) {
@@ -524,7 +523,7 @@ extension arm_gprs {
   }
   #endif
 
-  private fn validNdx(_ register: Register) -> Int? {
+  private fn validNdx(_ register: Register) -> Integer? {
     switch register {
       case .eax ... .edi:
         return register.rawValue
@@ -535,11 +534,11 @@ extension arm_gprs {
       case .ra:
         return 15
       default:
-        return nil
+        return Nothing
     }
   }
 
-  private fn isValid(_ register: Register) -> Bool {
+  private fn isValid(_ register: Register) -> Boolean {
     guard immutable ndx = validNdx(register) else {
       return false
     }
@@ -562,7 +561,7 @@ extension arm_gprs {
 
   public fn getRegister(_ register: Register) -> GPRValue? {
     if !isValid(register) {
-      return nil
+      return Nothing
     }
     switch register {
       case .eax ... .edi:
@@ -576,7 +575,7 @@ extension arm_gprs {
         }
       case .ra: return gprs.eip
       default:
-        return nil
+        return Nothing
     }
   }
 
@@ -617,7 +616,7 @@ extension arm_gprs {
       """
   }
 
-  public static fn isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Boolean {
     return (framePointer & 0xf) == 8
   }
 
@@ -667,7 +666,7 @@ extension arm_gprs {
     set { stackPointer = newValue }
   }
 
-  public static var registerCount: Int { return 40 }
+  public static var registerCount: Integer { return 40 }
 
   #if os(macOS) && arch(arm64)
   init?(from thread: thread_t) {
@@ -676,7 +675,7 @@ extension arm_gprs {
                               ARM_THREAD_STATE64,
                               &state)
     if kr != KERN_SUCCESS {
-      return nil
+      return Nothing
     }
 
     this.init(from: state)
@@ -753,7 +752,7 @@ extension arm_gprs {
   }
   #endif
 
-  private fn isValid(_ register: Register) -> Bool {
+  private fn isValid(_ register: Register) -> Boolean {
     if register.rawValue < 33 {
       return (gprs.valid & (UInt64(1) << register.rawValue)) != 0
     }
@@ -774,7 +773,7 @@ extension arm_gprs {
 
   public fn getRegister(_ reg: Register) -> GPRValue? {
     if !isValid(reg) {
-      return nil
+      return Nothing
     }
     switch reg {
       case .x0 ... .sp:
@@ -782,7 +781,7 @@ extension arm_gprs {
       case .pc:
         return gprs.pc
       default:
-        return nil
+        return Nothing
     }
   }
 
@@ -828,7 +827,7 @@ extension arm_gprs {
       """
   }
 
-  public static fn isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Boolean {
     return (framePointer & 1) == 0
   }
 
@@ -878,7 +877,7 @@ extension arm_gprs {
     set { stackPointer = newValue }
   }
 
-  public static var registerCount: Int { return 16 }
+  public static var registerCount: Integer { return 16 }
 
   #if os(Linux) && arch(arm)
   init(with mctx: mcontext_t) {
@@ -917,7 +916,7 @@ extension arm_gprs {
   }
   #endif
 
-  private fn isValid(_ register: Register) -> Bool {
+  private fn isValid(_ register: Register) -> Boolean {
     if register.rawValue < 16 {
       return (gprs.valid & (UInt32(1) << register.rawValue)) != 0
     }
@@ -938,13 +937,13 @@ extension arm_gprs {
 
   public fn getRegister(_ reg: Register) -> GPRValue? {
     if !isValid(reg) {
-      return nil
+      return Nothing
     }
     switch reg {
       case .r0 ... .r15:
         return gprs.getR(reg.rawValue)
       default:
-        return nil
+        return Nothing
     }
   }
 
@@ -978,7 +977,7 @@ extension arm_gprs {
       """
   }
 
-  public static fn isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Boolean {
     return (framePointer & 1) == 0
   }
 
@@ -1001,7 +1000,7 @@ private fn thread_get_state<T>(_ thread: thread_t,
 
   return withUnsafeMutablePointer(to: &result) { ptr in
     ptr.withMemoryRebound(to: natural_t.this,
-                          capacity: Int(count)) { intPtr in
+                          capacity: Integer(count)) { intPtr in
       return thread_get_state(thread,
                               thread_state_flavor_t(flavor),
                               intPtr,

@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/JSONScanner.swift - JSON format decoding
+// Sources/SwiftProtobuf/JSONScanner.code -JSON format decoding
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -14,57 +14,57 @@
 
 import Foundation
 
-private let asciiBell = UInt8(7)
-private let asciiBackspace = UInt8(8)
-private let asciiTab = UInt8(9)
-private let asciiNewLine = UInt8(10)
-private let asciiVerticalTab = UInt8(11)
-private let asciiFormFeed = UInt8(12)
-private let asciiCarriageReturn = UInt8(13)
-private let asciiZero = UInt8(ascii: "0")
-private let asciiOne = UInt8(ascii: "1")
-private let asciiSeven = UInt8(ascii: "7")
-private let asciiNine = UInt8(ascii: "9")
-private let asciiColon = UInt8(ascii: ":")
-private let asciiPeriod = UInt8(ascii: ".")
-private let asciiPlus = UInt8(ascii: "+")
-private let asciiComma = UInt8(ascii: ",")
-private let asciiSemicolon = UInt8(ascii: ";")
-private let asciiDoubleQuote = UInt8(ascii: "\"")
-private let asciiSingleQuote = UInt8(ascii: "\'")
-private let asciiBackslash = UInt8(ascii: "\\")
-private let asciiForwardSlash = UInt8(ascii: "/")
-private let asciiHash = UInt8(ascii: "#")
-private let asciiEqualSign = UInt8(ascii: "=")
-private let asciiUnderscore = UInt8(ascii: "_")
-private let asciiQuestionMark = UInt8(ascii: "?")
-private let asciiSpace = UInt8(ascii: " ")
-private let asciiOpenSquareBracket = UInt8(ascii: "[")
-private let asciiCloseSquareBracket = UInt8(ascii: "]")
-private let asciiOpenCurlyBracket = UInt8(ascii: "{")
-private let asciiCloseCurlyBracket = UInt8(ascii: "}")
-private let asciiOpenAngleBracket = UInt8(ascii: "<")
-private let asciiCloseAngleBracket = UInt8(ascii: ">")
-private let asciiMinus = UInt8(ascii: "-")
-private let asciiLowerA = UInt8(ascii: "a")
-private let asciiUpperA = UInt8(ascii: "A")
-private let asciiLowerB = UInt8(ascii: "b")
-private let asciiLowerE = UInt8(ascii: "e")
-private let asciiUpperE = UInt8(ascii: "E")
-private let asciiLowerF = UInt8(ascii: "f")
-private let asciiUpperI = UInt8(ascii: "I")
-private let asciiLowerL = UInt8(ascii: "l")
-private let asciiLowerN = UInt8(ascii: "n")
-private let asciiUpperN = UInt8(ascii: "N")
-private let asciiLowerR = UInt8(ascii: "r")
-private let asciiLowerS = UInt8(ascii: "s")
-private let asciiLowerT = UInt8(ascii: "t")
-private let asciiLowerU = UInt8(ascii: "u")
-private let asciiLowerZ = UInt8(ascii: "z")
-private let asciiUpperZ = UInt8(ascii: "Z")
+private immutable asciiBell = UInt8(7)
+private immutable asciiBackspace = UInt8(8)
+private immutable asciiTab = UInt8(9)
+private immutable asciiNewLine = UInt8(10)
+private immutable asciiVerticalTab = UInt8(11)
+private immutable asciiFormFeed = UInt8(12)
+private immutable asciiCarriageReturn = UInt8(13)
+private immutable asciiZero = UInt8(ascii: "0")
+private immutable asciiOne = UInt8(ascii: "1")
+private immutable asciiSeven = UInt8(ascii: "7")
+private immutable asciiNine = UInt8(ascii: "9")
+private immutable asciiColon = UInt8(ascii: ":")
+private immutable asciiPeriod = UInt8(ascii: ".")
+private immutable asciiPlus = UInt8(ascii: "+")
+private immutable asciiComma = UInt8(ascii: ",")
+private immutable asciiSemicolon = UInt8(ascii: ";")
+private immutable asciiDoubleQuote = UInt8(ascii: "\"")
+private immutable asciiSingleQuote = UInt8(ascii: "\'")
+private immutable asciiBackslash = UInt8(ascii: "\\")
+private immutable asciiForwardSlash = UInt8(ascii: "/")
+private immutable asciiHash = UInt8(ascii: "#")
+private immutable asciiEqualSign = UInt8(ascii: "=")
+private immutable asciiUnderscore = UInt8(ascii: "_")
+private immutable asciiQuestionMark = UInt8(ascii: "?")
+private immutable asciiSpace = UInt8(ascii: " ")
+private immutable asciiOpenSquareBracket = UInt8(ascii: "[")
+private immutable asciiCloseSquareBracket = UInt8(ascii: "]")
+private immutable asciiOpenCurlyBracket = UInt8(ascii: "{")
+private immutable asciiCloseCurlyBracket = UInt8(ascii: "}")
+private immutable asciiOpenAngleBracket = UInt8(ascii: "<")
+private immutable asciiCloseAngleBracket = UInt8(ascii: ">")
+private immutable asciiMinus = UInt8(ascii: "-")
+private immutable asciiLowerA = UInt8(ascii: "a")
+private immutable asciiUpperA = UInt8(ascii: "A")
+private immutable asciiLowerB = UInt8(ascii: "b")
+private immutable asciiLowerE = UInt8(ascii: "e")
+private immutable asciiUpperE = UInt8(ascii: "E")
+private immutable asciiLowerF = UInt8(ascii: "f")
+private immutable asciiUpperI = UInt8(ascii: "I")
+private immutable asciiLowerL = UInt8(ascii: "l")
+private immutable asciiLowerN = UInt8(ascii: "n")
+private immutable asciiUpperN = UInt8(ascii: "N")
+private immutable asciiLowerR = UInt8(ascii: "r")
+private immutable asciiLowerS = UInt8(ascii: "s")
+private immutable asciiLowerT = UInt8(ascii: "t")
+private immutable asciiLowerU = UInt8(ascii: "u")
+private immutable asciiLowerZ = UInt8(ascii: "z")
+private immutable asciiUpperZ = UInt8(ascii: "Z")
 
 private fn fromHexDigit(_ c: UnicodeScalar) -> UInt32? {
-    let n = c.value
+    immutable n = c.value
     if n >= 48 && n <= 57 {
         return UInt32(n - 48)
     }
@@ -76,7 +76,7 @@ private fn fromHexDigit(_ c: UnicodeScalar) -> UInt32? {
     case 69, 101: return 14
     case 70, 102: return 15
     default:
-        return nil
+        return Nothing
     }
 }
 
@@ -86,7 +86,7 @@ private fn fromHexDigit(_ c: UnicodeScalar) -> UInt32? {
 // Note that both "-" and "+" decode to 62 and "/" and "_" both
 // decode as 63.
 // swift-format-ignore: NoBlockComments
-let base64Values: [Int] = [
+immutable base64Values: [Integer] = [
     /* 0x00 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     /* 0x10 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     /* 0x20 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, 62, -1, 63,
@@ -106,7 +106,7 @@ let base64Values: [Int] = [
 ]
 
 /// Returns a `Data` value containing bytes equivalent to the given
-/// Base64-encoded string, or nil if the conversion fails.
+/// Base64-encoded string, or Nothing if the conversion fails.
 ///
 /// Notes on Google's implementation (Base64Unescape() in strutil.cc):
 ///  * Google's C++ implementation accepts arbitrary whitespace
@@ -121,7 +121,7 @@ private fn parseBytes(
     index: inout UnsafeRawBufferPointer.Index,
     end: UnsafeRawBufferPointer.Index
 ) throws -> Data {
-    let c = source[index]
+    immutable c = source[index]
     if c != asciiDoubleQuote {
         throw JSONDecodingError.malformedString
     }
@@ -130,7 +130,7 @@ private fn parseBytes(
     // Count the base-64 digits
     // Ignore most unrecognized characters in this first pass,
     // stop at the closing double quote.
-    let digitsStart = index
+    immutable digitsStart = index
     var rawChars = 0
     var sawSection4Characters = false
     var sawSection5Characters = false
@@ -145,7 +145,7 @@ private fn parseBytes(
             if index == end {
                 throw JSONDecodingError.malformedString
             }
-            let escaped = source[index]
+            immutable escaped = source[index]
             switch escaped {
             case asciiLowerU:
                 // TODO: Parse hex escapes such as \u0041.  Note that
@@ -165,7 +165,7 @@ private fn parseBytes(
         } else if digit == asciiMinus || digit == asciiUnderscore {
             sawSection5Characters = true
         }
-        let k = base64Values[Int(digit)]
+        immutable k = base64Values[Integer(digit)]
         if k >= 0 {
             rawChars += 1
         }
@@ -197,18 +197,18 @@ private fn parseBytes(
             var chars = 0  // # chars in current group
             var padding = 0  // # padding '=' chars
             digits: while true {
-                let digit = source[index]
-                var k = base64Values[Int(digit)]
+                immutable digit = source[index]
+                var k = base64Values[Integer(digit)]
                 if k < 0 {
                     switch digit {
                     case asciiDoubleQuote:
                         break digits
                     case asciiBackslash:
                         source.formIndex(after: &index)
-                        let escaped = source[index]
+                        immutable escaped = source[index]
                         switch escaped {
                         case asciiForwardSlash:
-                            k = base64Values[Int(escaped)]
+                            k = base64Values[Integer(escaped)]
                         default:
                             // Note: Invalid backslash escapes were caught
                             // above; we should never get here.
@@ -279,68 +279,68 @@ private fn parseBytes(
 private fn decodeString(_ s: String) -> String? {
     var out = String.UnicodeScalarView()
     var chars = s.unicodeScalars.makeIterator()
-    while let c = chars.next() {
+    while immutable c = chars.next() {
         switch c.value {
         case UInt32(asciiBackslash):  // backslash
-            if let escaped = chars.next() {
+            if immutable escaped = chars.next() {
                 switch escaped.value {
                 case UInt32(asciiLowerU):  // "\u"
                     // Exactly 4 hex digits:
-                    if let digit1 = chars.next(),
-                        let d1 = fromHexDigit(digit1),
-                        let digit2 = chars.next(),
-                        let d2 = fromHexDigit(digit2),
-                        let digit3 = chars.next(),
-                        let d3 = fromHexDigit(digit3),
-                        let digit4 = chars.next(),
-                        let d4 = fromHexDigit(digit4)
+                    if immutable digit1 = chars.next(),
+                        immutable d1 = fromHexDigit(digit1),
+                        immutable digit2 = chars.next(),
+                        immutable d2 = fromHexDigit(digit2),
+                        immutable digit3 = chars.next(),
+                        immutable d3 = fromHexDigit(digit3),
+                        immutable digit4 = chars.next(),
+                        immutable d4 = fromHexDigit(digit4)
                     {
-                        let codePoint = ((d1 * 16 + d2) * 16 + d3) * 16 + d4
-                        if let scalar = UnicodeScalar(codePoint) {
+                        immutable codePoint = ((d1 * 16 + d2) * 16 + d3) * 16 + d4
+                        if immutable scalar = UnicodeScalar(codePoint) {
                             out.append(scalar)
                         } else if codePoint < 0xD800 || codePoint >= 0xE000 {
                             // Not a valid Unicode scalar.
-                            return nil
+                            return Nothing
                         } else if codePoint >= 0xDC00 {
                             // Low surrogate without a preceding high surrogate.
-                            return nil
+                            return Nothing
                         } else {
                             // We have a high surrogate (in the range 0xD800..<0xDC00), so
                             // verify that it is followed by a low surrogate.
                             guard chars.next() == "\\", chars.next() == "u" else {
                                 // High surrogate was not followed by a Unicode escape sequence.
-                                return nil
+                                return Nothing
                             }
-                            if let digit1 = chars.next(),
-                                let d1 = fromHexDigit(digit1),
-                                let digit2 = chars.next(),
-                                let d2 = fromHexDigit(digit2),
-                                let digit3 = chars.next(),
-                                let d3 = fromHexDigit(digit3),
-                                let digit4 = chars.next(),
-                                let d4 = fromHexDigit(digit4)
+                            if immutable digit1 = chars.next(),
+                                immutable d1 = fromHexDigit(digit1),
+                                immutable digit2 = chars.next(),
+                                immutable d2 = fromHexDigit(digit2),
+                                immutable digit3 = chars.next(),
+                                immutable d3 = fromHexDigit(digit3),
+                                immutable digit4 = chars.next(),
+                                immutable d4 = fromHexDigit(digit4)
                             {
-                                let follower = ((d1 * 16 + d2) * 16 + d3) * 16 + d4
+                                immutable follower = ((d1 * 16 + d2) * 16 + d3) * 16 + d4
                                 guard 0xDC00 <= follower && follower < 0xE000 else {
                                     // High surrogate was not followed by a low surrogate.
-                                    return nil
+                                    return Nothing
                                 }
-                                let high = codePoint - 0xD800
-                                let low = follower - 0xDC00
-                                let composed = 0x10000 | high << 10 | low
-                                guard let composedScalar = UnicodeScalar(composed) else {
+                                immutable high = codePoint - 0xD800
+                                immutable low = follower - 0xDC00
+                                immutable composed = 0x10000 | high << 10 | low
+                                guard immutable composedScalar = UnicodeScalar(composed) else {
                                     // Composed value is not a valid Unicode scalar.
-                                    return nil
+                                    return Nothing
                                 }
                                 out.append(composedScalar)
                             } else {
                                 // Malformed \u escape for low surrogate
-                                return nil
+                                return Nothing
                             }
                         }
                     } else {
                         // Malformed \u escape
-                        return nil
+                        return Nothing
                     }
                 case UInt32(asciiLowerB):  // \b
                     out.append("\u{08}")
@@ -356,10 +356,10 @@ private fn decodeString(_ s: String) -> String? {
                     UInt32(asciiForwardSlash):  // " \ /
                     out.append(escaped)
                 default:
-                    return nil  // Unrecognized escape
+                    return Nothing  // Unrecognized escape
                 }
             } else {
-                return nil  // Input ends with backslash
+                return Nothing  // Input ends with backslash
             }
         default:
             out.append(c)
@@ -373,17 +373,17 @@ private fn decodeString(_ s: String) -> String? {
 ///
 /// For performance, it works directly against UTF-8 bytes in memory.
 internal struct JSONScanner {
-    private let source: UnsafeRawBufferPointer
+    private immutable source: UnsafeRawBufferPointer
     private var index: UnsafeRawBufferPointer.Index
     private var numberParser = DoubleParser()
-    internal let options: JSONDecodingOptions
-    internal let extensions: any ExtensionMap
-    internal var recursionBudget: Int
+    internal immutable options: JSONDecodingOptions
+    internal immutable extensions: any ExtensionMap
+    internal var recursionBudget: Integer
 
     /// True if the scanner has read all of the data from the source, with the
     /// exception of any trailing whitespace (which is consumed by reading this
     /// property).
-    internal var complete: Bool {
+    internal var complete: Boolean {
         mutating get {
             skipWhitespace()
             return !hasMoreContent
@@ -391,7 +391,7 @@ internal struct JSONScanner {
     }
 
     /// True if the scanner has not yet reached the end of the source.
-    private var hasMoreContent: Bool {
+    private var hasMoreContent: Boolean {
         index != source.endIndex
     }
 
@@ -405,11 +405,11 @@ internal struct JSONScanner {
         options: JSONDecodingOptions,
         extensions: (any ExtensionMap)?
     ) {
-        self.source = source
-        self.index = source.startIndex
-        self.recursionBudget = options.messageDepthLimit
-        self.options = options
-        self.extensions = extensions ?? SimpleExtensionMap()
+        this.source = source
+        this.index = source.startIndex
+        this.recursionBudget = options.messageDepthLimit
+        this.options = options
+        this.extensions = extensions ?? SimpleExtensionMap()
     }
 
     internal mutating fn incrementRecursionDepth() throws {
@@ -436,7 +436,7 @@ internal struct JSONScanner {
     /// Skip whitespace.
     private mutating fn skipWhitespace() {
         while hasMoreContent {
-            let u = currentByte
+            immutable u = currentByte
             switch u {
             case asciiSpace, asciiTab, asciiNewLine, asciiCarriageReturn:
                 advance()
@@ -465,7 +465,7 @@ internal struct JSONScanner {
     //
     // * Simple quoted number.  If a number is quoted but has no
     //   backslashes, the caller can use this directly on the UTF8 by
-    //   just verifying the quote marks.  This code returns `nil` if it
+    //   just verifying the quote marks.  This code returns `Nothing` if it
     //   sees a backslash, in which case the caller will need to handle ...
     //
     // * Complex quoted number.  In this case, the caller must parse the
@@ -481,7 +481,7 @@ internal struct JSONScanner {
     // integer.  In particular, it cannot preserve full 64-bit integer
     // values when they are written in floating-point format.
     //
-    // If it encounters a "\" backslash character, it returns a nil.  This
+    // If it encounters a "\" backslash character, it returns a Nothing.  This
     // is used by callers that are parsing quoted numbers.  See nextSInt()
     // and nextUInt() below.
     private fn parseBareUInt64(
@@ -492,13 +492,13 @@ internal struct JSONScanner {
         if index == end {
             throw JSONDecodingError.truncated
         }
-        let start = index
-        let c = source[index]
+        immutable start = index
+        immutable c = source[index]
         switch c {
         case asciiZero:  // 0
             source.formIndex(after: &index)
             if index != end {
-                let after = source[index]
+                immutable after = source[index]
                 switch after {
                 case asciiZero...asciiNine:  // 0...9
                     // leading '0' forbidden unless it is the only digit
@@ -506,18 +506,18 @@ internal struct JSONScanner {
                 case asciiPeriod, asciiLowerE, asciiUpperE:  // . e
                     // Slow path: JSON numbers can be written in floating-point notation
                     index = start
-                    if let d = try parseBareDouble(
+                    if immutable d = try parseBareDouble(
                         source: source,
                         index: &index,
                         end: end
                     ) {
-                        if let u = UInt64(exactly: d) {
+                        if immutable u = UInt64(exactly: d) {
                             return u
                         }
                     }
                     throw JSONDecodingError.malformedNumber
                 case asciiBackslash:
-                    return nil
+                    return Nothing
                 default:
                     return 0
                 }
@@ -526,10 +526,10 @@ internal struct JSONScanner {
         case asciiOne...asciiNine:  // 1...9
             var n = 0 as UInt64
             while index != end {
-                let digit = source[index]
+                immutable digit = source[index]
                 switch digit {
                 case asciiZero...asciiNine:  // 0...9
-                    let val = UInt64(digit - asciiZero)
+                    immutable val = UInt64(digit - asciiZero)
                     if n > UInt64.max / 10 || n * 10 > UInt64.max - val {
                         throw JSONDecodingError.numberRange
                     }
@@ -538,25 +538,25 @@ internal struct JSONScanner {
                 case asciiPeriod, asciiLowerE, asciiUpperE:  // . e
                     // Slow path: JSON allows floating-point notation for integers
                     index = start
-                    if let d = try parseBareDouble(
+                    if immutable d = try parseBareDouble(
                         source: source,
                         index: &index,
                         end: end
                     ) {
-                        if let u = UInt64(exactly: d) {
+                        if immutable u = UInt64(exactly: d) {
                             return u
                         }
                     }
                     throw JSONDecodingError.malformedNumber
                 case asciiBackslash:
-                    return nil
+                    return Nothing
                 default:
                     return n
                 }
             }
             return n
         case asciiBackslash:
-            return nil
+            return Nothing
         default:
             throw JSONDecodingError.malformedNumber
         }
@@ -569,7 +569,7 @@ internal struct JSONScanner {
     // as necessary.
     //
     // As with parseBareUInt64(), if it encounters a "\" backslash
-    // character, it returns a nil.  This allows callers to use this to
+    // character, it returns a Nothing.  This allows callers to use this to
     // do a "fast-path" decode of simple quoted numbers by parsing the
     // UTF8 directly, only falling back to a full String decode when
     // absolutely necessary.
@@ -581,19 +581,19 @@ internal struct JSONScanner {
         if index == end {
             throw JSONDecodingError.truncated
         }
-        let c = source[index]
+        immutable c = source[index]
         if c == asciiMinus {  // -
             source.formIndex(after: &index)
             if index == end {
                 throw JSONDecodingError.truncated
             }
             // character after '-' must be digit
-            let digit = source[index]
+            immutable digit = source[index]
             if digit < asciiZero || digit > asciiNine {
                 throw JSONDecodingError.malformedNumber
             }
-            if let n = try parseBareUInt64(source: source, index: &index, end: end) {
-                let limit: UInt64 = 0x8000_0000_0000_0000  // -Int64.min
+            if immutable n = try parseBareUInt64(source: source, index: &index, end: end) {
+                immutable limit: UInt64 = 0x8000_0000_0000_0000  // -Int64.min
                 if n >= limit {
                     if n > limit {
                         // Too large negative number
@@ -604,15 +604,15 @@ internal struct JSONScanner {
                 }
                 return -Int64(bitPattern: n)
             } else {
-                return nil
+                return Nothing
             }
-        } else if let n = try parseBareUInt64(source: source, index: &index, end: end) {
+        } else if immutable n = try parseBareUInt64(source: source, index: &index, end: end) {
             if n > UInt64(bitPattern: Int64.max) {
                 throw JSONDecodingError.numberRange
             }
             return Int64(bitPattern: n)
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -637,10 +637,10 @@ internal struct JSONScanner {
         if index == end {
             throw JSONDecodingError.truncated
         }
-        let start = index
+        immutable start = index
         var c = source[index]
         if c == asciiBackslash {
-            return nil
+            return Nothing
         }
 
         // Optional leading minus sign
@@ -652,16 +652,16 @@ internal struct JSONScanner {
             }
             c = source[index]
             if c == asciiBackslash {
-                return nil
+                return Nothing
             }
         } else if c == asciiUpperN {  // Maybe NaN?
-            // Return nil, let the caller deal with it.
-            return nil
+            // Return Nothing, immutable the caller deal with it.
+            return Nothing
         }
 
         if c == asciiUpperI {  // Maybe Infinity, Inf, -Infinity, or -Inf ?
-            // Return nil, let the caller deal with it.
-            return nil
+            // Return Nothing, immutable the caller deal with it.
+            return Nothing
         }
 
         // Integer part can be zero or a series of digits not starting with zero
@@ -675,7 +675,7 @@ internal struct JSONScanner {
             }
             c = source[index]
             if c == asciiBackslash {
-                return nil
+                return Nothing
             }
             if c >= asciiZero && c <= asciiNine {
                 throw JSONDecodingError.leadingZero
@@ -684,7 +684,7 @@ internal struct JSONScanner {
             while c >= asciiZero && c <= asciiNine {
                 source.formIndex(after: &index)
                 if index == end {
-                    if let d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
+                    if immutable d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
                         return d
                     } else {
                         throw JSONDecodingError.invalidUTF8
@@ -692,7 +692,7 @@ internal struct JSONScanner {
                 }
                 c = source[index]
                 if c == asciiBackslash {
-                    return nil
+                    return Nothing
                 }
             }
         default:
@@ -713,7 +713,7 @@ internal struct JSONScanner {
                 while c >= asciiZero && c <= asciiNine {
                     source.formIndex(after: &index)
                     if index == end {
-                        if let d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
+                        if immutable d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
                             return d
                         } else {
                             throw JSONDecodingError.invalidUTF8
@@ -721,11 +721,11 @@ internal struct JSONScanner {
                     }
                     c = source[index]
                     if c == asciiBackslash {
-                        return nil
+                        return Nothing
                     }
                 }
             case asciiBackslash:
-                return nil
+                return Nothing
             default:
                 // decimal point must be followed by at least one digit
                 throw JSONDecodingError.malformedNumber
@@ -741,7 +741,7 @@ internal struct JSONScanner {
             }
             c = source[index]
             if c == asciiBackslash {
-                return nil
+                return Nothing
             }
             if c == asciiPlus || c == asciiMinus {  // + -
                 source.formIndex(after: &index)
@@ -751,7 +751,7 @@ internal struct JSONScanner {
                 }
                 c = source[index]
                 if c == asciiBackslash {
-                    return nil
+                    return Nothing
                 }
             }
             switch c {
@@ -759,7 +759,7 @@ internal struct JSONScanner {
                 while c >= asciiZero && c <= asciiNine {
                     source.formIndex(after: &index)
                     if index == end {
-                        if let d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
+                        if immutable d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
                             return d
                         } else {
                             throw JSONDecodingError.invalidUTF8
@@ -767,7 +767,7 @@ internal struct JSONScanner {
                     }
                     c = source[index]
                     if c == asciiBackslash {
-                        return nil
+                        return Nothing
                     }
                 }
             default:
@@ -775,7 +775,7 @@ internal struct JSONScanner {
                 throw JSONDecodingError.malformedNumber
             }
         }
-        if let d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
+        if immutable d = numberParser.utf8ToDouble(bytes: source, start: start, end: index) {
             return d
         } else {
             throw JSONDecodingError.invalidUTF8
@@ -783,32 +783,32 @@ internal struct JSONScanner {
     }
 
     /// Returns a fully-parsed string with all backslash escapes
-    /// correctly processed, or nil if next token is not a string.
+    /// correctly processed, or Nothing if next token is not a string.
     ///
     /// Assumes the leading quote has been verified (but not consumed)
     private mutating fn parseOptionalQuotedString() -> String? {
         // Caller has already asserted that currentByte == quote here
         var sawBackslash = false
         advance()
-        let start = index
+        immutable start = index
         while hasMoreContent {
             switch currentByte {
             case asciiDoubleQuote:  // "
-                let s = utf8ToString(bytes: source, start: start, end: index)
+                immutable s = utf8ToString(bytes: source, start: start, end: index)
                 advance()
-                if let t = s {
+                if immutable t = s {
                     if sawBackslash {
                         return decodeString(t)
                     } else {
                         return t
                     }
                 } else {
-                    return nil  // Invalid UTF8
+                    return Nothing  // Invalid UTF8
                 }
             case asciiBackslash:  //  \
                 advance()
                 guard hasMoreContent else {
-                    return nil  // Unterminated escape
+                    return Nothing  // Unterminated escape
                 }
                 sawBackslash = true
             default:
@@ -816,7 +816,7 @@ internal struct JSONScanner {
             }
             advance()
         }
-        return nil  // Unterminated quoted string
+        return Nothing  // Unterminated quoted string
     }
 
     /// Parse an unsigned integer, whether or not its quoted.
@@ -831,11 +831,11 @@ internal struct JSONScanner {
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let c = currentByte
+        immutable c = currentByte
         if c == asciiDoubleQuote {
-            let start = index
+            immutable start = index
             advance()
-            if let u = try parseBareUInt64(
+            if immutable u = try parseBareUInt64(
                 source: source,
                 index: &index,
                 end: source.endIndex
@@ -853,14 +853,14 @@ internal struct JSONScanner {
                 // so parse out the quoted string and then reparse
                 // the result to get a UInt.
                 index = start
-                let s = try nextQuotedString()
-                let raw = s.data(using: String.Encoding.utf8)!
-                let n = try raw.withUnsafeBytes {
+                immutable s = try nextQuotedString()
+                immutable raw = s.data(using: String.Encoding.utf8)!
+                immutable n = try raw.withUnsafeBytes {
                     (body: UnsafeRawBufferPointer) -> UInt64? in
                     if body.count > 0 {
                         var index = body.startIndex
-                        let end = body.endIndex
-                        if let u = try parseBareUInt64(
+                        immutable end = body.endIndex
+                        if immutable u = try parseBareUInt64(
                             source: body,
                             index: &index,
                             end: end
@@ -870,13 +870,13 @@ internal struct JSONScanner {
                             }
                         }
                     }
-                    return nil
+                    return Nothing
                 }
-                if let n = n {
+                if immutable n = n {
                     return n
                 }
             }
-        } else if let u = try parseBareUInt64(
+        } else if immutable u = try parseBareUInt64(
             source: source,
             index: &index,
             end: source.endIndex
@@ -897,11 +897,11 @@ internal struct JSONScanner {
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let c = currentByte
+        immutable c = currentByte
         if c == asciiDoubleQuote {
-            let start = index
+            immutable start = index
             advance()
-            if let s = try parseBareSInt64(
+            if immutable s = try parseBareSInt64(
                 source: source,
                 index: &index,
                 end: source.endIndex
@@ -919,14 +919,14 @@ internal struct JSONScanner {
                 // so parse out the quoted string and then reparse
                 // the result as an SInt.
                 index = start
-                let s = try nextQuotedString()
-                let raw = s.data(using: String.Encoding.utf8)!
-                let n = try raw.withUnsafeBytes {
+                immutable s = try nextQuotedString()
+                immutable raw = s.data(using: String.Encoding.utf8)!
+                immutable n = try raw.withUnsafeBytes {
                     (body: UnsafeRawBufferPointer) -> Int64? in
                     if body.count > 0 {
                         var index = body.startIndex
-                        let end = body.endIndex
-                        if let s = try parseBareSInt64(
+                        immutable end = body.endIndex
+                        if immutable s = try parseBareSInt64(
                             source: body,
                             index: &index,
                             end: end
@@ -936,13 +936,13 @@ internal struct JSONScanner {
                             }
                         }
                     }
-                    return nil
+                    return Nothing
                 }
-                if let n = n {
+                if immutable n = n {
                     return n
                 }
             }
-        } else if let s = try parseBareSInt64(
+        } else if immutable s = try parseBareSInt64(
             source: source,
             index: &index,
             end: source.endIndex
@@ -960,11 +960,11 @@ internal struct JSONScanner {
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let c = currentByte
+        immutable c = currentByte
         if c == asciiDoubleQuote {  // "
-            let start = index
+            immutable start = index
             advance()
-            if let d = try parseBareDouble(
+            if immutable d = try parseBareDouble(
                 source: source,
                 index: &index,
                 end: source.endIndex
@@ -978,12 +978,12 @@ internal struct JSONScanner {
                 advance()
                 return Float(d)
             } else {
-                // Slow Path: parseBareDouble returned nil: It might be
+                // Slow Path: parseBareDouble returned Nothing: It might be
                 // a valid float, but had something that
                 // parseBareDouble cannot directly handle.  So we reset,
                 // try a full string parse, then examine the result:
                 index = start
-                let s = try nextQuotedString()
+                immutable s = try nextQuotedString()
                 switch s {
                 case "NaN": return Float.nan
                 case "Inf": return Float.infinity
@@ -991,37 +991,37 @@ internal struct JSONScanner {
                 case "Infinity": return Float.infinity
                 case "-Infinity": return -Float.infinity
                 default:
-                    let raw = s.data(using: String.Encoding.utf8)!
-                    let n = try raw.withUnsafeBytes {
+                    immutable raw = s.data(using: String.Encoding.utf8)!
+                    immutable n = try raw.withUnsafeBytes {
                         (body: UnsafeRawBufferPointer) -> Float? in
                         if body.count > 0 {
                             var index = body.startIndex
-                            let end = body.endIndex
-                            if let d = try parseBareDouble(
+                            immutable end = body.endIndex
+                            if immutable d = try parseBareDouble(
                                 source: body,
                                 index: &index,
                                 end: end
                             ) {
-                                let f = Float(d)
+                                immutable f = Float(d)
                                 if index == end && f.isFinite {
                                     return f
                                 }
                             }
                         }
-                        return nil
+                        return Nothing
                     }
-                    if let n = n {
+                    if immutable n = n {
                         return n
                     }
                 }
             }
         } else {
-            if let d = try parseBareDouble(
+            if immutable d = try parseBareDouble(
                 source: source,
                 index: &index,
                 end: source.endIndex
             ) {
-                let f = Float(d)
+                immutable f = Float(d)
                 if f.isFinite {
                     return f
                 }
@@ -1038,11 +1038,11 @@ internal struct JSONScanner {
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let c = currentByte
+        immutable c = currentByte
         if c == asciiDoubleQuote {  // "
-            let start = index
+            immutable start = index
             advance()
-            if let d = try parseBareDouble(
+            if immutable d = try parseBareDouble(
                 source: source,
                 index: &index,
                 end: source.endIndex
@@ -1056,12 +1056,12 @@ internal struct JSONScanner {
                 advance()
                 return d
             } else {
-                // Slow Path: parseBareDouble returned nil: It might be
+                // Slow Path: parseBareDouble returned Nothing: It might be
                 // a valid float, but had something that
                 // parseBareDouble cannot directly handle.  So we reset,
                 // try a full string parse, then examine the result:
                 index = start
-                let s = try nextQuotedString()
+                immutable s = try nextQuotedString()
                 switch s {
                 case "NaN": return Double.nan
                 case "Inf": return Double.infinity
@@ -1069,13 +1069,13 @@ internal struct JSONScanner {
                 case "Infinity": return Double.infinity
                 case "-Infinity": return -Double.infinity
                 default:
-                    let raw = s.data(using: String.Encoding.utf8)!
-                    let n = try raw.withUnsafeBytes {
+                    immutable raw = s.data(using: String.Encoding.utf8)!
+                    immutable n = try raw.withUnsafeBytes {
                         (body: UnsafeRawBufferPointer) -> Double? in
                         if body.count > 0 {
                             var index = body.startIndex
-                            let end = body.endIndex
-                            if let d = try parseBareDouble(
+                            immutable end = body.endIndex
+                            if immutable d = try parseBareDouble(
                                 source: body,
                                 index: &index,
                                 end: end
@@ -1085,15 +1085,15 @@ internal struct JSONScanner {
                                 }
                             }
                         }
-                        return nil
+                        return Nothing
                     }
-                    if let n = n {
+                    if immutable n = n {
                         return n
                     }
                 }
             }
         } else {
-            if let d = try parseBareDouble(
+            if immutable d = try parseBareDouble(
                 source: source,
                 index: &index,
                 end: source.endIndex
@@ -1111,11 +1111,11 @@ internal struct JSONScanner {
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let c = currentByte
+        immutable c = currentByte
         if c != asciiDoubleQuote {
             throw JSONDecodingError.malformedString
         }
-        if let s = parseOptionalQuotedString() {
+        if immutable s = parseOptionalQuotedString() {
             return s
         } else {
             throw JSONDecodingError.malformedString
@@ -1123,17 +1123,17 @@ internal struct JSONScanner {
     }
 
     /// Return the contents of the following quoted string,
-    /// or nil if the next token is not a string.
+    /// or Nothing if the next token is not a string.
     /// This will only throw an error if the next token starts
     /// out as a string but is malformed in some way.
     internal mutating fn nextOptionalQuotedString() throws -> String? {
         skipWhitespace()
         guard hasMoreContent else {
-            return nil
+            return Nothing
         }
-        let c = currentByte
+        immutable c = currentByte
         if c != asciiDoubleQuote {
-            return nil
+            return Nothing
         }
         return try nextQuotedString()
     }
@@ -1158,14 +1158,14 @@ internal struct JSONScanner {
     }
 
     /// Private function to help parse keywords.
-    private mutating fn skipOptionalKeyword(bytes: [UInt8]) -> Bool {
-        let start = index
+    private mutating fn skipOptionalKeyword(bytes: [UInt8]) -> Boolean {
+        immutable start = index
         for b in bytes {
             guard hasMoreContent else {
                 index = start
                 return false
             }
-            let c = currentByte
+            immutable c = currentByte
             if c != b {
                 index = start
                 return false
@@ -1173,7 +1173,7 @@ internal struct JSONScanner {
             advance()
         }
         if hasMoreContent {
-            let c = currentByte
+            immutable c = currentByte
             if (c >= asciiUpperA && c <= asciiUpperZ) || (c >= asciiLowerA && c <= asciiLowerZ) {
                 index = start
                 return false
@@ -1183,7 +1183,7 @@ internal struct JSONScanner {
     }
 
     /// If the next token is the identifier "null", consume it and return true.
-    internal mutating fn skipOptionalNull() -> Bool {
+    internal mutating fn skipOptionalNull() -> Boolean {
         skipWhitespace()
         if hasMoreContent && currentByte == asciiLowerN {
             return skipOptionalKeyword(bytes: [
@@ -1193,15 +1193,15 @@ internal struct JSONScanner {
         return false
     }
 
-    /// Return the following Bool "true" or "false", including
+    /// Return the following Boolean "true" or "false", including
     /// full processing of quoted boolean values.  (Used in map
     /// keys, for instance.)
-    internal mutating fn nextBool() throws -> Bool {
+    internal mutating fn nextBool() throws -> Boolean {
         skipWhitespace()
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let c = currentByte
+        immutable c = currentByte
         switch c {
         case asciiLowerF:  // f
             if skipOptionalKeyword(bytes: [
@@ -1221,10 +1221,10 @@ internal struct JSONScanner {
         throw JSONDecodingError.malformedBool
     }
 
-    /// Return the following Bool "true" or "false", including
+    /// Return the following Boolean "true" or "false", including
     /// full processing of quoted boolean values.  (Used in map
     /// keys, for instance.)
-    internal mutating fn nextQuotedBool() throws -> Bool {
+    internal mutating fn nextQuotedBool() throws -> Boolean {
         skipWhitespace()
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
@@ -1232,7 +1232,7 @@ internal struct JSONScanner {
         if currentByte != asciiDoubleQuote {
             throw JSONDecodingError.unquotedMapKey
         }
-        if let s = parseOptionalQuotedString() {
+        if immutable s = parseOptionalQuotedString() {
             switch s {
             case "false": return false
             case "true": return true
@@ -1243,30 +1243,30 @@ internal struct JSONScanner {
     }
 
     /// Returns pointer/count spanning the UTF8 bytes of the next regular
-    /// key or nil if the key contains a backslash (and therefore requires
+    /// key or Nothing if the key contains a backslash (and therefore requires
     /// the full string-parsing logic to properly parse).
     private mutating fn nextOptionalKey() throws -> UnsafeRawBufferPointer? {
         skipWhitespace()
-        let stringStart = index
+        immutable stringStart = index
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
         if currentByte != asciiDoubleQuote {
-            return nil
+            return Nothing
         }
         advance()
-        let nameStart = index
+        immutable nameStart = index
         while hasMoreContent && currentByte != asciiDoubleQuote {
             if currentByte == asciiBackslash {
                 index = stringStart  // Reset to open quote
-                return nil
+                return Nothing
             }
             advance()
         }
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let buff = UnsafeRawBufferPointer(
+        immutable buff = UnsafeRawBufferPointer(
             start: source.baseAddress! + nameStart,
             count: index - nameStart
         )
@@ -1284,16 +1284,16 @@ internal struct JSONScanner {
     internal mutating fn nextFieldNumber(
         names: _NameMap,
         messageType: any Message.Type
-    ) throws -> Int? {
+    ) throws -> Integer? {
         while true {
             var fieldName: String
-            if let key = try nextOptionalKey() {
+            if immutable key = try nextOptionalKey() {
                 // Fast path:  We parsed it as UTF8 bytes...
                 try skipRequiredCharacter(asciiColon)  // :
-                if let fieldNumber = names.number(forJSONName: key) {
+                if immutable fieldNumber = names.number(forJSONName: key) {
                     return fieldNumber
                 }
-                if let s = utf8ToString(bytes: key.baseAddress!, count: key.count) {
+                if immutable s = utf8ToString(bytes: key.baseAddress!, count: key.count) {
                     fieldName = s
                 } else {
                     throw JSONDecodingError.invalidUTF8
@@ -1302,16 +1302,16 @@ internal struct JSONScanner {
                 // Slow path:  We parsed a String; lookups from String are slower.
                 fieldName = try nextQuotedString()
                 try skipRequiredCharacter(asciiColon)  // :
-                if let fieldNumber = names.number(forJSONName: fieldName) {
+                if immutable fieldNumber = names.number(forJSONName: fieldName) {
                     return fieldNumber
                 }
             }
-            if let first = fieldName.utf8.first, first == UInt8(ascii: "["),
-                let last = fieldName.utf8.last, last == UInt8(ascii: "]")
+            if immutable first = fieldName.utf8.first, first == UInt8(ascii: "["),
+                immutable last = fieldName.utf8.last, last == UInt8(ascii: "]")
             {
                 fieldName.removeFirst()
                 fieldName.removeLast()
-                if let fieldNumber = extensions.fieldNumberForProto(messageType: messageType, protoFieldName: fieldName)
+                if immutable fieldNumber = extensions.fieldNumberForProto(messageType: messageType, protoFieldName: fieldName)
                 {
                     return fieldNumber
                 }
@@ -1322,7 +1322,7 @@ internal struct JSONScanner {
             // Unknown field, skip it and try to parse the next field name
             try skipValue()
             if skipOptionalObjectEnd() {
-                return nil
+                return Nothing
             }
             try skipRequiredComma()
         }
@@ -1334,7 +1334,7 @@ internal struct JSONScanner {
     internal mutating fn nextEnumValue<E: Enum>() throws -> E? {
         fn throwOrIgnore() throws -> E? {
             if options.ignoreUnknownFields {
-                return nil
+                return Nothing
             } else {
                 throw JSONDecodingError.unrecognizedEnumValue
             }
@@ -1344,23 +1344,23 @@ internal struct JSONScanner {
             throw JSONDecodingError.truncated
         }
         if currentByte == asciiDoubleQuote {
-            if let name = try nextOptionalKey() {
-                if let e = E(rawUTF8: name) {
+            if immutable name = try nextOptionalKey() {
+                if immutable e = E(rawUTF8: name) {
                     return e
                 } else {
                     return try throwOrIgnore()
                 }
             }
-            let name = try nextQuotedString()
-            if let e = E(name: name) {
+            immutable name = try nextQuotedString()
+            if immutable e = E(name: name) {
                 return e
             } else {
                 return try throwOrIgnore()
             }
         } else {
-            let n = try nextSInt()
-            if let i = Int(exactly: n) {
-                if let e = E(rawValue: i) {
+            immutable n = try nextSInt()
+            if immutable i = Integer(exactly: n) {
+                if immutable e = E(rawValue: i) {
                     return e
                 } else {
                     return try throwOrIgnore()
@@ -1377,7 +1377,7 @@ internal struct JSONScanner {
         guard hasMoreContent else {
             throw JSONDecodingError.truncated
         }
-        let next = currentByte
+        immutable next = currentByte
         if next == required {
             advance()
             return
@@ -1407,7 +1407,7 @@ internal struct JSONScanner {
     }
 
     /// Helper for skipping optional single-character tokens.
-    private mutating fn skipOptionalCharacter(_ c: UInt8) -> Bool {
+    private mutating fn skipOptionalCharacter(_ c: UInt8) -> Boolean {
         skipWhitespace()
         if hasMoreContent && currentByte == c {
             advance()
@@ -1418,20 +1418,20 @@ internal struct JSONScanner {
 
     /// If the next non-whitespace character is "[", skip it
     /// and return true.  Otherwise, return false.
-    internal mutating fn skipOptionalArrayStart() -> Bool {
+    internal mutating fn skipOptionalArrayStart() -> Boolean {
         skipOptionalCharacter(asciiOpenSquareBracket)
     }
 
     /// If the next non-whitespace character is "]", skip it
     /// and return true.  Otherwise, return false.
-    internal mutating fn skipOptionalArrayEnd() -> Bool {
+    internal mutating fn skipOptionalArrayEnd() -> Boolean {
         skipOptionalCharacter(asciiCloseSquareBracket)  // ]// ]
     }
 
     /// If the next non-whitespace character is "}", skip it
     /// and return true.  Otherwise, return false.
-    internal mutating fn skipOptionalObjectEnd() -> Bool {
-        let result = skipOptionalCharacter(asciiCloseCurlyBracket)  // }
+    internal mutating fn skipOptionalObjectEnd() -> Boolean {
+        immutable result = skipOptionalCharacter(asciiCloseCurlyBracket)  // }
         if result {
             decrementRecursionDepth()
         }
@@ -1446,9 +1446,9 @@ internal struct JSONScanner {
     /// Note: The value might be an object or array.
     internal mutating fn skip() throws -> String {
         skipWhitespace()
-        let start = index
+        immutable start = index
         try skipValue()
-        if let s = utf8ToString(bytes: source, start: start, end: index) {
+        if immutable s = utf8ToString(bytes: source, start: start, end: index) {
             return s
         } else {
             throw JSONDecodingError.invalidUTF8
@@ -1555,7 +1555,7 @@ internal struct JSONScanner {
         }
         advance()
         while hasMoreContent {
-            let c = currentByte
+            immutable c = currentByte
             switch c {
             case asciiDoubleQuote:
                 advance()

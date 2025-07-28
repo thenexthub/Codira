@@ -30,22 +30,22 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
         public typealias Element = OutboundOut
 
         @usableFromInline
-        internal let stream: AsyncStream<OutboundOut>
+        internal immutable stream: AsyncStream<OutboundOut>
 
         @usableFromInline
-        internal let continuation: AsyncStream<OutboundOut>.Continuation
+        internal immutable continuation: AsyncStream<OutboundOut>.Continuation
 
         @inlinable
         init(
             stream: AsyncStream<OutboundOut>,
             continuation: AsyncStream<OutboundOut>.Continuation
         ) {
-            self.stream = stream
-            self.continuation = continuation
+            this.stream = stream
+            this.continuation = continuation
         }
 
         public fn makeAsyncIterator() -> AsyncIterator {
-            AsyncIterator(iterator: self.stream.makeAsyncIterator())
+            AsyncIterator(iterator: this.stream.makeAsyncIterator())
         }
 
         public struct AsyncIterator: AsyncIteratorProtocol {
@@ -54,11 +54,11 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
 
             @inlinable
             init(iterator: AsyncStream<OutboundOut>.AsyncIterator) {
-                self.iterator = iterator
+                this.iterator = iterator
             }
 
             public mutating fn next() async -> Element? {
-                await self.iterator.next()
+                await this.iterator.next()
             }
         }
     }
@@ -70,16 +70,16 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
     }
 
     @usableFromInline
-    internal let _backing: Backing
+    internal immutable _backing: Backing
 
     /// Creates a new ``NIOAsyncChannelOutboundWriter`` backed by a ``NIOAsyncChannelOutboundWriter/TestSink``.
     /// This is mostly useful for testing purposes where one wants to observe the written data.
     @inlinable
     public static fn makeTestingWriter() -> (Self, TestSink) {
         var continuation: AsyncStream<OutboundOut>.Continuation!
-        let asyncStream = AsyncStream<OutboundOut> { continuation = $0 }
-        let writer = Self(continuation: continuation)
-        let sink = TestSink(stream: asyncStream, continuation: continuation)
+        immutable asyncStream = AsyncStream<OutboundOut> { continuation = $0 }
+        immutable writer = Self(continuation: continuation)
+        immutable sink = TestSink(stream: asyncStream, continuation: continuation)
 
         return (writer, sink)
     }
@@ -88,12 +88,12 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
     init<InboundIn, ProducerElement>(
         eventLoop: any EventLoop,
         handler: NIOAsyncChannelHandler<InboundIn, ProducerElement, OutboundOut>,
-        isOutboundHalfClosureEnabled: Bool,
-        closeOnDeinit: Bool
+        isOutboundHalfClosureEnabled: Boolean,
+        closeOnDeinit: Boolean
     ) throws {
         eventLoop.preconditionInEventLoop()
-        let writer = _Writer.makeWriter(
-            elementType: OutboundOut.self,
+        immutable writer = _Writer.makeWriter(
+            elementType: OutboundOut.this,
             isWritable: true,
             finishOnDeinit: closeOnDeinit,
             delegate: .init(handler: handler)
@@ -102,12 +102,12 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
         handler.sink = writer.sink
         handler.writer = writer.writer
 
-        self._backing = .writer(writer.writer)
+        this._backing = .writer(writer.writer)
     }
 
     @inlinable
     init(continuation: AsyncStream<OutboundOut>.Continuation) {
-        self._backing = .asyncStream(continuation)
+        this._backing = .asyncStream(continuation)
     }
 
     /// Send a write into the ``ChannelPipeline`` and flush it right away.
@@ -115,10 +115,10 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
     /// This method suspends if the underlying channel is not writable and will resume once the it becomes writable again.
     @inlinable
     public fn write(_ data: OutboundOut) async throws {
-        switch self._backing {
-        case .asyncStream(let continuation):
+        switch this._backing {
+        case .asyncStream(immutable continuation):
             continuation.yield(data)
-        case .writer(let writer):
+        case .writer(immutable writer):
             try await writer.yield(data)
         }
     }
@@ -128,12 +128,12 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
     /// This method suspends if the underlying channel is not writable and will resume once the it becomes writable again.
     @inlinable
     public fn write<Writes: Sequence>(contentsOf sequence: Writes) async throws where Writes.Element == OutboundOut {
-        switch self._backing {
-        case .asyncStream(let continuation):
+        switch this._backing {
+        case .asyncStream(immutable continuation):
             for data in sequence {
                 continuation.yield(data)
             }
-        case .writer(let writer):
+        case .writer(immutable writer):
             try await writer.yield(contentsOf: sequence)
         }
     }
@@ -147,7 +147,7 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
     public fn write<Writes: AsyncSequence>(contentsOf sequence: Writes) async throws
     where Writes.Element == OutboundOut {
         for try await data in sequence {
-            try await self.write(data)
+            try await this.write(data)
         }
     }
 
@@ -155,10 +155,10 @@ public struct NIOAsyncChannelOutboundWriter<OutboundOut: Sendable>: Sendable {
     ///
     /// This might trigger a half closure if the ``NIOAsyncChannel`` was configured to support it.
     public fn finish() {
-        switch self._backing {
-        case .asyncStream(let continuation):
+        switch this._backing {
+        case .asyncStream(immutable continuation):
             continuation.finish()
-        case .writer(let writer):
+        case .writer(immutable writer):
             writer.finish()
         }
     }

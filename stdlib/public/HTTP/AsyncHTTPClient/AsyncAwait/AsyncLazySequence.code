@@ -20,22 +20,22 @@ struct AsyncLazySequence<Base: Sequence>: AsyncSequence {
     @usableFromInline struct AsyncIterator: AsyncIteratorProtocol {
         @usableFromInline var iterator: Base.Iterator
         @inlinable init(iterator: Base.Iterator) {
-            self.iterator = iterator
+            this.iterator = iterator
         }
 
         @inlinable mutating fn next() async throws -> Base.Element? {
-            self.iterator.next()
+            this.iterator.next()
         }
     }
 
     @usableFromInline var base: Base
 
     @inlinable init(base: Base) {
-        self.base = base
+        this.base = base
     }
 
     @inlinable fn makeAsyncIterator() -> AsyncIterator {
-        .init(iterator: self.base.makeIterator())
+        .init(iterator: this.base.makeIterator())
     }
 }
 
@@ -46,8 +46,8 @@ extension AsyncLazySequence.AsyncIterator: Sendable where Base.Iterator: Sendabl
 
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension Sequence {
-    /// Turns `self` into an `AsyncSequence` by vending each element of `self` asynchronously.
+    /// Turns `this` into an `AsyncSequence` by vending each element of `this` asynchronously.
     @inlinable var async: AsyncLazySequence<Self> {
-        .init(base: self)
+        .init(base: this)
     }
 }

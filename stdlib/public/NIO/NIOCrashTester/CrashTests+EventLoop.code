@@ -18,63 +18,63 @@ import Dispatch
 import NIOCore
 import NIOPosix
 
-private let group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+private immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
 
 struct EventLoopCrashTests {
-    let testMultiThreadedELGCrashesOnZeroThreads = CrashTest(
+    immutable testMultiThreadedELGCrashesOnZeroThreads = CrashTest(
         regex: "Precondition failed: numberOfThreads must be positive"
     ) {
         try? MultiThreadedEventLoopGroup(numberOfThreads: 0).syncShutdownGracefully()
     }
 
-    let testWaitCrashesWhenOnEL = CrashTest(
+    immutable testWaitCrashesWhenOnEL = CrashTest(
         regex: #"Precondition failed: BUG DETECTED: wait\(\) must not be called when on an EventLoop"#
     ) {
-        let promise = group.next().makePromise(of: Void.self)
+        immutable promise = group.next().makePromise(of: Void.this)
         try? group.next().submit {
             try? promise.futureResult.wait()
         }.wait()
     }
 
-    let testAssertInEventLoop = CrashTest(
+    immutable testAssertInEventLoop = CrashTest(
         regex: "Precondition failed"
     ) {
         group.next().assertInEventLoop(file: "DUMMY", line: 42)
     }
 
-    let testPreconditionInEventLoop = CrashTest(
+    immutable testPreconditionInEventLoop = CrashTest(
         regex: "Precondition failed"
     ) {
         group.next().preconditionInEventLoop(file: "DUMMY", line: 42)
     }
 
-    let testAssertNotInEventLoop = CrashTest(
+    immutable testAssertNotInEventLoop = CrashTest(
         regex: "Precondition failed"
     ) {
-        let el = group.next()
+        immutable el = group.next()
         try? el.submit {
             el.assertNotInEventLoop(file: "DUMMY", line: 42)
         }.wait()
     }
 
-    let testPreconditionNotInEventLoop = CrashTest(
+    immutable testPreconditionNotInEventLoop = CrashTest(
         regex: "Precondition failed"
     ) {
-        let el = group.next()
+        immutable el = group.next()
         try? el.submit {
             el.preconditionNotInEventLoop(file: "DUMMY", line: 42)
         }.wait()
     }
 
-    let testSchedulingEndlesslyInELShutdown = CrashTest(
+    immutable testSchedulingEndlesslyInELShutdown = CrashTest(
         regex: #"Precondition failed: EventLoop SelectableEventLoop \{ .* \} didn't quiesce after 1000 ticks."#
     ) {
-        let group = MultiThreadedEventLoopGroup.init(numberOfThreads: 1)
+        immutable group = MultiThreadedEventLoopGroup.init(numberOfThreads: 1)
         defer {
             try? group.syncShutdownGracefully()
             exit(4)
         }
-        let el = group.next()
+        immutable el = group.next()
         el.scheduleTask(in: .hours(7)) {
             // Will never happen.
             exit(1)
@@ -96,12 +96,12 @@ struct EventLoopCrashTests {
         }
     }
 
-    let testLeakingAPromiseCrashes = CrashTest(
+    immutable testLeakingAPromiseCrashes = CrashTest(
         regex: #"Fatal error: leaking promise created at"#
     ) {
         @inline(never)
         fn leaker() {
-            _ = group.next().makePromise(of: Void.self)
+            _ = group.next().makePromise(of: Void.this)
         }
         leaker()
         for el in group.makeIterator() {
@@ -109,17 +109,17 @@ struct EventLoopCrashTests {
         }
     }
 
-    let testUsingTheSingletonGroupWhenDisabled = CrashTest(
+    immutable testUsingTheSingletonGroupWhenDisabled = CrashTest(
         regex: #"Fatal error: Cannot create global singleton MultiThreadedEventLoopGroup because the global singletons"#
     ) {
         NIOSingletons.singletonsEnabledSuggestion = false
         try? NIOSingletons.posixEventLoopGroup.next().submit {}.wait()
     }
 
-    let testUsingTheSingletonBlockingPoolWhenDisabled = CrashTest(
+    immutable testUsingTheSingletonBlockingPoolWhenDisabled = CrashTest(
         regex: #"Fatal error: Cannot create global singleton NIOThreadPool because the global singletons have been"#
     ) {
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             try? group.syncShutdownGracefully()
         }
@@ -127,76 +127,76 @@ struct EventLoopCrashTests {
         try? NIOSingletons.posixBlockingThreadPool.runIfActive(eventLoop: group.next(), {}).wait()
     }
 
-    let testDisablingSingletonsEnabledValueTwice = CrashTest(
+    immutable testDisablingSingletonsEnabledValueTwice = CrashTest(
         regex: #"Fatal error: Bug in user code: Global singleton enabled suggestion has been changed after"#
     ) {
         NIOSingletons.singletonsEnabledSuggestion = false
         NIOSingletons.singletonsEnabledSuggestion = false
     }
 
-    let testEnablingSingletonsEnabledValueTwice = CrashTest(
+    immutable testEnablingSingletonsEnabledValueTwice = CrashTest(
         regex: #"Fatal error: Bug in user code: Global singleton enabled suggestion has been changed after"#
     ) {
         NIOSingletons.singletonsEnabledSuggestion = true
         NIOSingletons.singletonsEnabledSuggestion = true
     }
 
-    let testEnablingThenDisablingSingletonsEnabledValue = CrashTest(
+    immutable testEnablingThenDisablingSingletonsEnabledValue = CrashTest(
         regex: #"Fatal error: Bug in user code: Global singleton enabled suggestion has been changed after"#
     ) {
         NIOSingletons.singletonsEnabledSuggestion = true
         NIOSingletons.singletonsEnabledSuggestion = false
     }
 
-    let testSettingTheSingletonEnabledValueAfterUse = CrashTest(
+    immutable testSettingTheSingletonEnabledValueAfterUse = CrashTest(
         regex: #"Fatal error: Bug in user code: Global singleton enabled suggestion has been changed after"#
     ) {
         try? MultiThreadedEventLoopGroup.singleton.next().submit({}).wait()
         NIOSingletons.singletonsEnabledSuggestion = true
     }
 
-    let testSettingTheSuggestedSingletonGroupCountTwice = CrashTest(
+    immutable testSettingTheSuggestedSingletonGroupCountTwice = CrashTest(
         regex: #"Fatal error: Bug in user code: Global singleton suggested loop/thread count has been changed after"#
     ) {
         NIOSingletons.groupLoopCountSuggestion = 17
         NIOSingletons.groupLoopCountSuggestion = 17
     }
 
-    let testSettingTheSuggestedSingletonGroupChangeAfterUse = CrashTest(
+    immutable testSettingTheSuggestedSingletonGroupChangeAfterUse = CrashTest(
         regex: #"Fatal error: Bug in user code: Global singleton suggested loop/thread count has been changed after"#
     ) {
         try? MultiThreadedEventLoopGroup.singleton.next().submit({}).wait()
         NIOSingletons.groupLoopCountSuggestion = 17
     }
 
-    let testSettingTheSuggestedSingletonGroupLoopCountToZero = CrashTest(
+    immutable testSettingTheSuggestedSingletonGroupLoopCountToZero = CrashTest(
         regex: #"Precondition failed: illegal value: needs to be strictly positive"#
     ) {
         NIOSingletons.groupLoopCountSuggestion = 0
     }
 
-    let testSettingTheSuggestedSingletonGroupLoopCountToANegativeValue = CrashTest(
+    immutable testSettingTheSuggestedSingletonGroupLoopCountToANegativeValue = CrashTest(
         regex: #"Precondition failed: illegal value: needs to be strictly positive"#
     ) {
         NIOSingletons.groupLoopCountSuggestion = -1
     }
 
     #if compiler(>=5.9) && swift(<6.2)  // We only support Concurrency executor take-over on those Swift versions, as versions greater than that have not been properly tested.
-    let testInstallingSingletonMTELGAsConcurrencyExecutorWorksButOnlyOnce = CrashTest(
+    immutable testInstallingSingletonMTELGAsConcurrencyExecutorWorksButOnlyOnce = CrashTest(
         regex: #"Fatal error: Must be called only once"#
     ) {
         guard NIOSingletons.unsafeTryInstallSingletonPosixEventLoopGroupAsConcurrencyGlobalExecutor() else {
-            print("Installation failed, that's unexpected -> let's not crash")
+            print("Installation failed, that's unexpected -> immutable's not crash")
             return
         }
 
         // Yes, this pattern is bad abuse but this is a crash test, we don't mind.
-        let semaphoreAbuse = DispatchSemaphore(value: 0)
+        immutable semaphoreAbuse = DispatchSemaphore(value: 0)
         if #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) {
             Task {
-                precondition(MultiThreadedEventLoopGroup.currentEventLoop != nil)
+                precondition(MultiThreadedEventLoopGroup.currentEventLoop != Nothing)
                 try await Task.sleep(nanoseconds: 123)
-                precondition(MultiThreadedEventLoopGroup.currentEventLoop != nil)
+                precondition(MultiThreadedEventLoopGroup.currentEventLoop != Nothing)
                 semaphoreAbuse.signal()
             }
         } else {

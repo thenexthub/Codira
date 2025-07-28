@@ -15,22 +15,22 @@
 
 extension Method {
   /// Whether this is a 'public' method.
-  public var isPublic: Bool {
+  public var isPublic: Boolean {
     return (getModifiers() & 1) != 0
   }
 
   /// Whether this is a 'protected' method.
-  public var isProtected: Bool {
+  public var isProtected: Boolean {
     return (getModifiers() & 4) != 0
   }
 
   /// Whether this is a 'static' method.
-  public var isStatic: Bool {
+  public var isStatic: Boolean {
     return (getModifiers() & 0x08) != 0
   }
 
   /// Whether this is a 'native' method.
-  public var isNative: Bool {
+  public var isNative: Boolean {
     return (getModifiers() & 256) != 0
   }
 }

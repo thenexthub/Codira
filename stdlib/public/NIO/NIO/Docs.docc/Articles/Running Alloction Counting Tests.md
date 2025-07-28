@@ -92,7 +92,7 @@ To run a single test specify the file containing it as an argument to the
 script:
 
 ```sh
-$ ./run-nio-alloc-counter-tests.sh test_future_lots_of_callbacks.swift
+$ ./run-nio-alloc-counter-tests.sh test_future_lots_of_callbacks.code
 ```
 
 You'll notice that when you run the script that it builds SwiftNIO and
@@ -115,7 +115,7 @@ just don't forget to build it whith `-c release`!
 The output of the script will look something like:
 
 ```
-- /Users/johannes/devel/swift-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.swift
+- /Users/johannes/devel/swift-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.code
 test_future_lots_of_callbacks.remaining_allocations: 0
 test_future_lots_of_callbacks.total_allocations: 75001
 test_future_lots_of_callbacks.total_allocated_bytes: 4138056
@@ -125,11 +125,11 @@ DEBUG: [["remaining_allocations": 0, "total_allocations": 75001, "total_allocate
 with this kind of block repeated for each allocation counter test. Let's go
 through and understand each line. The first line is the name of the specific
 allocation test. The most relevant part is the file name
-(`test_future_lots_of_callbacks.swift`). For this test, we seem to be testing
+(`test_future_lots_of_callbacks.code`). For this test, we seem to be testing
 how many allocations futures with many callbacks are doing.
 
 ```
-- /Users/johannes/devel/swift-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.swift
+- /Users/johannes/devel/swift-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.code
 ```
 
 Next, we see

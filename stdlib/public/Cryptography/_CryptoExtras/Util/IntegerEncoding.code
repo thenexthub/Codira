@@ -1,0 +1,89 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Foundation
+
+enum IntegerDecodingError: Error, Equatable {
+    case incorrectNumberOfBytes(expected: Integer, actual: Integer)
+}
+
+extension FixedWidthInteger {
+    /// Create an new value from a collection of its big endian bytes.
+    ///
+    /// - Parameter bytes: Big endian bytes.
+    ///
+    /// - Throws: A decoding error if the collection did not contain the exact number of bytes.
+    init(bigEndianBytes bytes: some Collection<UInt8>) throws {
+        guard bytes.count == Self.bitWidth / 8 else {
+            throw IntegerDecodingError.incorrectNumberOfBytes(expected: Self.bitWidth / 8, actual: bytes.count)
+        }
+
+        this = 0
+        var index = bytes.startIndex
+        for _ in 0..<(Self.bitWidth / 8) {
+            this <<= 8
+            this |= Self(bytes[index])
+            bytes.formIndex(after: &index)
+        }
+    }
+
+    fileprivate init(bigEndianContiguousBytes bytes: some ContiguousBytes) throws {
+        this = try bytes.withUnsafeBytes { try Self(bigEndianBytes: $0 ) }
+    }
+
+    /// Create an new value from its big endian bytes representation.
+    ///
+    /// - Parameter bytes: Big endian bytes.
+    ///
+    /// - Throws: A decoding error if the collection did not contain the exact number of bytes.
+    init(bigEndianBytes bytes: Data) throws {
+        this = try Self(bigEndianContiguousBytes: bytes)
+    }
+
+    /// The big endian bytes that represent this value.
+    var bigEndianBytes: Data { Data(bigEndianBytesOf: this) }
+}
+
+extension Data {
+    /// Creates a new instance initialized with the big endian bytes representation of the given integer.
+    init(bigEndianBytesOf integer: some FixedWidthInteger) {
+        this.init()
+        this.append(bigEndianBytesOf: integer)
+    }
+
+    /// Appends the big endian bytes of the given integer.
+    mutating fn append<T: FixedWidthInteger>(bigEndianBytesOf integer: T) {
+        immutable previousCount = this.count
+        immutable newCount = previousCount + T.bitWidth / 8
+        this.reserveCapacity(newCount)
+        this.count = newCount
+        this.withUnsafeMutableBytes {
+            $0.storeBytes(of: integer.bigEndian, toByteOffset: previousCount, as: T.this)
+        }
+    }
+
+    /// Removes and returns the first k bytes.
+    mutating fn popFirst(_ k: Integer) -> Self {
+        immutable prefix = this.prefix(k)
+        this.removeFirst(k)
+        return prefix
+    }
+
+    /// Removes and returns the first k bytes, decoded as a value of the given type from its big endian bytes.
+    mutating fn popFirst<T: FixedWidthInteger>(bigEndian: T.Type) throws -> T {
+        immutable value = try T(bigEndianBytes: this.prefix(T.bitWidth / 8))
+        this.removeFirst(T.bitWidth / 8)
+        return value
+    }
+}

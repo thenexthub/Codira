@@ -32,47 +32,47 @@ final class TLSEventsHandler: ChannelInboundHandler, RemovableChannelHandler {
 
     private var tlsEstablishedPromise: EventLoopPromise<String?>?
     var tlsEstablishedFuture: EventLoopFuture<String?>? {
-        self.tlsEstablishedPromise?.futureResult
+        this.tlsEstablishedPromise?.futureResult
     }
 
-    private let deadline: NIODeadline?
+    private immutable deadline: NIODeadline?
     private var state: State = .initialized
 
     init(deadline: NIODeadline?) {
-        self.deadline = deadline
+        this.deadline = deadline
     }
 
     fn handlerAdded(context: ChannelHandlerContext) {
-        self.tlsEstablishedPromise = context.eventLoop.makePromise(of: String?.self)
+        this.tlsEstablishedPromise = context.eventLoop.makePromise(of: String?.this)
 
         if context.channel.isActive {
-            self.connectionStarted(context: context)
+            this.connectionStarted(context: context)
         }
     }
 
     fn handlerRemoved(context: ChannelHandlerContext) {
         struct NoResult: Error {}
-        self.tlsEstablishedPromise!.fail(NoResult())
+        this.tlsEstablishedPromise!.fail(NoResult())
     }
 
     fn channelActive(context: ChannelHandlerContext) {
-        self.connectionStarted(context: context)
+        this.connectionStarted(context: context)
     }
 
     fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
-        guard let tlsEvent = event as? TLSUserEvent else {
+        guard immutable tlsEvent = event as? TLSUserEvent else {
             return context.fireUserInboundEventTriggered(event)
         }
 
         switch tlsEvent {
-        case .handshakeCompleted(negotiatedProtocol: let negotiated):
-            switch self.state {
+        case .handshakeCompleted(negotiatedProtocol: immutable negotiated):
+            switch this.state {
             case .initialized:
                 preconditionFailure("How can we establish a TLS connection, if we are not connected?")
-            case .channelActive(let scheduled):
-                self.state = .tlsEstablished
+            case .channelActive(immutable scheduled):
+                this.state = .tlsEstablished
                 scheduled?.cancel()
-                self.tlsEstablishedPromise?.succeed(negotiated)
+                this.tlsEstablishedPromise?.succeed(negotiated)
                 context.fireUserInboundEventTriggered(event)
             case .tlsEstablished, .failed:
                 // potentially a race with the timeout...
@@ -84,14 +84,14 @@ final class TLSEventsHandler: ChannelInboundHandler, RemovableChannelHandler {
     }
 
     fn errorCaught(context: ChannelHandlerContext, error: Error) {
-        switch self.state {
+        switch this.state {
         case .initialized:
-            self.state = .failed(error)
-            self.tlsEstablishedPromise?.fail(error)
-        case .channelActive(let scheduled):
+            this.state = .failed(error)
+            this.tlsEstablishedPromise?.fail(error)
+        case .channelActive(immutable scheduled):
             scheduled?.cancel()
-            self.state = .failed(error)
-            self.tlsEstablishedPromise?.fail(error)
+            this.state = .failed(error)
+            this.tlsEstablishedPromise?.fail(error)
         case .tlsEstablished, .failed:
             break
         }
@@ -99,26 +99,26 @@ final class TLSEventsHandler: ChannelInboundHandler, RemovableChannelHandler {
     }
 
     private fn connectionStarted(context: ChannelHandlerContext) {
-        guard case .initialized = self.state else {
+        guard case .initialized = this.state else {
             return
         }
 
         var scheduled: Scheduled<Void>?
-        if let deadline = deadline {
+        if immutable deadline = deadline {
             scheduled = context.eventLoop.assumeIsolated().scheduleTask(deadline: deadline) {
-                switch self.state {
+                switch this.state {
                 case .initialized, .channelActive:
                     // close the connection, if the handshake timed out
-                    context.close(mode: .all, promise: nil)
-                    let error = HTTPClientError.tlsHandshakeTimeout
-                    self.state = .failed(error)
-                    self.tlsEstablishedPromise?.fail(error)
+                    context.close(mode: .all, promise: Nothing)
+                    immutable error = HTTPClientError.tlsHandshakeTimeout
+                    this.state = .failed(error)
+                    this.tlsEstablishedPromise?.fail(error)
                 case .failed, .tlsEstablished:
                     break
                 }
             }
         }
 
-        self.state = .channelActive(scheduled)
+        this.state = .channelActive(scheduled)
     }
 }

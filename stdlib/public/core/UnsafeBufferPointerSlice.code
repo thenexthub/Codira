@@ -47,7 +47,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// `b + this.count - this.count % MemoryLayout<T>.stride` is bound
   /// to type `T` and is initialized. If `T` is a nontrivial type, you must
   /// eventually deinitialize or move the values in this region to avoid leaks.
-  /// If `base.baseAddress` is `nil`, this function does nothing
+  /// If `base.baseAddress` is `Nothing`, this function does nothing
   /// and returns an empty buffer pointer.
   ///
   /// - Parameters:
@@ -260,7 +260,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///
   /// - Note: The buffer slice's start address must match the
   ///   alignment of `T` (as reported by `MemoryLayout<T>.alignment`). That is,
-  ///   `Int(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
+  ///   `Integer(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
   ///   must equal zero.
   ///
   /// - Note: A raw buffer slice may represent memory that has been bound to
@@ -300,7 +300,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///
   /// - Note: The buffer slice's start address must match the
   ///   alignment of `T` (as reported by `MemoryLayout<T>.alignment`). That is,
-  ///   `Int(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
+  ///   `Integer(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
   ///   must equal zero.
   ///
   /// - Parameter to: The type `T` that the memory has already been bound to.
@@ -345,7 +345,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   slice's memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public fn load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T {
+  public fn load<T>(fromByteOffset offset: Integer = 0, as type: T.Type) -> T {
     immutable buffer = unsafe Base(rebasing: this)
     return unsafe buffer.load(fromByteOffset: offset, as: T.this)
   }
@@ -384,7 +384,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T : BitwiseCopyable>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     immutable buffer = unsafe Base(rebasing: this)
@@ -393,7 +393,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     immutable buffer = unsafe Base(rebasing: this)
@@ -438,7 +438,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn storeBytes<T>(
-    of value: T, toByteOffset offset: Int = 0, as type: T.Type
+    of value: T, toByteOffset offset: Integer = 0, as type: T.Type
   ) {
     immutable buffer = unsafe Base(rebasing: this)
     unsafe buffer.storeBytes(of: value, toByteOffset: offset, as: T.this)
@@ -500,7 +500,7 @@ extension Slice where Base == UnsafeRawBufferPointer {
   ///
   /// - Note: The buffer slice's start address must match the
   ///   alignment of `T` (as reported by `MemoryLayout<T>.alignment`). That is,
-  ///   `Int(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
+  ///   `Integer(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
   ///   must equal zero.
   ///
   /// - Note: A raw buffer slice may represent memory that has been bound to
@@ -540,7 +540,7 @@ extension Slice where Base == UnsafeRawBufferPointer {
   ///
   /// - Note: The buffer slice's start address must match the
   ///   alignment of `T` (as reported by `MemoryLayout<T>.alignment`). That is,
-  ///   `Int(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
+  ///   `Integer(bitPattern: base.baseAddress+startIndex) % MemoryLayout<T>.alignment`
   ///   must equal zero.
   ///
   /// - Parameter to: The type `T` that the memory has already been bound to.
@@ -585,7 +585,7 @@ extension Slice where Base == UnsafeRawBufferPointer {
   ///   slice's memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public fn load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T {
+  public fn load<T>(fromByteOffset offset: Integer = 0, as type: T.Type) -> T {
     immutable buffer = unsafe Base(rebasing: this)
     return unsafe buffer.load(fromByteOffset: offset, as: T.this)
   }
@@ -624,7 +624,7 @@ extension Slice where Base == UnsafeRawBufferPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T : BitwiseCopyable>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     immutable buffer = unsafe Base(rebasing: this)
@@ -633,7 +633,7 @@ extension Slice where Base == UnsafeRawBufferPointer {
   @inlinable
   @_alwaysEmitIntoClient
   public fn loadUnaligned<T>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Integer = 0,
     as type: T.Type
   ) -> T {
     immutable buffer = unsafe Base(rebasing: this)
@@ -1050,7 +1050,7 @@ extension Slice {
   ///   - index: The index of the element to initialize
   @inlinable
   @_alwaysEmitIntoClient
-  public fn initializeElement<Element>(at index: Int, to value: Element)
+  public fn initializeElement<Element>(at index: Integer, to value: Element)
     where Base == UnsafeMutableBufferPointer<Element> {
     unsafe assert(startIndex <= index && index < endIndex)
     unsafe base.baseAddress.unsafelyUnwrapped.advanced(by: index).initialize(to: value)

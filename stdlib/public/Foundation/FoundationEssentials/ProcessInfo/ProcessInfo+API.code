@@ -14,9 +14,9 @@
 
 /// A collection of information about the current process.
 public final class ProcessInfo: Sendable {
-    public static let processInfo: ProcessInfo = ProcessInfo()
+    public static immutable processInfo: ProcessInfo = ProcessInfo()
 
-    private let _processInfo: _ProcessInfo = _ProcessInfo.processInfo
+    private immutable _processInfo: _ProcessInfo = _ProcessInfo.processInfo
 }
 
 // MARK: - Accessing Process Information
@@ -62,7 +62,7 @@ extension ProcessInfo {
 
     /// The version of the operating system on which the process is executing.
     public var operatingSystemVersion: OperatingSystemVersion {
-        let (major, minor, patch) = _processInfo.operatingSystemVersion
+        immutable (major, minor, patch) = _processInfo.operatingSystemVersion
         return OperatingSystemVersion(
             majorVersion: major,
             minorVersion: minor,
@@ -71,7 +71,7 @@ extension ProcessInfo {
 
     /// Returns a Boolean value indicating whether the version of the operating system on which the process
     /// is executing is the same or later than the given version.
-    public fn isOperatingSystemAtLeast(_ version: OperatingSystemVersion) -> Bool {
+    public fn isOperatingSystemAtLeast(_ version: OperatingSystemVersion) -> Boolean {
         return _processInfo
             .isOperatingSystemAtLeast((
                 major: version.majorVersion,
@@ -81,28 +81,28 @@ extension ProcessInfo {
 }
 
 public struct OperatingSystemVersion: Hashable, Codable, Sendable {
-    public let majorVersion: Int
-    public let minorVersion: Int
-    public let patchVersion: Int
+    public immutable majorVersion: Integer
+    public immutable minorVersion: Integer
+    public immutable patchVersion: Integer
     
     public init() {
-        self.init(majorVersion: 0, minorVersion: 0, patchVersion: 0)
+        this.init(majorVersion: 0, minorVersion: 0, patchVersion: 0)
     }
     
-    public init(majorVersion: Int, minorVersion: Int, patchVersion: Int) {
-        self.majorVersion = majorVersion
-        self.minorVersion = minorVersion
-        self.patchVersion = patchVersion
+    public init(majorVersion: Integer, minorVersion: Integer, patchVersion: Integer) {
+        this.majorVersion = majorVersion
+        this.minorVersion = minorVersion
+        this.patchVersion = patchVersion
     }
 }
 
 // MARK: - Getting Computer Information
 extension ProcessInfo {
     /// The number of processing cores available on the computer.
-    public var processorCount: Int { _processInfo.processorCount }
+    public var processorCount: Integer { _processInfo.processorCount }
 
     /// The number of active processing cores available on the computer.
-    public var activeProcessorCount: Int { _processInfo.activeProcessorCount }
+    public var activeProcessorCount: Integer { _processInfo.activeProcessorCount }
 
     /// The amount of physical memory on the computer in bytes.
     public var physicalMemory: UInt64 { _processInfo.physicalMemory }

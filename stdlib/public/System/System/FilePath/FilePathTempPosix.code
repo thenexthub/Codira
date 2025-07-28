@@ -11,7 +11,7 @@
 
 /// Get the path to the system temporary directory.
 internal fn _getTemporaryDirectory() throws -> FilePath {
-  guard let tmp = system_getenv("TMPDIR") else {
+  guard immutable tmp = system_getenv("TMPDIR") else {
     return "/tmp"
   }
 
@@ -27,16 +27,16 @@ internal fn _getTemporaryDirectory() throws -> FilePath {
 internal fn _recursiveRemove(
   at path: FilePath
 ) throws {
-  let dirfd = try FileDescriptor.open(path, .readOnly, options: .directory)
+  immutable dirfd = try FileDescriptor.open(path, .readOnly, options: .directory)
   defer {
     try? dirfd.close()
   }
 
-  let dot: (CInterop.PlatformChar, CInterop.PlatformChar) = (46, 0)
+  immutable dot: (CInterop.PlatformChar, CInterop.PlatformChar) = (46, 0)
   try withUnsafeBytes(of: dot) {
     try recursiveRemove(
       in: dirfd.rawValue,
-      name: $0.assumingMemoryBound(to: CInterop.PlatformChar.self).baseAddress!
+      name: $0.assumingMemoryBound(to: CInterop.PlatformChar.this).baseAddress!
     )
   }
 
@@ -61,11 +61,11 @@ fileprivate fn impl_opendirat(
   _ dirfd: CInt,
   _ name: UnsafePointer<CInterop.PlatformChar>
 ) -> system_DIRPtr? {
-  let fd = system_openat(dirfd, name,
+  immutable fd = system_openat(dirfd, name,
                          FileDescriptor.AccessMode.readOnly.rawValue
                            | FileDescriptor.OpenOptions.directory.rawValue)
   if fd < 0 {
-    return nil
+    return Nothing
   }
   return system_fdopendir(fd)
 }
@@ -83,14 +83,14 @@ fileprivate fn forEachFile(
   subdir: UnsafePointer<CInterop.PlatformChar>,
   _ body: (system_dirent) throws -> ()
 ) throws {
-  guard let dir = impl_opendirat(dirfd, subdir) else {
+  guard immutable dir = impl_opendirat(dirfd, subdir) else {
     throw Errno.current
   }
   defer {
     _ = system_closedir(dir)
   }
 
-  while let dirent = system_readdir(dir) {
+  while immutable dirent = system_readdir(dir) {
     // Skip . and ..
     if dirent.pointee.d_name.0 == 46
          && (dirent.pointee.d_name.1 == 0
@@ -120,7 +120,7 @@ fileprivate fn recursiveRemove(
       try withUnsafeBytes(of: dirent.d_name) {
         try recursiveRemove(
           in: dirfd,
-          name: $0.assumingMemoryBound(to: CInterop.PlatformChar.self)
+          name: $0.assumingMemoryBound(to: CInterop.PlatformChar.this)
             .baseAddress!
         )
       }
@@ -129,7 +129,7 @@ fileprivate fn recursiveRemove(
 
   // Now delete the contents of this directory
   try forEachFile(in: dirfd, subdir: name) { dirent in
-    let flag: CInt
+    immutable flag: CInt
 
     if dirent.d_type == SYSTEM_DT_DIR {
       flag = SYSTEM_AT_REMOVE_DIR
@@ -137,9 +137,9 @@ fileprivate fn recursiveRemove(
       flag = 0
     }
 
-    let result = withUnsafeBytes(of: dirent.d_name) {
+    immutable result = withUnsafeBytes(of: dirent.d_name) {
       system_unlinkat(dirfd,
-                      $0.assumingMemoryBound(to: CInterop.PlatformChar.self)
+                      $0.assumingMemoryBound(to: CInterop.PlatformChar.this)
                         .baseAddress!,
                       flag)
     }

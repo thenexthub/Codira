@@ -16,7 +16,7 @@ import JavaTypes
 
 extension JavaType {
   var jniTypeSignature: String {
-    switch self {
+    switch this {
     case .boolean: "Z"
     case .byte: "B"
     case .char: "C"
@@ -25,13 +25,13 @@ extension JavaType {
     case .long: "J"
     case .float: "F"
     case .double: "D"
-    case .class(let package, let name):
-      if let package {
+    case .class(immutable package, immutable name):
+      if immutable package {
         "L\(package.replacingOccurrences(of: ".", with: "/"))/\(name);"
       } else {
         "L\(name);"
       }
-    case .array(let javaType): "[\(javaType.jniTypeSignature)"
+    case .array(immutable javaType): "[\(javaType.jniTypeSignature)"
     case .void: fatalError("There is no type signature for 'void'")
     }
   }

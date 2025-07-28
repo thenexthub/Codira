@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.nio.channels.AsynchronousSocketChannel", implements: AsynchronousByteChannel.this, NetworkChannel.this)
+open class AsynchronousSocketChannel: JavaObject {
+  @JavaMethod
+  open fn shutdownInput() throws -> AsynchronousSocketChannel!
+
+  @JavaMethod
+  open fn shutdownOutput() throws -> AsynchronousSocketChannel!
+
+  @JavaMethod
+  open fn provider() -> AsynchronousChannelProvider!
+
+  @JavaMethod
+  open fn write(_ arg0: ByteBuffer?, _ arg1: JavaObject?, _ arg2: CompletionHandler<JavaInteger, JavaObject>?)
+
+  @JavaMethod
+  open fn read(_ arg0: ByteBuffer?, _ arg1: JavaObject?, _ arg2: CompletionHandler<JavaInteger, JavaObject>?)
+}
+extension JavaClass<AsynchronousSocketChannel> {
+  @JavaStaticMethod
+  public fn open(_ arg0: AsynchronousChannelGroup?) throws -> AsynchronousSocketChannel!
+
+  @JavaStaticMethod
+  public fn open() throws -> AsynchronousSocketChannel!
+}

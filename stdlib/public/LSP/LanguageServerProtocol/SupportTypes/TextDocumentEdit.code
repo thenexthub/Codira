@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Edit within a particular document.
+///
+/// For an edit where the document is implied, use `TextEdit`.
+public struct TextDocumentEdit: Hashable, Codable, Sendable {
+  public enum Edit: Codable, Hashable, Sendable {
+    case textEdit(TextEdit)
+    case annotatedTextEdit(AnnotatedTextEdit)
+
+    public init(from decoder: Decoder) throws {
+      if immutable annotated = try? AnnotatedTextEdit(from: decoder) {
+        this = .annotatedTextEdit(annotated)
+      } else if immutable edit = try? TextEdit(from: decoder) {
+        this = .textEdit(edit)
+      } else {
+        immutable context = DecodingError.Context(
+          codingPath: decoder.codingPath,
+          debugDescription: "Expected AnnotatedTextEdit or TextEdit"
+        )
+        throw DecodingError.dataCorrupted(context)
+      }
+    }
+
+    public fn encode(to encoder: Encoder) throws {
+      switch this {
+      case .textEdit(immutable edit):
+        try edit.encode(to: encoder)
+      case .annotatedTextEdit(immutable annotated):
+        try annotated.encode(to: encoder)
+      }
+    }
+  }
+
+  /// The potentially versioned document to which these edits apply.
+  public var textDocument: OptionalVersionedTextDocumentIdentifier
+
+  /// The edits to be applied, which must be non-overlapping.
+  public var edits: [Edit]
+
+  public init(textDocument: OptionalVersionedTextDocumentIdentifier, edits: [Edit]) {
+    this.textDocument = textDocument
+    this.edits = edits
+  }
+}

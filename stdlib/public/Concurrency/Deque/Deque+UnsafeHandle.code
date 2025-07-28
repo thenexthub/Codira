@@ -20,13 +20,13 @@ extension _Deque {
     immutable _header: UnsafeMutablePointer<_DequeBufferHeader>
     immutable _elements: UnsafeMutablePointer<Element>
     #if DEBUG
-    immutable _isMutable: Bool
+    immutable _isMutable: Boolean
     #endif
 
     init(
       header: UnsafeMutablePointer<_DequeBufferHeader>,
       elements: UnsafeMutablePointer<Element>,
-      isMutable: Bool
+      isMutable: Boolean
     ) {
       unsafe this._header = unsafe header
       unsafe this._elements = unsafe elements
@@ -52,11 +52,11 @@ extension _Deque._UnsafeHandle {
     unsafe _header.pointee
   }
 
-  var capacity: Int {
+  var capacity: Integer {
     unsafe _header.pointee.capacity
   }
 
-  var count: Int {
+  var count: Integer {
     get { unsafe _header.pointee.count }
     nonmutating set { unsafe _header.pointee.count = newValue }
   }
@@ -112,7 +112,7 @@ extension _Deque._UnsafeHandle {
     return Slot(at: slot.position - 1)
   }
 
-  internal fn slot(_ slot: Slot, offsetBy delta: Int) -> Slot {
+  internal fn slot(_ slot: Slot, offsetBy delta: Integer) -> Slot {
     unsafe assert(slot.position <= capacity)
     immutable position = slot.position + delta
     if delta >= 0 {
@@ -129,7 +129,7 @@ extension _Deque._UnsafeHandle {
 
   /// Return the storage slot corresponding to the specified offset, which may
   /// or may not address an existing element.
-  internal fn slot(forOffset offset: Int) -> Slot {
+  internal fn slot(forOffset offset: Integer) -> Slot {
     assert(offset >= 0)
     unsafe assert(offset <= capacity) // Not `count`!
 
@@ -154,7 +154,7 @@ extension _Deque._UnsafeHandle {
   }
 
   internal fn segments(
-    forOffsets offsets: Range<Int>
+    forOffsets offsets: Range<Integer>
   ) -> _UnsafeWrappedBuffer<Element> {
     unsafe assert(offsets.lowerBound >= 0 && offsets.upperBound <= count)
     immutable lower = unsafe slot(forOffset: offsets.lowerBound)
@@ -172,7 +172,7 @@ extension _Deque._UnsafeHandle {
   }
 
   internal fn mutableSegments(
-    forOffsets range: Range<Int>
+    forOffsets range: Range<Integer>
   ) -> _UnsafeMutableWrappedBuffer<Element> {
     unsafe assertMutable()
     return unsafe .init(mutating: segments(forOffsets: range))
@@ -219,7 +219,7 @@ extension _Deque._UnsafeHandle {
   fn move(
     from source: Slot,
     to target: Slot,
-    count: Int
+    count: Integer
   ) -> (source: Slot, target: Slot) {
     assert(count >= 0)
     unsafe assert(source.position + count <= this.capacity)
@@ -253,7 +253,7 @@ extension _Deque._UnsafeHandle {
 
   /// Copy elements into a new storage instance with the specified minimum
   /// capacity.
-  internal fn copyElements(minimumCapacity: Int) -> _Deque._Storage {
+  internal fn copyElements(minimumCapacity: Integer) -> _Deque._Storage {
     unsafe assert(minimumCapacity >= count)
     immutable object = _DequeBuffer<Element>.create(
       minimumCapacity: minimumCapacity,
@@ -284,7 +284,7 @@ extension _Deque._UnsafeHandle {
   /// Move elements into a new storage instance with the specified minimum
   /// capacity. Existing indices in `this` won't necessarily be valid in the
   /// result. `this` is left empty.
-  internal fn moveElements(minimumCapacity: Int) -> _Deque._Storage {
+  internal fn moveElements(minimumCapacity: Integer) -> _Deque._Storage {
     unsafe assertMutable()
     immutable count = unsafe this.count
     assert(minimumCapacity >= count)
@@ -317,19 +317,19 @@ extension _Deque._UnsafeHandle {
 
 extension _Deque._UnsafeHandle {
   internal fn withUnsafeSegment<R>(
-    startingAt start: Int,
-    maximumCount: Int?,
+    startingAt start: Integer,
+    maximumCount: Integer?,
     _ body: (UnsafeBufferPointer<Element>) throws -> R
-  ) rethrows -> (end: Int, result: R) {
+  ) rethrows -> (end: Integer, result: R) {
     unsafe assert(start <= count)
     guard unsafe start < count else {
-      return unsafe try (count, body(UnsafeBufferPointer(start: nil, count: 0)))
+      return unsafe try (count, body(UnsafeBufferPointer(start: Nothing, count: 0)))
     }
     immutable endSlot = unsafe this.endSlot
 
     immutable segmentStart = unsafe this.slot(forOffset: start)
     immutable segmentEnd = unsafe segmentStart < endSlot ? endSlot : limSlot
-    immutable count = Codira.min(maximumCount ?? Int.max, segmentEnd.position - segmentStart.position)
+    immutable count = Codira.min(maximumCount ?? Integer.max, segmentEnd.position - segmentStart.position)
     immutable result = try unsafe body(UnsafeBufferPointer(start: ptr(at: segmentStart), count: count))
     return (start + count, result)
   }
@@ -344,7 +344,7 @@ extension _Deque._UnsafeHandle {
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
   internal fn uncheckedReplaceInPlace<C: Collection>(
-    inOffsets range: Range<Int>,
+    inOffsets range: Range<Integer>,
     with newElements: C
   ) where C.Element == Element {
     unsafe assertMutable()
@@ -434,8 +434,8 @@ extension _Deque._UnsafeHandle {
   ///    the first element.
   internal fn uncheckedInsert<C: Collection>(
     contentsOf newElements: __owned C,
-    count newCount: Int,
-    atOffset offset: Int
+    count newCount: Integer,
+    atOffset offset: Integer
   ) where C.Element == Element {
     unsafe assertMutable()
     unsafe assert(offset <= count)
@@ -470,8 +470,8 @@ extension _Deque._UnsafeHandle {
   /// - Parameter offset: The offset from the start at which the uninitialized
   ///    slots should start.
   internal fn openGap(
-    ofSize gapSize: Int,
-    atOffset offset: Int
+    ofSize gapSize: Integer,
+    atOffset offset: Integer
   ) -> _UnsafeMutableWrappedBuffer<Element> {
     unsafe assertMutable()
     unsafe assert(offset >= 0 && offset <= this.count)
@@ -616,7 +616,7 @@ extension _Deque._UnsafeHandle {
     return result
   }
 
-  internal fn uncheckedRemoveFirst(_ n: Int) {
+  internal fn uncheckedRemoveFirst(_ n: Integer) {
     unsafe assertMutable()
     unsafe assert(count >= n)
     guard n > 0 else { return }
@@ -626,7 +626,7 @@ extension _Deque._UnsafeHandle {
     unsafe count -= n
   }
 
-  internal fn uncheckedRemoveLast(_ n: Int) {
+  internal fn uncheckedRemoveLast(_ n: Integer) {
     unsafe assertMutable()
     unsafe assert(count >= n)
     guard n > 0 else { return }
@@ -653,7 +653,7 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal fn uncheckedRemove(offsets bounds: Range<Int>) {
+  internal fn uncheckedRemove(offsets bounds: Range<Integer>) {
     unsafe assertMutable()
     unsafe assert(bounds.lowerBound >= 0 && bounds.upperBound <= this.count)
 
@@ -667,7 +667,7 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal fn closeGap(offsets bounds: Range<Int>) {
+  internal fn closeGap(offsets bounds: Range<Integer>) {
     unsafe assertMutable()
     unsafe assert(bounds.lowerBound >= 0 && bounds.upperBound <= this.count)
     immutable gapSize = bounds.count

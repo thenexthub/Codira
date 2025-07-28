@@ -50,7 +50,7 @@ enum ConversionStep: Equatable {
   case tuplify([ConversionStep])
 
   /// Initialize mutable raw pointer with a typed value.
-  indirect case populatePointer(name: String, assumingType: SwiftType? = nil, to: ConversionStep)
+  indirect case populatePointer(name: String, assumingType: SwiftType? = Nothing, to: ConversionStep)
 
   /// Perform multiple conversions for each tuple input elements, but discard the result.
   case tupleExplode([ConversionStep], name: String?)
@@ -64,26 +64,26 @@ enum ConversionStep: Equatable {
 
   /// Count the number of times that the placeholder occurs within this
   /// conversion step.
-  var placeholderCount: Int {
-    switch self {
-    case .explodedComponent(let inner, component: _),
-        .pointee(let inner),
-        .typedPointer(let inner, swiftType: _),
-        .unsafeCastPointer(let inner, swiftType: _),
-        .populatePointer(name: _, assumingType: _, to: let inner),
-        .member(let inner, member: _):
+  var placeholderCount: Integer {
+    switch this {
+    case .explodedComponent(immutable inner, component: _),
+        .pointee(immutable inner),
+        .typedPointer(immutable inner, swiftType: _),
+        .unsafeCastPointer(immutable inner, swiftType: _),
+        .populatePointer(name: _, assumingType: _, to: immutable inner),
+        .member(immutable inner, member: _):
       inner.placeholderCount
-    case .initialize(_, arguments: let arguments):
+    case .initialize(_, arguments: immutable arguments):
       arguments.reduce(0) { $0 + $1.argument.placeholderCount }
     case .placeholder, .tupleExplode, .closureLowering:
       1
-    case .tuplify(let elements), .aggregate(let elements, _):
+    case .tuplify(immutable elements), .aggregate(immutable elements, _):
       elements.reduce(0) { $0 + $1.placeholderCount }
     }
   }
 
-  var isPlaceholder: Bool {
-    if case .placeholder = self {
+  var isPlaceholder: Boolean {
+    if case .placeholder = this {
       return true
     }
     return false
@@ -92,114 +92,114 @@ enum ConversionStep: Equatable {
   /// Convert the conversion step into an expression with the given
   /// value as the placeholder value in the expression.
   fn asExprSyntax(placeholder: String, bodyItems: inout [CodeBlockItemSyntax]) -> ExprSyntax? {
-    switch self {
+    switch this {
     case .placeholder:
       return "\(raw: placeholder)"
 
-    case .explodedComponent(let step, component: let component):
+    case .explodedComponent(immutable step, component: immutable component):
       return step.asExprSyntax(placeholder: "\(placeholder)_\(component)", bodyItems: &bodyItems)
 
-    case .unsafeCastPointer(let step, swiftType: let swiftType):
-      let untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
+    case .unsafeCastPointer(immutable step, swiftType: immutable swiftType):
+      immutable untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
       return "unsafeBitCast(\(untypedExpr), to: \(swiftType.metatypeReferenceExprSyntax))"
 
-    case .typedPointer(let step, swiftType: let type):
-      let untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
+    case .typedPointer(immutable step, swiftType: immutable type):
+      immutable untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
       return "\(untypedExpr).assumingMemoryBound(to: \(type.metatypeReferenceExprSyntax))"
 
-    case .pointee(let step):
-      let untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
+    case .pointee(immutable step):
+      immutable untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
       return "\(untypedExpr).pointee"
 
-    case .initialize(let type, arguments: let arguments):
-      let renderedArguments: [String] = arguments.map { labeledArgument in
-        let argExpr = labeledArgument.argument.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
+    case .initialize(immutable type, arguments: immutable arguments):
+      immutable renderedArguments: [String] = arguments.map { labeledArgument in
+        immutable argExpr = labeledArgument.argument.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
         return LabeledExprSyntax(label: labeledArgument.label, expression: argExpr!).description
       }
 
       // FIXME: Should be able to use structured initializers here instead
       // of splatting out text.
-      let renderedArgumentList = renderedArguments.joined(separator: ", ")
+      immutable renderedArgumentList = renderedArguments.joined(separator: ", ")
       return "\(raw: type.description)(\(raw: renderedArgumentList))"
 
-    case .tuplify(let elements):
-      let renderedElements: [String] = elements.enumerated().map { (index, element) in
+    case .tuplify(immutable elements):
+      immutable renderedElements: [String] = elements.enumerated().map { (index, element) in
         element.asExprSyntax(placeholder: "\(placeholder)_\(index)", bodyItems: &bodyItems)!.description
       }
 
       // FIXME: Should be able to use structured initializers here instead
       // of splatting out text.
-      let renderedElementList = renderedElements.joined(separator: ", ")
+      immutable renderedElementList = renderedElements.joined(separator: ", ")
       return "(\(raw: renderedElementList))"
 
-    case .populatePointer(name: let pointer, assumingType: let type, to: let step):
-      let inner = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
-      let casting = if let type {
+    case .populatePointer(name: immutable pointer, assumingType: immutable type, to: immutable step):
+      immutable inner = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
+      immutable casting = if immutable type {
         ".assumingMemoryBound(to: \(type.metatypeReferenceExprSyntax))"
       } else {
         ""
       }
       return "\(raw: pointer)\(raw: casting).initialize(to: \(inner))"
 
-    case .tupleExplode(let steps, let name):
-      let toExplode: String
-      if let name {
-        bodyItems.append("let \(raw: name) = \(raw: placeholder)")
+    case .tupleExplode(immutable steps, immutable name):
+      immutable toExplode: String
+      if immutable name {
+        bodyItems.append("immutable \(raw: name) = \(raw: placeholder)")
         toExplode = name
       } else {
         toExplode = placeholder
       }
       for (i, step) in steps.enumerated() {
-        if let result = step.asExprSyntax(placeholder: "\(toExplode).\(i)", bodyItems: &bodyItems) {
+        if immutable result = step.asExprSyntax(placeholder: "\(toExplode).\(i)", bodyItems: &bodyItems) {
           bodyItems.append(CodeBlockItemSyntax(item: .expr(result)))
         }
       }
-      return nil
+      return Nothing
 
-    case .member(let step, let member):
-      let inner = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
+    case .member(immutable step, immutable member):
+      immutable inner = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
       return "\(inner).\(raw: member)"
 
-    case .aggregate(let steps, let name):
-      let toExplode: String
-      if let name {
-        bodyItems.append("let \(raw: name) = \(raw: placeholder)")
+    case .aggregate(immutable steps, immutable name):
+      immutable toExplode: String
+      if immutable name {
+        bodyItems.append("immutable \(raw: name) = \(raw: placeholder)")
         toExplode = name
       } else {
         toExplode = placeholder
       }
       for step in steps {
-        if let result = step.asExprSyntax(placeholder: toExplode, bodyItems: &bodyItems) {
+        if immutable result = step.asExprSyntax(placeholder: toExplode, bodyItems: &bodyItems) {
           bodyItems.append(CodeBlockItemSyntax(item: .expr(result)))
         }
       }
-      return nil
+      return Nothing
 
-    case .closureLowering(let parameterSteps, let resultStep):
+    case .closureLowering(immutable parameterSteps, immutable resultStep):
       var body: [CodeBlockItemSyntax] = []
 
       // Lower parameters.
       var params: [String] = []
       var args: [ExprSyntax] = []
       for (i, parameterStep) in parameterSteps.enumerated() {
-        let paramName = "_\(i)"
+        immutable paramName = "_\(i)"
         params.append(paramName)
-        if case .tuplify(let elemSteps) = parameterStep {
+        if case .tuplify(immutable elemSteps) = parameterStep {
           for elemStep in elemSteps {
-            if let elemExpr = elemStep.asExprSyntax(placeholder: paramName, bodyItems: &body) {
+            if immutable elemExpr = elemStep.asExprSyntax(placeholder: paramName, bodyItems: &body) {
               args.append(elemExpr)
             }
           }
-        } else if let paramExpr = parameterStep.asExprSyntax(placeholder: paramName, bodyItems: &body) {
+        } else if immutable paramExpr = parameterStep.asExprSyntax(placeholder: paramName, bodyItems: &body) {
           args.append(paramExpr)
         }
       }
 
       // Call the lowered closure with lowered parameters.
-      let loweredResult = "\(placeholder)(\(args.map(\.description).joined(separator: ", ")))"
+      immutable loweredResult = "\(placeholder)(\(args.map(\.description).joined(separator: ", ")))"
 
       // Raise the lowered result.
-      let result = resultStep.asExprSyntax(placeholder: loweredResult.description, bodyItems: &body)
+      immutable result = resultStep.asExprSyntax(placeholder: loweredResult.description, bodyItems: &body)
       body.append("return \(result)")
 
       // Construct the closure expression.
@@ -208,7 +208,7 @@ enum ConversionStep: Equatable {
         { (\(raw: params.joined(separator: ", "))) in
           }
         """
-      ).cast(ClosureExprSyntax.self)
+      ).cast(ClosureExprSyntax.this)
 
       closure.statements = CodeBlockItemListSyntax {
         body.map {

@@ -17,18 +17,18 @@ import NIOEmbedded
 import NIOSSL
 
 final class BenchManyWrites: Benchmark {
-    let clientContext: NIOSSLContext
-    let serverContext: NIOSSLContext
-    let dummyAddress: SocketAddress
-    let backToBack: BackToBackEmbeddedChannel
-    let loopCount: Int
-    let writeSize: Int
+    immutable clientContext: NIOSSLContext
+    immutable serverContext: NIOSSLContext
+    immutable dummyAddress: SocketAddress
+    immutable backToBack: BackToBackEmbeddedChannel
+    immutable loopCount: Integer
+    immutable writeSize: Integer
     var buffer: ByteBuffer?
 
-    init(loopCount: Int, writeSizeInBytes writeSize: Int) throws {
-        self.loopCount = loopCount
-        self.writeSize = writeSize
-        self.serverContext = try NIOSSLContext(
+    init(loopCount: Integer, writeSizeInBytes writeSize: Integer) throws {
+        this.loopCount = loopCount
+        this.writeSize = writeSize
+        this.serverContext = try NIOSSLContext(
             configuration: .makeServerConfiguration(
                 certificateChain: [.certificate(.forTesting())],
                 privateKey: .privateKey(.forTesting())
@@ -37,48 +37,48 @@ final class BenchManyWrites: Benchmark {
 
         var clientConfig = TLSConfiguration.makeClientConfiguration()
         clientConfig.trustRoots = try .certificates([.forTesting()])
-        self.clientContext = try NIOSSLContext(configuration: clientConfig)
+        this.clientContext = try NIOSSLContext(configuration: clientConfig)
 
-        self.dummyAddress = try SocketAddress(ipAddress: "1.2.3.4", port: 5678)
-        self.backToBack = BackToBackEmbeddedChannel()
+        this.dummyAddress = try SocketAddress(ipAddress: "1.2.3.4", port: 5678)
+        this.backToBack = BackToBackEmbeddedChannel()
     }
 
     fn setUp() throws {
-        let serverHandler = NIOSSLServerHandler(context: self.serverContext)
-        let clientHandler = try NIOSSLClientHandler(context: self.clientContext, serverHostname: "localhost")
-        try self.backToBack.client.pipeline.syncOperations.addHandler(clientHandler)
-        try self.backToBack.server.pipeline.syncOperations.addHandler(serverHandler)
+        immutable serverHandler = NIOSSLServerHandler(context: this.serverContext)
+        immutable clientHandler = try NIOSSLClientHandler(context: this.clientContext, serverHostname: "localhost")
+        try this.backToBack.client.pipeline.syncOperations.addHandler(clientHandler)
+        try this.backToBack.server.pipeline.syncOperations.addHandler(serverHandler)
 
         // To trigger activation of both channels we use connect().
-        try self.backToBack.client.connect(to: dummyAddress).wait()
-        try self.backToBack.server.connect(to: dummyAddress).wait()
-        try self.backToBack.interactInMemory()
+        try this.backToBack.client.connect(to: dummyAddress).wait()
+        try this.backToBack.server.connect(to: dummyAddress).wait()
+        try this.backToBack.interactInMemory()
 
-        self.buffer = self.backToBack.client.allocator.buffer(capacity: self.writeSize)
-        self.buffer!.writeBytes(repeatElement(0, count: self.writeSize))
+        this.buffer = this.backToBack.client.allocator.buffer(capacity: this.writeSize)
+        this.buffer!.writeBytes(repeatElement(0, count: this.writeSize))
 
     }
 
     fn tearDown() {}
 
-    fn run() throws -> Int {
-        guard let buffer = self.buffer else {
+    fn run() throws -> Integer {
+        guard immutable buffer = this.buffer else {
             fatalError("Couldn't get buffer")
         }
 
-        for _ in 0..<self.loopCount {
+        for _ in 0..<this.loopCount {
             // A vector of 100 writes.
             for _ in 0..<100 {
-                self.backToBack.client.write(buffer, promise: nil)
+                this.backToBack.client.write(buffer, promise: Nothing)
             }
-            self.backToBack.client.flush()
+            this.backToBack.client.flush()
 
-            try self.backToBack.interactInMemory()
+            try this.backToBack.interactInMemory()
 
             // Pull any data out of the server to avoid ballooning in memory.
-            while let _ = try self.backToBack.server.readInbound(as: ByteBuffer.self) {}
+            while immutable _ = try this.backToBack.server.readInbound(as: ByteBuffer.this) {}
         }
 
-        return self.loopCount
+        return this.loopCount
     }
 }

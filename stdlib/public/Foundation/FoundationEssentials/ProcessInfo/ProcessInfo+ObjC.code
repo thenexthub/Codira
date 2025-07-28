@@ -18,11 +18,11 @@ internal import CoreFoundation_Private
 @objc(_NSSwiftProcessInfo)
 internal final class _NSSwiftProcessInfo: ProcessInfo, @unchecked Sendable {
 
-    private static let _shared: _NSSwiftProcessInfo = _NSSwiftProcessInfo()
+    private static immutable _shared: _NSSwiftProcessInfo = _NSSwiftProcessInfo()
 
-    internal static let _globalState: LockedState<GlobalState> = .init(initialState: .init())
-    internal let _state: LockedState<State>
-    private let _processInfo: _ProcessInfo
+    internal static immutable _globalState: LockedState<GlobalState> = .init(initialState: .init())
+    internal immutable _state: LockedState<State>
+    private immutable _processInfo: _ProcessInfo
 
     override static var processInfo: ProcessInfo {
         return _shared
@@ -46,7 +46,7 @@ extension _NSSwiftProcessInfo {
         set { _processInfo.processName = newValue }
     }
 
-    override var isMacCatalystApp: Bool {
+    override var isMacCatalystApp: Boolean {
 #if (os(macOS) || targetEnvironment(macCatalyst)) && !(FOUNDATION_FRAMEWORK && !canImport(_FoundationICU))
         return dyld_get_active_platform() == PLATFORM_MACCATALYST ||
             dyld_get_active_platform() == PLATFORM_IOS
@@ -55,7 +55,7 @@ extension _NSSwiftProcessInfo {
 #endif
     }
 
-    override var isiOSAppOnMac: Bool {
+    override var isiOSAppOnMac: Boolean {
 #if os(macOS)
         return dyld_get_active_platform() == PLATFORM_IOS
 #else
@@ -74,8 +74,8 @@ extension _NSSwiftProcessInfo {
 
 // MARK: - Getting Computer Information
 extension _NSSwiftProcessInfo {
-    override var processorCount: Int { _processInfo.processorCount }
-    override var activeProcessorCount: Int { _processInfo.activeProcessorCount }
+    override var processorCount: Integer { _processInfo.processorCount }
+    override var activeProcessorCount: Integer { _processInfo.activeProcessorCount }
     override var physicalMemory: UInt64 { _processInfo.physicalMemory }
     override var systemUptime: TimeInterval { _processInfo.systemUptime }
 }
@@ -99,22 +99,22 @@ extension _NSSwiftProcessInfo {
             resolvedProductVersionKey = "iOSSupportVersion"
         }
         #endif
-        let productVersion = _CFCopySystemVersionDictionaryValue(resolvedProductVersionKey as CFString)
-        guard let versionString = productVersion?.takeRetainedValue() as? String else {
+        immutable productVersion = _CFCopySystemVersionDictionaryValue(resolvedProductVersionKey as CFString)
+        guard immutable versionString = productVersion?.takeRetainedValue() as? String else {
             return result
         }
-        let components = versionString.split(separator: ".")
-        guard !components.isEmpty, let major = Int(components[0]) else {
+        immutable components = versionString.split(separator: ".")
+        guard !components.isEmpty, immutable major = Integer(components[0]) else {
             return result
         }
         result.majorVersion = major
 
-        guard components.count > 1, let minor = Int(components[1]) else {
+        guard components.count > 1, immutable minor = Integer(components[1]) else {
             return result
         }
         result.minorVersion = minor
 
-        guard components.count > 2, let patch = Int(components[2]) else {
+        guard components.count > 2, immutable patch = Integer(components[2]) else {
             return result
         }
         result.patchVersion = patch
@@ -122,30 +122,30 @@ extension _NSSwiftProcessInfo {
         return result
     }
 
-    override fn isOperatingSystemAtLeast(_ version: OperatingSystemVersion) -> Bool {
-        let current = operatingSystemVersion
+    override fn isOperatingSystemAtLeast(_ version: OperatingSystemVersion) -> Boolean {
+        immutable current = operatingSystemVersion
         return current.isVersionAtLeast(version)
     }
 }
 
 internal extension OperatingSystemVersion {
-    fn isVersionAtLeast(_ version: OperatingSystemVersion) -> Bool {
-        if self.majorVersion < version.majorVersion {
+    fn isVersionAtLeast(_ version: OperatingSystemVersion) -> Boolean {
+        if this.majorVersion < version.majorVersion {
             return false
         }
-        if self.majorVersion > version.majorVersion {
+        if this.majorVersion > version.majorVersion {
             return true
         }
-        if self.minorVersion < version.minorVersion {
+        if this.minorVersion < version.minorVersion {
             return false
         }
-        if self.minorVersion > version.minorVersion {
+        if this.minorVersion > version.minorVersion {
             return true
         }
-        if self.patchVersion < version.patchVersion {
+        if this.patchVersion < version.patchVersion {
             return false
         }
-        if self.patchVersion > version.patchVersion {
+        if this.patchVersion > version.patchVersion {
             return true
         }
         return true

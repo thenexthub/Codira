@@ -1,0 +1,583 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaKitCollection
+import JavaKitFunction
+import JavaRuntime
+
+@JavaClass("java.util.Arrays")
+open class Arrays: JavaObject {
+
+}
+extension JavaClass<Arrays> {
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Double], _ arg1: [Double]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Boolean], _ arg1: Int32, _ arg2: Int32, _ arg3: [Boolean], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Boolean], _ arg1: [Boolean]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int8], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int8], _ arg1: [Int8]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32, _ arg3: [JavaObject?], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [JavaObject?], _ arg1: [JavaObject?]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32, _ arg3: [Float], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Float], _ arg1: [Float]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32, _ arg3: [Double], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int32], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: [UInt16], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int64], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int64], _ arg1: [Int64]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int16], _ arg1: [Int16]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int16], _ arg4: Int32, _ arg5: Int32) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [UInt16], _ arg1: [UInt16]) -> Boolean
+
+  @JavaStaticMethod
+  public fn equals(_ arg0: [Int32], _ arg1: [Int32]) -> Boolean
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [UInt16]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Float]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Double]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [JavaObject?]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Int8]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Boolean]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Int64]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Int32]) -> String
+
+  @JavaStaticMethod
+  public fn toString(_ arg0: [Int16]) -> String
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Float]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Int8]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Boolean]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Double]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [JavaObject?]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Int64]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Int32]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [Int16]) -> Int32
+
+  @JavaStaticMethod
+  public fn hashCode(_ arg0: [UInt16]) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int8], _ arg1: [Int8]) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int16], _ arg1: [Int16]) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int8], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int64], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int16], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int64], _ arg1: [Int64]) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int32], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compareUnsigned(_ arg0: [Int32], _ arg1: [Int32]) -> Int32
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Double], _ arg1: Int32) -> [Double]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Int32], _ arg1: Int32) -> [Int32]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Int8], _ arg1: Int32) -> [Int8]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: JavaClass<JavaArray>?) -> [JavaObject?]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [JavaObject?], _ arg1: Int32) -> [JavaObject?]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Boolean], _ arg1: Int32) -> [Boolean]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Float], _ arg1: Int32) -> [Float]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [UInt16], _ arg1: Int32) -> [UInt16]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Int64], _ arg1: Int32) -> [Int64]
+
+  @JavaStaticMethod
+  public fn copyOf(_ arg0: [Int16], _ arg1: Int32) -> [Int16]
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [JavaObject?])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int64])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int16])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int32])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Double])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Float])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [UInt16])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int8])
+
+  @JavaStaticMethod
+  public fn sort(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Boolean], _ arg1: Int32, _ arg2: Int32) -> [Boolean]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32) -> [UInt16]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32) -> [Int64]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32) -> [Float]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32) -> [Double]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32) -> [JavaObject?]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaClass<JavaArray>?) -> [JavaObject?]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32) -> [Int8]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32) -> [Int16]
+
+  @JavaStaticMethod
+  public fn copyOfRange(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32) -> [Int32]
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: [UInt16], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int32], _ arg1: [Int32]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [UInt16], _ arg1: [UInt16]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int32], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int64], _ arg1: [Int64]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int64], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Double], _ arg1: [Double]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32, _ arg3: [Float], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int16], _ arg1: [Int16]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int16], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Boolean], _ arg1: [Boolean]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Boolean], _ arg1: Int32, _ arg2: Int32, _ arg3: [Boolean], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int8], _ arg1: [Int8]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int8], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Comparable?], _ arg1: Int32, _ arg2: Int32, _ arg3: [Comparable?], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Comparable?], _ arg1: [Comparable?]) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32, _ arg3: [Double], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn compare(_ arg0: [Float], _ arg1: [Float]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int64], _ arg1: [Int64]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Float], _ arg1: [Float]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int64], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [JavaObject?], _ arg1: [JavaObject?]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32, _ arg3: [JavaObject?], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32, _ arg3: [Double], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Double], _ arg1: [Double]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32, _ arg3: [Float], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int8], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [UInt16], _ arg1: [UInt16]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: [UInt16], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int32], _ arg1: [Int32]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int16], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int16], _ arg1: [Int16]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: [Int32], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Boolean], _ arg1: [Boolean]) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Boolean], _ arg1: Int32, _ arg2: Int32, _ arg3: [Boolean], _ arg4: Int32, _ arg5: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn mismatch(_ arg0: [Int8], _ arg1: [Int8]) -> Int32
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaObject?)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int64], _ arg1: Int64)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Boolean], _ arg1: Boolean)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int16], _ arg1: Int16)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: Int32)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int32], _ arg1: Int32)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Boolean], _ arg1: Int32, _ arg2: Int32, _ arg3: Boolean)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int8], _ arg1: Int8)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [UInt16], _ arg1: UInt16)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32, _ arg3: Int16)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: Int8)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32, _ arg3: Double)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Float], _ arg1: Float)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32, _ arg3: Float)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [JavaObject?], _ arg1: JavaObject?)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: UInt16)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: Int64)
+
+  @JavaStaticMethod
+  public fn fill(_ arg0: [Double], _ arg1: Double)
+
+  @JavaStaticMethod
+  public fn asList(_ arg0: [JavaObject?]) -> List<JavaObject>!
+
+  @JavaStaticMethod
+  public fn deepEquals(_ arg0: [JavaObject?], _ arg1: [JavaObject?]) -> Boolean
+
+  @JavaStaticMethod
+  public fn deepHashCode(_ arg0: [JavaObject?]) -> Int32
+
+  @JavaStaticMethod
+  public fn deepToString(_ arg0: [JavaObject?]) -> String
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int32])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int64])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int16])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Double])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Float])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Comparable?])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Comparable?], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int8])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [UInt16])
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelSort(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaDoubleBinaryOperator?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [Double], _ arg1: JavaDoubleBinaryOperator?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [Int32], _ arg1: JavaIntBinaryOperator?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaIntBinaryOperator?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaLongBinaryOperator?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [Int64], _ arg1: JavaLongBinaryOperator?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaBinaryOperator<JavaObject>?)
+
+  @JavaStaticMethod
+  public fn parallelPrefix(_ arg0: [JavaObject?], _ arg1: JavaBinaryOperator<JavaObject>?)
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Float], _ arg1: Int32, _ arg2: Int32, _ arg3: Float) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Float], _ arg1: Float) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int16], _ arg1: Int16) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int16], _ arg1: Int32, _ arg2: Int32, _ arg3: Int16) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [JavaObject?], _ arg1: JavaObject?) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [JavaObject?], _ arg1: Int32, _ arg2: Int32, _ arg3: JavaObject?) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Double], _ arg1: Int32, _ arg2: Int32, _ arg3: Double) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Double], _ arg1: Double) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: Int8) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int8], _ arg1: Int8) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [UInt16], _ arg1: Int32, _ arg2: Int32, _ arg3: UInt16) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [UInt16], _ arg1: UInt16) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int32], _ arg1: Int32, _ arg2: Int32, _ arg3: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int64], _ arg1: Int64) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int64], _ arg1: Int32, _ arg2: Int32, _ arg3: Int64) -> Int32
+
+  @JavaStaticMethod
+  public fn binarySearch(_ arg0: [Int32], _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn setAll(_ arg0: [Double], _ arg1: JavaIntToDoubleFunction?)
+
+  @JavaStaticMethod
+  public fn setAll(_ arg0: [Int32], _ arg1: JavaIntUnaryOperator?)
+
+  @JavaStaticMethod
+  public fn setAll(_ arg0: [Int64], _ arg1: JavaIntToLongFunction?)
+
+  @JavaStaticMethod
+  public fn setAll(_ arg0: [JavaObject?], _ arg1: JavaIntFunction<JavaObject>?)
+
+  @JavaStaticMethod
+  public fn parallelSetAll(_ arg0: [Double], _ arg1: JavaIntToDoubleFunction?)
+
+  @JavaStaticMethod
+  public fn parallelSetAll(_ arg0: [Int64], _ arg1: JavaIntToLongFunction?)
+
+  @JavaStaticMethod
+  public fn parallelSetAll(_ arg0: [JavaObject?], _ arg1: JavaIntFunction<JavaObject>?)
+
+  @JavaStaticMethod
+  public fn parallelSetAll(_ arg0: [Int32], _ arg1: JavaIntUnaryOperator?)
+}

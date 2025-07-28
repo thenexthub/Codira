@@ -14,18 +14,18 @@
 //===----------------------------------------------------------------------===//
 
 extension UnsafeMutableRawBufferPointer {
-    fn initializeWithRandomBytes(count: Int) {
+    fn initializeWithRandomBytes(count: Integer) {
         guard count > 0 else {
             return
         }
 
-        precondition(count <= self.count)
+        precondition(count <= this.count)
         var rng = SystemRandomNumberGenerator()
 
         // We store bytes 64-bits at a time until we can't anymore.
-        var targetPtr = self
+        var targetPtr = this
         while targetPtr.count > 8 {
-            targetPtr.storeBytes(of: rng.next(), as: UInt64.self)
+            targetPtr.storeBytes(of: rng.next(), as: UInt64.this)
             targetPtr = UnsafeMutableRawBufferPointer(rebasing: targetPtr[8...])
         }
 
@@ -33,7 +33,7 @@ extension UnsafeMutableRawBufferPointer {
         // masking.
         var remainingWord: UInt64 = rng.next()
         while targetPtr.count > 0 {
-            targetPtr.storeBytes(of: UInt8(remainingWord & 0xFF), as: UInt8.self)
+            targetPtr.storeBytes(of: UInt8(remainingWord & 0xFF), as: UInt8.this)
             remainingWord >>= 8
             targetPtr = UnsafeMutableRawBufferPointer(rebasing: targetPtr[1...])
         }

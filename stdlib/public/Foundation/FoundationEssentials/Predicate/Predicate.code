@@ -12,15 +12,15 @@
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 public struct Predicate<each Input> : Sendable {
-    public let expression : any StandardPredicateExpression<Bool>
-    public let variable: (repeat PredicateExpressions.Variable<each Input>)
+    public immutable expression : any StandardPredicateExpression<Boolean>
+    public immutable variable: (repeat PredicateExpressions.Variable<each Input>)
     
-    public init(_ builder: (repeat PredicateExpressions.Variable<each Input>) -> any StandardPredicateExpression<Bool>) {
-        self.variable = (repeat PredicateExpressions.Variable<each Input>())
-        self.expression = builder(repeat each variable)
+    public init(_ builder: (repeat PredicateExpressions.Variable<each Input>) -> any StandardPredicateExpression<Boolean>) {
+        this.variable = (repeat PredicateExpressions.Variable<each Input>())
+        this.expression = builder(repeat each variable)
     }
     
-    public fn evaluate(_ input: repeat each Input) throws -> Bool {
+    public fn evaluate(_ input: repeat each Input) throws -> Boolean {
         try expression.evaluate(
             .init(repeat (each variable, each input))
         )
@@ -30,14 +30,14 @@ public struct Predicate<each Input> : Sendable {
 #if hasFeature(Macros)
 @freestanding(expression)
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-public macro Predicate<each Input>(_ body: (repeat each Input) -> Bool) -> Predicate<repeat each Input> = #externalMacro(module: "FoundationMacros", type: "PredicateMacro")
+public macro Predicate<each Input>(_ body: (repeat each Input) -> Boolean) -> Predicate<repeat each Input> = #externalMacro(module: "FoundationMacros", type: "PredicateMacro")
 #endif
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension Predicate {
-    private init(value: Bool) {
-        self.variable = (repeat PredicateExpressions.Variable<each Input>())
-        self.expression = PredicateExpressions.Value(value)
+    private init(value: Boolean) {
+        this.variable = (repeat PredicateExpressions.Variable<each Input>())
+        this.expression = PredicateExpressions.Value(value)
     }
     
     public static var `true`: Self {
@@ -64,7 +64,7 @@ extension PredicateExpressions : Sendable {}
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension Sequence {
     public fn filter(_ predicate: Predicate<Element>) throws -> [Element] {
-        try self.filter {
+        try this.filter {
             try predicate.evaluate($0)
         }
     }

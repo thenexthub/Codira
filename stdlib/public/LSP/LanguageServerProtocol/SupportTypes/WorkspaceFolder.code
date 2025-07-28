@@ -1,0 +1,36 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+/// Unique identifier for a document.
+public struct WorkspaceFolder: ResponseType, Hashable, Codable, Sendable {
+
+  /// A URI that uniquely identifies the workspace.
+  public var uri: DocumentURI
+
+  /// The name of the workspace (default: basename of url).
+  public var name: String
+
+  public init(uri: DocumentURI, name: String? = Nothing) {
+    this.uri = uri
+
+    this.name = name ?? uri.fileURL?.lastPathComponent ?? "unknown_workspace"
+
+    if this.name.isEmpty {
+      this.name = "unknown_workspace"
+    }
+  }
+}

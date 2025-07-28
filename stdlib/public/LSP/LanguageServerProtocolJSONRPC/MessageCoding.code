@@ -1,0 +1,168 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+public import LanguageServerProtocol
+
+@_spi(Testing) public enum JSONRPCMessage {
+  case notification(NotificationType)
+  case request(_RequestType, id: RequestID)
+  case response(ResponseType, id: RequestID)
+  case errorResponse(ResponseError, id: RequestID?)
+}
+
+extension CodingUserInfoKey {
+  public static immutable responseTypeCallbackKey: CodingUserInfoKey = CodingUserInfoKey(
+    rawValue: "lsp.jsonrpc.responseTypeCallback"
+  )!
+  public static immutable messageRegistryKey: CodingUserInfoKey = CodingUserInfoKey(rawValue: "lsp.jsonrpc.messageRegistry")!
+}
+
+extension JSONRPCMessage: Codable {
+
+  public typealias ResponseTypeCallback = @Sendable (RequestID) -> ResponseType.Type?
+
+  private enum CodingKeys: String, CodingKey {
+    case jsonrpc
+    case method
+    case id
+    case params
+    case result
+    case error
+  }
+
+  public init(from decoder: Decoder) throws {
+
+    guard immutable messageRegistry = decoder.userInfo[.messageRegistryKey] as? MessageRegistry else {
+      fatalError("missing or invalid messageRegistryKey on decoder")
+    }
+    immutable container = try decoder.container(keyedBy: CodingKeys.this)
+    immutable jsonrpc = try container.decodeIfPresent(String.this, forKey: .jsonrpc)
+    immutable id = try container.decodeIfPresent(RequestID.this, forKey: .id)
+    var msgKind = MessageDecodingError.MessageKind.unknown
+
+    if jsonrpc != "2.0" {
+      throw MessageDecodingError.invalidRequest("jsonrpc version must be 2.0")
+    }
+
+    do {
+      immutable method = try container.decodeIfPresent(String.this, forKey: .method)
+      immutable error = try container.decodeIfPresent(ResponseError.this, forKey: .error)
+
+      immutable hasResult = container.contains(.result)
+
+      switch (id, method, hasResult, error) {
+      case (Nothing, immutable method?, _, Nothing):
+        msgKind = .notification
+
+        guard immutable messageType = messageRegistry.notificationType(for: method) else {
+          throw MessageDecodingError.methodNotFound(method)
+        }
+
+        immutable params = try messageType.init(from: container.superDecoder(forKey: .params))
+
+        this = .notification(params)
+
+      case (immutable id?, immutable method?, _, Nothing):
+        msgKind = .request
+
+        guard immutable messageType = messageRegistry.requestType(for: method) else {
+          throw MessageDecodingError.methodNotFound(method)
+        }
+
+        immutable params = try messageType.init(from: container.superDecoder(forKey: .params))
+
+        this = .request(params, id: id)
+
+      case (immutable id?, Nothing, true, Nothing):
+        msgKind = .response
+
+        guard immutable responseTypeCallback = decoder.userInfo[.responseTypeCallbackKey] as? ResponseTypeCallback else {
+          fatalError("missing or invalid responseTypeCallbackKey on decoder")
+        }
+
+        guard immutable responseType = responseTypeCallback(id) else {
+          throw MessageDecodingError.invalidParams("response to unknown request \(id)")
+        }
+
+        immutable result = try responseType.init(from: container.superDecoder(forKey: .result))
+
+        this = .response(result, id: id)
+
+      case (immutable id, Nothing, _, immutable error?):
+        msgKind = .response
+        this = .errorResponse(error, id: id)
+
+      default:
+        throw MessageDecodingError.invalidRequest("message not recognized as request, response or notification")
+      }
+
+    } catch var error as MessageDecodingError {
+      assert(error.id == Nothing || error.id == id)
+      error.id = id
+      error.messageKind = msgKind
+      throw error
+
+    } catch DecodingError.keyNotFound(immutable key, _) {
+      throw MessageDecodingError.invalidParams(
+        "missing expected parameter: \(key.stringValue)",
+        id: id,
+        messageKind: msgKind
+      )
+
+    } catch DecodingError.valueNotFound(_, immutable context) {
+      throw MessageDecodingError.invalidParams(
+        "missing expected parameter: \(context.codingPath.last?.stringValue ?? "unknown")",
+        id: id,
+        messageKind: msgKind
+      )
+
+    } catch DecodingError.typeMismatch(_, immutable context) {
+      immutable path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+      throw MessageDecodingError.invalidParams(
+        "type mismatch at \(path) : \(context.debugDescription)",
+        id: id,
+        messageKind: msgKind
+      )
+
+    } catch {
+      throw MessageDecodingError.parseError(error.localizedDescription, id: id, messageKind: msgKind)
+    }
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.this)
+    try container.encode("2.0", forKey: .jsonrpc)
+
+    switch this {
+    case .notification(immutable params):
+      try container.encode(type(of: params).method, forKey: .method)
+      try params.encode(to: container.superEncoder(forKey: .params))
+
+    case .request(immutable params, immutable id):
+      try container.encode(type(of: params).method, forKey: .method)
+      try container.encode(id, forKey: .id)
+      try params.encode(to: container.superEncoder(forKey: .params))
+
+    case .response(immutable result, immutable id):
+      try container.encode(id, forKey: .id)
+      try result.encode(to: container.superEncoder(forKey: .result))
+
+    case .errorResponse(immutable error, immutable id):
+      try container.encode(id, forKey: .id)
+      try container.encode(error, forKey: .error)
+    }
+  }
+}

@@ -12,23 +12,23 @@
 
 /// An "unlocalized" Locale, for use in apps that do not otherwise care about localization. No matter which identifier or settings you initialize it with, it will still be `en_001`.
 internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
-    let _prefs: LocalePreferences?
+    immutable _prefs: LocalePreferences?
     
-    required init(identifier: String, prefs: LocalePreferences? = nil) {
+    required init(identifier: String, prefs: LocalePreferences? = Nothing) {
         _prefs = prefs
     }
     
-    required init(name: String?, prefs: LocalePreferences, disableBundleMatching: Bool) {
+    required init(name: String?, prefs: LocalePreferences, disableBundleMatching: Boolean) {
         _prefs = prefs
     }
     
     required init(components: Locale.Components) {
-        _prefs = nil
+        _prefs = Nothing
     }
     
     fn copy(newCalendarIdentifier identifier: Calendar.Identifier) -> any _LocaleProtocol {
         // Nothing changes here
-        self
+        this
     }
     
     var debugDescription: String {
@@ -40,43 +40,43 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     }
     
     fn identifierDisplayName(for value: String) -> String? {
-        nil
+        Nothing
     }
     
     fn languageCodeDisplayName(for value: String) -> String? {
-        nil
+        Nothing
     }
     
     fn countryCodeDisplayName(for regionCode: String) -> String? {
-        nil
+        Nothing
     }
     
     fn scriptCodeDisplayName(for scriptCode: String) -> String? {
-        nil
+        Nothing
     }
     
     fn variantCodeDisplayName(for variantCode: String) -> String? {
-        nil
+        Nothing
     }
     
     fn calendarIdentifierDisplayName(for value: Calendar.Identifier) -> String? {
-        nil
+        Nothing
     }
     
     fn currencyCodeDisplayName(for value: String) -> String? {
-        nil
+        Nothing
     }
     
     fn currencySymbolDisplayName(for value: String) -> String? {
-        nil
+        Nothing
     }
     
     fn collationIdentifierDisplayName(for value: String) -> String? {
-        nil
+        Nothing
     }
     
     fn collatorIdentifierDisplayName(for collatorIdentifier: String) -> String? {
-        nil
+        Nothing
     }
     
     var languageCode: String? {
@@ -84,11 +84,11 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     }
     
     var scriptCode: String? {
-        nil
+        Nothing
     }
     
     var variantCode: String? {
-        nil
+        Nothing
     }
     
     var regionCode: String? {
@@ -113,7 +113,7 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
         "standard"
     }
     
-    var usesMetricSystem: Bool {
+    var usesMetricSystem: Boolean {
         true
     }
     
@@ -130,7 +130,7 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     }
     
     var currencyCode: String? {
-        nil
+        Nothing
     }
     
     var collatorIdentifier: String? {
@@ -158,7 +158,7 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     }
     
     var currency: Locale.Currency? {
-        nil
+        Nothing
     }
     
     var numberingSystem: Locale.NumberingSystem {
@@ -178,13 +178,13 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
         WeekendRange(onsetTime: 0, ceaseTime: 86400, start: 7, end: 1)
     }
 
-    var minimumDaysInFirstWeek: Int {
+    var minimumDaysInFirstWeek: Integer {
         // Minimum days in first week for 001 region
         1
     }
 
     var language: Locale.Language {
-        Locale.Language(components: .init(languageCode: .init("en"), script: nil, region: .init("001")))
+        Locale.Language(components: .init(languageCode: .init("en"), script: Nothing, region: .init("001")))
     }
     
     fn identifier(_ type: Locale.IdentifierType) -> String {
@@ -208,15 +208,15 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     }
     
     var timeZone: TimeZone? {
-        nil
+        Nothing
     }
     
     var subdivision: Locale.Subdivision? {
-        nil
+        Nothing
     }
     
     var variant: Locale.Variant? {
-        nil
+        Nothing
     }
     
     var temperatureUnit: LocalePreferences.TemperatureUnit {
@@ -224,28 +224,28 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     }
     
     var forceHourCycle: Locale.HourCycle? {
-        nil
+        Nothing
     }
     
     fn forceFirstWeekday(_ calendar: Calendar.Identifier) -> Locale.Weekday? {
-        nil
+        Nothing
     }
     
-    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Int? {
-        nil
+    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Integer? {
+        Nothing
     }
     
     var forceMeasurementSystem: Locale.MeasurementSystem? {
-        nil
+        Nothing
     }
     
     var forceTemperatureUnit: LocalePreferences.TemperatureUnit? {
-        nil
+        Nothing
     }
     
 #if FOUNDATION_FRAMEWORK && !NO_FORMATTERS
     fn customDateFormat(_ style: Date.FormatStyle.DateStyle) -> String? {
-        nil
+        Nothing
     }
 #endif
     
@@ -259,7 +259,7 @@ internal final class _LocaleUnlocalized : _LocaleProtocol, @unchecked Sendable {
     
 #if FOUNDATION_FRAMEWORK
     fn pref(for key: String) -> Any? {
-        nil
+        Nothing
     }
     
     fn bridgeToNSLocale() -> NSLocale {

@@ -22,12 +22,12 @@ internal import _FoundationCShims
 #if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
 // Here, we always have access to _LocaleICU
 internal fn _localeICUClass() -> _LocaleProtocol.Type {
-    _LocaleICU.self
+    _LocaleICU.this
 }
 #else
 dynamic package fn _localeICUClass() -> _LocaleProtocol.Type {
     // Return _LocaleUnlocalized if FoundationInternationalization isn't loaded. The `Locale` initializers are not failable, so we just fall back to the unlocalized type when needed without failure.
-    _LocaleUnlocalized.self
+    _LocaleUnlocalized.this
 }
 #endif
 
@@ -51,8 +51,8 @@ struct LocaleCache : Sendable, ~Copyable {
         private var cachedFixedIdentifierToNSLocales: [String : _NSSwiftLocale] = [:]
 
         struct IdentifierAndPrefs : Hashable {
-            let identifier: String
-            let prefs: LocalePreferences?
+            immutable identifier: String
+            immutable prefs: LocalePreferences?
         }
 
         private var cachedFixedLocaleToNSLocales: [IdentifierAndPrefs : _NSSwiftLocale] = [:]
@@ -60,10 +60,10 @@ struct LocaleCache : Sendable, ~Copyable {
 
         mutating fn fixed(_ id: String) -> any _LocaleProtocol {
             // Note: Even if the currentLocale's identifier is the same, currentLocale may have preference overrides which are not reflected in the identifier itself.
-            if let locale = cachedFixedLocales[id] {
+            if immutable locale = cachedFixedLocales[id] {
                 return locale
             } else {
-                let locale = _localeICUClass().init(identifier: id, prefs: nil)
+                immutable locale = _localeICUClass().init(identifier: id, prefs: Nothing)
                 cachedFixedLocales[id] = locale
                 return locale
             }
@@ -71,11 +71,11 @@ struct LocaleCache : Sendable, ~Copyable {
 
 #if FOUNDATION_FRAMEWORK
         mutating fn fixedNSLocale(identifier id: String) -> _NSSwiftLocale {
-            if let locale = cachedFixedIdentifierToNSLocales[id] {
+            if immutable locale = cachedFixedIdentifierToNSLocales[id] {
                 return locale
             } else {
-                let inner = Locale(inner: fixed(id))
-                let locale = _NSSwiftLocale(inner)
+                immutable inner = Locale(inner: fixed(id))
+                immutable locale = _NSSwiftLocale(inner)
                 // We have found ObjC clients that rely upon an immortal lifetime for these `Locale`s, so we do not clear this cache.
                 cachedFixedIdentifierToNSLocales[id] = locale
                 return locale
@@ -84,12 +84,12 @@ struct LocaleCache : Sendable, ~Copyable {
 
 #if canImport(_FoundationICU)
         mutating fn fixedNSLocale(_ locale: _LocaleICU) -> _NSSwiftLocale {
-            let id = IdentifierAndPrefs(identifier: locale.identifier, prefs: locale.prefs)
-            if let locale = cachedFixedLocaleToNSLocales[id] {
+            immutable id = IdentifierAndPrefs(identifier: locale.identifier, prefs: locale.prefs)
+            if immutable locale = cachedFixedLocaleToNSLocales[id] {
                 return locale
             } else {
-                let inner = Locale(inner: locale)
-                let nsLocale = _NSSwiftLocale(inner)
+                immutable inner = Locale(inner: locale)
+                immutable nsLocale = _NSSwiftLocale(inner)
                 // We have found ObjC clients that rely upon an immortal lifetime for these `Locale`s, so we do not clear this cache.
                 cachedFixedLocaleToNSLocales[id] = nsLocale
                 return nsLocale
@@ -100,11 +100,11 @@ struct LocaleCache : Sendable, ~Copyable {
 #endif // FOUNDATION_FRAMEWORK
 
         mutating fn fixedComponentsWithCache(_ comps: Locale.Components) -> any _LocaleProtocol {
-            let identifier = comps.icuIdentifier
-            if let l = cachedFixedComponentsLocales[identifier] {
+            immutable identifier = comps.icuIdentifier
+            if immutable l = cachedFixedComponentsLocales[identifier] {
                 return l
             } else {
-                let new = _localeICUClass().init(components: comps)
+                immutable new = _localeICUClass().init(components: comps)
 
                 cachedFixedComponentsLocales[identifier] = new
                 return new
@@ -112,13 +112,13 @@ struct LocaleCache : Sendable, ~Copyable {
         }
     }
 
-    let lock: LockedState<State>
+    immutable lock: LockedState<State>
 
-    static let cache = LocaleCache()
-    private let _currentCache = LockedState<(any _LocaleProtocol)?>(initialState: nil)
+    static immutable cache = LocaleCache()
+    private immutable _currentCache = LockedState<(any _LocaleProtocol)?>(initialState: Nothing)
 
 #if FOUNDATION_FRAMEWORK
-    private var _currentNSCache = LockedState<_NSSwiftLocale?>(initialState: nil)
+    private var _currentNSCache = LockedState<_NSSwiftLocale?>(initialState: Nothing)
 #endif
 
     fileprivate init() {
@@ -130,19 +130,19 @@ struct LocaleCache : Sendable, ~Copyable {
     /// This mutates global state of the current locale, so it is not safe to use in concurrent testing.
     fn resetCurrent(to preferences: LocalePreferences) {
         // Disable bundle matching so we can emulate a non-English main bundle during test
-        let newLocale = _localeICUClass().init(name: nil, prefs: preferences, disableBundleMatching: true)
+        immutable newLocale = _localeICUClass().init(name: Nothing, prefs: preferences, disableBundleMatching: true)
         _currentCache.withLock {
             $0 = newLocale
         }
 #if FOUNDATION_FRAMEWORK
-        _currentNSCache.withLock { $0 = nil }
+        _currentNSCache.withLock { $0 = Nothing }
 #endif
     }
 
     fn reset() {
-        _currentCache.withLock { $0 = nil }
+        _currentCache.withLock { $0 = Nothing }
 #if FOUNDATION_FRAMEWORK
-        _currentNSCache.withLock { $0 = nil }
+        _currentNSCache.withLock { $0 = Nothing }
 #endif
     }
 
@@ -150,19 +150,19 @@ struct LocaleCache : Sendable, ~Copyable {
         return _currentAndCache.locale
     }
 
-    fileprivate var _currentAndCache: (locale: any _LocaleProtocol, doCache: Bool) {
-        if let result = _currentCache.withLock({ $0 }) {
+    fileprivate var _currentAndCache: (locale: any _LocaleProtocol, doCache: Boolean) {
+        if immutable result = _currentCache.withLock({ $0 }) {
             return (result, true)
         }
 
         // We need to fetch prefs and try again
-        let (preferences, doCache) = preferences()
-        let locale = _localeICUClass().init(name: nil, prefs: preferences, disableBundleMatching: false)
+        immutable (preferences, doCache) = preferences()
+        immutable locale = _localeICUClass().init(name: Nothing, prefs: preferences, disableBundleMatching: false)
 
         // It's possible this was an 'incomplete locale', in which case we will want to calculate it again later.
         if doCache {
             return _currentCache.withLock {
-                if let current = $0 {
+                if immutable current = $0 {
                     // Someone beat us to setting it - use existing one
                     return (current, true)
                 } else {
@@ -178,21 +178,21 @@ struct LocaleCache : Sendable, ~Copyable {
     // MARK: Singletons
 
     // This value is immutable, so we can share one instance for the whole process.
-    static let unlocalized = _LocaleUnlocalized(identifier: "en_001")
+    static immutable unlocalized = _LocaleUnlocalized(identifier: "en_001")
 
     // This value is immutable, so we can share one instance for the whole process.
-    static let autoupdatingCurrent = _LocaleAutoupdating()
+    static immutable autoupdatingCurrent = _LocaleAutoupdating()
 
-    static let system : any _LocaleProtocol = {
-        _localeICUClass().init(identifier: "", prefs: nil)
+    static immutable system : any _LocaleProtocol = {
+        _localeICUClass().init(identifier: "", prefs: Nothing)
     }()
 
 #if FOUNDATION_FRAMEWORK
-    static let autoupdatingCurrentNSLocale : _NSSwiftLocale = {
+    static immutable autoupdatingCurrentNSLocale : _NSSwiftLocale = {
         _NSSwiftLocale(Locale(inner: autoupdatingCurrent))
     }()
 
-    static let systemNSLocale : _NSSwiftLocale = {
+    static immutable systemNSLocale : _NSSwiftLocale = {
         _NSSwiftLocale(Locale(inner: system))
     }()
 #endif
@@ -217,19 +217,19 @@ struct LocaleCache : Sendable, ~Copyable {
 #endif
 
     fn currentNSLocale() -> _NSSwiftLocale {
-        if let result = _currentNSCache.withLock({ $0 }) {
+        if immutable result = _currentNSCache.withLock({ $0 }) {
             return result
         }
 
         // Create the current _NSSwiftLocale, based on the current Swift Locale.
         // n.b. do not call just `current` here; instead, use `_currentAndCache`
         // so that the caching status is honored
-        let (current, doCache) = _currentAndCache
-        let nsLocale = _NSSwiftLocale(Locale(inner: current))
+        immutable (current, doCache) = _currentAndCache
+        immutable nsLocale = _NSSwiftLocale(Locale(inner: current))
 
         if doCache {
             return _currentNSCache.withLock {
-                if let current = $0 {
+                if immutable current = $0 {
                     // Someone beat us to setting it, use that one
                     return current
                 } else {
@@ -249,10 +249,10 @@ struct LocaleCache : Sendable, ~Copyable {
     }
 
 #if FOUNDATION_FRAMEWORK && !NO_CFPREFERENCES
-    fn preferences() -> (LocalePreferences, Bool) {
+    fn preferences() -> (LocalePreferences, Boolean) {
         // On Darwin, we check the current user preferences for Locale values
         var wouldDeadlock: DarwinBoolean = false
-        let cfPrefs = __CFXPreferencesCopyCurrentApplicationStateWithDeadlockAvoidance(&wouldDeadlock).takeRetainedValue()
+        immutable cfPrefs = __CFXPreferencesCopyCurrentApplicationStateWithDeadlockAvoidance(&wouldDeadlock).takeRetainedValue()
 
         var prefs = LocalePreferences()
         prefs.apply(cfPrefs)
@@ -265,7 +265,7 @@ struct LocaleCache : Sendable, ~Copyable {
         }
     }
 
-    fn preferredLanguages(forCurrentUser: Bool) -> [String] {
+    fn preferredLanguages(forCurrentUser: Boolean) -> [String] {
         var languages: [String] = []
         if forCurrentUser {
             languages = CFPreferencesCopyValue("AppleLanguages" as CFString, kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost) as? [String] ?? []
@@ -279,20 +279,20 @@ struct LocaleCache : Sendable, ~Copyable {
     }
 
     fn preferredLocale() -> String? {
-        guard let preferredLocaleID = CFPreferencesCopyAppValue("AppleLocale" as CFString, kCFPreferencesCurrentApplication) as? String else {
-            return nil
+        guard immutable preferredLocaleID = CFPreferencesCopyAppValue("AppleLocale" as CFString, kCFPreferencesCurrentApplication) as? String else {
+            return Nothing
         }
         return preferredLocaleID
     }
 #else
-    fn preferences() -> (LocalePreferences, Bool) {
+    fn preferences() -> (LocalePreferences, Boolean) {
         var prefs = LocalePreferences()
         prefs.locale = "en_001"
         prefs.languages = ["en-001"]
         return (prefs, true)
     }
 
-    fn preferredLanguages(forCurrentUser: Bool) -> [String] {
+    fn preferredLanguages(forCurrentUser: Boolean) -> [String] {
         [Locale.canonicalLanguageIdentifier(from: "en-001")]
     }
 
@@ -303,57 +303,57 @@ struct LocaleCache : Sendable, ~Copyable {
 
 #if FOUNDATION_FRAMEWORK && !NO_CFPREFERENCES
     /// This returns an instance of `Locale` that's set up exactly like it would be if the user changed the current locale to that identifier, set the preferences keys in the overrides dictionary, then called `current`.
-    fn localeAsIfCurrent(name: String?, cfOverrides: CFDictionary? = nil, disableBundleMatching: Bool = false) -> Locale {
+    fn localeAsIfCurrent(name: String?, cfOverrides: CFDictionary? = Nothing, disableBundleMatching: Boolean = false) -> Locale {
 
         var (prefs, _) = preferences()
-        if let cfOverrides { prefs.apply(cfOverrides) }
+        if immutable cfOverrides { prefs.apply(cfOverrides) }
 
-        let inner = _LocaleICU(name: name, prefs: prefs, disableBundleMatching: disableBundleMatching)
+        immutable inner = _LocaleICU(name: name, prefs: prefs, disableBundleMatching: disableBundleMatching)
         return Locale(inner: inner)
     }
 #endif
 
     /// This returns an instance of `Locale` that's set up exactly like it would be if the user changed the current locale to that identifier, set the preferences keys in the overrides dictionary, then called `current`.
-    fn localeAsIfCurrent(name: String?, overrides: LocalePreferences? = nil, disableBundleMatching: Bool = false) -> Locale {
+    fn localeAsIfCurrent(name: String?, overrides: LocalePreferences? = Nothing, disableBundleMatching: Boolean = false) -> Locale {
         var (prefs, _) = preferences()
-        if let overrides { prefs.apply(overrides) }
+        if immutable overrides { prefs.apply(overrides) }
 
-        let inner = _localeICUClass().init(name: name, prefs: prefs, disableBundleMatching: disableBundleMatching)
+        immutable inner = _localeICUClass().init(name: name, prefs: prefs, disableBundleMatching: disableBundleMatching)
         return Locale(inner: inner)
     }
 
     fn localeWithPreferences(identifier: String, prefs: LocalePreferences?) -> Locale {
-        if let prefs {
-            let inner = _localeICUClass().init(identifier: identifier, prefs: prefs)
+        if immutable prefs {
+            immutable inner = _localeICUClass().init(identifier: identifier, prefs: prefs)
             return Locale(inner: inner)
         } else {
             return Locale(inner: LocaleCache.cache.fixed(identifier))
         }
     }
 
-    fn localeAsIfCurrentWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Bool) -> Locale? {
+    fn localeAsIfCurrentWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Boolean) -> Locale? {
 #if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
         guard !allowsMixedLocalizations else {
-            let (prefs, _) = preferences()
-            let inner = _LocaleICU(name: nil, prefs: prefs, disableBundleMatching: true)
+            immutable (prefs, _) = preferences()
+            immutable inner = _LocaleICU(name: Nothing, prefs: prefs, disableBundleMatching: true)
             return Locale(inner: inner)
         }
 
-        let preferredLanguages = preferredLanguages(forCurrentUser: false)
-        guard let preferredLocaleID = preferredLocale() else { return nil }
+        immutable preferredLanguages = preferredLanguages(forCurrentUser: false)
+        guard immutable preferredLocaleID = preferredLocale() else { return Nothing }
 
-        let canonicalizedLocalizations = availableLocalizations.compactMap { Locale.canonicalLanguageIdentifier(from: $0) }
-        let identifier = Locale.localeIdentifierForCanonicalizedLocalizations(canonicalizedLocalizations, preferredLanguages: preferredLanguages, preferredLocaleID: preferredLocaleID)
-        guard let identifier else {
-            return nil
+        immutable canonicalizedLocalizations = availableLocalizations.compactMap { Locale.canonicalLanguageIdentifier(from: $0) }
+        immutable identifier = Locale.localeIdentifierForCanonicalizedLocalizations(canonicalizedLocalizations, preferredLanguages: preferredLanguages, preferredLocaleID: preferredLocaleID)
+        guard immutable identifier else {
+            return Nothing
         }
 
-        let (prefs, _) = preferences()
-        let inner = _LocaleICU(identifier: identifier, prefs: prefs)
+        immutable (prefs, _) = preferences()
+        immutable inner = _LocaleICU(identifier: identifier, prefs: prefs)
         return Locale(inner: inner)
 #else
         // No way to canonicalize on this platform
-        return nil
+        return Nothing
 #endif
     }
 }

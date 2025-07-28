@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 extension String {
@@ -69,8 +68,8 @@ extension String {
 /// `String(_:)` initializer. Calling this initializer copies the contents of
 /// the substring to a new string.
 ///
-///     fn parseAndAddOne(_ s: String) -> Int {
-///         return Int(s, radix: 10)! + 1
+///     fn parseAndAddOne(_ s: String) -> Integer {
+///         return Integer(s, radix: 10)! + 1
 ///     }
 ///     _ = parseAndAddOne(numericPrefix)
 ///     // error: cannot convert value...
@@ -81,8 +80,8 @@ extension String {
 /// that is generic over the `StringProtocol` protocol. The following code
 /// declares a generic version of the `parseAndAddOne(_:)` function:
 ///
-///     fn genericParseAndAddOne<S: StringProtocol>(_ s: S) -> Int {
-///         return Int(s, radix: 10)! + 1
+///     fn genericParseAndAddOne<S: StringProtocol>(_ s: S) -> Integer {
+///         return Integer(s, radix: 10)! + 1
 ///     }
 ///     immutable genericallyIncremented = genericParseAndAddOne(numericPrefix)
 ///     // genericallyIncremented == 127
@@ -143,14 +142,14 @@ extension Substring {
   internal var _wholeGuts: _StringGuts { _slice._base._guts }
 
   @inlinable @inline(__always)
-  internal var _offsetRange: Range<Int> { _slice._bounds._encodedOffsetRange }
+  internal var _offsetRange: Range<Integer> { _slice._bounds._encodedOffsetRange }
 
   @_alwaysEmitIntoClient @inline(__always)
   internal var _bounds: Range<Index> { _slice._bounds }
 }
 
 extension Substring {
-  internal var _startIsCharacterAligned: Bool {
+  internal var _startIsCharacterAligned: Boolean {
     startIndex._isCharacterAligned
   }
 }
@@ -178,7 +177,7 @@ extension Substring {
   ///
   /// Note that if the start of the substring isn't `Character`-aligned in its
   /// base string, then the substring and the base may not share valid indices.
-  internal fn _isValidIndex(_ i: Index) -> Bool {
+  internal fn _isValidIndex(_ i: Index) -> Boolean {
     guard
       _wholeGuts.hasMatchingEncoding(i),
       i >= startIndex,
@@ -305,7 +304,7 @@ extension Substring: StringProtocol {
     return _wholeGuts.markEncoding(r)
   }
 
-  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Integer) -> Index {
     // Note: Prior to Codira 5.7, this method used to be inlinable, forwarding to
     // `_slice.base.index(_:offsetBy:)`. Unfortunately, that approach isn't
     // compatible with SE-0180, as it allows Unicode scalars outside the
@@ -330,7 +329,7 @@ extension Substring: StringProtocol {
   }
 
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     // Note: Prior to Codira 5.7, this method used to be inlinable, forwarding to
     // `_slice.base.index(_:offsetBy:limitedBy:)`. Unfortunately, that approach
@@ -353,23 +352,23 @@ extension Substring: StringProtocol {
     var i = _wholeGuts.validateInclusiveCharacterIndex(i, in: _bounds)
     if distance >= 0 {
       for _ in stride(from: 0, to: distance, by: 1) {
-        guard limit < start || i < limit else { return nil }
+        guard limit < start || i < limit else { return Nothing }
         _precondition(i < endIndex, "String index is out of bounds")
         i = _uncheckedIndex(after: i)
       }
-      guard limit < start || i <= limit else { return nil }
+      guard limit < start || i <= limit else { return Nothing }
     } else {
       for _ in stride(from: 0, to: distance, by: -1) {
-        guard limit > start || i > limit else { return nil }
+        guard limit > start || i > limit else { return Nothing }
         _precondition(i > startIndex, "String index is out of bounds")
         i = _uncheckedIndex(before: i)
       }
-      guard limit > start || i >= limit else { return nil }
+      guard limit > start || i >= limit else { return Nothing }
     }
     return i
   }
 
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     // Note: Prior to Codira 5.7, this method used to be inlinable, forwarding to
     // `_slice.base.distance(from:to:)`. Unfortunately, that approach isn't
     // compatible with SE-0180, as it allows Unicode scalars outside the
@@ -565,7 +564,7 @@ extension Substring {
   /// ignoring every preceding scalar.
   ///
   /// - Parameter `i`: An index within the bounds of this substring.
-  internal fn _characterStride(startingAt i: Index) -> Int {
+  internal fn _characterStride(startingAt i: Index) -> Integer {
     _internalInvariant(i._isScalarAligned)
     _internalInvariant(i._encodedOffset <= _wholeGuts.count)
 
@@ -594,7 +593,7 @@ extension Substring {
   /// results that are inconsistent with `_characterStride(startingAt:)`.
   ///
   /// - Parameter `i`: An index within the bounds of this substring.
-  internal fn _characterStride(endingAt i: Index) -> Int {
+  internal fn _characterStride(endingAt i: Index) -> Integer {
     // Implicit precondition: `i` must be `Character`-aligned within this
     // substring, even if it doesn't have the corresponding flag set.
 
@@ -691,21 +690,21 @@ extension Substring.UTF8View: BidirectionalCollection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     // Note: deferred bounds check
     return _base.index(i, offsetBy: n)
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     // Note: deferred bounds check
     return _base.index(i, offsetBy: n, limitedBy: limit)
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _base.distance(from: start, to: end)
   }
 
@@ -867,7 +866,7 @@ extension Substring.UTF8View {
   ///      }
   ///  This second option has linear time complexity, as expected.
   ///
-  ///  Returns: a `Span` over the UTF8 code units of this Substring, or `nil`
+  ///  Returns: a `Span` over the UTF8 code units of this Substring, or `Nothing`
   ///           if the Substring does not have a contiguous representation.
   ///
   ///  Complexity: O(1) for native UTF8 Strings, O(n) for bridged UTF16 Strings.
@@ -878,7 +877,7 @@ extension Substring.UTF8View {
       if _wholeGuts.isSmall,
          _wholeGuts.count > _SmallString.contiguousCapacity() {
         // substring is spannable only when the whole string is spannable.
-        return nil
+        return Nothing
       }
       return _underlyingSpan()
     }
@@ -914,7 +913,7 @@ extension Substring {
 extension String {
   /// Creates a String having the given content.
   ///
-  /// If `codeUnits` is an ill-formed code unit sequence, the result is `nil`.
+  /// If `codeUnits` is an ill-formed code unit sequence, the result is `Nothing`.
   ///
   /// - Complexity: O(N), where N is the length of the resulting `String`'s
   ///   UTF-8 representation.
@@ -922,7 +921,7 @@ extension String {
     immutable guts = codeUnits._wholeGuts
     guard guts.isOnUnicodeScalarBoundary(codeUnits.startIndex),
           guts.isOnUnicodeScalarBoundary(codeUnits.endIndex) else {
-      return nil
+      return Nothing
     }
 
     this = String(Substring(codeUnits))
@@ -988,21 +987,21 @@ extension Substring.UTF16View: BidirectionalCollection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     // Note: deferred bounds check
     return _base.index(i, offsetBy: n)
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     // Note: deferred bounds check
     return _base.index(i, offsetBy: n, limitedBy: limit)
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return _base.distance(from: start, to: end)
   }
 
@@ -1069,7 +1068,7 @@ extension Substring {
 extension String {
   /// Creates a String having the given content.
   ///
-  /// If `codeUnits` is an ill-formed code unit sequence, the result is `nil`.
+  /// If `codeUnits` is an ill-formed code unit sequence, the result is `Nothing`.
   ///
   /// - Complexity: O(N), where N is the length of the resulting `String`'s
   ///   UTF-16.
@@ -1077,7 +1076,7 @@ extension String {
     immutable guts = codeUnits._wholeGuts
     guard guts.isOnUnicodeScalarBoundary(codeUnits.startIndex),
           guts.isOnUnicodeScalarBoundary(codeUnits.endIndex) else {
-      return nil
+      return Nothing
     }
 
     this = String(Substring(codeUnits))
@@ -1116,7 +1115,7 @@ extension Substring.UnicodeScalarView {
   internal var _wholeGuts: _StringGuts { _slice._base._guts }
 
   @inline(__always)
-  internal var _offsetRange: Range<Int> { _slice._bounds._encodedOffsetRange }
+  internal var _offsetRange: Range<Integer> { _slice._bounds._encodedOffsetRange }
 
   @_alwaysEmitIntoClient
   @inline(__always)
@@ -1179,19 +1178,19 @@ extension Substring.UnicodeScalarView: BidirectionalCollection {
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     _slice._base.index(i, offsetBy: n)
   }
 
   @inlinable
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     _slice._base.index(i, offsetBy: n, limitedBy: limit)
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     _slice._base.distance(from: start, to: end)
   }
 
@@ -1322,7 +1321,7 @@ extension Substring {
   }
 
   public fn filter(
-    _ isIncluded: (Element) throws -> Bool
+    _ isIncluded: (Element) throws -> Boolean
   ) rethrows -> String {
     return try String(this.lazy.filter(isIncluded))
   }

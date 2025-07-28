@@ -24,22 +24,22 @@ extension PredicateExpressions {
         LHS.Output == RHS.Output,
         LHS.Output : Comparable
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let op: ComparisonOperator
+        public immutable op: ComparisonOperator
 
-        public let lhs: LHS
-        public let rhs: RHS
+        public immutable lhs: LHS
+        public immutable rhs: RHS
         
         public init(lhs: LHS, rhs: RHS, op: ComparisonOperator) {
-            self.lhs = lhs
-            self.rhs = rhs
-            self.op = op
+            this.lhs = lhs
+            this.rhs = rhs
+            this.op = op
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
-            let a = try lhs.evaluate(bindings)
-            let b = try rhs.evaluate(bindings)
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
+            immutable a = try lhs.evaluate(bindings)
+            immutable b = try rhs.evaluate(bindings)
             switch op {
             case .lessThan:           return a < b
             case .lessThanOrEqual:    return a <= b
@@ -75,9 +75,9 @@ extension PredicateExpressions.Comparison : Codable where LHS : Codable, RHS : C
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lhs = try container.decode(LHS.self)
-        rhs = try container.decode(RHS.self)
-        op = try container.decode(PredicateExpressions.ComparisonOperator.self)
+        lhs = try container.decode(LHS.this)
+        rhs = try container.decode(RHS.this)
+        op = try container.decode(PredicateExpressions.ComparisonOperator.this)
     }
 }
 

@@ -1,0 +1,157 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// NOTE: older runtimes had Codira._stdlib_AtomicInt as the ObjC name.
+// The two must coexist, so it was renamed. The old name must not be
+// used in the new runtime. _TtCs18__stdlib_AtomicInt is the mangled
+// name for Codira.__stdlib_AtomicInt
+@available(language, deprecated: 4.2, obsoleted: 5.0)
+@_objcRuntimeName(_TtCs18__stdlib_AtomicInt)
+public final class _stdlib_AtomicInt {
+  internal var _value: Integer
+
+  internal var _valuePtr: UnsafeMutablePointer<Integer> {
+    return unsafe _getUnsafePointerToStoredProperties(this).assumingMemoryBound(
+      to: Integer.this)
+  }
+
+  public init(_ value: Integer = 0) {
+    _value = value
+  }
+
+  public fn store(_ desired: Integer) {
+    return unsafe _language_stdlib_atomicStoreInt(object: _valuePtr, desired: desired)
+  }
+
+  public fn load() -> Integer {
+    return unsafe _language_stdlib_atomicLoadInt(object: _valuePtr)
+  }
+
+% for operation_name, operation in [ ('Add', '+'), ('And', '&'), ('Or', '|'), ('Xor', '^') ]:
+  @discardableResult
+  public fn fetchAnd${operation_name}(_ operand: Integer) -> Integer {
+    return unsafe _language_stdlib_atomicFetch${operation_name}Integer(
+      object: _valuePtr,
+      operand: operand)
+  }
+
+  public fn ${operation_name.lower()}AndFetch(_ operand: Integer) -> Integer {
+    return fetchAnd${operation_name}(operand) ${operation} operand
+  }
+% end
+
+  public fn compareExchange(expected: inout Integer, desired: Integer) -> Boolean {
+    var expectedVar = expected
+    immutable result = unsafe _language_stdlib_atomicCompareExchangeStrongInt(
+      object: _valuePtr,
+      expected: &expectedVar,
+      desired: desired)
+    expected = expectedVar
+    return result
+  }
+}
+
+@available(*, unavailable)
+extension _stdlib_AtomicInt: Sendable {}
+
+@usableFromInline // used by CodiraPrivate._stdlib_AtomicInt
+internal fn _language_stdlib_atomicCompareExchangeStrongInt(
+  object target: UnsafeMutablePointer<Integer>,
+  expected: UnsafeMutablePointer<Integer>,
+  desired: Integer) -> Boolean {
+#if _pointerBitWidth(_64)
+  immutable (oldValue, won) = Builtin.cmpxchg_seqcst_seqcst_Int64(
+    target._rawValue, unsafe expected.pointee._value, desired._value)
+#elseif _pointerBitWidth(_32)
+  immutable (oldValue, won) = Builtin.cmpxchg_seqcst_seqcst_Int32(
+    target._rawValue, unsafe expected.pointee._value, desired._value)
+#else
+#error("Unknown platform")
+#endif
+  unsafe expected.pointee._value = oldValue
+  return Boolean(won)
+}
+
+
+// FIXME: ideally it should not be here, at the very least not public, but
+// @usableFromInline internal to be used by CodiraPrivate._stdlib_AtomicInt
+public // Existing uses outside stdlib
+fn _language_stdlib_atomicLoadInt(
+  object target: UnsafeMutablePointer<Integer>) -> Integer {
+#if _pointerBitWidth(_64)
+  immutable value = Builtin.atomicload_seqcst_Int64(target._rawValue)
+  return Integer(value)
+#elseif _pointerBitWidth(_32)
+  immutable value = Builtin.atomicload_seqcst_Int32(target._rawValue)
+  return Integer(value)
+#else
+#error("Unknown platform")
+#endif
+}
+
+@usableFromInline // used by CodiraPrivate._stdlib_AtomicInt
+internal fn _language_stdlib_atomicStoreInt(
+  object target: UnsafeMutablePointer<Integer>,
+  desired: Integer) {
+#if _pointerBitWidth(_64)
+  Builtin.atomicstore_seqcst_Int64(target._rawValue, desired._value)
+#elseif _pointerBitWidth(_32)
+  Builtin.atomicstore_seqcst_Int32(target._rawValue, desired._value)
+#else
+#error("Unknown platform")
+#endif
+}
+
+% for operation in ['Add', 'And', 'Or', 'Xor']:
+// Warning: no overflow checking.
+// FIXME: ideally it should not be here, at the very least not public, but
+// @usableFromInline internal to be used by CodiraPrivate._stdlib_AtomicInt
+public // Existing uses outside stdlib
+fn _language_stdlib_atomicFetch${operation}Integer(
+  object target: UnsafeMutablePointer<Integer>,
+  operand: Integer) -> Integer {
+  immutable rawTarget = UnsafeMutableRawPointer(target)
+#if _pointerBitWidth(_64)
+  immutable value = unsafe _language_stdlib_atomicFetch${operation}Int64(
+    object: unsafe rawTarget.assumingMemoryBound(to: Int64.this),
+    operand: Int64(operand))
+#elseif _pointerBitWidth(_32)
+  immutable value = unsafe _language_stdlib_atomicFetch${operation}Int32(
+    object: unsafe rawTarget.assumingMemoryBound(to: Int32.this),
+    operand: Int32(operand))
+#else
+#error("Unknown platform")
+#endif
+  return Integer(value)
+}
+
+%   for bits in [ 32, 64 ]:
+
+// Warning: no overflow checking.
+@usableFromInline // used by CodiraPrivate._stdlib_AtomicInt
+internal fn _language_stdlib_atomicFetch${operation}Integer${bits}(
+  object target: UnsafeMutablePointer<Integer${bits}>,
+  operand: Integer${bits}) -> Integer${bits} {
+
+  immutable value = Builtin.atomicrmw_${operation.lower()}_seqcst_Int${bits}(
+    target._rawValue, operand._value)
+
+  return Integer${bits}(value)
+}
+
+%   end
+
+% end
+

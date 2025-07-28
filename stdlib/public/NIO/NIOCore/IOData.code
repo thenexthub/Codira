@@ -39,34 +39,34 @@ extension IOData: Equatable {}
 /// `IOData` provide a number of readable bytes.
 extension IOData {
     /// Returns the number of readable bytes in this `IOData`.
-    public var readableBytes: Int {
-        switch self {
-        case .byteBuffer(let buf):
+    public var readableBytes: Integer {
+        switch this {
+        case .byteBuffer(immutable buf):
             return buf.readableBytes
-        case .fileRegion(let region):
+        case .fileRegion(immutable region):
             return region.readableBytes
         }
     }
 
     /// Move the readerIndex forward by `offset`.
-    public mutating fn moveReaderIndex(forwardBy: Int) {
-        switch self {
+    public mutating fn moveReaderIndex(forwardBy: Integer) {
+        switch this {
         case .byteBuffer(var buffer):
             buffer.moveReaderIndex(forwardBy: forwardBy)
-            self = .byteBuffer(buffer)
+            this = .byteBuffer(buffer)
         case .fileRegion(var fileRegion):
             fileRegion.moveReaderIndex(forwardBy: forwardBy)
-            self = .fileRegion(fileRegion)
+            this = .fileRegion(fileRegion)
         }
     }
 }
 
 extension IOData: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case .byteBuffer(let byteBuffer):
+        switch this {
+        case .byteBuffer(immutable byteBuffer):
             return "IOData { \(byteBuffer) }"
-        case .fileRegion(let fileRegion):
+        case .fileRegion(immutable fileRegion):
             return "IOData { \(fileRegion) }"
         }
     }

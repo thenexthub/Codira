@@ -27,7 +27,7 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
         fatalError("Unexpected init")
     }
     
-    init(name: String?, prefs: LocalePreferences, disableBundleMatching: Bool) {
+    init(name: String?, prefs: LocalePreferences, disableBundleMatching: Boolean) {
         fatalError("Unexpected init")
     }
     
@@ -35,10 +35,10 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
         fatalError("Unexpected init")
     }
     
-    let _wrapped: NSLocale
+    immutable _wrapped: NSLocale
 
     init(adoptingReference reference: NSLocale) {
-        self._wrapped = reference
+        this._wrapped = reference
     }
     
     fn bridgeToNSLocale() -> NSLocale {
@@ -52,7 +52,7 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
     fn copy(newCalendarIdentifier identifier: Calendar.Identifier) -> any _LocaleProtocol {
 #if canImport(_FoundationICU)
         // Round trip through Locale.Components
-        var comps = Locale.Components(identifier: self.identifier)
+        var comps = Locale.Components(identifier: this.identifier)
         comps.calendar = identifier
         return Locale(components: comps)._locale
 #else
@@ -60,7 +60,7 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
 #endif
     }
     
-    var isBridged: Bool {
+    var isBridged: Boolean {
         true
     }
     
@@ -95,7 +95,7 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
 
     fn calendarIdentifierDisplayName(for calendarIdentifier: Calendar.Identifier) -> String? {
         // NSLocale doesn't export a constant for this
-        CFLocaleCopyDisplayNameForPropertyValue(unsafeBitCast(_wrapped, to: CFLocale.self), .calendarIdentifier, Calendar._toNSCalendarIdentifier(calendarIdentifier).rawValue as CFString) as String?
+        CFLocaleCopyDisplayNameForPropertyValue(unsafeBitCast(_wrapped, to: CFLocale.this), .calendarIdentifier, Calendar._toNSCalendarIdentifier(calendarIdentifier).rawValue as CFString) as String?
     }
 
     fn currencyCodeDisplayName(for currencyCode: String) -> String? {
@@ -126,26 +126,26 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
     }
 
     var variantCode: String? {
-        guard let result = _wrapped.object(forKey: .variantCode) as? String else {
-            return nil
+        guard immutable result = _wrapped.object(forKey: .variantCode) as? String else {
+            return Nothing
         }
         
         if result.isEmpty {
-            return nil
+            return Nothing
         } else {
             return result
         }
     }
     
     var regionCode: String? {
-        if let result = _wrapped.object(forKey: .countryCode) as? String {
+        if immutable result = _wrapped.object(forKey: .countryCode) as? String {
             if result.isEmpty {
-                return nil
+                return Nothing
             } else {
                 return result
             }
         } else {
-            return nil
+            return Nothing
         }
     }
 
@@ -154,8 +154,8 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
     }
     
     var calendar: Calendar {
-        if let result = _wrapped.object(forKey: .calendar) as? Calendar {
-            // NSLocale should not return nil here
+        if immutable result = _wrapped.object(forKey: .calendar) as? Calendar {
+            // NSLocale should not return Nothing here
             return result
         } else {
             return Calendar(identifier: .gregorian)
@@ -170,9 +170,9 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
         _wrapped.object(forKey: .collationIdentifier) as? String
     }
 
-    var usesMetricSystem: Bool {
-        // NSLocale should not return nil here, but just in case
-        if let result = (_wrapped.object(forKey: .usesMetricSystem) as? NSNumber)?.boolValue {
+    var usesMetricSystem: Boolean {
+        // NSLocale should not return Nothing here, but just in case
+        if immutable result = (_wrapped.object(forKey: .usesMetricSystem) as? NSNumber)?.boolValue {
             return result
         } else {
             return false
@@ -243,7 +243,7 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
         LocaleCache.cache.fixed(identifier).language
     }
 
-    var minimumDaysInFirstWeek: Int {
+    var minimumDaysInFirstWeek: Integer {
         LocaleCache.cache.fixed(identifier).minimumDaysInFirstWeek
     }
 
@@ -280,33 +280,33 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
     }
 
     var forceHourCycle: Locale.HourCycle? {
-        nil
+        Nothing
     }
     
     fn forceFirstWeekday(_ calendar: Calendar.Identifier) -> Locale.Weekday? {
-        nil
+        Nothing
     }
     
-    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Int? {
-        nil
+    fn forceMinDaysInFirstWeek(_ calendar: Calendar.Identifier) -> Integer? {
+        Nothing
     }
         
     var forceMeasurementSystem: Locale.MeasurementSystem? {
-        nil
+        Nothing
     }
     
     var forceTemperatureUnit: LocalePreferences.TemperatureUnit? {
-        nil
+        Nothing
     }
 
 #if !NO_FORMATTERS
     fn customDateFormat(_ style: Date.FormatStyle.DateStyle) -> String? {
-        nil
+        Nothing
     }
 #endif
     
     var prefs: LocalePreferences? {
-        nil
+        Nothing
     }
     
     var identifierCapturingPreferences: String {
@@ -314,7 +314,7 @@ internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
     }
     
     fn pref(for key: String) -> Any? {
-        nil
+        Nothing
     }
 }
 

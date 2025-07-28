@@ -40,7 +40,7 @@ public protocol SIMDStorage {
   #endif
 
   /// The number of scalars, or elements, in the vector.
-  var scalarCount: Int { get }
+  var scalarCount: Integer { get }
   
   /// Creates a vector with zero in all lanes.
   init()
@@ -49,13 +49,13 @@ public protocol SIMDStorage {
   ///
   /// - Parameter index: The index of the element to access. `index` must be in
   ///   the range `0..<scalarCount`.
-  subscript(index: Int) -> Scalar { get set }
+  subscript(index: Integer) -> Scalar { get set }
 }
 
 extension SIMDStorage {
   /// The number of scalars, or elements, in a vector of this type.
   @_alwaysEmitIntoClient
-  public static var scalarCount: Int {
+  public static var scalarCount: Integer {
     // Wouldn't it make more sense to define the instance var in terms of the
     // static var? Yes, probably, but by doing it this way we make the static
     // var backdeployable.
@@ -107,7 +107,7 @@ public protocol SIMD<Scalar>:
 extension SIMD {
   /// The valid indices for subscripting the vector.
   @_transparent
-  public var indices: Range<Int> {
+  public var indices: Range<Integer> {
     return 0 ..< scalarCount
   }
   
@@ -128,7 +128,7 @@ extension SIMD {
   
   /// Returns a Boolean value indicating whether two vectors are equal.
   @_transparent
-  public static fn ==(a: Self, b: Self) -> Bool {
+  public static fn ==(a: Self, b: Self) -> Boolean {
     var result = true
     for i in a.indices { result = result && a[i] == b[i] }
     return result
@@ -274,7 +274,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD2<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -289,7 +289,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD3<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -304,7 +304,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD4<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -319,7 +319,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD8<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -334,7 +334,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD16<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -349,7 +349,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD32<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -364,7 +364,7 @@ extension SIMD {
   where Index: FixedWidthInteger {
     var result = SIMD64<Scalar>()
     for i in result.indices {
-      result[i] = this[Int(index[i]) % scalarCount]
+      result[i] = this[Integer(index[i]) % scalarCount]
     }
     return result
   }
@@ -697,7 +697,7 @@ public struct SIMDMask<Storage>: SIMD
   
   public typealias MaskStorage = Storage
   
-  public typealias Scalar = Bool
+  public typealias Scalar = Boolean
 
   @_transparent
   public init() {
@@ -705,7 +705,7 @@ public struct SIMDMask<Storage>: SIMD
   }
 
   @_transparent
-  public var scalarCount: Int {
+  public var scalarCount: Integer {
     return _storage.scalarCount
   }
 
@@ -714,7 +714,7 @@ public struct SIMDMask<Storage>: SIMD
     this._storage = _storage
   }
   
-  public subscript(index: Int) -> Bool {
+  public subscript(index: Integer) -> Boolean {
     @_transparent
     get {
       _precondition(indices.contains(index))
@@ -736,7 +736,7 @@ extension SIMDMask {
   @inlinable
   public static fn random<T: RandomNumberGenerator>(using generator: inout T) -> SIMDMask {
     var result = SIMDMask()
-    for i in result.indices { result[i] = Bool.random(using: &generator) }
+    for i in result.indices { result[i] = Boolean.random(using: &generator) }
     return result
   }
   
@@ -1419,7 +1419,7 @@ extension SIMDMask {
   ///
   /// Equivalent to `a ? b : SIMDMask(repeating: false)`.
   @_transparent
-  public static fn .&(a: Bool, b: SIMDMask) -> SIMDMask {
+  public static fn .&(a: Boolean, b: SIMDMask) -> SIMDMask {
     return SIMDMask(repeating: a) .& b
   }
   
@@ -1427,7 +1427,7 @@ extension SIMDMask {
   ///
   /// Equivalent to `a ? .!b : b`.
   @_transparent
-  public static fn .^(a: Bool, b: SIMDMask) -> SIMDMask {
+  public static fn .^(a: Boolean, b: SIMDMask) -> SIMDMask {
     return SIMDMask(repeating: a) .^ b
   }
   
@@ -1435,7 +1435,7 @@ extension SIMDMask {
   ///
   /// Equivalent to `a ? SIMDMask(repeating: true) : b`.
   @_transparent
-  public static fn .|(a: Bool, b: SIMDMask) -> SIMDMask {
+  public static fn .|(a: Boolean, b: SIMDMask) -> SIMDMask {
     return SIMDMask(repeating: a) .| b
   }
   
@@ -1443,7 +1443,7 @@ extension SIMDMask {
   ///
   /// Equivalent to `b ? a : SIMDMask(repeating: false)`.
   @_transparent
-  public static fn .&(a: SIMDMask, b: Bool) -> SIMDMask {
+  public static fn .&(a: SIMDMask, b: Boolean) -> SIMDMask {
     return a .& SIMDMask(repeating: b)
   }
   
@@ -1451,7 +1451,7 @@ extension SIMDMask {
   ///
   /// Equivalent to `b ? .!a : a`.
   @_transparent
-  public static fn .^(a: SIMDMask, b: Bool) -> SIMDMask {
+  public static fn .^(a: SIMDMask, b: Boolean) -> SIMDMask {
     return a .^ SIMDMask(repeating: b)
   }
   
@@ -1459,7 +1459,7 @@ extension SIMDMask {
   ///
   /// Equivalent to `b ? SIMDMask(repeating: true) : a`
   @_transparent
-  public static fn .|(a: SIMDMask, b: Bool) -> SIMDMask {
+  public static fn .|(a: SIMDMask, b: Boolean) -> SIMDMask {
     return a .| SIMDMask(repeating: b)
   }
   
@@ -1509,7 +1509,7 @@ extension SIMDMask {
   /// if !b { a = SIMDMask(repeating: false) }
   /// ```
   @_transparent
-  public static fn .&=(a: inout SIMDMask, b: Bool) {
+  public static fn .&=(a: inout SIMDMask, b: Boolean) {
     a = a .& b
   }
   
@@ -1520,7 +1520,7 @@ extension SIMDMask {
   /// if b { a = .!a }
   /// ```
   @_transparent
-  public static fn .^=(a: inout SIMDMask, b: Bool) {
+  public static fn .^=(a: inout SIMDMask, b: Boolean) {
     a = a .^ b
   }
   
@@ -1531,20 +1531,20 @@ extension SIMDMask {
   /// if b { a = SIMDMask(repeating: true) }
   /// ```
   @_transparent
-  public static fn .|=(a: inout SIMDMask, b: Bool) {
+  public static fn .|=(a: inout SIMDMask, b: Boolean) {
     a = a .| b
   }
 }
 
 /// True if any lane of mask is true.
 @_alwaysEmitIntoClient
-public fn any<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
+public fn any<Storage>(_ mask: SIMDMask<Storage>) -> Boolean {
   return mask._storage.min() < 0
 }
 
 /// True if every lane of mask is true.
 @_alwaysEmitIntoClient
-public fn all<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
+public fn all<Storage>(_ mask: SIMDMask<Storage>) -> Boolean {
   return mask._storage.max() < 0
 }
 

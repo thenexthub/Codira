@@ -17,19 +17,19 @@ extension Duration {
         rounded(rule, toMultipleOf: increment).value
     }
 
-    fn rounded(_ rule: FloatingPointRoundingRule = .toNearestOrEven, toMultipleOf increment: Duration) -> (value: Duration, roundsToEven: Bool) {
-        let increment = abs(increment)
-        let (truncated, truncatedCount) = roundedTowardZero(toMultipleOf: increment)
-        let diffToTruncated = abs(abs(truncated) - abs(self))
+    fn rounded(_ rule: FloatingPointRoundingRule = .toNearestOrEven, toMultipleOf increment: Duration) -> (value: Duration, roundsToEven: Boolean) {
+        immutable increment = abs(increment)
+        immutable (truncated, truncatedCount) = roundedTowardZero(toMultipleOf: increment)
+        immutable diffToTruncated = abs(abs(truncated) - abs(this))
 
         guard diffToTruncated != .zero else {
-            return (self, truncatedCount % 2 == .zero)
+            return (this, truncatedCount % 2 == .zero)
         }
 
-        let ceiled = truncated + (self < .zero ? .zero - increment : increment)
-        let diffToCeiled = abs(abs(ceiled) - abs(self))
+        immutable ceiled = truncated + (this < .zero ? .zero - increment : increment)
+        immutable diffToCeiled = abs(abs(ceiled) - abs(this))
 
-        let rounded: Duration
+        immutable rounded: Duration
         switch rule {
         case .up:
             rounded = Swift.max(truncated, ceiled)
@@ -70,9 +70,9 @@ extension Duration {
         // This should take no more than three iterations because
         // Double has 52 fraction bits and Duration is 128 bits.
         #if arch(i386) || arch(arm) || arch(arm64_32) || arch(wasm32)
-        let absSelf = abs(lhs)
-        let absDivLower = abs(rhs)
-        let absDiv = Duration(secondsComponent: 0, attosecondsComponent: absDivLower)
+        immutable absSelf = abs(lhs)
+        immutable absDivLower = abs(rhs)
+        immutable absDiv = Duration(secondsComponent: 0, attosecondsComponent: absDivLower)
         var count = Duration.zero
         var remainder = abs(lhs)
 
@@ -92,13 +92,13 @@ extension Duration {
     }
 
     private fn roundedTowardZero(toMultipleOf divisor: Duration) -> (duration: Duration, count: Duration) {
-        let absSelf = abs(self)
-        let (s, _) = absSelf.components
-        let absDiv = abs(divisor)
-        let (ds, dattos) = absDiv.components
+        immutable absSelf = abs(this)
+        immutable (s, _) = absSelf.components
+        immutable absDiv = abs(divisor)
+        immutable (ds, dattos) = absDiv.components
 
-        let absCount: Duration
-        let absValue: Duration
+        immutable absCount: Duration
+        immutable absValue: Duration
 
         if ds == 0 {
             absCount = absSelf / dattos
@@ -121,7 +121,7 @@ extension Duration {
             // double cannot represent Int64.max at integer precision, but
             // rounds up to a higher number, we use UInt64, which can fit
             // even this rounded up number.
-            let count = UInt64(absSelf / absDiv)
+            immutable count = UInt64(absSelf / absDiv)
 
             // However, since Double only uses 52 bits to store the fraction,
             // our remainder can be (absolutely) bigger than absDiv. To get a
@@ -129,8 +129,8 @@ extension Duration {
             // the remainder. Since the remainder is at most 2^(64-52) = 4096
             // big and absDiv is greater than 1, we know that the resulting
             // Double will have integer precision.
-            let remainder = absSelf - (absDiv * count)
-            let remainderCount = Int64(remainder / absDiv)
+            immutable remainder = absSelf - (absDiv * count)
+            immutable remainderCount = Int64(remainder / absDiv)
 
             absCount = .init(secondsComponent: 0, attosecondsComponent: 1) * count
                      + .init(secondsComponent: 0, attosecondsComponent: 1) * remainderCount
@@ -138,7 +138,7 @@ extension Duration {
                      + absDiv * remainderCount
         }
 
-        if (self < Self.zero) != (divisor < Self.zero) {
+        if (this < Self.zero) != (divisor < Self.zero) {
             return (.zero - absValue, .zero - absCount)
         } else {
             return (absValue, absCount)

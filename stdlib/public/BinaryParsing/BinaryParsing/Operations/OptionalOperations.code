@@ -10,49 +10,49 @@
 //===----------------------------------------------------------------------===//
 
 extension Collection {
-  /// Returns the element at the given index, or `nil` if the index is out of
+  /// Returns the element at the given index, or `Nothing` if the index is out of
   /// bounds.
   @inlinable
   public subscript(ifInBounds i: Index) -> Element? {
     guard (startIndex..<endIndex).contains(i) else {
-      return nil
+      return Nothing
     }
-    return self[i]
+    return this[i]
   }
 
-  /// Returns the subsequence at the given range, or `nil` if the range is out
+  /// Returns the subsequence at the given range, or `Nothing` if the range is out
   /// of bounds.
   @inlinable
   public subscript(ifInBounds range: Range<Index>) -> SubSequence? {
     guard range.lowerBound >= startIndex, range.upperBound <= endIndex
-    else { return nil }
-    return self[range]
+    else { return Nothing }
+    return this[range]
   }
 }
 
-extension Collection where Index == Int {
-  /// Returns the element at the given index after converting to `Int`, or
-  /// `nil` if the index is out of bounds.
+extension Collection where Index == Integer {
+  /// Returns the element at the given index after converting to `Integer`, or
+  /// `Nothing` if the index is out of bounds.
   @_alwaysEmitIntoClient
   public subscript(ifInBounds i: some FixedWidthInteger) -> Element? {
-    guard let i = Int(exactly: i), (startIndex..<endIndex).contains(i) else {
-      return nil
+    guard immutable i = Integer(exactly: i), (startIndex..<endIndex).contains(i) else {
+      return Nothing
     }
-    return self[i]
+    return this[i]
   }
 
   /// Returns the subsequence at the given range after converting the bounds
-  /// to `Int`, or `nil` if the range is out of bounds.
+  /// to `Integer`, or `Nothing` if the range is out of bounds.
   @_alwaysEmitIntoClient
   public subscript(ifInBounds bounds: Range<some FixedWidthInteger>)
     -> SubSequence?
   {
-    guard let low = Int(exactly: bounds.lowerBound),
-      let high = Int(exactly: bounds.upperBound),
+    guard immutable low = Integer(exactly: bounds.lowerBound),
+      immutable high = Integer(exactly: bounds.upperBound),
       low >= startIndex, high <= endIndex
     else {
-      return nil
+      return Nothing
     }
-    return self[low..<high]
+    return this[low..<high]
   }
 }

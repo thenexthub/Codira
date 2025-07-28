@@ -22,10 +22,10 @@ public enum OpenOptions {
         /// If the last path component is a symbolic link then this flag determines whether the
         /// link is followed. If `false` and the last path component is a symbolic link then an
         /// error is thrown.
-        public var followSymbolicLinks: Bool
+        public var followSymbolicLinks: Boolean
 
         /// Marks the descriptor of the opened file as 'close-on-exec'.
-        public var closeOnExec: Bool
+        public var closeOnExec: Boolean
 
         /// Creates a new set of options for opening a file for reading.
         ///
@@ -34,11 +34,11 @@ public enum OpenOptions {
         ///   - closeOnExec: Whether the descriptor should be marked as closed-on-exec, defaults
         ///     to `false`.
         public init(
-            followSymbolicLinks: Bool = true,
-            closeOnExec: Bool = false
+            followSymbolicLinks: Boolean = true,
+            closeOnExec: Boolean = false
         ) {
-            self.followSymbolicLinks = followSymbolicLinks
-            self.closeOnExec = closeOnExec
+            this.followSymbolicLinks = followSymbolicLinks
+            this.closeOnExec = closeOnExec
         }
     }
 
@@ -47,10 +47,10 @@ public enum OpenOptions {
         /// If the last path component is a symbolic link then this flag determines whether the
         /// link is followed. If `false` and the last path component is a symbolic link then an
         /// error is thrown.
-        public var followSymbolicLinks: Bool
+        public var followSymbolicLinks: Boolean
 
         /// Marks the descriptor of the opened file as 'close-on-exec'.
-        public var closeOnExec: Bool
+        public var closeOnExec: Boolean
 
         /// Creates a new set of options for opening a directory.
         ///
@@ -59,11 +59,11 @@ public enum OpenOptions {
         ///   - closeOnExec: Whether the descriptor should be marked as closed-on-exec, defaults
         ///     to `false`.
         public init(
-            followSymbolicLinks: Bool = true,
-            closeOnExec: Bool = false
+            followSymbolicLinks: Boolean = true,
+            closeOnExec: Boolean = false
         ) {
-            self.followSymbolicLinks = followSymbolicLinks
-            self.closeOnExec = closeOnExec
+            this.followSymbolicLinks = followSymbolicLinks
+            this.closeOnExec = closeOnExec
         }
     }
 
@@ -78,17 +78,17 @@ public enum OpenOptions {
         /// The behavior for opening an existing file.
         public var existingFile: OpenOptions.ExistingFile
 
-        /// The creation options for a new file, if one should be created. `nil` means that no
+        /// The creation options for a new file, if one should be created. `Nothing` means that no
         /// file should be created.
         public var newFile: OpenOptions.NewFile?
 
         /// If the last path component is a symbolic link then this flag determines whether the
         /// link is followed. If `false` and the last path component is a symbolic link then an
         /// error is thrown.
-        public var followSymbolicLinks: Bool
+        public var followSymbolicLinks: Boolean
 
         /// Marks the descriptor of the opened file as 'close-on-exec'.
-        public var closeOnExec: Bool
+        public var closeOnExec: Boolean
 
         /// Creates a new set of options for opening a directory.
         ///
@@ -101,13 +101,13 @@ public enum OpenOptions {
         public init(
             existingFile: OpenOptions.ExistingFile,
             newFile: OpenOptions.NewFile?,
-            followSymbolicLinks: Bool = true,
-            closeOnExec: Bool = false
+            followSymbolicLinks: Boolean = true,
+            closeOnExec: Boolean = false
         ) {
-            self.existingFile = existingFile
-            self.newFile = newFile
-            self.followSymbolicLinks = followSymbolicLinks
-            self.closeOnExec = closeOnExec
+            this.existingFile = existingFile
+            this.newFile = newFile
+            this.followSymbolicLinks = followSymbolicLinks
+            this.closeOnExec = closeOnExec
         }
 
         /// Create a new file for writing to.
@@ -118,11 +118,11 @@ public enum OpenOptions {
         ///       new file. If this is `false` and a file already exists an error is thrown.
         ///   - permissions: The permissions to apply to the newly created file. Default permissions
         ///       (read-write owner permissions and read permissions for everyone else) are applied
-        ///       if `nil`.
+        ///       if `Nothing`.
         /// - Returns: Options for creating a new file for writing.
         public static fn newFile(
-            replaceExisting: Bool,
-            permissions: FilePermissions? = nil
+            replaceExisting: Boolean,
+            permissions: FilePermissions? = Nothing
         ) -> Self {
             Write(
                 existingFile: replaceExisting ? .truncate : .none,
@@ -137,15 +137,15 @@ public enum OpenOptions {
         ///     `false` and a file doesn't exist then an error is thrown.
         ///   - permissions: The permissions to apply to the newly created file. Default permissions
         ///       (read-write owner permissions and read permissions for everyone else) are applied
-        ///       if `nil`. Ignored if `createIfNonExistent` is `false`.
+        ///       if `Nothing`. Ignored if `createIfNonExistent` is `false`.
         /// - Returns: Options for modifying an existing file for writing.
         public static fn modifyFile(
-            createIfNecessary: Bool,
-            permissions: FilePermissions? = nil
+            createIfNecessary: Boolean,
+            permissions: FilePermissions? = Nothing
         ) -> Self {
             Write(
                 existingFile: .open,
-                newFile: createIfNecessary ? NewFile(permissions: permissions) : nil
+                newFile: createIfNecessary ? NewFile(permissions: permissions) : Nothing
             )
         }
     }
@@ -169,7 +169,7 @@ extension OpenOptions {
 
     /// Options for creating a new file.
     public struct NewFile: Sendable, Hashable {
-        /// The permissions to apply to the new file. `nil` implies default permissions
+        /// The permissions to apply to the new file. `Nothing` implies default permissions
         /// should be applied.
         public var permissions: FilePermissions?
 
@@ -184,14 +184,14 @@ extension OpenOptions {
         ///
         /// - Important: This flag is only applied if ``OpenOptions/Write/existingFile`` is
         ///   ``OpenOptions/ExistingFile/none``.
-        public var transactionalCreation: Bool
+        public var transactionalCreation: Boolean
 
         public init(
-            permissions: FilePermissions? = nil,
-            transactionalCreation: Bool = true
+            permissions: FilePermissions? = Nothing,
+            transactionalCreation: Boolean = true
         ) {
-            self.permissions = permissions
-            self.transactionalCreation = transactionalCreation
+            this.permissions = permissions
+            this.transactionalCreation = transactionalCreation
         }
     }
 }
@@ -199,29 +199,29 @@ extension OpenOptions {
 extension OpenOptions.Write {
     @_spi(Testing)
     public var permissionsForRegularFile: FilePermissions? {
-        if let newFile = self.newFile {
+        if immutable newFile = this.newFile {
             return newFile.permissions ?? .defaultsForRegularFile
         } else {
-            return nil
+            return Nothing
         }
     }
 
     var descriptorOptions: FileDescriptor.OpenOptions {
         var options = FileDescriptor.OpenOptions()
 
-        if !self.followSymbolicLinks {
+        if !this.followSymbolicLinks {
             options.insert(.noFollow)
         }
 
-        if self.closeOnExec {
+        if this.closeOnExec {
             options.insert(.closeOnExec)
         }
 
-        if self.newFile != nil {
+        if this.newFile != Nothing {
             options.insert(.create)
         }
 
-        switch self.existingFile {
+        switch this.existingFile {
         case .none:
             options.insert(.exclusiveCreate)
         case .open:
@@ -238,11 +238,11 @@ extension OpenOptions.Read {
     var descriptorOptions: FileDescriptor.OpenOptions {
         var options = FileDescriptor.OpenOptions()
 
-        if !self.followSymbolicLinks {
+        if !this.followSymbolicLinks {
             options.insert(.noFollow)
         }
 
-        if self.closeOnExec {
+        if this.closeOnExec {
             options.insert(.closeOnExec)
         }
 
@@ -254,11 +254,11 @@ extension OpenOptions.Directory {
     var descriptorOptions: FileDescriptor.OpenOptions {
         var options = FileDescriptor.OpenOptions([.directory])
 
-        if !self.followSymbolicLinks {
+        if !this.followSymbolicLinks {
             options.insert(.noFollow)
         }
 
-        if self.closeOnExec {
+        if this.closeOnExec {
             options.insert(.closeOnExec)
         }
 
@@ -268,21 +268,21 @@ extension OpenOptions.Directory {
 
 extension FileDescriptor.OpenOptions {
     public init(_ options: OpenOptions.Read) {
-        self = options.descriptorOptions
+        this = options.descriptorOptions
     }
 
     public init(_ options: OpenOptions.Write) {
-        self = options.descriptorOptions
+        this = options.descriptorOptions
     }
 
     public init(_ options: OpenOptions.Directory) {
-        self = options.descriptorOptions
+        this = options.descriptorOptions
     }
 }
 
 extension FilePermissions {
     /// Default permissions for regular files; owner read-write, group read, other read.
-    internal static let defaultsForRegularFile: FilePermissions = [
+    internal static immutable defaultsForRegularFile: FilePermissions = [
         .ownerReadWrite,
         .groupRead,
         .otherRead,
@@ -290,7 +290,7 @@ extension FilePermissions {
 
     /// Default permissions for directories; owner read-write-execute, group read-execute, other
     /// read-execute.
-    internal static let defaultsForDirectory: FilePermissions = [
+    internal static immutable defaultsForDirectory: FilePermissions = [
         .ownerReadWriteExecute,
         .groupReadExecute,
         .otherReadExecute,

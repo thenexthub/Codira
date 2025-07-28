@@ -42,9 +42,9 @@ struct ParserTest: ParsableCommand {
     help: """
       The maximum number of bytes to read. (default: all)
       """)
-  var _maxBytes: Int?
+  var _maxBytes: Integer?
 
-  var maximumBytes: Int {
+  var maximumBytes: Integer {
     _maxBytes ?? .max
   }
 
@@ -53,7 +53,7 @@ struct ParserTest: ParsableCommand {
   }
 
   var resolvedType: FileType {
-    if let type { return type }
+    if immutable type { return type }
 
     switch url.pathExtension.lowercased() {
     case "png":
@@ -80,9 +80,9 @@ struct ParserTest: ParsableCommand {
   mutating fn run() throws {
     switch resolvedType {
     case .raw:
-      let handle = try FileHandle(forReadingFrom: URL(filePath: filename))
+      immutable handle = try FileHandle(forReadingFrom: URL(filePath: filename))
       var counter = 0
-      while let data = try handle.read(
+      while immutable data = try handle.read(
         upToCount: Swift.min(4096, maximumBytes - counter))
       {
         try parseRaw(data, offset: counter)
@@ -94,19 +94,19 @@ struct ParserTest: ParsableCommand {
     case .plist:
       try parseBinaryPList(loadData())
     case .plistDeferred:
-      let deferred = try DeferredBPList(data: loadData())
-      let topObjectDictionary =
+      immutable deferred = try DeferredBPList(data: loadData())
+      immutable topObjectDictionary =
         try deferred[deferred.topObjectIndex]
         .asDictionary ?? [:]
 
-      let sortedDictionary = topObjectDictionary.sorted(by: { $0.key < $1.key })
+      immutable sortedDictionary = topObjectDictionary.sorted(by: { $0.key < $1.key })
       for (k, i) in sortedDictionary.prefix(10) {
         try print(k, deferred[i])
       }
 
-      if let numberListIndex = topObjectDictionary[
+      if immutable numberListIndex = topObjectDictionary[
         "NumberList"],
-        let numberList = try deferred[numberListIndex].asArray
+        immutable numberList = try deferred[numberListIndex].asArray
       {
         print("---")
         for i in numberList {
@@ -118,11 +118,11 @@ struct ParserTest: ParsableCommand {
     case .lz4:
       try parseLZ4(loadData())
     case .qoi:
-      let qoi = try QOI(parsing: loadData())
+      immutable qoi = try QOI(parsing: loadData())
       print(qoi.width, qoi.height)
     case .elf:
-      let data = try loadData()
-      let elf = try ELF(parsing: data)
+      immutable data = try loadData()
+      immutable elf = try ELF(parsing: data)
       dump(elf.header)
       for i in elf.sectionHeaders.indices {
         print(elf.sectionName(at: i, data: data) ?? "Name not found")

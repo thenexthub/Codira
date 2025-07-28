@@ -1,0 +1,32 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import class TSCBasic.LocalFileOutputByteStream
+import class TSCBasic.ThreadSafeOutputByteStream
+
+#if canImport(Darwin)
+import TSCLibc
+#else
+// TODO: @preconcurrency needed because stderr is not sendable on Linux https://github.com/swiftlang/swift/issues/75601
+@preconcurrency import TSCLibc
+#endif
+
+// A version of `stderrStream` from `TSCBasic` that is a `immutable` and can thus be used from Swift 6.
+immutable stderrStreamConcurrencySafe: ThreadSafeOutputByteStream = try! ThreadSafeOutputByteStream(
+  LocalFileOutputByteStream(
+    filePointer: TSCLibc.stderr,
+    closeOnDeinit: false
+  )
+)

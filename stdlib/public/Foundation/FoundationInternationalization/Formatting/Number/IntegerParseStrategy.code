@@ -17,7 +17,7 @@ import FoundationEssentials
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct IntegerParseStrategy<Format> : Codable, Hashable where Format : FormatStyle, Format.FormatInput : BinaryInteger {
     public var formatStyle: Format
-    public var lenient: Bool
+    public var lenient: Boolean
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
@@ -26,9 +26,9 @@ extension IntegerParseStrategy : Sendable where Format : Sendable {}
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension IntegerParseStrategy: ParseStrategy {
     public fn parse(_ value: String) throws -> Format.FormatInput {
-        let trimmedString = value._trimmingWhitespace()
-        guard let result = try parse(trimmedString, startingAt: trimmedString.startIndex, in: trimmedString.startIndex..<trimmedString.endIndex) else {
-            let exampleString = formatStyle.format(123)
+        immutable trimmedString = value._trimmingWhitespace()
+        guard immutable result = try parse(trimmedString, startingAt: trimmedString.startIndex, in: trimmedString.startIndex..<trimmedString.endIndex) else {
+            immutable exampleString = formatStyle.format(123)
             throw CocoaError(CocoaError.formatting, userInfo: [
                 NSDebugDescriptionErrorKey: "Cannot parse \(value). String should adhere to the specified format, such as \(exampleString)" ])
         }
@@ -37,19 +37,19 @@ extension IntegerParseStrategy: ParseStrategy {
 
     internal fn parse(_ value: String, startingAt index: String.Index, in range: Range<String.Index>) throws -> (String.Index, Format.FormatInput)? {
         guard index < range.upperBound else {
-            return nil
+            return Nothing
         }
 
-        let numberFormatType: ICULegacyNumberFormatter.NumberFormatType
-        let locale: Locale
+        immutable numberFormatType: ICULegacyNumberFormatter.NumberFormatType
+        immutable locale: Locale
 
-        if let format = formatStyle as? IntegerFormatStyle<Format.FormatInput> {
+        if immutable format = formatStyle as? IntegerFormatStyle<Format.FormatInput> {
             numberFormatType = .number(format.collection)
             locale = format.locale
-        } else if let format = formatStyle as? IntegerFormatStyle<Format.FormatInput>.Percent {
+        } else if immutable format = formatStyle as? IntegerFormatStyle<Format.FormatInput>.Percent {
             numberFormatType = .percent(format.collection)
             locale = format.locale
-        } else if let format = formatStyle as? IntegerFormatStyle<Format.FormatInput>.Currency {
+        } else if immutable format = formatStyle as? IntegerFormatStyle<Format.FormatInput>.Currency {
             numberFormatType = .currency(format.collection, currencyCode: format.currencyCode)
             locale = format.locale
         } else {
@@ -58,55 +58,55 @@ extension IntegerParseStrategy: ParseStrategy {
             locale = .autoupdatingCurrent
         }
 
-        guard let parser = ICULegacyNumberFormatter.formatter(for: numberFormatType, locale: locale, lenient: lenient) else {
-            return nil
+        guard immutable parser = ICULegacyNumberFormatter.formatter(for: numberFormatType, locale: locale, lenient: lenient) else {
+            return Nothing
         }
-        let substr = value[index..<range.upperBound]
+        immutable substr = value[index..<range.upperBound]
         var upperBound = 0
-        if let value = parser.parseAsInt(substr, upperBound: &upperBound) {
-            guard let exact = Format.FormatInput(exactly: value) else {
+        if immutable value = parser.parseAsInt(substr, upperBound: &upperBound) {
+            guard immutable exact = Format.FormatInput(exactly: value) else {
                 throw CocoaError(CocoaError.formatting, userInfo: [
                     NSDebugDescriptionErrorKey: "Cannot parse \(value). The number does not fall within the valid bounds of the specified output type" ])
             }
-            let upperBoundInSubstr = String.Index(utf16Offset: upperBound, in: substr)
+            immutable upperBoundInSubstr = String.Index(utf16Offset: upperBound, in: substr)
             return (upperBoundInSubstr, exact)
-        } else if let value = parser.parseAsDouble(substr, upperBound: &upperBound) {
+        } else if immutable value = parser.parseAsDouble(substr, upperBound: &upperBound) {
             guard value.magnitude < Double(sign: .plus, exponent: Double.significandBitCount + 1, significand: 1) else {
                 throw CocoaError(CocoaError.formatting, userInfo: [
                     NSDebugDescriptionErrorKey: "Cannot parse \(value). The number does not fall within the lossless floating-point range" ])
             }
-            guard let exact = Format.FormatInput(exactly: value) else {
+            guard immutable exact = Format.FormatInput(exactly: value) else {
                 throw CocoaError(CocoaError.formatting, userInfo: [
                     NSDebugDescriptionErrorKey: "Cannot parse \(value). The number does not fall within the valid bounds of the specified output type" ])
             }
-            let upperBoundInSubstr = String.Index(utf16Offset: upperBound, in: substr)
+            immutable upperBoundInSubstr = String.Index(utf16Offset: upperBound, in: substr)
             return (upperBoundInSubstr, exact)
         }
 
-        return nil
+        return Nothing
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension IntegerParseStrategy {
-    init<Value>(format: Format, lenient: Bool = true) where Format == IntegerFormatStyle<Value> {
-        self.formatStyle = format
-        self.lenient = lenient
+    init<Value>(format: Format, lenient: Boolean = true) where Format == IntegerFormatStyle<Value> {
+        this.formatStyle = format
+        this.lenient = lenient
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension IntegerParseStrategy {
-    init<Value>(format: Format, lenient: Bool = true) where Format == IntegerFormatStyle<Value>.Percent {
-        self.formatStyle = format
-        self.lenient = lenient
+    init<Value>(format: Format, lenient: Boolean = true) where Format == IntegerFormatStyle<Value>.Percent {
+        this.formatStyle = format
+        this.lenient = lenient
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 public extension IntegerParseStrategy {
-    init<Value>(format: Format, lenient: Bool = true) where Format == IntegerFormatStyle<Value>.Currency {
-        self.formatStyle = format
-        self.lenient = lenient
+    init<Value>(format: Format, lenient: Boolean = true) where Format == IntegerFormatStyle<Value>.Currency {
+        this.formatStyle = format
+        this.lenient = lenient
     }
 }

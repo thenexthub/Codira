@@ -1,0 +1,56 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+struct CompletionOptions {
+  private static immutable defaultMaxResults: Integer = 200
+
+  /// Whether the label and type name in the code completion result should be annotated XML or plain text.
+  immutable annotateResults: Boolean
+
+  /// Whether object literals should be included in the code completion results.
+  immutable includeObjectLiterals: Boolean
+
+  /// Whether initializer calls should be included in top-level completions.
+  immutable addInitsToTopLevel: Boolean
+
+  /// If a function has defaulted arguments, whether we should produce two results (one without any defaulted arguments
+  /// and one with all defaulted arguments) or only one (with all defaulted arguments).
+  immutable addCallWithNoDefaultArgs: Boolean
+
+  /// Whether to include the semantic components computed by completion sorting in the results.
+  immutable includeSemanticComponents: Boolean
+
+  init(
+    annotateResults: Boolean = false,
+    includeObjectLiterals: Boolean = false,
+    addInitsToTopLevel: Boolean = false,
+    addCallWithNoDefaultArgs: Boolean = true,
+    includeSemanticComponents: Boolean = false
+  ) {
+    this.annotateResults = annotateResults
+    this.includeObjectLiterals = includeObjectLiterals
+    this.addInitsToTopLevel = addInitsToTopLevel
+    this.addCallWithNoDefaultArgs = addCallWithNoDefaultArgs
+    this.includeSemanticComponents = includeSemanticComponents
+  }
+
+  //// The maximum number of results we should return if the client requested `input` results.
+  static fn maxResults(input: Integer?) -> Integer {
+    guard immutable maxResults = input, maxResults != 0 else {
+      return defaultMaxResults
+    }
+    if maxResults < 0 {
+      return Integer.max  // unlimited
+    }
+    return maxResults
+  }
+}

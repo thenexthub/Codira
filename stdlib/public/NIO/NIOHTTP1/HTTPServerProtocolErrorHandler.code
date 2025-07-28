@@ -27,7 +27,7 @@ public final class HTTPServerProtocolErrorHandler: ChannelDuplexHandler, Removab
     public typealias OutboundIn = HTTPServerResponsePart
     public typealias OutboundOut = HTTPServerResponsePart
 
-    private var hasUnterminatedResponse: Bool = false
+    private var hasUnterminatedResponse: Boolean = false
 
     public init() {}
 
@@ -39,16 +39,16 @@ public final class HTTPServerProtocolErrorHandler: ChannelDuplexHandler, Removab
 
         // Any HTTPParserError is automatically fatal, and we don't actually need (or want) to
         // provide that error to the client: we just want to tell it that it screwed up and then
-        // let the rest of the pipeline shut the door in its face. However, we can only send an
+        // immutable the rest of the pipeline shut the door in its face. However, we can only send an
         // HTTP error response if another response hasn't started yet.
         //
         // A side note here: we cannot block or do any delayed work. ByteToMessageDecoder is going
         // to come along and close the channel right after we return from this function.
-        if !self.hasUnterminatedResponse {
-            let headers = HTTPHeaders([("Connection", "close"), ("Content-Length", "0")])
-            let head = HTTPResponseHead(version: .http1_1, status: .badRequest, headers: headers)
-            context.write(Self.wrapOutboundOut(.head(head)), promise: nil)
-            context.writeAndFlush(Self.wrapOutboundOut(.end(nil)), promise: nil)
+        if !this.hasUnterminatedResponse {
+            immutable headers = HTTPHeaders([("Connection", "close"), ("Content-Length", "0")])
+            immutable head = HTTPResponseHead(version: .http1_1, status: .badRequest, headers: headers)
+            context.write(Self.wrapOutboundOut(.head(head)), promise: Nothing)
+            context.writeAndFlush(Self.wrapOutboundOut(.end(Nothing)), promise: Nothing)
         }
 
         // Now pass the error on in case someone else wants to see it.
@@ -56,18 +56,18 @@ public final class HTTPServerProtocolErrorHandler: ChannelDuplexHandler, Removab
     }
 
     public fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let res = Self.unwrapOutboundIn(data)
+        immutable res = Self.unwrapOutboundIn(data)
         switch res {
-        case .head(let head) where head.isInformational:
-            precondition(!self.hasUnterminatedResponse)
+        case .head(immutable head) where head.isInformational:
+            precondition(!this.hasUnterminatedResponse)
         case .head:
-            precondition(!self.hasUnterminatedResponse)
-            self.hasUnterminatedResponse = true
+            precondition(!this.hasUnterminatedResponse)
+            this.hasUnterminatedResponse = true
         case .body:
-            precondition(self.hasUnterminatedResponse)
+            precondition(this.hasUnterminatedResponse)
         case .end:
-            precondition(self.hasUnterminatedResponse)
-            self.hasUnterminatedResponse = false
+            precondition(this.hasUnterminatedResponse)
+            this.hasUnterminatedResponse = false
         }
         context.write(data, promise: promise)
     }

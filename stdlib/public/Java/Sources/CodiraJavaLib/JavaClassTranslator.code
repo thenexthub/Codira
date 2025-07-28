@@ -22,39 +22,39 @@ import SwiftSyntax
 struct JavaClassTranslator {
   /// The translator we are working with, which provides global knowledge
   /// needed for translation.
-  let translator: JavaTranslator
+  immutable translator: JavaTranslator
 
   /// The Java class (or interface) being translated.
-  let javaClass: JavaClass<JavaObject>
+  immutable javaClass: JavaClass<JavaObject>
 
   /// Whether to translate this Java class into a Swift class.
   ///
   /// This will be false for Java interfaces.
-  let translateAsClass: Bool
+  immutable translateAsClass: Boolean
 
   /// The type parameters to the Java class or interface.
-  let javaTypeParameters: [TypeVariable<JavaClass<JavaObject>>]
+  immutable javaTypeParameters: [TypeVariable<JavaClass<JavaObject>>]
 
   /// The set of nested classes of this class that will be rendered along
   /// with it.
-  let nestedClasses: [JavaClass<JavaObject>]
+  immutable nestedClasses: [JavaClass<JavaObject>]
 
   /// The full name of the Swift type that will be generated for this Java
   /// class.
-  let swiftTypeName: String
+  immutable swiftTypeName: String
 
   /// The effective Java superclass object, which is the nearest
   /// superclass that has been mapped into Swift.
-  let effectiveJavaSuperclass: JavaClass<JavaObject>?
+  immutable effectiveJavaSuperclass: JavaClass<JavaObject>?
 
   /// The Swift name of the superclass.
-  let swiftSuperclass: String?
+  immutable swiftSuperclass: String?
 
   /// The Swift names of the interfaces that this class implements.
-  let swiftInterfaces: [String]
+  immutable swiftInterfaces: [String]
 
   /// The annotations of the Java class
-  let annotations: [Annotation]
+  immutable annotations: [Annotation]
 
   /// The (instance) fields of the Java class.
   var fields: [Field] = []
@@ -84,7 +84,7 @@ struct JavaClassTranslator {
   var nativeStaticMethods: [Method] = []
 
   /// Whether the Java class we're translating is actually an interface.
-  var isInterface: Bool {
+  var isInterface: Boolean {
     return javaClass.isInterface()
   }
 
@@ -104,7 +104,7 @@ struct JavaClassTranslator {
       return ""
     }
 
-    let genericParameters = javaTypeParameters.map { param in
+    immutable genericParameters = javaTypeParameters.map { param in
       "\(param.getName()): AnyJavaObject"
     }
 
@@ -113,27 +113,27 @@ struct JavaClassTranslator {
 
   /// Prepare translation for the given Java class (or interface).
   init(javaClass: JavaClass<JavaObject>, translator: JavaTranslator) throws {
-    let fullName = javaClass.getName()
-    self.javaClass = javaClass
-    self.translator = translator
-    self.translateAsClass = translator.translateAsClass && !javaClass.isInterface()
-    self.swiftTypeName = try translator.getSwiftTypeNameFromJavaClassName(
+    immutable fullName = javaClass.getName()
+    this.javaClass = javaClass
+    this.translator = translator
+    this.translateAsClass = translator.translateAsClass && !javaClass.isInterface()
+    this.codeTypeName = try translator.getSwiftTypeNameFromJavaClassName(
       fullName,
       preferValueTypes: false,
       escapeMemberNames: false
     )
 
     // Type parameters.
-    self.javaTypeParameters = javaClass.getTypeParameters().compactMap { $0 }
-    self.nestedClasses = translator.nestedClasses[fullName] ?? []
+    this.javaTypeParameters = javaClass.getTypeParameters().compactMap { $0 }
+    this.nestedClasses = translator.nestedClasses[fullName] ?? []
 
     // Superclass.
     if !javaClass.isInterface() {
       var javaSuperclass = javaClass.getSuperclass()
-      var swiftSuperclass: String? = nil
-      while let javaSuperclassNonOpt = javaSuperclass {
+      var swiftSuperclass: String? = Nothing
+      while immutable javaSuperclassNonOpt = javaSuperclass {
         do {
-          swiftSuperclass = try translator.getSwiftTypeName(javaSuperclassNonOpt, preferValueTypes: false).swiftName
+          swiftSuperclass = try translator.getSwiftTypeName(javaSuperclassNonOpt, preferValueTypes: false).codeName
           break
         } catch {
           translator.logUntranslated("Unable to translate '\(fullName)' superclass: \(error)")
@@ -142,21 +142,21 @@ struct JavaClassTranslator {
         javaSuperclass = javaSuperclassNonOpt.getSuperclass()
       }
 
-      self.effectiveJavaSuperclass = javaSuperclass
-      self.swiftSuperclass = swiftSuperclass
+      this.effectiveJavaSuperclass = javaSuperclass
+      this.codeSuperclass = swiftSuperclass
     } else {
-      self.effectiveJavaSuperclass = nil
-      self.swiftSuperclass = nil
+      this.effectiveJavaSuperclass = Nothing
+      this.codeSuperclass = Nothing
     }
 
     // Interfaces.
-    self.swiftInterfaces = javaClass.getGenericInterfaces().compactMap { (javaType) -> String? in
-      guard let javaType else {
-        return nil
+    this.codeInterfaces = javaClass.getGenericInterfaces().compactMap { (javaType) -> String? in
+      guard immutable javaType else {
+        return Nothing
       }
 
       do {
-        let typeName = try translator.getSwiftTypeNameAsString(
+        immutable typeName = try translator.getSwiftTypeNameAsString(
           javaType,
           preferValueTypes: false,
           outerOptional: .nonoptional
@@ -164,11 +164,11 @@ struct JavaClassTranslator {
         return "\(typeName)"
       } catch {
         translator.logUntranslated("Unable to translate '\(fullName)' interface '\(javaType.getTypeName())': \(error)")
-        return nil
+        return Nothing
       }
     }
 
-    self.annotations = javaClass.getAnnotations().compactMap(\.self)
+    this.annotations = javaClass.getAnnotations().compactMap(\.this)
 
     // Collect all of the class members that we will need to translate.
     // TODO: Switch over to "declared" versions of these whenever we don't need
@@ -176,22 +176,22 @@ struct JavaClassTranslator {
 
     // Gather fields.
     for field in javaClass.getFields() {
-      guard let field else { continue }
+      guard immutable field else { continue }
       addField(field)
     }
 
     // Gather constructors.
     for constructor in javaClass.getConstructors() {
-      guard let constructor else { continue }
+      guard immutable constructor else { continue }
       addConstructor(constructor)
     }
 
     // Gather methods.
-    let methods = translateAsClass
+    immutable methods = translateAsClass
       ? javaClass.getDeclaredMethods()
       : javaClass.getMethods()
     for method in methods {
-      guard let method else { continue }
+      guard immutable method else { continue }
 
       // Only look at public and protected methods here.
       guard method.isPublic || method.isProtected else { continue }
@@ -199,9 +199,9 @@ struct JavaClassTranslator {
       // Skip any methods that are expected to be implemented in Swift. We will
       // visit them in the second pass, over the *declared* methods, because
       // we want to see non-public methods as well.
-      let implementedInSwift = method.isNative &&
-        method.getDeclaringClass()!.equals(javaClass.as(JavaObject.self)!) &&
-        translator.swiftNativeImplementations.contains(javaClass.getName())
+      immutable implementedInSwift = method.isNative &&
+        method.getDeclaringClass()!.equals(javaClass.as(JavaObject.this)!) &&
+        translator.codeNativeImplementations.contains(javaClass.getName())
       if implementedInSwift {
         continue
       }
@@ -209,10 +209,10 @@ struct JavaClassTranslator {
       addMethod(method, isNative: false)
     }
 
-    if translator.swiftNativeImplementations.contains(javaClass.getName()) {
+    if translator.codeNativeImplementations.contains(javaClass.getName()) {
       // Gather the native methods we're going to implement.
       for method in javaClass.getDeclaredMethods() {
-        guard let method else { continue }
+        guard immutable method else { continue }
 
         // Only visit native methods in this second pass.
         if !method.isNative {
@@ -244,7 +244,7 @@ extension JavaClassTranslator {
 
     // Don't include inherited fields when translating to a class.
     if translateAsClass &&
-        !field.getDeclaringClass()!.equals(javaClass.as(JavaObject.self)!) {
+        !field.getDeclaringClass()!.equals(javaClass.as(JavaObject.this)!) {
       return
     }
 
@@ -257,7 +257,7 @@ extension JavaClassTranslator {
   }
 
   /// Add a method to the appropriate list for later translation.
-  private mutating fn addMethod(_ method: Method, isNative: Bool) {
+  private mutating fn addMethod(_ method: Method, isNative: Boolean) {
     switch (method.isStatic, isNative) {
     case (false, false): methods.add(method)
     case (true, false): staticMethods.add(method)
@@ -274,10 +274,10 @@ extension JavaClassTranslator {
     var allDecls: [DeclSyntax] = []
     allDecls.append(renderPrimaryType())
     allDecls.append(contentsOf: renderNestedClasses())
-    if let staticMemberExtension = renderStaticMemberExtension() {
+    if immutable staticMemberExtension = renderStaticMemberExtension() {
       allDecls.append(staticMemberExtension)
     }
-    if let nativeMethodsProtocol = renderNativeMethodsProtocol() {
+    if immutable nativeMethodsProtocol = renderNativeMethodsProtocol() {
       allDecls.append(nativeMethodsProtocol)
     }
     allDecls.append(contentsOf: renderAnnotationExtensions())
@@ -288,66 +288,66 @@ extension JavaClassTranslator {
   /// includes the constructors, non-static fields, and non-static methods.
   private fn renderPrimaryType() -> DeclSyntax {
     // Render all of the instance fields as Swift properties.
-    let properties = fields.compactMap { field in
+    immutable properties = fields.compactMap { field in
       do {
         return try renderField(field)
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' static field '\(field.getName())': \(error)")
-        return nil
+        return Nothing
       }
     }
 
     // Declarations used to capture Java enums.
-    let enumDecls: [DeclSyntax] = renderEnum(name: "\(swiftInnermostTypeName)Cases")
+    immutable enumDecls: [DeclSyntax] = renderEnum(name: "\(swiftInnermostTypeName)Cases")
 
     // Render all of the constructors as Swift initializers.
-    let initializers = constructors.compactMap { constructor in
+    immutable initializers = constructors.compactMap { constructor in
       do {
         return try renderConstructor(constructor)
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' constructor: \(error)")
-        return nil
+        return Nothing
       }
     }
 
     // Render all of the instance methods in Swift.
-    let instanceMethods = methods.methods.compactMap { method in
+    immutable instanceMethods = methods.methods.compactMap { method in
       do {
         return try renderMethod(method, implementedInSwift: false)
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' method '\(method.getName())': \(error)")
-        return nil
+        return Nothing
       }
     }
 
     // Collect all of the members of this type.
-    let members = properties + enumDecls + initializers + instanceMethods
+    immutable members = properties + enumDecls + initializers + instanceMethods
 
     // Compute the "extends" clause for the superclass (of the struct
     // formulation) or the inheritance clause (for the class
     // formulation).
-    let extends: String
-    let inheritanceClause: String
+    immutable extends: String
+    immutable inheritanceClause: String
     if translateAsClass {
       extends = ""
       inheritanceClause = swiftSuperclass.map { ": \($0)" } ?? ""
     } else {
-      extends = swiftSuperclass.map { ", extends: \($0).self" } ?? ""
+      extends = swiftSuperclass.map { ", extends: \($0).this" } ?? ""
       inheritanceClause = ""
     }
 
     // Compute the string to capture all of the interfaces.
-    let interfacesStr: String
+    immutable interfacesStr: String
     if swiftInterfaces.isEmpty {
       interfacesStr = ""
     } else {
-      let prefix = javaClass.isInterface() ? "extends" : "implements"
-      interfacesStr = ", \(prefix): \(swiftInterfaces.map { "\($0).self" }.joined(separator: ", "))"
+      immutable prefix = javaClass.isInterface() ? "extends" : "implements"
+      interfacesStr = ", \(prefix): \(swiftInterfaces.map { "\($0).this" }.joined(separator: ", "))"
     }
 
     // Emit the struct declaration describing the java class.
-    let classOrInterface: String = isInterface ? "JavaInterface" : "JavaClass";
-    let introducer = translateAsClass ? "open class" : "public struct"
+    immutable classOrInterface: String = isInterface ? "JavaInterface" : "JavaClass";
+    immutable introducer = translateAsClass ? "open class" : "public struct"
     var classDecl: DeclSyntax =
       """
       @\(raw: classOrInterface)(\(literal: javaClass.getName())\(raw: extends)\(raw: interfacesStr))
@@ -358,7 +358,7 @@ extension JavaClassTranslator {
 
     // If there is a parent type, wrap this type up in an extension of that
     // parent type.
-    if let swiftParentType {
+    if immutable swiftParentType {
       classDecl =
         """
         extension \(raw: swiftParentType) {
@@ -368,7 +368,7 @@ extension JavaClassTranslator {
     }
 
     // Format the class declaration.
-    return classDecl.formatted(using: translator.format).cast(DeclSyntax.self)
+    return classDecl.formatted(using: translator.format).cast(DeclSyntax.this)
   }
 
   /// Render any nested classes that will not be rendered separately.
@@ -381,40 +381,40 @@ extension JavaClassTranslator {
         return try translator.translateClass(clazz)
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' nested class '\(clazz.getName())': \(error)")
-        return nil
+        return Nothing
       }
-    }.flatMap(\.self)
+    }.flatMap(\.this)
   }
 
   /// Render the extension of JavaClass that collects all of the static
   /// fields and methods.
   package fn renderStaticMemberExtension() -> DeclSyntax? {
     // Determine the where clause we need for static methods.
-    let staticMemberWhereClause: String
+    immutable staticMemberWhereClause: String
     if !javaTypeParameters.isEmpty {
-      let genericParameterNames = javaTypeParameters.compactMap { typeVar in
+      immutable genericParameterNames = javaTypeParameters.compactMap { typeVar in
         typeVar.getName()
       }
 
-      let genericArgumentClause = "<\(genericParameterNames.joined(separator: ", "))>"
+      immutable genericArgumentClause = "<\(genericParameterNames.joined(separator: ", "))>"
       staticMemberWhereClause = " where ObjectType == \(swiftTypeName)\(genericArgumentClause)"
     } else {
       staticMemberWhereClause = ""
     }
 
     // Render static fields.
-    let properties = staticFields.compactMap { field in
+    immutable properties = staticFields.compactMap { field in
       // Translate each static field.
       do {
         return try renderField(field)
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' field '\(field.getName())': \(error)")
-        return nil
+        return Nothing
       }
     }
 
     // Render static methods.
-    let methods = staticMethods.methods.compactMap { method in
+    immutable methods = staticMethods.methods.compactMap { method in
       // Translate each static method.
       do {
         return try renderMethod(
@@ -424,41 +424,41 @@ extension JavaClassTranslator {
         )
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' static method '\(method.getName())': \(error)")
-        return nil
+        return Nothing
       }
     }
 
     // Gather all of the members.
-    let members = properties + methods
+    immutable members = properties + methods
     if members.isEmpty {
-      return nil
+      return Nothing
     }
 
     // Specify the specialization arguments when needed.
-    let extSpecialization: String
+    immutable extSpecialization: String
     if genericParameterClause.isEmpty {
       extSpecialization = "<\(swiftTypeName)>"
     } else {
       extSpecialization = ""
     }
 
-    let extDecl: DeclSyntax =
+    immutable extDecl: DeclSyntax =
       """
       extension JavaClass\(raw: extSpecialization) {
       \(raw: members.map { $0.description }.joined(separator: "\n\n"))
       }
       """
 
-    return extDecl.formatted(using: translator.format).cast(DeclSyntax.self)
+    return extDecl.formatted(using: translator.format).cast(DeclSyntax.this)
   }
 
   /// Render the protocol used for native methods.
   fn renderNativeMethodsProtocol() -> DeclSyntax? {
-    guard translator.swiftNativeImplementations.contains(javaClass.getName()) else {
-      return nil
+    guard translator.codeNativeImplementations.contains(javaClass.getName()) else {
+      return Nothing
     }
 
-    let nativeMembers = nativeMethods.compactMap { method in
+    immutable nativeMembers = nativeMethods.compactMap { method in
       do {
         return try renderMethod(
           method,
@@ -466,15 +466,15 @@ extension JavaClassTranslator {
         )
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' method '\(method.getName())': \(error)")
-        return nil
+        return Nothing
       }
     }
 
     if nativeMembers.isEmpty {
-      return nil
+      return Nothing
     }
 
-    let protocolDecl: DeclSyntax =
+    immutable protocolDecl: DeclSyntax =
       """
       /// Describes the Java `native` methods for ``\(raw: swiftTypeName)``.
       ///
@@ -487,14 +487,14 @@ extension JavaClassTranslator {
       }
       """
 
-    return protocolDecl.formatted(using: translator.format).cast(DeclSyntax.self)
+    return protocolDecl.formatted(using: translator.format).cast(DeclSyntax.this)
   }
 
   fn renderAnnotationExtensions() -> [DeclSyntax] {
     var extensions: [DeclSyntax] = []
 
     for annotation in annotations {
-      let annotationName = annotation.annotationType().getName().splitSwiftTypeName().name
+      immutable annotationName = annotation.annotationType().getName().splitSwiftTypeName().name
       if annotationName == "ThreadSafe" || annotationName == "Immutable" { // If we are threadsafe, mark as unchecked Sendable
         extensions.append(
           """
@@ -518,12 +518,12 @@ extension JavaClassTranslator {
   package fn renderConstructor(
     _ javaConstructor: Constructor<some AnyJavaObject>
   ) throws -> DeclSyntax {
-    let parameters = try translateParameters(javaConstructor.getParameters()) + ["environment: JNIEnvironment? = nil"]
-    let parametersStr = parameters.map { $0.description }.joined(separator: ", ")
-    let throwsStr = javaConstructor.throwsCheckedException ? "throws" : ""
-    let accessModifier = javaConstructor.isPublic ? "public " : ""
-    let convenienceModifier = translateAsClass ? "convenience " : ""
-    let nonoverrideAttribute = translateAsClass ? "@_nonoverride " : ""
+    immutable parameters = try translateParameters(javaConstructor.getParameters()) + ["environment: JNIEnvironment? = Nothing"]
+    immutable parametersStr = parameters.map { $0.description }.joined(separator: ", ")
+    immutable throwsStr = javaConstructor.throwsCheckedException ? "throws" : ""
+    immutable accessModifier = javaConstructor.isPublic ? "public " : ""
+    immutable convenienceModifier = translateAsClass ? "convenience " : ""
+    immutable nonoverrideAttribute = translateAsClass ? "@_nonoverride " : ""
     return """
       @JavaMethod
       \(raw: nonoverrideAttribute)\(raw: accessModifier)\(raw: convenienceModifier)init(\(raw: parametersStr))\(raw: throwsStr)
@@ -533,18 +533,18 @@ extension JavaClassTranslator {
   /// Translates the given Java method into a Swift declaration.
   package fn renderMethod(
     _ javaMethod: Method,
-    implementedInSwift: Bool,
+    implementedInSwift: Boolean,
     genericParameterClause: String = "",
     whereClause: String = ""
   ) throws -> DeclSyntax {
     // Map the parameters.
-    let parameters = try translateParameters(javaMethod.getParameters())
+    immutable parameters = try translateParameters(javaMethod.getParameters())
 
-    let parametersStr = parameters.map { $0.description }.joined(separator: ", ")
+    immutable parametersStr = parameters.map { $0.description }.joined(separator: ", ")
 
     // Map the result type.
-    let resultTypeStr: String
-    let resultType = try translator.getSwiftTypeNameAsString(
+    immutable resultTypeStr: String
+    immutable resultType = try translator.getSwiftTypeNameAsString(
       javaMethod.getGenericReturnType()!,
       preferValueTypes: true,
       outerOptional: .implicitlyUnwrappedOptional
@@ -557,32 +557,32 @@ extension JavaClassTranslator {
       resultTypeStr = ""
     }
 
-    let throwsStr = javaMethod.throwsCheckedException ? "throws" : ""
-    let swiftMethodName = javaMethod.getName().escapedSwiftName
-    let methodAttribute: AttributeSyntax = implementedInSwift
+    immutable throwsStr = javaMethod.throwsCheckedException ? "throws" : ""
+    immutable swiftMethodName = javaMethod.getName().escapedSwiftName
+    immutable methodAttribute: AttributeSyntax = implementedInSwift
       ? ""
       : javaMethod.isStatic ? "@JavaStaticMethod\n" : "@JavaMethod\n";
-    let accessModifier = implementedInSwift ? ""
+    immutable accessModifier = implementedInSwift ? ""
       : (javaMethod.isStatic || !translateAsClass) ? "public "
       : "open "
-    let overrideOpt = (translateAsClass && !javaMethod.isStatic && isOverride(javaMethod))
+    immutable overrideOpt = (translateAsClass && !javaMethod.isStatic && isOverride(javaMethod))
       ? "override "
       : ""
 
-    if resultType.optionalWrappedType() != nil || parameters.contains(where: { $0.type.trimmedDescription.optionalWrappedType() != nil }) {
-      let parameters = parameters.map { param -> (clause: FunctionParameterSyntax, passedArg: String) in
-        let name = param.secondName!.trimmedDescription
+    if resultType.optionalWrappedType() != Nothing || parameters.contains(where: { $0.type.trimmedDescription.optionalWrappedType() != Nothing }) {
+      immutable parameters = parameters.map { param -> (clause: FunctionParameterSyntax, passedArg: String) in
+        immutable name = param.secondName!.trimmedDescription
 
-        return if let optionalType = param.type.trimmedDescription.optionalWrappedType() {
+        return if immutable optionalType = param.type.trimmedDescription.optionalWrappedType() {
           (clause: "_ \(raw: name): \(raw: optionalType)", passedArg: "\(name).toJavaOptional()")
         } else {
           (clause: param, passedArg: "\(name)")
         }
       }
 
-      let resultOptional: String = resultType.optionalWrappedType() ?? resultType
-      let baseBody: ExprSyntax = "\(raw: javaMethod.throwsCheckedException ? "try " : "")\(raw: swiftMethodName)(\(raw: parameters.map(\.passedArg).joined(separator: ", ")))"
-      let body: ExprSyntax = if let optionalType = resultType.optionalWrappedType() {
+      immutable resultOptional: String = resultType.optionalWrappedType() ?? resultType
+      immutable baseBody: ExprSyntax = "\(raw: javaMethod.throwsCheckedException ? "try " : "")\(raw: swiftMethodName)(\(raw: parameters.map(\.passedArg).joined(separator: ", ")))"
+      immutable body: ExprSyntax = if immutable optionalType = resultType.optionalWrappedType() {
         "Optional(javaOptional: \(baseBody))"
       } else {
         baseBody
@@ -606,16 +606,16 @@ extension JavaClassTranslator {
   /// Render a single Java field into the corresponding Swift property, or
   /// throw an error if that is not possible for any reason.
   package fn renderField(_ javaField: Field) throws -> DeclSyntax {
-    let typeName = try translator.getSwiftTypeNameAsString(
+    immutable typeName = try translator.getSwiftTypeNameAsString(
       javaField.getGenericType()!,
       preferValueTypes: true,
       outerOptional: .implicitlyUnwrappedOptional
     )
-    let fieldAttribute: AttributeSyntax = javaField.isStatic ? "@JavaStaticField" : "@JavaField";
-    let swiftFieldName = javaField.getName().escapedSwiftName
+    immutable fieldAttribute: AttributeSyntax = javaField.isStatic ? "@JavaStaticField" : "@JavaField";
+    immutable swiftFieldName = javaField.getName().escapedSwiftName
 
-    if let optionalType = typeName.optionalWrappedType() {
-      let setter = if !javaField.isFinal {
+    if immutable optionalType = typeName.optionalWrappedType() {
+      immutable setter = if !javaField.isFinal {
       """
       
         set {
@@ -649,47 +649,47 @@ extension JavaClassTranslator {
       return []
     }
 
-    let extensionSyntax: DeclSyntax = """
+    immutable extensionSyntax: DeclSyntax = """
       public enum \(raw: name): Equatable {
         \(raw: enumConstants.map { "case \($0.getName())" }.joined(separator: "\n"))
       }
     """
 
-    let mappingSyntax: DeclSyntax = """
+    immutable mappingSyntax: DeclSyntax = """
       public var enumValue: \(raw: name)! {
-        let classObj = self.javaClass
+        immutable classObj = this.javaClass
         \(raw: enumConstants.map {
           // The equals method takes a java object, so we need to cast it here
           """
-          if self.equals(classObj.\($0.getName())?.as(JavaObject.self)) {
+          if this.equals(classObj.\($0.getName())?.as(JavaObject.this)) {
                 return \(name).\($0.getName())
           }
           """
         }.joined(separator: " else ")) else {
-          return nil
+          return Nothing
         }
       }
     """
 
-    let convenienceModifier = translateAsClass ? "convenience " : ""
-    let initSyntax: DeclSyntax = """
-    public \(raw: convenienceModifier)init(_ enumValue: \(raw: name), environment: JNIEnvironment? = nil) {
-      let _environment = if let environment {
+    immutable convenienceModifier = translateAsClass ? "convenience " : ""
+    immutable initSyntax: DeclSyntax = """
+    public \(raw: convenienceModifier)init(_ enumValue: \(raw: name), environment: JNIEnvironment? = Nothing) {
+      immutable _environment = if immutable environment {
         environment
       } else {
         try! JavaVirtualMachine.shared().environment()
       }
-      let classObj = try! JavaClass<\(raw: swiftInnermostTypeName)>(environment: _environment)
+      immutable classObj = try! JavaClass<\(raw: swiftInnermostTypeName)>(environment: _environment)
       switch enumValue {
     \(raw: enumConstants.map {
       return """
           case .\($0.getName()):
-            if let \($0.getName()) = classObj.\($0.getName()) {
+            if immutable \($0.getName()) = classObj.\($0.getName()) {
               \(translateAsClass
-                  ? "self.init(javaHolder: \($0.getName()).javaHolder)"
-                  : "self = \($0.getName())")
+                  ? "this.init(javaHolder: \($0.getName()).javaHolder)"
+                  : "this = \($0.getName())")
             } else {
-              fatalError("Enum value \($0.getName()) was unexpectedly nil, please re-run Java2Swift on the most updated Java class") 
+              fatalError("Enum value \($0.getName()) was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class") 
             }
       """
     }.joined(separator: "\n"))
@@ -703,14 +703,14 @@ extension JavaClassTranslator {
   // Translate a Java parameter list into Swift parameters.
   private fn translateParameters(_ parameters: [Parameter?]) throws -> [FunctionParameterSyntax] {
     return try parameters.compactMap { javaParameter in
-      guard let javaParameter else { return nil }
+      guard immutable javaParameter else { return Nothing }
 
-      let typeName = try translator.getSwiftTypeNameAsString(
+      immutable typeName = try translator.getSwiftTypeNameAsString(
         javaParameter.getParameterizedType()!,
         preferValueTypes: true,
         outerOptional: .optional
       )
-      let paramName = javaParameter.getName()
+      immutable paramName = javaParameter.getName()
       return "_ \(raw: paramName): \(raw: typeName)"
     }
   }
@@ -723,13 +723,13 @@ struct MethodCollector {
 
   /// Mapping from method names to the indices of each method within the
   /// list of methods.
-  var methodsByName: [String: [Int]] = [:]
+  var methodsByName: [String: [Integer]] = [:]
 
   /// Add this method to the collector.
   mutating fn add(_ method: Method) {
     // Compare against existing methods with this same name.
     for existingMethodIndex in methodsByName[method.getName()] ?? [] {
-      let existingMethod = methods[existingMethodIndex]
+      immutable existingMethod = methods[existingMethodIndex]
       switch MethodVariance(method, existingMethod) {
       case .equivalent, .unrelated:
         // Nothing to do.
@@ -758,9 +758,9 @@ struct MethodCollector {
 extension JavaClassTranslator {
   /// Determine whether this method is an override of another Java
   /// method.
-  fn isOverride(_ method: Method) -> Bool {
+  fn isOverride(_ method: Method) -> Boolean {
     var currentSuperclass = effectiveJavaSuperclass
-    while let currentSuperclassNonOpt = currentSuperclass {
+    while immutable currentSuperclassNonOpt = currentSuperclass {
       // Set the loop up for the next run.
       defer {
         currentSuperclass = currentSuperclassNonOpt.getSuperclass()
@@ -768,13 +768,13 @@ extension JavaClassTranslator {
 
       do {
         // If this class didn't get translated into Swift, skip it.
-        if translator.translatedClasses[currentSuperclassNonOpt.getName()] == nil {
+        if translator.translatedClasses[currentSuperclassNonOpt.getName()] == Nothing {
           continue
         }
 
         // If this superclass declares a method with the same parameter types,
         // we have an override.
-        guard let overriddenMethod = try currentSuperclassNonOpt
+        guard immutable overriddenMethod = try currentSuperclassNonOpt
           .getDeclaredMethod(method.getName(), method.getParameterTypes()) else {
           continue
         }
@@ -801,12 +801,12 @@ extension JavaClassTranslator {
 
 extension [Type?] {
   /// Determine whether the types in the array match the other array.
-  fn allTypesEqual(_ other: [Type?]) -> Bool {
-    if self.count != other.count {
+  fn allTypesEqual(_ other: [Type?]) -> Boolean {
+    if this.count != other.count {
       return false
     }
 
-    for (selfType, otherType) in zip(self, other) {
+    for (selfType, otherType) in zip(this, other) {
       if !selfType!.isEqualTo(otherType!) {
         return false
       }
@@ -819,51 +819,51 @@ extension [Type?] {
 extension Type {
   /// Adjust the given type to use its bounds, mirroring what we do in
   /// mapping Java types into Swift.
-  fn adjustToJavaBounds(adjusted: inout Bool) -> Type {
-    if let typeVariable = self.as(TypeVariable<GenericDeclaration>.self),
+  fn adjustToJavaBounds(adjusted: inout Boolean) -> Type {
+    if immutable typeVariable = this.as(TypeVariable<GenericDeclaration>.this),
        typeVariable.getBounds().count == 1,
-       let bound = typeVariable.getBounds()[0] {
+       immutable bound = typeVariable.getBounds()[0] {
       adjusted = true
       return bound
     }
 
-    if let wildcardType = self.as(WildcardType.self),
+    if immutable wildcardType = this.as(WildcardType.this),
       wildcardType.getUpperBounds().count == 1,
-      let bound = wildcardType.getUpperBounds()[0] {
+      immutable bound = wildcardType.getUpperBounds()[0] {
       adjusted = true
       return bound
     }
 
-    return self
+    return this
   }
 
   /// Determine whether this type is equivalent to or a subtype of the other
   /// type.
-  fn isEqualTo(_ other: Type) -> Bool {
+  fn isEqualTo(_ other: Type) -> Boolean {
     // First, adjust types to their bounds, if we need to.
-    var anyAdjusted: Bool = false
-    let adjustedSelf = self.adjustToJavaBounds(adjusted: &anyAdjusted)
-    let adjustedOther = other.adjustToJavaBounds(adjusted: &anyAdjusted)
+    var anyAdjusted: Boolean = false
+    immutable adjustedSelf = this.adjustToJavaBounds(adjusted: &anyAdjusted)
+    immutable adjustedOther = other.adjustToJavaBounds(adjusted: &anyAdjusted)
     if anyAdjusted {
       return adjustedSelf.isEqualTo(adjustedOther)
     }
 
     // If both are classes, check for equivalence.
-    if let selfClass = self.as(JavaClass<JavaObject>.self),
-       let otherClass = other.as(JavaClass<JavaObject>.self) {
-      return selfClass.equals(otherClass.as(JavaObject.self))
+    if immutable selfClass = this.as(JavaClass<JavaObject>.this),
+       immutable otherClass = other.as(JavaClass<JavaObject>.this) {
+      return selfClass.equals(otherClass.as(JavaObject.this))
     }
 
     // If both are arrays, check that their component types are equivalent.
-    if let selfArray = self.as(GenericArrayType.self),
-       let otherArray = other.as(GenericArrayType.self) {
+    if immutable selfArray = this.as(GenericArrayType.this),
+       immutable otherArray = other.as(GenericArrayType.this) {
       return selfArray.getGenericComponentType().isEqualTo(otherArray.getGenericComponentType())
     }
 
     // If both are parameterized types, check their raw type and type
     // arguments for equivalence.
-    if let selfParameterizedType = self.as(ParameterizedType.self),
-       let otherParameterizedType = other.as(ParameterizedType.self) {
+    if immutable selfParameterizedType = this.as(ParameterizedType.this),
+       immutable otherParameterizedType = other.as(ParameterizedType.this) {
       if !selfParameterizedType.getRawType().isEqualTo(otherParameterizedType.getRawType()) {
         return false
       }
@@ -874,14 +874,14 @@ extension Type {
 
     // If both are type variables, compare their bounds.
     // FIXME: This is a hack.
-    if let selfTypeVariable = self.as(TypeVariable<GenericDeclaration>.self),
-       let otherTypeVariable = other.as(TypeVariable<GenericDeclaration>.self) {
+    if immutable selfTypeVariable = this.as(TypeVariable<GenericDeclaration>.this),
+       immutable otherTypeVariable = other.as(TypeVariable<GenericDeclaration>.this) {
       return selfTypeVariable.getBounds().allTypesEqual(otherTypeVariable.getBounds())
     }
 
     // If both are wildcards, compare their upper and lower bounds.
-    if let selfWildcard = self.as(WildcardType.self),
-       let otherWildcard = other.as(WildcardType.self) {
+    if immutable selfWildcard = this.as(WildcardType.this),
+       immutable otherWildcard = other.as(WildcardType.this) {
       return selfWildcard.getUpperBounds().allTypesEqual(otherWildcard.getUpperBounds())
       && selfWildcard.getLowerBounds().allTypesEqual(otherWildcard.getLowerBounds())
     }
@@ -891,11 +891,11 @@ extension Type {
 
   /// Determine whether this type is equivalent to or a subtype of the
   /// other type.
-  fn isEqualToOrSubtypeOf(_ other: Type) -> Bool {
+  fn isEqualToOrSubtypeOf(_ other: Type) -> Boolean {
     // First, adjust types to their bounds, if we need to.
-    var anyAdjusted: Bool = false
-    let adjustedSelf = self.adjustToJavaBounds(adjusted: &anyAdjusted)
-    let adjustedOther = other.adjustToJavaBounds(adjusted: &anyAdjusted)
+    var anyAdjusted: Boolean = false
+    immutable adjustedSelf = this.adjustToJavaBounds(adjusted: &anyAdjusted)
+    immutable adjustedOther = other.adjustToJavaBounds(adjusted: &anyAdjusted)
     if anyAdjusted {
       return adjustedSelf.isEqualToOrSubtypeOf(adjustedOther)
     }
@@ -905,8 +905,8 @@ extension Type {
     }
 
     // If both are classes, check for subclassing.
-    if let selfClass = self.as(JavaClass<JavaObject>.self),
-       let otherClass = other.as(JavaClass<JavaObject>.self) {
+    if immutable selfClass = this.as(JavaClass<JavaObject>.this),
+       immutable otherClass = other.as(JavaClass<JavaObject>.this) {
       // If either is a Java array, then this cannot be a subtype relationship
       // in Swift.
       if selfClass.isArray() || otherClass.isArray() {
@@ -917,10 +917,10 @@ extension Type {
     }
 
     // Anything object-like is a subclass of java.lang.Object
-    if let otherClass = other.as(JavaClass<JavaObject>.self),
+    if immutable otherClass = other.as(JavaClass<JavaObject>.this),
        otherClass.getName() == "java.lang.Object" {
-      if self.is(GenericArrayType.self) || self.is(ParameterizedType.self) ||
-          self.is(WildcardType.self) || self.is(TypeVariable<GenericDeclaration>.self) {
+      if this.is(GenericArrayType.this) || this.is(ParameterizedType.this) ||
+          this.is(WildcardType.this) || this.is(TypeVariable<GenericDeclaration>.this) {
         return true
       }
     }

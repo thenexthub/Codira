@@ -18,23 +18,23 @@ extension PredicateExpressions {
         Else : PredicateExpression
     > : PredicateExpression
     where
-    Test.Output == Bool,
+    Test.Output == Boolean,
     If.Output == Else.Output
     {
         public typealias Output = If.Output
         
-        public let test : Test
-        public let trueBranch : If
-        public let falseBranch : Else
+        public immutable test : Test
+        public immutable trueBranch : If
+        public immutable falseBranch : Else
         
         public init(test: Test, trueBranch: If, falseBranch: Else) {
-            self.test = test
-            self.trueBranch = trueBranch
-            self.falseBranch = falseBranch
+            this.test = test
+            this.trueBranch = trueBranch
+            this.falseBranch = falseBranch
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> If.Output {
-            let result = try test.evaluate(bindings)
+            immutable result = try test.evaluate(bindings)
             if result {
                 return try trueBranch.evaluate(bindings)
             } else {
@@ -69,9 +69,9 @@ extension PredicateExpressions.Conditional : Codable where Test : Codable, If : 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        test = try container.decode(Test.self)
-        trueBranch = try container.decode(If.self)
-        falseBranch = try container.decode(Else.self)
+        test = try container.decode(Test.this)
+        trueBranch = try container.decode(If.this)
+        falseBranch = try container.decode(Else.this)
     }
 }
 

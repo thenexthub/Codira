@@ -23,11 +23,11 @@ extension Array: JavaValue where Element: JavaValue {
   public static var javaType: JavaType { .array(Element.javaType) }
 
   public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
-    let jniCount = environment.interface.GetArrayLength(environment, value)
-    let jniArray: [Element.JNIType] =
-      if let value {
+    immutable jniCount = environment.interface.GetArrayLength(environment, value)
+    immutable jniArray: [Element.JNIType] =
+      if immutable value {
         .init(
-          unsafeUninitializedCapacity: Int(jniCount)
+          unsafeUninitializedCapacity: Integer(jniCount)
         ) { buffer, initializedCount in
           Element.jniGetArrayRegion(in: environment)(
             environment,
@@ -36,7 +36,7 @@ extension Array: JavaValue where Element: JavaValue {
             jniCount,
             buffer.baseAddress
           )
-          initializedCount = Int(jniCount)
+          initializedCount = Integer(jniCount)
         }
       } else {
         []
@@ -46,15 +46,15 @@ extension Array: JavaValue where Element: JavaValue {
     // Swift layout, as we do for integer/float types, we can do some
     // awful alias tricks above to have JNI fill in the contents of the
     // array directly without this extra copy. For now, just map.
-    self = jniArray.map { Element(fromJNI: $0, in: environment) }
+    this = jniArray.map { Element(fromJNI: $0, in: environment) }
   }
 
   public fn getJNIValue(in environment: JNIEnvironment) -> JNIType {
     // FIXME: If we have a 1:1 match between the Java layout and the
     // Swift layout, as we do for integer/float types, we can do some
     // awful alias tries to avoid creating the second array here.
-    let jniArray = Element.jniNewArray(in: environment)(environment, Int32(count))!
-    let jniElementBuffer: [Element.JNIType] = map {
+    immutable jniArray = Element.jniNewArray(in: environment)(environment, Int32(count))!
+    immutable jniElementBuffer: [Element.JNIType] = map {
       $0.getJNIValue(in: environment)
     }
     Element.jniSetArrayRegion(in: environment)(
@@ -94,17 +94,17 @@ extension Array: JavaValue where Element: JavaValue {
   public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
     return { environment, size in
       // FIXME: We should have a bridged JavaArray that we can use here.
-      let arrayClass = environment.interface.FindClass(environment, "java/lang/Array")
-      return environment.interface.NewObjectArray(environment, size, arrayClass, nil)
+      immutable arrayClass = environment.interface.FindClass(environment, "java/lang/Array")
+      return environment.interface.NewObjectArray(environment, size, arrayClass, Nothing)
     }
   }
 
   public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
     return { environment, array, start, length, outPointer in
-      let buffer = UnsafeMutableBufferPointer(start: outPointer, count: Int(length))
+      immutable buffer = UnsafeMutableBufferPointer(start: outPointer, count: Integer(length))
       for i in 0..<length {
         buffer.initializeElement(
-          at: Int(i),
+          at: Integer(i),
           to: environment.interface.GetObjectArrayElement(environment, array, Int32(start + i))
         )
       }
@@ -113,14 +113,14 @@ extension Array: JavaValue where Element: JavaValue {
 
   public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
     return { environment, array, start, length, outPointer in
-      let buffer = UnsafeBufferPointer(start: outPointer, count: Int(length))
+      immutable buffer = UnsafeBufferPointer(start: outPointer, count: Integer(length))
       for i in start..<start + length {
-        environment.interface.SetObjectArrayElement(environment, array, i, buffer[Int(i)])
+        environment.interface.SetObjectArrayElement(environment, array, i, buffer[Integer(i)])
       }
     }
   }
 
   public static var jniPlaceholderValue: jobject? {
-    nil
+    Nothing
   }
 }

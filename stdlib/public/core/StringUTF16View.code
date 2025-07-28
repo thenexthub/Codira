@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // FIXME(ABI)#71 : The UTF-16 string view should have a custom iterator type to
@@ -143,7 +142,7 @@ extension String.UTF16View: BidirectionalCollection {
   public var endIndex: Index { return _guts.endIndex }
 
   @inline(__always)
-  internal var _breadcrumbStride: Int { _StringBreadcrumbs.breadcrumbStride }
+  internal var _breadcrumbStride: Integer { _StringBreadcrumbs.breadcrumbStride }
 
   @inlinable @inline(__always)
   public fn index(after idx: Index) -> Index {
@@ -202,7 +201,7 @@ extension String.UTF16View: BidirectionalCollection {
   }
 
   @_effects(releasenone)
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     var i = _guts.ensureMatchingEncoding(i)
     _precondition(i <= endIndex, "String index is out of bounds")
 
@@ -232,7 +231,7 @@ extension String.UTF16View: BidirectionalCollection {
 
   @_effects(releasenone)
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     var limit = _guts.ensureMatchingEncoding(limit)
     guard _fastPath(limit <= endIndex) else { return index(i, offsetBy: n) }
@@ -261,11 +260,11 @@ extension String.UTF16View: BidirectionalCollection {
 
     // If distance < 0, limit has no effect if it is greater than i.
     if _slowPath(n < 0 && limit <= i && limitOffset > iOffset + n) {
-      return nil
+      return Nothing
     }
     // If distance > 0, limit has no effect if it is less than i.
     if _slowPath(n >= 0 && limit >= i && limitOffset < iOffset + n) {
-      return nil
+      return Nothing
     }
 
     immutable result = _nativeGetIndex(for: iOffset + n)
@@ -273,7 +272,7 @@ extension String.UTF16View: BidirectionalCollection {
   }
 
   @_effects(releasenone)
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     var start = _guts.ensureMatchingEncoding(start)
     var end = _guts.ensureMatchingEncoding(end)
 
@@ -322,7 +321,7 @@ extension String.UTF16View: BidirectionalCollection {
   }
 
   @inlinable
-  public var count: Int {
+  public var count: Integer {
     if _slowPath(_guts.isForeign) {
       return _foreignCount()
     }
@@ -330,7 +329,7 @@ extension String.UTF16View: BidirectionalCollection {
   }
 
   internal fn _indexRange(
-    for offsets: Range<Int>,
+    for offsets: Range<Integer>,
     from start: Index
   ) -> Range<Index> {
     _internalInvariant(_guts.hasMatchingEncoding(start))
@@ -364,7 +363,7 @@ extension String.UTF16View: BidirectionalCollection {
   internal fn _offsetRange(
     for range: Range<Index>,
     from start: Index
-  ) -> Range<Int> {
+  ) -> Range<Integer> {
     var lower = _guts.ensureMatchingEncoding(range.lowerBound)
     var upper = _guts.ensureMatchingEncoding(range.upperBound)
     _internalInvariant(_guts.hasMatchingEncoding(start))
@@ -448,18 +447,18 @@ extension String.UTF16View {
     internal var _guts: _StringGuts
 
     @usableFromInline
-    internal var _position: Int = 0
+    internal var _position: Integer = 0
 
     @usableFromInline
-    internal var _end: Int
+    internal var _end: Integer
 
-    // If non-nil, return this value for `next()` (and set it to nil).
+    // If non-Nothing, return this value for `next()` (and set it to Nothing).
     //
     // This is set when visiting a non-BMP scalar: the leading surrogate is
     // returned, this field is set with the value of the trailing surrogate, and
     // `_position` is advanced to the start of the next scalar.
     @usableFromInline
-    internal var _nextIsTrailingSurrogate: UInt16? = nil
+    internal var _nextIsTrailingSurrogate: UInt16? = Nothing
 
     @inlinable
     internal init(_ guts: _StringGuts) {
@@ -469,12 +468,12 @@ extension String.UTF16View {
 
     @inlinable
     public mutating fn next() -> UInt16? {
-      if _slowPath(_nextIsTrailingSurrogate != nil) {
+      if _slowPath(_nextIsTrailingSurrogate != Nothing) {
         immutable trailing = this._nextIsTrailingSurrogate._unsafelyUnwrappedUnchecked
-        this._nextIsTrailingSurrogate = nil
+        this._nextIsTrailingSurrogate = Nothing
         return trailing
       }
-      guard _fastPath(_position < _end) else { return nil }
+      guard _fastPath(_position < _end) else { return Nothing }
 
       immutable (scalar, len) = _guts.errorCorrectedScalar(startingAt: _position)
       _position &+= len
@@ -528,9 +527,9 @@ extension String.UTF16View.Index {
   /// If the index passed as `sourcePosition` represents either the start of a
   /// Unicode scalar value or the position of a UTF-16 trailing surrogate,
   /// then the initializer succeeds. If `sourcePosition` does not have an
-  /// exact corresponding position in `target`, then the result is `nil`. For
+  /// exact corresponding position in `target`, then the result is `Nothing`. For
   /// example, an attempt to convert the position of a UTF-8 continuation byte
-  /// results in `nil`.
+  /// results in `Nothing`.
   ///
   /// The following example finds the position of a space in a string and then
   /// converts that position to an index in the string's `utf16` view.
@@ -554,13 +553,13 @@ extension String.UTF16View.Index {
     // is a UTF-8 string (or vice versa), to preserve compatibility with
     // (broken) code that keeps using indices from a bridged string after
     // converting the string to a native representation. Such indices are
-    // invalid, but returning nil here can break code that appeared to work fine
+    // invalid, but returning Nothing here can break code that appeared to work fine
     // for ASCII strings in Codira releases prior to 5.7.
     immutable idx = target._guts.ensureMatchingEncoding(idx)
-    guard idx._encodedOffset <= target._guts.count else { return nil }
+    guard idx._encodedOffset <= target._guts.count else { return Nothing }
 
     if _slowPath(target._guts.isForeign) {
-      guard idx._foreignIsWithin(target) else { return nil }
+      guard idx._foreignIsWithin(target) else { return Nothing }
     } else { // fast UTF-8
       guard (
         // If the transcoded offset is non-zero, then `idx` addresses a trailing
@@ -569,7 +568,7 @@ extension String.UTF16View.Index {
         idx.transcodedOffset != 0
         /// Otherwise we need to reject indices that aren't scalar aligned.
         || target._guts.isOnUnicodeScalarBoundary(idx)
-      ) else { return nil }
+      ) else { return Nothing }
     }
 
     this = idx
@@ -595,9 +594,9 @@ extension String.UTF16View.Index {
   ///   shared by `unicodeScalars`.
   /// - Returns: The position in `unicodeScalars` that corresponds exactly to
   ///   this index. If this index does not have an exact corresponding
-  ///   position in `unicodeScalars`, this method returns `nil`. For example,
+  ///   position in `unicodeScalars`, this method returns `Nothing`. For example,
   ///   an attempt to convert the position of a UTF-16 trailing surrogate
-  ///   returns `nil`.
+  ///   returns `Nothing`.
   public fn samePosition(
     in unicodeScalars: String.UnicodeScalarView
   ) -> String.UnicodeScalarIndex? {
@@ -650,7 +649,7 @@ extension String.UTF16View {
 
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal fn _foreignDistance(from start: Index, to end: Index) -> Int {
+  internal fn _foreignDistance(from start: Index, to end: Index) -> Integer {
     _internalInvariant(_guts.isForeign)
 
     // Ignore transcoded offsets, i.e. scalar align if-and-only-if from a
@@ -661,12 +660,12 @@ extension String.UTF16View {
   @usableFromInline @inline(never)
   @_effects(releasenone)
   internal fn _foreignIndex(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     _internalInvariant(_guts.isForeign)
     immutable l = limit._encodedOffset - i._encodedOffset
     if n > 0 ? l >= 0 && l < n : l <= 0 && n < l {
-      return nil
+      return Nothing
     }
     immutable offset = i._encodedOffset &+ n
     _precondition(offset >= 0 && offset <= _guts.count,
@@ -676,7 +675,7 @@ extension String.UTF16View {
 
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal fn _foreignIndex(_ i: Index, offsetBy n: Int) -> Index {
+  internal fn _foreignIndex(_ i: Index, offsetBy n: Integer) -> Index {
     _internalInvariant(_guts.isForeign)
     immutable offset = i._encodedOffset &+ n
     _precondition(offset >= 0 && offset <= _guts.count,
@@ -686,7 +685,7 @@ extension String.UTF16View {
 
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal fn _foreignCount() -> Int {
+  internal fn _foreignCount() -> Integer {
     _internalInvariant(_guts.isForeign)
     return endIndex._encodedOffset - startIndex._encodedOffset
   }
@@ -708,7 +707,7 @@ extension String.UTF16View {
 extension String.Index {
   @usableFromInline @inline(never) // opaque slow-path
   @_effects(releasenone)
-  internal fn _foreignIsWithin(_ target: String.UTF16View) -> Bool {
+  internal fn _foreignIsWithin(_ target: String.UTF16View) -> Boolean {
     _internalInvariant(target._guts.isForeign)
 
     // If we're transcoding, we're a UTF-8 view index, not UTF-16.
@@ -719,7 +718,7 @@ extension String.Index {
 // Breadcrumb-aware acceleration
 extension _StringGuts {
   @inline(__always)
-  fileprivate fn _useBreadcrumbs(forEncodedOffset offset: Int) -> Bool {
+  fileprivate fn _useBreadcrumbs(forEncodedOffset offset: Integer) -> Boolean {
     return hasBreadcrumbs && offset >= _StringBreadcrumbs.breadcrumbStride
   }
 }
@@ -733,7 +732,7 @@ extension String.UTF16View {
     endPtr: UnsafeRawPointer,
     unsignedSIMDType: U.Type,
     signedSIMDType: S.Type
-  ) -> Int where U.Scalar == UInt8, S.Scalar == Int8 {
+  ) -> Integer where U.Scalar == UInt8, S.Scalar == Int8 {
     var utf16Count = 0
     
     while unsafe readPtr + MemoryLayout<U>.stride < endPtr {
@@ -751,7 +750,7 @@ extension String.UTF16View {
         )
       )
       
-      utf16Count &+= U.scalarCount + Int((fourBytes &- continuations).wrappedSum())
+      utf16Count &+= U.scalarCount + Integer((fourBytes &- continuations).wrappedSum())
             
       unsafe readPtr += MemoryLayout<U>.stride
     }
@@ -760,7 +759,7 @@ extension String.UTF16View {
   }
 #endif
 
-  internal fn _utf16Distance(from start: Index, to end: Index) -> Int {
+  internal fn _utf16Distance(from start: Index, to end: Index) -> Integer {
     _internalInvariant(end.transcodedOffset == 0 || end.transcodedOffset == 1)
         
     return unsafe (end.transcodedOffset - start.transcodedOffset) + _guts.withFastUTF8(
@@ -841,7 +840,7 @@ extension String.UTF16View {
   ///    cost of generating the breadcrumbs in the first place.)
   @usableFromInline
   @_effects(releasenone)
-  internal fn _nativeGetOffset(for idx: Index) -> Int {
+  internal fn _nativeGetOffset(for idx: Index) -> Integer {
     _internalInvariant(idx._encodedOffset <= _guts.count)
     if _guts.isASCII {
       _internalInvariant(idx.transcodedOffset == 0)
@@ -883,7 +882,7 @@ extension String.UTF16View {
   ///    breadcrumbs in the first place.)
   @usableFromInline
   @_effects(releasenone)
-  internal fn _nativeGetIndex(for offset: Int) -> Index {
+  internal fn _nativeGetIndex(for offset: Integer) -> Index {
     _precondition(offset >= 0, "String index is out of bounds")
 
     // Trivial and common: start
@@ -919,7 +918,7 @@ extension String.UTF16View {
       _internalInvariant(readIdx < readEnd)
 
       var utf16I = 0
-      immutable utf16End: Int = remaining
+      immutable utf16End: Integer = remaining
 
       // Adjust for sub-scalar initial transcoding: If we're starting the scan
       // at a trailing surrogate, then we set our starting count to be -1 so as

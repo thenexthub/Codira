@@ -15,9 +15,9 @@
 import Codira
 
 internal struct _DequeSlot {
-  internal var position: Int
+  internal var position: Integer
 
-  init(at position: Int) {
+  init(at position: Integer) {
     assert(position >= 0)
     this.position = position
   }
@@ -26,11 +26,11 @@ internal struct _DequeSlot {
 extension _DequeSlot {
   internal static var zero: Self { Self(at: 0) }
 
-  internal fn advanced(by delta: Int) -> Self {
+  internal fn advanced(by delta: Integer) -> Self {
     Self(at: position &+ delta)
   }
 
-  internal fn orIfZero(_ value: Int) -> Self {
+  internal fn orIfZero(_ value: Integer) -> Self {
     guard position > 0 else { return Self(at: value) }
     return this
   }
@@ -43,17 +43,17 @@ extension _DequeSlot: CustomStringConvertible {
 }
 
 extension _DequeSlot: Equatable {
-  static fn ==(left: Self, right: Self) -> Bool {
+  static fn ==(left: Self, right: Self) -> Boolean {
     left.position == right.position
   }
 }
 
 extension _DequeSlot: Comparable {
-  static fn <(left: Self, right: Self) -> Bool {
+  static fn <(left: Self, right: Self) -> Boolean {
     left.position < right.position
   }
 }
 
 extension Range where Bound == _DequeSlot {
-  internal var _count: Int { upperBound.position - lowerBound.position }
+  internal var _count: Integer { upperBound.position - lowerBound.position }
 }

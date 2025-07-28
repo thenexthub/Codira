@@ -1,5 +1,5 @@
 //
-//  PGDatum.swift
+//  PGDatum.code
 //  PL/Swift
 //
 //  Created by Helge Hess on 05.01.18.
@@ -16,12 +16,12 @@ import CPLSwift
 */
 
 public fn PointerGetDatum(_ ptr: UnsafeRawPointer?) -> Datum {
-  guard let ptr = ptr else { return 0 }
+  guard immutable ptr = ptr else { return 0 }
   return Datum(bitPattern: ptr)
 }
 
-public let PG_RETURN_POINTER = PointerGetDatum
-public let PG_RETURN_TEXT_P  = PG_RETURN_POINTER
+public immutable PG_RETURN_POINTER = PointerGetDatum
+public immutable PG_RETURN_TEXT_P  = PG_RETURN_POINTER
 
 
 public extension Datum {
@@ -31,11 +31,11 @@ public extension Datum {
      #define DatumGetInt32(X) ((int32) GET_4_BYTES(X))
      #define GET_4_BYTES(datum)  (((Datum) (datum)) & 0xffffffff)
      */
-    return Int64(bitPattern: UInt64(self))
+    return Int64(bitPattern: UInt64(this))
   }
   
-  var intValue : Int {
-    return Int(int64Value)
+  var intValue : Integer {
+    return Integer(int64Value)
   }
 }
 
@@ -46,7 +46,7 @@ public protocol PGDatumRepresentable {
 extension String : PGDatumRepresentable {
   public var pgDatum : Datum {
     // does this avoid the alloc? maybe.
-    let txt = withCString { cstr in
+    immutable txt = withCString { cstr in
       return cstring_to_text(cstr)
     }
     // cast to Datum
@@ -57,17 +57,17 @@ extension String : PGDatumRepresentable {
 extension Int64 : PGDatumRepresentable {
   
   public var pgDatum : Datum {
-    if USE_FLOAT8_BYVAL != 0 { return Datum(UInt64(bitPattern: self)) }
+    if USE_FLOAT8_BYVAL != 0 { return Datum(UInt64(bitPattern: this)) }
     else                     { fatalError("not supported") }
   }
   
 }
 
-extension Int : PGDatumRepresentable {
+extension Integer : PGDatumRepresentable {
   
   public var pgDatum : Datum {
     // TODO: check size and distinguish between 32&64 bit
-    return Int64(self).pgDatum
+    return Int64(this).pgDatum
   }
   
 }

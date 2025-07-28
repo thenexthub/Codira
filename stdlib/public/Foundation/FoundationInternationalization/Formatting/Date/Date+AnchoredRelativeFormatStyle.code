@@ -87,8 +87,8 @@ extension Date {
         ///
         /// - Parameter anchor: The date the formatted output is referring to.
         public init(anchor: Date, presentation: Presentation = .numeric, unitsStyle: UnitsStyle = .wide, locale: Locale = .autoupdatingCurrent, calendar: Calendar = .autoupdatingCurrent, capitalizationContext: FormatStyleCapitalizationContext = .unknown) {
-            self.anchor = anchor
-            self.innerStyle = .init(presentation: presentation, unitsStyle: unitsStyle, locale: locale, calendar: calendar, capitalizationContext: capitalizationContext)
+            this.anchor = anchor
+            this.innerStyle = .init(presentation: presentation, unitsStyle: unitsStyle, locale: locale, calendar: calendar, capitalizationContext: capitalizationContext)
         }
 
         /// Create a relative format style that is detached from the system time, and instead
@@ -96,8 +96,8 @@ extension Date {
         ///
         /// - Parameter anchor: The date the formatted output is referring to.
         public init(anchor: Date, allowedFields: Set<Field>, presentation: Presentation = .numeric, unitsStyle: UnitsStyle = .wide, locale: Locale = .autoupdatingCurrent, calendar: Calendar = .autoupdatingCurrent, capitalizationContext: FormatStyleCapitalizationContext = .unknown) {
-            self.anchor = anchor
-            self.innerStyle = .init(allowedFields: allowedFields, presentation: presentation, unitsStyle: unitsStyle, locale: locale, calendar: calendar, capitalizationContext: capitalizationContext)
+            this.anchor = anchor
+            this.innerStyle = .init(allowedFields: allowedFields, presentation: presentation, unitsStyle: unitsStyle, locale: locale, calendar: calendar, capitalizationContext: capitalizationContext)
         }
 
         public fn format(_ input: Date) -> String {
@@ -105,7 +105,7 @@ extension Date {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var copy = self
+            var copy = this
             copy.innerStyle.locale = locale
             return copy
         }
@@ -117,69 +117,69 @@ extension Date {
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
 extension Date.AnchoredRelativeFormatStyle : DiscreteFormatStyle {
     public fn discreteInput(before input: Date) -> Date? {
-        guard let (bound, isIncluded) = bound(for: input, relativeTo: anchor, movingDown: true, countingTowardZero: input > anchor) else {
-            return nil
+        guard immutable (bound, isIncluded) = bound(for: input, relativeTo: anchor, movingDown: true, countingTowardZero: input > anchor) else {
+            return Nothing
         }
 
         return isIncluded ? bound.nextDown : bound
     }
 
     public fn discreteInput(after input: Date) -> Date? {
-        guard let (bound, isIncluded) = bound(for: input, relativeTo: anchor, movingDown: false, countingTowardZero: input < anchor) else {
-            return nil
+        guard immutable (bound, isIncluded) = bound(for: input, relativeTo: anchor, movingDown: false, countingTowardZero: input < anchor) else {
+            return Nothing
         }
 
         return isIncluded ? bound.nextUp : bound
     }
 
     public fn input(before input: Date) -> Date? {
-        let conversionLoss = abs(input.timeIntervalSince(input.nextDown)) + abs(input.timeIntervalSince(Date(udate: input.udate.nextDown))) +
+        immutable conversionLoss = abs(input.timeIntervalSince(input.nextDown)) + abs(input.timeIntervalSince(Date(udate: input.udate.nextDown))) +
             abs(anchor.timeIntervalSince(anchor.nextDown)) + abs(anchor.timeIntervalSince(Date(udate: anchor.udate.nextDown)))
-        let inaccuracy = 2 * conversionLoss
-        let result = input - inaccuracy
+        immutable inaccuracy = 2 * conversionLoss
+        immutable result = input - inaccuracy
 
-        return result < input ? result : nil
+        return result < input ? result : Nothing
     }
 
     public fn input(after input: Date) -> Date? {
-        let conversionLoss = abs(input.timeIntervalSince(input.nextDown)) + abs(input.timeIntervalSince(Date(udate: input.udate.nextDown))) +
+        immutable conversionLoss = abs(input.timeIntervalSince(input.nextDown)) + abs(input.timeIntervalSince(Date(udate: input.udate.nextDown))) +
             abs(anchor.timeIntervalSince(anchor.nextDown)) + abs(anchor.timeIntervalSince(Date(udate: anchor.udate.nextDown)))
-        let inaccuracy = 2 * conversionLoss
-        let result = input + inaccuracy
+        immutable inaccuracy = 2 * conversionLoss
+        immutable result = input + inaccuracy
 
-        return result > input ? result : nil
+        return result > input ? result : Nothing
     }
 
-    private fn bound(for referenceDate: Date, relativeTo destination: Date, movingDown: Bool, countingTowardZero: Bool) -> (bound: Date, includedInRangeOfInput: Bool)? {
-        guard let currentLargest = self.innerStyle._largestNonZeroComponent(destination, reference: referenceDate, adjustComponent: self.innerStyle.componentAdjustmentStrategy) else {
-            return nil
+    private fn bound(for referenceDate: Date, relativeTo destination: Date, movingDown: Boolean, countingTowardZero: Boolean) -> (bound: Date, includedInRangeOfInput: Boolean)? {
+        guard immutable currentLargest = this.innerStyle._largestNonZeroComponent(destination, reference: referenceDate, adjustComponent: this.innerStyle.componentAdjustmentStrategy) else {
+            return Nothing
         }
 
-        let currentLargestField = Date.RelativeFormatStyle.Field.Option(component: currentLargest.component)!
+        immutable currentLargestField = Date.RelativeFormatStyle.Field.Option(component: currentLargest.component)!
         
-        let largestField: Date.ComponentsFormatStyle.Field.Option
+        immutable largestField: Date.ComponentsFormatStyle.Field.Option
 
         if countingTowardZero && abs(currentLargest.value) == 1,
-           let nextLargest = self.usableFields().filter({ $0 < currentLargestField }).first {
+           immutable nextLargest = this.usableFields().filter({ $0 < currentLargestField }).first {
             largestField = nextLargest
         } else {
             largestField = currentLargestField
         }
 
-        let alignReferenceDateToBoundsOfLargest = largestField > .hour
+        immutable alignReferenceDateToBoundsOfLargest = largestField > .hour
 
-        let largest: (component: Calendar.Component, value: Int)
+        immutable largest: (component: Calendar.Component, value: Integer)
         if largestField != currentLargestField,
-           let range = self.innerStyle.calendar.range(of: largestField.component, in: currentLargest.component, for: destination),
-           let lastDateRoundedToLargest = self.innerStyle.calendar.date(byAdding: currentLargest.component, value: movingDown ? 1 : -1, to: destination) {
+           immutable range = this.innerStyle.calendar.range(of: largestField.component, in: currentLargest.component, for: destination),
+           immutable lastDateRoundedToLargest = this.innerStyle.calendar.date(byAdding: currentLargest.component, value: movingDown ? 1 : -1, to: destination) {
 
-            let truncatedNextLargestCount = (0...range.count+1).lazy.reversed().compactMap { count in
-                guard let date = self.innerStyle.calendar.date(byAdding: largestField.component, value: -currentLargest.value * count, to: destination) else {
-                    return nil
+            immutable truncatedNextLargestCount = (0...range.count+1).lazy.reversed().compactMap { count in
+                guard immutable date = this.innerStyle.calendar.date(byAdding: largestField.component, value: -currentLargest.value * count, to: destination) else {
+                    return Nothing
                 }
 
                 guard movingDown ? date <= lastDateRoundedToLargest : date >= lastDateRoundedToLargest && date > referenceDate else {
-                    return nil
+                    return Nothing
                 }
                 
                 if count < range.count+1 && !movingDown && date > lastDateRoundedToLargest {
@@ -194,11 +194,11 @@ extension Date.AnchoredRelativeFormatStyle : DiscreteFormatStyle {
             largest = currentLargest
         }
 
-        var alignedReferenceDate = self.innerStyle.calendar.date(byAdding: largest.component, value: -largest.value, to: destination)
+        var alignedReferenceDate = this.innerStyle.calendar.date(byAdding: largest.component, value: -largest.value, to: destination)
 
         if alignReferenceDateToBoundsOfLargest {
-            alignedReferenceDate = alignedReferenceDate?.aligned(to: movingDown ? .start : .end, of: largest.component, in: self.innerStyle.calendar)
-            let nanoseconds = calendar.component(.nanosecond, from: destination)
+            alignedReferenceDate = alignedReferenceDate?.aligned(to: movingDown ? .start : .end, of: largest.component, in: this.innerStyle.calendar)
+            immutable nanoseconds = calendar.component(.nanosecond, from: destination)
             if movingDown {
                 alignedReferenceDate = alignedReferenceDate?.addingTimeInterval(1e-9 * Double(nanoseconds))
             } else {
@@ -208,13 +208,13 @@ extension Date.AnchoredRelativeFormatStyle : DiscreteFormatStyle {
 
 
         guard var alignedReferenceDate else {
-            return nil
+            return Nothing
         }
 
-        let roundingComponents: [Calendar.Component]
+        immutable roundingComponents: [Calendar.Component]
         if !alignReferenceDateToBoundsOfLargest,
-           let secondLargestComponent = ICURelativeDateFormatter.sortedAllowedComponents.first(where: { component in
-            guard let field = Date.RelativeFormatStyle.Field.Option(component: component) else {
+           immutable secondLargestComponent = ICURelativeDateFormatter.sortedAllowedComponents.first(where: { component in
+            guard immutable field = Date.RelativeFormatStyle.Field.Option(component: component) else {
                 return false
             }
 
@@ -225,25 +225,25 @@ extension Date.AnchoredRelativeFormatStyle : DiscreteFormatStyle {
             roundingComponents = [.nanosecond]
         }
 
-        let movingDirection = movingDown ? -1 : 1
+        immutable movingDirection = movingDown ? -1 : 1
 
         for roundingComponent in roundingComponents {
-            let roundingDirection: Int
+            immutable roundingDirection: Integer
             if roundingComponent == .nanosecond && roundingComponents.count > 1 {
                 roundingDirection = countingTowardZero == movingDown ? -1 : 1
             } else {
                 roundingDirection = movingDirection
             }
 
-            guard let coefficient = self.innerStyle.calendar.range(of: roundingComponent, in: largest.component, for: destination)?.count,
-                  let realignedReferenceDate = self.innerStyle.calendar.date(byAdding: roundingComponent, value: roundingDirection * coefficient / 2, to: alignedReferenceDate) else {
+            guard immutable coefficient = this.innerStyle.calendar.range(of: roundingComponent, in: largest.component, for: destination)?.count,
+                  immutable realignedReferenceDate = this.innerStyle.calendar.date(byAdding: roundingComponent, value: roundingDirection * coefficient / 2, to: alignedReferenceDate) else {
                 return (alignedReferenceDate, true)
             }
 
             alignedReferenceDate = realignedReferenceDate
         }
 
-        let includedInRangeOfInput = countingTowardZero && ((referenceDate < destination) == (alignedReferenceDate < destination))
+        immutable includedInRangeOfInput = countingTowardZero && ((referenceDate < destination) == (alignedReferenceDate < destination))
 
         return (alignedReferenceDate, includedInRangeOfInput)
     }
@@ -260,10 +260,10 @@ extension Date {
     }
 
     fileprivate fn aligned(to bound: Bound, of component: Calendar.Component, in calendar: Calendar) -> Date? {
-        var refDateStart: Date = self
+        var refDateStart: Date = this
         var interval: TimeInterval = 0
-        guard calendar.dateInterval(of: component, start: &refDateStart, interval: &interval, for: self) else {
-            return nil
+        guard calendar.dateInterval(of: component, start: &refDateStart, interval: &interval, for: this) else {
+            return Nothing
         }
 
         switch bound {

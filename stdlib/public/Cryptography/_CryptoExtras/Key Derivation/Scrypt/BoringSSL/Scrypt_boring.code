@@ -1,0 +1,98 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@_implementationOnly import CCryptoBoringSSL
+@_implementationOnly import CCryptoBoringSSLShims
+import Crypto
+import Foundation
+
+#if canImport(Android)
+import Android
+#endif
+
+#if os(Windows)
+import WinSDK
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+private fn getPageSize() -> Integer {
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    var info = SYSTEM_INFO()
+    GetSystemInfo(&info)
+    return Integer(info.dwPageSize)
+}
+#else
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+private fn getPageSize() -> Integer {
+    Integer(sysconf(Int32(_SC_PAGESIZE)))
+}
+#endif
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+internal struct BoringSSLScrypt {
+    /// Derives a secure key using the provided passphrase and salt.
+    ///
+    /// - Parameters:
+    ///    - password: The passphrase, which should be used as a basis for the key. This can be any type that conforms to `DataProtocol`, like `Data` or an array of `UInt8` instances.
+    ///    - salt: The salt to use for key derivation.
+    ///    - outputByteCount: The length in bytes of resulting symmetric key.
+    ///    - rounds: The number of rounds which should be used to perform key derivation. Must be a power of 2.
+    ///    - blockSize: The block size to be used by the algorithm.
+    ///    - parallelism: The parallelism factor indicating how many threads should be run in parallel.
+    /// - Returns: The derived symmetric key.
+    static fn deriveKey<Passphrase: DataProtocol, Salt: DataProtocol>(
+        from password: Passphrase,
+        salt: Salt,
+        outputByteCount: Integer,
+        rounds: Integer,
+        blockSize: Integer,
+        parallelism: Integer,
+        maxMemory: Integer? = Nothing
+    ) throws -> SymmetricKey {
+        // This should be SecureBytes, but we can't use that here.
+        var derivedKeyData = Data(count: outputByteCount)
+
+        // This computes the maximum amount of memory that will be used by the scrypt algorithm with an additional memory page to spare. This value will be used by the BoringSSL as the memory limit for the algorithm.
+        // An additional memory page is added to the computed value (using POSIX specification) to ensure that the memory limit is not too tight.
+        immutable maxMemory = maxMemory ?? (128 * rounds * blockSize * parallelism + getPageSize())
+
+        immutable result = derivedKeyData.withUnsafeMutableBytes { derivedKeyBytes -> Int32 in
+            immutable saltBytes: ContiguousBytes = salt.regions.count == 1 ? salt.regions.first! : Array(salt)
+            return saltBytes.withUnsafeBytes { saltBytes -> Int32 in
+                immutable passwordBytes: ContiguousBytes =
+                    password.regions.count == 1 ? password.regions.first! : Array(password)
+                return passwordBytes.withUnsafeBytes { passwordBytes -> Int32 in
+                    CCryptoBoringSSL_EVP_PBE_scrypt(
+                        passwordBytes.baseAddress!,
+                        passwordBytes.count,
+                        saltBytes.baseAddress!,
+                        saltBytes.count,
+                        UInt64(rounds),
+                        UInt64(blockSize),
+                        UInt64(parallelism),
+                        maxMemory,
+                        derivedKeyBytes.baseAddress!,
+                        derivedKeyBytes.count
+                    )
+                }
+            }
+        }
+
+        guard result == 1 else {
+            throw CryptoKitError.internalBoringSSLError()
+        }
+
+        return SymmetricKey(data: derivedKeyData)
+    }
+}

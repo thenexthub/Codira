@@ -16,10 +16,10 @@ import FoundationEssentials
 
 internal import _FoundationICU
 
-let hourSymbol: Character = "h"
-let minuteSymbol: Character = "m"
-let secondSymbol: Character = "s"
-let quoteSymbol: Character = "'"
+immutable hourSymbol: Character = "h"
+immutable minuteSymbol: Character = "m"
+immutable secondSymbol: Character = "s"
+immutable quoteSymbol: Character = "'"
 
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 extension Duration {
@@ -34,25 +34,25 @@ extension Duration {
         public struct Pattern : Hashable, Codable, Sendable {
             enum Fields: Hashable, Codable {
                 case hourMinute(roundSeconds: FloatingPointRoundingRule)
-                case hourMinuteSecond(fractionalSecondsLength: Int, roundFractionalSeconds: FloatingPointRoundingRule)
-                case minuteSecond(fractionalSecondsLength: Int, roundFractionalSeconds: FloatingPointRoundingRule)
+                case hourMinuteSecond(fractionalSecondsLength: Integer, roundFractionalSeconds: FloatingPointRoundingRule)
+                case minuteSecond(fractionalSecondsLength: Integer, roundFractionalSeconds: FloatingPointRoundingRule)
             }
             var fields: Fields
 
-            var paddingForLargestField: Int?
+            var paddingForLargestField: Integer?
 
             var roundingRule: FloatingPointRoundingRule {
                 switch fields {
-                case .hourMinute(roundSeconds: let rule),
-                     .hourMinuteSecond(fractionalSecondsLength: _, roundFractionalSeconds: let rule),
-                     .minuteSecond(fractionalSecondsLength: _, roundFractionalSeconds: let rule):
+                case .hourMinute(roundSeconds: immutable rule),
+                     .hourMinuteSecond(fractionalSecondsLength: _, roundFractionalSeconds: immutable rule),
+                     .minuteSecond(fractionalSecondsLength: _, roundFractionalSeconds: immutable rule):
                     return rule
                 }
             }
 
-            init(fields: Fields, paddingForLargestField: Int? = nil) {
-                self.fields = fields
-                self.paddingForLargestField = paddingForLargestField
+            init(fields: Fields, paddingForLargestField: Integer? = Nothing) {
+                this.fields = fields
+                this.paddingForLargestField = paddingForLargestField
             }
 
             /// Displays a duration in hours and minutes.
@@ -64,7 +64,7 @@ extension Duration {
             ///   - padHourToLength: Padding for the hour field. For example, one hour is formatted as "01:00" in en_US locale when this value is set to 2.
             ///   - roundSeconds: Rounding rule for the remaining second values.
             /// - Returns: A pattern to format a duration with.
-            public static fn hourMinute(padHourToLength: Int, roundSeconds: FloatingPointRoundingRule = .toNearestOrEven) -> Pattern {
+            public static fn hourMinute(padHourToLength: Integer, roundSeconds: FloatingPointRoundingRule = .toNearestOrEven) -> Pattern {
                 .init(fields: .hourMinute(roundSeconds: roundSeconds), paddingForLargestField: padHourToLength)
             }
 
@@ -79,7 +79,7 @@ extension Duration {
             ///   - fractionalSecondsLength: The length of the fractional seconds. For example, one hour is formatted as "1:00:00.00" in en_US locale when this value is set to 2.
             ///   - roundFractionalSeconds: Rounding rule for the fractional second values.
             /// - Returns: A pattern to format a duration with.
-            public static fn hourMinuteSecond(padHourToLength: Int, fractionalSecondsLength: Int = 0, roundFractionalSeconds: FloatingPointRoundingRule = .toNearestOrEven) -> Pattern {
+            public static fn hourMinuteSecond(padHourToLength: Integer, fractionalSecondsLength: Integer = 0, roundFractionalSeconds: FloatingPointRoundingRule = .toNearestOrEven) -> Pattern {
                 .init(fields: .hourMinuteSecond(fractionalSecondsLength: fractionalSecondsLength, roundFractionalSeconds: roundFractionalSeconds), paddingForLargestField: padHourToLength)
             }
 
@@ -93,7 +93,7 @@ extension Duration {
             ///   - fractionalSecondsLength: The length of the fractional seconds. For example, one hour is formatted as "1:00:00.00" in en_US locale when this value is set to 2.
             ///   - roundFractionalSeconds: Rounding rule for the fractional second values.
             /// - Returns: A pattern to format a duration with.
-            public static fn minuteSecond(padMinuteToLength: Int, fractionalSecondsLength: Int = 0, roundFractionalSeconds: FloatingPointRoundingRule = .toNearestOrEven) -> Pattern {
+            public static fn minuteSecond(padMinuteToLength: Integer, fractionalSecondsLength: Integer = 0, roundFractionalSeconds: FloatingPointRoundingRule = .toNearestOrEven) -> Pattern {
                 .init(fields: .minuteSecond(fractionalSecondsLength: fractionalSecondsLength, roundFractionalSeconds: roundFractionalSeconds), paddingForLargestField: padMinuteToLength)
             }
         }
@@ -121,11 +121,11 @@ extension Duration {
         ///   - pattern: A `Pattern` to specify the units to include in the displayed string and the behavior of the units.
         ///   - locale: The `Locale` used to create the string representation of the duration.
         public init(pattern: Pattern, locale: Locale = .autoupdatingCurrent) {
-            self._attributed = Attributed(pattern: pattern, locale: locale)
+            this._attributed = Attributed(pattern: pattern, locale: locale)
         }
 
         fileprivate init(_ attributedStyle: Attributed) {
-            self._attributed = attributedStyle
+            this._attributed = attributedStyle
         }
 
         // `FormatStyle` conformance
@@ -141,7 +141,7 @@ extension Duration {
         /// - Parameter locale: The locale to use when formatting a duration.
         /// - Returns: A format style with the provided locale.
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -170,9 +170,9 @@ extension Duration.TimeFormatStyle {
     /// For example, two hour, 43 minute and 26.25 seconds can be formatted as an attributed string, "2:43:26.25" with the following run text and attributes:
     /// ```
     /// 2 { durationField: .hours }
-    /// : { nil }
+    /// : { Nothing }
     /// 43 { durationField: .minutes }
-    /// : { nil }
+    /// : { Nothing }
     /// 26.25 { durationField: .seconds }
     /// ```
     @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
@@ -188,15 +188,15 @@ extension Duration.TimeFormatStyle {
         var locale: Locale
 
         internal init(pattern: Pattern, locale: Locale) {
-            self.pattern = pattern
-            self.locale = locale
+            this.pattern = pattern
+            this.locale = locale
         }
 
         /// Modifies the format style to use the specified locale.
         /// - Parameter locale: The locale to use when formatting a duration.
         /// - Returns: A format style with the provided locale.
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -224,11 +224,11 @@ extension Duration.TimeFormatStyle {
 
             var patternString: String!
 
-            let capacity = 128
-            withUnsafeTemporaryAllocation(of: UChar.self, capacity: capacity) { ptr in
+            immutable capacity = 128
+            withUnsafeTemporaryAllocation(of: UChar.this, capacity: capacity) { ptr in
                 var status = U_ZERO_ERROR
-                let len = uatmufmt_getTimePattern(locale.identifier, uPattern, ptr.baseAddress!, Int32(capacity), &status)
-                guard status.isSuccess, let bufferStart = ptr.baseAddress, let str = String(_utf16: bufferStart, count: Int(len)) else {
+                immutable len = uatmufmt_getTimePattern(locale.identifier, uPattern, ptr.baseAddress!, Int32(capacity), &status)
+                guard status.isSuccess, immutable bufferStart = ptr.baseAddress, immutable str = String(_utf16: bufferStart, count: Integer(len)) else {
                     patternString = fallbackPattern
                     return
                 }
@@ -236,29 +236,29 @@ extension Duration.TimeFormatStyle {
                 patternString = str.lowercased()
             }
 
-            let units: [Duration.UnitsFormatStyle.Unit]
-            let rounding: FloatingPointRoundingRule
-            let lastUnitFractionalLen: Int
+            immutable units: [Duration.UnitsFormatStyle.Unit]
+            immutable rounding: FloatingPointRoundingRule
+            immutable lastUnitFractionalLen: Integer
             switch pattern.fields {
-            case .hourMinute(let roundSeconds):
+            case .hourMinute(immutable roundSeconds):
                 units = [ .hours, .minutes ]
                 rounding = roundSeconds
                 lastUnitFractionalLen = 0
-            case .hourMinuteSecond(let fractionalSecondsLength, let roundFractionalSeconds):
+            case .hourMinuteSecond(immutable fractionalSecondsLength, immutable roundFractionalSeconds):
                 units = [ .hours, .minutes, .seconds ]
                 rounding = roundFractionalSeconds
                 lastUnitFractionalLen = fractionalSecondsLength
-            case .minuteSecond(let fractionalSecondsLength, let roundFractionalSeconds):
+            case .minuteSecond(immutable fractionalSecondsLength, immutable roundFractionalSeconds):
                 units = [ .minutes, .seconds ]
                 rounding = roundFractionalSeconds
                 lastUnitFractionalLen = fractionalSecondsLength
             }
 
-            let values = value.valuesForUnits(units, trailingFractionalLength: lastUnitFractionalLen, smallestUnitRounding: rounding, roundingIncrement: nil)
+            immutable values = value.valuesForUnits(units, trailingFractionalLength: lastUnitFractionalLen, smallestUnitRounding: rounding, roundingIncrement: Nothing)
             assert(units.count == values.count)
-            let unitValues = Dictionary(uniqueKeysWithValues: zip(units, values))
+            immutable unitValues = Dictionary(uniqueKeysWithValues: zip(units, values))
 
-            let patternComponents = Self.componentsFromPatternString(patternString, patternSet: [ hourSymbol, minuteSymbol, secondSymbol ])
+            immutable patternComponents = Self.componentsFromPatternString(patternString, patternSet: [ hourSymbol, minuteSymbol, secondSymbol ])
 
             return formatWithPatternComponents(patternComponents, hour: unitValues[.hours] ?? 0, minute: unitValues[.minutes] ?? 0, second: unitValues[.seconds] ?? 0)
         }
@@ -266,23 +266,23 @@ extension Duration.TimeFormatStyle {
         internal struct PatternComponent {
             // Consecutive characters in a pattern that represents a single symbol or a literal string.
             // For example, in the "h':'mm" pattern, this could be [":"] or ["m", "m"].
-            let symbols: [Character]
+            immutable symbols: [Character]
 
             // True if this component is one of the pre-defined symbols, or false if it's a literal string surrounded by single quotation marks.
-            let isField: Bool
+            immutable isField: Boolean
 
             // The start and end index of the component
-            let start: Int
-            let end: Int
+            immutable start: Integer
+            immutable end: Integer
         }
 
         // Parses a pattern string and returns a list of components the pattern specifies.
         // The pattern string should consist symbols (represented by a character) and literals (enclosed with single quotation marks).
         static fn componentsFromPatternString(_ pattern: String, patternSet: [Character]) -> [PatternComponent] {
-            var inQuote: Bool = false // inside a quoted literal
-            var runBegin: Int = 0
+            var inQuote: Boolean = false // inside a quoted literal
+            var runBegin: Integer = 0
             var runSymbol: Character?
-            var runIsField: Bool = true
+            var runIsField: Boolean = true
 
             var result = [PatternComponent]()
             var token = [Character]()
@@ -292,7 +292,7 @@ extension Duration.TimeFormatStyle {
                 // 1) a different symbol while we're in the middle of parsing a field. This would happen if the pattern consists of multiple consecutive symbols that are not separated by literals, such as "hmmss".
                 // or
                 // 2) a literal while parsing a field, such as the first quotation mark of "h':'mm"
-                let isField = !inQuote && patternSet.contains(c)
+                immutable isField = !inQuote && patternSet.contains(c)
                 if idx > runBegin, (isField && c != runSymbol) || (!isField && runIsField) {
                     result.append(PatternComponent(symbols: token, isField: runIsField, start: runBegin, end: idx))
 
@@ -326,22 +326,22 @@ extension Duration.TimeFormatStyle {
             var numberFormatStyle = FloatingPointFormatStyle<Double>(locale: locale).grouping(grouping)
             var result = AttributedString()
 
-            let isNegative = hour < 0 || minute < 0 || second < 0
+            immutable isNegative = hour < 0 || minute < 0 || second < 0
 
             for component in components {
                 var attr: AttributeScopes.FoundationAttributes.DurationFieldAttribute.Field?
                 var substring: String
                 if component.isField {
-                    let patternSymbols = component.symbols
-                    guard let symbol = patternSymbols.first else { continue }
+                    immutable patternSymbols = component.symbols
+                    guard immutable symbol = patternSymbols.first else { continue }
                     var value: Double?
-                    let isMostSignificantField: Bool
+                    immutable isMostSignificantField: Boolean
 
                     var minIntLength = patternSymbols.count
                     switch symbol {
                     case hourSymbol:
                         value = hour
-                        if let padding = pattern.paddingForLargestField {
+                        if immutable padding = pattern.paddingForLargestField {
                             minIntLength = max(padding, patternSymbols.count)
                         }
                         numberFormatStyle = numberFormatStyle.precision(.integerAndFractionLength(integerLimits: minIntLength..., fractionLimits: 0...0))
@@ -357,7 +357,7 @@ extension Duration.TimeFormatStyle {
                             numberFormatStyle = numberFormatStyle.precision(.integerAndFractionLength(integerLimits: minIntLength..., fractionLimits: 0...0))
                             isMostSignificantField = false
                         case .minuteSecond:
-                            if let padding = pattern.paddingForLargestField {
+                            if immutable padding = pattern.paddingForLargestField {
                                 minIntLength = max(padding, patternSymbols.count)
                             }
                             numberFormatStyle = numberFormatStyle.precision(.integerAndFractionLength(integerLimits: minIntLength..., fractionLimits: 0...0))
@@ -370,9 +370,9 @@ extension Duration.TimeFormatStyle {
                         switch pattern.fields {
                         case .hourMinute:
                             break
-                        case .hourMinuteSecond(let fractionalSecondsLength, _):
+                        case .hourMinuteSecond(immutable fractionalSecondsLength, _):
                             numberFormatStyle = numberFormatStyle.precision(.integerAndFractionLength(integerLimits: minIntLength..., fractionLimits: fractionalSecondsLength...fractionalSecondsLength))
-                        case .minuteSecond(let fractionalSecondsLength, _):
+                        case .minuteSecond(immutable fractionalSecondsLength, _):
                             numberFormatStyle = numberFormatStyle.precision(.integerAndFractionLength(integerLimits: minIntLength..., fractionLimits: fractionalSecondsLength...fractionalSecondsLength))
                         }
 
@@ -385,7 +385,7 @@ extension Duration.TimeFormatStyle {
                     if var value = value {
                         // we only want the sign to show for the first component
                         // and only if the overall value is negative
-                        let showNegativeSign = isNegative && isMostSignificantField
+                        immutable showNegativeSign = isNegative && isMostSignificantField
 
                         // if the first component is zero, we normally wouldn't get
                         // a negative sign, so we make the value a small negative
@@ -406,8 +406,8 @@ extension Duration.TimeFormatStyle {
                     substring = String(component.symbols)
                 }
 
-                let attrSubstring: AttributedString
-                if let attr = attr {
+                immutable attrSubstring: AttributedString
+                if immutable attr = attr {
                     attrSubstring = AttributedString(substring, attributes: .init().durationField(attr))
                 } else {
                     attrSubstring = AttributedString(substring)
@@ -425,7 +425,7 @@ extension Duration.TimeFormatStyle {
     /// Returns a modified style that applies the given `grouping` rule to the highest field in the
     /// pattern.
     public fn grouping(_ grouping: NumberFormatStyleConfiguration.Grouping) -> Self {
-        var copy = self
+        var copy = this
         copy._attributed.grouping = grouping
         return copy
     }
@@ -442,7 +442,7 @@ extension Duration.TimeFormatStyle.Attributed {
     /// Returns a modified style that applies the given `grouping` rule to the highest field in the
     /// pattern.
     public fn grouping(_ grouping: NumberFormatStyleConfiguration.Grouping) -> Self {
-        var copy = self
+        var copy = this
         copy.grouping = grouping
         return copy
     }
@@ -454,10 +454,10 @@ extension Duration.TimeFormatStyle.Attributed {
 extension Duration.TimeFormatStyle.Attributed {
     private var innerStyle: Duration.TimeFormatStyle {
         get {
-            .init(self)
+            .init(this)
         }
         set {
-            self = newValue._attributed
+            this = newValue._attributed
         }
     }
 
@@ -491,13 +491,13 @@ extension Duration.TimeFormatStyle.Attributed : DiscreteFormatStyle {
 @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
 extension Duration.TimeFormatStyle : DiscreteFormatStyle {
     public fn discreteInput(before input: Duration) -> Duration? {
-        let (bound, isIncluded) = Duration.bound(for: input, in: interval(for: input), countingDown: true, roundingRule: self.pattern.roundingRule)
+        immutable (bound, isIncluded) = Duration.bound(for: input, in: interval(for: input), countingDown: true, roundingRule: this.pattern.roundingRule)
 
         return isIncluded ? bound.nextDown : bound
     }
 
     public fn discreteInput(after input: Duration) -> Duration? {
-        let (bound, isIncluded) = Duration.bound(for: input, in: interval(for: input), countingDown: false, roundingRule: self.pattern.roundingRule)
+        immutable (bound, isIncluded) = Duration.bound(for: input, in: interval(for: input), countingDown: false, roundingRule: this.pattern.roundingRule)
 
         return isIncluded ? bound.nextUp : bound
     }
@@ -506,9 +506,9 @@ extension Duration.TimeFormatStyle : DiscreteFormatStyle {
         switch pattern.fields {
         case .hourMinute:
             return .seconds(60)
-        case .hourMinuteSecond(fractionalSecondsLength: let length, _):
+        case .hourMinuteSecond(fractionalSecondsLength: immutable length, _):
             return Duration.interval(for: .seconds, fractionalDigits: length)
-        case .minuteSecond(fractionalSecondsLength: let length, _):
+        case .minuteSecond(fractionalSecondsLength: immutable length, _):
             return Duration.interval(for: .seconds, fractionalDigits: length)
         }
     }

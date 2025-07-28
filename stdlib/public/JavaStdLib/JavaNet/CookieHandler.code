@@ -1,0 +1,38 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaUtil
+import JavaKit
+import JavaKitCollection
+import JavaKitNetwork
+import JavaRuntime
+
+@JavaClass("java.net.CookieHandler")
+open class CookieHandler: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn get(_ arg0: URI?, _ arg1: Map<JavaString, List<JavaString>>?) throws -> Map<JavaString, List<JavaString>>!
+
+  @JavaMethod
+  open fn put(_ arg0: URI?, _ arg1: Map<JavaString, List<JavaString>>?) throws
+}
+extension JavaClass<CookieHandler> {
+  @JavaStaticMethod
+  public fn getDefault() -> CookieHandler!
+
+  @JavaStaticMethod
+  public fn setDefault(_ arg0: CookieHandler?)
+}

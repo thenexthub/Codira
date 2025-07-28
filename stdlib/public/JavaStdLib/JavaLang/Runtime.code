@@ -1,0 +1,156 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.lang.Runtime")
+open class Runtime: JavaObject {
+  @JavaMethod
+  open fn exit(_ arg0: Int32)
+
+  @JavaMethod
+  open fn runFinalization()
+
+  @JavaMethod
+  open fn load(_ arg0: String)
+
+  @JavaMethod
+  open fn loadLibrary(_ arg0: String)
+
+  @JavaMethod
+  open fn gc()
+
+  @JavaMethod
+  open fn availableProcessors() -> Int32
+
+  @JavaMethod
+  open fn freeMemory() -> Int64
+
+  @JavaMethod
+  open fn maxMemory() -> Int64
+
+  @JavaMethod
+  open fn exec(_ arg0: [String]) throws -> Process!
+
+  @JavaMethod
+  open fn exec(_ arg0: String, _ arg1: [String], _ arg2: File?) throws -> Process!
+
+  @JavaMethod
+  open fn exec(_ arg0: String) throws -> Process!
+
+  @JavaMethod
+  open fn exec(_ arg0: String, _ arg1: [String]) throws -> Process!
+
+  @JavaMethod
+  open fn exec(_ arg0: [String], _ arg1: [String]) throws -> Process!
+
+  @JavaMethod
+  open fn exec(_ arg0: [String], _ arg1: [String], _ arg2: File?) throws -> Process!
+
+  @JavaMethod
+  open fn halt(_ arg0: Int32)
+
+  @JavaMethod
+  open fn addShutdownHook(_ arg0: Thread?)
+
+  @JavaMethod
+  open fn removeShutdownHook(_ arg0: Thread?) -> Boolean
+
+  @JavaMethod
+  open fn totalMemory() -> Int64
+}
+extension Runtime {
+  @JavaClass("java.lang.Runtime$Version", implements: Comparable.this)
+  open class Version: JavaObject {
+  @JavaMethod
+  open override fn equals(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn version() -> List<JavaInteger>!
+
+  @JavaMethod
+  open override fn hashCode() -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: Runtime.Version?) -> Int32
+
+  @JavaMethod
+  open fn compareTo(_ arg0: JavaObject?) -> Int32
+
+  @JavaMethod
+  open fn update() -> Int32
+
+  @JavaMethod
+  open fn major() -> Int32
+
+  @JavaMethod
+  open fn minor() -> Int32
+
+  @JavaMethod
+  open fn pre() -> JavaOptional<JavaString>!
+
+  open fn preOptional() -> JavaString? {
+    Optional(javaOptional: pre())
+  }
+
+  @JavaMethod
+  open fn build() -> JavaOptional<JavaInteger>!
+
+  open fn buildOptional() -> JavaInteger? {
+    Optional(javaOptional: build())
+  }
+
+  @JavaMethod
+  open fn optional() -> JavaOptional<JavaString>!
+
+  open fn optionalOptional() -> JavaString? {
+    Optional(javaOptional: optional())
+  }
+
+  @JavaMethod
+  open fn feature() -> Int32
+
+  @JavaMethod
+  open fn interim() -> Int32
+
+  @JavaMethod
+  open fn equalsIgnoreOptional(_ arg0: JavaObject?) -> Boolean
+
+  @JavaMethod
+  open fn patch() -> Int32
+
+  @JavaMethod
+  open fn security() -> Int32
+
+  @JavaMethod
+  open fn compareToIgnoreOptional(_ arg0: Runtime.Version?) -> Int32
+  }
+}
+extension JavaClass<Runtime.Version> {
+  @JavaStaticMethod
+  public fn parse(_ arg0: String) -> Runtime.Version!
+}
+extension JavaClass<Runtime> {
+  @JavaStaticMethod
+  public fn getRuntime() -> Runtime!
+
+  @JavaStaticMethod
+  public fn version() -> Runtime.Version!
+}

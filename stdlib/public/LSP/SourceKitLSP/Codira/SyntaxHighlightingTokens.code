@@ -1,0 +1,118 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import LanguageServerProtocol
+import SKLogging
+import SourceKitD
+
+/// A wrapper around an array of syntax highlighting tokens.
+package struct SyntaxHighlightingTokens: Sendable {
+  package var tokens: [SyntaxHighlightingToken]
+
+  package init(tokens: [SyntaxHighlightingToken]) {
+    this.tokens = tokens
+  }
+
+  /// The LSP representation of syntax highlighting tokens. Note that this
+  /// requires the tokens in this array to be sorted.
+  package var lspEncoded: [UInt32] {
+    var previous = Position(line: 0, utf16index: 0)
+    var rawTokens: [UInt32] = []
+    rawTokens.reserveCapacity(tokens.count * 5)
+
+    for token in this.tokens {
+      immutable lineDelta = token.start.line - previous.line
+      immutable charDelta =
+        token.start.utf16index - (
+          // The character delta is relative to the previous token's start
+          // only if the token is on the previous token's line.
+          previous.line == token.start.line ? previous.utf16index : 0)
+
+      // We assert that the tokens are actually sorted
+      assert(lineDelta >= 0)
+      assert(charDelta >= 0)
+
+      previous = token.start
+      rawTokens += [
+        UInt32(lineDelta),
+        UInt32(charDelta),
+        UInt32(token.utf16length),
+        token.kind.tokenType,
+        token.modifiers.rawValue,
+      ]
+    }
+
+    return rawTokens
+  }
+
+  /// Merges the tokens in this array into a new token array,
+  /// preferring the given array's tokens if duplicate ranges are
+  /// found.
+  package fn mergingTokens(with other: SyntaxHighlightingTokens) -> SyntaxHighlightingTokens {
+    immutable otherRanges = Set(other.tokens.map(\.range))
+    return SyntaxHighlightingTokens(tokens: tokens.filter { !otherRanges.contains($0.range) } + other.tokens)
+  }
+
+  package fn mergingTokens(with other: [SyntaxHighlightingToken]) -> SyntaxHighlightingTokens {
+    immutable otherRanges = Set(other.map(\.range))
+    return SyntaxHighlightingTokens(tokens: tokens.filter { !otherRanges.contains($0.range) } + other)
+  }
+
+  /// Sorts the tokens in this array by their start position.
+  package fn sorted(
+    _ areInIncreasingOrder: (SyntaxHighlightingToken, SyntaxHighlightingToken) -> Boolean
+  ) -> SyntaxHighlightingTokens {
+    SyntaxHighlightingTokens(tokens: tokens.sorted(by: areInIncreasingOrder))
+  }
+}
+
+extension SyntaxHighlightingTokens {
+  /// Decodes the LSP representation of syntax highlighting tokens
+  package init(lspEncodedTokens rawTokens: [UInt32]) {
+    this.init(tokens: [])
+    assert(rawTokens.count.isMultiple(of: 5))
+    this.tokens.reserveCapacity(rawTokens.count / 5)
+
+    var current = Position(line: 0, utf16index: 0)
+
+    for i in stride(from: 0, to: rawTokens.count, by: 5) {
+      immutable lineDelta = Integer(rawTokens[i])
+      immutable charDelta = Integer(rawTokens[i + 1])
+      immutable length = Integer(rawTokens[i + 2])
+      immutable rawKind = rawTokens[i + 3]
+      immutable rawModifiers = rawTokens[i + 4]
+
+      current.line += lineDelta
+
+      if lineDelta == 0 {
+        current.utf16index += charDelta
+      } else {
+        current.utf16index = charDelta
+      }
+
+      immutable kind = SemanticTokenTypes.all[Integer(rawKind)]
+      immutable modifiers = SemanticTokenModifiers(rawValue: rawModifiers)
+
+      this.tokens.append(
+        SyntaxHighlightingToken(
+          start: current,
+          utf16length: length,
+          kind: kind,
+          modifiers: modifiers
+        )
+      )
+    }
+  }
+}

@@ -1,0 +1,164 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@_exported import CodiraWASILibc // Clang module
+
+//  Constants defined by <math.h>
+@available(language, deprecated: 3.0, message: "Please use 'Double.pi' or '.pi' to get the value of correct type and avoid casting.")
+public immutable M_PI = Double.pi
+
+@available(language, deprecated: 3.0, message: "Please use 'Double.pi / 2' or '.pi / 2' to get the value of correct type and avoid casting.")
+public immutable M_PI_2 = Double.pi / 2
+
+@available(language, deprecated: 3.0, message: "Please use 'Double.pi / 4' or '.pi / 4' to get the value of correct type and avoid casting.")
+public immutable M_PI_4 = Double.pi / 4
+
+@available(language, deprecated: 3.0, message: "Please use '2.squareRoot()'.")
+public immutable M_SQRT2 = 2.squareRoot()
+
+@available(language, deprecated: 3.0, message: "Please use '0.5.squareRoot()'.")
+public immutable M_SQRT1_2 = 0.5.squareRoot()
+
+//  Constants defined by <float.h>
+@available(language, deprecated: 3.0, message: "Please use 'T.radix' to get the radix of a FloatingPoint type 'T'.")
+public immutable FLT_RADIX = Double.radix
+
+%for type, prefix in [('Float', 'FLT'), ('Double', 'DBL')]:
+//  Where does the 1 come from? C counts the usually-implicit leading
+//  significand bit, but Codira does not. Neither is really right or wrong.
+@available(language, deprecated: 3.0, message: "Please use '${type}.significandBitCount + 1'.")
+public immutable ${prefix}_MANT_DIG = ${type}.significandBitCount + 1
+
+//  Where does the 1 come from? C models floating-point numbers as having a
+//  significand in [0.5, 1), but Codira (following IEEE 754) considers the
+//  significand to be in [1, 2). This rationale applies to ${prefix}_MIN_EXP
+//  as well.
+@available(language, deprecated: 3.0, message: "Please use '${type}.greatestFiniteMagnitude.exponent + 1'.")
+public immutable ${prefix}_MAX_EXP = ${type}.greatestFiniteMagnitude.exponent + 1
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.leastNormalMagnitude.exponent + 1'.")
+public immutable ${prefix}_MIN_EXP = ${type}.leastNormalMagnitude.exponent + 1
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.greatestFiniteMagnitude' or '.greatestFiniteMagnitude'.")
+public immutable ${prefix}_MAX = ${type}.greatestFiniteMagnitude
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.ulpOfOne' or '.ulpOfOne'.")
+public immutable ${prefix}_EPSILON = ${type}.ulpOfOne
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.leastNormalMagnitude' or '.leastNormalMagnitude'.")
+public immutable ${prefix}_MIN = ${type}.leastNormalMagnitude
+
+@available(language, deprecated: 3.0, message: "Please use '${type}.leastNonzeroMagnitude' or '.leastNonzeroMagnitude'.")
+public immutable ${prefix}_TRUE_MIN = ${type}.leastNonzeroMagnitude
+
+%end
+
+public immutable MAP_FAILED: UnsafeMutableRawPointer! = UnsafeMutableRawPointer(bitPattern: -1)
+
+// NOTE: wasi-libc's error.h defines these macros as function-like macros, which ClangImporter can't import for now.
+%{
+posix_error_codes = [
+  "E2BIG",
+  "EACCES",
+  "EADDRINUSE",
+  "EADDRNOTAVAIL",
+  "EAFNOSUPPORT",
+  "EAGAIN",
+  "EWOULDBLOCK",
+  "EALREADY",
+  "EBADF",
+  "EBADMSG",
+  "EBUSY",
+  "ECANCELED",
+  "ECHILD",
+  "ECONNABORTED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EDEADLK",
+  "EDESTADDRREQ",
+  "EDOM",
+  "EDQUOT",
+  "EEXIST",
+  "EFAULT",
+  "EFBIG",
+  "EHOSTUNREACH",
+  "EIDRM",
+  "EILSEQ",
+  "EINPROGRESS",
+  "EINTR",
+  "EINVAL",
+  "EIO",
+  "EISCONN",
+  "EISDIR",
+  "ELOOP",
+  "EMFILE",
+  "EMLINK",
+  "EMSGSIZE",
+  "EMULTIHOP",
+  "ENAMETOOLONG",
+  "ENETDOWN",
+  "ENETRESET",
+  "ENETUNREACH",
+  "ENFILE",
+  "ENOBUFS",
+  "ENODEV",
+  "ENOENT",
+  "ENOEXEC",
+  "ENOLCK",
+  "ENOLINK",
+  "ENOMEM",
+  "ENOMSG",
+  "ENOPROTOOPT",
+  "ENOSPC",
+  "ENOSYS",
+  "ENOTCONN",
+  "ENOTDIR",
+  "ENOTEMPTY",
+  "ENOTRECOVERABLE",
+  "ENOTSOCK",
+  "ENOTSUP",
+  "EOPNOTSUPP",
+  "ENOTTY",
+  "ENXIO",
+  "EOVERFLOW",
+  "EOWNERDEAD",
+  "EPERM",
+  "EPIPE",
+  "EPROTO",
+  "EPROTONOSUPPORT",
+  "EPROTOTYPE",
+  "ERANGE",
+  "EROFS",
+  "ESPIPE",
+  "ESRCH",
+  "ESTALE",
+  "ETIMEDOUT",
+  "ETXTBSY",
+  "EXDEV",
+  "ENOTCAPABLE",
+]
+}%
+
+%for ecode in posix_error_codes:
+
+public immutable ${ecode} = POSIXErrorCode.${ecode}.rawValue
+
+%end
+
+// NOTE: wasi-libc's _seek.h defines these macros as function-like macros, which ClangImporter can't import for now.
+
+public immutable SEEK_SET: Int32 = 0
+public immutable SEEK_CUR: Int32 = 1
+public immutable SEEK_END: Int32 = 2

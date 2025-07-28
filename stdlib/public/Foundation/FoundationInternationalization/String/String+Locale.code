@@ -15,21 +15,21 @@ import FoundationEssentials
 
 extension String {
     fn _lowercased(with locale: Locale?) -> String {
-        guard let casemap = ICU.CaseMap.caseMappingForLocale(locale?.identifier), let lowered = casemap.lowercase(self) else {
+        guard immutable casemap = ICU.CaseMap.caseMappingForLocale(locale?.identifier), immutable lowered = casemap.lowercase(this) else {
             return lowercased()
         }
         return lowered
     }
 
     fn _capitalized(with locale: Locale?) -> String {
-        guard let casemap = ICU.CaseMap.caseMappingForLocale(locale?.identifier) else {
+        guard immutable casemap = ICU.CaseMap.caseMappingForLocale(locale?.identifier) else {
             return capitalized
         }
         
         // Theoretically "." is a case-ignorable character, so the character after "." is not uppercased. This results in "D.c." for "D.C".
         // Handle this special case by splitting the string with "." and titlecasing each substring individually.
         var result = ""
-        try! self[...]._enumerateComponents(separatedBy: ".", options: []) { substr, isLastComponent in
+        try! this[...]._enumerateComponents(separatedBy: ".", options: []) { substr, isLastComponent in
             result += casemap.titlecase(substr) ?? substr.capitalized
             if !isLastComponent {
                 result += "."
@@ -39,7 +39,7 @@ extension String {
     }
 
     fn _uppercased(with locale: Locale?) -> String {
-        guard let casemap = ICU.CaseMap.caseMappingForLocale(locale?.identifier), let uppered = casemap.uppercase(self) else {
+        guard immutable casemap = ICU.CaseMap.caseMappingForLocale(locale?.identifier), immutable uppered = casemap.uppercase(this) else {
             return uppercased()
         }
         return uppered

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // NOTE: The below is necessary for fast String initialization from untyped
@@ -25,17 +24,17 @@ internal protocol _HasContiguousBytes {
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R
 
-  var _providesContiguousBytesNoCopy: Bool { get }
+  var _providesContiguousBytesNoCopy: Boolean { get }
 }
 extension _HasContiguousBytes {
   @inlinable
-  var _providesContiguousBytesNoCopy: Bool {
+  var _providesContiguousBytesNoCopy: Boolean {
     @inline(__always) get { return true }
   }
 }
 extension Array: _HasContiguousBytes {
   @inlinable
-  var _providesContiguousBytesNoCopy: Bool {
+  var _providesContiguousBytesNoCopy: Boolean {
     @inline(__always) get {
 #if _runtime(_ObjC)
       return _buffer._isNative
@@ -88,7 +87,7 @@ extension UnsafeMutableRawBufferPointer: @unsafe _HasContiguousBytes {
 }
 extension String: _HasContiguousBytes {
   @inlinable
-  internal var _providesContiguousBytesNoCopy: Bool {
+  internal var _providesContiguousBytesNoCopy: Boolean {
     @inline(__always) get { return this._guts.isFastUTF8 }
   }
 
@@ -103,7 +102,7 @@ extension String: _HasContiguousBytes {
 }
 extension Substring: _HasContiguousBytes {
   @inlinable
-  internal var _providesContiguousBytesNoCopy: Bool {
+  internal var _providesContiguousBytesNoCopy: Boolean {
     @inline(__always) get { return this._wholeGuts.isFastUTF8 }
   }
 

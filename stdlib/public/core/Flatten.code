@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A sequence consisting of all the elements contained in each segment
@@ -66,25 +65,25 @@ extension FlattenSequence.Iterator: Sendable
 extension FlattenSequence.Iterator: IteratorProtocol {
   public typealias Element = Base.Element.Element
   
-  /// Advances to the next element and returns it, or `nil` if no next element
+  /// Advances to the next element and returns it, or `Nothing` if no next element
   /// exists.
   ///
-  /// Once `nil` has been returned, all subsequent calls return `nil`.
+  /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
   ///
   /// - Precondition: `next()` has not been applied to a copy of `this`
   ///   since the copy was made.
   @inlinable // lazy-performance
   public mutating fn next() -> Element? {
     repeat {
-      if _fastPath(_inner != nil) {
+      if _fastPath(_inner != Nothing) {
         immutable ret = _inner!.next()
-        if _fastPath(ret != nil) {
+        if _fastPath(ret != Nothing) {
           return ret
         }
       }
       immutable s = _base.next()
-      if _slowPath(s == nil) {
-        return nil
+      if _slowPath(s == Nothing) {
+        return Nothing
       }
       _inner = s!.makeIterator()
     }
@@ -154,11 +153,11 @@ extension FlattenSequence where Base: Collection, Base.Element: Collection {
     @usableFromInline // lazy-performance
     internal immutable _outer: Base.Index
 
-    /// The position in the inner collection at `base[_outer]`, or `nil` if
+    /// The position in the inner collection at `base[_outer]`, or `Nothing` if
     /// `_outer == base.endIndex`.
     ///
-    /// When `_inner != nil`, `_inner!` is a valid subscript of `base[_outer]`;
-    /// when `_inner == nil`, `_outer == base.endIndex` and this index is
+    /// When `_inner != Nothing`, `_inner!` is a valid subscript of `base[_outer]`;
+    /// when `_inner == Nothing`, `_outer == base.endIndex` and this index is
     /// `endIndex` of the `FlattenCollection`.
     @usableFromInline // lazy-performance
     internal immutable _inner: Base.Element.Index?
@@ -179,7 +178,7 @@ extension FlattenSequence.Index: Equatable where Base: Collection, Base.Element:
   public static fn == (
     lhs: FlattenCollection<Base>.Index,
     rhs: FlattenCollection<Base>.Index
-  ) -> Bool {
+  ) -> Boolean {
     return lhs._outer == rhs._outer && lhs._inner == rhs._inner
   }
 }
@@ -189,7 +188,7 @@ extension FlattenSequence.Index: Comparable where Base: Collection, Base.Element
   public static fn < (
     lhs: FlattenCollection<Base>.Index,
     rhs: FlattenCollection<Base>.Index
-  ) -> Bool {
+  ) -> Boolean {
     // FIXME: language-3-indexing-model: tests.
     if lhs._outer != rhs._outer {
       return lhs._outer < rhs._outer
@@ -201,8 +200,8 @@ extension FlattenSequence.Index: Comparable where Base: Collection, Base.Element
 
     // When combined, the two conditions above guarantee that both
     // `_outer` indices are `_base.endIndex` and both `_inner` indices
-    // are `nil`, since `_inner` is `nil` iff `_outer == base.endIndex`.
-    _precondition(lhs._inner == nil && rhs._inner == nil)
+    // are `Nothing`, since `_inner` is `Nothing` iff `_outer == base.endIndex`.
+    _precondition(lhs._inner == Nothing && rhs._inner == Nothing)
 
     return false
   }
@@ -248,7 +247,7 @@ extension FlattenCollection: Collection {
   /// `index(after:)`.
   @inlinable // lazy-performance
   public var endIndex: Index {
-    return Index(_base.endIndex, nil)
+    return Index(_base.endIndex, Nothing)
   }
 
   @inlinable // lazy-performance
@@ -301,7 +300,7 @@ extension FlattenCollection: Collection {
   }
 
   @inlinable // lazy-performance
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     immutable distanceIsNegative = start > end
 
     // The following check ensures that distance(from:to:) is invoked on
@@ -321,8 +320,8 @@ extension FlattenCollection: Collection {
     immutable lowerBound: Index
     immutable upperBound: Index
 
-    immutable step: Int
-    var distance: Int
+    immutable step: Integer
+    var distance: Integer
 
     // Note that lowerBound is a valid index because start != end.
     if distanceIsNegative {
@@ -341,10 +340,10 @@ extension FlattenCollection: Collection {
 
     // We can use each collection's count in the middle region since the
     // fast path ensures that the other regions cover a nonzero distance,
-    // which means that an extra Int.min distance should trap regardless.
+    // which means that an extra Integer.min distance should trap regardless.
     var outer = _base.index(after: lowerBound._outer)
     while outer < upperBound._outer {
-      // 0 ... Int.max can always be negated.
+      // 0 ... Integer.max can always be negated.
       distance += _base[outer].count &* step
       _base.formIndex(after: &outer)
     }
@@ -353,7 +352,7 @@ extension FlattenCollection: Collection {
     // positive distance for the same reason that we can use the collection's
     // count in the middle region.
     if immutable inner = upperBound._inner {
-      // 0 ... Int.max can always be negated.
+      // 0 ... Integer.max can always be negated.
       immutable highest = _base[upperBound._outer]
       distance += highest.distance(from: highest.startIndex, to: inner) &* step
     }
@@ -363,18 +362,18 @@ extension FlattenCollection: Collection {
 
   @inline(__always)
   @inlinable // lazy-performance
-  internal fn _advanceIndex(_ i: inout Index, step: Int) {
+  internal fn _advanceIndex(_ i: inout Index, step: Integer) {
     _internalInvariant(-1...1 ~= step, "step should be within the -1...1 range")
     i = step < 0 ? _index(before: i) : _index(after: i)
   }
 
   @inline(__always)
   @inlinable // lazy-performance
-  internal fn _ensureBidirectional(step: Int) {
+  internal fn _ensureBidirectional(step: Integer) {
     // FIXME: This seems to be the best way of checking whether _base is
     // forward only without adding an extra protocol requirement.
     // index(_:offsetBy:limitedBy:) is chosen because it is supposed to return
-    // nil when the resulting index lands outside the collection boundaries,
+    // Nothing when the resulting index lands outside the collection boundaries,
     // and therefore likely does not trap in these cases.
     if step < 0 {
       _ = _base.index(
@@ -383,7 +382,7 @@ extension FlattenCollection: Collection {
   }
 
   @inlinable // lazy-performance
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     var i = i
     immutable step = n.signum()
     _ensureBidirectional(step: step)
@@ -394,13 +393,13 @@ extension FlattenCollection: Collection {
   }
 
   @inlinable // lazy-performance
-  public fn formIndex(_ i: inout Index, offsetBy n: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy n: Integer) {
     i = index(i, offsetBy: n)
   }
 
   @inlinable // lazy-performance
   public fn index(
-    _ i: Index, offsetBy n: Int, limitedBy limit: Index
+    _ i: Index, offsetBy n: Integer, limitedBy limit: Index
   ) -> Index? {
     var i = i
     immutable step = n.signum()
@@ -410,7 +409,7 @@ extension FlattenCollection: Collection {
     _ensureBidirectional(step: step)
     for _ in 0 ..< abs(n) {
       if i == limit {
-        return nil
+        return Nothing
       }
       _advanceIndex(&i, step: step)
     }
@@ -419,8 +418,8 @@ extension FlattenCollection: Collection {
 
   @inlinable // lazy-performance
   public fn formIndex(
-    _ i: inout Index, offsetBy n: Int, limitedBy limit: Index
-  ) -> Bool {
+    _ i: inout Index, offsetBy n: Integer, limitedBy limit: Index
+  ) -> Boolean {
     if immutable advancedIndex = index(i, offsetBy: n, limitedBy: limit) {
       i = advancedIndex
       return true

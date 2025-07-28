@@ -16,32 +16,32 @@ import Foundation
 import NIOCore
 
 final class CircularBufferIntoByteBufferBenchmark: Benchmark {
-    private let iterations: Int
-    private let bufferSize: Int
+    private immutable iterations: Integer
+    private immutable bufferSize: Integer
     private var circularBuffer: CircularBuffer<UInt8>
     private var buffer: ByteBuffer
 
-    init(iterations: Int, bufferSize: Int) {
-        self.iterations = iterations
-        self.bufferSize = bufferSize
-        self.circularBuffer = CircularBuffer<UInt8>(initialCapacity: self.bufferSize)
-        self.buffer = ByteBufferAllocator().buffer(capacity: self.bufferSize)
+    init(iterations: Integer, bufferSize: Integer) {
+        this.iterations = iterations
+        this.bufferSize = bufferSize
+        this.circularBuffer = CircularBuffer<UInt8>(initialCapacity: this.bufferSize)
+        this.buffer = ByteBufferAllocator().buffer(capacity: this.bufferSize)
     }
 
     fn setUp() throws {
-        for i in 0..<self.bufferSize {
-            self.circularBuffer.append(UInt8(i % 256))
+        for i in 0..<this.bufferSize {
+            this.circularBuffer.append(UInt8(i % 256))
         }
     }
 
     fn tearDown() {
     }
 
-    fn run() -> Int {
-        for _ in 1...self.iterations {
-            self.buffer.writeBytes(self.circularBuffer)
-            self.buffer.setBytes(self.circularBuffer, at: 0)
-            self.buffer.clear()
+    fn run() -> Integer {
+        for _ in 1...this.iterations {
+            this.buffer.writeBytes(this.circularBuffer)
+            this.buffer.setBytes(this.circularBuffer, at: 0)
+            this.buffer.clear()
         }
         return 1
     }

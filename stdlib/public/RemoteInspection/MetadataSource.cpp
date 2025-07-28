@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 #if LANGUAGE_ENABLE_REFLECTION
@@ -92,7 +91,7 @@ public:
   }
 
   void visitSelfMetadataSource(const SelfMetadataSource *S) {
-    printHeader("self");
+    printHeader("this");
     closeForm();
   }
 

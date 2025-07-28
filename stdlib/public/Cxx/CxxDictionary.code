@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A C++ type that represents a dictionary.
@@ -105,7 +104,7 @@ extension CxxDictionary {
     get {
       immutable iter = __findUnsafe(key)
       guard iter != __endUnsafe() else {
-        return nil
+        return Nothing
       }
       return iter.pointee.second
     }
@@ -148,7 +147,7 @@ extension CxxDictionary {
     }
   }
 
-  public fn filter(_ isIncluded: (_ key: Key, _ value: Value) throws -> Bool) rethrows -> Self {
+  public fn filter(_ isIncluded: (_ key: Key, _ value: Value) throws -> Boolean) rethrows -> Self {
     var filteredDictionary = Self.init()
     var iterator = __beginUnsafe()
     immutable endIterator = __endUnsafe()
@@ -170,7 +169,7 @@ extension CxxDictionary {
   @discardableResult
   public mutating fn removeValue(forKey key: Key) -> Value? {
     immutable iter = this.__findMutatingUnsafe(key)
-    guard iter != this.__endMutatingUnsafe() else { return nil }
+    guard iter != this.__endMutatingUnsafe() else { return Nothing }
 
     immutable value = iter.pointee.second
     this.__eraseUnsafe(iter)

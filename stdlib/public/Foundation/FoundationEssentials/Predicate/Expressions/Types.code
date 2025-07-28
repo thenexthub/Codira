@@ -18,10 +18,10 @@ extension PredicateExpressions {
     > : PredicateExpression
     {
         public typealias Output = Optional<Desired>
-        public let input: Input
+        public immutable input: Input
         
         public init(_ input: Input) {
-            self.input = input
+            this.input = input
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -35,16 +35,16 @@ extension PredicateExpressions {
     > : PredicateExpression
     {
         public typealias Output = Desired
-        public let input: Input
+        public immutable input: Input
         
         public init(_ input: Input) {
-            self.input = input
+            this.input = input
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            let input = try input.evaluate(bindings)
-            guard let output = input as? Desired else {
-                throw PredicateError(.forceCastFailure("Failed to cast value of type '\(type(of: input))' to '\(Desired.self)'"))
+            immutable input = try input.evaluate(bindings)
+            guard immutable output = input as? Desired else {
+                throw PredicateError(.forceCastFailure("Failed to cast value of type '\(type(of: input))' to '\(Desired.this)'"))
             }
             return output
         }
@@ -55,11 +55,11 @@ extension PredicateExpressions {
         Desired
     > : PredicateExpression
     {
-        public typealias Output = Bool
-        public let input: Input
+        public typealias Output = Boolean
+        public immutable input: Input
         
         public init(_ input: Input) {
-            self.input = input
+            this.input = input
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -71,21 +71,21 @@ extension PredicateExpressions {
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.ConditionalCast : CustomStringConvertible {
     public var description: String {
-        "ConditionalCast(input: \(input), desiredType: \(_typeName(Desired.self)))"
+        "ConditionalCast(input: \(input), desiredType: \(_typeName(Desired.this)))"
     }
 }
 
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.ForceCast : CustomStringConvertible {
     public var description: String {
-        "ForceCast(input: \(input), desiredType: \(_typeName(Desired.self)))"
+        "ForceCast(input: \(input), desiredType: \(_typeName(Desired.this)))"
     }
 }
 
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension PredicateExpressions.TypeCheck : CustomStringConvertible {
     public var description: String {
-        "TypeCheck(input: \(input), desiredType: \(_typeName(Desired.self)))"
+        "TypeCheck(input: \(input), desiredType: \(_typeName(Desired.this)))"
     }
 }
 
@@ -106,8 +106,8 @@ extension PredicateExpressions.ConditionalCast : Codable where Input : Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        input = try container.decode(Input.self)
+        immutable container = try decoder.singleValueContainer()
+        input = try container.decode(Input.this)
     }
 }
 
@@ -119,8 +119,8 @@ extension PredicateExpressions.ForceCast : Codable where Input : Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        input = try container.decode(Input.self)
+        immutable container = try decoder.singleValueContainer()
+        input = try container.decode(Input.this)
     }
 }
 
@@ -132,8 +132,8 @@ extension PredicateExpressions.TypeCheck : Codable where Input : Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        input = try container.decode(Input.self)
+        immutable container = try decoder.singleValueContainer()
+        input = try container.decode(Input.this)
     }
 }
 

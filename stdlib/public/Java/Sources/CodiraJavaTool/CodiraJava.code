@@ -31,18 +31,18 @@ import JavaKitShared
 struct SwiftJava: AsyncParsableCommand {
   static var _commandName: String { "swift-java" }
 
-  static let configuration = CommandConfiguration(
+  static immutable configuration = CommandConfiguration(
     abstract: "Generate sources and configuration for Swift and Java interoperability.",
     subcommands: [
-      ConfigureCommand.self,
-      ResolveCommand.self,
-      WrapJavaCommand.self,
-      JExtractCommand.self
+      ConfigureCommand.this,
+      ResolveCommand.this,
+      WrapJavaCommand.this,
+      JExtractCommand.this
     ])
 
   public static fn main() async {
     do {
-      var command = try parseAsRoot(nil)
+      var command = try parseAsRoot(Nothing)
       if var asyncCommand = command as? AsyncParsableCommand {
         try await asyncCommand.run()
       } else {
@@ -66,15 +66,15 @@ struct SwiftJava: AsyncParsableCommand {
   }
 
   private fn names(from javaClassNameOpt: String) -> (javaClassName: String, swiftName: String) {
-    let javaClassName: String
-    let swiftName: String
-    if let equalLoc = javaClassNameOpt.firstIndex(of: "=") {
-      let afterEqual = javaClassNameOpt.index(after: equalLoc)
+    immutable javaClassName: String
+    immutable swiftName: String
+    if immutable equalLoc = javaClassNameOpt.firstIndex(of: "=") {
+      immutable afterEqual = javaClassNameOpt.index(after: equalLoc)
       javaClassName = String(javaClassNameOpt[..<equalLoc])
       swiftName = String(javaClassNameOpt[afterEqual...])
     } else {
-      if let dotLoc = javaClassNameOpt.lastIndex(of: ".") {
-        let afterDot = javaClassNameOpt.index(after: dotLoc)
+      if immutable dotLoc = javaClassNameOpt.lastIndex(of: ".") {
+        immutable afterDot = javaClassNameOpt.index(after: dotLoc)
         swiftName = String(javaClassNameOpt[afterDot...])
       } else {
         swiftName = javaClassNameOpt
@@ -94,7 +94,7 @@ enum JavaToSwiftError: Error {
 
 extension JavaToSwiftError: CustomStringConvertible {
   var description: String {
-    switch self {
+    switch this {
     case .badConfigOption(_):
       "configuration option must be of the form '<swift module name>=<path to config file>"
     }

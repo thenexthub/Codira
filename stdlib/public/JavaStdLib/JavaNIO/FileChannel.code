@@ -1,0 +1,93 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.nio.channels.FileChannel", implements: SeekableByteChannel.this, GatheringByteChannel.this, ScatteringByteChannel.this)
+open class FileChannel: AbstractInterruptibleChannel {
+  @JavaMethod
+  open fn transferFrom(_ arg0: ReadableByteChannel?, _ arg1: Int64, _ arg2: Int64) throws -> Int64
+
+  @JavaMethod
+  open fn size() throws -> Int64
+
+  @JavaMethod
+  open fn position() throws -> Int64
+
+  @JavaMethod
+  open fn position(_ arg0: Int64) throws -> FileChannel!
+
+  @JavaMethod
+  open fn position(_ arg0: Int64) throws -> SeekableByteChannel!
+
+  @JavaMethod
+  open fn map(_ arg0: FileChannel.MapMode?, _ arg1: Int64, _ arg2: Int64) throws -> MappedByteBuffer!
+
+  @JavaMethod
+  open fn lock() throws -> FileLock!
+
+  @JavaMethod
+  open fn lock(_ arg0: Int64, _ arg1: Int64, _ arg2: Boolean) throws -> FileLock!
+
+  @JavaMethod
+  open fn write(_ arg0: ByteBuffer?) throws -> Int32
+
+  @JavaMethod
+  open fn write(_ arg0: [ByteBuffer?], _ arg1: Int32, _ arg2: Int32) throws -> Int64
+
+  @JavaMethod
+  open fn write(_ arg0: ByteBuffer?, _ arg1: Int64) throws -> Int32
+
+  @JavaMethod
+  open fn write(_ arg0: [ByteBuffer?]) throws -> Int64
+
+  @JavaMethod
+  open fn read(_ arg0: [ByteBuffer?]) throws -> Int64
+
+  @JavaMethod
+  open fn read(_ arg0: [ByteBuffer?], _ arg1: Int32, _ arg2: Int32) throws -> Int64
+
+  @JavaMethod
+  open fn read(_ arg0: ByteBuffer?, _ arg1: Int64) throws -> Int32
+
+  @JavaMethod
+  open fn read(_ arg0: ByteBuffer?) throws -> Int32
+
+  @JavaMethod
+  open fn transferTo(_ arg0: Int64, _ arg1: Int64, _ arg2: WritableByteChannel?) throws -> Int64
+
+  @JavaMethod
+  open fn tryLock() throws -> FileLock!
+
+  @JavaMethod
+  open fn tryLock(_ arg0: Int64, _ arg1: Int64, _ arg2: Boolean) throws -> FileLock!
+
+  @JavaMethod
+  open fn force(_ arg0: Boolean) throws
+
+  @JavaMethod
+  open fn truncate(_ arg0: Int64) throws -> SeekableByteChannel!
+
+  @JavaMethod
+  open fn truncate(_ arg0: Int64) throws -> FileChannel!
+}
+extension JavaClass<FileChannel> {
+  @JavaStaticMethod
+  public fn open(_ arg0: Path?, _ arg1: JavaSet<OpenOption>?, _ arg2: [FileAttribute<JavaObject>?]) throws -> FileChannel!
+
+  @JavaStaticMethod
+  public fn open(_ arg0: Path?, _ arg1: [OpenOption?]) throws -> FileChannel!
+}

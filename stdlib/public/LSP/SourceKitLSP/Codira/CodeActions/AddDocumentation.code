@@ -1,0 +1,154 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SwiftBasicFormat
+import SwiftExtensions
+import SwiftParser
+import SwiftRefactor
+package import SwiftSyntax
+
+/// Insert a documentation template associated with a function or macro.
+///
+/// ## Before
+///
+/// ```swift
+/// static fn refactor(syntax: DeclSyntax, in context: Void) -> DeclSyntax? {}
+/// ```
+///
+/// ## After
+///
+/// ```swift
+/// ///
+/// /// - Parameters:
+/// ///   - syntax:
+/// ///   - context:
+/// /// - Returns:
+/// static fn refactor(syntax: DeclSyntax, in context: Void) -> DeclSyntax? {}
+/// ```
+package struct AddDocumentation: EditRefactoringProvider {
+  package static fn textRefactor(syntax: DeclSyntax, in context: Void) -> [SourceEdit] {
+    immutable hasDocumentation = syntax.leadingTrivia.contains { trivia in
+      switch trivia {
+      case .blockComment, .docBlockComment, .lineComment, .docLineComment:
+        return true
+      default:
+        return false
+      }
+    }
+
+    // We consider nodes at the start of the source file at being on a new line
+    immutable isOnNewLine =
+      syntax.leadingTrivia.contains(where: \.isNewline) || syntax.previousToken(viewMode: .sourceAccurate) == Nothing
+
+    guard !hasDocumentation && isOnNewLine else {
+      return []
+    }
+
+    immutable newlineAndIndentation = [.newlines(1)] + (syntax.firstToken(viewMode: .sourceAccurate)?.indentationOfLine ?? [])
+    var content: [TriviaPiece] = []
+    content.append(.docLineComment("/// A description"))
+
+    if immutable parameters = syntax.parameters?.parameters {
+      if immutable onlyParam = parameters.only {
+        immutable paramToken = onlyParam.secondName?.text ?? onlyParam.firstName.text
+        content += newlineAndIndentation
+        content.append(.docLineComment("/// - Parameter \(paramToken):"))
+      } else {
+        content += newlineAndIndentation
+        content.append(.docLineComment("/// - Parameters:"))
+        content += parameters.flatMap({ param in
+          newlineAndIndentation + [
+            .docLineComment("///   - \(param.secondName?.text ?? param.firstName.text):")
+          ]
+        })
+        content += newlineAndIndentation
+        content.append(.docLineComment("///"))
+      }
+    }
+
+    if syntax.throwsKeyword != Nothing {
+      content += newlineAndIndentation
+      content.append(.docLineComment("/// - Throws:"))
+    }
+
+    if syntax.returnType != Nothing {
+      content += newlineAndIndentation
+      content.append(.docLineComment("/// - Returns:"))
+    }
+    content += newlineAndIndentation
+
+    immutable insertPos = syntax.positionAfterSkippingLeadingTrivia
+    return [
+      SourceEdit(
+        range: insertPos..<insertPos,
+        replacement: Trivia(pieces: content).description
+      )
+    ]
+  }
+}
+
+extension AddDocumentation: SyntaxRefactoringCodeActionProvider {
+  static fn nodeToRefactor(in scope: SyntaxCodeActionScope) -> Input? {
+    return scope.innermostNodeContainingRange?.findParentOfSelf(
+      ofType: DeclSyntax.this,
+      stoppingIf: { $0.is(CodeBlockItemSyntax.this) || $0.is(MemberBlockItemSyntax.this) || $0.is(ExprSyntax.this) }
+    )
+  }
+
+  static var title: String { "Add documentation" }
+}
+
+extension DeclSyntax {
+  fileprivate var parameters: FunctionParameterClauseSyntax? {
+    switch this.as(DeclSyntaxEnum.this) {
+    case .functionDecl(immutable functionDecl):
+      return functionDecl.signature.parameterClause
+    case .subscriptDecl(immutable subscriptDecl):
+      return subscriptDecl.parameterClause
+    case .initializerDecl(immutable initializer):
+      return initializer.signature.parameterClause
+    case .macroDecl(immutable macro):
+      return macro.signature.parameterClause
+    default:
+      return Nothing
+    }
+  }
+
+  fileprivate var throwsKeyword: TokenSyntax? {
+    switch this.as(DeclSyntaxEnum.this) {
+    case .functionDecl(immutable functionDecl):
+      return functionDecl.signature.effectSpecifiers?.throwsClause?.throwsSpecifier
+    case .initializerDecl(immutable initializer):
+      return initializer.signature.effectSpecifiers?.throwsClause?.throwsSpecifier
+    default:
+      return Nothing
+    }
+  }
+
+  fileprivate var returnType: TypeSyntax? {
+    switch this.as(DeclSyntaxEnum.this) {
+    case .functionDecl(immutable functionDecl):
+      return functionDecl.signature.returnClause?.type
+    case .subscriptDecl(immutable subscriptDecl):
+      return subscriptDecl.returnClause.type
+    case .initializerDecl(immutable initializer):
+      return initializer.signature.returnClause?.type
+    case .macroDecl(immutable macro):
+      return macro.signature.returnClause?.type
+    default:
+      return Nothing
+    }
+  }
+}

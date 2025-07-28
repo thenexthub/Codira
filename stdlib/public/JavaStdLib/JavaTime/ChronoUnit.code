@@ -1,0 +1,271 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.temporal.ChronoUnit", implements: TemporalUnit.this)
+open class ChronoUnit: Enum {
+  public enum ChronoUnitCases: Equatable {
+    case NANOS
+    case MICROS
+    case MILLIS
+    case SECONDS
+    case MINUTES
+    case HOURS
+    case HALF_DAYS
+    case DAYS
+    case WEEKS
+    case MONTHS
+    case YEARS
+    case DECADES
+    case CENTURIES
+    case MILLENNIA
+    case ERAS
+    case FOREVER
+  }
+
+  public var enumValue: ChronoUnitCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.NANOS?.as(JavaObject.this)) {
+      return ChronoUnitCases.NANOS
+    } else if this.equals(classObj.MICROS?.as(JavaObject.this)) {
+      return ChronoUnitCases.MICROS
+    } else if this.equals(classObj.MILLIS?.as(JavaObject.this)) {
+      return ChronoUnitCases.MILLIS
+    } else if this.equals(classObj.SECONDS?.as(JavaObject.this)) {
+      return ChronoUnitCases.SECONDS
+    } else if this.equals(classObj.MINUTES?.as(JavaObject.this)) {
+      return ChronoUnitCases.MINUTES
+    } else if this.equals(classObj.HOURS?.as(JavaObject.this)) {
+      return ChronoUnitCases.HOURS
+    } else if this.equals(classObj.HALF_DAYS?.as(JavaObject.this)) {
+      return ChronoUnitCases.HALF_DAYS
+    } else if this.equals(classObj.DAYS?.as(JavaObject.this)) {
+      return ChronoUnitCases.DAYS
+    } else if this.equals(classObj.WEEKS?.as(JavaObject.this)) {
+      return ChronoUnitCases.WEEKS
+    } else if this.equals(classObj.MONTHS?.as(JavaObject.this)) {
+      return ChronoUnitCases.MONTHS
+    } else if this.equals(classObj.YEARS?.as(JavaObject.this)) {
+      return ChronoUnitCases.YEARS
+    } else if this.equals(classObj.DECADES?.as(JavaObject.this)) {
+      return ChronoUnitCases.DECADES
+    } else if this.equals(classObj.CENTURIES?.as(JavaObject.this)) {
+      return ChronoUnitCases.CENTURIES
+    } else if this.equals(classObj.MILLENNIA?.as(JavaObject.this)) {
+      return ChronoUnitCases.MILLENNIA
+    } else if this.equals(classObj.ERAS?.as(JavaObject.this)) {
+      return ChronoUnitCases.ERAS
+    } else if this.equals(classObj.FOREVER?.as(JavaObject.this)) {
+      return ChronoUnitCases.FOREVER
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: ChronoUnitCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<ChronoUnit>(environment: _environment)
+    switch enumValue {
+      case .NANOS:
+        if immutable NANOS = classObj.NANOS {
+          this.init(javaHolder: NANOS.javaHolder)
+        } else {
+          fatalError("Enum value NANOS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MICROS:
+        if immutable MICROS = classObj.MICROS {
+          this.init(javaHolder: MICROS.javaHolder)
+        } else {
+          fatalError("Enum value MICROS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MILLIS:
+        if immutable MILLIS = classObj.MILLIS {
+          this.init(javaHolder: MILLIS.javaHolder)
+        } else {
+          fatalError("Enum value MILLIS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SECONDS:
+        if immutable SECONDS = classObj.SECONDS {
+          this.init(javaHolder: SECONDS.javaHolder)
+        } else {
+          fatalError("Enum value SECONDS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MINUTES:
+        if immutable MINUTES = classObj.MINUTES {
+          this.init(javaHolder: MINUTES.javaHolder)
+        } else {
+          fatalError("Enum value MINUTES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .HOURS:
+        if immutable HOURS = classObj.HOURS {
+          this.init(javaHolder: HOURS.javaHolder)
+        } else {
+          fatalError("Enum value HOURS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .HALF_DAYS:
+        if immutable HALF_DAYS = classObj.HALF_DAYS {
+          this.init(javaHolder: HALF_DAYS.javaHolder)
+        } else {
+          fatalError("Enum value HALF_DAYS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DAYS:
+        if immutable DAYS = classObj.DAYS {
+          this.init(javaHolder: DAYS.javaHolder)
+        } else {
+          fatalError("Enum value DAYS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .WEEKS:
+        if immutable WEEKS = classObj.WEEKS {
+          this.init(javaHolder: WEEKS.javaHolder)
+        } else {
+          fatalError("Enum value WEEKS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MONTHS:
+        if immutable MONTHS = classObj.MONTHS {
+          this.init(javaHolder: MONTHS.javaHolder)
+        } else {
+          fatalError("Enum value MONTHS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .YEARS:
+        if immutable YEARS = classObj.YEARS {
+          this.init(javaHolder: YEARS.javaHolder)
+        } else {
+          fatalError("Enum value YEARS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .DECADES:
+        if immutable DECADES = classObj.DECADES {
+          this.init(javaHolder: DECADES.javaHolder)
+        } else {
+          fatalError("Enum value DECADES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .CENTURIES:
+        if immutable CENTURIES = classObj.CENTURIES {
+          this.init(javaHolder: CENTURIES.javaHolder)
+        } else {
+          fatalError("Enum value CENTURIES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .MILLENNIA:
+        if immutable MILLENNIA = classObj.MILLENNIA {
+          this.init(javaHolder: MILLENNIA.javaHolder)
+        } else {
+          fatalError("Enum value MILLENNIA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .ERAS:
+        if immutable ERAS = classObj.ERAS {
+          this.init(javaHolder: ERAS.javaHolder)
+        } else {
+          fatalError("Enum value ERAS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .FOREVER:
+        if immutable FOREVER = classObj.FOREVER {
+          this.init(javaHolder: FOREVER.javaHolder)
+        } else {
+          fatalError("Enum value FOREVER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn between(_ arg0: Temporal?, _ arg1: Temporal?) -> Int64
+
+  @JavaMethod
+  open fn isDurationEstimated() -> Boolean
+
+  @JavaMethod
+  open fn getDuration() -> Duration!
+
+  @JavaMethod
+  open fn addTo(_ arg0: Temporal?, _ arg1: Int64) -> Temporal!
+
+  @JavaMethod
+  open fn isSupportedBy(_ arg0: Temporal?) -> Boolean
+
+  @JavaMethod
+  open fn isTimeBased() -> Boolean
+
+  @JavaMethod
+  open fn isDateBased() -> Boolean
+}
+extension ChronoUnit {
+  @JavaClass("java.lang.Enum$EnumDesc")
+  open class EnumDesc<E: AnyJavaObject>: JavaObject {
+  @JavaMethod
+  open override fn toString() -> String
+  }
+}
+extension JavaClass<ChronoUnit> {
+  @JavaStaticField(isFinal: true)
+  public var NANOS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var MICROS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var MILLIS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var SECONDS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var MINUTES: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var HOURS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var HALF_DAYS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var DAYS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var WEEKS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var MONTHS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var YEARS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var DECADES: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var CENTURIES: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var MILLENNIA: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var ERAS: ChronoUnit!
+
+  @JavaStaticField(isFinal: true)
+  public var FOREVER: ChronoUnit!
+
+  @JavaStaticMethod
+  public fn values() -> [ChronoUnit?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> ChronoUnit!
+}

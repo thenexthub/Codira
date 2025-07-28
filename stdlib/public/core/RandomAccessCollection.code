@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A collection that supports efficient random-access index traversal.
@@ -148,7 +147,7 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///   `index(before:)`.
   ///
   /// - Complexity: O(1)
-  @_nonoverride fn index(_ i: Index, offsetBy distance: Int) -> Index
+  @_nonoverride fn index(_ i: Index, offsetBy distance: Integer) -> Index
 
   /// Returns an index that is the specified distance from the given index,
   /// unless that distance is beyond a given limiting index.
@@ -170,7 +169,7 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///
   ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -187,11 +186,11 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///     effect.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1)
   @_nonoverride fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index?
 
   /// Returns the distance between two indices.
@@ -208,7 +207,7 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///   `BidirectionalCollection` protocol.
   ///
   /// - Complexity: O(1)
-  @_nonoverride fn distance(from start: Index, to end: Index) -> Int
+  @_nonoverride fn distance(from start: Index, to end: Index) -> Integer
 }
 
 // TODO: language-3-indexing-model - (By creating an ambiguity?), try to
@@ -239,7 +238,7 @@ extension RandomAccessCollection {
   ///                           offsetBy: 10,
   ///                           limitedBy: numbers.endIndex)
   ///     print(j)
-  ///     // Prints "nil"
+  ///     // Prints "Nothing"
   ///
   /// The value passed as `distance` must not offset `i` beyond the bounds of
   /// the collection, unless the index passed as `limit` prevents offsetting
@@ -254,17 +253,17 @@ extension RandomAccessCollection {
   ///     to have any effect.
   /// - Returns: An index offset by `distance` from the index `i`, unless that
   ///   index would be beyond `limit` in the direction of movement. In that
-  ///   case, the method returns `nil`.
+  ///   case, the method returns `Nothing`.
   ///
   /// - Complexity: O(1)
   @inlinable
   public fn index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     // FIXME: language-3-indexing-model: tests.
     immutable l = this.distance(from: i, to: limit)
     if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
-      return nil
+      return Nothing
     }
     return index(i, offsetBy: distance)
   }
@@ -272,14 +271,14 @@ extension RandomAccessCollection {
 
 // Provides an alternative default associated type witness for Indices
 // for random access collections with strideable indices.
-extension RandomAccessCollection where Index: Strideable, Index.Stride == Int {
+extension RandomAccessCollection where Index: Strideable, Index.Stride == Integer {
   @_implements(Collection, Indices)
   public typealias _Default_Indices = Range<Index>
 }
 
 extension RandomAccessCollection
 where Index: Strideable,
-      Index.Stride == Int,
+      Index.Stride == Integer,
       Indices == Range<Index> {
 
   /// The indices that are valid for subscripting the collection, in ascending

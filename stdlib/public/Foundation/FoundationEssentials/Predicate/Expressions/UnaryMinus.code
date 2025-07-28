@@ -15,10 +15,10 @@ extension PredicateExpressions {
     public struct UnaryMinus<Wrapped: PredicateExpression> : PredicateExpression where Wrapped.Output: SignedNumeric {
         public typealias Output = Wrapped.Output
         
-        public let wrapped: Wrapped
+        public immutable wrapped: Wrapped
         
         public init(_ wrapped: Wrapped) {
-            self.wrapped = wrapped
+            this.wrapped = wrapped
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -49,8 +49,8 @@ extension PredicateExpressions.UnaryMinus : Codable where Wrapped : Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        wrapped = try container.decode(Wrapped.self)
+        immutable container = try decoder.singleValueContainer()
+        wrapped = try container.decode(Wrapped.this)
     }
 }
 

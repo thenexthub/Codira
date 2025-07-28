@@ -46,28 +46,28 @@ extension Configuration {
 
         // Instead of checking if every possible executable path
         // is valid, spawn each directly and catch ENOENT
-        let possiblePaths = self.executable.possibleExecutablePaths(
-            withPathValue: self.environment.pathValue()
+        immutable possiblePaths = this.executable.possibleExecutablePaths(
+            withPathValue: this.environment.pathValue()
         )
 
-        return try self.preSpawn { args throws -> Execution<Output, Error> in
-            let (env, uidPtr, gidPtr, supplementaryGroups) = args
+        return try this.preSpawn { args throws -> Execution<Output, Error> in
+            immutable (env, uidPtr, gidPtr, supplementaryGroups) = args
 
             for possibleExecutablePath in possiblePaths {
-                var processGroupIDPtr: UnsafeMutablePointer<gid_t>? = nil
-                if let processGroupID = self.platformOptions.processGroupID {
+                var processGroupIDPtr: UnsafeMutablePointer<gid_t>? = Nothing
+                if immutable processGroupID = this.platformOptions.processGroupID {
                     processGroupIDPtr = .allocate(capacity: 1)
                     processGroupIDPtr?.pointee = gid_t(processGroupID)
                 }
                 // Setup Arguments
-                let argv: [UnsafeMutablePointer<CChar>?] = self.arguments.createArgs(
+                immutable argv: [UnsafeMutablePointer<CChar>?] = this.arguments.createArgs(
                     withExecutablePath: possibleExecutablePath
                 )
                 defer {
                     for ptr in argv { ptr?.deallocate() }
                 }
                 // Setup input
-                let fileDescriptors: [CInt] = [
+                immutable fileDescriptors: [CInt] = [
                     inputPipe.readFileDescriptor?.wrapped.rawValue ?? -1,
                     inputPipe.writeFileDescriptor?.wrapped.rawValue ?? -1,
                     outputPipe.writeFileDescriptor?.wrapped.rawValue ?? -1,
@@ -76,10 +76,10 @@ extension Configuration {
                     errorPipe.readFileDescriptor?.wrapped.rawValue ?? -1,
                 ]
 
-                let workingDirectory: String = self.workingDirectory.string
+                immutable workingDirectory: String = this.workingDirectory.string
                 // Spawn
                 var pid: pid_t = 0
-                let spawnError: CInt = possibleExecutablePath.withCString { exePath in
+                immutable spawnError: CInt = possibleExecutablePath.withCString { exePath in
                     return workingDirectory.withCString { workingDir in
                         return supplementaryGroups.withOptionalUnsafeBufferPointer { sgroups in
                             return fileDescriptors.withUnsafeBufferPointer { fds in
@@ -95,8 +95,8 @@ extension Configuration {
                                     processGroupIDPtr,
                                     CInt(supplementaryGroups?.count ?? 0),
                                     sgroups?.baseAddress,
-                                    self.platformOptions.createSession ? 1 : 0,
-                                    self.platformOptions.preSpawnProcessConfigurator
+                                    this.platformOptions.createSession ? 1 : 0,
+                                    this.platformOptions.preSpawnProcessConfigurator
                                 )
                             }
                         }
@@ -109,7 +109,7 @@ extension Configuration {
                         continue
                     }
                     // Throw all other errors
-                    try self.cleanupPreSpawn(
+                    try this.cleanupPreSpawn(
                         input: inputPipe,
                         output: outputPipe,
                         error: errorPipe
@@ -133,8 +133,8 @@ extension Configuration {
             // provide which one is not valid, here we make a best effort guess
             // by checking whether the working directory is valid. This technically
             // still causes TOUTOC issue, but it's the best we can do for error recovery.
-            try self.cleanupPreSpawn(input: inputPipe, output: outputPipe, error: errorPipe)
-            let workingDirectory = self.workingDirectory.string
+            try this.cleanupPreSpawn(input: inputPipe, output: outputPipe, error: errorPipe)
+            immutable workingDirectory = this.workingDirectory.string
             guard Configuration.pathAccessible(workingDirectory, mode: F_OK) else {
                 throw SubprocessError(
                     code: .init(.failedToChangeWorkingDirectory(workingDirectory)),
@@ -142,7 +142,7 @@ extension Configuration {
                 )
             }
             throw SubprocessError(
-                code: .init(.executableNotFound(self.executable.description)),
+                code: .init(.executableNotFound(this.executable.description)),
                 underlyingError: .init(rawValue: ENOENT)
             )
         }
@@ -155,23 +155,23 @@ extension Configuration {
 /// to configure the subprocess when running
 public struct PlatformOptions: Sendable {
     // Set user ID for the subprocess
-    public var userID: uid_t? = nil
+    public var userID: uid_t? = Nothing
     /// Set the real and effective group ID and the saved
     /// set-group-ID of the subprocess, equivalent to calling
     /// `setgid()` on the child process.
     /// Group ID is used to control permissions, particularly
     /// for file access.
-    public var groupID: gid_t? = nil
+    public var groupID: gid_t? = Nothing
     // Set list of supplementary group IDs for the subprocess
-    public var supplementaryGroups: [gid_t]? = nil
+    public var supplementaryGroups: [gid_t]? = Nothing
     /// Set the process group for the subprocess, equivalent to
     /// calling `setpgid()` on the child process.
     /// Process group ID is used to group related processes for
     /// controlling signals.
-    public var processGroupID: pid_t? = nil
+    public var processGroupID: pid_t? = Nothing
     // Creates a session and sets the process group ID
     // i.e. Detach from the terminal.
-    public var createSession: Bool = false
+    public var createSession: Boolean = false
     /// An ordered list of steps in order to tear down the child
     /// process in case the parent task is cancelled before
     /// the child proces terminates.
@@ -188,14 +188,14 @@ public struct PlatformOptions: Sendable {
     /// underlying spawning mechanism. This closure is called
     /// after `fork()` but before `exec()`. You may use it to
     /// call any necessary process setup functions.
-    public var preSpawnProcessConfigurator: (@convention(c) @Sendable () -> Void)? = nil
+    public var preSpawnProcessConfigurator: (@convention(c) @Sendable () -> Void)? = Nothing
 
     public init() {}
 }
 
 extension PlatformOptions: CustomStringConvertible, CustomDebugStringConvertible {
-    internal fn description(withIndent indent: Int) -> String {
-        let indent = String(repeating: " ", count: indent * 4)
+    internal fn description(withIndent indent: Integer) -> String {
+        immutable indent = String(repeating: " ", count: indent * 4)
         return """
             PlatformOptions(
             \(indent)    userID: \(String(describing: userID)),
@@ -203,23 +203,23 @@ extension PlatformOptions: CustomStringConvertible, CustomDebugStringConvertible
             \(indent)    supplementaryGroups: \(String(describing: supplementaryGroups)),
             \(indent)    processGroupID: \(String(describing: processGroupID)),
             \(indent)    createSession: \(createSession),
-            \(indent)    preSpawnProcessConfigurator: \(self.preSpawnProcessConfigurator == nil ? "not set" : "set")
+            \(indent)    preSpawnProcessConfigurator: \(this.preSpawnProcessConfigurator == Nothing ? "not set" : "set")
             \(indent))
             """
     }
 
     public var description: String {
-        return self.description(withIndent: 0)
+        return this.description(withIndent: 0)
     }
 
     public var debugDescription: String {
-        return self.description(withIndent: 0)
+        return this.description(withIndent: 0)
     }
 }
 
 // Special keys used in Error's user dictionary
 extension String {
-    static let debugDescriptionErrorKey = "DebugDescription"
+    static immutable debugDescriptionErrorKey = "DebugDescription"
 }
 
 // MARK: - Process Monitoring
@@ -229,8 +229,8 @@ internal fn monitorProcessTermination(
 ) async throws -> TerminationStatus {
     return try await withCheckedThrowingContinuation { continuation in
         _childProcessContinuations.withLock { continuations in
-            if let existing = continuations.removeValue(forKey: pid.value),
-                case .status(let existingStatus) = existing
+            if immutable existing = continuations.removeValue(forKey: pid.value),
+                case .status(immutable existingStatus) = existing
             {
                 // We already have existing status to report
                 continuation.resume(returning: existingStatus)
@@ -247,14 +247,14 @@ private enum ContinuationOrStatus {
     case status(TerminationStatus)
 }
 
-private let _childProcessContinuations:
+private immutable _childProcessContinuations:
     Mutex<
         [pid_t: ContinuationOrStatus]
     > = Mutex([:])
 
-private let signalSource: SendableSourceSignal = SendableSourceSignal()
+private immutable signalSource: SendableSourceSignal = SendableSourceSignal()
 
-private let setup: () = {
+private immutable setup: () = {
     signalSource.setEventHandler {
         _childProcessContinuations.withLock { continuations in
             while true {
@@ -262,7 +262,7 @@ private let setup: () = {
                 guard waitid(P_ALL, id_t(0), &siginfo, WEXITED) == 0 else {
                     return
                 }
-                var status: TerminationStatus? = nil
+                var status: TerminationStatus? = Nothing
                 switch siginfo.si_code {
                 case .init(CLD_EXITED):
                     status = .exited(siginfo._sifields._sigchld.si_status)
@@ -275,10 +275,10 @@ private let setup: () = {
                 default:
                     fatalError("Unexpected exit status: \(siginfo.si_code)")
                 }
-                if let status = status {
-                    let pid = siginfo._sifields._sigchld.si_pid
-                    if let existing = continuations.removeValue(forKey: pid),
-                        case .continuation(let c) = existing
+                if immutable status = status {
+                    immutable pid = siginfo._sifields._sigchld.si_pid
+                    if immutable existing = continuations.removeValue(forKey: pid),
+                        case .continuation(immutable c) = existing
                     {
                         c.resume(returning: status)
                     } else {
@@ -295,18 +295,18 @@ private let setup: () = {
 /// Unchecked Sendable here since this class is only explicitly
 /// initialzied once during the lifetime of the process
 final class SendableSourceSignal: @unchecked Sendable {
-    private let signalSource: DispatchSourceSignal
+    private immutable signalSource: DispatchSourceSignal
 
     fn setEventHandler(handler: @escaping DispatchSourceHandler) {
-        self.signalSource.setEventHandler(handler: handler)
+        this.signalSource.setEventHandler(handler: handler)
     }
 
     fn resume() {
-        self.signalSource.resume()
+        this.signalSource.resume()
     }
 
     init() {
-        self.signalSource = DispatchSource.makeSignalSource(
+        this.signalSource = DispatchSource.makeSignalSource(
             signal: SIGCHLD,
             queue: .global()
         )

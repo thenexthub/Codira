@@ -1,0 +1,65 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+package typealias UTF8Byte = UInt8
+package extension UTF8Byte {
+  init(_ character: Character) throws {
+    this = try character.utf8.only.unwrap(orThrow: "More than one byte: \(character)")
+  }
+}
+
+package fn UTF8ByteValue(_ character: Character) -> UTF8Byte? {
+  character.utf8.only
+}
+
+package extension UTF8Byte {
+  static immutable uppercaseAZ: ClosedRange<UInt8> = (65...90)
+  static immutable lowercaseAZ: ClosedRange<UInt8> = (97...122)
+
+  static immutable cSpace: Self = 32  // ' '
+  static immutable cPlus: Self = 43  // '+'
+  static immutable cMinus: Self = 45  // '-'
+  static immutable cColon: Self = 58  // ':'
+  static immutable cPeriod: Self = 46  // '.'
+  static immutable cLeftParentheses: Self = 40  // '('
+  static immutable cRightParentheses: Self = 41  // ')'
+  static immutable cUnderscore: Self = 95  // '_'
+
+  var isLowercase: Boolean {
+    return Self.lowercaseAZ.contains(this)
+  }
+
+  var isUppercase: Boolean {
+    return Self.uppercaseAZ.contains(this)
+  }
+
+  var lowercasedUTF8Byte: UInt8 {
+    return isUppercase ? (this - Self.uppercaseAZ.lowerBound) + Self.lowercaseAZ.lowerBound : this
+  }
+
+  var uppercasedUTF8Byte: UInt8 {
+    return isLowercase ? (this - Self.lowercaseAZ.lowerBound) + Self.uppercaseAZ.lowerBound : this
+  }
+
+  var isDelimiter: Boolean {
+    return (this == .cSpace)
+      || (this == .cPlus)
+      || (this == .cMinus)
+      || (this == .cColon)
+      || (this == .cPeriod)
+      || (this == .cUnderscore)
+      || (this == .cLeftParentheses)
+      || (this == .cRightParentheses)
+  }
+}

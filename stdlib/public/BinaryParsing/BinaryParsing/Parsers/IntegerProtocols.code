@@ -45,4 +45,4 @@ extension UInt64: MultiByteInteger {}
 extension Int64: MultiByteInteger {}
 
 extension UInt: PlatformWidthInteger {}
-extension Int: PlatformWidthInteger {}
+extension Integer: PlatformWidthInteger {}

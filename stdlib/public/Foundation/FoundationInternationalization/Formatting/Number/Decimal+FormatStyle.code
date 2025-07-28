@@ -19,64 +19,64 @@ extension Decimal {
     public struct FormatStyle: Sendable {
         public var locale: Locale
         public init(locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
+            this.locale = locale
         }
 
         public var attributed: Attributed {
-            return Attributed(style: self)
+            return Attributed(style: this)
         }
 
         public typealias Configuration = NumberFormatStyleConfiguration
         internal var collection: Configuration.Collection = Configuration.Collection()
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Int? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Integer? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .integer(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
 
         // FormatStyle
         public fn format(_ value: Decimal) -> String {
-            if let f = ICUNumberFormatter.create(for: self), let res = f.format(value) {
+            if immutable f = ICUNumberFormatter.create(for: this), immutable res = f.format(value) {
                 return res
             }
 
@@ -84,7 +84,7 @@ extension Decimal {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -104,61 +104,61 @@ extension Decimal.FormatStyle {
         var collection: Configuration.Collection = Configuration.Collection(scale: 100)
 
         public init(locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
+            this.locale = locale
         }
 
         public var attributed: Attributed {
-            return Attributed(style: self)
+            return Attributed(style: this)
         }
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Int? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Integer? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .integer(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
 
         // FormatStyle
         public fn format(_ value: Decimal) -> String {
-            if let f = ICUPercentNumberFormatter.create(for: self), let res = f.format(value) {
+            if immutable f = ICUPercentNumberFormatter.create(for: this), immutable res = f.format(value) {
                 return res
             }
 
@@ -166,7 +166,7 @@ extension Decimal.FormatStyle {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -181,56 +181,56 @@ extension Decimal.FormatStyle {
 
         internal var collection: Configuration.Collection
         public init(code: String, locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
-            self.currencyCode = code
-            self.collection = Configuration.Collection(presentation: .standard)
+            this.locale = locale
+            this.currencyCode = code
+            this.collection = Configuration.Collection(presentation: .standard)
         }
 
         public var attributed: Attributed {
-            return Attributed(style: self)
+            return Attributed(style: this)
         }
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Int? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Integer? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .integer(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn presentation(_ p: Configuration.Presentation) -> Self {
-            var new = self
+            var new = this
             new.collection.presentation = p
             return new
         }
@@ -241,14 +241,14 @@ extension Decimal.FormatStyle {
         /// - Returns: A decimal currency format style modified to use the specified notation.
         @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
 
         // FormatStyle
         public fn format(_ value: Decimal) -> String {
-            if let f = ICUCurrencyNumberFormatter.create(for: self), let res = f.format(value) {
+            if immutable f = ICUCurrencyNumberFormatter.create(for: this), immutable res = f.format(value) {
                 return res
             }
 
@@ -256,7 +256,7 @@ extension Decimal.FormatStyle {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             new.locale = locale
             return new
         }
@@ -272,31 +272,31 @@ extension Decimal.FormatStyle {
         var style: Style
 
         init(style: Decimal.FormatStyle) {
-            self.style = .decimal(style)
+            this.style = .decimal(style)
         }
 
         init(style: Decimal.FormatStyle.Currency) {
-            self.style = .currency(style)
+            this.style = .currency(style)
         }
 
         init(style: Decimal.FormatStyle.Percent) {
-            self.style = .percent(style)
+            this.style = .percent(style)
         }
 
         /// Returns an attributed string with `NumberFormatAttributes.SymbolAttribute` and `NumberFormatAttributes.NumberPartAttribute`.
         public fn format(_ value: Decimal) -> AttributedString {
             switch style {
-            case .decimal(let formatStyle):
-                if let formatter = ICUNumberFormatter.create(for: formatStyle) {
+            case .decimal(immutable formatStyle):
+                if immutable formatter = ICUNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(.decimal(value))
                 }
-            case .currency(let formatStyle):
-                if let formatter = ICUCurrencyNumberFormatter.create(for: formatStyle) {
+            case .currency(immutable formatStyle):
+                if immutable formatter = ICUCurrencyNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(.decimal(value))
 
                 }
-            case .percent(let formatStyle):
-                if let formatter = ICUPercentNumberFormatter.create(for: formatStyle) {
+            case .percent(immutable formatStyle):
+                if immutable formatter = ICUPercentNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(.decimal(value))
 
                 }
@@ -307,7 +307,7 @@ extension Decimal.FormatStyle {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             switch style {
             case .decimal(var s):
                 s.locale = locale
@@ -335,17 +335,17 @@ extension Decimal.FormatStyle.Attributed : FormatStyle {}
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Decimal.FormatStyle: ParseableFormatStyle {
-    public var parseStrategy: Decimal.ParseStrategy<Self> { .init(formatStyle: self, lenient: true) }
+    public var parseStrategy: Decimal.ParseStrategy<Self> { .init(formatStyle: this, lenient: true) }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Decimal.FormatStyle.Currency: ParseableFormatStyle {
-    public var parseStrategy: Decimal.ParseStrategy<Self> { .init(formatStyle: self, lenient: true) }
+    public var parseStrategy: Decimal.ParseStrategy<Self> { .init(formatStyle: this, lenient: true) }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Decimal.FormatStyle.Percent: ParseableFormatStyle {
-    public var parseStrategy: Decimal.ParseStrategy<Self> { .init(formatStyle: self, lenient: true) }
+    public var parseStrategy: Decimal.ParseStrategy<Self> { .init(formatStyle: this, lenient: true) }
 }
 
 // MARK: - FormatStyle protocol membership
@@ -383,20 +383,20 @@ public extension ParseableFormatStyle where Self == Decimal.FormatStyle.Currency
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Decimal {
-    /// Format `self` using `Decimal.FormatStyle`
+    /// Format `this` using `Decimal.FormatStyle`
     public fn formatted() -> String {
-        FormatStyle().format(self)
+        FormatStyle().format(this)
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Format `self` with the given format.
+    /// Format `this` with the given format.
     public fn formatted<S: Foundation.FormatStyle>(_ format: S) -> S.FormatOutput where Self == S.FormatInput {
-        format.format(self)
+        format.format(this)
     }
 #else
-    /// Format `self` with the given format.
+    /// Format `this` with the given format.
     public fn formatted<S: FoundationEssentials.FormatStyle>(_ format: S) -> S.FormatOutput where Self == S.FormatInput {
-        format.format(self)
+        format.format(this)
     }
 #endif
 }
@@ -407,7 +407,7 @@ extension Decimal {
 extension Decimal.FormatStyle : CustomConsumingRegexComponent {
     public typealias RegexOutput = Decimal
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Decimal)? {
-        Decimal.ParseStrategy(formatStyle: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        Decimal.ParseStrategy(formatStyle: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
@@ -415,7 +415,7 @@ extension Decimal.FormatStyle : CustomConsumingRegexComponent {
 extension Decimal.FormatStyle.Percent : CustomConsumingRegexComponent {
     public typealias RegexOutput = Decimal
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Decimal)? {
-        Decimal.ParseStrategy(formatStyle: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        Decimal.ParseStrategy(formatStyle: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
@@ -423,7 +423,7 @@ extension Decimal.FormatStyle.Percent : CustomConsumingRegexComponent {
 extension Decimal.FormatStyle.Currency : CustomConsumingRegexComponent {
     public typealias RegexOutput = Decimal
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Decimal)? {
-        Decimal.ParseStrategy(formatStyle: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        Decimal.ParseStrategy(formatStyle: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 

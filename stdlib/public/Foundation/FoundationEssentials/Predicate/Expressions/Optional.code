@@ -23,20 +23,20 @@ extension PredicateExpressions {
     {
         public typealias Output = Optional<Result>
 
-        public let wrapped: LHS
-        public let transform: RHS
-        public let variable: Variable<Wrapped>
+        public immutable wrapped: LHS
+        public immutable transform: RHS
+        public immutable variable: Variable<Wrapped>
 
         public init(_ wrapped: LHS, _ builder: (Variable<Wrapped>) -> RHS) where RHS.Output == Result {
-            self.wrapped = wrapped
-            self.variable = Variable()
-            self.transform = builder(variable)
+            this.wrapped = wrapped
+            this.variable = Variable()
+            this.transform = builder(variable)
         }
         
         public init(_ wrapped: LHS, _ builder: (Variable<Wrapped>) -> RHS) where RHS.Output == Optional<Result> {
-            self.wrapped = wrapped
-            self.variable = Variable()
-            self.transform = builder(variable)
+            this.wrapped = wrapped
+            this.variable = Variable()
+            this.transform = builder(variable)
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -65,12 +65,12 @@ extension PredicateExpressions {
     {
         public typealias Output = RHS.Output
         
-        public let lhs: LHS
-        public let rhs: RHS
+        public immutable lhs: LHS
+        public immutable rhs: RHS
         
         public init(lhs: LHS, rhs: RHS) {
-            self.lhs = lhs
-            self.rhs = rhs
+            this.lhs = lhs
+            this.rhs = rhs
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -91,18 +91,18 @@ extension PredicateExpressions {
     {
         public typealias Output = Wrapped
         
-        public let inner: Inner
+        public immutable inner: Inner
         
         public init(_ inner: Inner) {
-            self.inner = inner
+            this.inner = inner
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Wrapped {
-            let input = try inner.evaluate(bindings)
-            if let result = input {
+            immutable input = try inner.evaluate(bindings)
+            if immutable result = input {
                 return result
             }
-            throw PredicateError(.forceUnwrapFailure("Found nil when unwrapping value of type '\(type(of: input))'"))
+            throw PredicateError(.forceUnwrapFailure("Found Nothing when unwrapping value of type '\(type(of: input))'"))
         }
     }
     
@@ -152,9 +152,9 @@ extension PredicateExpressions.OptionalFlatMap : Codable where LHS : Codable, RH
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        wrapped = try container.decode(LHS.self)
-        transform = try container.decode(RHS.self)
-        variable = try container.decode(PredicateExpressions.Variable<Wrapped>.self)
+        wrapped = try container.decode(LHS.this)
+        transform = try container.decode(RHS.this)
+        variable = try container.decode(PredicateExpressions.Variable<Wrapped>.this)
     }
 }
 
@@ -168,8 +168,8 @@ extension PredicateExpressions.NilCoalesce : Codable where LHS : Codable, RHS : 
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        lhs = try container.decode(LHS.self)
-        rhs = try container.decode(RHS.self)
+        lhs = try container.decode(LHS.this)
+        rhs = try container.decode(RHS.this)
     }
 }
 
@@ -181,8 +181,8 @@ extension PredicateExpressions.ForcedUnwrap : Codable where Inner : Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        inner = try container.decode(Inner.self)
+        immutable container = try decoder.singleValueContainer()
+        inner = try container.decode(Inner.this)
     }
 }
 
@@ -203,7 +203,7 @@ extension PredicateExpressions {
         public init() {}
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            nil
+            Nothing
         }
         
         public fn encode(to encoder: Encoder) throws {

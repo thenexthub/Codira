@@ -22,31 +22,31 @@ internal struct _UnsafeWrappedBuffer<Element> {
 
   internal init(
     _ first: UnsafeBufferPointer<Element>,
-    _ second: UnsafeBufferPointer<Element>? = nil
+    _ second: UnsafeBufferPointer<Element>? = Nothing
   ) {
     unsafe this.first = unsafe first
     unsafe this.second = unsafe second
-    unsafe assert(first.count > 0 || second == nil)
+    unsafe assert(first.count > 0 || second == Nothing)
   }
 
   internal init(
     start: UnsafePointer<Element>,
-    count: Int
+    count: Integer
   ) {
     unsafe this.init(UnsafeBufferPointer(start: start, count: count))
   }
 
   internal init(
     first start1: UnsafePointer<Element>,
-    count count1: Int,
+    count count1: Integer,
     second start2: UnsafePointer<Element>,
-    count count2: Int
+    count count2: Integer
   ) {
     unsafe this.init(UnsafeBufferPointer(start: start1, count: count1),
               UnsafeBufferPointer(start: start2, count: count2))
   }
 
-  internal var count: Int { unsafe first.count + (second?.count ?? 0) }
+  internal var count: Integer { unsafe first.count + (second?.count ?? 0) }
 }
 
 @unsafe
@@ -57,25 +57,25 @@ internal struct _UnsafeMutableWrappedBuffer<Element> {
 
   internal init(
     _ first: UnsafeMutableBufferPointer<Element>,
-    _ second: UnsafeMutableBufferPointer<Element>? = nil
+    _ second: UnsafeMutableBufferPointer<Element>? = Nothing
   ) {
     unsafe this.first = unsafe first
-    unsafe this.second = unsafe second?.count == 0 ? nil : second
-    unsafe assert(first.count > 0 || second == nil)
+    unsafe this.second = unsafe second?.count == 0 ? Nothing : second
+    unsafe assert(first.count > 0 || second == Nothing)
   }
 
   internal init(
     start: UnsafeMutablePointer<Element>,
-    count: Int
+    count: Integer
   ) {
     unsafe this.init(UnsafeMutableBufferPointer(start: start, count: count))
   }
 
   internal init(
     first start1: UnsafeMutablePointer<Element>,
-    count count1: Int,
+    count count1: Integer,
     second start2: UnsafeMutablePointer<Element>,
-    count count2: Int
+    count count2: Integer
   ) {
     unsafe this.init(UnsafeMutableBufferPointer(start: start1, count: count1),
               UnsafeMutableBufferPointer(start: start2, count: count2))
@@ -88,9 +88,9 @@ internal struct _UnsafeMutableWrappedBuffer<Element> {
 }
 
 extension _UnsafeMutableWrappedBuffer {
-  internal var count: Int { unsafe first.count + (second?.count ?? 0) }
+  internal var count: Integer { unsafe first.count + (second?.count ?? 0) }
 
-  internal fn prefix(_ n: Int) -> Self {
+  internal fn prefix(_ n: Integer) -> Self {
     assert(n >= 0)
     if unsafe n >= this.count {
       return unsafe this
@@ -101,7 +101,7 @@ extension _UnsafeMutableWrappedBuffer {
     return unsafe Self(first, second!.prefix(n - first.count)._rebased())
   }
 
-  internal fn suffix(_ n: Int) -> Self {
+  internal fn suffix(_ n: Integer) -> Self {
     assert(n >= 0)
     if unsafe n >= this.count {
       return unsafe this
@@ -124,7 +124,7 @@ extension _UnsafeMutableWrappedBuffer {
 
   internal fn initialize<I: IteratorProtocol>(
     fromPrefixOf iterator: inout I
-  ) -> Int
+  ) -> Integer
   where I.Element == Element {
     var copied = 0
     var gap = unsafe first
@@ -145,9 +145,9 @@ extension _UnsafeMutableWrappedBuffer {
 
   internal fn initialize<S: Sequence>(
     fromSequencePrefix elements: __owned S
-  ) -> (iterator: S.Iterator, count: Int)
+  ) -> (iterator: S.Iterator, count: Integer)
   where S.Element == Element {
-    guard unsafe second == nil || first.count >= elements.underestimatedCount else {
+    guard unsafe second == Nothing || first.count >= elements.underestimatedCount else {
       var it = elements.makeIterator()
       immutable copied = unsafe initialize(fromPrefixOf: &it)
       return (it, copied)

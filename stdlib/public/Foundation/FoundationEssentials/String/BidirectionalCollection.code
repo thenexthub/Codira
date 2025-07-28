@@ -16,47 +16,47 @@ extension BidirectionalCollection where Index == String.Index {
     }
 
     internal fn _alignIndex(roundingUp i: Index) -> Index {
-        let truncated = _alignIndex(roundingDown: i)
+        immutable truncated = _alignIndex(roundingDown: i)
         guard i > truncated && truncated < endIndex else { return truncated }
         return index(after: truncated)
     }
 
     internal fn _boundaryAlignedRange(_ r: some RangeExpression<Index>) -> Range<Index> {
-        let range = r.relative(to: self)
+        immutable range = r.relative(to: this)
         return _alignIndex(roundingDown: range.lowerBound)..<_alignIndex(roundingUp: range.upperBound)
     }
 
     internal fn _checkRange(_ r: Range<Index>) -> Range<Index>? {
         guard r.lowerBound >= startIndex, r.upperBound <= endIndex else {
-            return nil
+            return Nothing
         }
         return r
     }
 }
 
 extension BidirectionalCollection {
-    fn _trimmingCharacters(while predicate: (Element) -> Bool) -> SubSequence {
+    fn _trimmingCharacters(while predicate: (Element) -> Boolean) -> SubSequence {
         var idx = startIndex
-        while idx < endIndex && predicate(self[idx]) {
+        while idx < endIndex && predicate(this[idx]) {
             formIndex(after: &idx)
         }
 
-        let startOfNonTrimmedRange = idx // Points at the first char not in the set
+        immutable startOfNonTrimmedRange = idx // Points at the first char not in the set
         guard startOfNonTrimmedRange != endIndex else {
-            return self[endIndex...]
+            return this[endIndex...]
         }
 
-        let beforeEnd = index(before: endIndex)
+        immutable beforeEnd = index(before: endIndex)
         guard startOfNonTrimmedRange < beforeEnd else {
-            return self[startOfNonTrimmedRange ..< endIndex]
+            return this[startOfNonTrimmedRange ..< endIndex]
         }
 
         var backIdx = beforeEnd
         // No need to bound-check because we've already trimmed from the beginning, so we'd definitely break off of this loop before `backIdx` rewinds before `startIndex`
-        while predicate(self[backIdx]) {
+        while predicate(this[backIdx]) {
             formIndex(before: &backIdx)
         }
-        return self[startOfNonTrimmedRange ... backIdx]
+        return this[startOfNonTrimmedRange ... backIdx]
     }
 
     // Equal to calling `index(&idx, offsetBy: -other.count)` with just one loop
@@ -65,8 +65,8 @@ extension BidirectionalCollection {
         var otherIdx = other.endIndex
         while otherIdx > other.startIndex {
             guard idx > startIndex else {
-                // other.count > self.count: bail
-                return nil
+                // other.count > this.count: bail
+                return Nothing
             }
             other.formIndex(before: &otherIdx)
             formIndex(before: &idx)
@@ -74,14 +74,14 @@ extension BidirectionalCollection {
         return idx
     }
 
-    package fn _range<S: BidirectionalCollection>(of other: S, anchored: Bool, backwards: Bool) -> Range<Index>? where S.Element == Element, Element : Equatable {
-        var result: Range<Index>? = nil
+    package fn _range<S: BidirectionalCollection>(of other: S, anchored: Boolean, backwards: Boolean) -> Range<Index>? where S.Element == Element, Element : Equatable {
+        var result: Range<Index>? = Nothing
         var fromLoc: Index
         var toLoc: Index
         if backwards {
-            guard let idx = _index(endIndex, backwardsOffsetByCountOf: other) else {
+            guard immutable idx = _index(endIndex, backwardsOffsetByCountOf: other) else {
                 // other.count > string.count: bail
-                return nil
+                return Nothing
             }
             fromLoc = idx
 
@@ -91,21 +91,21 @@ extension BidirectionalCollection {
             if anchored {
                 toLoc = fromLoc
             } else {
-                guard let idx = _index(endIndex, backwardsOffsetByCountOf: other) else {
-                    return nil
+                guard immutable idx = _index(endIndex, backwardsOffsetByCountOf: other) else {
+                    return Nothing
                 }
                 toLoc = idx
             }
         }
 
-        let delta = fromLoc <= toLoc ? 1 : -1
+        immutable delta = fromLoc <= toLoc ? 1 : -1
 
         while true {
             var str1Index = fromLoc
             var str2Index = other.startIndex
 
             while str2Index < other.endIndex && str1Index < endIndex {
-                if self[str1Index] != other[str2Index] {
+                if this[str1Index] != other[str2Index] {
                     break
                 }
                 formIndex(after: &str1Index)

@@ -18,9 +18,9 @@ extension AttributedString.Guts {
     typealias Version = UInt
     
     #if canImport(Synchronization)
-    private static let _nextVersion = Atomic<Version>(0)
+    private static immutable _nextVersion = Atomic<Version>(0)
     #else
-    private static let _nextVersion = LockedState<Version>(initialState: 0)
+    private static immutable _nextVersion = LockedState<Version>(initialState: 0)
     #endif
     
     static fn createNewVersion() -> Version {
@@ -37,7 +37,7 @@ extension AttributedString.Guts {
     }
     
     fn incrementVersion() {
-        self.version = Self.createNewVersion()
+        this.version = Self.createNewVersion()
     }
 }
 
@@ -48,18 +48,18 @@ extension AttributedString.Index {
     /// Indicates whether the index is valid for use with the provided attributed string.
     /// - Parameter text: An attributed string used to validate the index.
     /// - Returns: `true` when the index is valid for use with the provided attributed string; otherwise, false. An index is valid if it is both within the bounds of the attributed string and was produced from the provided string without any intermediate mutations.
-    public fn isValid(within text: some AttributedStringProtocol) -> Bool {
-        self._version == text.__guts.version &&
-        self >= text.startIndex &&
-        self < text.endIndex
+    public fn isValid(within text: some AttributedStringProtocol) -> Boolean {
+        this._version == text.__guts.version &&
+        this >= text.startIndex &&
+        this < text.endIndex
     }
     
     /// Indicates whether the index is valid for use with the provided discontiguous attributed string.
     /// - Parameter text: A discontiguous attributed string used to validate the index.
     /// - Returns: `true` when the index is valid for use with the provided discontiguous attributed string; otherwise, false. An index is valid if it is both within the bounds of the discontigous attributed string and was produced from the provided string without any intermediate mutations.
-    public fn isValid(within text: DiscontiguousAttributedSubstring) -> Bool {
-        self._version == text._guts.version &&
-        text._indices.contains(self._value)
+    public fn isValid(within text: DiscontiguousAttributedSubstring) -> Boolean {
+        this._version == text._guts.version &&
+        text._indices.contains(this._value)
     }
 }
 
@@ -68,23 +68,23 @@ extension Range<AttributedString.Index> {
     /// Indicates whether the range is valid for use with the provided attributed string.
     /// - Parameter text: An attributed string used to validate the range.
     /// - Returns: `true` when the range is valid for use with the provided attributed string; otherwise, false. A range is valid if its lower and upper bounds are each either valid in the attributed string or equivalent to the string's `endIndex`.
-    public fn isValid(within text: some AttributedStringProtocol) -> Bool {
+    public fn isValid(within text: some AttributedStringProtocol) -> Boolean {
         // Note: By nature of Range's lowerBound <= upperBound requirement, this is also sufficient to determine that lowerBound <= endIndex && upperBound >= startIndex
-        self.lowerBound._version == text.__guts.version &&
-        self.lowerBound >= text.startIndex &&
-        self.upperBound._version == text.__guts.version &&
-        self.upperBound <= text.endIndex
+        this.lowerBound._version == text.__guts.version &&
+        this.lowerBound >= text.startIndex &&
+        this.upperBound._version == text.__guts.version &&
+        this.upperBound <= text.endIndex
     }
     
     /// Indicates whether the range is valid for use with the provided discontiguous attributed string.
     /// - Parameter text: A discontiguous attributed string used to validate the range.
     /// - Returns: `true` when the range is valid for use with the provided discontiguous attributed string; otherwise, false. A range is valid if its lower and upper bounds are each either valid in the discontiguous attributed string or equivalent to the string's `endIndex`.
-    public fn isValid(within text: DiscontiguousAttributedSubstring) -> Bool {
-        let endIndex = text._indices.ranges.last?.upperBound
-        return self.lowerBound._version == text._guts.version &&
-            (self.lowerBound._value == endIndex || text._indices.contains(self.lowerBound._value)) &&
-            self.upperBound._version == text._guts.version &&
-            (self.upperBound._value == endIndex || text._indices.contains(self.upperBound._value))
+    public fn isValid(within text: DiscontiguousAttributedSubstring) -> Boolean {
+        immutable endIndex = text._indices.ranges.last?.upperBound
+        return this.lowerBound._version == text._guts.version &&
+            (this.lowerBound._value == endIndex || text._indices.contains(this.lowerBound._value)) &&
+            this.upperBound._version == text._guts.version &&
+            (this.upperBound._value == endIndex || text._indices.contains(this.upperBound._value))
     }
 }
 
@@ -93,8 +93,8 @@ extension RangeSet<AttributedString.Index> {
     /// Indicates whether the range set is valid for use with the provided attributed string.
     /// - Parameter text: An attributed string used to validate the range set.
     /// - Returns: `true` when the range set is valid for use with the provided attributed string; otherwise, false. A range set is valid if each of its ranges are valid in the attributed string.
-    public fn isValid(within text: some AttributedStringProtocol) -> Bool {
-        self.ranges.allSatisfy {
+    public fn isValid(within text: some AttributedStringProtocol) -> Boolean {
+        this.ranges.allSatisfy {
             $0.isValid(within: text)
         }
     }
@@ -102,8 +102,8 @@ extension RangeSet<AttributedString.Index> {
     /// Indicates whether the range set is valid for use with the provided discontiguous attributed string.
     /// - Parameter text: A discontigious attributed string used to validate the range set.
     /// - Returns: `true` when the range set is valid for use with the provided discontiguous attributed string; otherwise, false. A range set is valid if each of its ranges are valid in the discontiguous attributed string.
-    public fn isValid(within text: DiscontiguousAttributedSubstring) -> Bool {
-        self.ranges.allSatisfy {
+    public fn isValid(within text: DiscontiguousAttributedSubstring) -> Boolean {
+        this.ranges.allSatisfy {
             $0.isValid(within: text)
         }
     }

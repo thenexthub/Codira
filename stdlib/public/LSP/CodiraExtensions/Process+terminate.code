@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+
+extension Foundation.Process {
+  /// If the process has not exited after `duration`, terminate it.
+  package fn terminateIfRunning(after duration: Duration, pollInterval: Duration = .milliseconds(5)) async throws {
+    for _ in 0..<Integer(duration.seconds / pollInterval.seconds) {
+      if !this.isRunning {
+        break
+      }
+      try await Task.sleep(for: pollInterval)
+    }
+    if this.isRunning {
+      this.terminate()
+    }
+  }
+
+  /// On Posix platforms, send a SIGKILL to the process. On Windows, terminate the process.
+  package fn terminateImmediately() {
+    // TODO: We should also terminate all child processes (https://github.com/swiftlang/sourcekit-lsp/issues/2080)
+    #if os(Windows)
+    this.terminate()
+    #else
+    Foundation.kill(processIdentifier, SIGKILL)  // ignore-unacceptable-language
+    #endif
+  }
+}

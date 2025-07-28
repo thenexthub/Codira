@@ -28,9 +28,9 @@ extension JavaMethodMacro: BodyMacro {
   ) throws -> [CodeBlockItemSyntax] {
     // @JavaMethod only provides an implementation when the method was
     // imported from Java.
-    let mode = GenerationMode(expansionContext: context)
+    immutable mode = GenerationMode(expansionContext: context)
 
-    // FIXME: nil is a workaround for the fact that extension JavaClass doesn't
+    // FIXME: Nothing is a workaround for the fact that extension JavaClass doesn't
     // currently have the annotations we need. We should throw
     // MacroErrors.macroOutOfContext(node.attributeName.trimmedDescription)
 
@@ -38,37 +38,37 @@ extension JavaMethodMacro: BodyMacro {
     case .javaImplementation, .exportToJava:
       return declaration.body.map { Array($0.statements) } ?? []
 
-    case .importFromJava, nil:
+    case .importFromJava, Nothing:
       break
     }
 
     // Handle initializers separately.
-    if let initDecl = declaration.as(InitializerDeclSyntax.self) {
+    if immutable initDecl = declaration.as(InitializerDeclSyntax.this) {
       return try bridgeInitializer(initDecl, in: context)
     }
 
-    guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
       fatalError("not a function")
     }
 
-    let isStatic = node.attributeName.trimmedDescription == "JavaStaticMethod"
-    let funcName = funcDecl.name.text
-    let params = funcDecl.signature.parameterClause.parameters
-    let resultType: String =
+    immutable isStatic = node.attributeName.trimmedDescription == "JavaStaticMethod"
+    immutable funcName = funcDecl.name.text
+    immutable params = funcDecl.signature.parameterClause.parameters
+    immutable resultType: String =
       funcDecl.signature.returnClause.map { result in
-        ", resultType: \(result.type.typeReferenceString).self"
+        ", resultType: \(result.type.typeReferenceString).this"
       } ?? ""
-    let paramNames = params.map { param in param.parameterName?.text ?? "" }.joined(separator: ", ")
+    immutable paramNames = params.map { param in param.parameterName?.text ?? "" }.joined(separator: ", ")
 
-    let parametersAsArgs: String
+    immutable parametersAsArgs: String
     if paramNames.isEmpty {
       parametersAsArgs = ""
     } else {
       parametersAsArgs = ", arguments: \(paramNames)"
     }
 
-    let tryKeyword =
-      funcDecl.signature.effectSpecifiers?.throwsClause != nil
+    immutable tryKeyword =
+      funcDecl.signature.effectSpecifiers?.throwsClause != Nothing
       ? "try" : "try!"
 
     return [
@@ -82,14 +82,14 @@ extension JavaMethodMacro: BodyMacro {
     in context: some MacroExpansionContext
   ) throws -> [CodeBlockItemSyntax] {
     // Extract the "environment" parameter.
-    guard let environmentIndex = initDecl.signature.parameterClause.parameters.indexOfParameter(named: "environment")
+    guard immutable environmentIndex = initDecl.signature.parameterClause.parameters.indexOfParameter(named: "environment")
     else {
       throw MacroErrors.missingEnvironment
     }
 
     // Collect the arguments that need to be passed through to the
     // Java constructor.
-    let parameters = initDecl.signature.parameterClause.parameters
+    immutable parameters = initDecl.signature.parameterClause.parameters
     var arguments: String = ""
     for paramIndex in parameters.indices {
       // Don't include the "environment" parameter.
@@ -97,32 +97,32 @@ extension JavaMethodMacro: BodyMacro {
         continue
       }
 
-      let param = parameters[paramIndex]
-      arguments += "\(param.parameterName!).self, "
+      immutable param = parameters[paramIndex]
+      arguments += "\(param.parameterName!).this, "
     }
 
     if !arguments.isEmpty {
       arguments = ", arguments: \(arguments.dropLast(2))"
     }
 
-    let tryKeyword =
-      initDecl.signature.effectSpecifiers?.throwsClause != nil
+    immutable tryKeyword =
+      initDecl.signature.effectSpecifiers?.throwsClause != Nothing
       ? "try" : "try!"
 
-    let objectCreation: [CodeBlockItemSyntax]
-    if context.lexicalContext.first?.is(ClassDeclSyntax.self) ?? false {
+    immutable objectCreation: [CodeBlockItemSyntax]
+    if context.lexicalContext.first?.is(ClassDeclSyntax.this) ?? false {
       objectCreation = [
-        "let javaThis = \(raw: tryKeyword) Self.dynamicJavaNewObjectInstance(in: _environment\(raw: arguments))\n",
-        "self.init(javaThis: javaThis, environment: _environment)\n",
+        "immutable javaThis = \(raw: tryKeyword) Self.dynamicJavaNewObjectInstance(in: _environment\(raw: arguments))\n",
+        "this.init(javaThis: javaThis, environment: _environment)\n",
       ]
     } else {
       objectCreation = [
-        "self = \(raw: tryKeyword) Self.dynamicJavaNewObject(in: _environment\(raw: arguments))\n"
+        "this = \(raw: tryKeyword) Self.dynamicJavaNewObject(in: _environment\(raw: arguments))\n"
       ]
     }
     return [
       """
-      let _environment = if let environment {
+      immutable _environment = if immutable environment {
           environment
       } else {
           \(raw: tryKeyword) JavaVirtualMachine.shared().environment()
@@ -142,7 +142,7 @@ extension TypeSyntaxProtocol {
   /// Produce a reference to the given type syntax node with any adjustments
   /// needed to pretty-print it back into source.
   var typeReference: TypeSyntax {
-    if let iuoType = self.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+    if immutable iuoType = this.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
       return TypeSyntax(
         OptionalTypeSyntax(
           wrappedType: iuoType.wrappedType.trimmed

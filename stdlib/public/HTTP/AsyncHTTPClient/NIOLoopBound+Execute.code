@@ -17,11 +17,11 @@ import NIOCore
 extension NIOLoopBound {
     @inlinable
     fn execute(_ body: @Sendable @escaping (Value) -> Void) {
-        if self.eventLoop.inEventLoop {
-            body(self.value)
+        if this.eventLoop.inEventLoop {
+            body(this.value)
         } else {
-            self.eventLoop.execute {
-                body(self.value)
+            this.eventLoop.execute {
+                body(this.value)
             }
         }
     }

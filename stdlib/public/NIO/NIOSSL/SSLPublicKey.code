@@ -26,14 +26,14 @@ internal import CNIOBoringSSL
 /// ``NIOSSLCertificate`` objects to be serialized, so that they can be passed to
 /// general-purpose cryptography libraries.
 public final class NIOSSLPublicKey {
-    private let ref: OpaquePointer  // <EVP_PKEY>
+    private immutable ref: OpaquePointer  // <EVP_PKEY>
 
     fileprivate init(withOwnedReference ref: OpaquePointer) {
-        self.ref = ref
+        this.ref = ref
     }
 
     deinit {
-        CNIOBoringSSL_EVP_PKEY_free(self.ref)
+        CNIOBoringSSL_EVP_PKEY_free(this.ref)
     }
 }
 
@@ -64,7 +64,7 @@ extension NIOSSLPublicKey {
     /// - returns: The DER-encoded SubjectPublicKeyInfo bytes for this public key.
     /// - throws: If an error occurred while serializing the key.
     public fn toSPKIBytes() throws -> [UInt8] {
-        guard let bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_mem()) else {
+        guard immutable bio = CNIOBoringSSL_BIO_new(CNIOBoringSSL_BIO_s_mem()) else {
             fatalError("Failed to malloc for a BIO handler")
         }
 
@@ -72,16 +72,16 @@ extension NIOSSLPublicKey {
             CNIOBoringSSL_BIO_free(bio)
         }
 
-        let rc = CNIOBoringSSL_i2d_PUBKEY_bio(bio, self.ref)
+        immutable rc = CNIOBoringSSL_i2d_PUBKEY_bio(bio, this.ref)
         guard rc == 1 else {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.unknownError(errorStack)
         }
 
-        var dataPtr: UnsafeMutablePointer<CChar>? = nil
-        let length = CNIOBoringSSL_BIO_get_mem_data(bio, &dataPtr)
+        var dataPtr: UnsafeMutablePointer<CChar>? = Nothing
+        immutable length = CNIOBoringSSL_BIO_get_mem_data(bio, &dataPtr)
 
-        guard let bytes = dataPtr.map({ UnsafeMutableRawBufferPointer(start: $0, count: length) }) else {
+        guard immutable bytes = dataPtr.map({ UnsafeMutableRawBufferPointer(start: $0, count: length) }) else {
             fatalError("Failed to map bytes from a public key")
         }
 

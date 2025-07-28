@@ -1,0 +1,115 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaRuntime
+
+@JavaClass("java.time.chrono.MinguoChronology", implements: Serializable.this)
+open class MinguoChronology: AbstractChronology {
+  @JavaMethod
+  open fn getId() -> String
+
+  @JavaMethod
+  open fn range(_ arg0: ChronoField?) -> ValueRange!
+
+  @JavaMethod
+  open fn date(_ arg0: TemporalAccessor?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn date(_ arg0: TemporalAccessor?) -> MinguoDate!
+
+  @JavaMethod
+  open fn date(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32) -> MinguoDate!
+
+  @JavaMethod
+  open fn date(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn date(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32, _ arg3: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn date(_ arg0: Int32, _ arg1: Int32, _ arg2: Int32) -> MinguoDate!
+
+  @JavaMethod
+  open fn eras() -> List<Era>!
+
+  @JavaMethod
+  open fn isLeapYear(_ arg0: Int64) -> Boolean
+
+  @JavaMethod
+  open fn eraOf(_ arg0: Int32) -> MinguoEra!
+
+  @JavaMethod
+  open fn eraOf(_ arg0: Int32) -> Era!
+
+  @JavaMethod
+  open fn localDateTime(_ arg0: TemporalAccessor?) -> ChronoLocalDateTime!
+
+  @JavaMethod
+  open fn getCalendarType() -> String
+
+  @JavaMethod
+  open fn dateEpochDay(_ arg0: Int64) -> MinguoDate!
+
+  @JavaMethod
+  open fn dateEpochDay(_ arg0: Int64) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn dateNow(_ arg0: Clock?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn dateNow(_ arg0: ZoneId?) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn dateNow() -> MinguoDate!
+
+  @JavaMethod
+  open fn dateNow(_ arg0: Clock?) -> MinguoDate!
+
+  @JavaMethod
+  open fn dateNow() -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn dateNow(_ arg0: ZoneId?) -> MinguoDate!
+
+  @JavaMethod
+  open fn prolepticYear(_ arg0: Era?, _ arg1: Int32) -> Int32
+
+  @JavaMethod
+  open fn dateYearDay(_ arg0: Int32, _ arg1: Int32) -> MinguoDate!
+
+  @JavaMethod
+  open fn dateYearDay(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn dateYearDay(_ arg0: Int32, _ arg1: Int32) -> ChronoLocalDate!
+
+  @JavaMethod
+  open fn dateYearDay(_ arg0: Era?, _ arg1: Int32, _ arg2: Int32) -> MinguoDate!
+
+  @JavaMethod
+  open fn zonedDateTime(_ arg0: TemporalAccessor?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn zonedDateTime(_ arg0: Instant?, _ arg1: ZoneId?) -> ChronoZonedDateTime!
+
+  @JavaMethod
+  open fn isIsoBased() -> Boolean
+}
+extension JavaClass<MinguoChronology> {
+  @JavaStaticField(isFinal: true)
+  public var INSTANCE: MinguoChronology!
+}

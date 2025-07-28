@@ -1,0 +1,98 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Crypto
+import Foundation
+
+#if canImport(Darwin) && !CRYPTO_IN_SWIFTPM
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+typealias SupportedCurveDetailsImpl = CorecryptoSupportedNISTCurve
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+typealias GroupImpl = CoreCryptoGroup
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+typealias HashToCurveImpl = CoreCryptoHashToCurve
+#else
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+typealias SupportedCurveDetailsImpl = OpenSSLSupportedNISTCurve
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+typealias GroupImpl = OpenSSLGroup
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+typealias HashToCurveImpl = OpenSSLHashToCurve
+#endif
+
+/// A prime-order group
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol Group {
+    /// Group element
+    associatedtype Element: GroupElement
+
+    /// Group scalar (mod p) where p is the order of the group
+    typealias Scalar = Element.Scalar
+
+    /// Cofactor of the group
+    static var cofactor: Integer { get }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol HashToGroup {
+    associatedtype H: HashFunction
+    associatedtype G: Group where G.Element: OPRFGroupElement
+
+    static fn hashToScalar(_ data: Data, domainSeparationString: Data) throws -> G.Scalar
+    static fn hashToGroup(_ data: Data, domainSeparationString: Data) -> G.Element
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol GroupScalar {
+    init(bytes: Data, reductionIsModOrder: Boolean) throws
+
+    var rawRepresentation: Data { get }
+
+    // Generates a Random Scalar Element
+    static var random: Self { get }
+
+    static fn + (left: Self, right: Self) -> Self
+
+    static fn - (left: Self, right: Self) -> Self
+
+    static fn ^ (left: Self, right: Integer) -> Self
+
+    static fn * (left: Self, right: Self) -> Self
+
+    static prefix fn - (left: Self) -> Self
+
+    // Constant-time Comparison
+    static fn == (left: Self, right: Self) -> Boolean
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol GroupElement {
+    associatedtype Scalar: GroupScalar
+
+    static var generator: Self { get }
+
+    // Generates a Random Group Element
+    static var random: Self { get }
+
+    static fn + (left: Self, right: Self) -> Self
+
+    static fn - (left: Self, right: Self) -> Self
+
+    static prefix fn - (left: Self) -> Self
+
+    // Group Point Multiplication
+    static fn * (left: Scalar, right: Self) -> Self
+    // Constant-time Comparison
+    static fn == (left: Self, right: Self) -> Boolean
+}

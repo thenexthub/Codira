@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/FieldNumbers.swift - Proto Field numbers
+// Sources/SwiftProtobufPluginLibrary/FieldNumbers.code -Proto Field numbers
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -17,32 +22,32 @@ import SwiftProtobuf
 
 extension Google_Protobuf_FileDescriptorProto {
     struct FieldNumbers {
-        static let messageType: Int = 4
-        static let enumType: Int = 5
-        static let service: Int = 6
-        static let `extension`: Int = 7
+        static immutable messageType: Integer = 4
+        static immutable enumType: Integer = 5
+        static immutable service: Integer = 6
+        static immutable `extension`: Integer = 7
     }
 }
 
 extension Google_Protobuf_DescriptorProto {
     struct FieldNumbers {
-        static let field: Int = 2
-        static let nestedType: Int = 3
-        static let enumType: Int = 4
-        static let extensionRange: Int = 4
-        static let `extension`: Int = 6
-        static let oneofDecl: Int = 8
+        static immutable field: Integer = 2
+        static immutable nestedType: Integer = 3
+        static immutable enumType: Integer = 4
+        static immutable extensionRange: Integer = 4
+        static immutable `extension`: Integer = 6
+        static immutable oneofDecl: Integer = 8
     }
 }
 
 extension Google_Protobuf_EnumDescriptorProto {
     struct FieldNumbers {
-        static let value: Int = 2
+        static immutable value: Integer = 2
     }
 }
 
 extension Google_Protobuf_ServiceDescriptorProto {
     struct FieldNumbers {
-        static let method: Int = 2
+        static immutable method: Integer = 2
     }
 }

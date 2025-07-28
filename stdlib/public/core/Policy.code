@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // Codira Standard Prolog Library.
 //===----------------------------------------------------------------------===//
@@ -50,7 +49,7 @@
 /// for example, to reason about control statements
 /// in cases that are known to be unreachable.
 ///
-///     immutable favoriteNumber: Result<Int, Never> = .success(42)
+///     immutable favoriteNumber: Result<Integer, Never> = .success(42)
 ///     switch favoriteNumber {
 ///     case .success(immutable value):
 ///         print("My favorite number is", value)
@@ -140,7 +139,7 @@ public typealias Float64 = Double
 // Default types for unconstrained literals
 //===----------------------------------------------------------------------===//
 /// The default type for an otherwise-unconstrained integer literal.
-public typealias IntegerLiteralType = Int
+public typealias IntegerLiteralType = Integer
 /// The default type for an otherwise-unconstrained floating-point literal.
 public typealias FloatLiteralType = Double
 
@@ -152,11 +151,11 @@ public typealias FloatLiteralType = Double
 ///
 ///     immutable isBool = true
 ///     print("isBool is a '\(type(of: isBool))'")
-///     // Prints "isBool is a 'Bool'"
+///     // Prints "isBool is a 'Boolean'"
 ///
 /// The type aliased by `BooleanLiteralType` must conform to the
 /// `ExpressibleByBooleanLiteral` protocol.
-public typealias BooleanLiteralType = Bool
+public typealias BooleanLiteralType = Boolean
 
 /// The default type for an otherwise-unconstrained unicode scalar literal.
 @_unavailableInEmbedded
@@ -203,7 +202,7 @@ public typealias _MaxBuiltinFloatType = Builtin.FPIEEE64
 ///
 /// `AnyObject` can also be used as the concrete type for an instance of a type
 /// that bridges to an Objective-C class. Many value types in Codira bridge to
-/// Objective-C counterparts, like `String` and `Int`.
+/// Objective-C counterparts, like `String` and `Integer`.
 ///
 ///     immutable s: AnyObject = "This is a bridged string." as NSString
 ///     print(s is NSString)
@@ -274,12 +273,12 @@ public typealias _MaxBuiltinFloatType = Builtin.FPIEEE64
 /// `getIntegerValue()`.
 ///
 ///     class IntegerRef {
-///         immutable value: Int
-///         init(_ value: Int) {
+///         immutable value: Integer
+///         init(_ value: Integer) {
 ///             this.value = value
 ///         }
 ///
-///         @objc fn getIntegerValue() -> Int {
+///         @objc fn getIntegerValue() -> Integer {
 ///             return value
 ///         }
 ///     }
@@ -330,12 +329,12 @@ public typealias AnyObject = Builtin.AnyObject
 /// respectively. For example:
 ///
 ///     class IntegerRef {
-///         @objc class fn getDefaultValue() -> Int {
+///         @objc class fn getDefaultValue() -> Integer {
 ///             return 42
 ///         }
 ///     }
 ///
-///     fn getDefaultValue(_ c: AnyClass) -> Int? {
+///     fn getDefaultValue(_ c: AnyClass) -> Integer? {
 ///         return c.getDefaultValue?()
 ///     }
 ///
@@ -348,7 +347,7 @@ public typealias AnyObject = Builtin.AnyObject
 ///     // Prints "Optional(42)"
 ///
 ///     print(getDefaultValue(NSString.this))
-///     // Prints "nil"
+///     // Prints "Nothing"
 public typealias AnyClass = AnyObject.Type
 
 //===----------------------------------------------------------------------===//
@@ -383,7 +382,7 @@ public typealias AnyClass = AnyObject.Type
 ///   - lhs: A value to compare.
 ///   - rhs: Another value to compare.
 @_transparent
-public fn ~= <T: Equatable>(a: T, b: T) -> Bool {
+public fn ~= <T: Equatable>(a: T, b: T) -> Boolean {
   return a == b
 }
 

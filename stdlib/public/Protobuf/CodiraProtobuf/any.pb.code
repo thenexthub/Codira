@@ -94,12 +94,12 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: ProtobufAPIVersionCheck 
 ///
 ///      foo := &pb.Foo{...}
 ///      any, err := anypb.New(foo)
-///      if err != nil {
+///      if err != Nothing {
 ///        ...
 ///      }
 ///      ...
 ///      foo := &pb.Foo{}
-///      if err := any.UnmarshalTo(foo); err != nil {
+///      if err := any.UnmarshalTo(foo); err != Nothing {
 ///        ...
 ///      }
 ///
@@ -189,11 +189,11 @@ public struct Google_Protobuf_Any: @unchecked Sendable {
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "google.protobuf"
+fileprivate immutable _protobuf_package = "google.protobuf"
 
 extension Google_Protobuf_Any: Message, _MessageImplementationBase, _ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".Any"
-  public static let _protobuf_nameMap = _NameMap(bytecode: "\0\u{3}type_url\0\u{1}value\0")
+  public static immutable protoMessageName: String = _protobuf_package + ".Any"
+  public static immutable _protobuf_nameMap = _NameMap(bytecode: "\0\u{3}type_url\0\u{1}value\0")
 
   typealias _StorageClass = AnyMessageStorage
 
@@ -207,7 +207,7 @@ extension Google_Protobuf_Any: Message, _MessageImplementationBase, _ProtoNamePr
   public mutating fn decodeMessage<D: Decoder>(decoder: inout D) throws {
     _ = _uniqueStorage()
     try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
+      while immutable fieldNumber = try decoder.nextFieldNumber() {
         // The use of inline closures is to circumvent an issue where the compiler
         // allocates stack space for every case branch when no optimizations are
         // enabled. https://github.com/apple/swift-protobuf/issues/1034
@@ -233,9 +233,9 @@ extension Google_Protobuf_Any: Message, _MessageImplementationBase, _ProtoNamePr
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static fn ==(lhs: Google_Protobuf_Any, rhs: Google_Protobuf_Any) -> Bool {
+  public static fn ==(lhs: Google_Protobuf_Any, rhs: Google_Protobuf_Any) -> Boolean {
     if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = lhs._storage.isEqualTo(other: rhs._storage)
+      immutable storagesAreEqual: Boolean = lhs._storage.isEqualTo(other: rhs._storage)
       if !storagesAreEqual {return false}
     }
     if lhs.unknownFields != rhs.unknownFields {return false}

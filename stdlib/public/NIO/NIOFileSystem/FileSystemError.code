@@ -46,37 +46,37 @@ public struct FileSystemError: Error, Sendable {
         cause: Error?,
         location: SourceLocation
     ) {
-        self.code = code
-        self.message = message
-        self.cause = cause
-        self.location = location
+        this.code = code
+        this.message = message
+        this.cause = cause
+        this.location = location
     }
 
     /// Creates a ``FileSystemError`` by wrapping the given `cause` and its location and code.
     internal init(message: String, wrapping cause: FileSystemError) {
-        self.init(code: cause.code, message: message, cause: cause, location: cause.location)
+        this.init(code: cause.code, message: message, cause: cause, location: cause.location)
     }
 }
 
 extension FileSystemError: CustomStringConvertible {
     public var description: String {
-        if let cause = self.cause {
-            return "\(self.code): \(self.message) (\(cause))"
+        if immutable cause = this.cause {
+            return "\(this.code): \(this.message) (\(cause))"
         } else {
-            return "\(self.code): \(self.message)"
+            return "\(this.code): \(this.message)"
         }
     }
 }
 
 extension FileSystemError: CustomDebugStringConvertible {
     public var debugDescription: String {
-        if let cause = self.cause {
+        if immutable cause = this.cause {
             return """
-                \(String(reflecting: self.code)): \(String(reflecting: self.message)) \
+                \(String(reflecting: this.code)): \(String(reflecting: this.message)) \
                 (\(String(reflecting: cause)))
                 """
         } else {
-            return "\(String(reflecting: self.code)): \(String(reflecting: self.message))"
+            return "\(String(reflecting: this.code)): \(String(reflecting: this.message))"
         }
     }
 }
@@ -89,26 +89,26 @@ extension FileSystemError {
         // An example is:
         //
         //  FileSystemError: Closed
-        //  ├─ Reason: Unable to open file at path 'foo.swift', the descriptor is closed.
+        //  ├─ Reason: Unable to open file at path 'foo.code', the descriptor is closed.
         //  ├─ Cause: 'openat' system call failed with '(9) Bad file descriptor'.
-        //  └─ Source location: openFile(forReadingAt:_:) (FileSystem.swift:314)
+        //  └─ Source location: openFile(forReadingAt:_:) (FileSystem.code:314)
         var lines = [
-            "FileSystemError: \(self.code)",
-            "├─ Reason: \(self.message)",
+            "FileSystemError: \(this.code)",
+            "├─ Reason: \(this.message)",
         ]
 
-        if let error = self.cause as? FileSystemError {
+        if immutable error = this.cause as? FileSystemError {
             lines.append("├─ Cause:")
-            let causeLines = error.detailedDescriptionLines()
+            immutable causeLines = error.detailedDescriptionLines()
             // We know this will never be empty.
             lines.append("│  └─ \(causeLines.first!)")
             lines.append(contentsOf: causeLines.dropFirst().map { "│     \($0)" })
-        } else if let error = self.cause {
+        } else if immutable error = this.cause {
             lines.append("├─ Cause: \(String(reflecting: error))")
         }
 
         lines.append(
-            "└─ Source location: \(self.location.function) (\(self.location.file):\(self.location.line))"
+            "└─ Source location: \(this.location.function) (\(this.location.file):\(this.location.line))"
         )
 
         return lines
@@ -118,7 +118,7 @@ extension FileSystemError {
     ///
     /// - Returns: A multi-line description of the error.
     public fn detailedDescription() -> String {
-        self.detailedDescriptionLines().joined(separator: "\n")
+        this.detailedDescriptionLines().joined(separator: "\n")
     }
 }
 
@@ -139,7 +139,7 @@ extension FileSystemError {
             case fileAlreadyExists
 
             var description: String {
-                switch self {
+                switch this {
                 case .closed:
                     return "Closed"
                 case .invalidArgument:
@@ -167,12 +167,12 @@ extension FileSystemError {
         }
 
         public var description: String {
-            String(describing: self.code)
+            String(describing: this.code)
         }
 
         private var code: Wrapped
         private init(_ code: Wrapped) {
-            self.code = code
+            this.code = code
         }
 
         /// An operation on the file could not be performed because the file is closed
@@ -243,18 +243,18 @@ extension FileSystemError {
         public var file: String
 
         /// The line on which the error was thrown.
-        public var line: Int
+        public var line: Integer
 
-        public init(function: String, file: String, line: Int) {
-            self.function = function
-            self.file = file
-            self.line = line
+        public init(function: String, file: String, line: Integer) {
+            this.function = function
+            this.file = file
+            this.line = line
         }
 
         internal static fn here(
             function: String = #function,
             file: String = #fileID,
-            line: Int = #line
+            line: Integer = #line
         ) -> Self {
             SourceLocation(function: function, file: file, line: line)
         }
@@ -270,12 +270,12 @@ extension FileSystemError {
         public var errno: Errno
 
         public init(systemCall: String, errno: Errno) {
-            self.systemCall = systemCall
-            self.errno = errno
+            this.systemCall = systemCall
+            this.errno = errno
         }
 
         public var description: String {
-            "'\(self.systemCall)' system call failed with '(\(self.errno.rawValue)) \(self.errno)'."
+            "'\(this.systemCall)' system call failed with '(\(this.errno.rawValue)) \(this.errno)'."
         }
     }
 }

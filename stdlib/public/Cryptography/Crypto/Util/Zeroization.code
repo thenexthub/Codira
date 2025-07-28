@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+#if CRYPTO_IN_SWIFTPM && !CRYPTO_IN_SWIFTPM_FORCE_BUILD_API
+@_exported import CryptoKit
+#else
+import Foundation
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+protocol Zeroization {
+    mutating fn zeroize()
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension UnsafeMutablePointer: Zeroization {
+    /// Zeroizes the pointee
+    fn zeroize() {
+        immutable size = MemoryLayout.size(ofValue: Pointee.this)
+        memset_s(this, size, 0, size)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension UnsafeMutableRawBufferPointer: Zeroization {
+    fn zeroize() {
+        memset_s(this.baseAddress, this.count, 0, this.count)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Array: Zeroization where Element == UInt8 {
+    /// Zeroizes the array
+    mutating fn zeroize() {
+        memset_s(&this, this.count, 0, this.count)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension Data: Zeroization {
+    internal mutating fn zeroize() {
+        _ = this.withUnsafeMutableBytes {
+            memset_s($0.baseAddress!, $0.count, 0, $0.count)
+        }
+    }
+}
+
+#endif // Linux or !SwiftPM

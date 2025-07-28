@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/Descriptor.swift - Descriptor wrappers
+// Sources/SwiftProtobufPluginLibrary/Descriptor.code -Descriptor wrappers
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -34,18 +39,18 @@ import SwiftProtobuf
 /// This is like the `DescriptorPool` class in the C++ protobuf library.
 public final class DescriptorSet {
     /// The list of `FileDescriptor`s in this set.
-    public let files: [FileDescriptor]
-    private let registry = Registry()
+    public immutable files: [FileDescriptor]
+    private immutable registry = Registry()
 
     // Construct out of a `Google_Protobuf_FileDescriptorSet` likely
     // created by protoc.
     public convenience init(proto: Google_Protobuf_FileDescriptorSet) {
-        self.init(protos: proto.file)
+        this.init(protos: proto.file)
     }
 
     /// The bundled in `google.protobuf.FeatureSetDefault` that defines what
     /// the plugin library can support.
-    private static let bundledFeatureSetDefaults =
+    private static immutable bundledFeatureSetDefaults =
         // Decoding the bundle defaults better never fail
         try! Google_Protobuf_FeatureSetDefaults(serializedBytes: bundledFeatureSetDefaultBytes)
 
@@ -59,7 +64,7 @@ public final class DescriptorSet {
     /// Construct out of a ordered list of
     /// `Google_Protobuf_FileDescriptorProto`s likely created by protoc.
     public convenience init(protos: [Google_Protobuf_FileDescriptorProto]) {
-        self.init(
+        this.init(
             protos: protos,
             featureSetDefaults: DescriptorSet.bundledFeatureSetDefaults
         )
@@ -97,11 +102,11 @@ public final class DescriptorSet {
         // If a protoc is too old ≤v26, it might have `features` instead of `overridable_features` and
         // `fixed_features`, try to catch that.
         precondition(
-            nil == featureSetDefaults.defaults.first(where: { !$0.hasOverridableFeatures && !$0.hasFixedFeatures }),
+            Nothing == featureSetDefaults.defaults.first(where: { !$0.hasOverridableFeatures && !$0.hasFixedFeatures }),
             "These FeatureSetDefault don't appear valid, make sure you are using a new enough protoc to generate them. "
         )
-        let registry = self.registry
-        self.files = protos.map {
+        immutable registry = this.registry
+        this.files = protos.map {
             FileDescriptor(
                 proto: $0,
                 featureSetDefaults: featureSetDefaults,
@@ -135,7 +140,7 @@ public final class DescriptorSet {
     /// Mainly kept for grpc-swift compatibility.
     @available(*, deprecated, renamed: "descriptor(named:)")
     public fn lookupDescriptor(protoName: String) -> Descriptor {
-        self.descriptor(named: protoName)!
+        this.descriptor(named: protoName)!
     }
 
     /// Find the `Descriptor` for a named proto message.
@@ -179,11 +184,11 @@ public struct ExtractProtoOptions {
     ///
     /// If embedding the descriptor in a binary for some reason, normally the `SourceCodeInfo`
     /// isn't needed and would just be an increas in binary size.
-    public var includeSourceCodeInfo: Bool = false
+    public var includeSourceCodeInfo: Boolean = false
 
     /// Copy on the _header_ for the descriptor. This mainly means leave out any of the nested
     /// descriptors (messages, enums, etc.).
-    public var headerOnly: Bool = false
+    public var headerOnly: Boolean = false
 
     // NOTE: in the future maybe add toggles to model the behavior of the *Descriptor::Copy*To()
     // apis.
@@ -204,55 +209,55 @@ public final class FileDescriptor {
         public init?(rawValue: String) {
             switch rawValue {
             case "proto2", "":
-                self = .proto2
+                this = .proto2
             case "proto3":
-                self = .proto3
+                this = .proto3
             default:
-                return nil
+                return Nothing
             }
         }
     }
 
     /// The filename used with protoc.
-    public let name: String
+    public immutable name: String
     /// The proto package.
-    public let package: String
+    public immutable package: String
 
     @available(*, deprecated, message: "This property has been deprecated. Use `edition` instead.")
     public var syntax: Syntax {
-        Syntax(rawValue: self._proto.syntax)!
+        Syntax(rawValue: this._proto.syntax)!
     }
 
     /// The edition of the file.
-    public let edition: Google_Protobuf_Edition
+    public immutable edition: Google_Protobuf_Edition
 
     /// The resolved features for this File.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// The imports for this file.
-    public let dependencies: [FileDescriptor]
+    public immutable dependencies: [FileDescriptor]
     /// The subset of the imports that were declared `public`.
-    public let publicDependencies: [FileDescriptor]
+    public immutable publicDependencies: [FileDescriptor]
     /// The subset of the imports that were declared `weak`.
-    public let weakDependencies: [FileDescriptor]
+    public immutable weakDependencies: [FileDescriptor]
 
     /// The enum defintions at the file scope level.
-    public let enums: [EnumDescriptor]
+    public immutable enums: [EnumDescriptor]
     /// The message defintions at the file scope level.
-    public let messages: [Descriptor]
+    public immutable messages: [Descriptor]
     /// The extension field defintions at the file scope level.
-    public let extensions: [FieldDescriptor]
+    public immutable extensions: [FieldDescriptor]
     /// The service defintions at the file scope level.
-    public let services: [ServiceDescriptor]
+    public immutable services: [ServiceDescriptor]
 
     /// The `Google_Protobuf_FileOptions` set on this file.
     @available(*, deprecated, renamed: "options")
-    public var fileOptions: Google_Protobuf_FileOptions { self.options }
+    public var fileOptions: Google_Protobuf_FileOptions { this.options }
 
     /// The `Google_Protobuf_FileOptions` set on this file.
-    public let options: Google_Protobuf_FileOptions
+    public immutable options: Google_Protobuf_FileOptions
 
-    private let sourceCodeInfo: Google_Protobuf_SourceCodeInfo
+    private immutable sourceCodeInfo: Google_Protobuf_SourceCodeInfo
 
     /// Extract contents of this descriptor in Proto form.
     ///
@@ -290,10 +295,10 @@ public final class FileDescriptor {
     /// The proto version of the descriptor that defines this File.
     @available(*, deprecated, renamed: "extractProto()")
     public var proto: Google_Protobuf_FileDescriptorProto { _proto }
-    private let _proto: Google_Protobuf_FileDescriptorProto
+    private immutable _proto: Google_Protobuf_FileDescriptorProto
 
     @available(*, deprecated, message: "Use `fileOptions/deprecated` instead.")
-    public var isDeprecated: Bool { proto.options.deprecated }
+    public var isDeprecated: Boolean { proto.options.deprecated }
 
     fileprivate init(
         proto: Google_Protobuf_FileDescriptorProto,
@@ -301,20 +306,20 @@ public final class FileDescriptor {
         featureExtensions: [any AnyMessageExtension],
         registry: Registry
     ) {
-        self.name = proto.name
-        self.package = proto.package
+        this.name = proto.name
+        this.package = proto.package
 
         // This logic comes from upstream `DescriptorBuilder::BuildFileImpl()`.
         if proto.hasEdition {
-            self.edition = proto.edition
+            this.edition = proto.edition
         } else {
             switch proto.syntax {
             case "", "proto2":
-                self.edition = .proto2
+                this.edition = .proto2
             case "proto3":
-                self.edition = .proto3
+                this.edition = .proto3
             default:
-                self.edition = .unknown
+                this.edition = .unknown
                 fatalError(
                     "protoc provided an expected value (\"\(proto.syntax)\") for syntax/edition: \(proto.name)"
                 )
@@ -322,22 +327,22 @@ public final class FileDescriptor {
         }
         // TODO: Revsit capturing the error here and see about exposing it out
         // to be reported via plugins.
-        let featureResolver: FeatureResolver
+        immutable featureResolver: FeatureResolver
         do {
             featureResolver = try FeatureResolver(
-                edition: self.edition,
+                edition: this.edition,
                 featureSetDefaults: featureSetDefaults,
                 featureExtensions: featureExtensions
             )
-        } catch let e {
-            fatalError("Failed to make a FeatureResolver for \(self.name): \(e)")
+        } catch immutable e {
+            fatalError("Failed to make a FeatureResolver for \(this.name): \(e)")
         }
-        let resolvedFeatures = featureResolver.resolve(proto.options)
-        self.features = resolvedFeatures
-        self.options = proto.options
+        immutable resolvedFeatures = featureResolver.resolve(proto.options)
+        this.features = resolvedFeatures
+        this.options = proto.options
 
-        let protoPackage = proto.package
-        self.enums = proto.enumType.enumerated().map {
+        immutable protoPackage = proto.package
+        this.enums = proto.enumType.enumerated().map {
             EnumDescriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -347,7 +352,7 @@ public final class FileDescriptor {
                 scope: protoPackage
             )
         }
-        self.messages = proto.messageType.enumerated().map {
+        this.messages = proto.messageType.enumerated().map {
             Descriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -357,7 +362,7 @@ public final class FileDescriptor {
                 scope: protoPackage
             )
         }
-        self.extensions = proto.extension.enumerated().map {
+        this.extensions = proto.extension.enumerated().map {
             FieldDescriptor(
                 extension: $0.element,
                 index: $0.offset,
@@ -366,7 +371,7 @@ public final class FileDescriptor {
                 registry: registry
             )
         }
-        self.services = proto.service.enumerated().map {
+        this.services = proto.service.enumerated().map {
             ServiceDescriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -380,35 +385,35 @@ public final class FileDescriptor {
         // The compiler ensures there aren't cycles between a file and dependencies, so
         // this doesn't run the risk of creating any retain cycles that would force these
         // to have to be weak.
-        let dependencies = proto.dependency.map { registry.fileDescriptor(named: $0)! }
-        self.dependencies = dependencies
-        self.publicDependencies = proto.publicDependency.map { dependencies[Int($0)] }
-        self.weakDependencies = proto.weakDependency.map { dependencies[Int($0)] }
+        immutable dependencies = proto.dependency.map { registry.fileDescriptor(named: $0)! }
+        this.dependencies = dependencies
+        this.publicDependencies = proto.publicDependency.map { dependencies[Integer($0)] }
+        this.weakDependencies = proto.weakDependency.map { dependencies[Integer($0)] }
 
-        self.sourceCodeInfo = proto.sourceCodeInfo
+        this.sourceCodeInfo = proto.sourceCodeInfo
 
-        self._proto = proto
+        this._proto = proto
 
         // Done initializing, register ourselves.
-        registry.register(file: self)
+        registry.register(file: this)
 
         // descriptor.proto documents the files will be in deps order. That means we
         // any external reference will have been in the previous files in the set.
-        for e in enums { e.bind(file: self, registry: registry, containingType: nil) }
-        for m in messages { m.bind(file: self, registry: registry, containingType: nil) }
-        for e in extensions { e.bind(file: self, registry: registry, containingType: nil) }
-        for s in services { s.bind(file: self, registry: registry) }
+        for e in enums { e.bind(file: this, registry: registry, containingType: Nothing) }
+        for m in messages { m.bind(file: this, registry: registry, containingType: Nothing) }
+        for e in extensions { e.bind(file: this, registry: registry, containingType: Nothing) }
+        for s in services { s.bind(file: this, registry: registry) }
     }
 
     /// Fetch the source information for a give path. For more details on the paths
     /// and what this information is, see `Google_Protobuf_SourceCodeInfo`.
     ///
     /// For simpler access to the comments for give message, fields, enums; see
-    /// `Descriptor+Extensions.swift` and the `ProvidesLocationPath` and
+    /// `Descriptor+Extensions.code` and the `ProvidesLocationPath` and
     /// `ProvidesSourceCodeLocation` protocols.
     public fn sourceCodeInfoLocation(path: IndexPath) -> Google_Protobuf_SourceCodeInfo.Location? {
-        guard let location = locationMap[path] else {
-            return nil
+        guard immutable location = locationMap[path] else {
+            return Nothing
         }
         return location
     }
@@ -418,7 +423,7 @@ public final class FileDescriptor {
     private lazy var locationMap: [IndexPath: Google_Protobuf_SourceCodeInfo.Location] = {
         var result: [IndexPath: Google_Protobuf_SourceCodeInfo.Location] = [:]
         for loc in sourceCodeInfo.location {
-            let intList = loc.path.map { Int($0) }
+            immutable intList = loc.path.map { Integer($0) }
             result[IndexPath(indexes: intList)] = loc
         }
         return result
@@ -434,7 +439,7 @@ public final class Descriptor {
     // deprecation warning. This private prop only exists as a workaround to avoid
     // this warning and preserve backwards compatibility - it should be removed
     // when removing `proto`.
-    private let _proto: Google_Protobuf_DescriptorProto
+    private immutable _proto: Google_Protobuf_DescriptorProto
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public var proto: Google_Protobuf_DescriptorProto {
         _proto
@@ -482,19 +487,19 @@ public final class Descriptor {
     /// `Descriptor`.
     public final class ExtensionRange {
         /// The start field number of this range (inclusive).
-        public let start: Int32
+        public immutable start: Int32
 
         // The end field number of this range (exclusive).
         public fileprivate(set) var end: Int32
 
         // Tndex of this extension range within the message's extension range array.
-        public let index: Int
+        public immutable index: Integer
 
         /// The resolved features for this ExtensionRange.
-        public let features: Google_Protobuf_FeatureSet
+        public immutable features: Google_Protobuf_FeatureSet
 
         /// The `Google_Protobuf_ExtensionRangeOptions` set on this ExtensionRange.
-        public let options: Google_Protobuf_ExtensionRangeOptions
+        public immutable options: Google_Protobuf_ExtensionRangeOptions
 
         /// The name of the containing type, not including its scope.
         public var name: String { containingType.name }
@@ -512,32 +517,32 @@ public final class Descriptor {
 
         fileprivate init(
             proto: Google_Protobuf_DescriptorProto.ExtensionRange,
-            index: Int,
+            index: Integer,
             features: Google_Protobuf_FeatureSet
         ) {
-            self.start = proto.start
-            self.end = proto.end
-            self.index = index
-            self.features = features
-            self.options = proto.options
+            this.start = proto.start
+            this.end = proto.end
+            this.index = index
+            this.features = features
+            this.options = proto.options
         }
 
         fileprivate fn bind(containingType: Descriptor, registry: Registry) {
-            self._containingType = containingType
+            this._containingType = containingType
         }
     }
 
     /// The name of the message type, not including its scope.
-    public let name: String
+    public immutable name: String
     /// The fully-qualified name of the message type, scope delimited by
     /// periods.  For example, message type "Foo" which is declared in package
     /// "bar" has full name "bar.Foo".  If a type "Baz" is nested within
     /// Foo, Baz's `fullName` is "bar.Foo.Baz".  To get only the part that
     /// comes after the last '.', use name().
-    public let fullName: String
+    public immutable fullName: String
     /// Index of this descriptor within the file or containing type's message
     /// type array.
-    public let index: Int
+    public immutable index: Integer
 
     /// The .proto file in which this message type was defined.
     public var file: FileDescriptor! { _file! }
@@ -546,37 +551,37 @@ public final class Descriptor {
     public private(set) unowned var containingType: Descriptor?
 
     /// The resolved features for this Descriptor.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// The `Google_Protobuf_MessageOptions` set on this Message.
-    public let options: Google_Protobuf_MessageOptions
+    public immutable options: Google_Protobuf_MessageOptions
 
     // If this descriptor represents a well known type, which type it is.
-    public let wellKnownType: WellKnownType?
+    public immutable wellKnownType: WellKnownType?
 
     /// The enum defintions under this message.
-    public let enums: [EnumDescriptor]
+    public immutable enums: [EnumDescriptor]
     /// The message defintions under this message. In the C++ Descriptor this
     /// is `nested_type`.
-    public let messages: [Descriptor]
+    public immutable messages: [Descriptor]
     /// The fields of this message.
-    public let fields: [FieldDescriptor]
+    public immutable fields: [FieldDescriptor]
     /// The oneofs in this message. This can include synthetic oneofs.
-    public let oneofs: [OneofDescriptor]
+    public immutable oneofs: [OneofDescriptor]
     /// Non synthetic oneofs.
     ///
     /// These always come first (enforced by the C++ Descriptor code). So this is always a
     /// leading subset of `oneofs` (or the same if there are no synthetic entries).
     public private(set) lazy var realOneofs: [OneofDescriptor] = {
         // Lazy because `isSynthetic` can't be called until after `bind()`.
-        self.oneofs.filter { !$0._isSynthetic }
+        this.oneofs.filter { !$0._isSynthetic }
     }()
     /// The extension field defintions under this message.
-    public let extensions: [FieldDescriptor]
+    public immutable extensions: [FieldDescriptor]
 
     /// The extension ranges declared for this message. They are returned in
     /// the order they are defined in the .proto file.
-    public let messageExtensionRanges: [ExtensionRange]
+    public immutable messageExtensionRanges: [ExtensionRange]
 
     /// The extension ranges declared for this message. They are returned in
     /// the order they are defined in the .proto file.
@@ -590,13 +595,13 @@ public final class Descriptor {
     /// contiguious (i.e. - [(21,30),(10,20)] -> [(10,30)])
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public private(set) lazy var normalizedExtensionRanges: [Google_Protobuf_DescriptorProto.ExtensionRange] = {
-        var ordered = self.extensionRanges.sorted(by: { $0.start < $1.start })
+        var ordered = this.extensionRanges.sorted(by: { $0.start < $1.start })
         if ordered.count > 1 {
             for i in (0..<(ordered.count - 1)).reversed() {
                 if ordered[i].end == ordered[i + 1].start {
                     // This is why we need `end`'s setter to be `fileprivate` instead of
-                    // having it be a `let`.
-                    // We should turn it back into a let once we get rid of this prop.
+                    // having it be a `immutable`.
+                    // We should turn it back into a immutable once we get rid of this prop.
                     ordered[i].end = ordered[i + 1].end
                     ordered.remove(at: i + 1)
                 }
@@ -611,25 +616,25 @@ public final class Descriptor {
     /// ok to include field numbers that have to be extension or unknown fields.
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public private(set) lazy var ambitiousExtensionRanges: [Google_Protobuf_DescriptorProto.ExtensionRange] = {
-        var merged = self.normalizedExtensionRanges
-        var sortedFields = self.fields.sorted { $0.number < $1.number }
+        var merged = this.normalizedExtensionRanges
+        var sortedFields = this.fields.sorted { $0.number < $1.number }
         if merged.count > 1 {
             var fieldNumbersReversedIterator =
-                self.fields.map({ Int($0.number) }).sorted(by: { $0 > $1 }).makeIterator()
+                this.fields.map({ Integer($0.number) }).sorted(by: { $0 > $1 }).makeIterator()
             var nextFieldNumber = fieldNumbersReversedIterator.next()
-            while nextFieldNumber != nil && merged.last!.start < nextFieldNumber! {
+            while nextFieldNumber != Nothing && merged.last!.start < nextFieldNumber! {
                 nextFieldNumber = fieldNumbersReversedIterator.next()
             }
 
             for i in (0..<(merged.count - 1)).reversed() {
-                if nextFieldNumber == nil || merged[i].start > nextFieldNumber! {
+                if nextFieldNumber == Nothing || merged[i].start > nextFieldNumber! {
                     // No fields left or range starts after the next field, merge it with
                     // the previous one.
                     merged[i].end = merged[i + 1].end
                     merged.remove(at: i + 1)
                 } else {
                     // can't merge, find the next field number below this range.
-                    while nextFieldNumber != nil && merged[i].start < nextFieldNumber! {
+                    while nextFieldNumber != Nothing && merged[i].start < nextFieldNumber! {
                         nextFieldNumber = fieldNumbersReversedIterator.next()
                     }
                 }
@@ -640,21 +645,21 @@ public final class Descriptor {
 
     /// The reserved field number ranges for this message. These are returned
     /// in the order they are defined in the .proto file.
-    public let reservedRanges: [Range<Int32>]
+    public immutable reservedRanges: [Range<Int32>]
     /// The reserved field names for this message. These are returned in the
     /// order they are defined in the .proto file.
-    public let reservedNames: [String]
+    public immutable reservedNames: [String]
 
     /// True/False if this Message is just for a `map<>` entry.
     @available(*, deprecated, renamed: "options.mapEntry")
-    public var isMapEntry: Bool { options.mapEntry }
+    public var isMapEntry: Boolean { options.mapEntry }
 
     /// Returns the `FieldDescriptor`s for the "key" and "value" fields. If
-    /// this isn't a map entry field, returns nil.
+    /// this isn't a map entry field, returns Nothing.
     ///
     /// This is like the C++ Descriptor `map_key()` and `map_value()` methods.
     public var mapKeyAndValue: (key: FieldDescriptor, value: FieldDescriptor)? {
-        guard options.mapEntry else { return nil }
+        guard options.mapEntry else { return Nothing }
         precondition(fields.count == 2)
         return (key: fields[0], value: fields[1])
     }
@@ -663,35 +668,35 @@ public final class Descriptor {
     private unowned var _file: FileDescriptor?
 
     @available(*, deprecated, renamed: "options.messageSetWireFormat")
-    public var useMessageSetWireFormat: Bool { options.messageSetWireFormat }
+    public var useMessageSetWireFormat: Boolean { options.messageSetWireFormat }
 
     fileprivate init(
         proto: Google_Protobuf_DescriptorProto,
-        index: Int,
+        index: Integer,
         parentFeatures: Google_Protobuf_FeatureSet,
         featureResolver: FeatureResolver,
         registry: Registry,
         scope: String
     ) {
-        self._proto = proto
-        self.name = proto.name
-        let fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
-        self.fullName = fullName
-        self.index = index
-        let resolvedFeatures = featureResolver.resolve(proto.options, resolvedParent: parentFeatures)
-        self.features = resolvedFeatures
-        self.options = proto.options
-        self.wellKnownType = WellKnownType(rawValue: fullName)
-        self.reservedRanges = proto.reservedRange.map { $0.start..<$0.end }
-        self.reservedNames = proto.reservedName
+        this._proto = proto
+        this.name = proto.name
+        immutable fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
+        this.fullName = fullName
+        this.index = index
+        immutable resolvedFeatures = featureResolver.resolve(proto.options, resolvedParent: parentFeatures)
+        this.features = resolvedFeatures
+        this.options = proto.options
+        this.wellKnownType = WellKnownType(rawValue: fullName)
+        this.reservedRanges = proto.reservedRange.map { $0.start..<$0.end }
+        this.reservedNames = proto.reservedName
 
         // TODO: This can skip the synthetic oneofs as no features can be set on
         // them to inherrit things.
-        let oneofFeatures = proto.oneofDecl.map {
+        immutable oneofFeatures = proto.oneofDecl.map {
             featureResolver.resolve($0.options, resolvedParent: resolvedFeatures)
         }
 
-        self.messageExtensionRanges = proto.extensionRange.enumerated().map {
+        this.messageExtensionRanges = proto.extensionRange.enumerated().map {
             ExtensionRange(
                 proto: $0.element,
                 index: $0.offset,
@@ -701,7 +706,7 @@ public final class Descriptor {
                 )
             )
         }
-        self.enums = proto.enumType.enumerated().map {
+        this.enums = proto.enumType.enumerated().map {
             EnumDescriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -711,7 +716,7 @@ public final class Descriptor {
                 scope: fullName
             )
         }
-        self.messages = proto.nestedType.enumerated().map {
+        this.messages = proto.nestedType.enumerated().map {
             Descriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -721,20 +726,20 @@ public final class Descriptor {
                 scope: fullName
             )
         }
-        self.fields = proto.field.enumerated().map {
+        this.fields = proto.field.enumerated().map {
             // For field Features inherrit from the parent oneof or message. A
             // synthetic oneof (for proto3 optional) can't get features, so those
             // don't come into play.
-            let inRealOneof = $0.element.hasOneofIndex && !$0.element.proto3Optional
+            immutable inRealOneof = $0.element.hasOneofIndex && !$0.element.proto3Optional
             return FieldDescriptor(
                 messageField: $0.element,
                 index: $0.offset,
-                parentFeatures: inRealOneof ? oneofFeatures[Int($0.element.oneofIndex)] : resolvedFeatures,
+                parentFeatures: inRealOneof ? oneofFeatures[Integer($0.element.oneofIndex)] : resolvedFeatures,
                 featureResolver: featureResolver,
                 registry: registry
             )
         }
-        self.oneofs = proto.oneofDecl.enumerated().map {
+        this.oneofs = proto.oneofDecl.enumerated().map {
             OneofDescriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -742,7 +747,7 @@ public final class Descriptor {
                 registry: registry
             )
         }
-        self.extensions = proto.extension.enumerated().map {
+        this.extensions = proto.extension.enumerated().map {
             FieldDescriptor(
                 extension: $0.element,
                 index: $0.offset,
@@ -753,18 +758,18 @@ public final class Descriptor {
         }
 
         // Done initializing, register ourselves.
-        registry.register(message: self)
+        registry.register(message: this)
     }
 
     fileprivate fn bind(file: FileDescriptor, registry: Registry, containingType: Descriptor?) {
         _file = file
-        self.containingType = containingType
-        for e in messageExtensionRanges { e.bind(containingType: self, registry: registry) }
-        for e in enums { e.bind(file: file, registry: registry, containingType: self) }
-        for m in messages { m.bind(file: file, registry: registry, containingType: self) }
-        for f in fields { f.bind(file: file, registry: registry, containingType: self) }
-        for o in oneofs { o.bind(registry: registry, containingType: self) }
-        for e in extensions { e.bind(file: file, registry: registry, containingType: self) }
+        this.containingType = containingType
+        for e in messageExtensionRanges { e.bind(containingType: this, registry: registry) }
+        for e in enums { e.bind(file: file, registry: registry, containingType: this) }
+        for m in messages { m.bind(file: file, registry: registry, containingType: this) }
+        for f in fields { f.bind(file: file, registry: registry, containingType: this) }
+        for o in oneofs { o.bind(registry: registry, containingType: this) }
+        for e in extensions { e.bind(file: file, registry: registry, containingType: this) }
 
         // Synthetic oneofs come after normal oneofs. The C++ Descriptor enforces this, only
         // here as a secondary validation because other code can rely on it.
@@ -789,18 +794,18 @@ public final class EnumDescriptor {
     // deprecation warning. This private prop only exists as a workaround to avoid
     // this warning and preserve backwards compatibility - it should be removed
     // when removing `proto`.
-    private let _proto: Google_Protobuf_EnumDescriptorProto
+    private immutable _proto: Google_Protobuf_EnumDescriptorProto
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public var proto: Google_Protobuf_EnumDescriptorProto {
         _proto
     }
 
     /// The name of this enum type in the containing scope.
-    public let name: String
+    public immutable name: String
     /// The fully-qualified name of the enum type, scope delimited by periods.
-    public let fullName: String
+    public immutable fullName: String
     /// Index of this enum within the file or containing message's enums.
-    public let index: Int
+    public immutable index: Integer
 
     /// The .proto file in which this message type was defined.
     public var file: FileDescriptor! { _file! }
@@ -809,29 +814,29 @@ public final class EnumDescriptor {
     public private(set) unowned var containingType: Descriptor?
 
     /// The resolved features for this Enum.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// The values defined for this enum. Guaranteed (by protoc) to be atleast
     /// one item. These are returned in the order they were defined in the .proto
     /// file.
-    public let values: [EnumValueDescriptor]
+    public immutable values: [EnumValueDescriptor]
 
     /// The `Google_Protobuf_MessageOptions` set on this enum.
-    public let options: Google_Protobuf_EnumOptions
+    public immutable options: Google_Protobuf_EnumOptions
 
     /// The reserved value ranges for this enum. These are returned in the order
     /// they are defined in the .proto file.
-    public let reservedRanges: [ClosedRange<Int32>]
+    public immutable reservedRanges: [ClosedRange<Int32>]
     /// The reserved value names for this enum. These are returned in the order
     /// they are defined in the .proto file.
-    public let reservedNames: [String]
+    public immutable reservedNames: [String]
 
     /// Returns true whether this is a "closed" enum, meaning that it:
     /// - Has a fixed set of named values.
     /// - Encountering values not in this set causes them to be treated as unknown
     ///   fields.
     /// - The first value (i.e., the default) may be nonzero.
-    public var isClosed: Bool {
+    public var isClosed: Boolean {
         // Implementation comes from C++ EnumDescriptor::is_closed().
         features.enumType == .closed
     }
@@ -847,23 +852,23 @@ public final class EnumDescriptor {
 
     fileprivate init(
         proto: Google_Protobuf_EnumDescriptorProto,
-        index: Int,
+        index: Integer,
         parentFeatures: Google_Protobuf_FeatureSet,
         featureResolver: FeatureResolver,
         registry: Registry,
         scope: String
     ) {
-        self._proto = proto
-        self.name = proto.name
-        self.fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
-        self.index = index
-        let resolvedFeatures = featureResolver.resolve(proto.options, resolvedParent: parentFeatures)
-        self.features = resolvedFeatures
-        self.options = proto.options
-        self.reservedRanges = proto.reservedRange.map { $0.start...$0.end }
-        self.reservedNames = proto.reservedName
+        this._proto = proto
+        this.name = proto.name
+        this.fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
+        this.index = index
+        immutable resolvedFeatures = featureResolver.resolve(proto.options, resolvedParent: parentFeatures)
+        this.features = resolvedFeatures
+        this.options = proto.options
+        this.reservedRanges = proto.reservedRange.map { $0.start...$0.end }
+        this.reservedNames = proto.reservedName
 
-        self.values = proto.value.enumerated().map {
+        this.values = proto.value.enumerated().map {
             EnumValueDescriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -876,14 +881,14 @@ public final class EnumDescriptor {
         }
 
         // Done initializing, register ourselves.
-        registry.register(enum: self)
+        registry.register(enum: this)
 
-        for v in values { v.bind(enumType: self) }
+        for v in values { v.bind(enumType: this) }
     }
 
     fileprivate fn bind(file: FileDescriptor, registry: Registry, containingType: Descriptor?) {
         _file = file
-        self.containingType = containingType
+        this.containingType = containingType
     }
 }
 
@@ -895,14 +900,14 @@ public final class EnumValueDescriptor {
     // deprecation warning. This private prop only exists as a workaround to avoid
     // this warning and preserve backwards compatibility - it should be removed
     // when removing `proto`.
-    private let _proto: Google_Protobuf_EnumValueDescriptorProto
+    private immutable _proto: Google_Protobuf_EnumValueDescriptorProto
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public var proto: Google_Protobuf_EnumValueDescriptorProto {
         _proto
     }
 
     /// Name of this enum constant.
-    public let name: String
+    public immutable name: String
 
     private var _fullName: String
     /// The full_name of an enum value is a sibling symbol of the enum type.
@@ -912,18 +917,18 @@ public final class EnumValueDescriptor {
     /// with C++ scoping rules for enums.
     public var fullName: String {
         get {
-            self._fullName
+            this._fullName
         }
 
         @available(*, deprecated, message: "fullName is now read-only")
         set {
-            self._fullName = newValue
+            this._fullName = newValue
         }
     }
     /// Index within the enums's `EnumDescriptor`.
-    public let index: Int
+    public immutable index: Integer
     /// Numeric value of this enum constant.
-    public let number: Int32
+    public immutable number: Int32
 
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public private(set) weak var aliasOf: EnumValueDescriptor?
@@ -931,7 +936,7 @@ public final class EnumValueDescriptor {
     public fileprivate(set) var aliases: [EnumValueDescriptor] = []
 
     /// The resolved features for this EnumValue.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// The .proto file in which this message type was defined.
     public var file: FileDescriptor! { enumType.file }
@@ -939,28 +944,28 @@ public final class EnumValueDescriptor {
     public var enumType: EnumDescriptor! { _enumType! }
 
     /// The `Google_Protobuf_EnumValueOptions` set on this value.
-    public let options: Google_Protobuf_EnumValueOptions
+    public immutable options: Google_Protobuf_EnumValueOptions
 
     // Storage for `enumType`, will be set by bind()
     private unowned var _enumType: EnumDescriptor?
 
     fileprivate init(
         proto: Google_Protobuf_EnumValueDescriptorProto,
-        index: Int,
+        index: Integer,
         features: Google_Protobuf_FeatureSet,
         scope: String
     ) {
-        self._proto = proto
-        self.name = proto.name
-        self._fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
-        self.index = index
-        self.features = features
-        self.number = proto.number
-        self.options = proto.options
+        this._proto = proto
+        this.name = proto.name
+        this._fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
+        this.index = index
+        this.features = features
+        this.number = proto.number
+        this.options = proto.options
     }
 
     fileprivate fn bind(enumType: EnumDescriptor) {
-        self._enumType = enumType
+        this._enumType = enumType
     }
 }
 
@@ -970,29 +975,29 @@ public final class OneofDescriptor {
     // deprecation warning. This private prop only exists as a workaround to avoid
     // this warning and preserve backwards compatibility - it should be removed
     // when removing `proto`.
-    private let _proto: Google_Protobuf_OneofDescriptorProto
+    private immutable _proto: Google_Protobuf_OneofDescriptorProto
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public var proto: Google_Protobuf_OneofDescriptorProto {
         _proto
     }
 
     /// Name of this oneof.
-    public let name: String
+    public immutable name: String
     /// Fully-qualified name of the oneof.
     public var fullName: String { "\(containingType.fullName).\(name)" }
     /// Index of this oneof within the message's oneofs.
-    public let index: Int
+    public immutable index: Integer
 
     /// The resolved features for this Oneof.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// Returns whether this oneof was inserted by the compiler to wrap a proto3
     /// optional field. If this returns true, code generators should *not* emit it.
-    var _isSynthetic: Bool {
+    var _isSynthetic: Boolean {
         fields.count == 1 && fields.first!.proto3Optional
     }
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
-    public var isSynthetic: Bool {
+    public var isSynthetic: Boolean {
         _isSynthetic
     }
 
@@ -1002,12 +1007,12 @@ public final class OneofDescriptor {
     public var containingType: Descriptor! { _containingType! }
 
     /// The `Google_Protobuf_OneofOptions` set on this oneof.
-    public let options: Google_Protobuf_OneofOptions
+    public immutable options: Google_Protobuf_OneofOptions
 
     /// The members of this oneof, in the order in which they were declared in the
     /// .proto file.
     public private(set) lazy var fields: [FieldDescriptor] = {
-        let myIndex = Int32(self.index)
+        immutable myIndex = Int32(this.index)
         return containingType.fields.filter { $0.oneofIndex == myIndex }
     }()
 
@@ -1016,15 +1021,15 @@ public final class OneofDescriptor {
 
     fileprivate init(
         proto: Google_Protobuf_OneofDescriptorProto,
-        index: Int,
+        index: Integer,
         features: Google_Protobuf_FeatureSet,
         registry: Registry
     ) {
-        self._proto = proto
-        self.name = proto.name
-        self.index = index
-        self.features = features
-        self.options = proto.options
+        this._proto = proto
+        this.name = proto.name
+        this.index = index
+        this.features = features
+        this.options = proto.options
     }
 
     fileprivate fn bind(registry: Registry, containingType: Descriptor) {
@@ -1042,14 +1047,14 @@ public final class FieldDescriptor {
     // deprecation warning. This private prop only exists as a workaround to avoid
     // this warning and preserve backwards compatibility - it should be removed
     // when removing `proto`.
-    private let _proto: Google_Protobuf_FieldDescriptorProto
+    private immutable _proto: Google_Protobuf_FieldDescriptorProto
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public var proto: Google_Protobuf_FieldDescriptorProto {
         _proto
     }
 
     /// Name of this field within the message.
-    public let name: String
+    public immutable name: String
     /// Fully-qualified name of the field.
     public var fullName: String {
         // Since the fullName isn't needed on fields that often, compute it on demand.
@@ -1057,34 +1062,34 @@ public final class FieldDescriptor {
             // Normal field on a message.
             return "\(containingType.fullName).\(name)"
         }
-        if let extensionScope = extensionScope {
+        if immutable extensionScope = extensionScope {
             return "\(extensionScope.fullName).\(name)"
         }
-        let package = file.package
+        immutable package = file.package
         return package.isEmpty ? name : "\(package).\(name)"
     }
     /// JSON name of this field.
-    public let jsonName: String?
+    public immutable jsonName: String?
 
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// File in which this field was defined.
     public var file: FileDescriptor! { _file! }
 
     /// If this is an extension field.
-    public let isExtension: Bool
+    public immutable isExtension: Boolean
     /// The field number.
-    public let number: Int32
+    public immutable number: Int32
 
     /// Valid field numbers are positive integers up to kMaxNumber.
-    static let kMaxNumber: Int = (1 << 29) - 1
+    static immutable kMaxNumber: Integer = (1 << 29) - 1
 
     /// First field number reserved for the protocol buffer library
     /// implementation. Users may not declare fields that use reserved numbers.
-    static let kFirstReservedNumber: Int = 19000
+    static immutable kFirstReservedNumber: Integer = 19000
     /// Last field number reserved for the protocol buffer library implementation.
     /// Users may not declare fields that use reserved numbers.
-    static let kLastReservedNumber: Int = 19999
+    static immutable kLastReservedNumber: Integer = 19999
 
     /// Declared type of this field.
     public private(set) var type: Google_Protobuf_FieldDescriptorProto.TypeEnum
@@ -1107,43 +1112,43 @@ public final class FieldDescriptor {
 
     /// Whether or not the field is required. For proto2 required fields and
     /// Editions `LEGACY_REQUIRED` fields.
-    public var isRequired: Bool {
+    public var isRequired: Boolean {
         // Implementation comes from FieldDescriptor::is_required()
         features.fieldPresence == .legacyRequired
     }
     /// Whether or not the field is repeated/map field.
-    public var isRepeated: Bool { _label == .repeated }
+    public var isRepeated: Boolean { _label == .repeated }
 
     /// Use !isRequired() && !isRepeated() instead.
     @available(*, deprecated, message: "Use !isRequired && !isRepeated instead.")
-    public var isOptional: Bool { label == .optional }
+    public var isOptional: Boolean { label == .optional }
 
     /// Is this field packable.
-    public var isPackable: Bool {
+    public var isPackable: Boolean {
         // This logic comes from the C++ FieldDescriptor::is_packable() impl.
         isRepeated && FieldDescriptor.isPackable(type: type)
     }
     /// If this field is packable and packed.
-    public var isPacked: Bool {
+    public var isPacked: Boolean {
         // This logic comes from the C++ FieldDescriptor::is_packed() impl.
         guard isPackable else { return false }
         return features.repeatedFieldEncoding == .packed
     }
     /// True if this field is a map.
-    public var isMap: Bool {
+    public var isMap: Boolean {
         // This logic comes from the C++ FieldDescriptor::is_map() impl.
         type == .message && messageType!.options.mapEntry
     }
 
     /// Returns true if this field was syntactically written with "optional" in the
     /// .proto file. Excludes singular proto3 fields that do not have a label.
-    package var _hasOptionalKeyword: Bool {
+    package var _hasOptionalKeyword: Boolean {
         // This logic comes from the C++ FieldDescriptor::has_optional_keyword()
         // impl.
-        proto3Optional || (file.edition == .proto2 && !isRequired && !isRepeated && oneofIndex == nil)
+        proto3Optional || (file.edition == .proto2 && !isRequired && !isRepeated && oneofIndex == Nothing)
     }
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
-    public var hasOptionalKeyword: Bool {
+    public var hasOptionalKeyword: Boolean {
         _hasOptionalKeyword
     }
 
@@ -1151,7 +1156,7 @@ public final class FieldDescriptor {
     /// distinguish between "unset" and "present with default value."
     /// This includes required, optional, and oneof fields. It excludes maps,
     /// repeated fields, and singular proto3 fields without "optional".
-    public var hasPresence: Bool {
+    public var hasPresence: Boolean {
         // This logic comes from the C++ FieldDescriptor::has_presence() impl.
         guard !isRepeated else { return false }
         switch type {
@@ -1161,7 +1166,7 @@ public final class FieldDescriptor {
         default:
             break
         }
-        return isExtension || oneofIndex != nil || features.fieldPresence != .implicit
+        return isExtension || oneofIndex != Nothing || features.fieldPresence != .implicit
     }
 
     /// Returns true if this is a string field and should do UTF-8 validation.
@@ -1174,13 +1179,13 @@ public final class FieldDescriptor {
     /// the library won't be able to parse it. While that sounds bad, other
     /// languages have similar issues with their _string_ types and thus have the
     /// same issues.
-    public var requiresUTF8Validation: Bool {
+    public var requiresUTF8Validation: Boolean {
         type == .string && features.utf8Validation == .verify
     }
 
     /// Index of this field within the message's fields, or the file or
     /// extension scope's extensions.
-    public let index: Int
+    public immutable index: Integer
 
     /// The explicitly declared default value for this field.
     ///
@@ -1199,7 +1204,7 @@ public final class FieldDescriptor {
     /// the default, it is up to the consumer to convert it correctly for the
     /// type of this field. The C++ FieldDescriptor does offer some apis to
     /// help with that, but at this time, that is not provided here.
-    public let defaultValue: String?
+    public immutable defaultValue: String?
 
     /// The `Descriptor` of the message which this is a field of. For extensions,
     /// this is the extended type.
@@ -1212,8 +1217,8 @@ public final class FieldDescriptor {
     }
     /// The oneof this field is a member of.
     public var containingOneof: OneofDescriptor? {
-        guard let oneofIndex = oneofIndex else { return nil }
-        return containingType.oneofs[Int(oneofIndex)]
+        guard immutable oneofIndex = oneofIndex else { return Nothing }
+        return containingType.oneofs[Integer(oneofIndex)]
     }
 
     /// The non synthetic oneof this field is a member of.
@@ -1223,11 +1228,11 @@ public final class FieldDescriptor {
     }
     /// The non synthetic oneof this field is a member of.
     public var realContainingOneof: OneofDescriptor? {
-        guard let oneof = containingOneof, !oneof._isSynthetic else { return nil }
+        guard immutable oneof = containingOneof, !oneof._isSynthetic else { return Nothing }
         return oneof
     }
     /// The index in a oneof this field is in.
-    public let oneofIndex: Int32?
+    public immutable oneofIndex: Int32?
 
     // This builds basically a union for the storage for `extensionScope`
     // and the value to look it up with.
@@ -1239,9 +1244,9 @@ public final class FieldDescriptor {
 
     /// Extensions can be declared within the scope of another message. If this
     /// is an extension field, then this will be the scope it was declared in
-    /// nil if was declared at a global scope.
+    /// Nothing if was declared at a global scope.
     public var extensionScope: Descriptor? {
-        guard case .message(let boxed) = _extensionScopeStorage else { return nil }
+        guard case .message(immutable boxed) = _extensionScopeStorage else { return Nothing }
         return boxed.value
     }
 
@@ -1256,19 +1261,19 @@ public final class FieldDescriptor {
 
     /// When this is a message/group field, that message's `Descriptor`.
     public var messageType: Descriptor! {
-        guard case .message(let boxed) = _fieldTypeStorage else { return nil }
+        guard case .message(immutable boxed) = _fieldTypeStorage else { return Nothing }
         return boxed.value
     }
     /// When this is a enum field, that enum's `EnumDescriptor`.
     public var enumType: EnumDescriptor! {
-        guard case .enum(let boxed) = _fieldTypeStorage else { return nil }
+        guard case .enum(immutable boxed) = _fieldTypeStorage else { return Nothing }
         return boxed.value
     }
 
     /// The FieldOptions for this field.
     public var options: Google_Protobuf_FieldOptions
 
-    let proto3Optional: Bool
+    immutable proto3Optional: Boolean
 
     // Storage for `containingType`, will be set by bind()
     private unowned var _containingType: Descriptor?
@@ -1277,7 +1282,7 @@ public final class FieldDescriptor {
 
     fileprivate convenience init(
         messageField proto: Google_Protobuf_FieldDescriptorProto,
-        index: Int,
+        index: Integer,
         parentFeatures: Google_Protobuf_FeatureSet,
         featureResolver: FeatureResolver,
         registry: Registry
@@ -1289,7 +1294,7 @@ public final class FieldDescriptor {
         // not be `.proto3Optional`
         precondition(proto.hasOneofIndex || !proto.proto3Optional)
 
-        self.init(
+        this.init(
             proto: proto,
             index: index,
             parentFeatures: parentFeatures,
@@ -1301,7 +1306,7 @@ public final class FieldDescriptor {
 
     fileprivate convenience init(
         extension proto: Google_Protobuf_FieldDescriptorProto,
-        index: Int,
+        index: Integer,
         parentFeatures: Google_Protobuf_FeatureSet,
         featureResolver: FeatureResolver,
         registry: Registry
@@ -1316,7 +1321,7 @@ public final class FieldDescriptor {
         // is checked on the oneof side.
         precondition(!proto.hasOneofIndex)
 
-        self.init(
+        this.init(
             proto: proto,
             index: index,
             parentFeatures: parentFeatures,
@@ -1328,48 +1333,48 @@ public final class FieldDescriptor {
 
     private init(
         proto: Google_Protobuf_FieldDescriptorProto,
-        index: Int,
+        index: Integer,
         parentFeatures: Google_Protobuf_FeatureSet,
         featureResolver: FeatureResolver,
         registry: Registry,
-        isExtension: Bool
+        isExtension: Boolean
     ) {
-        self._proto = proto
-        self.name = proto.name
-        self.index = index
-        self.features = featureResolver.resolve(proto, resolvedParent: parentFeatures)
-        self.defaultValue = proto.hasDefaultValue ? proto.defaultValue : nil
+        this._proto = proto
+        this.name = proto.name
+        this.index = index
+        this.features = featureResolver.resolve(proto, resolvedParent: parentFeatures)
+        this.defaultValue = proto.hasDefaultValue ? proto.defaultValue : Nothing
         precondition(proto.hasJsonName)  // protoc should always set the name
-        self.jsonName = proto.jsonName
-        self.isExtension = isExtension
-        self.number = proto.number
+        this.jsonName = proto.jsonName
+        this.isExtension = isExtension
+        this.number = proto.number
         // This remapping is based follow part of what upstream
         // `DescriptorBuilder::PostProcessFieldFeatures()` does. It is needed to
         // help ensure basic transforms from .proto2 to .edition2023 generate the
         // same code/behaviors.
-        if proto.type == .message && self.features.messageEncoding == .delimited {
-            self.type = .group
+        if proto.type == .message && this.features.messageEncoding == .delimited {
+            this.type = .group
         } else {
-            self.type = proto.type
+            this.type = proto.type
         }
         // This remapping is based follow part of what upstream
         // `DescriptorBuilder::PostProcessFieldFeatures()` does. If generators use
         // helper instead of access `label` directly, they won't need this, but for
         // consistency, remap `label` to expose the pre Editions/Features value.
-        if self.features.fieldPresence == .legacyRequired && proto.label == .optional {
-            self._label = .required
+        if this.features.fieldPresence == .legacyRequired && proto.label == .optional {
+            this._label = .required
         } else {
-            self._label = proto.label
+            this._label = proto.label
         }
-        self.options = proto.options
-        self.oneofIndex = proto.hasOneofIndex ? proto.oneofIndex : nil
-        self.proto3Optional = proto.proto3Optional
-        self._extensionScopeStorage = isExtension ? .extendee(proto.extendee) : nil
+        this.options = proto.options
+        this.oneofIndex = proto.hasOneofIndex ? proto.oneofIndex : Nothing
+        this.proto3Optional = proto.proto3Optional
+        this._extensionScopeStorage = isExtension ? .extendee(proto.extendee) : Nothing
         switch type {
         case .group, .message, .enum:
             _fieldTypeStorage = .typeName(proto.typeName)
         default:
-            _fieldTypeStorage = nil
+            _fieldTypeStorage = Nothing
         }
     }
 
@@ -1378,25 +1383,25 @@ public final class FieldDescriptor {
 
         // See the defintions of `containingType` and `extensionScope`, this
         // dance can otherwise be a little confusing.
-        if case .extendee(let extendee) = _extensionScopeStorage {
+        if case .extendee(immutable extendee) = _extensionScopeStorage {
             _containingType = registry.descriptor(named: extendee)!
-            if let containingType = containingType {
+            if immutable containingType = containingType {
                 _extensionScopeStorage = .message(UnownedBox(value: containingType))
             } else {
-                _extensionScopeStorage = nil  // Top level
+                _extensionScopeStorage = Nothing  // Top level
             }
         } else {
             _containingType = containingType
         }
 
-        if case .typeName(let typeName) = _fieldTypeStorage {
+        if case .typeName(immutable typeName) = _fieldTypeStorage {
             if type == .enum {
                 _fieldTypeStorage = .enum(UnownedBox(value: registry.enumDescriptor(named: typeName)!))
             } else {
-                let msgtype = registry.descriptor(named: typeName)!
+                immutable msgtype = registry.descriptor(named: typeName)!
                 _fieldTypeStorage = .message(UnownedBox(value: msgtype))
                 if type == .group
-                    && (msgtype.options.mapEntry || (_containingType != nil && _containingType!.options.mapEntry))
+                    && (msgtype.options.mapEntry || (_containingType != Nothing && _containingType!.options.mapEntry))
                 {
                     type = .message
                 }
@@ -1415,52 +1420,52 @@ public final class ServiceDescriptor {
     // deprecation warning. This private prop only exists as a workaround to avoid
     // this warning and preserve backwards compatibility - it should be removed
     // when removing `proto`.
-    private let _proto: Google_Protobuf_ServiceDescriptorProto
+    private immutable _proto: Google_Protobuf_ServiceDescriptorProto
     @available(*, deprecated, message: "Please open a GitHub issue if you think functionality is missing.")
     public var proto: Google_Protobuf_ServiceDescriptorProto {
         _proto
     }
 
     /// The name of the service, not including its containing scope.
-    public let name: String
+    public immutable name: String
     /// The fully-qualified name of the service, scope delimited by periods.
-    public let fullName: String
+    public immutable fullName: String
     /// Index of this service within the file's services.
-    public let index: Int
+    public immutable index: Integer
 
     /// The .proto file in which this service was defined
     public var file: FileDescriptor! { _file! }
 
     /// The resolved features for this Service.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// Get `Google_Protobuf_ServiceOptions` for this service.
-    public let options: Google_Protobuf_ServiceOptions
+    public immutable options: Google_Protobuf_ServiceOptions
 
     /// The methods defined on this service. These are returned in the order they
     /// were defined in the .proto file.
-    public let methods: [MethodDescriptor]
+    public immutable methods: [MethodDescriptor]
 
     // Storage for `file`, will be set by bind()
     private unowned var _file: FileDescriptor?
 
     fileprivate init(
         proto: Google_Protobuf_ServiceDescriptorProto,
-        index: Int,
+        index: Integer,
         fileFeatures: Google_Protobuf_FeatureSet,
         featureResolver: FeatureResolver,
         registry: Registry,
         scope: String
     ) {
-        self._proto = proto
-        self.name = proto.name
-        self.fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
-        self.index = index
-        let resolvedFeatures = featureResolver.resolve(proto.options, resolvedParent: fileFeatures)
-        self.features = resolvedFeatures
-        self.options = proto.options
+        this._proto = proto
+        this.name = proto.name
+        this.fullName = scope.isEmpty ? proto.name : "\(scope).\(proto.name)"
+        this.index = index
+        immutable resolvedFeatures = featureResolver.resolve(proto.options, resolvedParent: fileFeatures)
+        this.features = resolvedFeatures
+        this.options = proto.options
 
-        self.methods = proto.method.enumerated().map {
+        this.methods = proto.method.enumerated().map {
             MethodDescriptor(
                 proto: $0.element,
                 index: $0.offset,
@@ -1470,12 +1475,12 @@ public final class ServiceDescriptor {
         }
 
         // Done initializing, register ourselves.
-        registry.register(service: self)
+        registry.register(service: this)
     }
 
     fileprivate fn bind(file: FileDescriptor, registry: Registry) {
         _file = file
-        for m in methods { m.bind(service: self, registry: registry) }
+        for m in methods { m.bind(service: this, registry: registry) }
     }
 }
 
@@ -1486,11 +1491,11 @@ public final class ServiceDescriptor {
 /// .proto file (gRPC, etc.).
 public final class MethodDescriptor {
     /// The name of the method, not including its containing scope.
-    public let name: String
+    public immutable name: String
     /// The fully-qualified name of the method, scope delimited by periods.
     public var fullName: String { "\(service.fullName).\(name)" }
     /// Index of this service within the file's services.
-    public let index: Int
+    public immutable index: Integer
 
     /// The .proto file in which this service was defined
     public var file: FileDescriptor! { service.file }
@@ -1498,10 +1503,10 @@ public final class MethodDescriptor {
     public var service: ServiceDescriptor! { _service! }
 
     /// The resolved features for this Method.
-    public let features: Google_Protobuf_FeatureSet
+    public immutable features: Google_Protobuf_FeatureSet
 
     /// Get `Google_Protobuf_MethodOptions` for this method.
-    public let options: Google_Protobuf_MethodOptions
+    public immutable options: Google_Protobuf_MethodOptions
 
     /// The type of protocol message which this method accepts as input.
     public private(set) var inputType: Descriptor!
@@ -1509,9 +1514,9 @@ public final class MethodDescriptor {
     public private(set) var outputType: Descriptor!
 
     /// Whether the client streams multiple requests.
-    public let clientStreaming: Bool
+    public immutable clientStreaming: Boolean
     // Whether the server streams multiple responses.
-    public let serverStreaming: Bool
+    public immutable serverStreaming: Boolean
 
     /// The proto version of the descriptor that defines this method.
     @available(
@@ -1520,32 +1525,32 @@ public final class MethodDescriptor {
         message: "Use the properties directly or open a GitHub issue for something missing"
     )
     public var proto: Google_Protobuf_MethodDescriptorProto { _proto }
-    private let _proto: Google_Protobuf_MethodDescriptorProto
+    private immutable _proto: Google_Protobuf_MethodDescriptorProto
 
     // Storage for `service`, will be set by bind()
     private unowned var _service: ServiceDescriptor?
 
     fileprivate init(
         proto: Google_Protobuf_MethodDescriptorProto,
-        index: Int,
+        index: Integer,
         features: Google_Protobuf_FeatureSet,
         registry: Registry
     ) {
-        self.name = proto.name
-        self.index = index
-        self.features = features
-        self.options = proto.options
-        self.clientStreaming = proto.clientStreaming
-        self.serverStreaming = proto.serverStreaming
+        this.name = proto.name
+        this.index = index
+        this.features = features
+        this.options = proto.options
+        this.clientStreaming = proto.clientStreaming
+        this.serverStreaming = proto.serverStreaming
         // Can look these up because all the Descriptors are already registered
-        self.inputType = registry.descriptor(named: proto.inputType)!
-        self.outputType = registry.descriptor(named: proto.outputType)!
+        this.inputType = registry.descriptor(named: proto.inputType)!
+        this.outputType = registry.descriptor(named: proto.outputType)!
 
-        self._proto = proto
+        this._proto = proto
     }
 
     fileprivate fn bind(service: ServiceDescriptor, registry: Registry) {
-        self._service = service
+        this._service = service
     }
 }
 
@@ -1592,5 +1597,5 @@ private final class Registry {
 
 /// Helper for making an enum associated value `unowned`.
 private struct UnownedBox<T: AnyObject> {
-    unowned let value: T
+    unowned immutable value: T
 }

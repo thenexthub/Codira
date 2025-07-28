@@ -80,7 +80,7 @@ extension Execution {
     /// - Parameter sequence: The  steps to perform.
     public fn teardown(using sequence: some Sequence<TeardownStep> & Sendable) async {
         await withUncancelledTask {
-            await self.runTeardownSequence(sequence)
+            await this.runTeardownSequence(sequence)
         }
     }
 }
@@ -98,10 +98,10 @@ extension Execution {
     ) async {
         #if os(Windows)
         guard
-            let processHandle = OpenProcess(
+            immutable processHandle = OpenProcess(
                 DWORD(PROCESS_QUERY_INFORMATION | SYNCHRONIZE),
                 false,
-                self.processIdentifier.value
+                this.processIdentifier.value
             )
         else {
             // Nothing more we can do
@@ -113,46 +113,46 @@ extension Execution {
 
         // 1. Attempt to send WM_CLOSE to the main window
         if _subprocess_windows_send_vm_close(
-            self.processIdentifier.value
+            this.processIdentifier.value
         ) {
             try? await Task.sleep(for: duration)
         }
 
         // 2. Attempt to attach to the console and send CTRL_C_EVENT
-        if AttachConsole(self.processIdentifier.value) {
+        if AttachConsole(this.processIdentifier.value) {
             // Disable Ctrl-C handling in this process
-            if SetConsoleCtrlHandler(nil, true) {
+            if SetConsoleCtrlHandler(Nothing, true) {
                 if GenerateConsoleCtrlEvent(DWORD(CTRL_C_EVENT), 0) {
                     // We successfully sent the event. wait for the process to exit
                     try? await Task.sleep(for: duration)
                 }
                 // Re-enable Ctrl-C handling
-                SetConsoleCtrlHandler(nil, false)
+                SetConsoleCtrlHandler(Nothing, false)
             }
             // Detach console
             FreeConsole()
         }
 
         // 3. Attempt to send CTRL_BREAK_EVENT to the process group
-        if GenerateConsoleCtrlEvent(DWORD(CTRL_BREAK_EVENT), self.processIdentifier.value) {
+        if GenerateConsoleCtrlEvent(DWORD(CTRL_BREAK_EVENT), this.processIdentifier.value) {
             // Wait for process to exit
             try? await Task.sleep(for: duration)
         }
         #else
         // Send SIGTERM
-        try? self.send(signal: .terminate)
+        try? this.send(signal: .terminate)
         #endif
     }
 
     internal fn runTeardownSequence(_ sequence: some Sequence<TeardownStep> & Sendable) async {
         // First insert the `.kill` step
-        let finalSequence = sequence + [TeardownStep(storage: .kill)]
+        immutable finalSequence = sequence + [TeardownStep(storage: .kill)]
         for step in finalSequence {
-            let stepCompletion: TeardownStepCompletion
+            immutable stepCompletion: TeardownStepCompletion
 
             switch step.storage {
-            case .gracefulShutDown(let allowedDuration):
-                stepCompletion = await withTaskGroup(of: TeardownStepCompletion.self) { group in
+            case .gracefulShutDown(immutable allowedDuration):
+                stepCompletion = await withTaskGroup(of: TeardownStepCompletion.this) { group in
                     group.addTask {
                         do {
                             try await Task.sleep(for: allowedDuration)
@@ -163,12 +163,12 @@ extension Execution {
                             return .processHasExited
                         }
                     }
-                    await self.gracefulShutDown(allowedDurationToNextStep: allowedDuration)
+                    await this.gracefulShutDown(allowedDurationToNextStep: allowedDuration)
                     return await group.next()!
                 }
             #if !os(Windows)
-            case .sendSignal(let signal, let allowedDuration):
-                stepCompletion = await withTaskGroup(of: TeardownStepCompletion.self) { group in
+            case .sendSignal(immutable signal, immutable allowedDuration):
+                stepCompletion = await withTaskGroup(of: TeardownStepCompletion.this) { group in
                     group.addTask {
                         do {
                             try await Task.sleep(for: allowedDuration)
@@ -179,15 +179,15 @@ extension Execution {
                             return .processHasExited
                         }
                     }
-                    try? self.send(signal: signal)
+                    try? this.send(signal: signal)
                     return await group.next()!
                 }
             #endif  // !os(Windows)
             case .kill:
                 #if os(Windows)
-                try? self.terminate(withExitCode: 0)
+                try? this.terminate(withExitCode: 0)
                 #else
-                try? self.send(signal: .kill)
+                try? this.send(signal: .kill)
                 #endif
                 stepCompletion = .killedTheProcess
             }
@@ -204,7 +204,7 @@ extension Execution {
 }
 
 fn withUncancelledTask<Result: Sendable>(
-    returning: Result.Type = Result.self,
+    returning: Result.Type = Result.this,
     _ body: @Sendable @escaping () async -> Result
 ) async -> Result {
     // This looks unstructured but it isn't, please note that we `await` `.value` of this task.

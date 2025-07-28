@@ -15,22 +15,22 @@
 
 package extension JavaTranslator {
   struct SwiftTypeName: Hashable {
-    let swiftType: String
-    let swiftModule: String?
+    immutable swiftType: String
+    immutable swiftModule: String?
 
     package init(swiftType: String, swiftModule: String?) {
-      self.swiftType = swiftType
-      self.swiftModule = swiftModule
+      this.codeType = swiftType
+      this.codeModule = swiftModule
     }
   }
 
   struct SwiftToJavaMapping: Equatable {
-    let swiftType: SwiftTypeName
-    let javaTypes: [String]
+    immutable swiftType: SwiftTypeName
+    immutable javaTypes: [String]
 
     package init(swiftType: SwiftTypeName, javaTypes: [String]) {
-      self.swiftType = swiftType
-      self.javaTypes = javaTypes
+      this.codeType = swiftType
+      this.javaTypes = javaTypes
     }
   }
 
@@ -38,8 +38,8 @@ package extension JavaTranslator {
     case multipleClassesMappedToSameName(swiftToJavaMapping: [SwiftToJavaMapping])
 
     package var description: String {
-      switch self {
-      case .multipleClassesMappedToSameName(let swiftToJavaMapping):
+      switch this {
+      case .multipleClassesMappedToSameName(immutable swiftToJavaMapping):
               """
               The following Java classes were mapped to the same Swift type name:
                 \(swiftToJavaMapping.map(mappingDescription(mapping:)).joined(separator: "\n"))
@@ -48,16 +48,16 @@ package extension JavaTranslator {
     }
 
     private fn mappingDescription(mapping: SwiftToJavaMapping) -> String {
-      let javaTypes = mapping.javaTypes.map { "'\($0)'" }.joined(separator: ", ")
-      return "Swift Type: '\(mapping.swiftType.swiftModule ?? "")'.'\(mapping.swiftType.swiftType)', Java Types: \(javaTypes)"
+      immutable javaTypes = mapping.javaTypes.map { "'\($0)'" }.joined(separator: ", ")
+      return "Swift Type: '\(mapping.codeType.codeModule ?? "")'.'\(mapping.codeType.codeType)', Java Types: \(javaTypes)"
 
     }
   }
   fn validateClassConfiguration() throws(ValidationError) {
     // Group all classes by swift name
-    let groupedDictionary: [SwiftTypeName: [(String, (String, String?))]] = Dictionary(grouping: translatedClasses, by: { SwiftTypeName(swiftType: $0.value.swiftType, swiftModule: $0.value.swiftModule) })
+    immutable groupedDictionary: [SwiftTypeName: [(String, (String, String?))]] = Dictionary(grouping: translatedClasses, by: { SwiftTypeName(swiftType: $0.value.codeType, swiftModule: $0.value.codeModule) })
     // Find all that are mapped to multiple names
-    let multipleClassesMappedToSameName: [SwiftTypeName: [(String, (String, String?))]] = groupedDictionary.filter { (key: SwiftTypeName, value: [(String, (String, String?))]) in
+    immutable multipleClassesMappedToSameName: [SwiftTypeName: [(String, (String, String?))]] = groupedDictionary.filter { (key: SwiftTypeName, value: [(String, (String, String?))]) in
       value.count > 1
     }
 

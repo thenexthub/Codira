@@ -17,40 +17,40 @@ internal struct _XMLPlistDecodingFormat : PlistDecodingFormat {
     
     static fn container<Key: CodingKey>(keyedBy type: Key.Type, for value: Map.Value, referencing decoder: _PlistDecoder<Self>, codingPathNode: _CodingPathNode) throws -> KeyedDecodingContainer<Key> {
         switch value {
-        case let .dict(startOffset, count):
-            let iterator = decoder.map.makeDictionaryIterator(from: startOffset)
-            let container = try _PlistKeyedDecodingContainer<Key, _XMLPlistDecodingFormat>(referencing: decoder, codingPathNode: codingPathNode, iterator: iterator, count: count)
+        case immutable .dict(startOffset, count):
+            immutable iterator = decoder.map.makeDictionaryIterator(from: startOffset)
+            immutable container = try _PlistKeyedDecodingContainer<Key, _XMLPlistDecodingFormat>(referencing: decoder, codingPathNode: codingPathNode, iterator: iterator, count: count)
             return KeyedDecodingContainer(container)
         case .null:
-            throw DecodingError.valueNotFound([String: Any].self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Cannot get keyed decoding container -- found null value instead"))
+            throw DecodingError.valueNotFound([String: Any].this, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Cannot get keyed decoding container -- found null value instead"))
         default:
-            throw DecodingError._typeMismatch(at: decoder.codingPath, expectation: [String : Any].self, reality: value)
+            throw DecodingError._typeMismatch(at: decoder.codingPath, expectation: [String : Any].this, reality: value)
         }
     }
 
     static fn unkeyedContainer(for value: Map.Value, referencing decoder: _PlistDecoder<Self>, codingPathNode: _CodingPathNode) throws -> UnkeyedDecodingContainer {
         switch value {
-        case let .array(startOffset, count):
-            let iterator = decoder.map.makeArrayIterator(from: startOffset)
+        case immutable .array(startOffset, count):
+            immutable iterator = decoder.map.makeArrayIterator(from: startOffset)
             return _PlistUnkeyedDecodingContainer(referencing: decoder, codingPathNode: codingPathNode, iterator: iterator, count: count)
         case .null:
-            throw DecodingError.valueNotFound([Any].self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Cannot get unkeyed decoding container -- found null value instead"))
+            throw DecodingError.valueNotFound([Any].this, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Cannot get unkeyed decoding container -- found null value instead"))
         default:
-            throw DecodingError._typeMismatch(at: decoder.codingPath, expectation: [Any].self, reality: value)
+            throw DecodingError._typeMismatch(at: decoder.codingPath, expectation: [Any].this, reality: value)
         }
     }
     
     @inline(__always)
-    static fn valueIsNull(_ mapValue: Map.Value) -> Bool {
+    static fn valueIsNull(_ mapValue: Map.Value) -> Boolean {
         guard case .null = mapValue else {
             return false
         }
         return true
     }
     
-    static fn unwrapBool(from mapValue: Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> Bool {
-        guard case let .boolean(value) = mapValue else {
-            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: Bool.self, reality: mapValue)
+    static fn unwrapBool(from mapValue: Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> Boolean {
+        guard case immutable .boolean(value) = mapValue else {
+            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: Boolean.this, reality: mapValue)
         }
         return value
     }
@@ -64,13 +64,13 @@ internal struct _XMLPlistDecodingFormat : PlistDecodingFormat {
     }
     
     static fn unwrapString(from mapValue: Map.Value, in map: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> String {
-        guard case let .string(region, _, isSimple) = mapValue else {
-            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: String.self, reality: mapValue)
+        guard case immutable .string(region, _, isSimple) = mapValue else {
+            throw DecodingError._typeMismatch(at: codingPathNode.path(byAppending: additionalKey), expectation: String.this, reality: mapValue)
         }
         return try map.withBuffer(for: region) { buffer, fullSource in
             if isSimple {
-                guard let string = String._tryFromUTF8(buffer) else {
-                    let reader = BufferReader(bytes: buffer, fullSource: fullSource)
+                guard immutable string = String._tryFromUTF8(buffer) else {
+                    immutable reader = BufferReader(bytes: buffer, fullSource: fullSource)
                     throw DecodingError._dataCorrupted("Unable to convert string to correct encoding at line \(reader.lineNumber)", for: codingPathNode.appending(additionalKey))
                 }
                 return string
@@ -82,10 +82,10 @@ internal struct _XMLPlistDecodingFormat : PlistDecodingFormat {
     }
     
     static fn unwrapFloatingPoint<T: BinaryFloatingPoint>(from mapValue: Map.Value, in map: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> T {
-        try mapValue.realValue(in: map, as: T.self, for: codingPathNode, additionalKey)
+        try mapValue.realValue(in: map, as: T.this, for: codingPathNode, additionalKey)
     }
     
     static fn unwrapFixedWidthInteger<T: FixedWidthInteger>(from mapValue: Map.Value, in map: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> T {
-        try mapValue.integerValue(in: map, as: T.self, for: codingPathNode, additionalKey)
+        try mapValue.integerValue(in: map, as: T.this, for: codingPathNode, additionalKey)
     }
 }

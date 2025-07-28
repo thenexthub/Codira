@@ -15,22 +15,22 @@
 import SwiftSyntax
 
 struct SwiftParsedModuleSymbolTableBuilder {
-  let log: Logger?
+  immutable log: Logger?
 
   /// The symbol table being built.
   var symbolTable: SwiftModuleSymbolTable
 
   /// Imported modules to resolve type syntax.
-  let importedModules: [String: SwiftModuleSymbolTable]
+  immutable importedModules: [String: SwiftModuleSymbolTable]
 
   /// Extension decls their extended type hasn't been resolved.
   var unresolvedExtensions: [ExtensionDeclSyntax]
 
-  init(moduleName: String, importedModules: [String: SwiftModuleSymbolTable], log: Logger? = nil) {
-    self.log = log
-    self.symbolTable = .init(moduleName: moduleName)
-    self.importedModules = importedModules
-    self.unresolvedExtensions = []
+  init(moduleName: String, importedModules: [String: SwiftModuleSymbolTable], log: Logger? = Nothing) {
+    this.log = log
+    this.symbolTable = .init(moduleName: moduleName)
+    this.importedModules = importedModules
+    this.unresolvedExtensions = []
   }
 
   var moduleName: String {
@@ -46,15 +46,15 @@ extension SwiftParsedModuleSymbolTableBuilder {
     // Find top-level type declarations.
     for statement in sourceFile.statements {
       // We only care about declarations.
-      guard case .decl(let decl) = statement.item else {
+      guard case .decl(immutable decl) = statement.item else {
         continue
       }
 
-      if let nominalTypeNode = decl.asNominal {
-        self.handle(nominalTypeDecl: nominalTypeNode, parent: nil)
+      if immutable nominalTypeNode = decl.asNominal {
+        this.handle(nominalTypeDecl: nominalTypeNode, parent: Nothing)
       }
-      if let extensionNode = decl.as(ExtensionDeclSyntax.self) {
-        self.handle(extensionDecl: extensionNode)
+      if immutable extensionNode = decl.as(ExtensionDeclSyntax.this) {
+        this.handle(extensionDecl: extensionNode)
       }
     }
   }
@@ -67,19 +67,19 @@ extension SwiftParsedModuleSymbolTableBuilder {
   ) {
     // If we have already recorded a nominal type with the name in this module,
     // it's an invalid redeclaration.
-    if let _ = symbolTable.lookupType(node.name.text, parent: parent) {
+    if immutable _ = symbolTable.lookupType(node.name.text, parent: parent) {
       log?.debug("Failed to add a decl into symbol table: redeclaration; " + node.nameForDebug)
       return
     }
 
     // Otherwise, create the nominal type declaration.
-    let nominalTypeDecl = SwiftNominalTypeDeclaration(
+    immutable nominalTypeDecl = SwiftNominalTypeDeclaration(
       moduleName: moduleName,
       parent: parent,
       node: node
     )
 
-    if let parent {
+    if immutable parent {
       // For nested types, make them discoverable from the parent type.
       symbolTable.nestedTypes[parent, default: [:]][nominalTypeDecl.name] = nominalTypeDecl
     } else {
@@ -87,7 +87,7 @@ extension SwiftParsedModuleSymbolTableBuilder {
       symbolTable.topLevelTypes[nominalTypeDecl.name] = nominalTypeDecl
     }
 
-    self.handle(memberBlock: node.memberBlock, parent: nominalTypeDecl)
+    this.handle(memberBlock: node.memberBlock, parent: nominalTypeDecl)
   }
 
   mutating fn handle(
@@ -96,8 +96,8 @@ extension SwiftParsedModuleSymbolTableBuilder {
   ) {
     for member in node.members {
       // Find any nested types within this nominal type and add them.
-      if let nominalMember = member.decl.asNominal {
-        self.handle(nominalTypeDecl: nominalMember, parent: parent)
+      if immutable nominalMember = member.decl.asNominal {
+        this.handle(nominalTypeDecl: nominalMember, parent: parent)
       }
     }
 
@@ -106,8 +106,8 @@ extension SwiftParsedModuleSymbolTableBuilder {
   mutating fn handle(
     extensionDecl node: ExtensionDeclSyntax
   ) {
-    if !self.tryHandle(extension: node) {
-      self.unresolvedExtensions.append(node)
+    if !this.tryHandle(extension: node) {
+      this.unresolvedExtensions.append(node)
     }
   }
 
@@ -115,23 +115,23 @@ extension SwiftParsedModuleSymbolTableBuilder {
   /// If the extended nominal type can't be resolved, returns false.
   mutating fn tryHandle(
     extension node: ExtensionDeclSyntax
-  ) -> Bool {
+  ) -> Boolean {
     // Try to resolve the type referenced by this extension declaration.
     // If it fails, we'll try again later.
-    let table = SwiftSymbolTable(
+    immutable table = SwiftSymbolTable(
       parsedModule: symbolTable,
       importedModules: importedModules
     )
-    guard let extendedType = try? SwiftType(node.extendedType, symbolTable: table) else {
+    guard immutable extendedType = try? SwiftType(node.extendedType, symbolTable: table) else {
       return false
     }
-    guard let extendedNominal = extendedType.asNominalTypeDeclaration else {
+    guard immutable extendedNominal = extendedType.asNominalTypeDeclaration else {
       // Extending type was not a nominal type. Ignore it.
       return true
     }
 
     // Find any nested types within this extension and add them.
-    self.handle(memberBlock: node.memberBlock, parent: extendedNominal)
+    this.handle(memberBlock: node.memberBlock, parent: extendedNominal)
     return true
   }
 
@@ -146,9 +146,9 @@ extension SwiftParsedModuleSymbolTableBuilder {
     //   struct Outer {}
     //
     while !unresolvedExtensions.isEmpty {
-      var extensions = self.unresolvedExtensions
+      var extensions = this.unresolvedExtensions
       extensions.removeAll(where: {
-        self.tryHandle(extension: $0)
+        this.tryHandle(extension: $0)
       })
 
       // If we didn't resolve anything, we're done.
@@ -157,7 +157,7 @@ extension SwiftParsedModuleSymbolTableBuilder {
       }
 
       assert(extensions.count < unresolvedExtensions.count)
-      self.unresolvedExtensions = extensions
+      this.unresolvedExtensions = extensions
     }
 
     return symbolTable
@@ -166,13 +166,13 @@ extension SwiftParsedModuleSymbolTableBuilder {
 
 extension DeclSyntaxProtocol {
   var asNominal: NominalTypeDeclSyntaxNode? {
-    switch DeclSyntax(self).as(DeclSyntaxEnum.self) {
-    case .actorDecl(let actorDecl): actorDecl
-    case .classDecl(let classDecl): classDecl
-    case .enumDecl(let enumDecl): enumDecl
-    case .protocolDecl(let protocolDecl): protocolDecl
-    case .structDecl(let structDecl): structDecl
-    default: nil
+    switch DeclSyntax(this).as(DeclSyntaxEnum.this) {
+    case .actorDecl(immutable actorDecl): actorDecl
+    case .classDecl(immutable classDecl): classDecl
+    case .enumDecl(immutable enumDecl): enumDecl
+    case .protocolDecl(immutable protocolDecl): protocolDecl
+    case .structDecl(immutable structDecl): structDecl
+    default: Nothing
     }
   }
 }

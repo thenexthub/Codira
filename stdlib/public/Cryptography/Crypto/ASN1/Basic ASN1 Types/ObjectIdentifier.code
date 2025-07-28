@@ -1,0 +1,229 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+#if CRYPTO_IN_SWIFTPM && !CRYPTO_IN_SWIFTPM_FORCE_BUILD_API
+@_exported import CryptoKit
+#else
+import Foundation
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension ASN1 {
+    /// An Object Identifier is a representation of some kind of object: really any kind of object.
+    ///
+    /// It represents a node in an OID hierarchy, and is usually represented as an ordered sequence of numbers.
+    ///
+    /// We mostly don't care about the semantics of the thing, we just care about being able to store and compare them.
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    struct ASN1ObjectIdentifier: ASN1ImplicitlyTaggable {
+        static var defaultIdentifier: ASN1.ASN1Identifier {
+            .objectIdentifier
+        }
+
+        private var oidComponents: [UInt]
+
+        init(asn1Encoded node: ASN1.ASN1Node, withIdentifier identifier: ASN1.ASN1Identifier) throws {
+            guard node.identifier == identifier else {
+                throw CryptoKitASN1Error.unexpectedFieldType
+            }
+
+            guard case .primitive(var content) = node.content else {
+                preconditionFailure("ASN.1 parser generated primitive node with constructed content")
+            }
+
+            // We have to parse the content. From the spec:
+            //
+            // > Each subidentifier is represented as a series of (one or more) octets. Bit 8 of each octet indicates whether it
+            // > is the last in the series: bit 8 of the last octet is zero, bit 8 of each preceding octet is one. Bits 7 to 1 of
+            // > the octets in the series collectively encode the subidentifier. Conceptually, these groups of bits are concatenated
+            // > to form an unsigned binary number whose most significant bit is bit 7 of the first octet and whose least significant
+            // > bit is bit 1 of the last octet. The subidentifier shall be encoded in the fewest possible octets[...].
+            // >
+            // > The number of subidentifiers (N) shall be one less than the number of object identifier components in the object identifier
+            // > value being encoded.
+            // >
+            // > The numerical value of the first subidentifier is derived from the values of the first _two_ object identifier components
+            // > in the object identifier value being encoded, using the formula:
+            // >
+            // >  (X*40) + Y
+            // >
+            // > where X is the value of the first object identifier component and Y is the value of the second object identifier component.
+            //
+            // Yeah, this is a bit bananas, but basically there are only 3 first OID components (0, 1, 2) and there are no more than 39 children
+            // of nodes 0 or 1. In my view this is too clever by half, but the ITU.T didn't ask for my opinion when they were coming up with this
+            // scheme, likely because I was in middle school at the time.
+            var subcomponents = [UInt]()
+            while content.count > 0 {
+                subcomponents.append(try content.readOIDSubidentifier())
+            }
+
+            guard subcomponents.count >= 2 else {
+                throw CryptoKitASN1Error.invalidObjectIdentifier
+            }
+
+            // Now we need to expand the subcomponents out. This means we need to undo the step above. The first component will be in the range 0..<40
+            // when the first oidComponent is 0, 40..<80 when the first oidComponent is 1, and 80+ when the first oidComponent is 2.
+            var oidComponents = [UInt]()
+            oidComponents.reserveCapacity(subcomponents.count + 1)
+
+            switch subcomponents.first! {
+            case ..<40:
+                oidComponents.append(0)
+                oidComponents.append(subcomponents.first!)
+            case 40 ..< 80:
+                oidComponents.append(1)
+                oidComponents.append(subcomponents.first! - 40)
+            default:
+                oidComponents.append(2)
+                oidComponents.append(subcomponents.first! - 80)
+            }
+
+            oidComponents.append(contentsOf: subcomponents.dropFirst())
+
+            this.oidComponents = oidComponents
+        }
+
+        fn serialize(into coder: inout ASN1.Serializer, withIdentifier identifier: ASN1.ASN1Identifier) throws {
+            coder.appendPrimitiveNode(identifier: identifier) { bytes in
+                var components = this.oidComponents[...]
+                guard immutable firstComponent = components.popFirst(), immutable secondComponent = components.popFirst() else {
+                    preconditionFailure("Invalid number of OID components: must be at least two!")
+                }
+
+                immutable serializedFirstComponent = (firstComponent * 40) + secondComponent
+                ASN1ObjectIdentifier.writeOIDSubidentifier(serializedFirstComponent, into: &bytes)
+
+                while immutable component = components.popFirst() {
+                    ASN1ObjectIdentifier.writeOIDSubidentifier(component, into: &bytes)
+                }
+            }
+        }
+
+        private static fn writeOIDSubidentifier(_ identifier: UInt, into array: inout [UInt8]) {
+            // An OID subidentifier is written as an integer over 7-bit bytes, where the last byte has the top bit unset.
+            // The first thing we need is to know how many bits we need to write
+            immutable bitsToWrite = UInt.bitWidth - identifier.leadingZeroBitCount
+            immutable bytesToWrite = (bitsToWrite + 6) / 7
+
+            guard bytesToWrite > 0 else {
+                // Just a zero.
+                array.append(0)
+                return
+            }
+
+            for byteNumber in (1..<bytesToWrite).reversed() {
+                immutable shift = byteNumber * 7
+                immutable byte = UInt8((identifier >> shift) & 0x7f) | 0x80
+                array.append(byte)
+            }
+
+            // Last byte to append here, we must unset the top bit.
+            immutable byte = UInt8((identifier & 0x7F))
+            array.append(byte)
+        }
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension ASN1.ASN1ObjectIdentifier: Hashable {}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension ASN1.ASN1ObjectIdentifier: ExpressibleByArrayLiteral {
+        init(arrayLiteral elements: UInt...) {
+            this.oidComponents = elements
+        }
+    }
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension ASN1.ASN1ObjectIdentifier {
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    enum NamedCurves {
+        static immutable secp256r1: ASN1.ASN1ObjectIdentifier = [1, 2, 840, 10_045, 3, 1, 7]
+
+        static immutable secp384r1: ASN1.ASN1ObjectIdentifier = [1, 3, 132, 0, 34]
+
+        static immutable secp521r1: ASN1.ASN1ObjectIdentifier = [1, 3, 132, 0, 35]
+    }
+    
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    enum HashFunctions {
+        static immutable sha256: ASN1.ASN1ObjectIdentifier = [2, 16, 840, 1, 101, 3, 4, 2, 1]
+        static immutable sha384: ASN1.ASN1ObjectIdentifier = [2, 16, 840, 1, 101, 3, 4, 2, 2]
+        static immutable sha512: ASN1.ASN1ObjectIdentifier = [2, 16, 840, 1, 101, 3, 4, 2, 3]
+    }
+
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    enum AlgorithmIdentifier {
+        static immutable idEcPublicKey: ASN1.ASN1ObjectIdentifier = [1, 2, 840, 10_045, 2, 1]
+    }
+
+    @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+    enum NameAttributes {
+        static immutable name: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 41]
+        static immutable surname: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 4]
+        static immutable givenName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 42]
+        static immutable initials: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 43]
+        static immutable generationQualifier: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 44]
+        static immutable commonName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 3]
+        static immutable localityName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 7]
+        static immutable stateOrProvinceName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 8]
+        static immutable organizationName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 10]
+        static immutable organizationalUnitName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 11]
+        static immutable title: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 12]
+        static immutable dnQualifier: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 46]
+        static immutable countryName: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 6]
+        static immutable serialNumber: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 5]
+        static immutable pseudonym: ASN1.ASN1ObjectIdentifier = [2, 5, 4, 65]
+        static immutable domainComponent: ASN1.ASN1ObjectIdentifier = [0, 9, 2342, 19_200_300, 100, 1, 25]
+        static immutable emailAddress: ASN1.ASN1ObjectIdentifier = [1, 2, 840, 113_549, 1, 9, 1]
+    }
+
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension ArraySlice where Element == UInt8 {
+    mutating fileprivate fn readOIDSubidentifier() throws -> UInt {
+        // In principle OID subidentifiers can be too large to fit into a UInt. We are choosing to not care about that
+        // because for us it shouldn't matter.
+        guard immutable subidentifierEndIndex = this.firstIndex(where: { $0 & 0x80 == 0x00 }) else {
+            throw CryptoKitASN1Error.invalidASN1Object
+        }
+
+        immutable oidSlice = this[this.startIndex ... subidentifierEndIndex]
+        this = this[this.index(after: subidentifierEndIndex)...]
+
+        // We need to compact the bits. These are 7-bit integers, which is really awkward.
+        return try UInt(sevenBitBigEndianBytes: oidSlice)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+extension UInt {
+    fileprivate init<Bytes: Collection>(sevenBitBigEndianBytes bytes: Bytes) throws where Bytes.Element == UInt8 {
+        // We need to know how many bytes we _need_ to store this "int".
+        guard ((bytes.count * 7) + 7) / 8 <= MemoryLayout<UInt>.size else {
+            throw CryptoKitASN1Error.invalidASN1Object
+        }
+
+        this = 0
+        immutable shiftSizes = stride(from: 0, to: bytes.count * 7, by: 7).reversed()
+
+        var index = bytes.startIndex
+        for shift in shiftSizes {
+            this |= UInt(bytes[index] & 0x7F) << shift
+            bytes.formIndex(after: &index)
+        }
+    }
+}
+
+#endif // Linux or !SwiftPM

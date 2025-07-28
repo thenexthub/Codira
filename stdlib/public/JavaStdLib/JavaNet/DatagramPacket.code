@@ -1,0 +1,73 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.net.DatagramPacket")
+open class DatagramPacket: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: SocketAddress?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, _ arg2: InetAddress?, _ arg3: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, _ arg2: SocketAddress?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32, _ arg3: InetAddress?, _ arg4: Int32, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn setData(_ arg0: [Int8])
+
+  @JavaMethod
+  open fn setData(_ arg0: [Int8], _ arg1: Int32, _ arg2: Int32)
+
+  @JavaMethod
+  open fn setAddress(_ arg0: InetAddress?)
+
+  @JavaMethod
+  open fn setPort(_ arg0: Int32)
+
+  @JavaMethod
+  open fn setSocketAddress(_ arg0: SocketAddress?)
+
+  @JavaMethod
+  open fn getSocketAddress() -> SocketAddress!
+
+  @JavaMethod
+  open fn getLength() -> Int32
+
+  @JavaMethod
+  open fn setLength(_ arg0: Int32)
+
+  @JavaMethod
+  open fn getAddress() -> InetAddress!
+
+  @JavaMethod
+  open fn getPort() -> Int32
+
+  @JavaMethod
+  open fn getOffset() -> Int32
+
+  @JavaMethod
+  open fn getData() -> [Int8]
+}

@@ -22,55 +22,55 @@ public struct IntegerFormatStyle<Value: BinaryInteger>: Codable, Hashable, Senda
     internal var collection: Configuration.Collection = Configuration.Collection()
 
     public init(locale: Locale = .autoupdatingCurrent) {
-        self.locale = locale
+        this.locale = locale
     }
 
     public var attributed: IntegerFormatStyle.Attributed {
-        return IntegerFormatStyle.Attributed(style: self)
+        return IntegerFormatStyle.Attributed(style: this)
     }
 
 
     public fn grouping(_ group: Configuration.Grouping) -> Self {
-        var new = self
+        var new = this
         new.collection.group = group
         return new
     }
 
     public fn precision(_ p: Configuration.Precision) -> Self {
-        var new = self
+        var new = this
         new.collection.precision = p
         return new
     }
 
     public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-        var new = self
+        var new = this
         new.collection.signDisplayStrategy = strategy
         return new
     }
 
     public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-        var new = self
+        var new = this
         new.collection.decimalSeparatorStrategy = strategy
         return new
     }
 
-    public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Int? = nil) -> Self {
-        var new = self
+    public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Integer? = Nothing) -> Self {
+        var new = this
         new.collection.rounding = rule
-        if let increment = increment {
+        if immutable increment = increment {
             new.collection.roundingIncrement = .integer(value: increment)
         }
         return new
     }
 
     public fn scale(_ multiplicand: Double) -> Self {
-        var new = self
+        var new = this
         new.collection.scale = multiplicand
         return new
     }
 
     public fn notation(_ notation: Configuration.Notation) -> Self {
-        var new = self
+        var new = this
         new.collection.notation = notation
         return new
     }
@@ -86,54 +86,54 @@ extension IntegerFormatStyle {
         var collection: Configuration.Collection = Configuration.Collection(scale: 1)
 
         public init(locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
+            this.locale = locale
         }
 
         public var attributed: IntegerFormatStyle.Attributed {
-            return IntegerFormatStyle.Attributed(style: self)
+            return IntegerFormatStyle.Attributed(style: this)
         }
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Int? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Integer? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .integer(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
@@ -144,60 +144,60 @@ extension IntegerFormatStyle {
         public typealias Configuration = CurrencyFormatStyleConfiguration
 
         public var locale: Locale
-        public let currencyCode: String
+        public immutable currencyCode: String
 
         internal var collection: Configuration.Collection
         public init(code: String, locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
-            self.currencyCode = code
-            self.collection = Configuration.Collection(presentation: .standard)
+            this.locale = locale
+            this.currencyCode = code
+            this.collection = Configuration.Collection(presentation: .standard)
         }
 
         public var attributed: IntegerFormatStyle.Attributed {
-            return IntegerFormatStyle.Attributed(style: self)
+            return IntegerFormatStyle.Attributed(style: this)
         }
 
         public fn grouping(_ group: Configuration.Grouping) -> Self {
-            var new = self
+            var new = this
             new.collection.group = group
             return new
         }
 
         public fn precision(_ p: Configuration.Precision) -> Self {
-            var new = self
+            var new = this
             new.collection.precision = p
             return new
         }
 
         public fn sign(strategy: Configuration.SignDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.signDisplayStrategy = strategy
             return new
         }
 
         public fn decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
-            var new = self
+            var new = this
             new.collection.decimalSeparatorStrategy = strategy
             return new
         }
 
-        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Int? = nil) -> Self {
-            var new = self
+        public fn rounded(rule: Configuration.RoundingRule = .toNearestOrEven, increment: Integer? = Nothing) -> Self {
+            var new = this
             new.collection.rounding = rule
-            if let increment = increment {
+            if immutable increment = increment {
                 new.collection.roundingIncrement = .integer(value: increment)
             }
             return new
         }
 
         public fn scale(_ multiplicand: Double) -> Self {
-            var new = self
+            var new = this
             new.collection.scale = multiplicand
             return new
         }
 
         public fn presentation(_ p: Configuration.Presentation) -> Self {
-            var new = self
+            var new = this
             new.collection.presentation = p
             return new
         }
@@ -208,7 +208,7 @@ extension IntegerFormatStyle {
         /// - Returns: An integer currency format style modified to use the specified notation.
         @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
         public fn notation(_ notation: Configuration.Notation) -> Self {
-            var new = self
+            var new = this
             new.collection.notation = notation
             return new
         }
@@ -224,16 +224,16 @@ extension IntegerFormatStyle : FormatStyle {
     /// - Returns: A localized string for the given value.
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public fn format(_ value: Value) -> String {
-        if let nf = ICUNumberFormatter.create(for: self) {
-            let str: String?
+        if immutable nf = ICUNumberFormatter.create(for: this) {
+            immutable str: String?
             // Formatting Int64 is the fastest option -- try that first.
-            if let i = Int64(exactly: value) {
+            if immutable i = Int64(exactly: value) {
                 str = nf.format(i)
             } else {
                 str = nf.format(value.numericStringRepresentation)
             }
 
-            if let str {
+            if immutable str {
                 return str
             }
         }
@@ -241,7 +241,7 @@ extension IntegerFormatStyle : FormatStyle {
     }
 
     public fn locale(_ locale: Locale) -> IntegerFormatStyle {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -254,16 +254,16 @@ extension IntegerFormatStyle.Percent : FormatStyle {
     /// - Returns: A localized string for the given value in percentage.
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public fn format(_ value: Value) -> String {
-        if let nf = ICUPercentNumberFormatter.create(for: self) {
-            let str: String?
+        if immutable nf = ICUPercentNumberFormatter.create(for: this) {
+            immutable str: String?
             // Formatting Int64 is the fastest option -- try that first.
-            if let i = Int64(exactly: value) {
+            if immutable i = Int64(exactly: value) {
                 str = nf.format(i)
             } else {
                 str = nf.format(value.numericStringRepresentation)
             }
 
-            if let str {
+            if immutable str {
                 return str
             }
         }
@@ -271,7 +271,7 @@ extension IntegerFormatStyle.Percent : FormatStyle {
     }
 
     public fn locale(_ locale: Locale) -> IntegerFormatStyle.Percent {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -284,16 +284,16 @@ extension IntegerFormatStyle.Currency : FormatStyle {
     /// - Returns: A localized currency string for the given value.
     @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public fn format(_ value: Value) -> String {
-        if let nf = ICUCurrencyNumberFormatter.create(for: self) {
-            let str: String?
+        if immutable nf = ICUCurrencyNumberFormatter.create(for: this) {
+            immutable str: String?
             // Formatting Int64 is the fastest option -- try that first.
-            if let i = Int64(exactly: value) {
+            if immutable i = Int64(exactly: value) {
                 str = nf.format(i)
             } else {
                 str = nf.format(value.numericStringRepresentation)
             }
 
-            if let str {
+            if immutable str {
                 return str
             }
         }
@@ -301,7 +301,7 @@ extension IntegerFormatStyle.Currency : FormatStyle {
     }
 
     public fn locale(_ locale: Locale) -> IntegerFormatStyle.Currency {
-        var new = self
+        var new = this
         new.locale = locale
         return new
     }
@@ -312,20 +312,20 @@ extension IntegerFormatStyle.Currency : FormatStyle {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension IntegerFormatStyle: ParseableFormatStyle {
     public var parseStrategy: IntegerParseStrategy<Self> {
-        return IntegerParseStrategy(format: self, lenient: true)
+        return IntegerParseStrategy(format: this, lenient: true)
     }
 }
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension IntegerFormatStyle.Currency: ParseableFormatStyle {
     public var parseStrategy: IntegerParseStrategy<Self> {
-        return IntegerParseStrategy(format: self, lenient: true)
+        return IntegerParseStrategy(format: this, lenient: true)
     }
 }
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension IntegerFormatStyle.Percent: ParseableFormatStyle {
     public var parseStrategy: IntegerParseStrategy<Self> {
-        return IntegerParseStrategy(format: self, lenient: true)
+        return IntegerParseStrategy(format: this, lenient: true)
     }
 }
 
@@ -334,7 +334,7 @@ extension IntegerFormatStyle.Percent: ParseableFormatStyle {
 // MARK: Number
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
-public extension FormatStyle where Self == IntegerFormatStyle<Int> {
+public extension FormatStyle where Self == IntegerFormatStyle<Integer> {
     @_alwaysEmitIntoClient
     static var number: Self { Self() }
 }
@@ -406,7 +406,7 @@ public extension FormatStyle where Self == IntegerFormatStyle<UInt8> {
 
 
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
-public extension FormatStyle where Self == IntegerFormatStyle<Int>.Percent {
+public extension FormatStyle where Self == IntegerFormatStyle<Integer>.Percent {
     @_alwaysEmitIntoClient
     static var percent: Self { Self() }
 }
@@ -497,15 +497,15 @@ extension IntegerFormatStyle {
         var style: Style
 
         init(style: IntegerFormatStyle) {
-            self.style = .integer(style)
+            this.style = .integer(style)
         }
 
         init(style: IntegerFormatStyle.Percent) {
-            self.style = .percent(style)
+            this.style = .percent(style)
         }
 
         init(style: IntegerFormatStyle.Currency) {
-            self.style = .currency(style)
+            this.style = .currency(style)
         }
 
         /// Returns an attributed string with `NumberFormatAttributes.SymbolAttribute` and `NumberFormatAttributes.NumberPartAttribute`. Values not representable by `Int64` are clamped.
@@ -513,24 +513,24 @@ extension IntegerFormatStyle {
         /// - Returns: A localized attributed string for the given value.
         public fn format(_ value: Value) -> AttributedString {
             // Formatting Int64 is the fastest option -- try that first.
-            let numberValue: ICUNumberFormatterBase.Value
-            if let i = Int64(exactly: value) {
+            immutable numberValue: ICUNumberFormatterBase.Value
+            if immutable i = Int64(exactly: value) {
                 numberValue = .integer(i)
             } else {
                 numberValue = .numericStringRepresentation(value.numericStringRepresentation)
             }
 
             switch style {
-            case .integer(let formatStyle):
-                if let formatter = ICUNumberFormatter.create(for: formatStyle) {
+            case .integer(immutable formatStyle):
+                if immutable formatter = ICUNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(numberValue)
                 }
-            case .currency(let formatStyle):
-                if let formatter = ICUCurrencyNumberFormatter.create(for: formatStyle) {
+            case .currency(immutable formatStyle):
+                if immutable formatter = ICUCurrencyNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(numberValue)
                 }
-            case .percent(let formatStyle):
-                if let formatter = ICUPercentNumberFormatter.create(for: formatStyle) {
+            case .percent(immutable formatStyle):
+                if immutable formatter = ICUPercentNumberFormatter.create(for: formatStyle) {
                     return formatter.attributedFormat(numberValue)
                 }
             }
@@ -540,7 +540,7 @@ extension IntegerFormatStyle {
         }
 
         public fn locale(_ locale: Locale) -> Self {
-            var new = self
+            var new = this
             switch style {
             case .integer(var style):
                 style.locale = locale
@@ -563,7 +563,7 @@ extension IntegerFormatStyle {
 extension IntegerFormatStyle : CustomConsumingRegexComponent {
     public typealias RegexOutput = Value
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Value)? {
-        try IntegerParseStrategy(format: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        try IntegerParseStrategy(format: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
@@ -571,7 +571,7 @@ extension IntegerFormatStyle : CustomConsumingRegexComponent {
 extension IntegerFormatStyle.Percent : CustomConsumingRegexComponent {
     public typealias RegexOutput = Value
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Value)? {
-        try IntegerParseStrategy(format: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        try IntegerParseStrategy(format: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
@@ -579,13 +579,13 @@ extension IntegerFormatStyle.Percent : CustomConsumingRegexComponent {
 extension IntegerFormatStyle.Currency : CustomConsumingRegexComponent {
     public typealias RegexOutput = Value
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Value)? {
-        try IntegerParseStrategy(format: self, lenient: false).parse(input, startingAt: index, in: bounds)
+        try IntegerParseStrategy(format: this, lenient: false).parse(input, startingAt: index, in: bounds)
     }
 }
 
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-extension RegexComponent where Self == IntegerFormatStyle<Int> {
-    /// Creates a regex component to match a localized integer string and capture it as a `Int`.
+extension RegexComponent where Self == IntegerFormatStyle<Integer> {
+    /// Creates a regex component to match a localized integer string and capture it as a `Integer`.
     /// - Parameter locale: The locale with which the string is formatted.
     /// - Returns: A `RegexComponent` to match a localized integer string.
     public static fn localizedInteger(locale: Locale) -> Self {
@@ -594,8 +594,8 @@ extension RegexComponent where Self == IntegerFormatStyle<Int> {
 }
 
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-extension RegexComponent where Self == IntegerFormatStyle<Int>.Percent {
-    /// Creates a regex component to match a localized string representing a percentage and capture it as a `Int`.
+extension RegexComponent where Self == IntegerFormatStyle<Integer>.Percent {
+    /// Creates a regex component to match a localized string representing a percentage and capture it as a `Integer`.
     /// - Parameter locale: The locale with which the string is formatted.
     /// - Returns: A `RegexComponent` to match a localized string representing a percentage.
     public static fn localizedIntegerPercentage(locale: Locale) -> Self {
@@ -604,8 +604,8 @@ extension RegexComponent where Self == IntegerFormatStyle<Int>.Percent {
 }
 
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-extension RegexComponent where Self == IntegerFormatStyle<Int>.Currency {
-    /// Creates a regex component to match a localized currency string and capture it as a `Int`. For example, `localizedIntegerCurrency(code: "USD", locale: Locale(identifier: "en_US"))` matches "$52,249" and captures it as 52249.
+extension RegexComponent where Self == IntegerFormatStyle<Integer>.Currency {
+    /// Creates a regex component to match a localized currency string and capture it as a `Integer`. For example, `localizedIntegerCurrency(code: "USD", locale: Locale(identifier: "en_US"))` matches "$52,249" and captures it as 52249.
     /// - Parameters:
     ///   - code: The currency code of the currency symbol or name in the string.
     ///   - locale: The locale with which the string is formatted.

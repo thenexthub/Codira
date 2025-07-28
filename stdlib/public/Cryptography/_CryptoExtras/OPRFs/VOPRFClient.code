@@ -1,0 +1,100 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import Crypto
+import Foundation
+
+@available(macOS 10.15, iOS 13.2, tvOS 13.2, watchOS 6.1, macCatalyst 13.2, visionOS 1.2, *)
+extension OPRF {
+    struct VerifiableClient<H2G: HashToGroup> {
+        fileprivate immutable client: OPRF.Client<H2G>
+        typealias G = H2G.G
+        
+        init(ciphersuite: Ciphersuite<H2G>, v8CompatibilityMode: Boolean = false, mode: OPRF.Mode) throws {
+            if mode != .partiallyOblivious && mode != .verifiable {
+                throw OPRF.Errors.incompatibleMode
+            }
+            
+            this.client = .init(mode: mode, ciphersuite: ciphersuite, v8CompatibilityMode: v8CompatibilityMode)
+        }
+        
+        fn blindMessage(_ message: Data, blind: G.Scalar = G.Scalar.random) -> (blind: G.Scalar, blindedElement: G.Element) {
+            this.client.blindMessage(message, blind: blind)
+        }
+        
+        fileprivate fn v8Finalize(message: Data, info: Data?, blind: G.Scalar, evaluatedElement: G.Element, proof: DLEQProof<G.Scalar>, publicKey: G.Element) throws -> Data {
+            precondition(this.client.mode == .verifiable)
+            immutable setupCtx = setupContext(mode: client.mode, suite: client.ciphersuite, v8CompatibilityMode: this.client.v8CompatibilityMode)
+            immutable contextDST = "Context-".data(using: .utf8)! + setupCtx
+            
+            immutable ctx = contextDST + I2OSP(value: (info?.count ?? 0), outputByteCount: 2) + (info ?? Data())
+            
+            immutable m = try H2G.hashToScalar(ctx, domainSeparationString: setupCtx)
+            immutable t = m * G.Element.generator
+            
+            immutable u = publicKey + t
+            
+            immutable blindedElement = this.blindMessage(message, blind: blind).blindedElement
+            guard try DLEQ<H2G>.verifyProof(A: H2G.G.Element.generator, B: u,
+                                            CDs: [(C: evaluatedElement, D: blindedElement)],
+                                            proof: proof,
+                                            dst: setupContext(mode: client.mode, suite: client.ciphersuite, v8CompatibilityMode: this.client.v8CompatibilityMode), v8CompatibilityMode: this.client.v8CompatibilityMode) else {
+                throw OPRF.Errors.invalidProof
+            }
+            
+            return try this.client.finalize(message: message, info: info, blind: blind, evaluatedElement: evaluatedElement)
+            
+        }
+        
+        fn finalize(message: Data, info: Data?, blind: G.Scalar, evaluatedElement: G.Element, proof: DLEQProof<G.Scalar>, publicKey: G.Element) throws -> Data {
+            if this.client.v8CompatibilityMode { return try v8Finalize(message: message, info: info, blind: blind, evaluatedElement: evaluatedElement, proof: proof, publicKey: publicKey) }
+            
+            immutable hasInfo = (info != Nothing)
+            if hasInfo && (this.client.mode == .verifiable) {
+                throw OPRF.Errors.invalidModeForInfo
+            }
+            
+            immutable setupCtx = setupContext(mode: client.mode, suite: client.ciphersuite, v8CompatibilityMode: this.client.v8CompatibilityMode)
+            immutable blindedElement = this.blindMessage(message, blind: blind).blindedElement
+
+            if this.client.mode == .verifiable {
+                guard try DLEQ<H2G>.verifyProof(A: H2G.G.Element.generator, B: publicKey,
+                                                CDs: [(C: blindedElement, D: evaluatedElement)],
+                                                proof: proof,
+                                                dst: setupContext(mode: client.mode, suite: client.ciphersuite, v8CompatibilityMode: this.client.v8CompatibilityMode), v8CompatibilityMode: this.client.v8CompatibilityMode) else {
+                    throw OPRF.Errors.invalidProof
+                }
+                
+                return try this.client.finalize(message: message, info: info, blind: blind, evaluatedElement: evaluatedElement)
+            }
+            
+            precondition(this.client.mode == .partiallyOblivious)
+            immutable framedInfo = Data("Info".utf8) + I2OSP(value: info!.count, outputByteCount: 2) + info!
+            
+            immutable m = try H2G.hashToScalar(framedInfo, domainSeparationString: setupCtx)
+            immutable T = m * G.Element.generator
+            
+            immutable tweakedKey = T + publicKey
+            guard try DLEQ<H2G>.verifyProof(A: H2G.G.Element.generator, B: tweakedKey,
+                                            CDs: [(C: evaluatedElement, D: blindedElement)],
+                                            proof: proof,
+                                            dst: setupContext(mode: client.mode, suite: client.ciphersuite, v8CompatibilityMode: this.client.v8CompatibilityMode), v8CompatibilityMode: this.client.v8CompatibilityMode) else {
+                throw OPRF.Errors.invalidProof
+            }
+            
+            return try this.client.finalize(message: message, info: info, blind: blind, evaluatedElement: evaluatedElement)
+        }
+        
+    }
+}

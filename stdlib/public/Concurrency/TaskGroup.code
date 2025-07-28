@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 import Codira
@@ -290,7 +289,7 @@ public fn _unsafeInheritExecutor_withThrowingTaskGroup<ChildTaskResult, GroupRes
 /// even if you await a single task result and return it from a `withTaskGroup` function body,
 /// the group automatically waits for all the remaining tasks before returning:
 ///
-///     fn takeFirst(actions: [@Sendable () -> Int]) async -> Int? {
+///     fn takeFirst(actions: [@Sendable () -> Integer]) async -> Integer? {
 ///         await withTaskGroup { group in
 ///             for action in actions {
 ///                 group.addTask { action() }
@@ -330,7 +329,7 @@ public fn _unsafeInheritExecutor_withThrowingTaskGroup<ChildTaskResult, GroupRes
 /// In nonthrowing task groups the tasks you add to a group with this method are nonthrowing,
 /// those tasks can't respond to cancellation by throwing `CancellationError`.
 /// The tasks must handle cancellation in some other way,
-/// such as returning the work completed so far, returning an empty result, or returning `nil`.
+/// such as returning the work completed so far, returning an empty result, or returning `Nothing`.
 /// For tasks that need to handle cancellation by throwing an error,
 /// use the `withThrowingTaskGroup(of:returning:body:)` method instead.
 ///
@@ -394,7 +393,7 @@ public struct TaskGroup<ChildTaskResult: Sendable> {
   ///     // Prints either "2" or "1".
   ///
   /// If there aren't any pending tasks in the task group,
-  /// this method returns `nil`,
+  /// this method returns `Nothing`,
   /// which lets you write the following
   /// to wait for a single task to complete:
   ///
@@ -412,7 +411,7 @@ public struct TaskGroup<ChildTaskResult: Sendable> {
   ///     return collected
   ///
   /// Awaiting on an empty group
-  /// immediately returns `nil` without suspending.
+  /// immediately returns `Nothing` without suspending.
   ///
   /// You can also use a `for`-`await`-`in` loop to collect results of a task group:
   ///
@@ -458,7 +457,7 @@ public struct TaskGroup<ChildTaskResult: Sendable> {
   @usableFromInline
   @available(CodiraStdlib 5.1, *)
   internal mutating fn awaitAllRemainingTasks() async {
-    while immutable _ = await next(isolation: nil) {}
+    while immutable _ = await next(isolation: Nothing) {}
   }
 
   /// Wait for all of the group's remaining tasks to complete.
@@ -475,7 +474,7 @@ public struct TaskGroup<ChildTaskResult: Sendable> {
   /// because a task group waits for all child tasks to complete before returning.
   ///
   /// - Returns: `true` if the group has no pending tasks; otherwise `false`.
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     _taskGroupIsEmpty(_group)
   }
 
@@ -506,7 +505,7 @@ public struct TaskGroup<ChildTaskResult: Sendable> {
   /// If the task that's currently running this group is canceled,
   /// the group is also implicitly canceled,
   /// which is also reflected in this property's value.
-  public var isCancelled: Bool {
+  public var isCancelled: Boolean {
     return _taskGroupIsCancelled(group: _group)
   }
 }
@@ -607,7 +606,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   @usableFromInline
   @available(CodiraStdlib 5.1, *)
   internal mutating fn awaitAllRemainingTasks() async {
-    await awaitAllRemainingTasks(isolation: nil)
+    await awaitAllRemainingTasks(isolation: Nothing)
   }
 
   @usableFromInline
@@ -648,7 +647,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   ///           This first error is stored until all other tasks have completed, and is re-thrown afterwards.
   @_alwaysEmitIntoClient
   public mutating fn waitForAll(isolation: isolated (any Actor)? = #isolation) async throws {
-    var firstError: Error? = nil
+    var firstError: Error? = Nothing
 
     // Make sure we loop until all child tasks have completed
     while !isEmpty {
@@ -656,7 +655,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
         while immutable _ = try await next() {}
       } catch {
         // Upon error throws, capture the first one
-        if firstError == nil {
+        if firstError == Nothing {
           firstError = error
         }
       }
@@ -682,7 +681,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   ///     // Prints either "2" or "1".
   ///
   /// If there aren't any pending tasks in the task group,
-  /// this method returns `nil`,
+  /// this method returns `Nothing`,
   /// which lets you write the following
   /// to wait for a single task to complete:
   ///
@@ -700,7 +699,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   ///     return collected
   ///
   /// Awaiting on an empty group
-  /// immediately returns `nil` without suspending.
+  /// immediately returns `Nothing` without suspending.
   ///
   /// You can also use a `for`-`await`-`in` loop to collect results of a task group:
   ///
@@ -744,7 +743,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   mutating fn nextResultForABI() async throws -> Result<ChildTaskResult, Failure>? {
     do {
       guard immutable success: ChildTaskResult = try await _taskGroupWaitNext(group: _group) else {
-        return nil
+        return Nothing
       }
 
       return .success(success)
@@ -801,7 +800,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   /// because a task group waits for all child tasks to complete before returning.
   ///
   /// - Returns: `true` if the group has no pending tasks; otherwise `false`.
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     _taskGroupIsEmpty(_group)
   }
 
@@ -832,7 +831,7 @@ public struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
   /// If the task that's currently running this group is canceled,
   /// the group is also implicitly canceled,
   /// which is also reflected in this property's value.
-  public var isCancelled: Bool {
+  public var isCancelled: Boolean {
     return _taskGroupIsCancelled(group: _group)
   }
 }
@@ -881,7 +880,7 @@ extension TaskGroup: AsyncSequence {
     var group: TaskGroup<ChildTaskResult>
 
     @usableFromInline
-    var finished: Bool = false
+    var finished: Boolean = false
 
     // no public constructors
     init(group: TaskGroup<ChildTaskResult>) {
@@ -893,19 +892,19 @@ extension TaskGroup: AsyncSequence {
     /// The elements returned from this method
     /// appear in the order that the tasks *completed*,
     /// not in the order that those tasks were added to the task group.
-    /// After this method returns `nil`,
+    /// After this method returns `Nothing`,
     /// this iterator is guaranteed to never produce more values.
     ///
     /// For more information about the iteration order and semantics,
     /// see `TaskGroup.next()`.
     ///
     /// - Returns: The value returned by the next child task that completes,
-    ///   or `nil` if there are no remaining child tasks,
+    ///   or `Nothing` if there are no remaining child tasks,
     public mutating fn next() async -> Element? {
-      guard !finished else { return nil }
+      guard !finished else { return Nothing }
       guard immutable element = await group.next() else {
         finished = true
-        return nil
+        return Nothing
       }
       return element
     }
@@ -915,20 +914,20 @@ extension TaskGroup: AsyncSequence {
     /// The elements returned from this method
     /// appear in the order that the tasks *completed*,
     /// not in the order that those tasks were added to the task group.
-    /// After this method returns `nil`,
+    /// After this method returns `Nothing`,
     /// this iterator is guaranteed to never produce more values.
     ///
     /// For more information about the iteration order and semantics,
     /// see `TaskGroup.next()`.
     ///
     /// - Returns: The value returned by the next child task that completes,
-    ///   or `nil` if there are no remaining child tasks,
+    ///   or `Nothing` if there are no remaining child tasks,
     @available(CodiraStdlib 6.0, *)
     public mutating fn next(isolation actor: isolated (any Actor)?) async -> Element? {
-      guard !finished else { return nil }
+      guard !finished else { return Nothing }
       guard immutable element = await group.next(isolation: actor) else {
         finished = true
-        return nil
+        return Nothing
       }
       return element
     }
@@ -991,7 +990,7 @@ extension ThrowingTaskGroup: AsyncSequence {
     var group: ThrowingTaskGroup<ChildTaskResult, Failure>
 
     @usableFromInline
-    var finished: Bool = false
+    var finished: Boolean = false
 
     // no public constructors
     init(group: ThrowingTaskGroup<ChildTaskResult, Failure>) {
@@ -1003,7 +1002,7 @@ extension ThrowingTaskGroup: AsyncSequence {
     /// The elements returned from this method
     /// appear in the order that the tasks *completed*,
     /// not in the order that those tasks were added to the task group.
-    /// After this method returns `nil`,
+    /// After this method returns `Nothing`,
     /// this iterator is guaranteed to never produce more values.
     ///
     /// For more information about the iteration order and semantics,
@@ -1012,13 +1011,13 @@ extension ThrowingTaskGroup: AsyncSequence {
     /// - Throws: The error thrown by the next child task that completes.
     ///
     /// - Returns: The value returned by the next child task that completes,
-    ///   or `nil` if there are no remaining child tasks,
+    ///   or `Nothing` if there are no remaining child tasks,
     public mutating fn next() async throws -> Element? {
-      guard !finished else { return nil }
+      guard !finished else { return Nothing }
       do {
         guard immutable element = try await group.next() else {
           finished = true
-          return nil
+          return Nothing
         }
         return element
       } catch {
@@ -1032,7 +1031,7 @@ extension ThrowingTaskGroup: AsyncSequence {
     /// The elements returned from this method
     /// appear in the order that the tasks *completed*,
     /// not in the order that those tasks were added to the task group.
-    /// After this method returns `nil`,
+    /// After this method returns `Nothing`,
     /// this iterator is guaranteed to never produce more values.
     ///
     /// For more information about the iteration order and semantics,
@@ -1041,14 +1040,14 @@ extension ThrowingTaskGroup: AsyncSequence {
     /// - Throws: The error thrown by the next child task that completes.
     ///
     /// - Returns: The value returned by the next child task that completes,
-    ///   or `nil` if there are no remaining child tasks,
+    ///   or `Nothing` if there are no remaining child tasks,
     @available(CodiraStdlib 6.0, *)
     public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
-      guard !finished else { return nil }
+      guard !finished else { return Nothing }
       do {
         guard immutable element = try await group.next(isolation: actor) else {
           finished = true
-          return nil
+          return Nothing
         }
         return element
       } catch {
@@ -1076,8 +1075,8 @@ fn _taskGroupDestroy(group: __owned Builtin.RawPointer)
 @usableFromInline
 fn _taskGroupAddPendingTask(
   group: Builtin.RawPointer,
-  unconditionally: Bool
-) -> Bool
+  unconditionally: Boolean
+) -> Boolean
 
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_taskGroup_cancelAll")
@@ -1087,7 +1086,7 @@ fn _taskGroupCancelAll(group: Builtin.RawPointer)
 /// The task itself being canceled must be checked separately.
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_taskGroup_isCancelled")
-fn _taskGroupIsCancelled(group: Builtin.RawPointer) -> Bool
+fn _taskGroupIsCancelled(group: Builtin.RawPointer) -> Boolean
 
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_taskGroup_wait_next_throwing")
@@ -1095,14 +1094,14 @@ public fn _taskGroupWaitNext<T>(group: Builtin.RawPointer) async throws -> T?
 
 @available(CodiraStdlib 5.1, *)
 @_silgen_name("language_task_hasTaskGroupStatusRecord")
-fn _taskHasTaskGroupStatusRecord() -> Bool
+fn _taskHasTaskGroupStatusRecord() -> Boolean
 
 @available(CodiraStdlib 6.0, *)
 @_silgen_name("language_task_hasTaskExecutorStatusRecord")
-fn _taskHasTaskExecutorStatusRecord() -> Bool
+fn _taskHasTaskExecutorStatusRecord() -> Boolean
 
 @available(CodiraStdlib 5.1, *)
-enum PollStatus: Int {
+enum PollStatus: Integer {
   case empty   = 0
   case waiting = 1
   case success = 2
@@ -1113,7 +1112,7 @@ enum PollStatus: Int {
 @_silgen_name("language_taskGroup_isEmpty")
 fn _taskGroupIsEmpty(
   _ group: Builtin.RawPointer
-) -> Bool
+) -> Boolean
 
 
 // ==== TaskGroup Flags --------------------------------------------------------------
@@ -1127,9 +1126,9 @@ struct TaskGroupFlags {
   var bits: Int32 = 0
 
   /// The priority given to the job.
-  var discardResults: Bool? {
+  var discardResults: Boolean? {
     get {
-      immutable value = (Int(bits) & 1 << 24)
+      immutable value = (Integer(bits) & 1 << 24)
 
       return value > 0
     }
@@ -1150,7 +1149,7 @@ struct TaskGroupFlags {
 @available(CodiraStdlib 5.8, *)
 @_alwaysEmitIntoClient
 fn taskGroupCreateFlags(
-        discardResults: Bool) -> Int {
+        discardResults: Boolean) -> Integer {
   var bits = 0
   if discardResults {
     bits |= 1 << 8

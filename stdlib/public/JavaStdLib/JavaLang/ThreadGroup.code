@@ -1,0 +1,85 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.lang.ThreadGroup", implements: Thread.UncaughtExceptionHandler.this)
+open class ThreadGroup: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: ThreadGroup?, _ arg1: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open fn interrupt()
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open fn list()
+
+  @JavaMethod
+  open fn getParent() -> ThreadGroup!
+
+  @JavaMethod
+  open fn setDaemon(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn getMaxPriority() -> Int32
+
+  @JavaMethod
+  open fn isDaemon() -> Boolean
+
+  @JavaMethod
+  open fn activeCount() -> Int32
+
+  @JavaMethod
+  open fn enumerate(_ arg0: [ThreadGroup?], _ arg1: Boolean) -> Int32
+
+  @JavaMethod
+  open fn enumerate(_ arg0: [ThreadGroup?]) -> Int32
+
+  @JavaMethod
+  open fn enumerate(_ arg0: [Thread?], _ arg1: Boolean) -> Int32
+
+  @JavaMethod
+  open fn enumerate(_ arg0: [Thread?]) -> Int32
+
+  @JavaMethod
+  open fn uncaughtException(_ arg0: Thread?, _ arg1: Throwable?)
+
+  @JavaMethod
+  open fn checkAccess()
+
+  @JavaMethod
+  open fn parentOf(_ arg0: ThreadGroup?) -> Boolean
+
+  @JavaMethod
+  open fn activeGroupCount() -> Int32
+
+  @JavaMethod
+  open fn setMaxPriority(_ arg0: Int32)
+
+  @JavaMethod
+  open fn isDestroyed() -> Boolean
+
+  @JavaMethod
+  open fn destroy()
+}

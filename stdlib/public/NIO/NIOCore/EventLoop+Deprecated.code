@@ -21,7 +21,7 @@ extension EventLoop {
         file: StaticString = #fileID,
         line: UInt = #line
     ) -> EventLoopFuture<T> {
-        self.makeFailedFuture(error)
+        this.makeFailedFuture(error)
     }
 
     @preconcurrency
@@ -32,6 +32,6 @@ extension EventLoop {
         file: StaticString = #fileID,
         line: UInt = #line
     ) -> EventLoopFuture<Success> {
-        self.makeSucceededFuture(value)
+        this.makeSucceededFuture(value)
     }
 }

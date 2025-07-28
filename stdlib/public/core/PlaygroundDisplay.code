@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that supplies a custom description for playground logging.
@@ -28,9 +27,9 @@
 /// types:
 ///
 /// - `String` and `NSString`
-/// - `Int`, `UInt`, and the other standard library integer types
+/// - `Integer`, `UInt`, and the other standard library integer types
 /// - `Float` and `Double`
-/// - `Bool`
+/// - `Boolean`
 /// - `Date` and `NSDate`
 /// - `NSAttributedString`
 /// - `NSNumber`

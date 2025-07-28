@@ -21,19 +21,19 @@ extension PredicateExpressions {
         LHS.Output.Element : Equatable,
         RHS.Output == LHS.Output.Element
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let sequence: LHS
-        public let element: RHS
+        public immutable sequence: LHS
+        public immutable element: RHS
         
         public init(sequence: LHS, element: RHS) {
-            self.sequence = sequence
-            self.element = element
+            this.sequence = sequence
+            this.element = element
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
-            let a = try sequence.evaluate(bindings)
-            let b = try element.evaluate(bindings)
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
+            immutable a = try sequence.evaluate(bindings)
+            immutable b = try element.evaluate(bindings)
             return a.contains(b)
         }
     }
@@ -44,19 +44,19 @@ extension PredicateExpressions {
     > : PredicateExpression
     where
         LHS.Output : Sequence,
-        RHS.Output == Bool
+        RHS.Output == Boolean
     {
         public typealias Element = LHS.Output.Element
-        public typealias Output = Bool
+        public typealias Output = Boolean
 
-        public let sequence: LHS
-        public let test: RHS
-        public let variable: Variable<Element>
+        public immutable sequence: LHS
+        public immutable test: RHS
+        public immutable variable: Variable<Element>
         
         public init(_ sequence: LHS, builder: (Variable<Element>) -> RHS) {
-            self.variable = Variable()
-            self.sequence = sequence
-            self.test = builder(variable)
+            this.variable = Variable()
+            this.sequence = sequence
+            this.test = builder(variable)
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -74,19 +74,19 @@ extension PredicateExpressions {
     > : PredicateExpression
     where
         LHS.Output : Sequence,
-        RHS.Output == Bool
+        RHS.Output == Boolean
     {
         public typealias Element = LHS.Output.Element
-        public typealias Output = Bool
+        public typealias Output = Boolean
 
-        public let sequence: LHS
-        public let test: RHS
-        public let variable: Variable<Element>
+        public immutable sequence: LHS
+        public immutable test: RHS
+        public immutable variable: Variable<Element>
         
         public init(_ sequence: LHS, builder: (Variable<Element>) -> RHS) {
-            self.variable = Variable()
-            self.sequence = sequence
-            self.test = builder(variable)
+            this.variable = Variable()
+            this.sequence = sequence
+            this.test = builder(variable)
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
@@ -108,17 +108,17 @@ extension PredicateExpressions {
         Base.Output.Element == Prefix.Output.Element,
         Base.Output.Element : Equatable
     {
-        public typealias Output = Bool
+        public typealias Output = Boolean
         
-        public let base: Base
-        public let prefix: Prefix
+        public immutable base: Base
+        public immutable prefix: Prefix
         
         public init(base: Base, prefix: Prefix) {
-            self.base = base
-            self.prefix = prefix
+            this.base = base
+            this.prefix = prefix
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Bool {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Boolean {
             try base.evaluate(bindings).starts(with: try prefix.evaluate(bindings))
         }
     }
@@ -184,8 +184,8 @@ extension PredicateExpressions.SequenceContains : Codable where LHS : Codable, R
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        sequence = try container.decode(LHS.self)
-        element = try container.decode(RHS.self)
+        sequence = try container.decode(LHS.this)
+        element = try container.decode(RHS.this)
     }
 }
 
@@ -200,9 +200,9 @@ extension PredicateExpressions.SequenceContainsWhere : Codable where LHS : Codab
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        sequence = try container.decode(LHS.self)
-        test = try container.decode(RHS.self)
-        variable = try container.decode(PredicateExpressions.Variable<Element>.self)
+        sequence = try container.decode(LHS.this)
+        test = try container.decode(RHS.this)
+        variable = try container.decode(PredicateExpressions.Variable<Element>.this)
     }
 }
 
@@ -217,9 +217,9 @@ extension PredicateExpressions.SequenceAllSatisfy : Codable where LHS : Codable,
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        sequence = try container.decode(LHS.self)
-        test = try container.decode(RHS.self)
-        variable = try container.decode(PredicateExpressions.Variable<Element>.self)
+        sequence = try container.decode(LHS.this)
+        test = try container.decode(RHS.this)
+        variable = try container.decode(PredicateExpressions.Variable<Element>.this)
     }
 }
 
@@ -233,8 +233,8 @@ extension PredicateExpressions.SequenceStartsWith : Codable where Base : Codable
     
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        self.base = try container.decode(Base.self)
-        self.prefix = try container.decode(Prefix.self)
+        this.base = try container.decode(Base.this)
+        this.prefix = try container.decode(Prefix.this)
     }
 }
 

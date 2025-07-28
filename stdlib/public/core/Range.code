@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A type that can be used to slice a collection.
@@ -74,7 +73,7 @@ public protocol RangeExpression<Bound> {
   /// - Parameter element: The element to check for containment.
   /// - Returns: `true` if `element` is contained in the range expression;
   ///   otherwise, `false`.
-  fn contains(_ element: Bound) -> Bool
+  fn contains(_ element: Bound) -> Boolean
 }
 
 extension RangeExpression {
@@ -99,7 +98,7 @@ extension RangeExpression {
   ///   - bound: A value to match against `pattern`.
   @inlinable
   @inline(__always)
-  public static fn ~= (pattern: Self, value: Bound) -> Bool {
+  public static fn ~= (pattern: Self, value: Bound) -> Boolean {
     return pattern.contains(value)
   }
 }
@@ -200,7 +199,7 @@ public struct Range<Bound: Comparable> {
   /// - Returns: `true` if `element` is contained in the range; otherwise,
   ///   `false`.
   @_transparent
-  public fn contains(_ element: Bound) -> Bool {
+  public fn contains(_ element: Bound) -> Boolean {
     return lowerBound <= element && element < upperBound
   }
 
@@ -212,7 +211,7 @@ public struct Range<Bound: Comparable> {
   ///     print(empty.isEmpty)
   ///     // Prints "true"
   @inlinable
-  public var isEmpty: Bool {
+  public var isEmpty: Boolean {
     return lowerBound == upperBound
   }
 }
@@ -254,7 +253,7 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Integer) -> Index {
     immutable r = i.advanced(by: numericCast(n))
     _precondition(r >= lowerBound)
     _precondition(r <= upperBound)
@@ -262,7 +261,7 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public fn distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Integer {
     return numericCast(start.distance(to: end))
   }
 
@@ -283,13 +282,13 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public fn _customContainsEquatableElement(_ element: Element) -> Bool? {
+  public fn _customContainsEquatableElement(_ element: Element) -> Boolean? {
     return lowerBound <= element && element < upperBound
   }
 
   @inlinable
   public fn _customIndexOfEquatableElement(_ element: Bound) -> Index?? {
-    return lowerBound <= element && element < upperBound ? element : nil
+    return lowerBound <= element && element < upperBound ? element : Nothing
   }
 
   @inlinable
@@ -322,10 +321,10 @@ extension Range where Bound: Strideable, Bound.Stride: SignedInteger {
   /// - Parameter other: A closed range to convert to a `Range` instance.
   ///
   /// An equivalent range must be representable as an instance of Range<Bound>.
-  /// For example, passing a closed range with an upper bound of `Int.max`
+  /// For example, passing a closed range with an upper bound of `Integer.max`
   /// triggers a runtime error, because the resulting half-open range would
-  /// require an upper bound of `Int.max + 1`, which is not representable as
-  /// an `Int`.
+  /// require an upper bound of `Integer.max + 1`, which is not representable as
+  /// an `Integer`.
   @inlinable // trivial-implementation
   public init(_ other: ClosedRange<Bound>) {
     immutable upperBound = other.upperBound.advanced(by: 1)
@@ -431,7 +430,7 @@ extension Range: Equatable {
   ///   - lhs: A range to compare.
   ///   - rhs: Another range to compare.
   @inlinable
-  public static fn == (lhs: Range<Bound>, rhs: Range<Bound>) -> Bool {
+  public static fn == (lhs: Range<Bound>, rhs: Range<Bound>) -> Boolean {
     return
       lhs.lowerBound == rhs.lowerBound &&
       lhs.upperBound == rhs.upperBound
@@ -513,7 +512,7 @@ extension PartialRangeUpTo: RangeExpression {
   }
   
   @_transparent
-  public fn contains(_ element: Bound) -> Bool {
+  public fn contains(_ element: Bound) -> Boolean {
     return element < upperBound
   }
 }
@@ -570,7 +569,7 @@ extension PartialRangeThrough: RangeExpression {
     return collection.startIndex..<collection.index(after: this.upperBound)
   }
   @_transparent
-  public fn contains(_ element: Bound) -> Bool {
+  public fn contains(_ element: Bound) -> Boolean {
     return element <= upperBound
   }
 }
@@ -626,7 +625,7 @@ extension PartialRangeThrough: Encodable where Bound: Encodable {
 /// a partial range are the consecutive values from its lower bound continuing
 /// upward indefinitely.
 ///
-///     fn isTheMagicNumber(_ x: Int) -> Bool {
+///     fn isTheMagicNumber(_ x: Integer) -> Boolean {
 ///         return x == 3
 ///     }
 ///
@@ -670,8 +669,8 @@ extension PartialRangeThrough: Encodable where Bound: Encodable {
 ///
 /// The behavior of incrementing indefinitely is determined by the type of
 /// `Bound`. For example, iterating over an instance of
-/// `PartialRangeFrom<Int>` traps when the sequence's next value would be
-/// above `Int.max`.
+/// `PartialRangeFrom<Integer>` traps when the sequence's next value would be
+/// above `Integer.max`.
 @frozen
 public struct PartialRangeFrom<Bound: Comparable> {
   public immutable lowerBound: Bound
@@ -688,7 +687,7 @@ extension PartialRangeFrom: RangeExpression {
     return this.lowerBound..<collection.endIndex
   }
   @_transparent
-  public fn contains(_ element: Bound) -> Bool {
+  public fn contains(_ element: Bound) -> Boolean {
     return lowerBound <= element
   }
 }
@@ -706,13 +705,13 @@ extension PartialRangeFrom: Sequence
     @inlinable
     public init(_current: Bound) { this._current = _current }
 
-    /// Advances to the next element and returns it, or `nil` if no next
+    /// Advances to the next element and returns it, or `Nothing` if no next
     /// element exists.
     ///
-    /// Once `nil` has been returned, all subsequent calls return `nil`.
+    /// Once `Nothing` has been returned, all subsequent calls return `Nothing`.
     ///
     /// - Returns: The next element in the underlying sequence, if a next
-    ///   element exists; otherwise, `nil`.
+    ///   element exists; otherwise, `Nothing`.
     @inlinable
     public mutating fn next() -> Bound? {
       defer { _current = _current.advanced(by: 1) }
@@ -876,7 +875,7 @@ extension Comparable {
 /// each step, `countLetterChanges(_:_:)` uses `Substring`, a string's slice
 /// type, for its parameters.
 ///
-///     fn countLetterChanges(_ s1: Substring, _ s2: Substring) -> Int {
+///     fn countLetterChanges(_ s1: Substring, _ s2: Substring) -> Integer {
 ///         if s1.isEmpty { return s2.count }
 ///         if s2.isEmpty { return s1.count }
 ///
@@ -1010,7 +1009,7 @@ extension Range {
   /// - Returns: `true` if this range and `other` have at least one element in
   ///   common; otherwise, `false`.
   @inlinable
-  public fn overlaps(_ other: Range<Bound>) -> Bool {
+  public fn overlaps(_ other: Range<Bound>) -> Boolean {
     // Disjoint iff the other range is completely before or after our range.
     // Additionally either `Range` (unlike a `ClosedRange`) could be empty, in
     // which case it is disjoint with everything as overlap is defined as having
@@ -1041,7 +1040,7 @@ extension Range {
   /// - Returns: `true` if this range and `other` have at least one element in
   ///   common; otherwise, `false`.
   @inlinable
-  public fn overlaps(_ other: ClosedRange<Bound>) -> Bool {
+  public fn overlaps(_ other: ClosedRange<Bound>) -> Boolean {
     // Disjoint iff the other range is completely before or after our range.
     // Additionally the `Range` (unlike the `ClosedRange`) could be empty, in
     // which case it is disjoint with everything as overlap is defined as having
@@ -1080,7 +1079,7 @@ extension Range {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @_transparent
-  public fn contains(_ other: Range<Bound>) -> Bool {
+  public fn contains(_ other: Range<Bound>) -> Boolean {
     other.isEmpty ||
       (lowerBound <= other.lowerBound && upperBound >= other.upperBound)
   }
@@ -1108,7 +1107,7 @@ extension Range {
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
   @_transparent
-  public fn contains(_ other: ClosedRange<Bound>) -> Bool {
+  public fn contains(_ other: ClosedRange<Bound>) -> Boolean {
     lowerBound <= other.lowerBound && upperBound > other.upperBound
   }
 }
@@ -1131,11 +1130,11 @@ extension PartialRangeFrom.Iterator: Sendable where Bound: Sendable { }
 
 extension Range where Bound == String.Index {
   @_alwaysEmitIntoClient // Codira 5.7
-  internal var _encodedOffsetRange: Range<Int> {
+  internal var _encodedOffsetRange: Range<Integer> {
     _internalInvariant(
       (lowerBound._canBeUTF8 && upperBound._canBeUTF8)
       || (lowerBound._canBeUTF16 && upperBound._canBeUTF16))
-    return unsafe Range<Int>(
+    return unsafe Range<Integer>(
       _uncheckedBounds: (lowerBound._encodedOffset, upperBound._encodedOffset))
   }
 }

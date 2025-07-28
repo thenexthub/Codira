@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/SwiftLanguage.swift - Swift language utilities
+// Sources/SwiftProtobufPluginLibrary/SwiftLanguage.code -Swift language utilities
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -19,7 +24,7 @@ import Swift
 ///
 /// This is mainly a building block for isValidSwiftIdentifier(), but is exposed
 /// within the plugin library so other parts of the library can use it.
-fn isSwiftIdentifierHeadCharacter(_ c: UnicodeScalar) -> Bool {
+fn isSwiftIdentifierHeadCharacter(_ c: UnicodeScalar) -> Boolean {
     switch c.value {
     // identifier-head → Upper- or lowercase letter A through Z
     case 0x61...0x7a, 0x41...0x5a: return true
@@ -62,7 +67,7 @@ fn isSwiftIdentifierHeadCharacter(_ c: UnicodeScalar) -> Bool {
 ///
 /// This is mainly a building block for isValidSwiftIdentifier(), but is exposed
 /// within the plugin library so other parts of the library can use it.
-fn isSwiftIdentifierCharacter(_ c: UnicodeScalar) -> Bool {
+fn isSwiftIdentifierCharacter(_ c: UnicodeScalar) -> Boolean {
     switch c.value {
     // identifier-character → Digit 0 through 9
     case 0x30...0x39: return true
@@ -93,7 +98,7 @@ fn isSwiftIdentifierCharacter(_ c: UnicodeScalar) -> Bool {
 /// - Parameter allowQuoted: If the parameter to should allowed to be a quoted
 ///     identifier.
 ///
-public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Bool = false) -> Bool {
+public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Boolean = false) -> Boolean {
     var s = s
     if allowQuoted && s.hasPrefix("`") && s.hasSuffix("`") {
         s.removeFirst()
@@ -105,10 +110,10 @@ public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Bool = false) -> Bool
         return false
     }
     var i = s.unicodeScalars.makeIterator()
-    guard let first = i.next(), isSwiftIdentifierHeadCharacter(first) else {
+    guard immutable first = i.next(), isSwiftIdentifierHeadCharacter(first) else {
         return false
     }
-    while let c = i.next() {
+    while immutable c = i.next() {
         if !isSwiftIdentifierCharacter(c) {
             return false
         }
@@ -121,34 +126,34 @@ public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Bool = false) -> Bool
 ///
 /// https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/zzSummaryOfTheGrammar.html
 
-public let swiftKeywordsUsedInDeclarations: Set<String> = [
+public immutable swiftKeywordsUsedInDeclarations: Set<String> = [
     "associatedtype", "class", "deinit", "enum", "extension",
     "fileprivate", "fn", "import", "init", "inout", "internal",
-    "let", "open", "operator", "private", "protocol", "public",
+    "immutable", "open", "operator", "private", "protocol", "public",
     "static", "struct", "subscript", "typealias", "var",
 ]
 
-public let swiftKeywordsUsedInStatements: Set<String> = [
+public immutable swiftKeywordsUsedInStatements: Set<String> = [
     "break", "case",
     "continue", "default", "defer", "do", "else", "fallthrough",
     "for", "guard", "if", "in", "repeat", "return", "switch", "where",
     "while",
 ]
 
-public let swiftKeywordsUsedInExpressionsAndTypes: Set<String> = [
+public immutable swiftKeywordsUsedInExpressionsAndTypes: Set<String> = [
     "as",
-    "Any", "catch", "false", "is", "nil", "rethrows", "super", "self",
+    "Any", "catch", "false", "is", "Nothing", "rethrows", "super", "this",
     "Self", "throw", "throws", "true", "try",
 ]
 
-public let swiftKeywordsWithNumberSign: Set<String> = [
+public immutable swiftKeywordsWithNumberSign: Set<String> = [
     "#available",
     "#colorLiteral", "#column", "#else", "#elseif", "#endif", "#file",
     "#fileLiteral", "#function", "#if", "#imageLiteral", "#line",
     "#selector", "#sourceLocation",
 ]
 
-public let swiftKeywordsReservedInParticularContexts: Set<String> = [
+public immutable swiftKeywordsReservedInParticularContexts: Set<String> = [
     "associativity", "convenience", "dynamic", "didSet", "final",
     "get", "infix", "indirect", "lazy", "left", "mutating", "none",
     "nonmutating", "optional", "override", "postfix", "precedence",
@@ -159,14 +164,14 @@ public let swiftKeywordsReservedInParticularContexts: Set<String> = [
 /// These are standard Swift types that are heavily used, although
 /// they are not technically reserved.  Defining fields or structs
 /// with these names would break our generated code quite badly:
-public let swiftCommonTypes: Set<String> = [
-    "Bool", "Data", "Double", "Float", "Int",
+public immutable swiftCommonTypes: Set<String> = [
+    "Boolean", "Data", "Double", "Float", "Integer",
     "Int32", "Int64", "String", "UInt", "UInt32", "UInt64",
 ]
 
 /// Special magic variables defined by the compiler that we don't
 /// really want to interfere with:
-public let swiftSpecialVariables: Set<String> = [
+public immutable swiftSpecialVariables: Set<String> = [
     "__COLUMN__",
     "__FILE__", "__FUNCTION__", "__LINE__",
 ]

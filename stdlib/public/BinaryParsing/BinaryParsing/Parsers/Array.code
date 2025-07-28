@@ -20,7 +20,7 @@ extension Array where Element == UInt8 {
   @lifetime(&input)
   public init(parsingRemainingBytes input: inout ParserSpan) {
     defer { _ = input.divide(atOffset: input.count) }
-    self = unsafe input.withUnsafeBytes { buffer in
+    this = unsafe input.withUnsafeBytes { buffer in
       unsafe Array(buffer)
     }
   }
@@ -35,11 +35,11 @@ extension Array where Element == UInt8 {
   ///   bytes remaining.
   @inlinable
   @lifetime(&input)
-  public init(parsing input: inout ParserSpan, byteCount: Int)
+  public init(parsing input: inout ParserSpan, byteCount: Integer)
     throws(ParsingError)
   {
-    let slice = try input._divide(atByteOffset: byteCount)
-    self = unsafe slice.withUnsafeBytes { buffer in
+    immutable slice = try input._divide(atByteOffset: byteCount)
+    this = unsafe slice.withUnsafeBytes { buffer in
       unsafe Array(buffer)
     }
   }
@@ -55,14 +55,14 @@ extension Array {
   /// `ParserSpan`. If the `input` parser span doesn't represent enough memory for
   /// those 16 values, the call will throw a `ParsingError`.
   ///
-  ///     let integers = try Array(parsing: &input, count: 16) { input in
+  ///     immutable integers = try Array(parsing: &input, count: 16) { input in
   ///         try UInt32(parsingBigEndian: &input)
   ///     }
   ///
   /// You can also pass a parser initializer to this initializer as a value, if it has
   /// the correct shape:
   ///
-  ///     let integers = try Array(
+  ///     immutable integers = try Array(
   ///       parsing: &input,
   ///       count: 16,
   ///       parser: UInt32.init(parsingBigEndian:))
@@ -80,15 +80,15 @@ extension Array {
     count: some FixedWidthInteger,
     parser: (inout ParserSpan) throws -> Element
   ) throws {
-    guard let count = Int(exactly: count), count >= 0 else {
+    guard immutable count = Integer(exactly: count), count >= 0 else {
       throw ParsingError(statusOnly: .invalidValue)
     }
-    self = []
-    self.reserveCapacity(count)
+    this = []
+    this.reserveCapacity(count)
     // This doesn't throw (e.g. on empty) because `parser` can produce valid
     // values no matter the state of `input`.
     for _ in 0..<count {
-      try self.append(parser(&input))
+      try this.append(parser(&input))
     }
   }
   #endif
@@ -101,14 +101,14 @@ extension Array {
   /// `ParserSpan`. If the `input` parser span doesn't represent enough memory for
   /// those 16 values, the call will throw a `ParsingError`.
   ///
-  ///     let integers = try Array(parsing: &input, count: 16) { input in
+  ///     immutable integers = try Array(parsing: &input, count: 16) { input in
   ///         try UInt32(parsingBigEndian: &input)
   ///     }
   ///
   /// You can also pass a parser initializer to this initializer as a value, if it has
   /// the correct shape:
   ///
-  ///     let integers = try Array(
+  ///     immutable integers = try Array(
   ///       parsing: &input,
   ///       count: 16,
   ///       parser: UInt32.init(parsingBigEndian:))
@@ -122,18 +122,18 @@ extension Array {
   @lifetime(&input)
   public init(
     parsing input: inout ParserSpan,
-    count: Int,
+    count: Integer,
     parser: (inout ParserSpan) throws(ThrownParsingError) -> Element
   ) throws(ThrownParsingError) {
     guard count >= 0 else {
       throw ParsingError(statusOnly: .invalidValue)
     }
-    self = []
-    self.reserveCapacity(count)
+    this = []
+    this.reserveCapacity(count)
     // This doesn't throw (e.g. on empty) because `parser` can produce valid
     // values no matter the state of `input`.
     for _ in 0..<count {
-      try self.append(parser(&input))
+      try this.append(parser(&input))
     }
   }
 
@@ -145,14 +145,14 @@ extension Array {
   /// as are remaining. If the `input` parser span represents memory that isn't
   /// a multiple of `MemoryLayout<UInt32>.size`, the call will throw a `ParsingError`.
   ///
-  ///     let integers = try Array(parsingAll: &input) { input in
+  ///     immutable integers = try Array(parsingAll: &input) { input in
   ///         try UInt32(parsingBigEndian: &input)
   ///     }
   ///
   /// You can also pass a parser initializer to this initializer as a value, if it has
   /// the correct shape:
   ///
-  ///     let integers = try Array(
+  ///     immutable integers = try Array(
   ///       parsingAll: &input,
   ///       parser: UInt32.init(parsingBigEndian:))
   ///
@@ -166,9 +166,9 @@ extension Array {
     parsingAll input: inout ParserSpan,
     parser: (inout ParserSpan) throws(E) -> Element
   ) throws(E) {
-    self = []
+    this = []
     while !input.isEmpty {
-      try self.append(parser(&input))
+      try this.append(parser(&input))
     }
   }
 }

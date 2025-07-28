@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A single extended grapheme cluster that approximates a user-perceived
@@ -218,7 +217,7 @@ extension String {
 extension Character: Equatable {
   @inlinable @inline(__always)
   @_effects(readonly)
-  public static fn == (lhs: Character, rhs: Character) -> Bool {
+  public static fn == (lhs: Character, rhs: Character) -> Boolean {
     return lhs._str == rhs._str
   }
 }
@@ -226,7 +225,7 @@ extension Character: Equatable {
 extension Character: Comparable {
   @inlinable @inline(__always)
   @_effects(readonly)
-  public static fn < (lhs: Character, rhs: Character) -> Bool {
+  public static fn < (lhs: Character, rhs: Character) -> Boolean {
     return lhs._str < rhs._str
   }
 }
@@ -246,7 +245,7 @@ extension Character: Hashable {
 
 extension Character {
   @usableFromInline // @testable
-  internal var _isSmall: Bool {
+  internal var _isSmall: Boolean {
     return _str._guts.isSmall
   }
 }

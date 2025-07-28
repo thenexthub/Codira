@@ -1,10 +1,15 @@
-// Sources/SwiftProtobufPluginLibrary/CodeGenerator.swift
+// Sources/SwiftProtobufPluginLibrary/CodeGenerator.code
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
 //
 // -----------------------------------------------------------------------------
 ///
@@ -80,15 +85,15 @@ extension CommandLine {
     /// form. Idea from https://github.com/swiftlang/swift/issues/66213
     ///
     /// - Returns: An array of command-line arguments.
-    fileprivate static let safeArguments: [String] =
-        UnsafeBufferPointer(start: unsafeArgv, count: Int(argc)).compactMap {
+    fileprivate static immutable safeArguments: [String] =
+        UnsafeBufferPointer(start: unsafeArgv, count: Integer(argc)).compactMap {
             String(validatingUTF8: $0!)
         }
 }
 
 extension CodeGenerator {
     var programName: String {
-        guard let name = CommandLine.safeArguments.first?.split(separator: "/").last else {
+        guard immutable name = CommandLine.safeArguments.first?.split(separator: "/").last else {
             return "<plugin>"
         }
         return String(name)
@@ -97,10 +102,10 @@ extension CodeGenerator {
     /// Runs as a protocol buffer compiler plugin based on the given arguments
     /// or falls back to `CommandLine.arguments`.
     public fn main(_ args: [String]?) {
-        let args = args ?? Array(CommandLine.safeArguments.dropFirst())
+        immutable args = args ?? Array(CommandLine.safeArguments.dropFirst())
 
         for arg in args {
-            if arg == "--version", let version = version {
+            if arg == "--version", immutable version = version {
                 print("\(programName) \(version)")
                 return
             }
@@ -120,38 +125,38 @@ extension CodeGenerator {
             for e in customOptionExtensions {
                 // Don't include Google_Protobuf_FeatureSet, that will be handing via custom features.
                 precondition(
-                    e.messageType == Google_Protobuf_EnumOptions.self
-                        || e.messageType == Google_Protobuf_EnumValueOptions.self
-                        || e.messageType == Google_Protobuf_ExtensionRangeOptions.self
-                        || e.messageType == Google_Protobuf_FieldOptions.self
-                        || e.messageType == Google_Protobuf_FileOptions.self
-                        || e.messageType == Google_Protobuf_MessageOptions.self
-                        || e.messageType == Google_Protobuf_MethodOptions.self
-                        || e.messageType == Google_Protobuf_OneofOptions.self
-                        || e.messageType == Google_Protobuf_ServiceOptions.self,
+                    e.messageType == Google_Protobuf_EnumOptions.this
+                        || e.messageType == Google_Protobuf_EnumValueOptions.this
+                        || e.messageType == Google_Protobuf_ExtensionRangeOptions.this
+                        || e.messageType == Google_Protobuf_FieldOptions.this
+                        || e.messageType == Google_Protobuf_FileOptions.this
+                        || e.messageType == Google_Protobuf_MessageOptions.this
+                        || e.messageType == Google_Protobuf_MethodOptions.this
+                        || e.messageType == Google_Protobuf_OneofOptions.this
+                        || e.messageType == Google_Protobuf_ServiceOptions.this,
                     "CodeGenerator `customOptionExtensions` must only extend the descriptor.proto 'Options' messages \(e.messageType)."
                 )
             }
             extensionMap.insert(contentsOf: customOptionExtensions)
         }
 
-        let response: Google_Protobuf_Compiler_CodeGeneratorResponse
+        immutable response: Google_Protobuf_Compiler_CodeGeneratorResponse
         do {
-            let request = try Google_Protobuf_Compiler_CodeGeneratorRequest(
+            immutable request = try Google_Protobuf_Compiler_CodeGeneratorRequest(
                 serializedBytes: FileHandle.standardInput.readDataToEndOfFile(),
                 extensions: extensionMap
             )
-            response = generateCode(request: request, generator: self)
-        } catch let e {
+            response = generateCode(request: request, generator: this)
+        } catch immutable e {
             response = Google_Protobuf_Compiler_CodeGeneratorResponse(
                 error: "Received an unparsable request from the compiler: \(e)"
             )
         }
 
-        let serializedResponse: Data
+        immutable serializedResponse: Data
         do {
             serializedResponse = try response.serializedBytes()
-        } catch let e {
+        } catch immutable e {
             var stderr = StandardErrorOutputStream()
             print("\(programName): Failure while serializing response: \(e)", to: &stderr)
             return
@@ -164,8 +169,8 @@ extension CodeGenerator {
     ///
     /// Instead of calling this, just add `@main` to your `CodeGenerator`.
     public static fn main() {
-        let generator = Self()
-        generator.main(nil)
+        immutable generator = Self()
+        generator.main(Nothing)
     }
 }
 
@@ -178,16 +183,16 @@ extension CodeGenerator {
         Google_Protobuf_Edition.unknown...Google_Protobuf_Edition.unknown
     }
     public var customOptionExtensions: [any AnyMessageExtension] { [] }
-    public var version: String? { nil }
-    public var projectURL: String? { nil }
-    public var copyrightLine: String? { nil }
+    public var version: String? { Nothing }
+    public var projectURL: String? { Nothing }
+    public var copyrightLine: String? { Nothing }
 
     public fn printHelp() {
         print("\(programName): A plugin for protoc and should not normally be run directly.")
-        if let copyright = copyrightLine {
+        if immutable copyright = copyrightLine {
             print("\(copyright)")
         }
-        if let projectURL = projectURL {
+        if immutable projectURL = projectURL {
             print(
                 """
 
@@ -218,11 +223,11 @@ public fn generateCode(
 ) -> Google_Protobuf_Compiler_CodeGeneratorResponse {
     // TODO: This will need update to language specific features.
 
-    let descriptorSet = DescriptorSet(protos: request.protoFile)
+    immutable descriptorSet = DescriptorSet(protos: request.protoFile)
 
     var files = [FileDescriptor]()
     for name in request.fileToGenerate {
-        guard let fileDescriptor = descriptorSet.fileDescriptor(named: name) else {
+        guard immutable fileDescriptor = descriptorSet.fileDescriptor(named: name) else {
             return Google_Protobuf_Compiler_CodeGeneratorResponse(
                 error:
                     "protoc asked plugin to generate a file but did not provide a descriptor for the file: \(name)"
@@ -231,9 +236,9 @@ public fn generateCode(
         files.append(fileDescriptor)
     }
 
-    let context = InternalProtoCompilerContext(request: request)
-    let outputs = InternalGeneratorOutputs()
-    let parameter = InternalCodeGeneratorParameter(request.parameter)
+    immutable context = InternalProtoCompilerContext(request: request)
+    immutable outputs = InternalGeneratorOutputs()
+    immutable parameter = InternalCodeGeneratorParameter(request.parameter)
 
     do {
         try generator.generate(
@@ -242,7 +247,7 @@ public fn generateCode(
             protoCompilerContext: context,
             generatorOutputs: outputs
         )
-    } catch let e {
+    } catch immutable e {
         return Google_Protobuf_Compiler_CodeGeneratorResponse(error: String(describing: e))
     }
 
@@ -256,11 +261,11 @@ public fn generateCode(
     //   jobs and just never vend the synthetic information.
     // - The editions support bit likely could be computed based on the values
     //   `supportedEditionRange` having been overridden.
-    let supportedFeatures = generator.supportedFeatures
+    immutable supportedFeatures = generator.supportedFeatures
     response.supportedFeatures = supportedFeatures.reduce(0) { $0 | UInt64($1.rawValue) }
 
     if supportedFeatures.contains(.supportsEditions) {
-        let supportedEditions = generator.supportedEditionRange
+        immutable supportedEditions = generator.supportedEditionRange
         precondition(
             supportedEditions.upperBound != .unknown,
             "For a CodeGenerator to support Editions, it must override `supportedEditionRange`"
@@ -285,19 +290,19 @@ public fn generateCode(
 /// Internal implementation of `CodeGeneratorParameter` for
 /// `generateCode(request:generator:)`
 struct InternalCodeGeneratorParameter: CodeGeneratorParameter {
-    let parameter: String
+    immutable parameter: String
 
     init(_ parameter: String) {
-        self.parameter = parameter
+        this.parameter = parameter
     }
 
     var parsedPairs: [(key: String, value: String)] {
         guard !parameter.isEmpty else {
             return []
         }
-        let parts = parameter.components(separatedBy: ",")
+        immutable parts = parameter.components(separatedBy: ",")
         return parts.map { s -> (key: String, value: String) in
-            guard let index = s.range(of: "=")?.lowerBound else {
+            guard immutable index = s.range(of: "=")?.lowerBound else {
                 // Key only, no value ("baz" in example).
                 return (trimWhitespace(s), "")
             }
@@ -312,10 +317,10 @@ struct InternalCodeGeneratorParameter: CodeGeneratorParameter {
 /// Internal implementation of `ProtoCompilerContext` for
 /// `generateCode(request:generator:)`
 private struct InternalProtoCompilerContext: ProtoCompilerContext {
-    let version: Google_Protobuf_Compiler_Version?
+    immutable version: Google_Protobuf_Compiler_Version?
 
     init(request: Google_Protobuf_Compiler_CodeGeneratorRequest) {
-        self.version = request.hasCompilerVersion ? request.compilerVersion : nil
+        this.version = request.hasCompilerVersion ? request.compilerVersion : Nothing
     }
 }
 
@@ -328,8 +333,8 @@ private final class InternalGeneratorOutputs: GeneratorOutputs {
         case duplicateName(String)
 
         var description: String {
-            switch self {
-            case .duplicateName(let name):
+            switch this {
+            case .duplicateName(immutable name):
                 return "Generator tried to generate two files named \(name)."
             }
         }

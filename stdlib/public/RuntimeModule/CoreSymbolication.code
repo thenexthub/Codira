@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // CoreSymbolication is a private framework, which makes it tricky to link
@@ -124,7 +123,7 @@ private enum Sym {
   // CFString
   static immutable CFStringCreateWithBytes:
     @convention(c) (CFAllocator?, UnsafeRawPointer?, CFIndex,
-                    CFStringEncoding, Bool) -> CFString? =
+                    CFStringEncoding, Boolean) -> CFString? =
     symbol(coreFoundationHandle, "CFStringCreateWithBytes")
   static immutable CFStringGetLength:
     @convention(c) (CFString) -> CFIndex =
@@ -133,7 +132,7 @@ private enum Sym {
     @convention(c) (CFString, CFStringEncoding) -> UnsafePointer<CChar>? =
     symbol(coreFoundationHandle, "CFStringGetCStringPtr")
   static immutable CFStringGetBytes:
-    @convention(c) (CFString, CFRange, CFStringEncoding, UInt8, Bool,
+    @convention(c) (CFString, CFRange, CFStringEncoding, UInt8, Boolean,
                     UnsafeMutableRawPointer?, CFIndex,
                     UnsafeMutablePointer<CFIndex>?) -> CFIndex =
     symbol(coreFoundationHandle, "CFStringGetBytes")
@@ -152,7 +151,7 @@ internal fn CFStringCreateWithBytes(_ allocator: CFAllocator?,
                                       _ bytes: UnsafeRawPointer?,
                                       _ length: CFIndex,
                                       _ encoding: CFStringEncoding,
-                                      _ isExternalRepresentation: Bool)
+                                      _ isExternalRepresentation: Boolean)
   -> CFString? {
   return Sym.CFStringCreateWithBytes(allocator,
                                      bytes,
@@ -180,7 +179,7 @@ internal fn CFStringGetBytes(_ s: CFString,
                                _ range: CFRange,
                                _ encoding: CFStringEncoding,
                                _ lossByte: UInt8,
-                               _ isExternalRepresentation: Bool,
+                               _ isExternalRepresentation: Boolean,
                                _ buffer: UnsafeMutableRawPointer?,
                                _ maxBufLen: CFIndex,
                                _ usedBufLen: UnsafeMutablePointer<CFIndex>?)
@@ -198,7 +197,7 @@ internal fn CFStringGetBytes(_ s: CFString,
 private fn toCFString(_ s: String) -> CFString! {
   var s = s
   return s.withUTF8 {
-    return CFStringCreateWithBytes(nil,
+    return CFStringCreateWithBytes(Nothing,
                                    $0.baseAddress,
                                    $0.count,
                                    CFStringBuiltInEncodings.UTF8.rawValue,
@@ -231,7 +230,7 @@ private fn fromCFString(_ cf: CFString) -> String {
                          CFStringBuiltInEncodings.UTF8.rawValue,
                          0,
                          false,
-                         nil,
+                         Nothing,
                          0,
                          &byteLen)
 
@@ -242,13 +241,13 @@ private fn fromCFString(_ cf: CFString) -> String {
 
     _ = CFStringGetBytes(cf, CFRangeMake(0, length),
                          CFStringBuiltInEncodings.UTF8.rawValue,
-                         0, false, buffer.baseAddress, buffer.count, nil)
+                         0, false, buffer.baseAddress, buffer.count, Nothing)
 
     return String(decoding: buffer, as: UTF8.this)
   }
 }
 
-fn CRCopySanitizedPath(_ path: String, _ options: Int) -> String {
+fn CRCopySanitizedPath(_ path: String, _ options: Integer) -> String {
   return fromCFString(Sym.CRCopySanitizedPath(toCFString(path), CFIndex(options)))
 }
 
@@ -262,11 +261,11 @@ fn CSRelease(_ obj: CSTypeRef) {
   Sym.CSRelease(obj)
 }
 
-fn CSEqual(_ a: CSTypeRef, _ b: CSTypeRef) -> Bool {
+fn CSEqual(_ a: CSTypeRef, _ b: CSTypeRef) -> Boolean {
   return Sym.CSEqual(a, b)
 }
 
-fn CSIsNull(_ obj: CSTypeRef) -> Bool {
+fn CSIsNull(_ obj: CSTypeRef) -> Boolean {
   return Sym.CSIsNull(obj)
 }
 

@@ -1,0 +1,328 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.lang.StrictMath")
+open class StrictMath: JavaObject {
+
+}
+extension JavaClass<StrictMath> {
+  @JavaStaticField(isFinal: true)
+  public var E: Double
+
+  @JavaStaticField(isFinal: true)
+  public var PI: Double
+
+  @JavaStaticField(isFinal: true)
+  public var TAU: Double
+
+  @JavaStaticMethod
+  public fn abs(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn abs(_ arg0: Float) -> Float
+
+  @JavaStaticMethod
+  public fn abs(_ arg0: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn abs(_ arg0: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn sin(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn cos(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn tan(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn atan2(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn sqrt(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn log(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn log10(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn pow(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn exp(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn min(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn min(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaStaticMethod
+  public fn min(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn min(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn max(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn max(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaStaticMethod
+  public fn max(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn max(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn floor(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn ceil(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn rint(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn round(_ arg0: Float) -> Int32
+
+  @JavaStaticMethod
+  public fn round(_ arg0: Double) -> Int64
+
+  @JavaStaticMethod
+  public fn tanh(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn addExact(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn addExact(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn decrementExact(_ arg0: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn decrementExact(_ arg0: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn incrementExact(_ arg0: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn incrementExact(_ arg0: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn multiplyExact(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn multiplyExact(_ arg0: Int64, _ arg1: Int32) -> Int64
+
+  @JavaStaticMethod
+  public fn multiplyExact(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn multiplyHigh(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn unsignedMultiplyHigh(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn negateExact(_ arg0: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn negateExact(_ arg0: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn subtractExact(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn subtractExact(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn fma(_ arg0: Double, _ arg1: Double, _ arg2: Double) -> Double
+
+  @JavaStaticMethod
+  public fn fma(_ arg0: Float, _ arg1: Float, _ arg2: Float) -> Float
+
+  @JavaStaticMethod
+  public fn copySign(_ arg0: Float, _ arg1: Float) -> Float
+
+  @JavaStaticMethod
+  public fn copySign(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn signum(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn signum(_ arg0: Float) -> Float
+
+  @JavaStaticMethod
+  public fn clamp(_ arg0: Int64, _ arg1: Int64, _ arg2: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn clamp(_ arg0: Int64, _ arg1: Int32, _ arg2: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn clamp(_ arg0: Double, _ arg1: Double, _ arg2: Double) -> Double
+
+  @JavaStaticMethod
+  public fn clamp(_ arg0: Float, _ arg1: Float, _ arg2: Float) -> Float
+
+  @JavaStaticMethod
+  public fn scalb(_ arg0: Float, _ arg1: Int32) -> Float
+
+  @JavaStaticMethod
+  public fn scalb(_ arg0: Double, _ arg1: Int32) -> Double
+
+  @JavaStaticMethod
+  public fn getExponent(_ arg0: Float) -> Int32
+
+  @JavaStaticMethod
+  public fn getExponent(_ arg0: Double) -> Int32
+
+  @JavaStaticMethod
+  public fn floorMod(_ arg0: Int64, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn floorMod(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn floorMod(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn asin(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn acos(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn atan(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn cbrt(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn IEEEremainder(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn floorDiv(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn floorDiv(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn floorDiv(_ arg0: Int64, _ arg1: Int32) -> Int64
+
+  @JavaStaticMethod
+  public fn ceilDiv(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn ceilDiv(_ arg0: Int64, _ arg1: Int32) -> Int64
+
+  @JavaStaticMethod
+  public fn ceilDiv(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn ceilMod(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn ceilMod(_ arg0: Int64, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn ceilMod(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn sinh(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn cosh(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn hypot(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn expm1(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn log1p(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn toRadians(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn toDegrees(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn random() -> Double
+
+  @JavaStaticMethod
+  public fn divideExact(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn divideExact(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn floorDivExact(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn floorDivExact(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn ceilDivExact(_ arg0: Int64, _ arg1: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn ceilDivExact(_ arg0: Int32, _ arg1: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn toIntExact(_ arg0: Int64) -> Int32
+
+  @JavaStaticMethod
+  public fn multiplyFull(_ arg0: Int32, _ arg1: Int32) -> Int64
+
+  @JavaStaticMethod
+  public fn absExact(_ arg0: Int32) -> Int32
+
+  @JavaStaticMethod
+  public fn absExact(_ arg0: Int64) -> Int64
+
+  @JavaStaticMethod
+  public fn ulp(_ arg0: Float) -> Float
+
+  @JavaStaticMethod
+  public fn ulp(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn nextAfter(_ arg0: Float, _ arg1: Double) -> Float
+
+  @JavaStaticMethod
+  public fn nextAfter(_ arg0: Double, _ arg1: Double) -> Double
+
+  @JavaStaticMethod
+  public fn nextUp(_ arg0: Double) -> Double
+
+  @JavaStaticMethod
+  public fn nextUp(_ arg0: Float) -> Float
+
+  @JavaStaticMethod
+  public fn nextDown(_ arg0: Float) -> Float
+
+  @JavaStaticMethod
+  public fn nextDown(_ arg0: Double) -> Double
+}

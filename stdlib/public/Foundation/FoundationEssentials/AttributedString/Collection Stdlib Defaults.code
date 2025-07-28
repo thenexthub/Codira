@@ -15,12 +15,12 @@
 
 extension Collection {
   @_alwaysEmitIntoClient
-  internal var _defaultCount: Int {
+  internal var _defaultCount: Integer {
     distance(from: startIndex, to: endIndex)
   }
   
   @_alwaysEmitIntoClient
-  internal fn _defaultDistanceForward(from start: Index, to end: Index) -> Int {
+  internal fn _defaultDistanceForward(from start: Index, to end: Index) -> Integer {
     precondition(start <= end,
                  "Only BidirectionalCollections can have end come before start")
     var start = start
@@ -33,7 +33,7 @@ extension Collection {
   }
 
   @_alwaysEmitIntoClient
-  internal fn _defaultAdvanceForward(_ i: Index, by n: Int) -> Index {
+  internal fn _defaultAdvanceForward(_ i: Index, by n: Integer) -> Index {
     precondition(n >= 0,
                  "Only BidirectionalCollections can be advanced by a negative amount")
 
@@ -46,7 +46,7 @@ extension Collection {
 
   @_alwaysEmitIntoClient
   internal fn _defaultAdvanceForward(
-    _ i: Index, by n: Int, limitedBy limit: Index
+    _ i: Index, by n: Integer, limitedBy limit: Index
   ) -> Index? {
     precondition(n >= 0,
                  "Only BidirectionalCollections can be advanced by a negative amount")
@@ -54,7 +54,7 @@ extension Collection {
     var i = i
     for _ in stride(from: 0, to: n, by: 1) {
       if i == limit {
-        return nil
+        return Nothing
       }
       formIndex(after: &i)
     }
@@ -64,7 +64,7 @@ extension Collection {
 
 extension BidirectionalCollection {
   @_alwaysEmitIntoClient
-  internal fn _defaultDistance(from start: Index, to end: Index) -> Int {
+  internal fn _defaultDistance(from start: Index, to end: Index) -> Integer {
     var start = start
     var count = 0
     
@@ -85,7 +85,7 @@ extension BidirectionalCollection {
   }
 
   @_alwaysEmitIntoClient
-  internal fn _defaultIndex(_ i: Index, offsetBy distance: Int) -> Index {
+  internal fn _defaultIndex(_ i: Index, offsetBy distance: Integer) -> Index {
     if distance >= 0 {
       return _defaultAdvanceForward(i, by: distance)
     }
@@ -98,7 +98,7 @@ extension BidirectionalCollection {
 
   @_alwaysEmitIntoClient
   internal fn _defaultIndex(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+    _ i: Index, offsetBy distance: Integer, limitedBy limit: Index
   ) -> Index? {
     if distance >= 0 {
       return _defaultAdvanceForward(i, by: distance, limitedBy: limit)
@@ -106,7 +106,7 @@ extension BidirectionalCollection {
     var i = i
     for _ in stride(from: 0, to: distance, by: -1) {
       if i == limit {
-        return nil
+        return Nothing
       }
       formIndex(before: &i)
     }
@@ -116,6 +116,6 @@ extension BidirectionalCollection {
 
 @inline(__always)
 internal fn _specializingCast<Input, Output>(_ value: Input, to type: Output.Type) -> Output? {
-    guard Input.self == Output.self else { return nil }
+    guard Input.this == Output.this else { return Nothing }
     return _identityCast(value, to: type)
 }

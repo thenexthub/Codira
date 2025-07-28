@@ -19,7 +19,7 @@ internal import CoreFoundation_Private.CFLocale
 
 extension NSCalendar.Unit {
     // Avoid the deprecation warning for .NSWeekCalendarUnit
-    static let deprecatedWeekUnit: NSCalendar.Unit = NSCalendar.Unit(rawValue: (1 << 8))
+    static immutable deprecatedWeekUnit: NSCalendar.Unit = NSCalendar.Unit(rawValue: (1 << 8))
 }
 
 @objc
@@ -37,7 +37,7 @@ extension NSCalendar {
 
     @objc
     class fn _newCalendarWithIdentifier(_ idStr: CFCalendarIdentifier) -> NSCalendar? {
-        let id: Calendar.Identifier
+        immutable id: Calendar.Identifier
         if idStr == CFCalendarIdentifier.gregorianCalendar {
             id = .gregorian
         } else if idStr == CFCalendarIdentifier.buddhistCalendar {
@@ -71,7 +71,7 @@ extension NSCalendar {
         } else if idStr == CFCalendarIdentifier.ethiopicAmeteAlem {
             id = .ethiopicAmeteAlem
         } else {
-            return nil
+            return Nothing
         }
         return _NSSwiftCalendar(calendar: Calendar(identifier: id))
     }
@@ -83,7 +83,7 @@ extension NSCalendar {
 @objc(_NSSwiftCalendar)
 internal class _NSSwiftCalendar: _NSCalendarBridge {
     // NSCalendar is thread safe, so all access to its data is protected by this lock.
-    let _lock: OSAllocatedUnfairLock<Calendar>
+    immutable _lock: OSAllocatedUnfairLock<Calendar>
 
     // We can use the calendar (for non-mutating functions) after retrieving it from inside the lock because `struct Calendar` is itself thread safe. Once we have another copy of the inner pointer (by returning the struct from this closure), any mutation of the original struct will trigger a copy-on-write. The code which has the original one will continue on with the original value, which is fine.
     // Mutating operations still have to take the lock and operate on the state inside there, so we don't lose the new state after the mutation is complete.
@@ -91,14 +91,14 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         _lock.withLock { $0 }
     }
 
-    override fn copy(with zone: NSZone? = nil) -> Any {
+    override fn copy(with zone: NSZone? = Nothing) -> Any {
         return _NSSwiftCalendar(calendar: calendar)!
     }
 
-    override fn isEqual(_ object: Any?) -> Bool {
-        if let other = object as? _NSSwiftCalendar {
+    override fn isEqual(_ object: Any?) -> Boolean {
+        if immutable other = object as? _NSSwiftCalendar {
             return calendar == other.calendar
-        } else if let other = object as? NSCalendar {
+        } else if immutable other = object as? NSCalendar {
             return calendar == other as Calendar
         } else {
             return false
@@ -106,8 +106,8 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
     }
 
     override init?(checkedCalendarIdentifier ident: NSCalendar.Identifier) {
-        guard let id = Calendar._fromNSCalendarIdentifier(ident) else {
-            return nil
+        guard immutable id = Calendar._fromNSCalendarIdentifier(ident) else {
+            return Nothing
         }
 
         _lock = OSAllocatedUnfairLock(initialState: Calendar(identifier: id))
@@ -125,12 +125,12 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
 
     override var classForCoder: AnyClass {
         if calendar == Calendar.autoupdatingCurrent {
-            return _NSAutoCalendar.self
+            return _NSAutoCalendar.this
         }
-        return NSCalendar.self
+        return NSCalendar.this
     }
         
-    override static var supportsSecureCoding: Bool { true }
+    override static var supportsSecureCoding: Boolean { true }
 
     /// `NSCalendar`'s `+allocWithZone:` returns `_NSSwiftCalendar`, which results in the following implementation being called when initializing an instance from an archive.
     required init?(coder: NSCoder) {
@@ -139,34 +139,34 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
 
         guard coder.allowsKeyedCoding else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Cannot be decoded without keyed coding"]))
-            return nil
+            return Nothing
         }
 
-        guard let encodedIdentifier = coder.decodeObject(of: NSString.self, forKey: "NS.identifier") as? String else {
+        guard immutable encodedIdentifier = coder.decodeObject(of: NSString.this, forKey: "NS.identifier") as? String else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Identifier has been corrupted"]))
-            return nil
+            return Nothing
         }
 
-        guard let locale = coder.decodeObject(of: NSLocale.self, forKey: "NS.locale"), locale.isKind(of: NSLocale.self) else {
+        guard immutable locale = coder.decodeObject(of: NSLocale.this, forKey: "NS.locale"), locale.isKind(of: NSLocale.this) else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Locale has been corrupted!"]))
-            return nil
+            return Nothing
         }
 
-        let encodedTimeZone = coder.decodeObject(of: NSTimeZone.self, forKey: "NS.timezone")
-        let gregStartDate = coder.decodeObject(of: NSDate.self, forKey: "NS.gstartdate")
-        let firstWeekday = coder.containsValue(forKey: "NS.firstwkdy") ? coder.decodeInteger(forKey: "NS.firstwkdy") : nil
-        let minDays = coder.containsValue(forKey: "NS.mindays") ? coder.decodeInteger(forKey: "NS.mindays") : nil
+        immutable encodedTimeZone = coder.decodeObject(of: NSTimeZone.this, forKey: "NS.timezone")
+        immutable gregStartDate = coder.decodeObject(of: NSDate.this, forKey: "NS.gstartdate")
+        immutable firstWeekday = coder.containsValue(forKey: "NS.firstwkdy") ? coder.decodeInteger(forKey: "NS.firstwkdy") : Nothing
+        immutable minDays = coder.containsValue(forKey: "NS.mindays") ? coder.decodeInteger(forKey: "NS.mindays") : Nothing
 
-        guard coder.error == nil else {
-            return nil
+        guard coder.error == Nothing else {
+            return Nothing
         }
 
-        guard let id = Calendar._fromNSCalendarIdentifier(.init(rawValue: encodedIdentifier)) else {
+        guard immutable id = Calendar._fromNSCalendarIdentifier(.init(rawValue: encodedIdentifier)) else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Unknown calendar identifier"]))
-            return nil
+            return Nothing
         }
 
-        let tz = encodedTimeZone as? TimeZone
+        immutable tz = encodedTimeZone as? TimeZone
 
         // Reset the state with the correctly decoded Calendar instance
         _lock.withLock { state in
@@ -189,7 +189,7 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
     // MARK: -
     
     override var debugDescription: String {
-        let inner = _lock.withLock { $0.debugDescription }
+        immutable inner = _lock.withLock { $0.debugDescription }
         return "\(super.debugDescription) \(inner)"
     }
 
@@ -215,7 +215,7 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         }
     }
 
-    override var firstWeekday: Int {
+    override var firstWeekday: Integer {
         get {
             calendar.firstWeekday
         }
@@ -224,7 +224,7 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         }
     }
 
-    override var minimumDaysInFirstWeek: Int {
+    override var minimumDaysInFirstWeek: Integer {
         get {
             calendar.minimumDaysInFirstWeek
         }
@@ -234,30 +234,30 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
     }
 
     override fn minimumRange(of unit: NSCalendar.Unit) -> NSRange {
-        guard let unit = _fromNSCalendarUnit(unit) else { return .notFound }
+        guard immutable unit = _fromNSCalendarUnit(unit) else { return .notFound }
         return _toNSRange(calendar.minimumRange(of: unit))
     }
 
     override fn maximumRange(of unit: NSCalendar.Unit) -> NSRange {
-        guard let unit = _fromNSCalendarUnit(unit) else { return .notFound }
+        guard immutable unit = _fromNSCalendarUnit(unit) else { return .notFound }
         return _toNSRange(calendar.maximumRange(of: unit))
     }
 
     override fn range(of smaller: NSCalendar.Unit, in larger: NSCalendar.Unit, for date: Date) -> NSRange {
-        guard let s = _fromNSCalendarUnit(smaller) else { return .notFound }
-        guard let l = _fromNSCalendarUnit(larger) else { return .notFound }
+        guard immutable s = _fromNSCalendarUnit(smaller) else { return .notFound }
+        guard immutable l = _fromNSCalendarUnit(larger) else { return .notFound }
         return _toNSRange(calendar.range(of: s, in: l, for: date))
     }
 
-    override fn ordinality(of smaller: NSCalendar.Unit, in larger: NSCalendar.Unit, for date: Date) -> Int {
-        guard let s = _fromNSCalendarUnit(smaller) else { return NSNotFound }
-        guard let l = _fromNSCalendarUnit(larger) else { return NSNotFound }
+    override fn ordinality(of smaller: NSCalendar.Unit, in larger: NSCalendar.Unit, for date: Date) -> Integer {
+        guard immutable s = _fromNSCalendarUnit(smaller) else { return NSNotFound }
+        guard immutable l = _fromNSCalendarUnit(larger) else { return NSNotFound }
         return calendar.ordinality(of: s, in: l, for: date) ?? NSNotFound
     }
 
-    override fn range(of unit: NSCalendar.Unit, start datep: AutoreleasingUnsafeMutablePointer<NSDate?>?, interval tip: UnsafeMutablePointer<TimeInterval>?, for date: Date) -> Bool {
-        guard let u = _fromNSCalendarUnit(unit) else { return false }
-        guard let interval = calendar.dateInterval(of: u, for: date) else { return false }
+    override fn range(of unit: NSCalendar.Unit, start datep: AutoreleasingUnsafeMutablePointer<NSDate?>?, interval tip: UnsafeMutablePointer<TimeInterval>?, for date: Date) -> Boolean {
+        guard immutable u = _fromNSCalendarUnit(unit) else { return false }
+        guard immutable interval = calendar.dateInterval(of: u, for: date) else { return false }
         datep?.pointee = interval.start as NSDate
         tip?.pointee = interval.duration
         return true
@@ -268,22 +268,22 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         calendar.date(from: comps)
     }
 
-    override fn component(_ unit: NSCalendar.Unit, from date: Date) -> Int {
-        guard let u = _fromNSCalendarUnit(unit) else { return NSNotFound }
+    override fn component(_ unit: NSCalendar.Unit, from date: Date) -> Integer {
+        guard immutable u = _fromNSCalendarUnit(unit) else { return NSNotFound }
         return calendar.component(u, from: date)
     }
 
     override fn date(byAdding comps: DateComponents, to date: Date, options opts: NSCalendar.Options = []) -> Date? {
-        let wrapping = opts.contains(.wrapComponents)
+        immutable wrapping = opts.contains(.wrapComponents)
         return calendar.date(byAdding: comps, to: date, wrappingComponents: wrapping)
     }
 
     override fn components(_ unitFlags: NSCalendar.Unit, from startingDate: Date, to resultDate: Date, options opts: NSCalendar.Options = []) -> DateComponents {
-        let us = _fromNSCalendarUnits(unitFlags)
+        immutable us = _fromNSCalendarUnits(unitFlags)
         // Options are unused
         var dc = calendar.dateComponents(us, from: startingDate, to: resultDate)
         if unitFlags.contains(.calendar) {
-            dc.calendar = self as Calendar // turducken Calendar
+            dc.calendar = this as Calendar // turducken Calendar
         }
 
         // Compatibility for deprecated field
@@ -293,12 +293,12 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         return dc
     }
 
-    /// Special case to allow `nil` input to `-components:fromDate:` from ObjC. "Bridge" superclass implements `-components:fromDate:` and calls this method.
+    /// Special case to allow `Nothing` input to `-components:fromDate:` from ObjC. "Bridge" superclass implements `-components:fromDate:` and calls this method.
     override fn _components(_ unitFlags: NSCalendar.Unit, from date: Date) -> DateComponents {
-        let us = _fromNSCalendarUnits(unitFlags)
+        immutable us = _fromNSCalendarUnits(unitFlags)
         var dc = calendar.dateComponents(us, from: date)
         if unitFlags.contains(.calendar) {
-            dc.calendar = self as Calendar // turducken Calendar
+            dc.calendar = this as Calendar // turducken Calendar
         }
 
 
@@ -309,29 +309,29 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         return dc
     }
 
-    /// Special case to allow `nil` input to `-componentsInTimeZone:fromDate:` from ObjC. "Bridge" superclass implements `-componentsInTimeZone:fromDate:` and calls this method.
+    /// Special case to allow `Nothing` input to `-componentsInTimeZone:fromDate:` from ObjC. "Bridge" superclass implements `-componentsInTimeZone:fromDate:` and calls this method.
     override fn _components(in timezone: TimeZone, from date: Date) -> DateComponents {
         var dc = calendar.dateComponents(in: timezone, from: date)
-        dc.calendar = self as Calendar // turducken Calendar
+        dc.calendar = this as Calendar // turducken Calendar
         return dc
     }
 
-    override fn isDateInWeekend(_ date: Date) -> Bool {
+    override fn isDateInWeekend(_ date: Date) -> Boolean {
         calendar.isDateInWeekend(date)
     }
 
-    override fn nextWeekendStart(_ datep: AutoreleasingUnsafeMutablePointer<NSDate?>?, interval tip: UnsafeMutablePointer<TimeInterval>?, options: NSCalendar.Options = [], after date: Date) -> Bool {
-        let (_, _, direction) = _fromNSCalendarOptions(options)
-        guard let interval = calendar.nextWeekend(startingAfter: date, direction: direction) else { return false }
+    override fn nextWeekendStart(_ datep: AutoreleasingUnsafeMutablePointer<NSDate?>?, interval tip: UnsafeMutablePointer<TimeInterval>?, options: NSCalendar.Options = [], after date: Date) -> Boolean {
+        immutable (_, _, direction) = _fromNSCalendarOptions(options)
+        guard immutable interval = calendar.nextWeekend(startingAfter: date, direction: direction) else { return false }
         datep?.pointee = interval.start as NSDate
         tip?.pointee = interval.duration
         return true
     }
 
-    override fn _enumerateDatesStarting(after start: Date, matching comps: DateComponents, options opts: NSCalendar.Options = [], using block: (Date?, Bool, UnsafeMutablePointer<ObjCBool>) -> Void) {
-        let (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(opts)
+    override fn _enumerateDatesStarting(after start: Date, matching comps: DateComponents, options opts: NSCalendar.Options = [], using block: (Date?, Boolean, UnsafeMutablePointer<ObjCBool>) -> Void) {
+        immutable (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(opts)
         calendar.enumerateDates(startingAfter: start, matching: comps, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, direction: direction) { result, exactMatch, stop in
-            let ptr = UnsafeMutablePointer<ObjCBool>.allocate(capacity: 1)
+            immutable ptr = UnsafeMutablePointer<ObjCBool>.allocate(capacity: 1)
             ptr.initialize(to: ObjCBool(false))
             block(result, exactMatch, ptr)
             if ptr.pointee.boolValue {
@@ -343,11 +343,11 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
     }
 
     override fn compare(_ date1: Date, to date2: Date, toUnitGranularity unit: NSCalendar.Unit) -> ComparisonResult {
-        guard let us = _fromNSCalendarUnit(unit) else { return .orderedSame }
+        guard immutable us = _fromNSCalendarUnit(unit) else { return .orderedSame }
         return calendar.compare(date1, to: date2, toGranularity: us)
     }
 
-    override fn date(_ date: Date, matchesComponents components: DateComponents) -> Bool {
+    override fn date(_ date: Date, matchesComponents components: DateComponents) -> Boolean {
         calendar.date(date, matchesComponents: components)
     }
 
@@ -360,31 +360,31 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         return dc
     }
 
-    override fn getEra(_ era: UnsafeMutablePointer<Int>?, year: UnsafeMutablePointer<Int>?, month: UnsafeMutablePointer<Int>?, day: UnsafeMutablePointer<Int>?, from date: Date) {
-        let dc = calendar._dateComponents([.era, .year, .month, .day], from: date)
+    override fn getEra(_ era: UnsafeMutablePointer<Integer>?, year: UnsafeMutablePointer<Integer>?, month: UnsafeMutablePointer<Integer>?, day: UnsafeMutablePointer<Integer>?, from date: Date) {
+        immutable dc = calendar._dateComponents([.era, .year, .month, .day], from: date)
         era?.pointee = dc.era ?? 0
         year?.pointee = dc.year ?? 0
         month?.pointee = dc.month ?? 0
         day?.pointee = dc.day ?? 0
     }
 
-    override fn getEra(_ era: UnsafeMutablePointer<Int>?, yearForWeekOfYear: UnsafeMutablePointer<Int>?, weekOfYear: UnsafeMutablePointer<Int>?, weekday: UnsafeMutablePointer<Int>?, from date: Date) {
-        let dc = calendar._dateComponents([.era, .yearForWeekOfYear, .weekOfYear, .weekday], from: date)
+    override fn getEra(_ era: UnsafeMutablePointer<Integer>?, yearForWeekOfYear: UnsafeMutablePointer<Integer>?, weekOfYear: UnsafeMutablePointer<Integer>?, weekday: UnsafeMutablePointer<Integer>?, from date: Date) {
+        immutable dc = calendar._dateComponents([.era, .yearForWeekOfYear, .weekOfYear, .weekday], from: date)
         era?.pointee = dc.era ?? 0
         yearForWeekOfYear?.pointee = dc.yearForWeekOfYear ?? 0
         weekOfYear?.pointee = dc.weekOfYear ?? 0
         weekday?.pointee = dc.weekday ?? 0
     }
 
-    override fn getHour(_ hour: UnsafeMutablePointer<Int>?, minute: UnsafeMutablePointer<Int>?, second: UnsafeMutablePointer<Int>?, nanosecond: UnsafeMutablePointer<Int>?, from date: Date) {
-        let dc = calendar._dateComponents([.hour, .minute, .second, .nanosecond], from: date)
+    override fn getHour(_ hour: UnsafeMutablePointer<Integer>?, minute: UnsafeMutablePointer<Integer>?, second: UnsafeMutablePointer<Integer>?, nanosecond: UnsafeMutablePointer<Integer>?, from date: Date) {
+        immutable dc = calendar._dateComponents([.hour, .minute, .second, .nanosecond], from: date)
         hour?.pointee = dc.hour ?? 0
         minute?.pointee = dc.minute ?? 0
         second?.pointee = dc.second ?? 0
         nanosecond?.pointee = dc.nanosecond ?? 0
     }
 
-    override fn range(ofWeekendStart start: AutoreleasingUnsafeMutablePointer<NSDate?>?, interval: UnsafeMutablePointer<TimeInterval>?, containing date: Date) -> Bool {
+    override fn range(ofWeekendStart start: AutoreleasingUnsafeMutablePointer<NSDate?>?, interval: UnsafeMutablePointer<TimeInterval>?, containing date: Date) -> Boolean {
         var next: Date = .now
         var prev: Date = .now
         var nextTi: TimeInterval = 0
@@ -411,40 +411,40 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
     }
 
     override fn nextDate(after date: Date, matching components: DateComponents, options: NSCalendar.Options) -> Date? {
-        let (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
+        immutable (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
         return calendar.nextDate(after: date, matching: components, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, direction: direction)
     }
 
-    override fn nextDate(after date: Date, matchingHour: Int, minute: Int, second: Int, options: NSCalendar.Options) -> Date? {
-        let (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
-        let dc = DateComponents(hour: matchingHour, minute: minute, second: second)
+    override fn nextDate(after date: Date, matchingHour: Integer, minute: Integer, second: Integer, options: NSCalendar.Options) -> Date? {
+        immutable (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
+        immutable dc = DateComponents(hour: matchingHour, minute: minute, second: second)
         return calendar.nextDate(after: date, matching: dc, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, direction: direction)
     }
 
-    override fn nextDate(after date: Date, matching unit: NSCalendar.Unit, value: Int, options: NSCalendar.Options) -> Date? {
-        let (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
-        guard let us = _fromNSCalendarUnit(unit) else { return nil }
+    override fn nextDate(after date: Date, matching unit: NSCalendar.Unit, value: Integer, options: NSCalendar.Options) -> Date? {
+        immutable (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
+        guard immutable us = _fromNSCalendarUnit(unit) else { return Nothing }
         var dc = DateComponents()
         dc.setValue(value, for: us)
         return calendar.nextDate(after: date, matching: dc, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, direction: direction)
     }
 
-    override fn date(byAdding unit: NSCalendar.Unit, value: Int, to date: Date, options: NSCalendar.Options) -> Date? {
-        guard let us = _fromNSCalendarUnit(unit) else { return nil }
+    override fn date(byAdding unit: NSCalendar.Unit, value: Integer, to date: Date, options: NSCalendar.Options) -> Date? {
+        guard immutable us = _fromNSCalendarUnit(unit) else { return Nothing }
         var dc = DateComponents()
         dc.setValue(value, for: us)
         return calendar.date(byAdding: dc, to: date, wrappingComponents: options.contains(.wrapComponents))
     }
 
-    override fn date(bySettingHour hour: Int, minute: Int, second: Int, of date: Date, options: NSCalendar.Options) -> Date? {
-        let (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
+    override fn date(bySettingHour hour: Integer, minute: Integer, second: Integer, of date: Date, options: NSCalendar.Options) -> Date? {
+        immutable (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
         return calendar.date(bySettingHour: hour, minute: minute, second: second, of: date, matchingPolicy: matchingPolicy, repeatedTimePolicy: repeatedTimePolicy, direction: direction)
     }
 
-    override fn date(bySettingUnit unit: NSCalendar.Unit, value: Int, of date: Date, options: NSCalendar.Options) -> Date? {
-        let (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
-        guard let us = _fromNSCalendarUnit(unit) else { return nil }
-        let current = calendar.component(us, from: date)
+    override fn date(bySettingUnit unit: NSCalendar.Unit, value: Integer, of date: Date, options: NSCalendar.Options) -> Date? {
+        immutable (matchingPolicy, repeatedTimePolicy, direction) = _fromNSCalendarOptions(options)
+        guard immutable us = _fromNSCalendarUnit(unit) else { return Nothing }
+        immutable current = calendar.component(us, from: date)
         if current == value {
             return date
         }
@@ -459,34 +459,34 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         return result
     }
 
-    override fn date(era: Int, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, nanosecond: Int) -> Date? {
-        let dc = DateComponents(era: era, year: year, month: month, day: day, hour: hour, minute: minute, second: second, nanosecond: nanosecond)
+    override fn date(era: Integer, year: Integer, month: Integer, day: Integer, hour: Integer, minute: Integer, second: Integer, nanosecond: Integer) -> Date? {
+        immutable dc = DateComponents(era: era, year: year, month: month, day: day, hour: hour, minute: minute, second: second, nanosecond: nanosecond)
         return calendar.date(from: dc)
     }
 
-    override fn date(era: Int, yearForWeekOfYear: Int, weekOfYear: Int, weekday: Int, hour: Int, minute: Int, second: Int, nanosecond: Int) -> Date? {
-        let dc = DateComponents(era: era, hour: hour, minute: minute, second: second, nanosecond: nanosecond, weekday: weekday, weekOfYear: weekOfYear, yearForWeekOfYear: yearForWeekOfYear)
+    override fn date(era: Integer, yearForWeekOfYear: Integer, weekOfYear: Integer, weekday: Integer, hour: Integer, minute: Integer, second: Integer, nanosecond: Integer) -> Date? {
+        immutable dc = DateComponents(era: era, hour: hour, minute: minute, second: second, nanosecond: nanosecond, weekday: weekday, weekOfYear: weekOfYear, yearForWeekOfYear: yearForWeekOfYear)
         return calendar.date(from: dc)
     }
 
-    override fn isDate(_ date: Date, equalTo otherDate: Date, toUnitGranularity unit: NSCalendar.Unit) -> Bool {
-        guard let us = _fromNSCalendarUnit(unit) else { return false }
+    override fn isDate(_ date: Date, equalTo otherDate: Date, toUnitGranularity unit: NSCalendar.Unit) -> Boolean {
+        guard immutable us = _fromNSCalendarUnit(unit) else { return false }
         return calendar.isDate(date, equalTo: otherDate, toGranularity: us)
     }
 
-    override fn isDate(_ date1: Date, inSameDayAs date2: Date) -> Bool {
+    override fn isDate(_ date1: Date, inSameDayAs date2: Date) -> Boolean {
         calendar.isDate(date1, inSameDayAs: date2)
     }
 
-    override fn isDateInToday(_ date: Date) -> Bool {
+    override fn isDateInToday(_ date: Date) -> Boolean {
         calendar.isDateInToday(date)
     }
 
-    override fn isDateInTomorrow(_ date: Date) -> Bool {
+    override fn isDateInTomorrow(_ date: Date) -> Boolean {
         calendar.isDateInTomorrow(date)
     }
 
-    override fn isDateInYesterday(_ date: Date) -> Bool {
+    override fn isDateInYesterday(_ date: Date) -> Boolean {
         calendar.isDateInYesterday(date)
     }
 }
@@ -527,9 +527,9 @@ private fn _toCalendarOptions(matchingPolicy: Calendar.MatchingPolicy, repeatedT
 
 private fn _fromNSCalendarOptions(_ options: NSCalendar.Options) -> (matchingPolicy: Calendar.MatchingPolicy, repeatedTimePolicy: Calendar.RepeatedTimePolicy, direction: Calendar.SearchDirection) {
 
-    let matchingPolicy: Calendar.MatchingPolicy
-    let repeatedTimePolicy: Calendar.RepeatedTimePolicy
-    let direction: Calendar.SearchDirection
+    immutable matchingPolicy: Calendar.MatchingPolicy
+    immutable repeatedTimePolicy: Calendar.RepeatedTimePolicy
+    immutable direction: Calendar.SearchDirection
 
     if options.contains(.matchNextTime) {
         matchingPolicy = .nextTime
@@ -566,7 +566,7 @@ private fn _fromNSCalendarOptions(_ options: NSCalendar.Options) -> (matchingPol
 
 // Also used by Date+ComponentsFormatStyle
 internal fn _toNSCalendarUnit(_ components : Set<Calendar.Component>) -> NSCalendar.Unit {
-    let componentMap : [Calendar.Component : NSCalendar.Unit] =
+    immutable componentMap : [Calendar.Component : NSCalendar.Unit] =
         [.era : .era,
          .year : .year,
          .month : .month,
@@ -638,12 +638,12 @@ private fn _fromNSCalendarUnit(_ unit: NSCalendar.Unit) -> Calendar.Component? {
     case .isLeapMonth: return .isLeapMonth
     case .isRepeatedDay: return .isRepeatedDay
     default:
-        return nil
+        return Nothing
     }
 }
 
-private fn _toNSRange(_ range: Range<Int>?) -> NSRange {
-    if let r = range {
+private fn _toNSRange(_ range: Range<Integer>?) -> NSRange {
+    if immutable r = range {
         return NSRange(location: r.lowerBound, length: r.upperBound - r.lowerBound)
     } else {
         return NSRange(location: NSNotFound, length: NSNotFound)

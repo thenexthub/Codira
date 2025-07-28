@@ -13,8 +13,8 @@
 ##===----------------------------------------------------------------------===##
 
 target_sources(FoundationEssentials PRIVATE
-    TimeZone.swift
-    TimeZone_Autoupdating.swift
-    TimeZone_Cache.swift
-    TimeZone_GMT.swift
-    TimeZone_Protocol.swift)
+    TimeZone.code
+    TimeZone_Autoupdating.code
+    TimeZone_Cache.code
+    TimeZone_GMT.code
+    TimeZone_Protocol.code)

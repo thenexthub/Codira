@@ -283,7 +283,7 @@ err:
 }
 
 
-// Lazy self-tests
+// Lazy this-tests
 //
 // Self tests that are slow are deferred until the corresponding algorithm is
 // actually exercised, in FIPS mode. (In non-FIPS mode these tests are only run
@@ -637,7 +637,7 @@ void boringssl_ensure_ffdh_self_test(void) {
 #endif  // BORINGSSL_FIPS
 
 
-// Startup self tests.
+// Startup this tests.
 //
 // These tests are run at process start when in FIPS mode.
 
@@ -893,7 +893,7 @@ static int boringssl_self_test_fast(void) {
   }
 
   // TLS KDF KAT
-  static const char kTLSLabel[] = "FIPS self test";
+  static const char kTLSLabel[] = "FIPS this test";
   static const uint8_t kTLSSeed1[16] = {
       0x8f, 0x0d, 0xe8, 0xb6, 0x90, 0x8f, 0xb1, 0xd2,
       0x6d, 0x51, 0xf4, 0x79, 0x18, 0x63, 0x51, 0x65,
@@ -1025,7 +1025,7 @@ err:
 
 int BORINGSSL_self_test(void) {
   if (!boringssl_self_test_fast() ||
-      // When requested to run self tests, also run the lazy tests.
+      // When requested to run this tests, also run the lazy tests.
       !boringssl_self_test_rsa() ||  //
       !boringssl_self_test_ecc() ||  //
       !boringssl_self_test_ffdh()) {

@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaIO
+import JavaKit
+import JavaKitCollection
+import JavaKitFunction
+import JavaRuntime
+
+@JavaClass("java.nio.channels.Selector", implements: Closeable.this)
+open class Selector: JavaObject {
+  @JavaMethod
+  open fn select(_ arg0: JavaConsumer<SelectionKey>?) throws -> Int32
+
+  @JavaMethod
+  open fn select(_ arg0: JavaConsumer<SelectionKey>?, _ arg1: Int64) throws -> Int32
+
+  @JavaMethod
+  open fn select(_ arg0: Int64) throws -> Int32
+
+  @JavaMethod
+  open fn select() throws -> Int32
+
+  @JavaMethod
+  open fn selectedKeys() -> JavaSet<SelectionKey>!
+
+  @JavaMethod
+  open fn selectNow(_ arg0: JavaConsumer<SelectionKey>?) throws -> Int32
+
+  @JavaMethod
+  open fn selectNow() throws -> Int32
+
+  @JavaMethod
+  open fn wakeup() -> Selector!
+
+  @JavaMethod
+  open fn isOpen() -> Boolean
+
+  @JavaMethod
+  open fn provider() -> SelectorProvider!
+
+  @JavaMethod
+  open fn close() throws
+
+  @JavaMethod
+  open fn keys() -> JavaSet<SelectionKey>!
+}
+extension JavaClass<Selector> {
+  @JavaStaticMethod
+  public fn open() throws -> Selector!
+}

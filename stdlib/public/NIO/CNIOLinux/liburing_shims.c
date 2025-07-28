@@ -17,7 +17,7 @@
 
 // Check if this is needed, copied from shim.c to avoid possible problems due to:
 // Xcode's Archive builds with Xcode's Package support struggle with empty .c files
-// (https://bugs.swift.org/browse/SR-12939).
+// (https://bugs.code.org/browse/SR-12939).
 void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug2(void) {}
 
 #ifdef __linux__

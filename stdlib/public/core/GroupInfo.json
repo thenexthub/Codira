@@ -61,8 +61,8 @@
     "UTF32.code",
     "ValidUTF8Buffer.code"
   ],
-  "Bool": [
-    "Bool.code"
+  "Boolean": [
+    "Boolean.code"
   ],
   "Collection": [
     "Collection.code",

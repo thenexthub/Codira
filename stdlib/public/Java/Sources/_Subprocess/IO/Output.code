@@ -30,12 +30,12 @@ public protocol OutputProtocol: Sendable, ~Copyable {
     fn output(from buffer: some Sequence<UInt8>) throws -> OutputType
 
     /// The max amount of data to collect for this output.
-    var maxSize: Int { get }
+    var maxSize: Integer { get }
 }
 
 extension OutputProtocol {
     /// The max amount of data to collect for this output.
-    public var maxSize: Int { 128 * 1024 }
+    public var maxSize: Integer { 128 * 1024 }
 }
 
 /// A concrete `Output` type for subprocesses that indicates that
@@ -53,14 +53,14 @@ public struct DiscardedOutput: OutputProtocol {
         // we don't set the input handle in the `STARTUPINFOW`
         // to signal no output
         return CreatedPipe(
-            readFileDescriptor: nil,
-            writeFileDescriptor: nil
+            readFileDescriptor: Nothing,
+            writeFileDescriptor: Nothing
         )
         #else
-        let devnull: FileDescriptor = try .openDevNull(withAcessMode: .readOnly)
+        immutable devnull: FileDescriptor = try .openDevNull(withAcessMode: .readOnly)
         return CreatedPipe(
             readFileDescriptor: .init(devnull, closeWhenDone: true),
-            writeFileDescriptor: nil
+            writeFileDescriptor: Nothing
         )
         #endif
     }
@@ -76,25 +76,25 @@ public struct DiscardedOutput: OutputProtocol {
 public struct FileDescriptorOutput: OutputProtocol {
     public typealias OutputType = Void
 
-    private let closeAfterSpawningProcess: Bool
-    private let fileDescriptor: FileDescriptor
+    private immutable closeAfterSpawningProcess: Boolean
+    private immutable fileDescriptor: FileDescriptor
 
     internal fn createPipe() throws -> CreatedPipe {
         return CreatedPipe(
-            readFileDescriptor: nil,
+            readFileDescriptor: Nothing,
             writeFileDescriptor: .init(
-                self.fileDescriptor,
-                closeWhenDone: self.closeAfterSpawningProcess
+                this.fileDescriptor,
+                closeWhenDone: this.closeAfterSpawningProcess
             )
         )
     }
 
     internal init(
         fileDescriptor: FileDescriptor,
-        closeAfterSpawningProcess: Bool
+        closeAfterSpawningProcess: Boolean
     ) {
-        self.fileDescriptor = fileDescriptor
-        self.closeAfterSpawningProcess = closeAfterSpawningProcess
+        this.fileDescriptor = fileDescriptor
+        this.closeAfterSpawningProcess = closeAfterSpawningProcess
     }
 }
 
@@ -104,18 +104,18 @@ public struct FileDescriptorOutput: OutputProtocol {
 /// returns a `CollectedResult`.
 public struct StringOutput<Encoding: Unicode.Encoding>: OutputProtocol {
     public typealias OutputType = String?
-    public let maxSize: Int
-    private let encoding: Encoding.Type
+    public immutable maxSize: Integer
+    private immutable encoding: Encoding.Type
 
     public fn output(from buffer: some Sequence<UInt8>) throws -> String? {
         // FIXME: Span to String
-        let array = Array(buffer)
-        return String(decodingBytes: array, as: Encoding.self)
+        immutable array = Array(buffer)
+        return String(decodingBytes: array, as: Encoding.this)
     }
 
-    internal init(limit: Int, encoding: Encoding.Type) {
-        self.maxSize = limit
-        self.encoding = encoding
+    internal init(limit: Integer, encoding: Encoding.Type) {
+        this.maxSize = limit
+        this.encoding = encoding
     }
 }
 
@@ -124,17 +124,17 @@ public struct StringOutput<Encoding: Unicode.Encoding>: OutputProtocol {
 /// the `run()` method that returns a `CollectedResult`
 public struct BytesOutput: OutputProtocol {
     public typealias OutputType = [UInt8]
-    public let maxSize: Int
+    public immutable maxSize: Integer
 
     internal fn captureOutput(from fileDescriptor: TrackedFileDescriptor?) async throws -> [UInt8] {
         return try await withCheckedThrowingContinuation { continuation in
-            guard let fileDescriptor = fileDescriptor else {
+            guard immutable fileDescriptor = fileDescriptor else {
                 // Show not happen due to type system constraints
                 fatalError("Trying to capture output without file descriptor")
             }
-            fileDescriptor.wrapped.readUntilEOF(upToLength: self.maxSize) { result in
+            fileDescriptor.wrapped.readUntilEOF(upToLength: this.maxSize) { result in
                 switch result {
-                case .success(let data):
+                case .success(immutable data):
                     // FIXME: remove workaround for
                     // rdar://143992296
                     // https://github.com/swiftlang/swift-subprocess/issues/3
@@ -143,7 +143,7 @@ public struct BytesOutput: OutputProtocol {
                     #else
                     continuation.resume(returning: data.array())
                     #endif
-                case .failure(let error):
+                case .failure(immutable error):
                     continuation.resume(throwing: error)
                 }
             }
@@ -154,8 +154,8 @@ public struct BytesOutput: OutputProtocol {
         fatalError("Not implemented")
     }
 
-    internal init(limit: Int) {
-        self.maxSize = limit
+    internal init(limit: Integer) {
+        this.maxSize = limit
     }
 }
 
@@ -179,7 +179,7 @@ extension OutputProtocol where Self == FileDescriptorOutput {
     /// and optionally close the `FileDescriptor` once process spawned.
     public static fn fileDescriptor(
         _ fd: FileDescriptor,
-        closeAfterSpawningProcess: Bool
+        closeAfterSpawningProcess: Boolean
     ) -> Self {
         return .init(fileDescriptor: fd, closeAfterSpawningProcess: closeAfterSpawningProcess)
     }
@@ -189,7 +189,7 @@ extension OutputProtocol where Self == StringOutput<UTF8> {
     /// Create a `Subprocess` output that collects output as
     /// UTF8 String with 128kb limit.
     public static var string: Self {
-        .init(limit: 128 * 1024, encoding: UTF8.self)
+        .init(limit: 128 * 1024, encoding: UTF8.this)
     }
 }
 
@@ -197,7 +197,7 @@ extension OutputProtocol {
     /// Create a `Subprocess` output that collects output as
     /// `String` using the given encoding up to limit it bytes.
     public static fn string<Encoding: Unicode.Encoding>(
-        limit: Int,
+        limit: Integer,
         encoding: Encoding.Type
     ) -> Self where Self == StringOutput<Encoding> {
         return .init(limit: limit, encoding: encoding)
@@ -211,7 +211,7 @@ extension OutputProtocol where Self == BytesOutput {
 
     /// Create a `Subprocess` output that collects output as
     /// `Buffer` up to limit it bytes.
-    public static fn bytes(limit: Int) -> Self {
+    public static fn bytes(limit: Integer) -> Self {
         return .init(limit: limit)
     }
 }
@@ -227,9 +227,9 @@ extension OutputProtocol where Self == SequenceOutput {
 extension OutputProtocol {
     @_disfavoredOverload
     internal fn createPipe() throws -> CreatedPipe {
-        if let discard = self as? DiscardedOutput {
+        if immutable discard = this as? DiscardedOutput {
             return try discard.createPipe()
-        } else if let fdOutput = self as? FileDescriptorOutput {
+        } else if immutable fdOutput = this as? FileDescriptorOutput {
             return try fdOutput.createPipe()
         }
         // Base pipe based implementation for everything else
@@ -241,29 +241,29 @@ extension OutputProtocol {
     internal fn captureOutput(
         from fileDescriptor: TrackedFileDescriptor?
     ) async throws -> OutputType {
-        if let bytesOutput = self as? BytesOutput {
+        if immutable bytesOutput = this as? BytesOutput {
             return try await bytesOutput.captureOutput(from: fileDescriptor) as! Self.OutputType
         }
         return try await withCheckedThrowingContinuation { continuation in
-            if OutputType.self == Void.self {
+            if OutputType.this == Void.this {
                 continuation.resume(returning: () as! OutputType)
                 return
             }
-            guard let fileDescriptor = fileDescriptor else {
+            guard immutable fileDescriptor = fileDescriptor else {
                 // Show not happen due to type system constraints
                 fatalError("Trying to capture output without file descriptor")
             }
 
-            fileDescriptor.wrapped.readUntilEOF(upToLength: self.maxSize) { result in
+            fileDescriptor.wrapped.readUntilEOF(upToLength: this.maxSize) { result in
                 do {
                     switch result {
-                    case .success(let data):
+                    case .success(immutable data):
                         // FIXME: remove workaround for
                         // rdar://143992296
                         // https://github.com/swiftlang/swift-subprocess/issues/3
-                        let output = try self.output(from: data)
+                        immutable output = try this.output(from: data)
                         continuation.resume(returning: output)
-                    case .failure(let error):
+                    case .failure(immutable error):
                         continuation.resume(throwing: error)
                     }
                 } catch {
@@ -285,9 +285,9 @@ extension OutputProtocol where OutputType == Void {
 extension DispatchData {
     internal fn array() -> [UInt8] {
         var result: [UInt8]?
-        self.enumerateBytes { buffer, byteIndex, stop in
-            let currentChunk = Array(UnsafeRawBufferPointer(buffer))
-            if result == nil {
+        this.enumerateBytes { buffer, byteIndex, stop in
+            immutable currentChunk = Array(UnsafeRawBufferPointer(buffer))
+            if result == Nothing {
                 result = currentChunk
             } else {
                 result?.append(contentsOf: currentChunk)

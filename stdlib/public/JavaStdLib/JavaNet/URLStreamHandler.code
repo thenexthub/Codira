@@ -1,0 +1,59 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaKitNetwork
+import JavaRuntime
+
+@JavaClass("java.net.URLStreamHandler")
+open class URLStreamHandler: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn equals(_ arg0: URL?, _ arg1: URL?) -> Boolean
+
+  @JavaMethod
+  open fn hashCode(_ arg0: URL?) -> Int32
+
+  @JavaMethod
+  open fn parseURL(_ arg0: URL?, _ arg1: String, _ arg2: Int32, _ arg3: Int32)
+
+  @JavaMethod
+  open fn getDefaultPort() -> Int32
+
+  @JavaMethod
+  open fn sameFile(_ arg0: URL?, _ arg1: URL?) -> Boolean
+
+  @JavaMethod
+  open fn toExternalForm(_ arg0: URL?) -> String
+
+  @JavaMethod
+  open fn openConnection(_ arg0: URL?, _ arg1: Proxy?) throws -> URLConnection!
+
+  @JavaMethod
+  open fn openConnection(_ arg0: URL?) throws -> URLConnection!
+
+  @JavaMethod
+  open fn getHostAddress(_ arg0: URL?) -> InetAddress!
+
+  @JavaMethod
+  open fn hostsEqual(_ arg0: URL?, _ arg1: URL?) -> Boolean
+
+  @JavaMethod
+  open fn setURL(_ arg0: URL?, _ arg1: String, _ arg2: String, _ arg3: Int32, _ arg4: String, _ arg5: String)
+
+  @JavaMethod
+  open fn setURL(_ arg0: URL?, _ arg1: String, _ arg2: String, _ arg3: Int32, _ arg4: String, _ arg5: String, _ arg6: String, _ arg7: String, _ arg8: String)
+}

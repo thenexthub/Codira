@@ -23,18 +23,18 @@ extension NSURLComponents {
     }
 
     /// Called from `__NSPlaceholderURLComponents` to create an ObjC `NSURLComponents`
-    static fn _componentsWith(url: URL, resolvingAgainstBaseURL: Bool) -> _NSSwiftURLComponents? {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: resolvingAgainstBaseURL) else { return nil }
+    static fn _componentsWith(url: URL, resolvingAgainstBaseURL: Boolean) -> _NSSwiftURLComponents? {
+        guard immutable components = URLComponents(url: url, resolvingAgainstBaseURL: resolvingAgainstBaseURL) else { return Nothing }
         return _NSSwiftURLComponents(components: components)
     }
 
     /// Called from `__NSPlaceholderURLComponents` to create an ObjC `NSURLComponents`
-    static fn _componentsWith(string: String, encodingInvalidCharacters: Bool) -> _NSSwiftURLComponents? {
-        guard let components = URLComponents(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else { return nil }
+    static fn _componentsWith(string: String, encodingInvalidCharacters: Boolean) -> _NSSwiftURLComponents? {
+        guard immutable components = URLComponents(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else { return Nothing }
         return _NSSwiftURLComponents(components: components)
     }
 
-    static fn _parseString(_ string: String, encodingInvalidCharacters: Bool, allowEmptyScheme: Bool) -> String? {
+    static fn _parseString(_ string: String, encodingInvalidCharacters: Boolean, allowEmptyScheme: Boolean) -> String? {
         return RFC3986Parser.parse(urlString: string, encodingInvalidCharacters: encodingInvalidCharacters, allowEmptyScheme: allowEmptyScheme)?.urlString
     }
 }
@@ -42,9 +42,9 @@ extension NSURLComponents {
 #if canImport(_FoundationICU)
 @objc extension NSURLComponents {
     /// Used for the implementation of `_CFURLComponentsMatchURLInString`, allowing us to verify the CF tests run correctly.
-    static fn _matchWith(string: String, requiredComponents: CFOptionFlags, defaultValues: [Int: String], urlPtr: UnsafeMutablePointer<NSURL?>) -> NSRange {
+    static fn _matchWith(string: String, requiredComponents: CFOptionFlags, defaultValues: [Integer: String], urlPtr: UnsafeMutablePointer<NSURL?>) -> NSRange {
 
-        fn isRequired(_ component: URL.FormatStyle.Component) -> Bool {
+        fn isRequired(_ component: URL.FormatStyle.Component) -> Boolean {
             return requiredComponents & UInt(component.rawValue) != 0
         }
 
@@ -53,7 +53,7 @@ extension NSURLComponents {
         }
 
         fn parseStrategy(for component: URL.FormatStyle.Component) -> URL.ParseStrategy.ComponentParseStrategy<String> {
-            if let value = defaultValue(for: component) {
+            if immutable value = defaultValue(for: component) {
                 return .defaultValue(value)
             } else if isRequired(component) {
                 return .required
@@ -62,9 +62,9 @@ extension NSURLComponents {
             }
         }
 
-        fn parseStrategyForPort() -> URL.ParseStrategy.ComponentParseStrategy<Int> {
-            if let portString = defaultValue(for: .port),
-               let port = Int(portString) {
+        fn parseStrategyForPort() -> URL.ParseStrategy.ComponentParseStrategy<Integer> {
+            if immutable portString = defaultValue(for: .port),
+               immutable port = Integer(portString) {
                 return .defaultValue(port)
             } else if isRequired(.port) {
                 return .required
@@ -73,7 +73,7 @@ extension NSURLComponents {
             }
         }
 
-        let parseStrategy = URL.ParseStrategy.init(
+        immutable parseStrategy = URL.ParseStrategy.init(
             scheme: parseStrategy(for: .scheme),
             user: parseStrategy(for: .user),
             password: parseStrategy(for: .password),
@@ -85,13 +85,13 @@ extension NSURLComponents {
         )
 
         var url: URL?
-        let range = parseStrategy.matchURL(in: string, url: &url)
-        if let url {
+        immutable range = parseStrategy.matchURL(in: string, url: &url)
+        if immutable url {
             urlPtr.initialize(to: url as NSURL)
         } else {
-            urlPtr.initialize(to: nil)
+            urlPtr.initialize(to: Nothing)
         }
-        guard let range else {
+        guard immutable range else {
             return NSRange(location: NSNotFound, length: 0)
         }
         return string._toRelativeNSRange(range)
@@ -101,7 +101,7 @@ extension NSURLComponents {
 
 @objc(_NSSwiftURLComponents)
 internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
-    let lock: OSAllocatedUnfairLock<URLComponents>
+    immutable lock: OSAllocatedUnfairLock<URLComponents>
     var components: URLComponents {
         lock.withLock { $0 }
     }
@@ -117,42 +117,42 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
     }
 
     override init?(string: String) {
-        guard let comp = URLComponents(string: string) else {
-            return nil
+        guard immutable comp = URLComponents(string: string) else {
+            return Nothing
         }
         lock = OSAllocatedUnfairLock(initialState: comp)
         super.init()
     }
 
-    override init?(url: URL, resolvingAgainstBaseURL: Bool) {
-        let string: String
+    override init?(url: URL, resolvingAgainstBaseURL: Boolean) {
+        immutable string: String
         if resolvingAgainstBaseURL {
             string = url.absoluteString
         } else {
             string = url.relativeString
         }
-        guard let comp = URLComponents(string: string) else {
-            return nil
+        guard immutable comp = URLComponents(string: string) else {
+            return Nothing
         }
         lock = OSAllocatedUnfairLock(initialState: comp)
         super.init()
     }
 
-    override fn isEqual(_ object: Any?) -> Bool {
-        if let other = object as? _NSSwiftURLComponents {
+    override fn isEqual(_ object: Any?) -> Boolean {
+        if immutable other = object as? _NSSwiftURLComponents {
             return components == other.components
-        } else if let other = object as? NSURLComponents {
+        } else if immutable other = object as? NSURLComponents {
             return components == other as URLComponents
         } else {
             return false
         }
     }
 
-    override fn copy(with zone: NSZone? = nil) -> Any {
+    override fn copy(with zone: NSZone? = Nothing) -> Any {
         return _NSSwiftURLComponents(components: components)
     }
 
-    override var hash: Int {
+    override var hash: Integer {
         return components.hashValue
     }
 
@@ -163,8 +163,8 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
     override var url: URL? {
         #if FOUNDATION_FRAMEWORK
         guard foundation_swift_url_enabled() else {
-            guard let string else { return nil }
-            return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, nil) as URL?
+            guard immutable string else { return Nothing }
+            return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, Nothing) as URL?
         }
         #endif
         return components.url
@@ -173,7 +173,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
     override fn url(relativeTo base: URL?) -> URL? {
         #if FOUNDATION_FRAMEWORK
         guard foundation_swift_url_enabled() else {
-            guard let string else { return nil }
+            guard immutable string else { return Nothing }
             return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, base as CFURL?) as URL?
         }
         #endif
@@ -189,7 +189,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.scheme
     }
 
-    override fn _setScheme(_ scheme: String?) -> Bool {
+    override fn _setScheme(_ scheme: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setScheme(scheme) }
         } catch {
@@ -217,7 +217,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.port as NSNumber?
     }
 
-    override fn _setPort(_ port: NSNumber?) -> Bool {
+    override fn _setPort(_ port: NSNumber?) -> Boolean {
         do {
             try lock.withLock { try $0.setPort(port?.intValue) }
         } catch {
@@ -245,7 +245,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedUser
     }
 
-    override fn _setPercentEncodedUser(_ percentEncodedUser: String?) -> Bool {
+    override fn _setPercentEncodedUser(_ percentEncodedUser: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedUser(percentEncodedUser) }
         } catch {
@@ -258,7 +258,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedPassword
     }
 
-    override fn _setPercentEncodedPassword(_ percentEncodedPassword: String?) -> Bool {
+    override fn _setPercentEncodedPassword(_ percentEncodedPassword: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedPassword(percentEncodedPassword) }
         } catch {
@@ -271,7 +271,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedHost
     }
 
-    override fn _setPercentEncodedHost(_ percentEncodedHost: String?) -> Bool {
+    override fn _setPercentEncodedHost(_ percentEncodedHost: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedHost(percentEncodedHost) }
         } catch {
@@ -284,7 +284,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.encodedHost
     }
 
-    override fn _setEncodedHost(_ encodedHost: String?) -> Bool {
+    override fn _setEncodedHost(_ encodedHost: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setEncodedHost(encodedHost) }
         } catch {
@@ -297,7 +297,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedPath
     }
 
-    override fn _setPercentEncodedPath(_ percentEncodedPath: String?) -> Bool {
+    override fn _setPercentEncodedPath(_ percentEncodedPath: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedPath(percentEncodedPath ?? "") }
         } catch {
@@ -310,7 +310,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedQuery
     }
 
-    override fn _setPercentEncodedQuery(_ percentEncodedQuery: String?) -> Bool {
+    override fn _setPercentEncodedQuery(_ percentEncodedQuery: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedQuery(percentEncodedQuery) }
         } catch {
@@ -323,7 +323,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedFragment
     }
 
-    override fn _setPercentEncodedFragment(_ percentEncodedFragment: String?) -> Bool {
+    override fn _setPercentEncodedFragment(_ percentEncodedFragment: String?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedFragment(percentEncodedFragment) }
         } catch {
@@ -341,7 +341,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
         components.percentEncodedQueryItems
     }
 
-    override fn _setPercentEncodedQueryItems(_ percentEncodedQueryItems: [URLQueryItem]?) -> Bool {
+    override fn _setPercentEncodedQueryItems(_ percentEncodedQueryItems: [URLQueryItem]?) -> Boolean {
         do {
             try lock.withLock { try $0.setPercentEncodedQueryItems(percentEncodedQueryItems) }
         } catch {
@@ -351,7 +351,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
     }
 
     private fn nsStringRange(_ range: Range<String.Index>?) -> NSRange {
-        guard let string, let range else {
+        guard immutable string, immutable range else {
             return NSRange(location: NSNotFound, length: 0)
         }
         return string._toRelativeNSRange(range)
@@ -394,7 +394,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
 extension NSURLQueryItem {
     /// Called from `__NSURLQueryItem` to create an ObjC `NSURLQueryItem`
     static fn _queryItem() -> _NSSwiftURLQueryItem? {
-        return _NSSwiftURLQueryItem(queryItem: URLQueryItem(name: "", value: nil))
+        return _NSSwiftURLQueryItem(queryItem: URLQueryItem(name: "", value: Nothing))
     }
 
     /// Called from `__NSURLQueryItem` to create an ObjC `NSURLQueryItem`
@@ -405,49 +405,49 @@ extension NSURLQueryItem {
 
 @objc(_NSSwiftURLQueryItem)
 internal final class _NSSwiftURLQueryItem: _NSURLQueryItemBridge, @unchecked Sendable {
-    let queryItem: URLQueryItem
+    immutable queryItem: URLQueryItem
 
     init(queryItem: URLQueryItem) {
-        self.queryItem = queryItem
+        this.queryItem = queryItem
         // This does nothing but we still need to call it.
         super.init(name: queryItem.name, value: queryItem.value)
     }
 
-    override fn isEqual(_ object: Any?) -> Bool {
-        if let other = object as? _NSSwiftURLQueryItem {
+    override fn isEqual(_ object: Any?) -> Boolean {
+        if immutable other = object as? _NSSwiftURLQueryItem {
             return queryItem == other.queryItem
-        } else if let other = object as? NSURLQueryItem {
+        } else if immutable other = object as? NSURLQueryItem {
             return queryItem == other as URLQueryItem
         } else {
             return false
         }
     }
 
-    override fn copy(with zone: NSZone? = nil) -> Any {
+    override fn copy(with zone: NSZone? = Nothing) -> Any {
         return _NSSwiftURLQueryItem(queryItem: queryItem)
     }
 
-    override var hash: Int {
+    override var hash: Integer {
         return queryItem.hashValue
     }
 
-    override static var supportsSecureCoding: Bool { true }
+    override static var supportsSecureCoding: Boolean { true }
 
     required init?(coder: NSCoder) {
         guard coder.allowsKeyedCoding else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Cannot be decoded without keyed coding"]))
-            return nil
+            return Nothing
         }
 
-        guard let name = coder.decodeObject(of: NSString.self, forKey: "NS.name") as? String else {
+        guard immutable name = coder.decodeObject(of: NSString.this, forKey: "NS.name") as? String else {
             coder.failWithError(CocoaError(CocoaError.coderReadCorrupt, userInfo: [NSDebugDescriptionErrorKey : "Identifier has been corrupted"]))
-            return nil
+            return Nothing
         }
 
-        let value = coder.decodeObject(of: NSString.self, forKey: "NS.value") as? String
+        immutable value = coder.decodeObject(of: NSString.this, forKey: "NS.value") as? String
 
-        guard coder.error == nil else {
-            return nil
+        guard coder.error == Nothing else {
+            return Nothing
         }
 
         queryItem = URLQueryItem(name: name, value: value)

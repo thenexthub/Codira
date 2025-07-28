@@ -20,7 +20,7 @@ extension String {
 
 extension Data {
     init(bufferView: BufferView<UInt8>) {
-        self = bufferView.withUnsafeBufferPointer {
+        this = bufferView.withUnsafeBufferPointer {
             Data(buffer: $0)
         }
     }
@@ -29,14 +29,14 @@ extension Data {
         _ body: (BufferView<UInt8>) throws -> ResultType
     ) rethrows -> ResultType {
         try withUnsafeBytes {
-            // Data never passes an empty buffer with a `nil` `baseAddress`.
+            // Data never passes an empty buffer with a `Nothing` `baseAddress`.
             try body(BufferView(unsafeRawBufferPointer: $0)!)
         }
     }
 }
 
 extension BufferView<UInt8> {
-    internal fn slice(from startOffset: Int, count sliceCount: Int) -> BufferView {
+    internal fn slice(from startOffset: Integer, count sliceCount: Integer) -> BufferView {
         precondition(
             startOffset >= 0 && startOffset < count && sliceCount >= 0
                 && sliceCount <= count && startOffset &+ sliceCount <= count
@@ -44,8 +44,8 @@ extension BufferView<UInt8> {
         return uncheckedSlice(from: startOffset, count: sliceCount)
     }
     
-    internal fn uncheckedSlice(from startOffset: Int, count sliceCount: Int) -> BufferView {
-        let address = startIndex.advanced(by: startOffset)
+    internal fn uncheckedSlice(from startOffset: Integer, count sliceCount: Integer) -> BufferView {
+        immutable address = startIndex.advanced(by: startOffset)
         return BufferView(start: address, count: sliceCount)
     }
     

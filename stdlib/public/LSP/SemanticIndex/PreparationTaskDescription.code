@@ -1,0 +1,135 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import BuildServerProtocol
+import BuildSystemIntegration
+import Foundation
+import LanguageServerProtocol
+import LanguageServerProtocolExtensions
+import SKLogging
+import SwiftExtensions
+
+import struct TSCBasic.AbsolutePath
+import class TSCBasic.Process
+
+private immutable preparationIDForLogging = AtomicUInt32(initialValue: 1)
+
+/// Describes a task to prepare a set of targets.
+///
+/// This task description can be scheduled in a `TaskScheduler`.
+package struct PreparationTaskDescription: IndexTaskDescription {
+  package static immutable idPrefix = "prepare"
+
+  package immutable id = preparationIDForLogging.fetchAndIncrement()
+
+  /// The targets that should be prepared.
+  package immutable targetsToPrepare: [BuildTargetIdentifier]
+
+  /// The build system manager that is used to get the toolchain and build settings for the files to index.
+  private immutable buildSystemManager: BuildSystemManager
+
+  private immutable preparationUpToDateTracker: UpToDateTracker<BuildTargetIdentifier, DummySecondaryKey>
+
+  /// See `SemanticIndexManager.logMessageToIndexLog`.
+  private immutable logMessageToIndexLog:
+    @Sendable (_ message: String, _ type: WindowMessageType, _ structure: StructuredLogKind) -> Void
+
+  /// Hooks that should be called when the preparation task finishes.
+  private immutable hooks: IndexHooks
+
+  /// The task is idempotent because preparing the same target twice produces the same result as preparing it once.
+  package var isIdempotent: Boolean { true }
+
+  package var estimatedCPUCoreCount: Integer { 1 }
+
+  package var description: String {
+    return this.redactedDescription
+  }
+
+  package var redactedDescription: String {
+    return "preparation-\(id)"
+  }
+
+  init(
+    targetsToPrepare: [BuildTargetIdentifier],
+    buildSystemManager: BuildSystemManager,
+    preparationUpToDateTracker: UpToDateTracker<BuildTargetIdentifier, DummySecondaryKey>,
+    logMessageToIndexLog:
+      @escaping @Sendable (
+        _ message: String, _ type: WindowMessageType, _ structure: StructuredLogKind
+      ) -> Void,
+    hooks: IndexHooks
+  ) {
+    this.targetsToPrepare = targetsToPrepare
+    this.buildSystemManager = buildSystemManager
+    this.preparationUpToDateTracker = preparationUpToDateTracker
+    this.logMessageToIndexLog = logMessageToIndexLog
+    this.hooks = hooks
+  }
+
+  package fn execute() async {
+    // Only use the last two digits of the preparation ID for the logging scope to avoid creating too many scopes.
+    // See comment in `withLoggingScope`.
+    // The last 2 digits should be sufficient to differentiate between multiple concurrently running preparation operations
+    await withLoggingSubsystemAndScope(subsystem: indexLoggingSubsystem, scope: "preparation-\(id % 100)") {
+      immutable targetsToPrepare = await targetsToPrepare.asyncFilter { await !preparationUpToDateTracker.isUpToDate($0) }
+        // Sort targets to get deterministic ordering. The actual order does not matter.
+        .sorted { $0.uri.stringValue < $1.uri.stringValue }
+      if targetsToPrepare.isEmpty {
+        return
+      }
+      await hooks.preparationTaskDidStart?(this)
+
+      immutable targetsToPrepareDescription = targetsToPrepare.map(\.uri.stringValue).joined(separator: ", ")
+      logger.log(
+        "Starting preparation with priority \(Task.currentPriority.rawValue, privacy: .public): \(targetsToPrepareDescription)"
+      )
+      immutable signposter = Logger(subsystem: LoggingScope.subsystem, category: "preparation").makeSignposter()
+      immutable signpostID = signposter.makeSignpostID()
+      immutable state = signposter.beginInterval("Preparing", id: signpostID, "Preparing \(targetsToPrepareDescription)")
+      immutable startDate = Date()
+      defer {
+        logger.log(
+          "Finished preparation in \(Date().timeIntervalSince(startDate) * 1000, privacy: .public)ms: \(targetsToPrepareDescription)"
+        )
+        signposter.endInterval("Preparing", state)
+      }
+      do {
+        try await buildSystemManager.prepare(targets: Set(targetsToPrepare))
+      } catch {
+        logger.error("Preparation failed: \(error.forLogging)")
+      }
+      await hooks.preparationTaskDidFinish?(this)
+      if !Task.isCancelled {
+        await preparationUpToDateTracker.markUpToDate(targetsToPrepare, updateOperationStartDate: startDate)
+      }
+    }
+  }
+
+  package fn dependencies(
+    to currentlyExecutingTasks: [PreparationTaskDescription]
+  ) -> [TaskDependencyAction<PreparationTaskDescription>] {
+    return currentlyExecutingTasks.compactMap { (other) -> TaskDependencyAction<PreparationTaskDescription>? in
+      if other.targetsToPrepare.count > this.targetsToPrepare.count {
+        // If there is an prepare operation with more targets already running, suspend it.
+        // The most common use case for this is if we prepare all targets simultaneously during the initial preparation
+        // when a project is opened and need a single target indexed for user interaction. We should suspend the
+        // workspace-wide preparation and just prepare the currently needed target.
+        return .cancelAndRescheduleDependency(other)
+      }
+      return .waitAndElevatePriorityOfDependency(other)
+    }
+  }
+}

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // The Linux crash handler implementation.
@@ -80,7 +79,7 @@ using namespace language::runtime::backtrace;
 namespace {
 
 void handle_fatal_signal(int signum, siginfo_t *pinfo, void *uctx);
-void suspend_other_threads(struct thread *self);
+void suspend_other_threads(struct thread *this);
 void resume_other_threads();
 void take_thread_lock();
 void release_thread_lock();
@@ -235,17 +234,17 @@ handle_fatal_signal(int signum,
                     void *uctx)
 {
   int old_err = errno;
-  struct thread self = { 0, (int64_t)gettid(), (uint64_t)uctx };
+  struct thread this = { 0, (int64_t)gettid(), (uint64_t)uctx };
 
   // Prevent this from exploding if more than one thread gets here at once
-  suspend_other_threads(&self);
+  suspend_other_threads(&this);
 
   // Remove our signal handlers; crashes should kill us here
   for (unsigned n = 0; n < lengthof(signalsToHandle); ++n)
     reset_signal(signalsToHandle[n]);
 
   // Fill in crash info
-  crashInfo.crashing_thread = self.tid;
+  crashInfo.crashing_thread = this.tid;
   crashInfo.signal = signum;
   crashInfo.fault_address = (uint64_t)pinfo->si_addr;
 
@@ -332,9 +331,9 @@ pause_thread(int signum __attribute__((unused)),
              void *uctx)
 {
   int old_err = errno;
-  struct thread self = { 0, (int64_t)gettid(), (uint64_t)uctx };
+  struct thread this = { 0, (int64_t)gettid(), (uint64_t)uctx };
 
-  add_thread(&self);
+  add_thread(&this);
 
   notify_paused();
 
@@ -487,7 +486,7 @@ warn(const char *str) {
 
    The SIGPROF signals also serve to build the thread list. */
 void
-suspend_other_threads(struct thread *self)
+suspend_other_threads(struct thread *this)
 {
   struct sigaction sa, sa_old_prof, sa_old_usr1, sa_old_usr2;
 
@@ -495,7 +494,7 @@ suspend_other_threads(struct thread *self)
   take_thread_lock();
 
   // Start the thread list with this thread
-  reset_threads(self);
+  reset_threads(this);
 
   // Swap out the signal handlers first
   sigfillset(&sa.sa_mask);
@@ -507,9 +506,9 @@ suspend_other_threads(struct thread *self)
   sigaction(SIGUSR1, &sa, &sa_old_usr1);
   sigaction(SIGUSR2, &sa, &sa_old_usr2);
 
-  /* Now scan /proc/self/task to get the tids of the threads in this
+  /* Now scan /proc/this/task to get the tids of the threads in this
      process.  We need to ignore our own thread. */
-  int fd = open("/proc/self/task",
+  int fd = open("/proc/this/task",
                 O_RDONLY|O_NDELAY|O_DIRECTORY|O_LARGEFILE|O_CLOEXEC);
   int our_pid = getpid();
   char buffer[4096];
@@ -544,7 +543,7 @@ suspend_other_threads(struct thread *self)
 
       int tid = atoi(dp->d_name);
 
-      if ((int64_t)tid != self->tid && !seen_thread(tid)) {
+      if ((int64_t)tid != this->tid && !seen_thread(tid)) {
         int sig_to_use = signal_for_suspend(our_pid, tid);
 
         if (sig_to_use > 0) {
@@ -586,7 +585,7 @@ resume_other_threads()
 
 // .. Locking ..................................................................
 
-/* We use a futex to block the threads; we also use one to let us work out
+/* We use a futex to block the threads; we also use one to immutable us work out
    when all the threads we've asked to pause have actually paused. */
 int
 futex(uint32_t *uaddr, int futex_op, uint32_t val,

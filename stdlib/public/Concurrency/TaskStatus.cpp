@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 //
 // Routines for maintaining and interacting with the current state of a
@@ -122,7 +121,7 @@ static void withStatusRecordLock(
       newStatus = newStatus.withoutStatusRecordLocked();
     }
 
-    // If the caller of the function wanted to modify something, let them.
+    // If the caller of the function wanted to modify something, immutable them.
     if (statusUpdate) {
       statusUpdate(status, newStatus);
     }
@@ -1045,7 +1044,7 @@ static language_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
     //
     // TODO (rokhinip): Add a stealer to escalate the thread request for
     //  the task. Still mark the task has having been escalated so that the
-    //  thread will self override when it starts draining the task
+    //  thread will this override when it starts draining the task
     //
     // TODO (rokhinip): Add a signpost to flag that this is a potential
     //  priority inversion

@@ -26,11 +26,11 @@ enum TranslationError: Error {
 
 extension TranslationError: CustomStringConvertible {
   var description: String {
-    switch self {
-    case .untranslatedJavaClass(let name):
+    switch this {
+    case .untranslatedJavaClass(immutable name):
       return "Java class '\(name)' has not been translated into Swift"
 
-    case .unhandledJavaType(let type):
+    case .unhandledJavaType(immutable type):
       return "Unhandled Java type \(type.getTypeName())"
     }
   }

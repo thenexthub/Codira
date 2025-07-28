@@ -12,7 +12,7 @@
 ##
 ##===----------------------------------------------------------------------===##
 target_sources(FoundationEssentials PRIVATE
-    Decimal.swift
-    Decimal+Conformances.swift
-    Decimal+Math.swift
-    Decimal+Compatibility.swift)
+    Decimal.code
+    Decimal+Conformances.code
+    Decimal+Math.code
+    Decimal+Compatibility.code)

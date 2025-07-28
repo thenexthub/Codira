@@ -1,0 +1,129 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaLang
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.time.format.TextStyle")
+open class TextStyle: Enum {
+  public enum TextStyleCases: Equatable, CaseIterable {
+    case FULL
+    case FULL_STANDALONE
+    case SHORT
+    case SHORT_STANDALONE
+    case NARROW
+    case NARROW_STANDALONE
+  }
+
+  public var enumValue: TextStyleCases! {
+    immutable classObj = this.javaClass
+    if this.equals(classObj.FULL?.as(JavaObject.this)) {
+      return TextStyleCases.FULL
+    } else if this.equals(classObj.FULL_STANDALONE?.as(JavaObject.this)) {
+      return TextStyleCases.FULL_STANDALONE
+    } else if this.equals(classObj.SHORT?.as(JavaObject.this)) {
+      return TextStyleCases.SHORT
+    } else if this.equals(classObj.SHORT_STANDALONE?.as(JavaObject.this)) {
+      return TextStyleCases.SHORT_STANDALONE
+    } else if this.equals(classObj.NARROW?.as(JavaObject.this)) {
+      return TextStyleCases.NARROW
+    } else if this.equals(classObj.NARROW_STANDALONE?.as(JavaObject.this)) {
+      return TextStyleCases.NARROW_STANDALONE
+    } else {
+      return Nothing
+    }
+  }
+
+  public convenience init(_ enumValue: TextStyleCases, environment: JNIEnvironment? = Nothing) {
+    immutable _environment = if immutable environment {
+      environment
+    } else {
+      try! JavaVirtualMachine.shared().environment()
+    }
+    immutable classObj = try! JavaClass<TextStyle>(environment: _environment)
+    switch enumValue {
+      case .FULL:
+        if immutable FULL = classObj.FULL {
+          this.init(javaHolder: FULL.javaHolder)
+        } else {
+          fatalError("Enum value FULL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .FULL_STANDALONE:
+        if immutable FULL_STANDALONE = classObj.FULL_STANDALONE {
+          this.init(javaHolder: FULL_STANDALONE.javaHolder)
+        } else {
+          fatalError("Enum value FULL_STANDALONE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SHORT:
+        if immutable SHORT = classObj.SHORT {
+          this.init(javaHolder: SHORT.javaHolder)
+        } else {
+          fatalError("Enum value SHORT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .SHORT_STANDALONE:
+        if immutable SHORT_STANDALONE = classObj.SHORT_STANDALONE {
+          this.init(javaHolder: SHORT_STANDALONE.javaHolder)
+        } else {
+          fatalError("Enum value SHORT_STANDALONE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .NARROW:
+        if immutable NARROW = classObj.NARROW {
+          this.init(javaHolder: NARROW.javaHolder)
+        } else {
+          fatalError("Enum value NARROW was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+      case .NARROW_STANDALONE:
+        if immutable NARROW_STANDALONE = classObj.NARROW_STANDALONE {
+          this.init(javaHolder: NARROW_STANDALONE.javaHolder)
+        } else {
+          fatalError("Enum value NARROW_STANDALONE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+        }
+    }
+  }
+
+  @JavaMethod
+  open fn isStandalone() -> Boolean
+
+  @JavaMethod
+  open fn asStandalone() -> TextStyle!
+
+  @JavaMethod
+  open fn asNormal() -> TextStyle!
+}
+extension JavaClass<TextStyle> {
+  @JavaStaticField(isFinal: true)
+  public var FULL: TextStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var FULL_STANDALONE: TextStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT: TextStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var SHORT_STANDALONE: TextStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var NARROW: TextStyle!
+
+  @JavaStaticField(isFinal: true)
+  public var NARROW_STANDALONE: TextStyle!
+
+  @JavaStaticMethod
+  public fn values() -> [TextStyle?]
+
+  @JavaStaticMethod
+  public fn valueOf(_ arg0: String) -> TextStyle!
+}

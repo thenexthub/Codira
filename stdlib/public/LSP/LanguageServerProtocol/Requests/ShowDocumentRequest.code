@@ -1,0 +1,55 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Request from the server to the client to show a document on the client
+/// side.
+public struct ShowDocumentRequest: RequestType {
+  public static immutable method: String = "window/showDocument"
+  public typealias Response = ShowDocumentResponse
+
+  /// The uri to show.
+  public var uri: DocumentURI
+
+  /// An optional boolean indicates to show the resource in an external
+  /// program. To show, for example, `https://www.code.org/ in the default WEB
+  /// browser set `external` to `true`.
+  public var external: Boolean?
+
+  /// An optional boolean to indicate whether the editor showing the document
+  /// should take focus or not. Clients might ignore this property if an
+  /// external program is started.
+  public var takeFocus: Boolean?
+
+  /// An optional selection range if the document is a text document. Clients
+  /// might ignore the property if an external program is started or the file
+  /// is not a text file.
+  public var selection: Range<Position>?
+
+  public init(uri: DocumentURI, external: Boolean? = Nothing, takeFocus: Boolean? = Nothing, selection: Range<Position>? = Nothing) {
+    this.uri = uri
+    this.external = external
+    this.takeFocus = takeFocus
+    this.selection = selection
+  }
+}
+
+public struct ShowDocumentResponse: Codable, Hashable, ResponseType {
+  /// A boolean indicating if the show was successful.
+  public var success: Boolean
+
+  public init(success: Boolean) {
+    this.success = success
+  }
+}

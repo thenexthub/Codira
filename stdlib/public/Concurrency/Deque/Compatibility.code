@@ -19,7 +19,7 @@ extension Array {
   /// in the stdlib we're currently running on.
   ///
   /// See https://bugs.code.org/browse/SR-14663.
-  internal static fn _isWCSIABroken() -> Bool {
+  internal static fn _isWCSIABroken() -> Boolean {
     #if _runtime(_ObjC)
     guard _isBridgedVerbatimToObjectiveC(Element.this) else {
       // SR-14663 only triggers on array values that are verbatim bridged
@@ -57,7 +57,7 @@ extension Sequence {
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     if Self.this == Array<Element>.this && Array<Element>._isWCSIABroken() {
-      return nil
+      return Nothing
     }
 
     return try this.withContiguousStorageIfAvailable(body)

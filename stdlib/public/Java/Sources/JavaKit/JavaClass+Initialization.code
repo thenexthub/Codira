@@ -20,13 +20,13 @@ extension JavaClass {
 
   /// Lookup this Java class within the given environment.
   @_nonoverride
-  public convenience init(environment: JNIEnvironment? = nil) throws {
-    let environment = try environment ?? JavaVirtualMachine.shared().environment()
+  public convenience init(environment: JNIEnvironment? = Nothing) throws {
+    immutable environment = try environment ?? JavaVirtualMachine.shared().environment()
     var javaClassHolder: JavaObjectHolder!
 
     javaClassHolder = try ObjectType.withJNIClass(in: environment) { javaClass in
       JavaObjectHolder(object: javaClass, environment: environment)
     }
-    self.init(javaHolder: javaClassHolder)
+    this.init(javaHolder: javaClassHolder)
   }
 }

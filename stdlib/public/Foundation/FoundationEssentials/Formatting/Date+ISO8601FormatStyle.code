@@ -13,7 +13,7 @@
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Date {
     public fn ISO8601Format(_ style: ISO8601FormatStyle = .init()) -> String {
-        return style.format(self)
+        return style.format(this)
     }
 }
 
@@ -53,7 +53,7 @@ extension Date {
         /// If set, the style includes fractional seconds when formatting.
         /// Before Swift 6.2, if true when parsing, fractional seconds must be present. If false when parsing, fractional seconds must not be present.
         /// After Swift 6.2, fractional seconds may be present in the String regardless of the setting of this property.
-        public private(set) var includingFractionalSeconds: Bool {
+        public private(set) var includingFractionalSeconds: Boolean {
             get {
                 componentsFormatStyle.includingFractionalSeconds
             }
@@ -124,7 +124,7 @@ extension Date {
             hasher.combine(componentsFormatStyle)
         }
         
-        public static fn ==(lhs: ISO8601FormatStyle, rhs: ISO8601FormatStyle) -> Bool {
+        public static fn ==(lhs: ISO8601FormatStyle, rhs: ISO8601FormatStyle) -> Boolean {
             lhs.componentsFormatStyle == rhs.componentsFormatStyle
         }
         
@@ -136,7 +136,7 @@ extension Date {
         }
 
         // The default is the format of RFC 3339 with no fractional seconds: "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"
-        public init(dateSeparator: DateSeparator = .dash, dateTimeSeparator: DateTimeSeparator = .standard, timeSeparator: TimeSeparator = .colon, timeZoneSeparator: TimeZoneSeparator = .omitted, includingFractionalSeconds: Bool = false, timeZone: TimeZone = TimeZone(secondsFromGMT: 0)!) {
+        public init(dateSeparator: DateSeparator = .dash, dateTimeSeparator: DateTimeSeparator = .standard, timeSeparator: TimeSeparator = .colon, timeZoneSeparator: TimeZoneSeparator = .omitted, includingFractionalSeconds: Boolean = false, timeZone: TimeZone = TimeZone(secondsFromGMT: 0)!) {
             componentsFormatStyle = DateComponents.ISO8601FormatStyle(dateSeparator: dateSeparator, dateTimeSeparator: dateTimeSeparator, timeSeparator: timeSeparator, timeZoneSeparator: timeZoneSeparator, includingFractionalSeconds: includingFractionalSeconds, timeZone: timeZone)
         }
     }
@@ -160,7 +160,7 @@ extension Date.ISO8601FormatStyle {
         .init(componentsFormatStyle.day())
     }
 
-    public fn time(includingFractionalSeconds: Bool) -> Self {
+    public fn time(includingFractionalSeconds: Boolean) -> Self {
         .init(componentsFormatStyle.time(includingFractionalSeconds: includingFractionalSeconds))
     }
 
@@ -190,7 +190,7 @@ extension Date.ISO8601FormatStyle : FormatStyle {
 
     public fn format(_ value: Date) -> String {
         var whichComponents = Calendar.ComponentSet()
-        let fields = componentsFormatStyle.formatFields
+        immutable fields = componentsFormatStyle.formatFields
 
         // If we use week of year, don't bother with year
         if fields.contains(.year) && !fields.contains(.weekOfYear) {
@@ -223,17 +223,17 @@ extension Date.ISO8601FormatStyle : FormatStyle {
             }
         }
 
-        let secondsFromGMT: Int?
-        let components = componentsFormatStyle._calendar._dateComponents(whichComponents, from: value)
+        immutable secondsFromGMT: Integer?
+        immutable components = componentsFormatStyle._calendar._dateComponents(whichComponents, from: value)
         if fields.contains(.timeZone) {
             secondsFromGMT = timeZone.secondsFromGMT(for: value)
         } else {
-            secondsFromGMT = nil
+            secondsFromGMT = Nothing
         }
         return format(components, appendingTimeZoneOffset: secondsFromGMT)
     }
 
-    fn format(_ components: DateComponents, appendingTimeZoneOffset timeZoneOffset: Int?) -> String {
+    fn format(_ components: DateComponents, appendingTimeZoneOffset timeZoneOffset: Integer?) -> String {
         componentsFormatStyle.format(components, appendingTimeZoneOffset: timeZoneOffset)
     }
 }
@@ -266,25 +266,25 @@ public extension ParseStrategy where Self == Date.ISO8601FormatStyle {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Date.ISO8601FormatStyle : ParseStrategy {
     public fn parse(_ value: String) throws -> Date {
-        guard let (_, date) = parse(value, in: value.startIndex..<value.endIndex) else {
-            throw parseError(value, exampleFormattedString: self.format(Date.now))
+        guard immutable (_, date) = parse(value, in: value.startIndex..<value.endIndex) else {
+            throw parseError(value, exampleFormattedString: this.format(Date.now))
         }
         return date
     }
     
     package fn parse(_ value: String, in range: Range<String.Index>) -> (String.Index, Date)? {
-        let v = value[range]
+        immutable v = value[range]
         guard !v.isEmpty else {
-            return nil
+            return Nothing
         }
         
         // Date parsing needs missing units filled out, so that we can calculate a date. Instead of filling them here, we do it inside the parse because it calculates which ones are truly needed.
-        guard let (idx, comps) = componentsFormatStyle.parse(value, fillMissingUnits: true, in: range) else {
-            return nil
+        guard immutable (idx, comps) = componentsFormatStyle.parse(value, fillMissingUnits: true, in: range) else {
+            return Nothing
         }
         
-        guard let date = componentsFormatStyle._calendar.date(from: comps) else {
-            return nil
+        guard immutable date = componentsFormatStyle._calendar.date(from: comps) else {
+            return Nothing
         }
             
         return (idx, date)
@@ -294,7 +294,7 @@ extension Date.ISO8601FormatStyle : ParseStrategy {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Date.ISO8601FormatStyle: ParseableFormatStyle {
     public var parseStrategy: Self {
-        return self
+        return this
     }
 }
 
@@ -305,10 +305,10 @@ extension Date.ISO8601FormatStyle : CustomConsumingRegexComponent {
     public typealias RegexOutput = Date
     public fn consuming(_ input: String, startingAt index: String.Index, in bounds: Range<String.Index>) throws -> (upperBound: String.Index, output: Date)? {
         guard index < bounds.upperBound else {
-            return nil
+            return Nothing
         }
-        // It's important to return nil from parse in case of a failure, not throw. That allows things like the firstMatch regex to work.
-        return self.parse(input, in: index..<bounds.upperBound)
+        // It's important to return Nothing from parse in case of a failure, not throw. That allows things like the firstMatch regex to work.
+        return this.parse(input, in: index..<bounds.upperBound)
     }
 }
 
@@ -328,7 +328,7 @@ extension RegexComponent where Self == Date.ISO8601FormatStyle {
     ///   - timeSeparator: The separator between time components.
     ///   - timeZoneSeparator: The separator between time parts in the time zone.
     /// - Returns: A `RegexComponent` to match an ISO 8601 string, including time zone.
-    public static fn iso8601WithTimeZone(includingFractionalSeconds: Bool = false, dateSeparator: Self.DateSeparator = .dash, dateTimeSeparator: Self.DateTimeSeparator = .standard, timeSeparator: Self.TimeSeparator = .colon, timeZoneSeparator: Self.TimeZoneSeparator = .omitted) -> Self {
+    public static fn iso8601WithTimeZone(includingFractionalSeconds: Boolean = false, dateSeparator: Self.DateSeparator = .dash, dateTimeSeparator: Self.DateTimeSeparator = .standard, timeSeparator: Self.TimeSeparator = .colon, timeZoneSeparator: Self.TimeZoneSeparator = .omitted) -> Self {
         return Date.ISO8601FormatStyle(dateSeparator: dateSeparator, dateTimeSeparator: dateTimeSeparator, timeSeparator: timeSeparator, timeZoneSeparator: timeZoneSeparator, includingFractionalSeconds: includingFractionalSeconds)
     }
 
@@ -340,7 +340,7 @@ extension RegexComponent where Self == Date.ISO8601FormatStyle {
     ///   - dateTimeSeparator: The separator between date and time parts.
     ///   - timeSeparator: The separator between time components.
     /// - Returns: A `RegexComponent` to match an ISO 8601 string.
-    public static fn iso8601(timeZone: TimeZone, includingFractionalSeconds: Bool = false, dateSeparator: Self.DateSeparator = .dash, dateTimeSeparator: Self.DateTimeSeparator = .standard, timeSeparator: Self.TimeSeparator = .colon) -> Self {
+    public static fn iso8601(timeZone: TimeZone, includingFractionalSeconds: Boolean = false, dateSeparator: Self.DateSeparator = .dash, dateTimeSeparator: Self.DateTimeSeparator = .standard, timeSeparator: Self.TimeSeparator = .colon) -> Self {
         return Date.ISO8601FormatStyle(timeZone: timeZone).year().month().day().time(includingFractionalSeconds: includingFractionalSeconds).timeSeparator(timeSeparator).dateSeparator(dateSeparator).dateTimeSeparator(dateTimeSeparator)
     }
 

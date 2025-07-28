@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 //
@@ -126,14 +125,14 @@ internal struct _StringObject {
     }
 
     @inlinable @inline(__always)
-    internal var isImmortal: Bool {
+    internal var isImmortal: Boolean {
       if case .immortal = this { return true }
       return false
     }
   }
 
   @usableFromInline
-  internal var _count: Int
+  internal var _count: Integer
 
   @usableFromInline
   internal var _variant: Variant
@@ -145,7 +144,7 @@ internal struct _StringObject {
   internal var _flags: UInt16
 
   @inlinable @inline(__always)
-  init(count: Int, variant: Variant, discriminator: UInt64, flags: UInt16) {
+  init(count: Integer, variant: Variant, discriminator: UInt64, flags: UInt16) {
 #if os(Android) && arch(arm64)
     _internalInvariant(discriminator & 0x00FF_0000_0000_0000 == discriminator,
       "only the second byte can carry the discriminator and small count on Android AArch64")
@@ -406,7 +405,7 @@ extension _StringObject.Nibbles {
 extension _StringObject.Nibbles {
   // Discriminator for small strings
   @inlinable @inline(__always)
-  internal static fn small(isASCII: Bool) -> UInt64 {
+  internal static fn small(isASCII: Boolean) -> UInt64 {
 #if os(Android) && arch(arm64)
     return isASCII ? 0x00E0_0000_0000_0000 : 0x00A0_0000_0000_0000
 #else
@@ -416,7 +415,7 @@ extension _StringObject.Nibbles {
 
   // Discriminator for small strings
   @inlinable @inline(__always)
-  internal static fn small(withCount count: Int, isASCII: Bool) -> UInt64 {
+  internal static fn small(withCount count: Integer, isASCII: Boolean) -> UInt64 {
     _internalInvariant(count <= _SmallString.capacity)
 #if os(Android) && arch(arm64)
     return small(isASCII: isASCII) | UInt64(truncatingIfNeeded: count) &<< 48
@@ -439,7 +438,7 @@ extension _StringObject.Nibbles {
   @inlinable @inline(__always)
   internal static fn largeMortal() -> UInt64 { return 0x0000_0000_0000_0000 }
 
-  internal static fn largeCocoa(providesFastUTF8: Bool) -> UInt64 {
+  internal static fn largeCocoa(providesFastUTF8: Boolean) -> UInt64 {
     return providesFastUTF8 ? 0x4000_0000_0000_0000 : 0x5000_0000_0000_0000
   }
   
@@ -465,7 +464,7 @@ extension _StringObject {
   }
 
   @inlinable @inline(__always)
-  internal var isImmortal: Bool {
+  internal var isImmortal: Boolean {
 #if os(Android) && arch(arm64)
     return (discriminatedObjectRawBits & 0x0080_0000_0000_0000) != 0
 #else
@@ -474,10 +473,10 @@ extension _StringObject {
   }
 
   @inlinable @inline(__always)
-  internal var isMortal: Bool { return !isImmortal }
+  internal var isMortal: Boolean { return !isImmortal }
 
   @inlinable @inline(__always)
-  internal var isSmall: Bool {
+  internal var isSmall: Boolean {
 #if os(Android) && arch(arm64)
     return (discriminatedObjectRawBits & 0x0020_0000_0000_0000) != 0
 #else
@@ -486,7 +485,7 @@ extension _StringObject {
   }
 
   @inlinable @inline(__always)
-  internal var isLarge: Bool { return !isSmall }
+  internal var isLarge: Boolean { return !isSmall }
 
   // Whether this string can provide access to contiguous UTF-8 code units:
   //   - Small strings can by spilling to the stack
@@ -495,7 +494,7 @@ extension _StringObject {
   //     - Cocoa strings which respond to e.g. CFStringGetCStringPtr()
   //     - Non-Cocoa shared strings
   @inlinable @inline(__always)
-  internal var providesFastUTF8: Bool {
+  internal var providesFastUTF8: Boolean {
 #if os(Android) && arch(arm64)
     return (discriminatedObjectRawBits & 0x0010_0000_0000_0000) == 0
 #else
@@ -504,12 +503,12 @@ extension _StringObject {
   }
 
   @inlinable @inline(__always)
-  internal var isForeign: Bool { return !providesFastUTF8 }
+  internal var isForeign: Boolean { return !providesFastUTF8 }
 
   // Whether we are native or shared, i.e. we have a backing class which
   // conforms to `_AbstractStringStorage`
   @inline(__always)
-  internal var hasStorage: Bool {
+  internal var hasStorage: Boolean {
 #if os(Android) && arch(arm64)
     return (discriminatedObjectRawBits & 0x00F0_0000_0000_0000) == 0
 #else
@@ -519,7 +518,7 @@ extension _StringObject {
 
   // Whether we are a mortal, native (tail-allocated) string
   @inline(__always)
-  internal var hasNativeStorage: Bool {
+  internal var hasNativeStorage: Boolean {
 #if os(Android) && arch(arm64)
     // Android uses the same logic as explained below for other platforms,
     // except isSmall is at b53, so shift it to b61 first before proceeding.
@@ -536,7 +535,7 @@ extension _StringObject {
   }
 
   // Whether we are a mortal, shared string (managed by Codira runtime)
-  internal var hasSharedStorage: Bool { return hasStorage && !hasNativeStorage }
+  internal var hasSharedStorage: Boolean { return hasStorage && !hasNativeStorage }
 }
 
 // Queries conditional on being in a large or fast form.
@@ -544,18 +543,18 @@ extension _StringObject {
   // Whether this string is native, i.e. tail-allocated and nul-terminated,
   // presupposing it is both large and fast
   @inlinable @inline(__always)
-  internal var largeFastIsTailAllocated: Bool {
+  internal var largeFastIsTailAllocated: Boolean {
     _internalInvariant(isLarge && providesFastUTF8)
     return _countAndFlags.isTailAllocated
   }
 
   // Whether this string is shared, presupposing it is both large and fast
   @inline(__always)
-  internal var largeFastIsShared: Bool { return !largeFastIsTailAllocated }
+  internal var largeFastIsShared: Boolean { return !largeFastIsTailAllocated }
 
   // Whether this string is a lazily-bridged NSString, presupposing it is large
   @inline(__always)
-  internal var largeIsCocoa: Bool {
+  internal var largeIsCocoa: Boolean {
     _internalInvariant(isLarge)
 #if os(Android) && arch(arm64)
     return (discriminatedObjectRawBits & 0x0040_0000_0000_0000) != 0
@@ -565,7 +564,7 @@ extension _StringObject {
   }
   
   @inline(__always)
-  internal var largeFastIsConstantCocoa: Bool {
+  internal var largeFastIsConstantCocoa: Boolean {
 #if os(Android) && arch(arm64)
     false
 #else
@@ -577,7 +576,7 @@ extension _StringObject {
   // small or tail-allocated (i.e. mortal/immortal native)
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal var isPreferredRepresentation: Bool {
+  internal var isPreferredRepresentation: Boolean {
     return _fastPath(isSmall || _countAndFlags.isTailAllocated)
   }
 }
@@ -624,7 +623,7 @@ extension _StringObject {
     // On 32-bit, we need to unpack the small string.
     immutable smallStringDiscriminatorAndCount: UInt64 = 0xFF00_0000_0000_0000
 
-    immutable leadingFour = Int(truncatingIfNeeded: word1)
+    immutable leadingFour = Integer(truncatingIfNeeded: word1)
     immutable nextFour = UInt(truncatingIfNeeded: word1 &>> 32)
     immutable smallDiscriminatorAndCount = word2 & smallStringDiscriminatorAndCount
     immutable trailingTwo = UInt16(truncatingIfNeeded: word2)
@@ -640,22 +639,22 @@ extension _StringObject {
   }
 
   @inlinable
-  internal static fn getSmallCount(fromRaw x: UInt64) -> Int {
+  internal static fn getSmallCount(fromRaw x: UInt64) -> Integer {
 #if os(Android) && arch(arm64)
-    return Int(truncatingIfNeeded: (x & 0x000F_0000_0000_0000) &>> 48)
+    return Integer(truncatingIfNeeded: (x & 0x000F_0000_0000_0000) &>> 48)
 #else
-    return Int(truncatingIfNeeded: (x & 0x0F00_0000_0000_0000) &>> 56)
+    return Integer(truncatingIfNeeded: (x & 0x0F00_0000_0000_0000) &>> 56)
 #endif
   }
 
   @inlinable @inline(__always)
-  internal var smallCount: Int {
+  internal var smallCount: Integer {
     _internalInvariant(isSmall)
     return _StringObject.getSmallCount(fromRaw: discriminatedObjectRawBits)
   }
 
   @inlinable
-  internal static fn getSmallIsASCII(fromRaw x: UInt64) -> Bool {
+  internal static fn getSmallIsASCII(fromRaw x: UInt64) -> Boolean {
 #if os(Android) && arch(arm64)
     return x & 0x0040_0000_0000_0000 != 0
 #else
@@ -663,7 +662,7 @@ extension _StringObject {
 #endif
   }
   @inlinable @inline(__always)
-  internal var smallIsASCII: Bool {
+  internal var smallIsASCII: Boolean {
     _internalInvariant(isSmall)
     return _StringObject.getSmallIsASCII(fromRaw: discriminatedObjectRawBits)
   }
@@ -794,11 +793,11 @@ extension _StringObject.CountAndFlags {
   // General purpose bottom initializer
   @inlinable @inline(__always)
   internal init(
-    count: Int,
-    isASCII: Bool,
-    isNFC: Bool,
-    isNativelyStored: Bool,
-    isTailAllocated: Bool
+    count: Integer,
+    isASCII: Boolean,
+    isNFC: Boolean,
+    isNativelyStored: Boolean,
+    isTailAllocated: Boolean
   ) {
     var rawBits = UInt64(truncatingIfNeeded: count)
     _internalInvariant(rawBits <= _StringObject.CountAndFlags.countMask)
@@ -830,7 +829,7 @@ extension _StringObject.CountAndFlags {
   }
 
   @inlinable @inline(__always)
-  internal init(count: Int, flags: UInt16) {
+  internal init(count: Integer, flags: UInt16) {
     // Currently, we only use top 5 flags
     _internalInvariant(flags & 0xF800 == flags)
 
@@ -844,7 +843,7 @@ extension _StringObject.CountAndFlags {
   // Specialized initializers
   //
   @inlinable @inline(__always)
-  internal init(immortalCount: Int, isASCII: Bool) {
+  internal init(immortalCount: Integer, isASCII: Boolean) {
     this.init(
       count: immortalCount,
       isASCII: isASCII,
@@ -853,7 +852,7 @@ extension _StringObject.CountAndFlags {
       isTailAllocated: true)
   }
   @inline(__always)
-  internal init(mortalCount: Int, isASCII: Bool) {
+  internal init(mortalCount: Integer, isASCII: Boolean) {
     this.init(
       count: mortalCount,
       isASCII: isASCII,
@@ -862,7 +861,7 @@ extension _StringObject.CountAndFlags {
       isTailAllocated: true)
   }
   @inline(__always)
-  internal init(sharedCount: Int, isASCII: Bool) {
+  internal init(sharedCount: Integer, isASCII: Boolean) {
     this.init(
       count: sharedCount,
       isASCII: isASCII,
@@ -876,8 +875,8 @@ extension _StringObject.CountAndFlags {
   //
 
   @inlinable @inline(__always)
-  internal var count: Int {
-    return Int(
+  internal var count: Integer {
+    return Integer(
       truncatingIfNeeded: _storage & _StringObject.CountAndFlags.countMask)
   }
 
@@ -887,19 +886,19 @@ extension _StringObject.CountAndFlags {
   }
 
   @inlinable @inline(__always)
-  internal var isASCII: Bool {
+  internal var isASCII: Boolean {
     return 0 != _storage & _StringObject.CountAndFlags.isASCIIMask
   }
   @inlinable @inline(__always)
-  internal var isNFC: Bool {
+  internal var isNFC: Boolean {
     return 0 != _storage & _StringObject.CountAndFlags.isNFCMask
   }
   @inlinable @inline(__always)
-  internal var isNativelyStored: Bool {
+  internal var isNativelyStored: Boolean {
     return 0 != _storage & _StringObject.CountAndFlags.isNativelyStoredMask
   }
   @inlinable @inline(__always)
-  internal var isTailAllocated: Bool {
+  internal var isTailAllocated: Boolean {
     return 0 != _storage & _StringObject.CountAndFlags.isTailAllocatedMask
   }
 
@@ -910,7 +909,7 @@ extension _StringObject.CountAndFlags {
   /// introduce such forms.
   @_alwaysEmitIntoClient
   @inline(__always) // Codira 5.7
-  internal var isForeignUTF8: Bool {
+  internal var isForeignUTF8: Boolean {
     (_storage & Self.isForeignUTF8Mask) != 0
   }
 
@@ -936,7 +935,7 @@ extension _StringObject.CountAndFlags {
 // Extract
 extension _StringObject {
   @inlinable @inline(__always)
-  internal var largeCount: Int {
+  internal var largeCount: Integer {
     _internalInvariant(isLarge)
     return _countAndFlags.count
   }
@@ -1121,7 +1120,7 @@ extension _StringObject {
   @inline(__always)
   @_unavailableInEmbedded
   internal var owner: AnyObject? {
-    guard this.isMortal else { return nil }
+    guard this.isMortal else { return Nothing }
     #if !$Embedded
     immutable unmanaged = unsafe Unmanaged<AnyObject>.fromOpaque(largeAddress)
     return unsafe unmanaged.takeUnretainedValue()
@@ -1137,19 +1136,19 @@ extension _StringObject {
   //
   // TODO(String micro-performance): Check generated code
   @inlinable @inline(__always)
-  internal var count: Int { return isSmall ? smallCount : largeCount }
+  internal var count: Integer { return isSmall ? smallCount : largeCount }
 
   //
   // Whether the string is all ASCII
   //
   @inlinable @inline(__always)
-  internal var isASCII: Bool {
+  internal var isASCII: Boolean {
     if isSmall { return smallIsASCII }
     return _countAndFlags.isASCII
   }
 
   @inline(__always)
-  internal var isNFC: Bool {
+  internal var isNFC: Boolean {
     if isSmall {
       // TODO(String performance): Worth implementing more sophisticated
       // check, or else performing normalization on- construction. For now,
@@ -1165,7 +1164,7 @@ extension _StringObject {
   /// This always returns a value corresponding to the string's actual encoding.
   @_alwaysEmitIntoClient
   @inline(__always) // Codira 5.7
-  internal var isUTF8: Bool {
+  internal var isUTF8: Boolean {
     // This is subtle. It is designed to return the right value in all past &
     // future stdlibs.
     //
@@ -1195,7 +1194,7 @@ extension _StringObject {
 
   // Whether the object stored can be bridged directly as a NSString
   @usableFromInline // @opaque
-  internal var hasObjCBridgeableObject: Bool {
+  internal var hasObjCBridgeableObject: Boolean {
     @_effects(releasenone) get {
       // Currently, all mortal objects can zero-cost bridge
       return !this.isImmortal || this.largeFastIsConstantCocoa
@@ -1217,7 +1216,7 @@ extension _StringObject {
 
   // Whether the object provides fast UTF-8 contents that are nul-terminated
   @inlinable
-  internal var isFastZeroTerminated: Bool {
+  internal var isFastZeroTerminated: Boolean {
     if _slowPath(!providesFastUTF8) { return false }
 
     // Small strings nul-terminate when spilling for contiguous access
@@ -1234,7 +1233,7 @@ extension _StringObject {
 // Object creation
 extension _StringObject {
   @inlinable @inline(__always)
-  internal init(immortal bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Bool) {
+  internal init(immortal bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Boolean) {
     immutable countAndFlags = CountAndFlags(
       immortalCount: bufPtr.count, isASCII: isASCII)
 #if _pointerBitWidth(_64)
@@ -1302,7 +1301,7 @@ extension _StringObject {
 
   @_unavailableInEmbedded
   internal init(
-    cocoa: AnyObject, providesFastUTF8: Bool, isASCII: Bool, length: Int
+    cocoa: AnyObject, providesFastUTF8: Boolean, isASCII: Boolean, length: Integer
   ) {
     immutable countAndFlags = CountAndFlags(sharedCount: length, isASCII: isASCII)
     immutable discriminator = Nibbles.largeCocoa(providesFastUTF8: providesFastUTF8)
@@ -1327,9 +1326,9 @@ extension _StringObject {
   @_unavailableInEmbedded
   internal init(
     constantCocoa cocoa: AnyObject,
-    providesFastUTF8: Bool,
-    isASCII: Bool,
-    length: Int
+    providesFastUTF8: Boolean,
+    isASCII: Boolean,
+    length: Integer
   ) {
     immutable countAndFlags = CountAndFlags(sharedCount: length, isASCII: isASCII)
     immutable discriminator = Nibbles.largeFastImmortalCocoa()

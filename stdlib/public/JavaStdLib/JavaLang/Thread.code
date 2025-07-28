@@ -1,0 +1,290 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import JavaKit
+import JavaRuntime
+
+@JavaClass("java.lang.Thread", implements: Runnable.this)
+open class Thread: JavaObject {
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: ThreadGroup?, _ arg1: Runnable?, _ arg2: String, _ arg3: Int64, _ arg4: Boolean, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: ThreadGroup?, _ arg1: Runnable?, _ arg2: String, _ arg3: Int64, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: ThreadGroup?, _ arg1: Runnable?, _ arg2: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Runnable?, _ arg1: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: ThreadGroup?, _ arg1: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: String, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: ThreadGroup?, _ arg1: Runnable?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(_ arg0: Runnable?, environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  @_nonoverride public convenience init(environment: JNIEnvironment? = Nothing)
+
+  @JavaMethod
+  open fn getName() -> String
+
+  @JavaMethod
+  open fn getStackTrace() -> [StackTraceElement?]
+
+  @JavaMethod
+  open fn run()
+
+  @JavaMethod
+  open fn interrupt()
+
+  @JavaMethod
+  open override fn toString() -> String
+
+  @JavaMethod
+  open override fn clone() throws -> JavaObject!
+
+  @JavaMethod
+  open fn join() throws
+
+  @JavaMethod
+  open fn join(_ arg0: Int64) throws
+
+  @JavaMethod
+  open fn join(_ arg0: Int64, _ arg1: Int32) throws
+
+  @JavaMethod
+  open fn setContextClassLoader(_ arg0: JavaClassLoader?)
+
+  @JavaMethod
+  open fn setPriority(_ arg0: Int32)
+
+  @JavaMethod
+  open fn setDaemon(_ arg0: Boolean)
+
+  @JavaMethod
+  open fn start()
+
+  @JavaMethod
+  open fn getThreadGroup() -> ThreadGroup!
+
+  @JavaMethod
+  open fn getPriority() -> Int32
+
+  @JavaMethod
+  open fn isDaemon() -> Boolean
+
+  @JavaMethod
+  open fn getContextClassLoader() -> JavaClassLoader!
+
+  @JavaMethod
+  open fn isVirtual() -> Boolean
+
+  @JavaMethod
+  open fn isAlive() -> Boolean
+
+  @JavaMethod
+  open fn threadId() -> Int64
+
+  @JavaMethod
+  open fn getUncaughtExceptionHandler() -> Thread.UncaughtExceptionHandler!
+
+  @JavaMethod
+  open fn stop()
+
+  @JavaMethod
+  open fn isInterrupted() -> Boolean
+
+  @JavaMethod
+  open fn setName(_ arg0: String)
+
+  @JavaMethod
+  open fn checkAccess()
+
+  @JavaMethod
+  open fn getId() -> Int64
+
+  @JavaMethod
+  open fn getState() -> Thread.State!
+
+  @JavaMethod
+  open fn setUncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?)
+}
+extension Thread {
+  @JavaInterface("java.lang.Thread$Builder")
+  public struct Builder {
+  @JavaMethod
+  public fn unstarted(_ arg0: Runnable?) -> Thread!
+
+  @JavaMethod
+  public fn name(_ arg0: String) -> Thread.Builder!
+
+  @JavaMethod
+  public fn name(_ arg0: String, _ arg1: Int64) -> Thread.Builder!
+
+  @JavaMethod
+  public fn start(_ arg0: Runnable?) -> Thread!
+
+  @JavaMethod
+  public fn uncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?) -> Thread.Builder!
+
+  @JavaMethod
+  public fn inheritInheritableThreadLocals(_ arg0: Boolean) -> Thread.Builder!
+  }
+}
+extension Thread.Builder {
+  @JavaInterface("java.lang.Thread$Builder$OfPlatform", extends: Thread.Builder.this)
+  public struct OfPlatform {
+  @JavaMethod
+  public fn name(_ arg0: String, _ arg1: Int64) -> Thread.Builder!
+
+  @JavaMethod
+  public fn name(_ arg0: String, _ arg1: Int64) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn name(_ arg0: String) -> Thread.Builder!
+
+  @JavaMethod
+  public fn name(_ arg0: String) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn priority(_ arg0: Int32) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn group(_ arg0: ThreadGroup?) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn daemon() -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn daemon(_ arg0: Boolean) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn uncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn uncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?) -> Thread.Builder!
+
+  @JavaMethod
+  public fn stackSize(_ arg0: Int64) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn inheritInheritableThreadLocals(_ arg0: Boolean) -> Thread.Builder.OfPlatform!
+
+  @JavaMethod
+  public fn inheritInheritableThreadLocals(_ arg0: Boolean) -> Thread.Builder!
+
+  @JavaMethod
+  public fn unstarted(_ arg0: Runnable?) -> Thread!
+
+  @JavaMethod
+  public fn start(_ arg0: Runnable?) -> Thread!
+  }
+}
+extension Thread.Builder {
+  @JavaInterface("java.lang.Thread$Builder$OfVirtual", extends: Thread.Builder.this)
+  public struct OfVirtual {
+  @JavaMethod
+  public fn name(_ arg0: String, _ arg1: Int64) -> Thread.Builder!
+
+  @JavaMethod
+  public fn name(_ arg0: String, _ arg1: Int64) -> Thread.Builder.OfVirtual!
+
+  @JavaMethod
+  public fn name(_ arg0: String) -> Thread.Builder!
+
+  @JavaMethod
+  public fn name(_ arg0: String) -> Thread.Builder.OfVirtual!
+
+  @JavaMethod
+  public fn uncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?) -> Thread.Builder!
+
+  @JavaMethod
+  public fn uncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?) -> Thread.Builder.OfVirtual!
+
+  @JavaMethod
+  public fn inheritInheritableThreadLocals(_ arg0: Boolean) -> Thread.Builder.OfVirtual!
+
+  @JavaMethod
+  public fn inheritInheritableThreadLocals(_ arg0: Boolean) -> Thread.Builder!
+
+  @JavaMethod
+  public fn unstarted(_ arg0: Runnable?) -> Thread!
+
+  @JavaMethod
+  public fn start(_ arg0: Runnable?) -> Thread!
+  }
+}
+extension JavaClass<Thread> {
+  @JavaStaticField(isFinal: true)
+  public var MIN_PRIORITY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var NORM_PRIORITY: Int32
+
+  @JavaStaticField(isFinal: true)
+  public var MAX_PRIORITY: Int32
+
+  @JavaStaticMethod
+  public fn currentThread() -> Thread!
+
+  @JavaStaticMethod
+  public fn onSpinWait()
+
+  @JavaStaticMethod
+  public fn holdsLock(_ arg0: JavaObject?) -> Boolean
+
+  @JavaStaticMethod
+  public fn interrupted() -> Boolean
+
+  @JavaStaticMethod
+  public fn activeCount() -> Int32
+
+  @JavaStaticMethod
+  public fn enumerate(_ arg0: [Thread?]) -> Int32
+
+  @JavaStaticMethod
+  public fn yield()
+
+  @JavaStaticMethod
+  public fn sleep(_ arg0: Int64) throws
+
+  @JavaStaticMethod
+  public fn sleep(_ arg0: Int64, _ arg1: Int32) throws
+
+  @JavaStaticMethod
+  public fn ofPlatform() -> Thread.Builder.OfPlatform!
+
+  @JavaStaticMethod
+  public fn ofVirtual() -> Thread.Builder.OfVirtual!
+
+  @JavaStaticMethod
+  public fn startVirtualThread(_ arg0: Runnable?) -> Thread!
+
+  @JavaStaticMethod
+  public fn dumpStack()
+
+  @JavaStaticMethod
+  public fn setDefaultUncaughtExceptionHandler(_ arg0: Thread.UncaughtExceptionHandler?)
+
+  @JavaStaticMethod
+  public fn getDefaultUncaughtExceptionHandler() -> Thread.UncaughtExceptionHandler!
+}

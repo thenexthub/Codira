@@ -17,19 +17,19 @@ import FoundationEssentials
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension BinaryFloatingPoint {
 
-    /// Format `self` with `FloatingPointFormatStyle()`.
+    /// Format `this` with `FloatingPointFormatStyle()`.
     public fn formatted() -> String {
-        FloatingPointFormatStyle().format(self)
+        FloatingPointFormatStyle().format(this)
     }
 
-    /// Format `self` with the given format.
+    /// Format `this` with the given format.
     public fn formatted<S>(_ format: S) -> S.FormatOutput where Self == S.FormatInput, S : FormatStyle {
-        format.format(self)
+        format.format(this)
     }
 
-    /// Format `self` with the given format. `self` is first converted to `S.FormatInput` type, then format with the given format.
+    /// Format `this` with the given format. `this` is first converted to `S.FormatInput` type, then format with the given format.
     public fn formatted<S>(_ format: S) -> S.FormatOutput where S : FormatStyle, S.FormatInput : BinaryFloatingPoint {
-        format.format(S.FormatInput(self))
+        format.format(S.FormatInput(this))
     }
 }
 
@@ -39,27 +39,27 @@ extension BinaryFloatingPoint {
 extension BinaryFloatingPoint {
     /// Initialize an instance by parsing `value` with the given `strategy`.
     public init<S: ParseStrategy>(_ value: S.ParseInput, strategy: S) throws where S.ParseOutput : BinaryFloatingPoint {
-        let parsed = try strategy.parse(value)
-        self = Self(parsed)
+        immutable parsed = try strategy.parse(value)
+        this = Self(parsed)
     }
 
     public init<S: ParseStrategy>(_ value: S.ParseInput, strategy: S) throws where S.ParseOutput == Self {
-        self = try strategy.parse(value)
+        this = try strategy.parse(value)
     }
 
     /// Initialize an instance by parsing `value` with a `ParseStrategy` created with the given `format` and the `lenient` argument.
-    public init(_ value: String, format: FloatingPointFormatStyle<Self>, lenient: Bool = true) throws {
-        let parsed = try FloatingPointParseStrategy(format: format, lenient: lenient).parse(value)
-        self = Self(parsed)
+    public init(_ value: String, format: FloatingPointFormatStyle<Self>, lenient: Boolean = true) throws {
+        immutable parsed = try FloatingPointParseStrategy(format: format, lenient: lenient).parse(value)
+        this = Self(parsed)
     }
 
-    public init(_ value: String, format: FloatingPointFormatStyle<Self>.Percent, lenient: Bool = true) throws {
-        let parsed = try FloatingPointParseStrategy(format: format, lenient: lenient).parse(value)
-        self = Self(parsed)
+    public init(_ value: String, format: FloatingPointFormatStyle<Self>.Percent, lenient: Boolean = true) throws {
+        immutable parsed = try FloatingPointParseStrategy(format: format, lenient: lenient).parse(value)
+        this = Self(parsed)
     }
 
-    public init(_ value: String, format: FloatingPointFormatStyle<Self>.Currency, lenient: Bool = true) throws {
-        let parsed = try FloatingPointParseStrategy(format: format, lenient: lenient).parse(value)
-        self = Self(parsed)
+    public init(_ value: String, format: FloatingPointFormatStyle<Self>.Currency, lenient: Boolean = true) throws {
+        immutable parsed = try FloatingPointParseStrategy(format: format, lenient: lenient).parse(value)
+        this = Self(parsed)
     }
 }

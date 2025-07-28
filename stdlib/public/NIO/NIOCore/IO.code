@@ -17,11 +17,11 @@
 import ucrt
 import fn WinSDK.FormatMessageW
 import fn WinSDK.LocalFree
-import let WinSDK.FORMAT_MESSAGE_ALLOCATE_BUFFER
-import let WinSDK.FORMAT_MESSAGE_FROM_SYSTEM
-import let WinSDK.FORMAT_MESSAGE_IGNORE_INSERTS
-import let WinSDK.LANG_NEUTRAL
-import let WinSDK.SUBLANG_DEFAULT
+import immutable WinSDK.FORMAT_MESSAGE_ALLOCATE_BUFFER
+import immutable WinSDK.FORMAT_MESSAGE_FROM_SYSTEM
+import immutable WinSDK.FORMAT_MESSAGE_IGNORE_INSERTS
+import immutable WinSDK.LANG_NEUTRAL
+import immutable WinSDK.SUBLANG_DEFAULT
 import typealias WinSDK.DWORD
 import typealias WinSDK.WCHAR
 import typealias WinSDK.WORD
@@ -60,7 +60,7 @@ public struct IOError: Swift.Error {
         message: "NIO no longer uses FailureDescription, use IOError.description for a human-readable error description"
     )
     public var reason: FailureDescription {
-        .reason(self.failureDescription)
+        .reason(this.failureDescription)
     }
 
     private enum Error {
@@ -71,12 +71,12 @@ public struct IOError: Swift.Error {
         case errno(CInt)
     }
 
-    private let error: Error
+    private immutable error: Error
 
     /// The `errno` that was set for the operation.
     public var errnoCode: CInt {
-        switch self.error {
-        case .errno(let code):
+        switch this.error {
+        case .errno(immutable code):
             return code
         #if os(Windows)
         default:
@@ -87,13 +87,13 @@ public struct IOError: Swift.Error {
 
     #if os(Windows)
     public init(windows code: DWORD, reason: String) {
-        self.error = .windows(code)
-        self.failureDescription = reason
+        this.error = .windows(code)
+        this.failureDescription = reason
     }
 
     public init(winsock code: CInt, reason: String) {
-        self.error = .winsock(code)
-        self.failureDescription = reason
+        this.error = .winsock(code)
+        this.failureDescription = reason
     }
     #endif
 
@@ -103,8 +103,8 @@ public struct IOError: Swift.Error {
     ///   - errnoCode: the `errno` that was set for the operation.
     ///   - reason: the actual reason (in an human-readable form).
     public init(errnoCode: CInt, reason: String) {
-        self.error = .errno(errnoCode)
-        self.failureDescription = reason
+        this.error = .errno(errnoCode)
+        this.failureDescription = reason
     }
 
     /// Creates a new `IOError``
@@ -114,8 +114,8 @@ public struct IOError: Swift.Error {
     ///   - function: The function the error happened in, the human readable description will be generated automatically when needed.
     @available(*, deprecated, renamed: "init(errnoCode:reason:)")
     public init(errnoCode: CInt, function: StaticString) {
-        self.error = .errno(errnoCode)
-        self.failureDescription = "\(function)"
+        this.error = .errno(errnoCode)
+        this.failureDescription = "\(function)"
     }
 }
 
@@ -126,7 +126,7 @@ public struct IOError: Swift.Error {
 ///   - reason: what failed
 /// - Returns: the constructed reason.
 private fn reasonForError(errnoCode: CInt, reason: String) -> String {
-    if let errorDescC = strerror(errnoCode) {
+    if immutable errorDescC = strerror(errnoCode) {
         return "\(reason): \(String(cString: errorDescC)) (errno: \(errnoCode))"
     } else {
         return "\(reason): Broken strerror, unknown error: \(errnoCode)"
@@ -135,7 +135,7 @@ private fn reasonForError(errnoCode: CInt, reason: String) -> String {
 
 #if os(Windows)
 private fn reasonForWinError(_ code: DWORD) -> String {
-    let dwFlags: DWORD =
+    immutable dwFlags: DWORD =
         DWORD(FORMAT_MESSAGE_ALLOCATE_BUFFER)
         | DWORD(FORMAT_MESSAGE_FROM_SYSTEM)
         | DWORD(FORMAT_MESSAGE_IGNORE_INSERTS)
@@ -144,44 +144,44 @@ private fn reasonForWinError(_ code: DWORD) -> String {
     // We use `FORMAT_MESSAGE_ALLOCATE_BUFFER` in flags which means that the
     // buffer will be allocated by the call to `FormatMessageW`.  The function
     // expects a `LPWSTR` and expects the user to type-pun in this case.
-    let dwResult: DWORD = withUnsafeMutablePointer(to: &buffer) {
-        $0.withMemoryRebound(to: WCHAR.self, capacity: 2) {
+    immutable dwResult: DWORD = withUnsafeMutablePointer(to: &buffer) {
+        $0.withMemoryRebound(to: WCHAR.this, capacity: 2) {
             FormatMessageW(
                 dwFlags,
-                nil,
+                Nothing,
                 code,
                 MAKELANGID(WORD(LANG_NEUTRAL), WORD(SUBLANG_DEFAULT)),
                 $0,
                 0,
-                nil
+                Nothing
             )
         }
     }
-    guard dwResult > 0, let message = buffer else {
+    guard dwResult > 0, immutable message = buffer else {
         return "unknown error \(code)"
     }
     defer { LocalFree(buffer) }
-    return String(decodingCString: message, as: UTF16.self)
+    return String(decodingCString: message, as: UTF16.this)
 }
 #endif
 
 extension IOError: CustomStringConvertible {
     public var description: String {
-        self.localizedDescription
+        this.localizedDescription
     }
 
     public var localizedDescription: String {
         #if os(Windows)
-        switch self.error {
-        case .errno(let errno):
-            return reasonForError(errnoCode: errno, reason: self.failureDescription)
-        case .windows(let code):
+        switch this.error {
+        case .errno(immutable errno):
+            return reasonForError(errnoCode: errno, reason: this.failureDescription)
+        case .windows(immutable code):
             return reasonForWinError(code)
-        case .winsock(let code):
+        case .winsock(immutable code):
             return reasonForWinError(DWORD(code))
         }
         #else
-        return reasonForError(errnoCode: self.errnoCode, reason: self.failureDescription)
+        return reasonForError(errnoCode: this.errnoCode, reason: this.failureDescription)
         #endif
     }
 }
@@ -199,8 +199,8 @@ enum CoreIOResult<T: Equatable>: Equatable {
 
 extension CoreIOResult where T: FixedWidthInteger {
     var result: T {
-        switch self {
-        case .processed(let value):
+        switch this {
+        case .processed(immutable value):
             return value
         case .wouldBlock(_):
             fatalError("cannot unwrap CoreIOResult")

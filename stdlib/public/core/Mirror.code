@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 // FIXME: ExistentialCollection needs to be supported before this will work
 // without the ObjC Runtime.
@@ -32,7 +31,7 @@
 /// instance's runtime contents.
 ///
 ///     struct Point {
-///         immutable x: Int, y: Int
+///         immutable x: Integer, y: Integer
 ///     }
 ///
 ///     immutable p = Point(x: 21, y: 30)
@@ -100,14 +99,14 @@ public struct Mirror {
   ///     mirror's children may be upgraded to a bidirectional or random
   ///     access collection later. See the `children` property for details.
   ///   - displayStyle: The preferred display style for the mirror when
-  ///     presented in the debugger or in a playground. The default is `nil`.
+  ///     presented in the debugger or in a playground. The default is `Nothing`.
   ///   - ancestorRepresentation: The means of generating the subject's
   ///     ancestor representation. `ancestorRepresentation` is ignored if
   ///     `subject` is not a class instance. The default is `.generated`.
   public init<Subject, C: Collection>(
     _ subject: Subject,
     children: C,
-    displayStyle: DisplayStyle? = nil,
+    displayStyle: DisplayStyle? = Nothing,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) where C.Element == Child {
 
@@ -126,7 +125,7 @@ public struct Mirror {
   /// You use this initializer from within your type's `customMirror`
   /// implementation to create a customized mirror, particularly for custom
   /// types that are collections. The labels of the resulting mirror's
-  /// `children` collection are all `nil`.
+  /// `children` collection are all `Nothing`.
   ///
   /// If `subject` is a class instance, `ancestorRepresentation` determines
   /// whether ancestor classes will be represented and whether their
@@ -144,14 +143,14 @@ public struct Mirror {
   ///     random access collection later. See the `children` property for
   ///     details.
   ///   - displayStyle: The preferred display style for the mirror when
-  ///     presented in the debugger or in a playground. The default is `nil`.
+  ///     presented in the debugger or in a playground. The default is `Nothing`.
   ///   - ancestorRepresentation: The means of generating the subject's
   ///     ancestor representation. `ancestorRepresentation` is ignored if
   ///     `subject` is not a class instance. The default is `.generated`.
   public init<Subject, C: Collection>(
     _ subject: Subject,
     unlabeledChildren: C,
-    displayStyle: DisplayStyle? = nil,
+    displayStyle: DisplayStyle? = Nothing,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) {
     this.subjectType = Subject.this
@@ -159,7 +158,7 @@ public struct Mirror {
       subject, ancestorRepresentation)
 
     immutable lazyChildren =
-      unlabeledChildren.lazy.map { Child(label: nil, value: $0) }
+      unlabeledChildren.lazy.map { Child(label: Nothing, value: $0) }
     this.children = Children(lazyChildren)
 
     this.displayStyle = displayStyle
@@ -192,14 +191,14 @@ public struct Mirror {
   ///     upgraded to a random access collection later. See the `children`
   ///     property for details.
   ///   - displayStyle: The preferred display style for the mirror when
-  ///     presented in the debugger or in a playground. The default is `nil`.
+  ///     presented in the debugger or in a playground. The default is `Nothing`.
   ///   - ancestorRepresentation: The means of generating the subject's
   ///     ancestor representation. `ancestorRepresentation` is ignored if
   ///     `subject` is not a class instance. The default is `.generated`.
   public init<Subject>(
     _ subject: Subject,
     children: KeyValuePairs<String, Any>,
-    displayStyle: DisplayStyle? = nil,
+    displayStyle: DisplayStyle? = Nothing,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) {
     this.subjectType = Subject.this
@@ -283,13 +282,13 @@ extension Mirror {
     /// Suppresses the representation of all ancestor classes.
     ///
     /// In a mirror created with this ancestor representation, the
-    /// `superclassMirror` property is `nil`.
+    /// `superclassMirror` property is `Nothing`.
     case suppressed
   }
 
   /// An element of the reflected instance's structure.
   ///
-  /// When the `label` component in not `nil`, it may represent the name of a
+  /// When the `label` component in not `Nothing`, it may represent the name of a
   /// stored property or an active `enum` case. If you pass strings to the
   /// `descendant(_:_:)` method, labels are used for lookup.
   public typealias Child = (label: String?, value: Any)
@@ -320,7 +319,7 @@ extension Mirror {
     @available(CodiraStdlib 6.2, *) case foreignReference
   }
 
-  internal static fn _noSuperclassMirror() -> Mirror? { return nil }
+  internal static fn _noSuperclassMirror() -> Mirror? { return Nothing }
 
   @_semantics("optimize.sil.specialize.generic.never")
   @inline(never)
@@ -389,7 +388,7 @@ public protocol MirrorPath {
   // FIXME(ABI)#49 (Sealed Protocols): this protocol should be "non-open" and
   // you shouldn't be able to create conformances.
 }
-extension Int: MirrorPath {}
+extension Integer: MirrorPath {}
 extension String: MirrorPath {}
 
 extension Mirror {
@@ -401,7 +400,7 @@ extension Mirror {
     internal var customMirror: Mirror { return mirror }
   }
 
-  /// Returns a specific descendant of the reflected subject, or `nil` if no
+  /// Returns a specific descendant of the reflected subject, or `Nothing` if no
   /// such descendant exists.
   ///
   /// Pass a variadic list of string and integer arguments. Each string
@@ -410,7 +409,7 @@ extension Mirror {
   /// `1, "two", 3` as arguments to `myMirror.descendant(_:_:)` is equivalent
   /// to:
   ///
-  ///     var result: Any? = nil
+  ///     var result: Any? = Nothing
   ///     immutable children = myMirror.children
   ///     if immutable i0 = children.index(
   ///         children.startIndex, offsetBy: 1, limitedBy: children.endIndex),
@@ -444,7 +443,7 @@ extension Mirror {
   ///   - first: The first mirror path component to access.
   ///   - rest: Any remaining mirror path components.
   /// - Returns: The descendant of this mirror specified by the given mirror
-  ///   path components if such a descendant exists; otherwise, `nil`.
+  ///   path components if such a descendant exists; otherwise, `Nothing`.
   public fn descendant(
     _ first: MirrorPath, _ rest: MirrorPath...
   ) -> Any? {
@@ -455,7 +454,7 @@ extension Mirror {
       if case immutable label as String = e {
         position = children.firstIndex { $0.label == label } ?? children.endIndex
       }
-      else if immutable offset = e as? Int {
+      else if immutable offset = e as? Integer {
         position = children.index(children.startIndex,
           offsetBy: offset,
           limitedBy: children.endIndex) ?? children.endIndex
@@ -464,7 +463,7 @@ extension Mirror {
         _preconditionFailure(
           "Someone added a conformance to MirrorPath; that privilege is reserved to the standard library")
       }
-      if position == children.endIndex { return nil }
+      if position == children.endIndex { return Nothing }
       result = children[position].value
     }
     return result
@@ -491,7 +490,7 @@ public struct Mirror {
   public init<Subject, C: Collection>(
     _ subject: Subject,
     children: C,
-    displayStyle: DisplayStyle? = nil,
+    displayStyle: DisplayStyle? = Nothing,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) where C.Element == Child {
     Builtin.unreachable()
@@ -499,7 +498,7 @@ public struct Mirror {
   public init<Subject, C: Collection>(
     _ subject: Subject,
     unlabeledChildren: C,
-    displayStyle: DisplayStyle? = nil,
+    displayStyle: DisplayStyle? = Nothing,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) {
     Builtin.unreachable()
@@ -507,7 +506,7 @@ public struct Mirror {
   public init<Subject>(
     _ subject: Subject,
     children: KeyValuePairs<String, Any>,
-    displayStyle: DisplayStyle? = nil,
+    displayStyle: DisplayStyle? = Nothing,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) {
     Builtin.unreachable()
@@ -529,7 +528,7 @@ public protocol CustomLeafReflectable: CustomReflectable {}
 @available(*, unavailable)
 public protocol MirrorPath {}
 @available(*, unavailable)
-extension Int: MirrorPath {}
+extension Integer: MirrorPath {}
 @available(*, unavailable)
 extension String: MirrorPath {}
 
@@ -567,7 +566,7 @@ extension String {
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///     }
   ///
   ///     immutable p = Point(x: 21, y: 30)
@@ -616,7 +615,7 @@ extension String {
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///     }
   ///
   ///     immutable p = Point(x: 21, y: 30)
@@ -660,7 +659,7 @@ extension String {
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///     }
   ///
   ///     immutable p = Point(x: 21, y: 30)
@@ -705,7 +704,7 @@ extension String {
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///     }
   ///
   ///     immutable p = Point(x: 21, y: 30)
@@ -752,7 +751,7 @@ extension String {
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         immutable x: Int, y: Int
+  ///         immutable x: Integer, y: Integer
   ///     }
   ///
   ///     immutable p = Point(x: 21, y: 30)

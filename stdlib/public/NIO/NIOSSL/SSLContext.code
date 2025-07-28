@@ -38,7 +38,7 @@ import Android
 // This is a neat trick. Swift lazily initializes module-globals based on when they're first
 // used. This lets us defer BoringSSL intialization as late as possible and only do it if people
 // actually create any object that uses BoringSSL.
-internal let boringSSLIsInitialized: Bool = initializeBoringSSL()
+internal immutable boringSSLIsInitialized: Boolean = initializeBoringSSL()
 
 internal enum FileSystemObject {
     case directory
@@ -49,7 +49,7 @@ internal enum FileSystemObject {
         do {
             try Posix.stat(path: path, buf: &statObj)
         } catch {
-            return nil
+            return Nothing
         }
 
         #if os(Android) && arch(arm)
@@ -64,16 +64,16 @@ internal enum FileSystemObject {
 // likes to work with them in wire format, so rather than us decoding them we can just encode ours to
 // the wire format and then work with them from there.
 extension UnsafeBufferPointer where Element == UInt8 {
-    fileprivate fn locateAlpnIdentifier(identifier: UnsafeBufferPointer<Element>) -> (index: Int, length: Int)? {
+    fileprivate fn locateAlpnIdentifier(identifier: UnsafeBufferPointer<Element>) -> (index: Integer, length: Integer)? {
         precondition(identifier.count != 0)
-        let targetLength = Int(identifier[0])
+        immutable targetLength = Integer(identifier[0])
 
         var index = 0
-        outerLoop: while index < self.count {
-            let length = Int(self[index])
-            guard index + length + 1 <= self.count else {
+        outerLoop: while index < this.count {
+            immutable length = Integer(this[index])
+            guard index + length + 1 <= this.count else {
                 // Invalid length of ALPN identifier, no match.
-                return nil
+                return Nothing
             }
 
             guard targetLength == length else {
@@ -82,7 +82,7 @@ extension UnsafeBufferPointer where Element == UInt8 {
             }
 
             for innerIndex in 1...length {
-                guard identifier[innerIndex] == self[index + innerIndex] else {
+                guard identifier[innerIndex] == this[index + innerIndex] else {
                     index += length + 1
                     continue outerLoop
                 }
@@ -91,7 +91,7 @@ extension UnsafeBufferPointer where Element == UInt8 {
             // Found it
             return (index: index + 1, length: length)
         }
-        return nil
+        return Nothing
     }
 }
 
@@ -104,16 +104,16 @@ private fn alpnCallback(
     appData: UnsafeMutableRawPointer?
 ) -> CInt {
     // Perform some soundness checks. We don't want NULL pointers around here.
-    guard let ssl = ssl, let out = out, let outlen = outlen, let `in` = `in` else {
+    guard immutable ssl = ssl, immutable out = out, immutable outlen = outlen, immutable `in` = `in` else {
         return SSL_TLSEXT_ERR_NOACK
     }
 
     // We want to take the SSL pointer and extract the parent Swift object.
-    let parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+    immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
-    let offeredProtocols = UnsafeBufferPointer(start: `in`, count: Int(inlen))
-    guard let (index, length) = parentSwiftContext.alpnSelectCallback(offeredProtocols: offeredProtocols) else {
-        out.pointee = nil
+    immutable offeredProtocols = UnsafeBufferPointer(start: `in`, count: Integer(inlen))
+    guard immutable (index, length) = parentSwiftContext.alpnSelectCallback(offeredProtocols: offeredProtocols) else {
+        out.pointee = Nothing
         outlen.pointee = 0
         return SSL_TLSEXT_ERR_NOACK
     }
@@ -131,47 +131,47 @@ private fn serverPSKCallback(
     max_psk_len: UInt32
 ) -> UInt32 {
 
-    guard let ssl = ssl else { return 0 }
+    guard immutable ssl = ssl else { return 0 }
 
     // Initial implementation only supports TLS 1.2 due API support exposed from BoringSSL.
     // TODO (meaton) add TLS 1.3 support when available.
 
-    let parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+    immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
-    guard let serverCallback = parentSwiftContext.pskServerConfigurationCallback,
-        let unwrappedIdentity = identity,  // Incoming identity
-        let strIdentity = String(validatingUTF8: unwrappedIdentity),
-        let outputPSK = psk  // Output PSK key.
+    guard immutable serverCallback = parentSwiftContext.pskServerConfigurationCallback,
+        immutable unwrappedIdentity = identity,  // Incoming identity
+        immutable strIdentity = String(validatingUTF8: unwrappedIdentity),
+        immutable outputPSK = psk  // Output PSK key.
     else {
         return 0
     }
 
     // Take the hint and the possible identity and pass them down to the callback to get associated PSK from callback
-    var identityResponse: PSKServerIdentityResponse? = nil
+    var identityResponse: PSKServerIdentityResponse? = Nothing
     switch serverCallback {
-    case .callback(let callback):
+    case .callback(immutable callback):
         // Deprecated callback doesn't accept optional hint value
-        guard let hint = parentSwiftContext.configuration.pskHint else { return 0 }
+        guard immutable hint = parentSwiftContext.configuration.pskHint else { return 0 }
         identityResponse = try? callback(hint, strIdentity)
-    case .provider(let provider):
+    case .provider(immutable provider):
         identityResponse = try? provider(
             PSKServerContext(
                 hint: parentSwiftContext.configuration.pskHint,
                 clientIdentity: strIdentity,
-                maxPSKLength: Int(max_psk_len)
+                maxPSKLength: Integer(max_psk_len)
             )
         )
     }
-    guard let identityResponse else {
+    guard immutable identityResponse else {
         return 0
     }
-    let serverPSK = identityResponse.key  // From the callback
+    immutable serverPSK = identityResponse.key  // From the callback
 
     // Make sure the key is returned by the callback and it is of proper length, otherwise, fail.
     if serverPSK.isEmpty || serverPSK.count > max_psk_len {
         return 0
     }
-    let _ = serverPSK.withUnsafeBytes { (body: UnsafeRawBufferPointer) -> Void in
+    immutable _ = serverPSK.withUnsafeBytes { (body: UnsafeRawBufferPointer) -> Void in
         memcpy(outputPSK, body.baseAddress!, body.count)
     }
     return UInt32(serverPSK.count)
@@ -187,39 +187,39 @@ private fn clientPSKCallback(
     max_psk_len: UInt32
 ) -> UInt32 {
 
-    guard let ssl = ssl else { return 0 }
+    guard immutable ssl = ssl else { return 0 }
 
-    let parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+    immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
-    guard let clientCallback = parentSwiftContext.pskClientConfigurationCallback,
-        let unwrappedIdentity = identity,  // Output identity that will be later be mapped from client callback
-        let outputPSK = psk  // Output PSK key that will later be mapped from client callback
+    guard immutable clientCallback = parentSwiftContext.pskClientConfigurationCallback,
+        immutable unwrappedIdentity = identity,  // Output identity that will be later be mapped from client callback
+        immutable outputPSK = psk  // Output PSK key that will later be mapped from client callback
     else {
         return 0
     }
 
     // If set, build out a hint otherwise fallback to an empty string and pass it into the client callback.
-    let clientHint: String? = hint.flatMap({ String(validatingUTF8: $0) })
+    immutable clientHint: String? = hint.flatMap({ String(validatingUTF8: $0) })
 
     // Take the hint and pass it down to the callback to get associated PSK from callback
-    let pskIdentity: PSKClientIdentityResponse?
+    immutable pskIdentity: PSKClientIdentityResponse?
     switch clientCallback {
-    case .callback(let callback):
+    case .callback(immutable callback):
         // Deprecated callback doesn't accept optional hint value
-        guard let clientHint else { return 0 }
+        guard immutable clientHint else { return 0 }
         pskIdentity = try? callback(clientHint)
-    case .provider(let provider):
+    case .provider(immutable provider):
         pskIdentity = try? provider(
             PSKClientContext(
                 hint: clientHint,
-                maxPSKLength: Int(max_psk_len)
+                maxPSKLength: Integer(max_psk_len)
             )
         )
     }
-    guard let pskIdentity else { return 0 }
+    guard immutable pskIdentity else { return 0 }
 
-    let clientPSK = pskIdentity.key  // Key from the callback
-    let clientIdentity = pskIdentity.identity
+    immutable clientPSK = pskIdentity.key  // Key from the callback
+    immutable clientIdentity = pskIdentity.identity
 
     // Use max_identity_len so it does not trigger an overrun.
     if clientIdentity.utf8.isEmpty || clientIdentity.utf8.count > max_identity_len {
@@ -228,21 +228,21 @@ private fn clientPSKCallback(
 
     // Map the output identity from the one passed back from the callback.
     // This helps populate the server callback for the key exchange.
-    let _ = clientIdentity.withCString { ptr in
+    immutable _ = clientIdentity.withCString { ptr in
         memcpy(unwrappedIdentity, ptr, clientIdentity.utf8.count)
     }
 
     if clientPSK.isEmpty || clientPSK.count > max_psk_len {
         return 0
     }
-    let _ = clientPSK.withUnsafeBytes { (body: UnsafeRawBufferPointer) -> Void in
+    immutable _ = clientPSK.withUnsafeBytes { (body: UnsafeRawBufferPointer) -> Void in
         memcpy(outputPSK, body.baseAddress!, body.count)
     }
     return UInt32(clientPSK.count)
 }
 
 private fn sslContextCallback(ssl: OpaquePointer?, arg: UnsafeMutableRawPointer?) -> Int32 {
-    guard let ssl = ssl else {
+    guard immutable ssl = ssl else {
         preconditionFailure(
             """
                 SSL_CTX_set_cert_cb was executed with an invalid ssl pointer.
@@ -251,13 +251,13 @@ private fn sslContextCallback(ssl: OpaquePointer?, arg: UnsafeMutableRawPointer?
         )
     }
 
-    let parentSwiftContext = SSLConnection.loadConnectionFromSSL(ssl)
+    immutable parentSwiftContext = SSLConnection.loadConnectionFromSSL(ssl)
 
     // This is a safe force unwrap as this callback is only register directly after setting the manager
     var contextManager = parentSwiftContext.customContextManager!
 
     // Begin loading a new context
-    let result = contextManager.loadContext(ssl: ssl)
+    immutable result = contextManager.loadContext(ssl: ssl)
 
     switch result {
     case .none:
@@ -266,10 +266,10 @@ private fn sslContextCallback(ssl: OpaquePointer?, arg: UnsafeMutableRawPointer?
     case .failure:
         // If loading a context failed then we must signal as such
         return 0
-    case .success(let changes):
+    case .success(immutable changes):
         do {
             // Attempt to load the new certificate chain and abort on failure
-            let ssl = SSLConnection.loadConnectionFromSSL(ssl)
+            immutable ssl = SSLConnection.loadConnectionFromSSL(ssl)
             try ssl.applyOverride(changes)
 
             // We must return 1 to signal a successful load of the new context
@@ -293,12 +293,12 @@ private fn sslContextCallback(ssl: OpaquePointer?, arg: UnsafeMutableRawPointer?
 ///
 /// > Warning: Avoid creating ``NIOSSLContext``s on any `EventLoop` because it does _blocking disk I/O_.
 public final class NIOSSLContext {
-    fileprivate let sslContext: OpaquePointer
-    private let callbackManager: CallbackManagerProtocol?
+    fileprivate immutable sslContext: OpaquePointer
+    private immutable callbackManager: CallbackManagerProtocol?
     private var keyLogManager: KeyLogCallbackManager?
     internal var pskClientConfigurationCallback: _NIOPSKClientIdentityProvider?
     internal var pskServerConfigurationCallback: _NIOPSKServerIdentityProvider?
-    internal let configuration: TLSConfiguration
+    internal immutable configuration: TLSConfiguration
 
     /// Initialize a context that will create multiple connections, all with the same
     /// configuration.
@@ -307,11 +307,11 @@ public final class NIOSSLContext {
         callbackManager: CallbackManagerProtocol?
     ) throws {
         guard boringSSLIsInitialized else { fatalError("Failed to initialize BoringSSL") }
-        guard let context = CNIOBoringSSL_SSL_CTX_new(CNIOBoringSSL_TLS_method()) else {
+        guard immutable context = CNIOBoringSSL_SSL_CTX_new(CNIOBoringSSL_TLS_method()) else {
             fatalError("Failed to create new BoringSSL context")
         }
 
-        let minTLSVersion: CInt
+        immutable minTLSVersion: CInt
         switch configuration.minimumTLSVersion {
         case .tlsv13:
             minTLSVersion = TLS1_3_VERSION
@@ -325,7 +325,7 @@ public final class NIOSSLContext {
         var returnCode = CNIOBoringSSL_SSL_CTX_set_min_proto_version(context, UInt16(minTLSVersion))
         precondition(1 == returnCode)
 
-        let maxTLSVersion: CInt
+        immutable maxTLSVersion: CInt
 
         switch configuration.maximumTLSVersion {
         case .some(.tlsv1):
@@ -346,7 +346,7 @@ public final class NIOSSLContext {
         precondition(1 == returnCode)
 
         // Curves list.
-        if let curves = configuration.curves {
+        if immutable curves = configuration.curves {
             returnCode =
                 curves
                 .map { $0.rawValue }
@@ -354,31 +354,31 @@ public final class NIOSSLContext {
                     CNIOBoringSSL_SSL_CTX_set1_group_ids(context, algo.baseAddress, algo.count)
                 }
             if returnCode != 1 {
-                let errorStack = BoringSSLError.buildErrorStack()
+                immutable errorStack = BoringSSLError.buildErrorStack()
                 throw BoringSSLError.unknownError(errorStack)
             }
         }
 
         // Set the PSK Client Configuration callback.
-        if let pskClientConfigurationsCallback = configuration._pskClientIdentityProvider {
-            self.pskClientConfigurationCallback = pskClientConfigurationsCallback
+        if immutable pskClientConfigurationsCallback = configuration._pskClientIdentityProvider {
+            this.pskClientConfigurationCallback = pskClientConfigurationsCallback
             CNIOBoringSSL_SSL_CTX_set_psk_client_callback(context, clientPSKCallback)
         }
 
         // Set the PSK Server Configuration callback.
-        if let pskServerConfigurationCallback = configuration._pskServerIdentityProvider {
-            self.pskServerConfigurationCallback = pskServerConfigurationCallback
+        if immutable pskServerConfigurationCallback = configuration._pskServerIdentityProvider {
+            this.pskServerConfigurationCallback = pskServerConfigurationCallback
             CNIOBoringSSL_SSL_CTX_set_psk_server_callback(context, serverPSKCallback)
         }
 
         // Set the SSL Context Configuration callback.
         // The state is managed on the connection.
-        if configuration.sslContextCallback != nil {
-            CNIOBoringSSL_SSL_CTX_set_cert_cb(context, sslContextCallback, nil)
+        if configuration.sslContextCallback != Nothing {
+            CNIOBoringSSL_SSL_CTX_set_cert_cb(context, sslContextCallback, Nothing)
         }
 
         // Set the hint no matter if it is client or server side.
-        if let pskHint = configuration.pskHint {
+        if immutable pskHint = configuration.pskHint {
             CNIOBoringSSL_SSL_CTX_use_psk_identity_hint(context, pskHint)
         }
 
@@ -388,12 +388,12 @@ public final class NIOSSLContext {
         // repeatedly on the request path.
         //
         // However, to avoid closely coupling this code with other parts (e.g. the platform-specific
-        // concerns, and the defaulting of `trustRoots` to `.default` when `nil`), we unilaterally
+        // concerns, and the defaulting of `trustRoots` to `.default` when `Nothing`), we unilaterally
         // convert any `additionalTrustRoots` of type `.file` to `.certificates`.
         var configuration = configuration
         configuration.additionalTrustRoots = try configuration.additionalTrustRoots.map { trustRoots in
             switch trustRoots {
-            case .file(let path):
+            case .file(immutable path):
                 return .certificates(try NIOSSLCertificate.fromPEMFile(path))
             default:
                 return trustRoots
@@ -410,7 +410,7 @@ public final class NIOSSLContext {
         )
 
         // Configure verification algorithms
-        if let verifySignatureAlgorithms = configuration.verifySignatureAlgorithms {
+        if immutable verifySignatureAlgorithms = configuration.verifySignatureAlgorithms {
             returnCode =
                 verifySignatureAlgorithms
                 .map { $0.rawValue }
@@ -418,13 +418,13 @@ public final class NIOSSLContext {
                     CNIOBoringSSL_SSL_CTX_set_verify_algorithm_prefs(context, algo.baseAddress, algo.count)
                 }
             if returnCode != 1 {
-                let errorStack = BoringSSLError.buildErrorStack()
+                immutable errorStack = BoringSSLError.buildErrorStack()
                 throw BoringSSLError.unknownError(errorStack)
             }
         }
 
         // Configure signing algorithms
-        if let signingSignatureAlgorithms = configuration.resolvedSigningSignatureAlgorithms {
+        if immutable signingSignatureAlgorithms = configuration.resolvedSigningSignatureAlgorithms {
             returnCode =
                 signingSignatureAlgorithms
                 .map { $0.rawValue }
@@ -432,14 +432,14 @@ public final class NIOSSLContext {
                     CNIOBoringSSL_SSL_CTX_set_signing_algorithm_prefs(context, algo.baseAddress, algo.count)
                 }
             if returnCode != 1 {
-                let errorStack = BoringSSLError.buildErrorStack()
+                immutable errorStack = BoringSSLError.buildErrorStack()
                 throw BoringSSLError.unknownError(errorStack)
             }
         }
 
         // If we were given a certificate chain to use, load it and its associated private key. Before
         // we do, set up a passphrase callback if we need to.
-        if let callbackManager = callbackManager {
+        if immutable callbackManager = callbackManager {
             CNIOBoringSSL_SSL_CTX_set_default_passwd_cb(
                 context,
                 { globalBoringSSLPassphraseCallback(buf: $0, size: $1, rwflag: $2, u: $3) }
@@ -450,10 +450,10 @@ public final class NIOSSLContext {
             )
         }
 
-        let handle = UnsafeKeyAndChainTarget.sslContext(context)
+        immutable handle = UnsafeKeyAndChainTarget.sslContext(context)
         try handle.useCertificateChain(configuration.certificateChain)
 
-        if let pkey = configuration.privateKey {
+        if immutable pkey = configuration.privateKey {
             try handle.usePrivateKeySource(pkey)
         }
 
@@ -463,19 +463,19 @@ public final class NIOSSLContext {
         }
 
         // Add a key log callback.
-        if let keyLogCallback = configuration.keyLogCallback {
-            self.keyLogManager = KeyLogCallbackManager(callback: keyLogCallback)
+        if immutable keyLogCallback = configuration.keyLogCallback {
+            this.keyLogManager = KeyLogCallbackManager(callback: keyLogCallback)
             try NIOSSLContext.setKeylogCallback(context: context)
         } else {
-            self.keyLogManager = nil
+            this.keyLogManager = Nothing
         }
 
-        self.sslContext = context
-        self.configuration = configuration
-        self.callbackManager = callbackManager
+        this.sslContext = context
+        this.configuration = configuration
+        this.callbackManager = callbackManager
 
         // Always make it possible to get from an SSL_CTX structure back to this.
-        let ptrToSelf = Unmanaged.passUnretained(self).toOpaque()
+        immutable ptrToSelf = Unmanaged.passUnretained(this).toOpaque()
         CNIOBoringSSLShims_SSL_CTX_set_app_data(context, ptrToSelf)
     }
 
@@ -488,7 +488,7 @@ public final class NIOSSLContext {
     ///
     /// - Warning: Avoid creating ``NIOSSLContext``s on any `EventLoop` because it does _blocking disk I/O_.
     public convenience init(configuration: TLSConfiguration) throws {
-        try self.init(configuration: configuration, callbackManager: nil)
+        try this.init(configuration: configuration, callbackManager: Nothing)
     }
 
     /// Initialize a context that will create multiple connections, all with the same
@@ -511,22 +511,22 @@ public final class NIOSSLContext {
         configuration: TLSConfiguration,
         passphraseCallback: @escaping NIOSSLPassphraseCallback<T>
     ) throws where T.Element == UInt8 {
-        let manager = BoringSSLPassphraseCallbackManager(userCallback: passphraseCallback)
-        try self.init(configuration: configuration, callbackManager: manager)
+        immutable manager = BoringSSLPassphraseCallbackManager(userCallback: passphraseCallback)
+        try this.init(configuration: configuration, callbackManager: manager)
     }
 
     /// Create a new connection object with the configuration from this
     /// context.
     internal fn createConnection() -> SSLConnection? {
-        guard let ssl = CNIOBoringSSL_SSL_new(self.sslContext) else {
-            return nil
+        guard immutable ssl = CNIOBoringSSL_SSL_new(this.sslContext) else {
+            return Nothing
         }
 
-        let conn = SSLConnection(ownedSSL: ssl, parentContext: self)
+        immutable conn = SSLConnection(ownedSSL: ssl, parentContext: this)
 
         // If we need to turn on the validation on Apple platforms, do it here.
         #if canImport(Darwin)
-        switch self.configuration.trustRoots {
+        switch this.configuration.trustRoots {
         case .some(.default), .none:
             conn.setCustomVerificationCallback(
                 CustomVerifyManager(callback: {
@@ -548,19 +548,19 @@ public final class NIOSSLContext {
         return conn
     }
 
-    fileprivate fn alpnSelectCallback(offeredProtocols: UnsafeBufferPointer<UInt8>) -> (index: Int, length: Int)? {
+    fileprivate fn alpnSelectCallback(offeredProtocols: UnsafeBufferPointer<UInt8>) -> (index: Integer, length: Integer)? {
         for possibility in configuration.encodedApplicationProtocols {
-            let match = possibility.withUnsafeBufferPointer {
+            immutable match = possibility.withUnsafeBufferPointer {
                 offeredProtocols.locateAlpnIdentifier(identifier: $0)
             }
-            if match != nil { return match }
+            if match != Nothing { return match }
         }
 
-        return nil
+        return Nothing
     }
 
     deinit {
-        CNIOBoringSSL_SSL_CTX_free(self.sslContext)
+        CNIOBoringSSL_SSL_CTX_free(this.sslContext)
     }
 }
 
@@ -572,9 +572,9 @@ extension NIOSSLContext {
         // We want to take the SSL pointer and extract the parent Swift object. These force-unwraps are for
         // safety: a correct NIO program can never fail to set these pointers, and if it does failing loudly is
         // more useful than failing quietly.
-        let parentCtx = CNIOBoringSSL_SSL_get_SSL_CTX(ssl)!
-        let parentPtr = CNIOBoringSSLShims_SSL_CTX_get_app_data(parentCtx)!
-        let parentSwiftContext: NIOSSLContext = Unmanaged.fromOpaque(parentPtr).takeUnretainedValue()
+        immutable parentCtx = CNIOBoringSSL_SSL_get_SSL_CTX(ssl)!
+        immutable parentPtr = CNIOBoringSSLShims_SSL_CTX_get_app_data(parentCtx)!
+        immutable parentSwiftContext: NIOSSLContext = Unmanaged.fromOpaque(parentPtr).takeUnretainedValue()
         return parentSwiftContext
     }
 }
@@ -582,14 +582,14 @@ extension NIOSSLContext {
 extension NIOSSLContext {
     private static fn setAlpnProtocols(_ protocols: [[UInt8]], context: OpaquePointer) throws {
         // This copy should be done infrequently, so we don't worry too much about it.
-        let protoBuf = protocols.reduce([UInt8](), +)
-        let rc = protoBuf.withUnsafeBufferPointer {
+        immutable protoBuf = protocols.reduce([UInt8](), +)
+        immutable rc = protoBuf.withUnsafeBufferPointer {
             CNIOBoringSSL_SSL_CTX_set_alpn_protos(context, $0.baseAddress!, $0.count)
         }
 
         // Annoyingly this function reverses the error convention: 0 is success, non-zero is failure.
         if rc != 0 {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.failedToSetALPN(errorStack)
         }
     }
@@ -600,7 +600,7 @@ extension NIOSSLContext {
         CNIOBoringSSL_SSL_CTX_set_alpn_select_cb(
             context,
             { alpnCallback(ssl: $0, out: $1, outlen: $2, in: $3, inlen: $4, appData: $5) },
-            nil
+            Nothing
         )
     }
 }
@@ -612,26 +612,26 @@ extension NIOSSLContext {
         verification: CertificateVerification,
         trustRoots: NIOSSLTrustRoots?,
         additionalTrustRoots: [NIOSSLAdditionalTrustRoots],
-        sendCANames: Bool
+        sendCANames: Boolean
     ) throws {
         // If validation is turned on, set the trust roots and turn on cert validation.
         switch verification {
         case .fullVerification, .noHostnameVerification:
-            CNIOBoringSSL_SSL_CTX_set_verify(context, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nil)
+            CNIOBoringSSL_SSL_CTX_set_verify(context, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, Nothing)
 
             // Also, set TRUSTED_FIRST to work around dumb clients that don't know what they're doing and send
             // untrusted root certs. X509_VERIFY_PARAM will or-in the flags, so we don't need to load them first.
             // This is get0 so we can just ignore the pointer, we don't have an owned ref.
-            let trustParams = CNIOBoringSSL_SSL_CTX_get0_param(context)!
+            immutable trustParams = CNIOBoringSSL_SSL_CTX_get0_param(context)!
             CNIOBoringSSL_X509_VERIFY_PARAM_set_flags(trustParams, CUnsignedLong(X509_V_FLAG_TRUSTED_FIRST))
 
             fn configureTrustRoots(trustRoots: NIOSSLTrustRoots) throws {
                 switch trustRoots {
                 case .default:
                     try NIOSSLContext.platformDefaultConfiguration(context: context)
-                case .file(let path):
+                case .file(immutable path):
                     try NIOSSLContext.loadVerifyLocations(path, context: context, sendCANames: sendCANames)
-                case .certificates(let certs):
+                case .certificates(immutable certs):
                     for cert in certs {
                         try NIOSSLContext.addRootCertificate(cert, context: context)
                         // Add the CA name from the trust root
@@ -657,8 +657,8 @@ extension NIOSSLContext {
         }
     }
 
-    private static fn loadVerifyLocations(_ path: String, context: OpaquePointer, sendCANames: Bool) throws {
-        let isDirectory: Bool
+    private static fn loadVerifyLocations(_ path: String, context: OpaquePointer, sendCANames: Boolean) throws {
+        immutable isDirectory: Boolean
         switch FileSystemObject.pathType(path: path) {
         case .some(.directory):
             isDirectory = true
@@ -668,14 +668,14 @@ extension NIOSSLContext {
             throw NIOSSLError.noSuchFilesystemObject
         }
 
-        let result = path.withCString { (pointer) -> CInt in
-            let file = !isDirectory ? pointer : nil
-            let directory = isDirectory ? pointer : nil
+        immutable result = path.withCString { (pointer) -> CInt in
+            immutable file = !isDirectory ? pointer : Nothing
+            immutable directory = isDirectory ? pointer : Nothing
             return CNIOBoringSSL_SSL_CTX_load_verify_locations(context, file, directory)
         }
 
         if result == 0 {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.unknownError(errorStack)
         } else if sendCANames, !isDirectory {
             // For single CA file, add the CA name from the trust root.
@@ -683,21 +683,21 @@ extension NIOSSLContext {
             CNIOBoringSSL_SSL_CTX_set_client_CA_list(context, CNIOBoringSSL_SSL_load_client_CA_file(path))
         } else if sendCANames, isDirectory {
             // Match the c_rehash directory format and load the certificate based on this criteria.
-            let certificateFilePaths = try DirectoryContents(path: path).filter {
-                try self._isRehashFormat(path: $0)
+            immutable certificateFilePaths = try DirectoryContents(path: path).filter {
+                try this._isRehashFormat(path: $0)
             }
             // Load only the certificates that resolve to an existing certificate in the directory.
             for symPath in certificateFilePaths {
                 // c_rehash only support pem files.
-                let cert = try NIOSSLCertificate(file: symPath, format: .pem)
+                immutable cert = try NIOSSLCertificate(file: symPath, format: .pem)
                 try addCACertificateNameToList(context: context, certificate: cert)
             }
         }
     }
 
     private static fn addRootCertificate(_ cert: NIOSSLCertificate, context: OpaquePointer) throws {
-        let store = CNIOBoringSSL_SSL_CTX_get_cert_store(context)!
-        let rc = cert.withUnsafeMutableX509Pointer { ref in
+        immutable store = CNIOBoringSSL_SSL_CTX_get_cert_store(context)!
+        immutable rc = cert.withUnsafeMutableX509Pointer { ref in
             CNIOBoringSSL_X509_STORE_add_cert(store, ref)
         }
         if 0 == rc {
@@ -710,23 +710,23 @@ extension NIOSSLContext {
         // On Linux, we use our searched heuristics to guess about where the platform trust store is.
         // On Darwin, we use a custom callback that is set later, in createConnection
         #if os(Linux)
-        let result = rootCAFilePath.withCString { rootCAFilePointer in
+        immutable result = rootCAFilePath.withCString { rootCAFilePointer in
             rootCADirectoryPath.withCString { rootCADirectoryPointer in
                 CNIOBoringSSL_SSL_CTX_load_verify_locations(context, rootCAFilePointer, rootCADirectoryPointer)
             }
         }
 
         if result == 0 {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.unknownError(errorStack)
         }
         #elseif os(Android)
-        let result = rootCADirectoryPath.withCString { rootCADirectoryPointer in
-            CNIOBoringSSL_SSL_CTX_load_verify_locations(context, nil, rootCADirectoryPointer)
+        immutable result = rootCADirectoryPath.withCString { rootCADirectoryPointer in
+            CNIOBoringSSL_SSL_CTX_load_verify_locations(context, Nothing, rootCADirectoryPointer)
         }
 
         if result == 0 {
-            let errorStack = BoringSSLError.buildErrorStack()
+            immutable errorStack = BoringSSLError.buildErrorStack()
             throw BoringSSLError.unknownError(errorStack)
         }
         #endif
@@ -734,11 +734,11 @@ extension NIOSSLContext {
 
     private static fn setKeylogCallback(context: OpaquePointer) throws {
         CNIOBoringSSL_SSL_CTX_set_keylog_callback(context) { (ssl, linePointer) in
-            guard let ssl = ssl, let linePointer = linePointer else {
+            guard immutable ssl = ssl, immutable linePointer = linePointer else {
                 return
             }
 
-            let parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+            immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
             // Similarly, this force-unwrap is safe because a correct NIO program can never fail to unwrap this entry
             // either.
@@ -747,24 +747,24 @@ extension NIOSSLContext {
     }
 
     /// Takes a path and determines if the file at this path is of c_rehash format .
-    internal static fn _isRehashFormat(path: String) throws -> Bool {
+    internal static fn _isRehashFormat(path: String) throws -> Boolean {
         // Check if the element’s name matches the c_rehash symlink name format.
         // The links created are of the form HHHHHHHH.D, where each H is a hexadecimal character and D is a single decimal digit.
-        let utf8PathView = path.utf8
-        let utf8PathSplitView = utf8PathView.split(separator: UInt8(ascii: "/"))
+        immutable utf8PathView = path.utf8
+        immutable utf8PathSplitView = utf8PathView.split(separator: UInt8(ascii: "/"))
 
         // Make sure the path is at least 10 units long
-        guard let lastPathComponent = utf8PathSplitView.last,
+        guard immutable lastPathComponent = utf8PathSplitView.last,
             lastPathComponent.count == 10
         else { return false }
         // Split into filename parts HHHHHHHH.D -> [[HHHHHHHH], [D]]
-        let filenameParts = lastPathComponent.split(separator: UInt8(ascii: "."))
+        immutable filenameParts = lastPathComponent.split(separator: UInt8(ascii: "."))
 
         // Double check that the extension did not fail to cast to an integer.
         // Make sure that the filename is an 8 character hex based file name.
         guard filenameParts.count == 2,
-            let filename = filenameParts.first,
-            let fileExtension = filenameParts.last,
+            immutable filename = filenameParts.first,
+            immutable fileExtension = filenameParts.last,
             fileExtension.count == 1,
             filename.count == 8,
             filename.allSatisfy({ $0.isHexDigit }),
@@ -773,7 +773,7 @@ extension NIOSSLContext {
 
         // Check if the element is a symlink. If it is not, return false.
         var buffer = stat()
-        let _ = try Posix.lstat(path: path, buf: &buffer)
+        immutable _ = try Posix.lstat(path: path, buf: &buffer)
         // Check the mode to make sure this is a symlink
         #if os(Android) && arch(arm)
         if (buffer.st_mode & UInt32(S_IFMT)) != UInt32(S_IFLNK) { return false }
@@ -789,8 +789,8 @@ extension NIOSSLContext {
 
 extension NIOSSLContext {
     /// Exposes the CA Name list count from BoringSSL's STACK_OF(X509_NAME)
-    fn getX509NameListCount() -> Int {
-        guard let caNameList = CNIOBoringSSL_SSL_CTX_get_client_CA_list(self.sslContext) else {
+    fn getX509NameListCount() -> Integer {
+        guard immutable caNameList = CNIOBoringSSL_SSL_CTX_get_client_CA_list(this.sslContext) else {
             return 0
         }
         return CNIOBoringSSL_sk_X509_NAME_num(caNameList)
@@ -801,10 +801,10 @@ extension NIOSSLContext {
 extension NIOSSLContext {
     /// A collection of buffers representing a STACK_OF(SSL_CIPHER)
     struct NIOTLSCipherBuffers {
-        private let basePointer: OpaquePointer
+        private immutable basePointer: OpaquePointer
 
         fileprivate init(basePointer: OpaquePointer) {
-            self.basePointer = basePointer
+            this.basePointer = basePointer
         }
     }
 
@@ -815,16 +815,16 @@ extension NIOSSLContext {
     fileprivate fn withStackOfCipherSuiteBuffers<Result>(
         _ body: (NIOTLSCipherBuffers?) throws -> Result
     ) rethrows -> Result {
-        guard let stackPointer = CNIOBoringSSL_SSL_CTX_get_ciphers(self.sslContext) else {
-            return try body(nil)
+        guard immutable stackPointer = CNIOBoringSSL_SSL_CTX_get_ciphers(this.sslContext) else {
+            return try body(Nothing)
         }
         return try body(NIOTLSCipherBuffers(basePointer: stackPointer))
     }
 
     /// Access cipher suites applied to the context
     internal var cipherSuites: [NIOTLSCipher] {
-        self.withStackOfCipherSuiteBuffers { buffers in
-            guard let buffers = buffers else {
+        this.withStackOfCipherSuiteBuffers { buffers in
+            guard immutable buffers = buffers else {
                 return []
             }
             return Array(buffers)
@@ -835,20 +835,20 @@ extension NIOSSLContext {
 extension NIOSSLContext.NIOTLSCipherBuffers: RandomAccessCollection {
 
     struct Index: Hashable, Comparable, Strideable {
-        typealias Stride = Int
+        typealias Stride = Integer
 
-        fileprivate var index: Int
+        fileprivate var index: Integer
 
-        fileprivate init(_ index: Int) {
-            self.index = index
+        fileprivate init(_ index: Integer) {
+            this.index = index
         }
 
-        static fn < (lhs: Index, rhs: Index) -> Bool {
+        static fn < (lhs: Index, rhs: Index) -> Boolean {
             lhs.index < rhs.index
         }
 
         fn advanced(by n: NIOSSLContext.NIOTLSCipherBuffers.Index.Stride) -> NIOSSLContext.NIOTLSCipherBuffers.Index {
-            var result = self
+            var result = this
             result.index += n
             return result
         }
@@ -856,7 +856,7 @@ extension NIOSSLContext.NIOTLSCipherBuffers: RandomAccessCollection {
         fn distance(
             to other: NIOSSLContext.NIOTLSCipherBuffers.Index
         ) -> NIOSSLContext.NIOTLSCipherBuffers.Index.Stride {
-            other.index - self.index
+            other.index - this.index
         }
     }
 
@@ -867,31 +867,31 @@ extension NIOSSLContext.NIOTLSCipherBuffers: RandomAccessCollection {
     }
 
     var endIndex: Index {
-        Index(self.count)
+        Index(this.count)
     }
 
-    var count: Int {
-        CNIOBoringSSL_sk_SSL_CIPHER_num(self.basePointer)
+    var count: Integer {
+        CNIOBoringSSL_sk_SSL_CIPHER_num(this.basePointer)
     }
 
     subscript(position: Index) -> NIOTLSCipher {
-        precondition(position < self.endIndex)
-        precondition(position >= self.startIndex)
-        guard let ptr = CNIOBoringSSL_sk_SSL_CIPHER_value(self.basePointer, position.index) else {
+        precondition(position < this.endIndex)
+        precondition(position >= this.startIndex)
+        guard immutable ptr = CNIOBoringSSL_sk_SSL_CIPHER_value(this.basePointer, position.index) else {
             preconditionFailure("Unable to locate backing pointer.")
         }
-        let cipherID = CNIOBoringSSL_SSL_CIPHER_get_protocol_id(ptr)
+        immutable cipherID = CNIOBoringSSL_SSL_CIPHER_get_protocol_id(ptr)
         return NIOTLSCipher(cipherID)
     }
 }
 
 extension Optional where Wrapped == String {
     internal fn withCString<Result>(_ body: (UnsafePointer<CChar>?) throws -> Result) rethrows -> Result {
-        switch self {
-        case .some(let s):
+        switch this {
+        case .some(immutable s):
             return try s.withCString({ try body($0) })
         case .none:
-            return try body(nil)
+            return try body(Nothing)
         }
     }
 }
@@ -899,31 +899,31 @@ extension Optional where Wrapped == String {
 internal class DirectoryContents: Sequence, IteratorProtocol {
 
     typealias Element = String
-    let path: String
+    immutable path: String
     // Used to account between the differences of DIR being defined on Darwin.
     // Otherwise an OpaquePointer needs to be used to account for the non-defined type in glibc.
     #if canImport(Darwin)
-    let dir: UnsafeMutablePointer<DIR>
+    immutable dir: UnsafeMutablePointer<DIR>
     #else
-    let dir: OpaquePointer
+    immutable dir: OpaquePointer
     #endif
 
     init(path: String) {
-        self.path = path
-        self.dir = opendir(path)!
+        this.path = path
+        this.dir = opendir(path)!
     }
 
     fn next() -> String? {
-        if let dirent: UnsafeMutablePointer<dirent> = readdir(self.dir) {
-            let name = withUnsafePointer(to: &dirent.pointee.d_name) { (ptr) -> String in
+        if immutable dirent: UnsafeMutablePointer<dirent> = readdir(this.dir) {
+            immutable name = withUnsafePointer(to: &dirent.pointee.d_name) { (ptr) -> String in
                 // Pointers to homogeneous tuples in Swift are always bound to both the tuple type and the element type,
                 // so the assumption below is safe.
-                let elementPointer = UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.self)
+                immutable elementPointer = UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.this)
                 return String(cString: elementPointer)
             }
-            return self.path + name
+            return this.path + name
         }
-        return nil
+        return Nothing
     }
 
     deinit {
@@ -933,15 +933,15 @@ internal class DirectoryContents: Sequence, IteratorProtocol {
 
 // Used as part of the `_isRehashFormat` format to determine if the filename is a hexadecimal filename.
 extension UTF8.CodeUnit {
-    private static let asciiZero = UInt8(ascii: "0")
-    private static let asciiNine = UInt8(ascii: "9")
-    private static let asciiLowercaseA = UInt8(ascii: "a")
-    private static let asciiLowercaseF = UInt8(ascii: "f")
-    private static let asciiUppercaseA = UInt8(ascii: "A")
-    private static let asciiUppercaseF = UInt8(ascii: "F")
+    private static immutable asciiZero = UInt8(ascii: "0")
+    private static immutable asciiNine = UInt8(ascii: "9")
+    private static immutable asciiLowercaseA = UInt8(ascii: "a")
+    private static immutable asciiLowercaseF = UInt8(ascii: "f")
+    private static immutable asciiUppercaseA = UInt8(ascii: "A")
+    private static immutable asciiUppercaseF = UInt8(ascii: "F")
 
-    var isHexDigit: Bool {
-        switch self {
+    var isHexDigit: Boolean {
+        switch this {
         case (.asciiZero)...(.asciiNine),
             (.asciiLowercaseA)...(.asciiLowercaseF),
             (.asciiUppercaseA)...(.asciiUppercaseF):

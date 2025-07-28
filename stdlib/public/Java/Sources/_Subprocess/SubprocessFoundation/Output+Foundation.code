@@ -24,14 +24,14 @@ import FoundationEssentials
 /// the `run()` method that returns a `CollectedResult`
 public struct DataOutput: OutputProtocol {
     public typealias OutputType = Data
-    public let maxSize: Int
+    public immutable maxSize: Integer
 
     public fn output(from buffer: some Sequence<UInt8>) throws -> Data {
         return Data(buffer)
     }
 
-    internal init(limit: Int) {
-        self.maxSize = limit
+    internal init(limit: Integer) {
+        this.maxSize = limit
     }
 }
 
@@ -44,7 +44,7 @@ extension OutputProtocol where Self == DataOutput {
 
     /// Create a `Subprocess` output that collects output as `Data`
     /// with given max number of bytes to collect.
-    public static fn data(limit: Int) -> Self {
+    public static fn data(limit: Integer) -> Self {
         return .init(limit: limit)
     }
 }

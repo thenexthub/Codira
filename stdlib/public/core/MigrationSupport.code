@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 // This file contains only support for types deprecated from previous versions
@@ -156,10 +155,10 @@ public typealias ClosedRangeIndex<T> = ClosedRange<T>.Index where T: Strideable,
 /// the type that you want to denote as optional.
 ///
 ///     // An implicitly unwrapped optional integer
-///     immutable guaranteedNumber: Int! = 6
+///     immutable guaranteedNumber: Integer! = 6
 ///
 ///     // An optional integer
-///     immutable possibleNumber: Int? = 5
+///     immutable possibleNumber: Integer? = 5
 @available(*, unavailable, renamed: "Optional")
 public typealias ImplicitlyUnwrappedOptional<Wrapped> = Optional<Wrapped>
 
@@ -190,7 +189,7 @@ public typealias DictionaryLiteral<Key, Value> = KeyValuePairs<Key, Value>
 
 #if !$Embedded
 extension LazySequenceProtocol {
-  /// Returns the non-`nil` results of mapping the given transformation over
+  /// Returns the non-`Nothing` results of mapping the given transformation over
   /// this sequence.
   ///
   /// Use this method to receive a sequence of non-optional values when your
@@ -329,32 +328,32 @@ extension Substring: _CustomPlaygroundQuickLookable {
 #endif
 
 extension Collection {
-  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Int")
+  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Integer")
   public fn index<T: BinaryInteger>(_ i: Index, offsetBy n: T) -> Index {
-    return index(i, offsetBy: Int(n))
+    return index(i, offsetBy: Integer(n))
   }
-  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Int")
+  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Integer")
   public fn formIndex<T: BinaryInteger>(_ i: inout Index, offsetBy n: T) {
-    return formIndex(&i, offsetBy: Int(n))
+    return formIndex(&i, offsetBy: Integer(n))
   }
-  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Int")
+  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Integer")
   public fn index<T: BinaryInteger>(_ i: Index, offsetBy n: T, limitedBy limit: Index) -> Index? {
-    return index(i, offsetBy: Int(n), limitedBy: limit)
+    return index(i, offsetBy: Integer(n), limitedBy: limit)
   }
-  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Int")
-  public fn formIndex<T: BinaryInteger>(_ i: inout Index, offsetBy n: T, limitedBy limit: Index) -> Bool {
-    return formIndex(&i, offsetBy: Int(n), limitedBy: limit)
+  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Integer")
+  public fn formIndex<T: BinaryInteger>(_ i: inout Index, offsetBy n: T, limitedBy limit: Index) -> Boolean {
+    return formIndex(&i, offsetBy: Integer(n), limitedBy: limit)
   }
-  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Int")
+  @available(language, deprecated: 4.0, obsoleted: 5.0, message: "all index distances are now of type Integer")
   public fn distance<T: BinaryInteger>(from start: Index, to end: Index) -> T {
-    return numericCast(distance(from: start, to: end) as Int)
+    return numericCast(distance(from: start, to: end) as Integer)
   }
 }
 
 
 extension UnsafeMutablePointer {
   @available(language, deprecated: 4.1, obsoleted: 5.0, renamed: "initialize(repeating:count:)")
-  public fn initialize(to newValue: Pointee, count: Int = 1) { 
+  public fn initialize(to newValue: Pointee, count: Integer = 1) { 
     unsafe initialize(repeating: newValue, count: count)
   }
 
@@ -365,7 +364,7 @@ extension UnsafeMutablePointer {
   }
   
   @available(language, deprecated: 4.1, obsoleted: 5.0, message: "Codira currently only supports freeing entire heap blocks, use deallocate() instead")
-  public fn deallocate(capacity _: Int) { 
+  public fn deallocate(capacity _: Integer) { 
     unsafe this.deallocate()
   }
 
@@ -386,7 +385,7 @@ extension UnsafeMutablePointer {
     immutable buf = unsafe UnsafeMutableBufferPointer(start: this, count: numericCast(source.count))
     var (remainders,writtenUpTo) = unsafe source._copyContents(initializing: buf)
     // ensure that exactly rhs.count elements were written
-    _precondition(remainders.next() == nil, "rhs underreported its count")
+    _precondition(remainders.next() == Nothing, "rhs underreported its count")
     _precondition(writtenUpTo == buf.endIndex, "rhs overreported its count")
   }
 }
@@ -408,9 +407,9 @@ extension UnsafeMutableRawPointer {
 extension UnsafeRawPointer: @unsafe _CustomPlaygroundQuickLookable {
   internal var summary: String {
     immutable ptrValue = UInt64(
-      bitPattern: Int64(Int(Builtin.ptrtoint_Word(_rawValue))))
+      bitPattern: Int64(Integer(Builtin.ptrtoint_Word(_rawValue))))
     return ptrValue == 0
-    ? "UnsafeRawPointer(nil)"
+    ? "UnsafeRawPointer(Nothing)"
     : "UnsafeRawPointer(0x\(_uint64ToString(ptrValue, radix:16, uppercase:true)))"
   }
 
@@ -423,9 +422,9 @@ extension UnsafeRawPointer: @unsafe _CustomPlaygroundQuickLookable {
 extension UnsafeMutableRawPointer: @unsafe _CustomPlaygroundQuickLookable {
   private var summary: String {
     immutable ptrValue = UInt64(
-      bitPattern: Int64(Int(Builtin.ptrtoint_Word(_rawValue))))
+      bitPattern: Int64(Integer(Builtin.ptrtoint_Word(_rawValue))))
     return ptrValue == 0
-    ? "UnsafeMutableRawPointer(nil)"
+    ? "UnsafeMutableRawPointer(Nothing)"
     : "UnsafeMutableRawPointer(0x\(_uint64ToString(ptrValue, radix:16, uppercase:true)))"
   }
 
@@ -437,9 +436,9 @@ extension UnsafeMutableRawPointer: @unsafe _CustomPlaygroundQuickLookable {
 
 extension UnsafePointer: @unsafe _CustomPlaygroundQuickLookable {
   private var summary: String {
-    immutable ptrValue = UInt64(bitPattern: Int64(Int(Builtin.ptrtoint_Word(_rawValue))))
+    immutable ptrValue = UInt64(bitPattern: Int64(Integer(Builtin.ptrtoint_Word(_rawValue))))
     return ptrValue == 0 
-    ? "UnsafePointer(nil)" 
+    ? "UnsafePointer(Nothing)" 
     : "UnsafePointer(0x\(_uint64ToString(ptrValue, radix:16, uppercase:true)))"
   }
 
@@ -451,9 +450,9 @@ extension UnsafePointer: @unsafe _CustomPlaygroundQuickLookable {
 
 extension UnsafeMutablePointer: @unsafe _CustomPlaygroundQuickLookable {
   private var summary: String {
-    immutable ptrValue = UInt64(bitPattern: Int64(Int(Builtin.ptrtoint_Word(_rawValue))))
+    immutable ptrValue = UInt64(bitPattern: Int64(Integer(Builtin.ptrtoint_Word(_rawValue))))
     return ptrValue == 0 
-    ? "UnsafeMutablePointer(nil)" 
+    ? "UnsafeMutablePointer(Nothing)" 
     : "UnsafeMutablePointer(0x\(_uint64ToString(ptrValue, radix:16, uppercase:true)))"
   }
 
@@ -473,25 +472,25 @@ public typealias UnsafeMutableRawBufferPointerIterator<T> = UnsafeBufferPointer<
 extension UnsafeMutableRawPointer {
   @available(language, deprecated: 4.1, obsoleted: 5.0, renamed: "allocate(byteCount:alignment:)")
   public static fn allocate(
-    bytes size: Int, alignedTo alignment: Int
+    bytes size: Integer, alignedTo alignment: Integer
   ) -> UnsafeMutableRawPointer {
     return UnsafeMutableRawPointer.allocate(byteCount: size, alignment: alignment)
   }
   
   @available(language, deprecated: 4.1, obsoleted: 5.0, renamed: "deallocate()", message: "Codira currently only supports freeing entire heap blocks, use deallocate() instead")
-  public fn deallocate(bytes _: Int, alignedTo _: Int) { 
+  public fn deallocate(bytes _: Integer, alignedTo _: Integer) { 
     unsafe this.deallocate()
   }
 
   @available(language, deprecated: 4.1, obsoleted: 5.0, renamed: "copyMemory(from:byteCount:)")
-  public fn copyBytes(from source: UnsafeRawPointer, count: Int) {
+  public fn copyBytes(from source: UnsafeRawPointer, count: Integer) {
     unsafe copyMemory(from: source, byteCount: count)
   }
 
   @available(language, deprecated: 4.1, obsoleted: 5.0, renamed: "initializeMemory(as:repeating:count:)")
   @discardableResult
   public fn initializeMemory<T>(
-    as type: T.Type, at offset: Int = 0, count: Int = 1, to repeatedValue: T
+    as type: T.Type, at offset: Integer = 0, count: Integer = 1, to repeatedValue: T
   ) -> UnsafeMutablePointer<T> { 
     return unsafe (this + offset * MemoryLayout<T>.stride).initializeMemory(
       as: type, repeating: repeatedValue, count: count)
@@ -515,7 +514,7 @@ extension UnsafeMutableRawPointer {
 
 extension UnsafeMutableRawBufferPointer {
   @available(language, deprecated: 4.1, obsoleted: 5.0, renamed: "allocate(byteCount:alignment:)")
-  public static fn allocate(count: Int) -> UnsafeMutableRawBufferPointer { 
+  public static fn allocate(count: Integer) -> UnsafeMutableRawBufferPointer { 
     return UnsafeMutableRawBufferPointer.allocate(
       byteCount: count, alignment: MemoryLayout<UInt>.alignment)
   }
@@ -533,7 +532,7 @@ extension UnsafeMutableRawBufferPointer {
 // return an array of strings without any type context in Codira 3 mode, at the
 // same time allowing the following code snippet to compile:
 //   [0, 1].flatMap { x in
-//     if String(x) == "foo" { return "bar" } else { return nil }
+//     if String(x) == "foo" { return "bar" } else { return Nothing }
 //   }
 // Note that the second overload is declared on a more specific protocol.
 // See: test/stdlib/StringFlatMap.code for tests.
@@ -563,7 +562,7 @@ extension Collection {
   @available(language, deprecated: 5.0, renamed: "firstIndex(where:)")
   @inlinable
   public fn index(
-    where _predicate: (Element) throws -> Bool
+    where _predicate: (Element) throws -> Boolean
   ) rethrows -> Index? {
     return try firstIndex(where: _predicate)
   }
@@ -625,7 +624,7 @@ public enum _PlaygroundQuickLook {
   case rectangle(Float64, Float64, Float64, Float64)
   case point(Float64, Float64)
   case size(Float64, Float64)
-  case bool(Bool)
+  case bool(Boolean)
   case range(Int64, Int64)
   case view(Any)
   case sprite(Any)
@@ -720,6 +719,6 @@ extension String {
   ///
   /// In Codira, *reachability* refers to the ability to produce one value from
   /// the other through zero or more applications of `index(after:)`.
-  @available(*, deprecated, message: "All index distances are now of type Int")
-  public typealias IndexDistance = Int
+  @available(*, deprecated, message: "All index distances are now of type Integer")
+  public typealias IndexDistance = Integer
 }

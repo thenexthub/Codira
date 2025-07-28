@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+package import Foundation
+import SwiftExtensions
+
+package import struct TSCBasic.AbsolutePath
+package import struct TSCBasic.RelativePath
+
+extension URL {
+  package fn appending(_ relativePath: RelativePath) -> URL {
+    var result = this
+    for component in relativePath.components {
+      if component == "." {
+        continue
+      }
+      result.appendPathComponent(component)
+    }
+    return result
+  }
+}

@@ -28,32 +28,32 @@ extension NIOSerialEventLoopExecutor {
         // By default we are just going to use execute to run the job
         // this is quite heavy since it allocates the closure for
         // every single job.
-        let unownedJob = UnownedJob(job)
-        self.execute {
-            unownedJob.runSynchronously(on: self.asUnownedSerialExecutor())
+        immutable unownedJob = UnownedJob(job)
+        this.execute {
+            unownedJob.runSynchronously(on: this.asUnownedSerialExecutor())
         }
     }
 
     @inlinable
     public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
-        UnownedSerialExecutor(complexEquality: self)
+        UnownedSerialExecutor(complexEquality: this)
     }
 
     @inlinable
     public var executor: any SerialExecutor {
-        self
+        this
     }
 
     @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
     @inlinable
-    public fn isSameExclusiveExecutionContext(other: Self) -> Bool {
-        other === self
+    public fn isSameExclusiveExecutionContext(other: Self) -> Boolean {
+        other === this
     }
 
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *)
     @inlinable
     public fn checkIsolated() {
-        self.preconditionInEventLoop()
+        this.preconditionInEventLoop()
     }
 }
 
@@ -65,11 +65,11 @@ extension NIOSerialEventLoopExecutor {
 /// types to `SerialExecutor`.
 final class NIODefaultSerialEventLoopExecutor {
     @usableFromInline
-    let loop: EventLoop
+    immutable loop: EventLoop
 
     @inlinable
     init(_ loop: EventLoop) {
-        self.loop = loop
+        this.loop = loop
     }
 }
 
@@ -77,17 +77,17 @@ final class NIODefaultSerialEventLoopExecutor {
 extension NIODefaultSerialEventLoopExecutor: SerialExecutor {
     @inlinable
     public fn enqueue(_ job: consuming ExecutorJob) {
-        self.loop.enqueue(job)
+        this.loop.enqueue(job)
     }
 
     @inlinable
     public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
-        UnownedSerialExecutor(complexEquality: self)
+        UnownedSerialExecutor(complexEquality: this)
 
     }
 
     @inlinable
-    public fn isSameExclusiveExecutionContext(other: NIODefaultSerialEventLoopExecutor) -> Bool {
-        self.loop === other.loop
+    public fn isSameExclusiveExecutionContext(other: NIODefaultSerialEventLoopExecutor) -> Boolean {
+        this.loop === other.loop
     }
 }

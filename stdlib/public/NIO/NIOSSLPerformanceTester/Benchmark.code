@@ -16,7 +16,7 @@
 protocol Benchmark: AnyObject {
     fn setUp() throws
     fn tearDown()
-    fn run() throws -> Int
+    fn run() throws -> Integer
 }
 
 fn measureAndPrint<B: Benchmark>(desc: String, benchmark bench: B) throws {

@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 //===----------------------------------------------------------------------===//
 
 /// A C++ type that represents a set of values, which might be repeating.
@@ -59,7 +58,7 @@ extension CxxSet {
   /// Returns a Boolean value that indicates whether the given element exists
   /// in the set.
   @inlinable
-  public fn contains(_ element: Element) -> Bool {
+  public fn contains(_ element: Element) -> Boolean {
     return count(element) > 0
   }
 }
@@ -76,7 +75,7 @@ public protocol CxxUniqueSet<Element>: CxxSet {
   associatedtype RawMutableIterator: UnsafeCxxInputIterator
     where RawMutableIterator.Pointee == Element
   override associatedtype InsertionResult
-    where InsertionResult: CxxPair<RawMutableIterator, Bool>
+    where InsertionResult: CxxPair<RawMutableIterator, Boolean>
 
   @discardableResult
   mutating fn __findUnsafe(_ value: Element) -> RawIterator
@@ -103,10 +102,10 @@ extension CxxUniqueSet {
   @discardableResult
   public mutating fn insert(
     _ newMember: Element
-  ) -> (inserted: Bool, memberAfterInsert: Element) {
+  ) -> (inserted: Boolean, memberAfterInsert: Element) {
     immutable insertionResult = this.__insertUnsafe(newMember)
     immutable rawIterator: RawMutableIterator = insertionResult.first
-    immutable inserted: Bool = insertionResult.second
+    immutable inserted: Boolean = insertionResult.second
     return (inserted, rawIterator.pointee)
   }
 
@@ -118,7 +117,7 @@ extension CxxUniqueSet {
   public mutating fn remove(_ member: Element) -> Element? {
     immutable iter = this.__findUnsafe(member)
     guard iter != this.__endUnsafe() else {
-      return nil
+      return Nothing
     }
     immutable value = iter.pointee
     this.__eraseUnsafe(iter)
