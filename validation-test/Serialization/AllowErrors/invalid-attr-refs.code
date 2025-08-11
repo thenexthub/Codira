@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
 
-// RUN: %target-swift-frontend -module-name errors -emit-module -o %t/errors.swiftmodule -experimental-allow-module-with-compiler-errors %s
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/errors.languagemodule -experimental-allow-module-with-compiler-errors %s
 
 // Property wrappers are invalid on top level code, check allowing errors
 // does not crash

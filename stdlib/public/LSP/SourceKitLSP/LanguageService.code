@@ -161,7 +161,7 @@ package protocol LanguageService: AnyObject, Sendable {
   fn documentUpdatedBuildSettings(_ uri: DocumentURI) async
 
   /// Sent when the `BuildSystem` has detected that dependencies of the given files have changed
-  /// (e.g. header files, swiftmodule files, other compiler input files).
+  /// (e.g. header files, languagemodule files, other compiler input files).
   fn documentDependenciesUpdated(_ uris: Set<DocumentURI>) async
 
   // MARK: - Text Document
@@ -244,7 +244,7 @@ package protocol LanguageService: AnyObject, Sendable {
   ///
   /// For example, this produces the edit to rename the occurrence of `x` inside `print` in the following
   ///
-  /// ```swift
+  /// ```language
   /// fn foo(x: Integer) { print(x) }
   /// ```
   ///

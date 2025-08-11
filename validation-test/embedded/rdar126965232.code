@@ -1,4 +1,4 @@
-// RUN: %target-swiftc_driver                     \
+// RUN: %target-languagec_driver                     \
 // RUN:     -c                                    \
 // RUN:     %s                                    \
 // RUN:     -Xfrontend -sil-verify-all            \
@@ -7,10 +7,10 @@
 // RUN:     -Osize                                \
 // RUN:     -o %t/bin
 
-// REQUIRES: swift_in_compiler
+// REQUIRES: language_in_compiler
 // REQUIRES: optimized_stdlib
 // REQUIRES: OS=macosx || OS=linux-gnu
-// REQUIRES: swift_feature_Embedded
+// REQUIRES: language_feature_Embedded
 
 class MyClass {
   var x: Int? = nil

@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend \
+// RUN: %target-language-frontend \
 // RUN:     %s                 \
 // RUN:     -emit-sil -verify  \
 // RUN:     -sil-verify-all

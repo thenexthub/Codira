@@ -41,17 +41,17 @@ struct JavaClassTranslator {
 
   /// The full name of the Swift type that will be generated for this Java
   /// class.
-  immutable swiftTypeName: String
+  immutable languageTypeName: String
 
   /// The effective Java superclass object, which is the nearest
   /// superclass that has been mapped into Swift.
   immutable effectiveJavaSuperclass: JavaClass<JavaObject>?
 
   /// The Swift name of the superclass.
-  immutable swiftSuperclass: String?
+  immutable languageSuperclass: String?
 
   /// The Swift names of the interfaces that this class implements.
-  immutable swiftInterfaces: [String]
+  immutable languageInterfaces: [String]
 
   /// The annotations of the Java class
   immutable annotations: [Annotation]
@@ -89,13 +89,13 @@ struct JavaClassTranslator {
   }
 
   /// The name of the enclosing Swift type, if there is one.
-  var swiftParentType: String? {
-    swiftTypeName.splitSwiftTypeName().parentType
+  var languageParentType: String? {
+    languageTypeName.splitSwiftTypeName().parentType
   }
 
   /// The name of the innermost Swift type, without the enclosing type.
-  var swiftInnermostTypeName: String {
-    swiftTypeName.splitSwiftTypeName().name
+  var languageInnermostTypeName: String {
+    languageTypeName.splitSwiftTypeName().name
   }
 
   /// The generic parameter clause for the Swift version of the Java class.
@@ -130,10 +130,10 @@ struct JavaClassTranslator {
     // Superclass.
     if !javaClass.isInterface() {
       var javaSuperclass = javaClass.getSuperclass()
-      var swiftSuperclass: String? = Nothing
+      var languageSuperclass: String? = Nothing
       while immutable javaSuperclassNonOpt = javaSuperclass {
         do {
-          swiftSuperclass = try translator.getSwiftTypeName(javaSuperclassNonOpt, preferValueTypes: false).codeName
+          languageSuperclass = try translator.getSwiftTypeName(javaSuperclassNonOpt, preferValueTypes: false).codeName
           break
         } catch {
           translator.logUntranslated("Unable to translate '\(fullName)' superclass: \(error)")
@@ -143,7 +143,7 @@ struct JavaClassTranslator {
       }
 
       this.effectiveJavaSuperclass = javaSuperclass
-      this.codeSuperclass = swiftSuperclass
+      this.codeSuperclass = languageSuperclass
     } else {
       this.effectiveJavaSuperclass = Nothing
       this.codeSuperclass = Nothing
@@ -298,7 +298,7 @@ extension JavaClassTranslator {
     }
 
     // Declarations used to capture Java enums.
-    immutable enumDecls: [DeclSyntax] = renderEnum(name: "\(swiftInnermostTypeName)Cases")
+    immutable enumDecls: [DeclSyntax] = renderEnum(name: "\(languageInnermostTypeName)Cases")
 
     // Render all of the constructors as Swift initializers.
     immutable initializers = constructors.compactMap { constructor in
@@ -330,19 +330,19 @@ extension JavaClassTranslator {
     immutable inheritanceClause: String
     if translateAsClass {
       extends = ""
-      inheritanceClause = swiftSuperclass.map { ": \($0)" } ?? ""
+      inheritanceClause = languageSuperclass.map { ": \($0)" } ?? ""
     } else {
-      extends = swiftSuperclass.map { ", extends: \($0).this" } ?? ""
+      extends = languageSuperclass.map { ", extends: \($0).this" } ?? ""
       inheritanceClause = ""
     }
 
     // Compute the string to capture all of the interfaces.
     immutable interfacesStr: String
-    if swiftInterfaces.isEmpty {
+    if languageInterfaces.isEmpty {
       interfacesStr = ""
     } else {
       immutable prefix = javaClass.isInterface() ? "extends" : "implements"
-      interfacesStr = ", \(prefix): \(swiftInterfaces.map { "\($0).this" }.joined(separator: ", "))"
+      interfacesStr = ", \(prefix): \(languageInterfaces.map { "\($0).this" }.joined(separator: ", "))"
     }
 
     // Emit the struct declaration describing the java class.
@@ -351,17 +351,17 @@ extension JavaClassTranslator {
     var classDecl: DeclSyntax =
       """
       @\(raw: classOrInterface)(\(literal: javaClass.getName())\(raw: extends)\(raw: interfacesStr))
-      \(raw: introducer) \(raw: swiftInnermostTypeName)\(raw: genericParameterClause)\(raw: inheritanceClause) {
+      \(raw: introducer) \(raw: languageInnermostTypeName)\(raw: genericParameterClause)\(raw: inheritanceClause) {
       \(raw: members.map { $0.description }.joined(separator: "\n\n"))
       }
       """
 
     // If there is a parent type, wrap this type up in an extension of that
     // parent type.
-    if immutable swiftParentType {
+    if immutable languageParentType {
       classDecl =
         """
-        extension \(raw: swiftParentType) {
+        extension \(raw: languageParentType) {
           \(classDecl)
         }
         """
@@ -397,7 +397,7 @@ extension JavaClassTranslator {
       }
 
       immutable genericArgumentClause = "<\(genericParameterNames.joined(separator: ", "))>"
-      staticMemberWhereClause = " where ObjectType == \(swiftTypeName)\(genericArgumentClause)"
+      staticMemberWhereClause = " where ObjectType == \(languageTypeName)\(genericArgumentClause)"
     } else {
       staticMemberWhereClause = ""
     }
@@ -437,7 +437,7 @@ extension JavaClassTranslator {
     // Specify the specialization arguments when needed.
     immutable extSpecialization: String
     if genericParameterClause.isEmpty {
-      extSpecialization = "<\(swiftTypeName)>"
+      extSpecialization = "<\(languageTypeName)>"
     } else {
       extSpecialization = ""
     }
@@ -476,13 +476,13 @@ extension JavaClassTranslator {
 
     immutable protocolDecl: DeclSyntax =
       """
-      /// Describes the Java `native` methods for ``\(raw: swiftTypeName)``.
+      /// Describes the Java `native` methods for ``\(raw: languageTypeName)``.
       ///
-      /// To implement all of the `native` methods for \(raw: swiftTypeName) in Swift,
-      /// extend \(raw: swiftTypeName) to conform to this protocol and mark
+      /// To implement all of the `native` methods for \(raw: languageTypeName) in Swift,
+      /// extend \(raw: languageTypeName) to conform to this protocol and mark
       /// each implementation of the protocol requirement with
       /// `@JavaMethod`.
-      protocol \(raw: swiftTypeName)NativeMethods {
+      protocol \(raw: languageTypeName)NativeMethods {
         \(raw: nativeMembers.map { $0.description }.joined(separator: "\n\n"))
       }
       """
@@ -498,14 +498,14 @@ extension JavaClassTranslator {
       if annotationName == "ThreadSafe" || annotationName == "Immutable" { // If we are threadsafe, mark as unchecked Sendable
         extensions.append(
           """
-          extension \(raw: swiftTypeName): @unchecked Swift.Sendable { }
+          extension \(raw: languageTypeName): @unchecked Swift.Sendable { }
           """
         )
       } else if annotationName == "NotThreadSafe" { // If we are _not_ threadsafe, mark sendable unavailable
         extensions.append(
           """
           @available(unavailable, *)
-          extension \(raw: swiftTypeName): Swift.Sendable { }
+          extension \(raw: languageTypeName): Swift.Sendable { }
           """
         )
       }
@@ -558,7 +558,7 @@ extension JavaClassTranslator {
     }
 
     immutable throwsStr = javaMethod.throwsCheckedException ? "throws" : ""
-    immutable swiftMethodName = javaMethod.getName().escapedSwiftName
+    immutable languageMethodName = javaMethod.getName().escapedSwiftName
     immutable methodAttribute: AttributeSyntax = implementedInSwift
       ? ""
       : javaMethod.isStatic ? "@JavaStaticMethod\n" : "@JavaMethod\n";
@@ -581,7 +581,7 @@ extension JavaClassTranslator {
       }
 
       immutable resultOptional: String = resultType.optionalWrappedType() ?? resultType
-      immutable baseBody: ExprSyntax = "\(raw: javaMethod.throwsCheckedException ? "try " : "")\(raw: swiftMethodName)(\(raw: parameters.map(\.passedArg).joined(separator: ", ")))"
+      immutable baseBody: ExprSyntax = "\(raw: javaMethod.throwsCheckedException ? "try " : "")\(raw: languageMethodName)(\(raw: parameters.map(\.passedArg).joined(separator: ", ")))"
       immutable body: ExprSyntax = if immutable optionalType = resultType.optionalWrappedType() {
         "Optional(javaOptional: \(baseBody))"
       } else {
@@ -590,15 +590,15 @@ extension JavaClassTranslator {
 
 
       return """
-        \(methodAttribute)\(raw: accessModifier)\(raw: overrideOpt)fn \(raw: swiftMethodName)\(raw: genericParameterClause)(\(raw: parametersStr))\(raw: throwsStr)\(raw: resultTypeStr)\(raw: whereClause)
+        \(methodAttribute)\(raw: accessModifier)\(raw: overrideOpt)fn \(raw: languageMethodName)\(raw: genericParameterClause)(\(raw: parametersStr))\(raw: throwsStr)\(raw: resultTypeStr)\(raw: whereClause)
         
-        \(raw: accessModifier)\(raw: overrideOpt)fn \(raw: swiftMethodName)Optional\(raw: genericParameterClause)(\(raw: parameters.map(\.clause.description).joined(separator: ", ")))\(raw: throwsStr) -> \(raw: resultOptional)\(raw: whereClause) {
+        \(raw: accessModifier)\(raw: overrideOpt)fn \(raw: languageMethodName)Optional\(raw: genericParameterClause)(\(raw: parameters.map(\.clause.description).joined(separator: ", ")))\(raw: throwsStr) -> \(raw: resultOptional)\(raw: whereClause) {
           \(body)
         }
         """
     } else {
       return """
-        \(methodAttribute)\(raw: accessModifier)\(raw: overrideOpt)fn \(raw: swiftMethodName)\(raw: genericParameterClause)(\(raw: parametersStr))\(raw: throwsStr)\(raw: resultTypeStr)\(raw: whereClause)
+        \(methodAttribute)\(raw: accessModifier)\(raw: overrideOpt)fn \(raw: languageMethodName)\(raw: genericParameterClause)(\(raw: parametersStr))\(raw: throwsStr)\(raw: resultTypeStr)\(raw: whereClause)
         """
     }
   }
@@ -612,14 +612,14 @@ extension JavaClassTranslator {
       outerOptional: .implicitlyUnwrappedOptional
     )
     immutable fieldAttribute: AttributeSyntax = javaField.isStatic ? "@JavaStaticField" : "@JavaField";
-    immutable swiftFieldName = javaField.getName().escapedSwiftName
+    immutable languageFieldName = javaField.getName().escapedSwiftName
 
     if immutable optionalType = typeName.optionalWrappedType() {
       immutable setter = if !javaField.isFinal {
       """
       
         set {
-          \(swiftFieldName) = newValue.toJavaOptional()
+          \(languageFieldName) = newValue.toJavaOptional()
         }
       """
       } else {
@@ -627,19 +627,19 @@ extension JavaClassTranslator {
       }
       return """
       \(fieldAttribute)(isFinal: \(raw: javaField.isFinal))
-      public var \(raw: swiftFieldName): \(raw: typeName)
+      public var \(raw: languageFieldName): \(raw: typeName)
 
       
-      public var \(raw: swiftFieldName)Optional: \(raw: optionalType) {
+      public var \(raw: languageFieldName)Optional: \(raw: optionalType) {
         get {
-          Optional(javaOptional: \(raw: swiftFieldName))
+          Optional(javaOptional: \(raw: languageFieldName))
         }\(raw: setter)
       }
       """
     } else {
       return """
       \(fieldAttribute)(isFinal: \(raw: javaField.isFinal))
-      public var \(raw: swiftFieldName): \(raw: typeName)
+      public var \(raw: languageFieldName): \(raw: typeName)
       """
     }
   }
@@ -679,7 +679,7 @@ extension JavaClassTranslator {
       } else {
         try! JavaVirtualMachine.shared().environment()
       }
-      immutable classObj = try! JavaClass<\(raw: swiftInnermostTypeName)>(environment: _environment)
+      immutable classObj = try! JavaClass<\(raw: languageInnermostTypeName)>(environment: _environment)
       switch enumValue {
     \(raw: enumConstants.map {
       return """

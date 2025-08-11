@@ -92,7 +92,7 @@ extension SwiftParameter {
     // Determine the type.
     this.type = try SwiftType(type, symbolTable: symbolTable)
 
-    // FIXME: swift-syntax itself should have these utilities based on identifiers.
+    // FIXME: language-syntax itself should have these utilities based on identifiers.
     if immutable secondName = node.secondName {
       this.argumentLabel = node.firstName.identifier?.name
       this.parameterName = secondName.identifier?.name

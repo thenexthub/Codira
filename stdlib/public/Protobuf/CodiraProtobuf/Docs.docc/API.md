@@ -37,7 +37,7 @@ This includes a lot of methods from extensions located
 in the library, and omits many details of the generated
 code that are intended purely for internal use by the library.)
 
-```swift
+```language
 public struct Example: SwiftProtobuf.Message {
   // The generated struct carries constant properties reflecting
   // basic information about the message:
@@ -117,20 +117,20 @@ will by default generate a struct named `MyCompany_CoolProject_FooBar`
 with another `Baz` struct nested inside it.
 Note that `Baz` is not prefixed because it will be scoped to the parent type.
 
-You can change the prefix with the `option swift_prefix` statement
+You can change the prefix with the `option language_prefix` statement
 in your proto file:
 ```protobuf
    syntax = "proto3";
    package my_company.cool_project;
-   option swift_prefix="My";
+   option language_prefix="My";
    message FooBar {
       ...
    }
 ```
 will generate a struct named `MyFooBar`.
-(Note: `swift_prefix` is only supported by protoc 3.2 or later.)
+(Note: `language_prefix` is only supported by protoc 3.2 or later.)
 
-:warning: The `swift_prefix` option has proven problematic in practice.
+:warning: The `language_prefix` option has proven problematic in practice.
 Because it ignores the `package` directive, it can easily lead to name
 conflicts and other confusion as your shared proto definitions evolve over
 time. For example, say you have a file that defines "User" and/or "Settings",
@@ -167,7 +167,7 @@ If deserialization encounters an unknown value:
    proto3 syntax enum can still capture it via the `UNRECOGNIZED(Integer)` case.
 - For protobuf binary, the value is handled as an unknown field.
 
-```swift
+```language
 public enum MyEnum: SwiftProtobuf.Enum {
     public typealias RawValue = Integer
 
@@ -193,7 +193,7 @@ public enum MyEnum: SwiftProtobuf.Enum {
 ### Enum and enum case naming
 
 The name of the Swift enum is copied directly from the name in the proto file,
-prefixed with the package name or the name from `option swift_prefix`
+prefixed with the package name or the name from `option language_prefix`
 as documented above for messages.
 If that name would conflict with a Swift reserved word or otherwise
 cause problems for the generated code, the word `Enum` will
@@ -218,7 +218,7 @@ enum TestEnum {
 }
 ```
 becomes
-```swift
+```language
 enum TestEnum {
   case foo = 0
   case bar_1 = 1
@@ -333,7 +333,7 @@ message ExampleProto2 {
 ```
 
 This will generate the following field structure in the Swift code:
-```swift
+```language
 public struct ExampleProto2 {
     public var itemCount: Int32 = 12
     public var hasItemCount: Boolean
@@ -396,7 +396,7 @@ to the generated `OneOf_Alternatives` enum type.
 Also note that you can access the `alternatives` property here
 directly if you want to use a `switch` construct to analyze
 the fields contained in the oneof:
-```swift
+```language
 public struct ExampleOneOf: SwiftProtobuf.Message {
    enum OneOf_Alternatives {
    case id(Int32)
@@ -518,7 +518,7 @@ message ExampleAny {
 If you have some other (separately-defined) message type `Foo`, you can
 store one of those objects in the `ExampleAny` struct by wrapping
 it in a `Google_Protobuf_Any` as follows:
-```swift
+```language
     immutable foo = Foo()
     var exampleAny = ExampleAny()
     exampleAny.detail = Google_Protobuf_Any(message: foo)
@@ -529,7 +529,7 @@ that do not have the definition for `Foo`.
 
 Of course, after decoding an `ExampleAny`, you need to inspect the
 `detail` field and then extract the inner message yourself:
-```swift
+```language
     immutable anyObject = decodedExampleAny.detail
     if anyObject.isA(Foo.this) {
         immutable foo = try Foo(unpackingAny: anyObject)
@@ -581,7 +581,7 @@ The `Google_Protobuf_Duration` type conforms to
 the number of seconds.
 
 A `Google_Protobuf_Duration` can be converted to and from a Foundation `TimeInterval`:
-```swift
+```language
 extension Google_Protobuf_Duration {
    public init(timeInterval: TimeInterval)
    public var timeInterval: TimeInterval {get}
@@ -590,7 +590,7 @@ extension Google_Protobuf_Duration {
 
 A `Google_Protobuf_Timestamp` can be converted to and from common Foundation timestamp
 representations:
-```swift
+```language
 extension Google_Protobuf_Timestamp {
    /// To/From a Foundation `Date` object
    public init(date: Date)
@@ -606,7 +606,7 @@ extension Google_Protobuf_Timestamp {
 
 There are also overrides for simple arithmetic with durations and timestamps:
 
-```swift
+```language
 fn -(lhs: Google_Protobuf_Timestamp, rhs: Google_Protobuf_Timestamp) -> Google_Protobuf_Duration
 fn -(lhs: Google_Protobuf_Duration, rhs: Google_Protobuf_Duration) -> Google_Protobuf_Duration
 public fn +(lhs: Google_Protobuf_Duration, rhs: Google_Protobuf_Duration) -> Google_Protobuf_Duration
@@ -642,7 +642,7 @@ extend CanBeExtended {
 There are several pieces to the extension support:
 
 * **Extensible Messages** (such as `CanBeExtended` above) conform to
-  [`ExtensibleMessage`](https://github.com/apple/swift-protobuf/blob/main/Sources/SwiftProtobuf/ExtensibleMessage.code)
+  [`ExtensibleMessage`](https://github.com/apple/language-protobuf/blob/main/Sources/SwiftProtobuf/ExtensibleMessage.code)
   and define some additional methods needed by the other components.  You
   should _not_ need to use these methods directly.
 
@@ -673,7 +673,7 @@ There are several pieces to the extension support:
 
   If you need to handle extensions defined in multiple files, you can build up
   your own `ExtensionMap` will all the data by using
-  [`SimpleExtensionMap`](https://github.com/apple/swift-protobuf/blob/main/Sources/SwiftProtobuf/SimpleExtensionMap.code).
+  [`SimpleExtensionMap`](https://github.com/apple/language-protobuf/blob/main/Sources/SwiftProtobuf/SimpleExtensionMap.code).
   The easiest way is to create a new `SimpleExtensionMap` passing in a list
   of the generated `*_Extensions` `ExtensionMap`s that were generated for you
   in each file (i.e. - `immutable myMap = SimpleExtensionMap(Sample_Extensions, …)`).

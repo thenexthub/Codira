@@ -68,10 +68,10 @@ script in the `dev` directory for collecting stacks. You can run it with:
 sudo ./malloc-aggregation.d -c your-executable
 ```
 
-To make analysis easier you can demangle the symbols with `swift demangle`:
+To make analysis easier you can demangle the symbols with `language demangle`:
 
 ```
-sudo ./malloc-aggregation.d -c your-executable | swift demangle
+sudo ./malloc-aggregation.d -c your-executable | language demangle
 ```
 
 ### BFPTrace (Linux)
@@ -150,7 +150,7 @@ the top allocating stacks. Note `--peak-limit` and `--sub-peak-limit`, these
 default to quite low values so raising them is important to avoid information
 loss that can make analysis more difficult.
 
-You can also pipe the result of `heaptrack_print` through `swift demangle` to
+You can also pipe the result of `heaptrack_print` through `language demangle` to
 make analysis easier.
 
 ## Diffing allocation traces
@@ -164,8 +164,8 @@ to:
 ```
 ...
       libsystem_malloc.dylib`malloc
-      libswiftCore.dylib`swift_slowAlloc+0x19
-      libswiftCore.dylib`swift_allocObject+0x27
+      liblanguageCore.dylib`language_slowAlloc+0x19
+      liblanguageCore.dylib`language_allocObject+0x27
       test_1_reqs_1000_conn`SelectableEventLoop.run()+0x231
       test_1_reqs_1000_conn`closure #1 in static MultiThreadedEventLoopGroup.setupThreadAndEventLoop(name:selectorFactory:initializer:)+0x106
       test_1_reqs_1000_conn`partial apply for closure #1 in static MultiThreadedEventLoopGroup.setupThreadAndEventLoop(name:selectorFactory:initializer:)+0x2d
@@ -189,8 +189,8 @@ analysis easier we built a tool to parse and analyze the stacks.
 
 The `stackdiff` tool is a CLI tool for parsing and analyzing stack traces
 collected by `dtrace`, `bpftrace`, and `heaptrack`. It's available in the
-`dev/stackdiff` directory of the `swift-nio` repository. You can build it from
-the `stackdiff` directiroy with `swift build -c release`. The tool has three
+`dev/stackdiff` directory of the `language-nio` repository. You can build it from
+the `stackdiff` directiroy with `language build -c release`. The tool has three
 subcommands:
 
 1. `dump`,
@@ -219,7 +219,7 @@ You can also filter traces so that only stacks containing a given string are
 included:
 
 ```
-stackdiff dump --format dtrace --filter swift_slowAlloc allocs.txt
+stackdiff dump --format dtrace --filter language_slowAlloc allocs.txt
 ```
 
 See the help with `stackdiff dump --help` to learn about other options.
@@ -310,13 +310,13 @@ Allocations:
 Stack similarity: 0.7441860465116279
 
 S1| ...skipping 3 common lines...
-S1| libswiftCore.dylib`_ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)
+S1| liblanguageCore.dylib`_ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)
 S1| ...skipping 3 common lines...
 
 S2| ...skipping 3 common lines...
-S2| libswiftCore.dylib`_allocateStringStorage(codeUnitCapacity:)
-S2| libswiftCore.dylib`_StringGuts.reserveCapacity(_:)
-S2| libswiftCore.dylib`String.init(repeating:count:)
+S2| liblanguageCore.dylib`_allocateStringStorage(codeUnitCapacity:)
+S2| liblanguageCore.dylib`_StringGuts.reserveCapacity(_:)
+S2| liblanguageCore.dylib`String.init(repeating:count:)
 S2| ...skipping 3 common lines...
 
 Accept ([y]es/no/skip/expand)?:
@@ -358,13 +358,13 @@ The two stacks `S1` and `S2` are printed next:
 
 ```
 S1| ...skipping 3 common lines...
-S1| libswiftCore.dylib`_ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)
+S1| liblanguageCore.dylib`_ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)
 S1| ...skipping 3 common lines...
 
 S2| ...skipping 3 common lines...
-S2| libswiftCore.dylib`_allocateStringStorage(codeUnitCapacity:)
-S2| libswiftCore.dylib`_StringGuts.reserveCapacity(_:)
-S2| libswiftCore.dylib`String.init(repeating:count:)
+S2| liblanguageCore.dylib`_allocateStringStorage(codeUnitCapacity:)
+S2| liblanguageCore.dylib`_StringGuts.reserveCapacity(_:)
+S2| liblanguageCore.dylib`String.init(repeating:count:)
 S2| ...skipping 3 common lines...
 ```
 
@@ -394,11 +394,11 @@ Net allocations: -1000
 
 ALLOCATIONS: -1000
 libsystem_malloc.dylib`malloc_type_malloc
-libswiftCore.dylib`swift::swift_slowAllocTyped(unsigned long, unsigned long, unsigned long long)
-libswiftCore.dylib`swift_allocObject
-libswiftCore.dylib`_allocateStringStorage(codeUnitCapacity:)
-libswiftCore.dylib`_StringGuts.reserveCapacity(_:)
-libswiftCore.dylib`String.init(repeating:count:)
+liblanguageCore.dylib`language::language_slowAllocTyped(unsigned long, unsigned long, unsigned long long)
+liblanguageCore.dylib`language_allocObject
+liblanguageCore.dylib`_allocateStringStorage(codeUnitCapacity:)
+liblanguageCore.dylib`_StringGuts.reserveCapacity(_:)
+liblanguageCore.dylib`String.init(repeating:count:)
 do-some-allocs`specialized static do_some_allocs.main()
 do-some-allocs`do_some_allocs_main
 dyld`start

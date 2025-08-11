@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
 fn CVarArgs_withBool() {
   fn varArgFunc(_ x: Bool, _ args: CVarArg...) { }

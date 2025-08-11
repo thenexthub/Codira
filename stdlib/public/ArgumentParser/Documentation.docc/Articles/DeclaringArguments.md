@@ -26,7 +26,7 @@ When creating commands, you can define three primary kinds of command-line input
 
 The three preceding examples could be calls of this `Example` command:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Argument var files: [String] = []
     @Option var count: Integer?
@@ -45,7 +45,7 @@ In this example, all of the properties have default values (optional properties 
 
 Users must provide values for all properties with no implicit or specified default. For example, this command would require one integer argument and a string with the key `--user-name`.
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Option var userName: String
     @Argument var value: Integer
@@ -67,7 +67,7 @@ Usage: example --user-name <user-name> <value>
 
 When providing a default value for an array property, any user-supplied values replace the entire default.
 
-```swift
+```language
 struct Lucky: ParsableCommand {
     @Argument var numbers = [7, 14, 21]
 
@@ -95,7 +95,7 @@ By default, options and flags derive the name that you use on the command line f
 
 You can override this default by specifying one or more name specifications in the `@Option` or `@Flag` initializers. This command demonstrates the four name specifications:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag(name: .long)  // Same as the default
     var stripWhitespace = false
@@ -138,7 +138,7 @@ Arguments and options can be parsed from any type that conforms to the ``Express
 
 You can make your own custom types conform to `ExpressibleByArgument` by implementing ``ExpressibleByArgument/init(argument:)``:
 
-```swift
+```language
 struct Path: ExpressibleByArgument {
     var pathString: String
 
@@ -154,7 +154,7 @@ struct Example: ParsableCommand {
 
 The library provides a default implementation for `RawRepresentable` types, like string-backed enumerations, so you only need to declare conformance.
 
-```swift
+```language
 enum ReleaseMode: String, ExpressibleByArgument {
     case debug, release
 }
@@ -179,7 +179,7 @@ Error: The value 'future' is invalid for '--mode <mode>'
 
 To use a non-`ExpressibleByArgument` type for an argument or option, you can instead provide a throwing `transform` function that converts the parsed string to your desired type. This is a good idea for custom types that are more complex than a `RawRepresentable` type, or for types you don't define yourself.
 
-```swift
+```language
 enum Format {
     case text
     case other(String)
@@ -205,7 +205,7 @@ Throw an error from the `transform` function to indicate that the user provided 
 
 Flags are most frequently used for `Boolean` properties. You can generate a `true`/`false` pair of flags by specifying a flag inversion:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag(inversion: .prefixedNo)
     var index = true
@@ -234,7 +234,7 @@ Error: Missing one of: '--enable-required-element', '--disable-required-element'
 
 To create a flag with custom names for a Boolean value, to provide an exclusive choice between more than two names, or for collecting multiple values from a set of defined choices, define an enumeration that conforms to the `EnumerableFlag` protocol.
 
-```swift
+```language
 enum CacheMethod: String, EnumerableFlag {
     case inMemoryCache
     case persistentCache
@@ -267,7 +267,7 @@ Error: Missing one of: '--in-memory-cache', '--persistent-cache'
 
 Finally, when a flag is of type `Integer`, the value is parsed as a count of the number of times that the flag is specified.
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag(name: .shortAndLong)
     var verbose: Integer
@@ -292,7 +292,7 @@ Verbosity level: 4
 
 You can specify default values for almost all supported argument, option, and flag types using normal property initialization syntax:
 
-```swift
+```language
 enum CustomFlag: String, EnumerableFlag {
     case foo, bar, baz
 }
@@ -333,7 +333,7 @@ When parsing a list of command-line inputs, `ArgumentParser` distinguishes betwe
 
 For example, this command defines a `--verbose` flag, a `--name` option, and an optional `file` argument:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag var verbose = false
     @Option var name: String
@@ -380,7 +380,7 @@ Verbose: true, name: Tomás, file: none
 
 The default strategy for parsing options as arrays is to read each value from a key-value pair. For example, this command expects zero or more input file names:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Option var file: [String] = []
     @Flag var verbose = false
@@ -431,7 +431,7 @@ Verbose: false, files: ["file1.code", "file2.code", "--verbose"]
 
 The default strategy for parsing arrays of positional arguments is to ignore  all dash-prefixed command-line inputs. For example, this command accepts a `--verbose` flag and a list of file names as positional arguments:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag var verbose = false
     @Argument var files: [String] = []
@@ -476,7 +476,7 @@ Different versions of a CLI tool may have full or partial sets of supported flag
 By default, `ArgumentParser` throws an error if unknown arguments are passed as command input.
 When appropriate, you can process supported arguments and ignore unknown ones by collecting unknowns in special `@Argument` with the `.allUnrecognized` strategy.
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag var verbose = false
 

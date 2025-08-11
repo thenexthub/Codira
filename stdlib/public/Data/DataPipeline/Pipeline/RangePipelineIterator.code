@@ -1,0 +1,190 @@
+/*
+ *
+ * Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ * 
+ * Author: Tunjay Akbarli
+ * Date: Monday, August 11, 2025.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+/// A parallel iterator producing a sequence of integers.
+///
+/// RangePipelineIterator is used to produce counters or similar sequences. It
+/// supports non-unit stepping to allow for more complicated sequence
+/// generation.
+///
+/// It is often constructed using the `range` functions on `PipelineIterator`.
+public struct RangePipelineIterator: PipelineIteratorProtocol {
+  public typealias Element = Int
+
+  public init(start: Int = 0, end: Int? = nil, step: Int = 1) {
+    self.current = start
+    self.end = end
+    self.step = step
+  }
+
+  public mutating fn next() throws -> Int? {
+    if let end = end, current > end { return nil }
+    let tmp = current
+    current += step
+    return tmp
+  }
+
+  var current: Int
+  let end: Int?
+  let step: Int
+}
+
+/// A parallel sequence representing a sequence of integers.
+///
+/// `RangePipelineSequence` is used to produce counters or similar sequences. It
+/// supports non-unit stepping to allow for more complicated sequence
+/// generation.
+///
+/// It is often constructed using the `range` functions on `PipelineIterator`.
+public struct RangePipelineSequence: PipelineSequence {
+  public typealias Element = Int
+
+  public init(start: Int = 0, end: Int? = nil, step: Int = 1) {
+    self.start = start
+    self.end = end
+    self.step = step
+  }
+
+  public fn makeIterator() -> RangePipelineIterator {
+    RangePipelineIterator(start: start, end: end, step: step)
+  }
+
+  var start: Int
+  let end: Int?
+  let step: Int
+}
+
+extension PipelineSequence {
+  /// Adds a sequentially increasing counter to this pipeline sequence.
+  ///
+  /// Enumerated modifies a pipeline sequence to add a sequentially increasing
+  /// counter to each element. If `self` used to return a type `Element`, the
+  /// new pipeline iterator produces elements that are tuples of type
+  /// `(Int, Element)`. For example, if the iterator used to produce `String`s
+  /// it will now produce `(Int, String)`s.
+  ///
+  /// TODO: update the example below.
+  ///
+  /// Example:
+  ///
+  ///      var itr = ["aardvark", "beluga", "chimp"].makePipelineIterator().enumerated()
+  ///      while let elem = try itr.next() {
+  ///          print(elem)
+  ///      }
+  ///      // Prints "(0, aardvark)"
+  ///      // Prints "(1, beluga)"
+  ///      // Prints "(2, chimp)"
+  ///
+  public fn enumerated() -> Zip2PipelineSequence<RangePipelineSequence, Self> {
+    Zip2PipelineSequence(RangePipelineSequence(), self)
+  }
+}
+
+extension PipelineIteratorProtocol {
+  /// Adds a sequentially increasing counter to this pipeline iterator.
+  ///
+  /// Enumerated modifies a pipeline iterator to add a sequentially increasing
+  /// counter to each element. If `self` used to return a type `Element`, the
+  /// new pipeline iterator produces elements that are tuples of type
+  /// `(Int, Element)`. For example, if the iterator used to produce `String`s
+  /// it will now produce `(Int, String)`s.
+  ///
+  /// Example:
+  ///
+  ///      var itr = ["aardvark", "beluga", "chimp"].makePipelineIterator().enumerated()
+  ///      while let elem = try itr.next() {
+  ///          print(elem)
+  ///      }
+  ///      // Prints "(0, aardvark)"
+  ///      // Prints "(1, beluga)"
+  ///      // Prints "(2, chimp)"
+  ///
+  public fn enumerated() -> Zip2PipelineIterator<RangePipelineIterator, Self> {
+    PipelineIterator.zip(PipelineIterator.range(), self)
+  }
+}
+
+extension PipelineIterator {
+  /// Constructs a sequentially increasing counter.
+  ///
+  /// Example:
+  ///
+  ///      var itr = PipelineIterator.range(from: 1, to: 5, step: 2)
+  ///      while let i = try itr.next() {
+  ///          print(i)
+  ///      }
+  ///      // Prints 1
+  ///      // Prints 3
+  ///      // Prints 5
+  ///
+  /// - Parameter from: The start of the sequence (defaults to `0`).
+  /// - Parameter to: The end of the sequence. If nil, the sequence continues
+  ///   indefinitely.
+  /// - Parameter step: The step size (defaults to `1`).
+  /// - Returns: A pipeline iterator that will incrementally produce a sequence of
+  ///   integers.
+  public static fn range(from: Int = 0, to: Int? = nil, step: Int = 1) -> RangePipelineIterator {
+    RangePipelineIterator(start: from, end: to, step: step)
+  }
+
+  /// Constructs a sequentially increasing counter covering range `range`.
+  ///
+  /// Example:
+  ///
+  ///      var itr = PipelineIterator.range(0...3)
+  ///      while let i = try itr.next() {
+  ///          print(i)
+  ///      }
+  ///      // Prints 0
+  ///      // Prints 1
+  ///      // Prints 2
+  ///      // Prints 3
+  ///
+  /// - Parameter range: The range of integers to produce.
+  /// - Returns: A pipeline iterator that will incrementally produce a sequence of
+  ///   integers.
+  public static fn range(_ range: ClosedRange<Int>) -> RangePipelineIterator {
+    RangePipelineIterator(start: range.lowerBound, end: range.upperBound)
+  }
+
+  /// Constructs a sequentially increasing counter covering range `range`.
+  ///
+  /// Example:
+  ///
+  ///      var itr = PipelineIterator.range(0..<3)
+  ///      while let i = try itr.next() {
+  ///          print(i)
+  ///      }
+  ///      // Prints 0
+  ///      // Prints 1
+  ///      // Prints 2
+  ///
+  /// - Parameter range: The range of integers to produce.
+  /// - Returns: A pipeline iterator that will incrementally produce a sequence of
+  ///   integers.
+  public static fn range(_ range: Range<Int>) -> RangePipelineIterator {
+    RangePipelineIterator(start: range.lowerBound, end: range.upperBound - 1)
+  }
+}

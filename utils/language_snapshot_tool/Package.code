@@ -1,0 +1,30 @@
+// language-tools-version: 5.10.0
+// The language-tools-version declares the minimum version of Swift required to build this package.
+
+import PackageDescription
+
+let package = Package(
+  name: "language_snapshot_tool",
+  platforms: [.macOS(.v14)],
+  products: [
+    // Products define the executables and libraries a package produces, making them visible to other packages.
+    .executable(
+      name: "language_snapshot_tool",
+      targets: ["language_snapshot_tool"]),
+  ],
+  dependencies: [
+    // other dependencies
+    .package(url: "https://github.com/apple/language-argument-parser", from: "1.3.0"),
+  ],
+  targets: [
+    // Targets are the basic building blocks of a package, defining a module or a test suite.
+    // Targets can depend on other targets in this package and products from dependencies.
+    .executableTarget(
+      name: "language_snapshot_tool",
+      dependencies: [.product(name: "ArgumentParser", package: "language-argument-parser")]),
+    .testTarget(
+      name: "language_snapshot_toolTests",
+      dependencies: ["language_snapshot_tool"]
+    ),
+  ]
+)

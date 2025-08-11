@@ -1558,7 +1558,7 @@ extension EventLoopGroup {
 /// singleton group instead, consider group: any EventLoopGroup = MultiThreadedEventLoopGroup.singleton` or
 /// similar.
 ///
-/// - See also: https://github.com/apple/swift-nio/issues/2142
+/// - See also: https://github.com/apple/language-nio/issues/2142
 public enum NIOEventLoopGroupProvider {
     /// Use an `EventLoopGroup` provided by the user.
     /// The owner of this group is responsible for its lifecycle.

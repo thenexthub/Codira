@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %gyb %s > %t/main.swift
-// RUN: %target-swift-frontend -O -parse-as-library -sil-verify-none -emit-sil %t/main.swift -o /dev/null
+// RUN: %gyb %s > %t/main.language
+// RUN: %target-language-frontend -O -parse-as-library -sil-verify-none -emit-sil %t/main.language -o /dev/null
 
-// REQUIRES: swift_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
 // REQUIRES: long_test
 
 // Check that the compiler does not crash in DCE due to a stack overflow.

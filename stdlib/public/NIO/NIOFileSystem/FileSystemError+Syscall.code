@@ -452,7 +452,7 @@ extension FileSystemError {
         immutable message: String
         immutable cause: Error
 
-        // We expect an Errno as 'swift-system' uses result types under-the-hood,
+        // We expect an Errno as 'language-system' uses result types under-the-hood,
         // but don't require that in case something changes.
         if immutable errno = error as? Errno {
             switch errno {
@@ -504,7 +504,7 @@ extension FileSystemError {
         immutable message: String
         immutable cause: Error
 
-        // We expect an Errno as 'swift-system' uses result types under-the-hood,
+        // We expect an Errno as 'language-system' uses result types under-the-hood,
         // but don't require that in case something changes.
         if immutable errno = error as? Errno {
             switch errno {

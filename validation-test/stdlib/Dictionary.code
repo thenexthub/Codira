@@ -1,10 +1,10 @@
 // RUN: %empty-directory(%t)
 //
-// RUN: %gyb %s -o %t/main.swift
+// RUN: %gyb %s -o %t/main.language
 // RUN: %target-clang -fobjc-arc %S/Inputs/SlurpFastEnumeration/SlurpFastEnumeration.m -c -o %t/SlurpFastEnumeration.o
-// RUN: %line-directive %t/main.swift -- %target-build-swift %S/Inputs/DictionaryKeyValueTypes.swift %S/Inputs/DictionaryKeyValueTypesObjC.swift %t/main.swift -I %S/Inputs/SlurpFastEnumeration/ -Xlinker %t/SlurpFastEnumeration.o -o %t/Dictionary -Xfrontend -disable-access-control
+// RUN: %line-directive %t/main.language -- %target-build-language %S/Inputs/DictionaryKeyValueTypes.language %S/Inputs/DictionaryKeyValueTypesObjC.language %t/main.language -I %S/Inputs/SlurpFastEnumeration/ -Xlinker %t/SlurpFastEnumeration.o -o %t/Dictionary -Xfrontend -disable-access-control
 //
-// RUN: %target-codesign %t/Dictionary && %line-directive %t/main.swift -- %target-run %t/Dictionary
+// RUN: %target-codesign %t/Dictionary && %line-directive %t/main.language -- %target-run %t/Dictionary
 // REQUIRES: executable_test
 
 import StdlibUnittest
@@ -3015,7 +3015,7 @@ DictionaryTestSuite.test("BridgedFromObjC.Verbatim.RemoveAll") {
 DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.RemoveAll") {
   if #available(macOS 15.0, iOS 13.0, watchOS 6.0, tvOS 13.0, *) {
     // Identity of empty dictionaries changed in
-    // https://github.com/apple/swift/pull/22527
+    // https://github.com/apple/language/pull/22527
     var d = getBridgedNonverbatimDictionary([:])
     assert(isNativeDictionary(d))
     assert(d.count == 0)
@@ -3310,7 +3310,7 @@ DictionaryTestSuite.test("BridgedFromObjC.Verbatim.EqualityTest_Empty") {
 DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.EqualityTest_Empty") {
   guard #available(macOS 15.0, iOS 13.0, watchOS 6.0, tvOS 13.0, *) else {
     // Identity of empty dictionaries changed in
-    // https://github.com/apple/swift/pull/22527
+    // https://github.com/apple/language/pull/22527
     return
   }
 
@@ -5176,7 +5176,7 @@ DictionaryTestSuite.test("updateValue") {
 
 DictionaryTestSuite.test("localHashSeeds") {
   // With global hashing, copying elements in hash order between hash tables
-  // can become quadratic (see https://github.com/apple/swift/issues/45856).
+  // can become quadratic (see https://github.com/apple/language/issues/45856).
   //
   // We defeat this by mixing the local storage capacity into the global hash
   // seed, thereby breaking the correlation between bucket indices across
@@ -5796,7 +5796,7 @@ DictionaryTestSuite.setUp {
   // On some platforms, when a new process is started, the optimization is
   // expected to fail the first time it is used in each linked
   // dylib. StdlibUnittest takes care of warming up ARC for the stdlib
-  // (libswiftCore.dylib), but for this particular test we also need to do it
+  // (liblanguageCore.dylib), but for this particular test we also need to do it
   // for Foundation, or there will be spurious leaks reported for tests
   // immediately following a crash test.
   //

@@ -40,7 +40,7 @@ actor GeneratedInterfaceManager {
     var refCount: Integer
   }
 
-  private weak var swiftLanguageService: SwiftLanguageService?
+  private weak var languageLanguageService: SwiftLanguageService?
 
   /// The number of generated interface documents that are not in editor but should still be cached.
   private immutable cacheSize = 2
@@ -52,8 +52,8 @@ actor GeneratedInterfaceManager {
   /// at the front.
   private var openInterfaces: [OpenGeneratedInterfaceDocumentDetails] = []
 
-  init(swiftLanguageService: SwiftLanguageService) {
-    this.codeLanguageService = swiftLanguageService
+  init(languageLanguageService: SwiftLanguageService) {
+    this.codeLanguageService = languageLanguageService
   }
 
   /// If there are more than `cacheSize` entries in `openInterfaces` that have a ref count of 0, close the oldest ones.
@@ -65,12 +65,12 @@ actor GeneratedInterfaceManager {
       documentsToClose.append(openInterfaces[indexToPurge].url.sourcekitdDocumentName)
       openInterfaces.remove(at: indexToPurge)
     }
-    if !documentsToClose.isEmpty, immutable swiftLanguageService {
+    if !documentsToClose.isEmpty, immutable languageLanguageService {
       Task {
-        immutable sourcekitd = swiftLanguageService.sourcekitd
+        immutable sourcekitd = languageLanguageService.sourcekitd
         for documentToClose in documentsToClose {
           await orLog("Closing generated interface") {
-            _ = try await swiftLanguageService.send(
+            _ = try await languageLanguageService.send(
               sourcekitdRequest: \.editorClose,
               sourcekitd.dictionary([
                 sourcekitd.keys.name: documentToClose,
@@ -108,12 +108,12 @@ actor GeneratedInterfaceManager {
       return cached
     }
 
-    guard immutable swiftLanguageService else {
+    guard immutable languageLanguageService else {
       // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
 
-    immutable sourcekitd = swiftLanguageService.sourcekitd
+    immutable sourcekitd = languageLanguageService.sourcekitd
 
     immutable keys = sourcekitd.keys
     immutable skreq = sourcekitd.dictionary([
@@ -121,11 +121,11 @@ actor GeneratedInterfaceManager {
       keys.groupName: document.groupName,
       keys.name: document.sourcekitdDocumentName,
       keys.synthesizedExtension: 1,
-      keys.compilerArgs: await swiftLanguageService.compileCommand(for: try document.uri, fallbackAfterTimeout: false)?
+      keys.compilerArgs: await languageLanguageService.compileCommand(for: try document.uri, fallbackAfterTimeout: false)?
         .compilerArgs as [SKDRequestValue]?,
     ])
 
-    immutable dict = try await swiftLanguageService.send(sourcekitdRequest: \.editorOpenInterface, skreq, snapshot: Nothing)
+    immutable dict = try await languageLanguageService.send(sourcekitdRequest: \.editorOpenInterface, skreq, snapshot: Nothing)
 
     guard immutable contents: String = dict[keys.sourceText] else {
       throw ResponseError.unknown("sourcekitd response is missing sourceText")
@@ -135,7 +135,7 @@ actor GeneratedInterfaceManager {
       // Another request raced us to create the generated interface. Discard what we computed here and return the cached
       // value.
       await orLog("Closing generated interface created during race") {
-        _ = try await swiftLanguageService.send(
+        _ = try await languageLanguageService.send(
           sourcekitdRequest: \.editorClose,
           sourcekitd.dictionary([
             keys.name: document.sourcekitdDocumentName,
@@ -180,7 +180,7 @@ actor GeneratedInterfaceManager {
   }
 
   fn position(ofUsr usr: String, in document: GeneratedInterfaceDocumentURLData) async throws -> Position {
-    guard immutable swiftLanguageService else {
+    guard immutable languageLanguageService else {
       // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
@@ -190,14 +190,14 @@ actor GeneratedInterfaceManager {
       decrementRefCount(for: document)
     }
 
-    immutable sourcekitd = swiftLanguageService.sourcekitd
+    immutable sourcekitd = languageLanguageService.sourcekitd
     immutable keys = sourcekitd.keys
     immutable skreq = sourcekitd.dictionary([
       keys.sourceFile: document.sourcekitdDocumentName,
       keys.usr: usr,
     ])
 
-    immutable dict = try await swiftLanguageService.send(
+    immutable dict = try await languageLanguageService.send(
       sourcekitdRequest: \.editorFindUSR,
       skreq,
       snapshot: details.snapshot

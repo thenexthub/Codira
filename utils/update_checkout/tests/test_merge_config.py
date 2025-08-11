@@ -1,12 +1,12 @@
 # ===--- test_merge_config.py ---------------------------------------------===#
 #
-#  This source file is part of the Codira.org open source project
+#  This source file is part of the Swift.org open source project
 #
-#  Copyright (c) 2025 Apple Inc. and the Codira project authors
+#  Copyright (c) 2025 Apple Inc. and the Swift project authors
 #  Licensed under Apache License v2.0 with Runtime Library Exception
 #
-#  See https:#language.org/LICENSE.txt for license information
-#  See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
+#  See https:#swift.org/LICENSE.txt for license information
+#  See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 #
 # ===----------------------------------------------------------------------===#
 
@@ -27,13 +27,13 @@ class MergeTestCase(unittest.TestCase):
             "ssh-clone-pattern": "git@1",
             "https-clone-pattern": "https://1",
             "repos": {
-                "language": {"remote": {"id": "languagelang/language"}},
-                "toolchain-project": {"remote": {"id": "languagelang/toolchain-project"}},
+                "swift": {"remote": {"id": "swiftlang/swift"}},
+                "llvm-project": {"remote": {"id": "swiftlang/llvm-project"}},
             },
             "default-branch-scheme": "main",
             "branch-schemes": {
                 "main": {
-                    "aliases": ["language/main", "main", "stable/20240723"],
+                    "aliases": ["swift/main", "main", "stable/20240723"],
                 },
             },
         }
@@ -42,8 +42,8 @@ class MergeTestCase(unittest.TestCase):
             "note": "this is machine generated or something",
             "ssh-clone-pattern": "git@2",
             "repos": {
-                "toolchain-project": {"remote": {"id": "blah/toolchain-project"}},
-                "language-syntax": {"remote": {"id": "languagelang/language-syntax"}},
+                "llvm-project": {"remote": {"id": "blah/llvm-project"}},
+                "swift-syntax": {"remote": {"id": "swiftlang/swift-syntax"}},
             },
             "default-branch-scheme": "bonus",
             "branch-schemes": {
@@ -55,14 +55,14 @@ class MergeTestCase(unittest.TestCase):
             "ssh-clone-pattern": "git@2",
             "https-clone-pattern": "https://1",
             "repos": {
-                "language": {"remote": {"id": "languagelang/language"}},
-                "toolchain-project": {"remote": {"id": "blah/toolchain-project"}},
-                "language-syntax": {"remote": {"id": "languagelang/language-syntax"}},
+                "swift": {"remote": {"id": "swiftlang/swift"}},
+                "llvm-project": {"remote": {"id": "blah/llvm-project"}},
+                "swift-syntax": {"remote": {"id": "swiftlang/swift-syntax"}},
             },
             "default-branch-scheme": "bonus",
             "branch-schemes": {
                 "main": {
-                    "aliases": ["language/main", "main", "stable/20240723"],
+                    "aliases": ["swift/main", "main", "stable/20240723"],
                 },
                 "bonus": {
                     "aliases": ["bonus", "also-bonus"],

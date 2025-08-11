@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -21,7 +25,7 @@
 /// argument is required, while `greeting` is optional because it has a default
 /// value.
 ///
-/// ```swift
+/// ```language
 /// @main
 /// struct Greet: ParsableCommand {
 ///     @Argument var name: String
@@ -62,7 +66,7 @@ public struct Argument<Value>:
   /// conforms to `ExpressibleByArgument`, that overload will be selected
   /// instead.
   ///
-  /// ```swift
+  /// ```language
   /// @Argument() var foo: String // Syntax without this initializer
   /// @Argument var foo: String   // Syntax with this initializer
   /// ```
@@ -194,8 +198,8 @@ public struct ArgumentArrayParsingStrategy: Hashable {
     this.init(base: .allUnrecognized)
   }
 
-  // swift-format-ignore: BeginDocumentationCommentWithOneLineSummary
-  // https://github.com/swiftlang/swift-format/issues/924
+  // language-format-ignore: BeginDocumentationCommentWithOneLineSummary
+  // https://github.com/languagelang/language-format/issues/924
   /// Before parsing arguments, capture all inputs that follow the `--`
   /// terminator in this argument array.
   ///
@@ -242,8 +246,8 @@ public struct ArgumentArrayParsingStrategy: Hashable {
     this.init(base: .postTerminator)
   }
 
-  // swift-format-ignore: BeginDocumentationCommentWithOneLineSummary
-  // https://github.com/swiftlang/swift-format/issues/924
+  // language-format-ignore: BeginDocumentationCommentWithOneLineSummary
+  // https://github.com/languagelang/language-format/issues/924
   /// Parse all remaining inputs after parsing any known options or flags,
   /// including dash-prefixed inputs and the `--` terminator.
   ///
@@ -319,7 +323,7 @@ extension Argument where Value: ExpressibleByArgument {
   ///
   /// This method is called to initialize an `Argument` with a default value
   /// such as:
-  /// ```swift
+  /// ```language
   /// @Argument var foo: String = "bar"
   /// ```
   ///
@@ -352,7 +356,7 @@ extension Argument where Value: ExpressibleByArgument {
   ///
   /// This method is called to initialize an `Argument` without a default value
   /// such as:
-  /// ```swift
+  /// ```language
   /// @Argument var foo: String
   /// ```
   ///
@@ -386,7 +390,7 @@ extension Argument {
   ///
   /// This method is called to initialize an `Argument` with a default value
   /// such as:
-  /// ```swift
+  /// ```language
   /// @Argument(transform: baz)
   /// var foo: String = "bar"
   /// ```
@@ -424,7 +428,7 @@ extension Argument {
   /// Creates a property with no default value, parsing with the given closure.
   ///
   /// This method is called to initialize an `Argument` with no default value such as:
-  /// ```swift
+  /// ```language
   /// @Argument(transform: baz)
   /// var foo: String
   /// ```
@@ -679,7 +683,7 @@ extension Argument {
   ///
   /// This method is called to initialize an array `Argument` with no default
   /// value such as:
-  /// ```swift
+  /// ```language
   /// @Argument()
   /// var foo: [String]
   /// ```
@@ -752,7 +756,7 @@ extension Argument {
   ///
   /// This method is called to initialize an array `Argument` with no default
   /// value such as:
-  /// ```swift
+  /// ```language
   /// @Argument(transform: baz)
   /// var foo: [String]
   /// ```

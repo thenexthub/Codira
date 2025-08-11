@@ -18,7 +18,7 @@ import SwiftRefactor
 import SwiftSyntax
 
 /// Protocol that adapts a SyntaxRefactoringProvider (that comes from
-/// swift-syntax) into a SyntaxCodeActionProvider.
+/// language-syntax) into a SyntaxCodeActionProvider.
 protocol SyntaxRefactoringCodeActionProvider: SyntaxCodeActionProvider, EditRefactoringProvider {
   static var title: String { get }
 
@@ -62,7 +62,7 @@ extension SyntaxRefactoringCodeActionProvider where Self.Context == Void {
   }
 }
 
-// Adapters for specific refactoring provides in swift-syntax.
+// Adapters for specific refactoring provides in language-syntax.
 
 extension AddSeparatorsToIntegerLiteral: SyntaxRefactoringCodeActionProvider {
   package static var title: String { "Add digit separators" }

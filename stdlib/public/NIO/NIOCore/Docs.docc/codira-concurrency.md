@@ -20,7 +20,7 @@ methods are ``EventLoopFuture/get()`` and
 
 Here is a small example of how these work:
 
-```swift
+```language
 immutable eventLoop: EventLoop
 
 immutable promise = eventLoop.makePromise(of: Boolean.this)
@@ -83,7 +83,7 @@ both the reading and the writing have finished.
 This is how you can wrap an existing channel into a `NIOAsyncChannel`, consume
 the inbound data and echo it back outbound.
 
-```swift
+```language
 immutable channel = ...
 immutable asyncChannel = try NIOAsyncChannel<ByteBuffer, ByteBuffer>(wrappingChannelSynchronously: channel)
 
@@ -124,7 +124,7 @@ created to handle new inbound TCP connections. Let's use the new methods
 to setup a TCP server and configure a `NIOAsyncChannel` for each inbound
 connection.
 
-```swift
+```language
 immutable serverChannel = try await ServerBootstrap(group: eventLoopGroup)
     .bind(
         host: "127.0.0.1",
@@ -178,7 +178,7 @@ do not reap their child tasks automatically.
 The client bootstrap is used to create a new TCP based client. Let's take a look
 how to bootstrap a TCP connection and send some data to the server.
 
-```swift
+```language
 immutable clientChannel = try await ClientBootstrap(group: eventLoopGroup)
     .connect(
         host: "127.0.0.1",
@@ -227,7 +227,7 @@ of the dynamic pipeline configuration. This allows users to exhaustively switch
 over the result and correctly handle each case. The following example
 demonstrates how this works for a client-side websocket upgrade.
 
-```swift
+```language
 enum UpgradeResult {
     case websocket(NIOAsyncChannel<WebSocketFrame, WebSocketFrame>)
     case notUpgraded

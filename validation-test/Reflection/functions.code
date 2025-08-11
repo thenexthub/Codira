@@ -1,11 +1,11 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/functions
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/functions
 // RUN: %target-codesign %t/functions
 
-// RUN: %target-run %target-swift-reflection-test %t/functions | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
+// RUN: %target-run %target-language-reflection-test %t/functions | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
 
 // FIXME: Should not require objc_interop -- please put Objective-C-specific
-// testcases in functions_objc.swift
+// testcases in functions_objc.language
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test
@@ -13,7 +13,7 @@
 // UNSUPPORTED: asan
 
 /*
-   This file pokes at the swift_reflection_infoForInstance() API
+   This file pokes at the language_reflection_infoForInstance() API
    of the CodiraRemoteMirror library.
 
    It tests introspection of function closure contexts.

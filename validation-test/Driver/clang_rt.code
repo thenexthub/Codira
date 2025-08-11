@@ -1,4 +1,4 @@
-// RUN: %target-build-swift -emit-executable %s -import-objc-header %S/Inputs/clang_rt-helper.h -o %t
+// RUN: %target-build-language -emit-executable %s -import-objc-header %S/Inputs/clang_rt-helper.h -o %t
 
 // REQUIRES: c_runtime
 

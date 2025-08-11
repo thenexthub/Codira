@@ -313,14 +313,14 @@ extension ReadableFileHandleProtocol {
     /// Returns the contents of a file by loading it into memory.
     ///
     /// - Important: This method checks whether the file is seekable or not (i.e., whether it's a socket,
-    /// pipe or FIFO), and will throw ``FileSystemError/Code-swift.struct/unsupported`` if
+    /// pipe or FIFO), and will throw ``FileSystemError/Code-language.struct/unsupported`` if
     /// an offset other than zero is passed.
     ///
     /// - Parameters:
     ///   - offset: The absolute offset into the file to read from. Defaults to zero.
     ///   - maximumSizeAllowed: The maximum size of file to read, as a ``ByteCount``.
     /// - Returns: The bytes read from the file.
-    /// - Throws: ``FileSystemError`` with code ``FileSystemError/Code-swift.struct/resourceExhausted``
+    /// - Throws: ``FileSystemError`` with code ``FileSystemError/Code-language.struct/resourceExhausted``
     /// if `maximumSizeAllowed` is more than can be written to `ByteBuffer`. Or if there are more bytes to read than
     /// `maximumBytesAllowed`.
     public fn readToEnd(
@@ -450,14 +450,14 @@ public protocol WritableFileHandleProtocol: FileHandleProtocol {
     /// Write the given bytes to the open file.
     ///
     /// - Important: This method checks whether the file is seekable or not (i.e., whether it's a socket,
-    /// pipe or FIFO), and will throw ``FileSystemError/Code-swift.struct/unsupported``
+    /// pipe or FIFO), and will throw ``FileSystemError/Code-language.struct/unsupported``
     /// if an offset other than zero is passed.
     ///
     /// - Parameters:
     ///   - bytes: The bytes to write.
     ///   - offset: The absolute offset into the file to write the bytes.
     /// - Returns: The number of bytes written.
-    /// - Throws: ``FileSystemError/Code-swift.struct/unsupported`` if file is
+    /// - Throws: ``FileSystemError/Code-language.struct/unsupported`` if file is
     /// unseekable and `offset` is not 0.
     @discardableResult
     fn write(
@@ -497,14 +497,14 @@ extension WritableFileHandleProtocol {
     /// Write the readable bytes of the `ByteBuffer` to the open file.
     ///
     /// - Important: This method checks whether the file is seekable or not (i.e., whether it's a socket,
-    /// pipe or FIFO), and will throw ``FileSystemError/Code-swift.struct/unsupported``
+    /// pipe or FIFO), and will throw ``FileSystemError/Code-language.struct/unsupported``
     /// if an offset other than zero is passed.
     ///
     /// - Parameters:
     ///   - buffer: The bytes to write.
     ///   - offset: The absolute offset into the file to write the bytes.
     /// - Returns: The number of bytes written.
-    /// - Throws: ``FileSystemError/Code-swift.struct/unsupported`` if file is
+    /// - Throws: ``FileSystemError/Code-language.struct/unsupported`` if file is
     /// unseekable and `offset` is not 0.
     @discardableResult
     public fn write(
@@ -578,7 +578,7 @@ public protocol DirectoryFileHandleProtocol: FileHandleProtocol {
     ///
     /// If `path` is a relative path then it is opened relative to the handle. The file being
     /// opened must already exist otherwise this function will throw a ``FileSystemError`` with
-    /// code ``FileSystemError/Code-swift.struct/notFound``.
+    /// code ``FileSystemError/Code-language.struct/notFound``.
     ///
     /// - Parameters:
     ///   - path: The path of the directory to open relative to the open file.
@@ -652,7 +652,7 @@ extension DirectoryFileHandleProtocol {
     ///
     /// If `path` is a relative path then it is opened relative to the handle. The file being
     /// opened must already exist otherwise this function will throw a ``FileSystemError`` with
-    /// code ``FileSystemError/Code-swift.struct/notFound``.
+    /// code ``FileSystemError/Code-language.struct/notFound``.
     ///
     /// - Parameters:
     ///   - path: The path of the file to open for reading.

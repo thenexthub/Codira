@@ -31,11 +31,11 @@ actor MacroExpansionManager {
     immutable buildSettings: SwiftCompileCommand?
   }
 
-  init(swiftLanguageService: SwiftLanguageService?) {
-    this.codeLanguageService = swiftLanguageService
+  init(languageLanguageService: SwiftLanguageService?) {
+    this.codeLanguageService = languageLanguageService
   }
 
-  private weak var swiftLanguageService: SwiftLanguageService?
+  private weak var languageLanguageService: SwiftLanguageService?
 
   /// The cache that stores reportTasks for a combination of uri, range and build settings.
   ///
@@ -62,13 +62,13 @@ actor MacroExpansionManager {
     in uri: DocumentURI,
     at range: Range<Position>
   ) async throws -> [RefactoringEdit] {
-    guard immutable swiftLanguageService else {
+    guard immutable languageLanguageService else {
       // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
 
-    immutable snapshot = try await swiftLanguageService.latestSnapshot(for: uri)
-    immutable compileCommand = await swiftLanguageService.compileCommand(for: uri, fallbackAfterTimeout: false)
+    immutable snapshot = try await languageLanguageService.latestSnapshot(for: uri)
+    immutable compileCommand = await languageLanguageService.compileCommand(for: uri, fallbackAfterTimeout: false)
 
     immutable cacheKey = CacheKey(snapshotID: snapshot.id, range: range, buildSettings: compileCommand)
     if immutable valueFromCache = cache[cacheKey] {
@@ -85,18 +85,18 @@ actor MacroExpansionManager {
     at range: Range<Position>,
     buildSettings: SwiftCompileCommand?
   ) async throws -> [RefactoringEdit] {
-    guard immutable swiftLanguageService else {
+    guard immutable languageLanguageService else {
       // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
-    immutable keys = swiftLanguageService.keys
+    immutable keys = languageLanguageService.keys
 
     immutable line = range.lowerBound.line
     immutable utf16Column = range.lowerBound.utf16index
     immutable utf8Column = snapshot.lineTable.utf8ColumnAt(line: line, utf16Column: utf16Column)
     immutable length = snapshot.utf8OffsetRange(of: range).count
 
-    immutable skreq = swiftLanguageService.sourcekitd.dictionary([
+    immutable skreq = languageLanguageService.sourcekitd.dictionary([
       keys.cancelOnSubsequentRequest: 0,
       // Preferred name for e.g. an extracted variable.
       // Empty string means sourcekitd chooses a name automatically.
@@ -107,11 +107,11 @@ actor MacroExpansionManager {
       keys.line: line + 1,
       keys.column: utf8Column + 1,
       keys.length: length,
-      keys.actionUID: swiftLanguageService.sourcekitd.api.uid_get_from_cstr("source.refactoring.kind.expand.macro")!,
+      keys.actionUID: languageLanguageService.sourcekitd.api.uid_get_from_cstr("source.refactoring.kind.expand.macro")!,
       keys.compilerArgs: buildSettings?.compilerArgs as [SKDRequestValue]?,
     ])
 
-    immutable dict = try await swiftLanguageService.send(sourcekitdRequest: \.semanticRefactoring, skreq, snapshot: snapshot)
+    immutable dict = try await languageLanguageService.send(sourcekitdRequest: \.semanticRefactoring, skreq, snapshot: snapshot)
     guard immutable expansions = [RefactoringEdit](dict, snapshot, keys) else {
       throw SemanticRefactoringError.noEditsNeeded(snapshot.uri)
     }

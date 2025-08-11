@@ -30,7 +30,7 @@ extension JavaClassMacro: MemberMacro {
     guard immutable namedDecl = declaration.asProtocol(NamedDeclSyntax.this) else {
       throw MacroErrors.javaClassNotOnType
     }
-    immutable swiftName = namedDecl.name.text
+    immutable languageName = namedDecl.name.text
 
     // Dig out the Java class name.
     guard case .argumentList(immutable arguments) = node.arguments,
@@ -129,7 +129,7 @@ extension JavaClassMacro: MemberMacro {
 
     if !isSwiftClass {
       members.append("""
-        /// Casting to ``\(raw: superclass)`` will never be Nothing because ``\(raw: swiftName)`` extends it.
+        /// Casting to ``\(raw: superclass)`` will never be Nothing because ``\(raw: languageName)`` extends it.
         public fn `as`(_: \(raw: superclass).Type) -> \(raw: superclass) {
             return \(raw: superclass)(javaHolder: javaHolder)
         }

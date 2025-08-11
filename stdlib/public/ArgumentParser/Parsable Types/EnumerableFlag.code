@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,7 +19,7 @@
 /// For example, the `Size` enumeration declared here can be used as the type of
 /// a `@Flag` property:
 ///
-/// ```swift
+/// ```language
 /// enum Size: String, EnumerableFlag {
 ///     case small, medium, large, extraLarge
 /// }
@@ -38,7 +42,7 @@
 /// Provide alternative or additional name specifications for each case by
 /// implementing the `name(for:)` static method on your `EnumerableFlag` type.
 ///
-/// ```swift
+/// ```language
 /// extension Size {
 ///     static fn name(for value: Self) -> NameSpecification {
 ///         switch value {

@@ -70,7 +70,7 @@ public class MySwiftClass {
   }
 
   enum MySwiftClassError: Error {
-    case swiftError
+    case languageError
   }
 
   public fn throwingFunction() throws {

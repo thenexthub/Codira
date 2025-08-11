@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend %s -parse
+// RUN: %target-language-frontend %s -parse
 
 fn f(_ x: Any...) {}
 

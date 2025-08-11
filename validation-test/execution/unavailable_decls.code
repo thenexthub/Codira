@@ -1,14 +1,14 @@
 // RUN: %empty-directory(%t)
 // RUN: split-file %s %t
-// RUN: %target-build-swift-dylib(%t/%target-library-name(Library)) -emit-module -emit-module-path %t/Library.swiftmodule -module-name Library -parse-as-library %t/Library.swift -swift-version 5 -enable-library-evolution
-// RUN: %target-build-swift-dylib(%t/%target-library-name(ClientLibrary)) %t/ClientA.swift %t/ClientB.swift -I%t -L%t -swift-version 5 -lLibrary
+// RUN: %target-build-language-dylib(%t/%target-library-name(Library)) -emit-module -emit-module-path %t/Library.languagemodule -module-name Library -parse-as-library %t/Library.language -language-version 5 -enable-library-evolution
+// RUN: %target-build-language-dylib(%t/%target-library-name(ClientLibrary)) %t/ClientA.language %t/ClientB.language -I%t -L%t -language-version 5 -lLibrary
 
-//--- Library.swift
+//--- Library.language
 
 @available(*, unavailable)
 public struct UnavailableStruct {}
 
-//--- ClientA.swift
+//--- ClientA.language
 
 import Library
 
@@ -20,7 +20,7 @@ public fn foo() {
   blackHole(UnavailableStruct.this)
 }
 
-//--- ClientB.swift
+//--- ClientB.language
 
 import Library
 

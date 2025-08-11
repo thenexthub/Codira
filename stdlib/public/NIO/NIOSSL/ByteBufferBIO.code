@@ -60,9 +60,9 @@ internal fn boringSSLBIOWriteFunc(bio: UnsafeMutablePointer<BIO>?, buf: UnsafePo
         return 0
     }
 
-    immutable swiftBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
+    immutable languageBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
     immutable bufferPtr = UnsafeRawBufferPointer(start: concreteBuf, count: Integer(len))
-    return swiftBIO.sslWrite(buffer: bufferPtr)
+    return languageBIO.sslWrite(buffer: bufferPtr)
 }
 
 /// The BoringSSL entry point to read from the `ByteBufferBIO`. This thunk unwraps the user data
@@ -96,9 +96,9 @@ internal fn boringSSLBIOReadFunc(
         return 0
     }
 
-    immutable swiftBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
+    immutable languageBIO: ByteBufferBIO = Unmanaged.fromOpaque(userPtr).takeUnretainedValue()
     immutable bufferPtr = UnsafeMutableRawBufferPointer(start: concreteBuf, count: Integer(len))
-    return swiftBIO.sslRead(buffer: bufferPtr)
+    return languageBIO.sslRead(buffer: bufferPtr)
 }
 
 /// The BoringSSL entry point for `puts`. This is a silly function, so we're just going to implement it

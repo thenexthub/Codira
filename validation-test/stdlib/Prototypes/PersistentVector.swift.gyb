@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %gyb %s -o %t/PersistentVector.swift
-// RUN: %line-directive %t/PersistentVector.swift -- %target-build-swift -parse-stdlib -Xfrontend -disable-access-control %t/PersistentVector.swift -o %t/a.out
+// RUN: %gyb %s -o %t/PersistentVector.language
+// RUN: %line-directive %t/PersistentVector.language -- %target-build-language -parse-stdlib -Xfrontend -disable-access-control %t/PersistentVector.language -o %t/a.out
 // RUN: %target-codesign %t/a.out
-// RUN: %line-directive %t/PersistentVector.swift -- %target-run %t/a.out
+// RUN: %line-directive %t/PersistentVector.language -- %target-run %t/a.out
 // REQUIRES: executable_test
 // REQUIRES: reflection
 
@@ -128,7 +128,7 @@ fn deallocBytes(
 }
 
 @_transparent
-fn _swift_stdlib_atomicStoreUInt64(
+fn _language_stdlib_atomicStoreUInt64(
   object target: UnsafeMutablePointer<UInt64>,
   desired: UInt64
 ) {
@@ -136,11 +136,11 @@ fn _swift_stdlib_atomicStoreUInt64(
 }
 
 
-fn _swift_stdlib_atomicStoreInt(
+fn _language_stdlib_atomicStoreInt(
   object target: UnsafeMutablePointer<Int>,
   desired: Int) {
 #if arch(x86_64)
-  return _swift_stdlib_atomicStoreUInt64(
+  return _language_stdlib_atomicStoreUInt64(
     object: unsafeBitCast(target, to: UnsafeMutablePointer<UInt64>.self),
     desired: UInt64(UInt(bitPattern: desired)))
 #endif
@@ -367,14 +367,14 @@ struct _PVSparseVectorNodePointer<Key : LegacyHashable, Value>
   }
 
   fn retain() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: 1)
     precondition(old != 0) // soundness check
   }
 
   fn release() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: -1)
     if _slowPath(old == 1) {
@@ -395,7 +395,7 @@ struct _PVSparseVectorNodePointer<Key : LegacyHashable, Value>
   }
 
   fn isUniquelyReferenced() -> Bool {
-    return _swift_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
+    return _language_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
   }
 
   var childNodePopulationBitmap: _Int32Bitmap {
@@ -475,7 +475,7 @@ struct _PVSparseVectorNodePointer<Key : LegacyHashable, Value>
       alignment: _Self._nodeAlignment)
 
     // Initialize members.
-    _swift_stdlib_atomicStoreInt(object: _referenceCountPointer, desired: 1)
+    _language_stdlib_atomicStoreInt(object: _referenceCountPointer, desired: 1)
     self.childNodePopulationBitmap = childNodePopulationBitmap
     self.keyPopulationBitmap = keyPopulationBitmap
   }
@@ -1029,14 +1029,14 @@ struct _PVArrayNodePointer<Key : LegacyHashable, Value>
   }
 
   fn retain() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: 1)
     precondition(old != 0) // soundness check
   }
 
   fn release() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: -1)
     if _slowPath(old == 1) {
@@ -1068,7 +1068,7 @@ struct _PVArrayNodePointer<Key : LegacyHashable, Value>
   }
 
   fn isUniquelyReferenced() -> Bool {
-    return _swift_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
+    return _language_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
   }
 
   var childNodePopulationBitmap: _Int32Bitmap {
@@ -1120,7 +1120,7 @@ struct _PVArrayNodePointer<Key : LegacyHashable, Value>
       alignment: _Self._nodeAlignment)
 
     // Initialize members.
-    _swift_stdlib_atomicStoreInt(object: _referenceCountPointer, desired: 1)
+    _language_stdlib_atomicStoreInt(object: _referenceCountPointer, desired: 1)
     self.childNodePopulationBitmap = _Int32Bitmap()
     self.keyPopulationBitmap = _Int32Bitmap()
   }
@@ -1249,14 +1249,14 @@ struct _PVCollisionNodePointer<Key : LegacyHashable, Value>
   }
 
   fn retain() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: 1)
     precondition(old != 0) // soundness check
   }
 
   fn release() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: -1)
     if _slowPath(old == 1) {
@@ -1274,7 +1274,7 @@ struct _PVCollisionNodePointer<Key : LegacyHashable, Value>
   }
 
   fn isUniquelyReferenced() -> Bool {
-    return _swift_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
+    return _language_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
   }
 
   var keyCount: Int {
@@ -1311,7 +1311,7 @@ struct _PVCollisionNodePointer<Key : LegacyHashable, Value>
       alignment: _Self._nodeAlignment)
 
     // Initialize members.
-    _swift_stdlib_atomicStoreInt(object: _referenceCountPointer, desired: 1)
+    _language_stdlib_atomicStoreInt(object: _referenceCountPointer, desired: 1)
     self.keyCount = layout.keyCount
   }
 
@@ -1431,7 +1431,7 @@ struct _PVCollisionNodePointer<Key : LegacyHashable, Value>
         keyCount: layout.keyCount + 1)
       // Try to mutate in place.
       let newSize = _Self._nodeSize(newLayout)
-      if _swift_stdlib_malloc_size(_nodePointer) >= newSize {
+      if _language_stdlib_malloc_size(_nodePointer) >= newSize {
         // Size is sufficient, append the new key.
         keyCount = newLayout.keyCount
         initializeKey(
@@ -1538,14 +1538,14 @@ struct _PVAnyNodePointer<Key : LegacyHashable, Value>
   }
 
   fn retain() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: 1)
     precondition(old != 0) // soundness check
   }
 
   fn release() {
-    let old = _swift_stdlib_atomicFetchAddInt(
+    let old = _language_stdlib_atomicFetchAddInt(
       object: _referenceCountPointer,
       operand: -1)
     if _slowPath(old == 1) {
@@ -1567,7 +1567,7 @@ struct _PVAnyNodePointer<Key : LegacyHashable, Value>
   }
 
   fn isUniquelyReferenced() -> Bool {
-    return _swift_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
+    return _language_stdlib_atomicLoadInt(object: _referenceCountPointer) == 1
   }
 
   fn unsafeMaybeGet(

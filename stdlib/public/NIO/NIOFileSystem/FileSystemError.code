@@ -17,9 +17,9 @@ import SystemPackage
 
 /// An error thrown as a result of interaction with the file system.
 ///
-/// All errors have a high-level ``FileSystemError/Code-swift.struct`` which identifies the domain
+/// All errors have a high-level ``FileSystemError/Code-language.struct`` which identifies the domain
 /// of the error. For example an operation performed on a ``FileHandleProtocol`` which has already been
-/// closed will result in a ``FileSystemError/Code-swift.struct/closed`` error code. Errors also
+/// closed will result in a ``FileSystemError/Code-language.struct/closed`` error code. Errors also
 /// include a message describing what went wrong and how to remedy it (if applicable). The
 /// ``FileSystemError/message`` is not static and may include dynamic information such as the path
 /// of the file for which the operation failed, for example.

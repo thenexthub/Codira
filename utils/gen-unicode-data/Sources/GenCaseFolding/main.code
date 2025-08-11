@@ -1,19 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Codira.org open source project
+// This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
 fn getCaseData(for path: String) -> [UInt32: [UInt32]] {
-  immutable data = readFile(path)
+  let data = readFile(path)
   
   var mappings: [UInt32: [UInt32]] = [:]
   
@@ -23,18 +23,18 @@ fn getCaseData(for path: String) -> [UInt32: [UInt32]] {
       continue
     }
     
-    immutable components = line.split(separator: ";")
+    let components = line.split(separator: ";")
     
-    immutable status = components[1].filter { !$0.isWhitespace }
+    let status = components[1].filter { !$0.isWhitespace }
     
     // We only care about Common and Full case mappings.
     guard status == "C" || status == "F" else {
       continue
     }
     
-    immutable scalar = UInt32(components[0], radix: 16)!
+    let scalar = UInt32(components[0], radix: 16)!
     
-    immutable mapping = components[2].split(separator: " ").map { UInt32($0, radix: 16)! }
+    let mapping = components[2].split(separator: " ").map { UInt32($0, radix: 16)! }
     
     mappings[scalar] = mapping
   }
@@ -43,7 +43,7 @@ fn getCaseData(for path: String) -> [UInt32: [UInt32]] {
 }
 
 fn emitCaseData(_ data: [UInt32: [UInt32]], into result: inout String) {
-  immutable caseMph = mph(for: data.keys.map { UInt64($0) })
+  let caseMph = mph(for: data.keys.map { UInt64($0) })
   
   emitMph(
     caseMph,
@@ -58,7 +58,7 @@ fn emitCaseData(_ data: [UInt32: [UInt32]], into result: inout String) {
   )
   
   for (key, mapping) in data {
-    immutable idx = caseMph.index(for: UInt64(key))
+    let idx = caseMph.index(for: UInt64(key))
     
     caseData[idx] = (key, mapping)
   }
@@ -80,15 +80,15 @@ fn emitCaseData(_ data: [UInt32: [UInt32]], into result: inout String) {
       return "0x\(String(value, radix: 16, uppercase: true))"
     }
     
-    immutable distance = Int32($0) - Int32($1[0])
+    let distance = Int32($0) - Int32($1[0])
     
     value |= UInt64(UInt32(bitPattern: distance)) << 21
     
     return "0x\(String(value, radix: 16, uppercase: true))"
   }
   
-  immutable fullData = data.filter { $1.count > 1 }
-  immutable fullMph = mph(for: fullData.keys.map { UInt64($0) })
+  let fullData = data.filter { $1.count > 1 }
+  let fullMph = mph(for: fullData.keys.map { UInt64($0) })
   
   emitMph(
     fullMph,
@@ -103,7 +103,7 @@ fn emitCaseData(_ data: [UInt32: [UInt32]], into result: inout String) {
   )
   
   for (key, mapping) in fullData {
-    immutable idx = fullMph.index(for: UInt64(key))
+    let idx = fullMph.index(for: UInt64(key))
     
     fullCaseData[idx] = (key, mapping)
   }
@@ -121,7 +121,7 @@ fn emitCaseData(_ data: [UInt32: [UInt32]], into result: inout String) {
     value |= UInt64($1.count) << 62
     
     for (i, scalar) in $1.enumerated() {
-      immutable distance = Int32($0) - Int32(scalar)
+      let distance = Int32($0) - Int32(scalar)
       assert(distance.magnitude <= UInt16.max)
       
       value |= UInt64(distance.magnitude) << (i * 17)
@@ -138,7 +138,7 @@ fn emitCaseData(_ data: [UInt32: [UInt32]], into result: inout String) {
 fn generateScriptProperties() {
   var result = readFile("Input/CaseData.h")
   
-  immutable data = getCaseData(for: "Data/16/CaseFolding.txt")
+  let data = getCaseData(for: "Data/16/CaseFolding.txt")
   emitCaseData(data, into: &result)
 
   result += """

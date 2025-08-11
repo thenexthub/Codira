@@ -15,9 +15,9 @@
 
 package com.example.code;
 
-// Import swift-extract generated sources
+// Import language-extract generated sources
 
-// Import javakit/swiftkit support libraries
+// Import javakit/languagekit support libraries
 
 import org.code.codekit.core.SwiftLibraries;
 import org.code.codekit.core.ConfinedSwiftMemorySession;

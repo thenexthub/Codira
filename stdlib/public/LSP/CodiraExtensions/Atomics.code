@@ -15,7 +15,7 @@
 
 import CAtomics
 
-// TODO: Use atomic types from the standard library (https://github.com/swiftlang/sourcekit-lsp/issues/1949)
+// TODO: Use atomic types from the standard library (https://github.com/languagelang/sourcekit-lsp/issues/1949)
 package final class AtomicBool: Sendable {
   private nonisolated(unsafe) immutable atomic: UnsafeMutablePointer<CAtomicUInt32>
 

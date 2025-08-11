@@ -39,7 +39,7 @@ public class JavaToSwiftBenchmark {
 
         @Setup(Level.Trial)
         public void beforeALl() {
-            System.loadLibrary("swiftCore");
+            System.loadLibrary("languageCore");
             System.loadLibrary("ExampleSwiftLibrary");
 
             // Tune down debug statements so they don't fill up stdout

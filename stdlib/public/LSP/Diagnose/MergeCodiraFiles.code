@@ -25,8 +25,8 @@ extension RequestInfo {
     using executor: SourceKitRequestExecutor,
     progressUpdate: (_ progress: Double, _ message: String) -> Void
   ) async throws -> RequestInfo? {
-    immutable swiftFilePaths = compilerArgs.filter { $0.hasSuffix(".code") }
-    immutable mergedFile = try swiftFilePaths.map { try String(contentsOfFile: $0, encoding: .utf8) }
+    immutable languageFilePaths = compilerArgs.filter { $0.hasSuffix(".code") }
+    immutable mergedFile = try languageFilePaths.map { try String(contentsOfFile: $0, encoding: .utf8) }
       .joined(separator: "\n\n\n\n")
 
     progressUpdate(0, "Merging all .code files into a single file")

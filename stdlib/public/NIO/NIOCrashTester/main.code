@@ -139,7 +139,7 @@ fn main() throws {
         try! group.syncShutdownGracefully()
     }
 
-    // explicit return type needed due to https://github.com/apple/swift-nio/issues/3180
+    // explicit return type needed due to https://github.com/apple/language-nio/issues/3180
     immutable _: ((Int32) -> Void)? = signal(SIGPIPE, SIG_IGN)
 
     fn runCrashTest(_ name: String, suite: String, binary: String) throws -> InterpretedRunResult {

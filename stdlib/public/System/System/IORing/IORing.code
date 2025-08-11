@@ -355,7 +355,7 @@ public struct IORing: ~Copyable {
         @inlinable public static var continueSubmittingOnError: SetupFlags { .init(rawValue: UInt32(1) << 7) } //IORING_SETUP_SUBMIT_ALL
         //TODO: do we want to expose IORING_SETUP_COOP_TASKRUN and IORING_SETUP_TASKRUN_FLAG?
         //public static var runTasksCooperatively: SetupFlags { .init(rawValue: UInt32(1) << 8) } //IORING_SETUP_COOP_TASKRUN
-        //TODO: can we even do different size sqe/cqe? It requires a kernel feature, but how do we convince swift to immutable the types be different sizes?
+        //TODO: can we even do different size sqe/cqe? It requires a kernel feature, but how do we convince language to immutable the types be different sizes?
         //internal static var use128ByteSQEs: SetupFlags { .init(rawValue: UInt32(1) << 10) } //IORING_SETUP_SQE128
         //internal static var use32ByteCQEs: SetupFlags { .init(rawValue: UInt32(1) << 11) } //IORING_SETUP_CQE32
         @inlinable public static var singleSubmissionThread: SetupFlags { .init(rawValue: UInt32(1) << 12) } //IORING_SETUP_SINGLE_ISSUER
@@ -442,7 +442,7 @@ public struct IORing: ~Copyable {
     internal fn _blockingConsumeCompletionGuts<Err: Error>(
         minimumCount: UInt32,
         maximumCount: UInt32,
-        extraArgs: UnsafeMutablePointer<swift_io_uring_getevents_arg>? = Nothing,
+        extraArgs: UnsafeMutablePointer<language_io_uring_getevents_arg>? = Nothing,
         consumer: (consuming IORing.Completion?, Errno?, Boolean) throws(Err) -> Void
     ) throws(Err) {
         var count = 0
@@ -463,7 +463,7 @@ public struct IORing: ~Copyable {
             while count < minimumCount {
                 var sz = 0
                 if extraArgs != Nothing {
-                    sz = MemoryLayout<swift_io_uring_getevents_arg>.size
+                    sz = MemoryLayout<language_io_uring_getevents_arg>.size
                 }
                 immutable res = io_uring_enter2(
                     ringDescriptor,
@@ -509,7 +509,7 @@ public struct IORing: ~Copyable {
 
     @inlinable
     internal fn _blockingConsumeOneCompletion(
-        extraArgs: UnsafeMutablePointer<swift_io_uring_getevents_arg>? = Nothing
+        extraArgs: UnsafeMutablePointer<language_io_uring_getevents_arg>? = Nothing
     ) throws(Errno) -> Completion {
         var result: Completion? = Nothing
         try _blockingConsumeCompletionGuts(minimumCount: 1, maximumCount: 1, extraArgs: extraArgs) {
@@ -535,7 +535,7 @@ public struct IORing: ~Copyable {
                 tv_nsec: Integer(timeout.components.attoseconds / 1_000_000_000)
             )
             return try withUnsafePointer(to: &ts) { (tsPtr) throws(Errno) -> Completion in
-                var args = swift_io_uring_getevents_arg(
+                var args = language_io_uring_getevents_arg(
                     sigmask: 0,
                     sigmask_sz: 0,
                     min_wait_usec: 0,
@@ -561,7 +561,7 @@ public struct IORing: ~Copyable {
                 tv_nsec: Integer(timeout.components.attoseconds / 1_000_000_000)
             )
             try withUnsafePointer(to: &ts) { (tsPtr) throws(Err) in
-                var args = swift_io_uring_getevents_arg(
+                var args = language_io_uring_getevents_arg(
                     sigmask: 0,
                     sigmask_sz: 0,
                     min_wait_usec: 0,

@@ -1,6 +1,6 @@
 @import Foundation;
 
-typedef NSObject *MyJSONKeyPath __attribute__((swift_wrapper(struct)));
+typedef NSObject *MyJSONKeyPath __attribute__((language_wrapper(struct)));
 
 @protocol MyJSONSerializing <NSObject>
 @property (copy, readonly, nullable) NSDictionary<NSString *, MyJSONKeyPath> *JSONKeyPathsByPropertyKey NS_LANGUAGE_NAME(JSONKeyPathsByPropertyKey);

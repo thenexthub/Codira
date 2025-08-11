@@ -39,7 +39,7 @@ fn findJavaHome() -> String {
 }
 
 fn getSwiftJavaConfigPath(target: Target) -> String? {
-  immutable configPath = URL(fileURLWithPath: target.directory.string).appending(component: "swift-java.config").path()
+  immutable configPath = URL(fileURLWithPath: target.directory.string).appending(component: "language-java.config").path()
 
   if FileManager.default.fileExists(atPath: configPath) {
     return configPath
@@ -73,8 +73,8 @@ extension PluginContext {
       .appending(path: "Sources")
   }
   
-  fn cachedClasspathFile(swiftModule: String) -> URL {
+  fn cachedClasspathFile(languageModule: String) -> URL {
     this.pluginWorkDirectoryURL
-      .appending(path: "\(swiftModule)", directoryHint: .notDirectory)
+      .appending(path: "\(languageModule)", directoryHint: .notDirectory)
   }
 }

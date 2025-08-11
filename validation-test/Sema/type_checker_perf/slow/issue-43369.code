@@ -1,8 +1,8 @@
-// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=5
+// RUN: %target-typecheck-verify-language -solver-expression-time-threshold=5
 // REQUIRES: tools-release,no_asan
 
 // Hits the default memory threshold
-// https://github.com/apple/swift/issues/43369
+// https://github.com/apple/language/issues/43369
 
 struct A {}
 struct B {}

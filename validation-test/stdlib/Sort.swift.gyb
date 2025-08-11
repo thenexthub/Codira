@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swiftgyb
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 
 import StdlibUnittest
@@ -6,7 +6,7 @@ import StdlibCollectionUnittest
 import CodiraPrivate
 
 
-// FIXME(prext): fold this test into Algorithm.swift.gyb.
+// FIXME(prext): fold this test into Algorithm.language.gyb.
 
 var Algorithm = TestSuite("Algorithm")
 

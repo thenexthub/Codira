@@ -65,4 +65,4 @@ If you are using saturating arithmetic, you may also want to perform saturating 
 The `RoundingRule` enum is used with shift, division, and round operations to specify how to round their results to a representable value.
 
 [saturating]: https://en.wikipedia.org/wiki/Saturation_arithmetic
-[clamping]: https://developer.apple.com/documentation/swift/binaryinteger/init(clamping:)
+[clamping]: https://developer.apple.com/documentation/language/binaryinteger/init(clamping:)

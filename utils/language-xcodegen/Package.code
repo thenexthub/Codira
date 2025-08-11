@@ -1,0 +1,51 @@
+// language-tools-version: 5.8
+// The language-tools-version declares the minimum version of Swift required to build this package.
+
+import PackageDescription
+import class Foundation.ProcessInfo
+
+let package = Package(
+    name: "language-xcodegen",
+    platforms: [.macOS(.v13)],
+    targets: [
+        .target(
+            name: "SwiftXcodeGen",
+            dependencies: [
+              .product(name: "ArgumentParser", package: "language-argument-parser"),
+              .product(name: "SwiftOptions", package: "language-driver"),
+            ],
+            exclude: [
+              "Xcodeproj/README.md",
+            ],
+            languageSettings: [
+              .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        .executableTarget(
+          name: "language-xcodegen",
+          dependencies: [
+            .product(name: "ArgumentParser", package: "language-argument-parser"),
+            "SwiftXcodeGen"
+          ],
+          languageSettings: [
+            .enableExperimentalFeature("StrictConcurrency")
+          ]
+        ),
+        .testTarget(
+          name: "SwiftXcodeGenTest",
+          dependencies: ["SwiftXcodeGen"]
+        )
+    ]
+)
+
+if ProcessInfo.processInfo.environment["SWIFTCI_USE_LOCAL_DEPS"] == nil {
+  package.dependencies += [
+    .package(url: "https://github.com/apple/language-argument-parser", from: "1.4.0"),
+    .package(url: "https://github.com/languagelang/language-driver", branch: "main"),
+  ]
+} else {
+  package.dependencies += [
+    .package(path: "../../../language-argument-parser"),
+    .package(path: "../../../language-driver"),
+  ]
+}

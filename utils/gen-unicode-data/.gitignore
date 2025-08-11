@@ -4,6 +4,6 @@
 /*.xcodeproj
 xcuserdata/
 DerivedData/
-.codepm/xcode/package.xcworkspace/contents.xcworkspacedata
+.languagepm/xcode/package.xcworkspace/contents.xcworkspacedata
 Package.resolved
 Output/

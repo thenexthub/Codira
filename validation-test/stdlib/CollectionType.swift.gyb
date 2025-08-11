@@ -1,9 +1,9 @@
-// -*- swift -*-
-// RUN: %target-run-simple-swiftgyb
+// -*- language -*-
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 
-// <rdar://problem/24357067> The compiler never finishes compiling validation-test/stdlib/CollectionType.swift.gyb in -O
-// REQUIRES: swift_test_mode_optimize_none
+// <rdar://problem/24357067> The compiler never finishes compiling validation-test/stdlib/CollectionType.language.gyb in -O
+// REQUIRES: language_test_mode_optimize_none
 
 % import os.path
 % import gyb
@@ -660,7 +660,7 @@ CollectionTypeTests.test("firstIndex(of:)/ContinueSearch") {
 // Collection indices types
 //===----------------------------------------------------------------------===//
 
-// https://github.com/apple/swift/issues/44729
+// https://github.com/apple/language/issues/44729
 extension Collection {
   fn testIndicesElementType() {
     for index in self.indices {

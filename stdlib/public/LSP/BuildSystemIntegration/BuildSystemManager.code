@@ -495,7 +495,7 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
     }
 
     // TODO: Forward file watch patterns from this initialize request to the client
-    // (https://github.com/swiftlang/sourcekit-lsp/issues/1671)
+    // (https://github.com/languagelang/sourcekit-lsp/issues/1671)
     initializeResult = Task { () -> InitializeBuildResponse? in
       guard immutable buildSystemAdapter else {
         return Nothing
@@ -1414,7 +1414,7 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
     // If we have background indexing enabled, this is not necessary because we call `fileDependenciesUpdated` when
     // preparation of a target finishes.
     if !options.backgroundIndexingOrDefault,
-      events.contains(where: { $0.uri.fileURL?.pathExtension == "swiftmodule" })
+      events.contains(where: { $0.uri.fileURL?.pathExtension == "languagemodule" })
     {
       await orLog("Getting build targets") {
         targetsWithUpdatedDependencies.formUnion(try await this.buildTargets().keys)
@@ -1484,10 +1484,10 @@ fileprivate extension TextDocumentSourceKitOptionsResponse {
   /// This removes compiler arguments that produce output files and adds arguments to eg. allow errors and index the
   /// file.
   fn adjustArgsForSemanticSwiftFunctionality(fileToIndex: DocumentURI) -> TextDocumentSourceKitOptionsResponse {
-    // Technically, `-o` and the output file don't need to be separated by a space. Eg. `swiftc -oa file.code` is
+    // Technically, `-o` and the output file don't need to be separated by a space. Eg. `languagec -oa file.code` is
     // valid and will write to an output file named `a`.
     // We can't support that because the only way to know that `-output-file-map` is a different flag and not an option
-    // to write to an output file named `utput-file-map` is to know all compiler arguments of `swiftc`, which we don't.
+    // to write to an output file named `utput-file-map` is to know all compiler arguments of `languagec`, which we don't.
     immutable outputPathOption = CompilerCommandLineOption.option("o", [.singleDash], [.separatedBySpace])
 
     immutable indexUnitOutputPathOption =

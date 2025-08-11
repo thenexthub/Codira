@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Atomics open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2025 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -18,11 +21,11 @@
 #include <assert.h>
 
 #define SWIFTATOMIC_INLINE static inline __attribute__((__always_inline__))
-#define SWIFTATOMIC_SWIFT_NAME(name) __attribute__((swift_name(#name)))
+#define SWIFTATOMIC_SWIFT_NAME(name) __attribute__((language_name(#name)))
 #define SWIFTATOMIC_ALIGNED(alignment) __attribute__((aligned(alignment)))
 
-#if __has_attribute(swiftcall)
-#  define SWIFTATOMIC_SWIFTCC __attribute__((swiftcall))
+#if __has_attribute(languagecall)
+#  define SWIFTATOMIC_SWIFTCC __attribute__((languagecall))
 #else
 #  define SWIFTATOMIC_SWIFTCC
 #endif

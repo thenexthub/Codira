@@ -5,7 +5,7 @@ This sample application provides a simple TCP server that sends clients back wha
 To run this server execute the following from the root of the repository:
 
 ```bash
-swift run NIOTCPEchoServer
+language run NIOTCPEchoServer
 ```
 
 You can then use the `NIOTCPClient` to send requests to the server.

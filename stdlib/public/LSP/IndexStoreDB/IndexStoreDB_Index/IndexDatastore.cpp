@@ -558,8 +558,8 @@ void StoreUnitRepo::registerUnit(StringRef unitName, bool isInitialScan, std::sh
           StringRef recordName = dep.Name;
           StringRef moduleName = dep.ModuleName;
           if (moduleName.empty()) {
-            // Workaround for swift compiler not associating the module name with records of swift files.
-            // FIXME: Fix this on swift compiler and remove this.
+            // Workaround for language compiler not associating the module name with records of language files.
+            // FIXME: Fix this on language compiler and remove this.
             if (StringRef(CanonPath.getPath()).endswith(".code")) {
               moduleName = Reader.getModuleName();
             }

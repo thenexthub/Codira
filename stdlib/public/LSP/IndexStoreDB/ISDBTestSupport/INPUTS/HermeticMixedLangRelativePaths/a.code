@@ -1,6 +1,6 @@
 #if os(macOS)
-fn test(c: /*C:ref:swift*/C) {
-  c . /*C.method:call:swift*/method()
+fn test(c: /*C:ref:language*/C) {
+  c . /*C.method:call:language*/method()
 }
 #endif
 

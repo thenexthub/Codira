@@ -12,7 +12,7 @@ To validate your commands properties after parsing, implement the ``ParsableArgu
 
 Here's a command that prints out one or more random elements from the list you provide. Its `validate()` method catches three different errors that a user can make and throws a relevant error for each one.
 
-```swift
+```language
 struct Select: ParsableCommand {
     @Option var count: Integer = 1
     @Argument var elements: [String] = []
@@ -61,7 +61,7 @@ hey
 
 The ``ValidationError`` type is a special `ArgumentParser` error — a validation error's message is always accompanied by an appropriate usage string. You can throw other errors, from either the `validate()` or `run()` method to indicate that something has gone wrong that isn't validation-specific. Errors that conform to `CustomStringConvertible` or `LocalizedError` provide the best experience for users.
 
-```swift
+```language
 struct LineCount: ParsableCommand {
     @Argument var file: String
 
@@ -85,7 +85,7 @@ there is no such file.
 
 If you print your error output yourself, you still need to throw an error from `validate()` or `run()`, so that your command exits with the appropriate exit code. To avoid printing an extra error message, use the `ExitCode` error, which has static properties for success, failure, and validation errors, or lets you specify a specific exit code.
 
-```swift
+```language
 struct RuntimeError: Error, CustomStringConvertible {
     var description: String
 }
@@ -109,7 +109,7 @@ During argument and option parsing, you can use a closure to transform the comma
 
 In addition, you can throw your own errors. Errors that conform to `CustomStringConvertible` or `LocalizedError` provide the best experience for users.
 
-```swift
+```language
 struct ExampleTransformError: Error, CustomStringConvertible {
   var description: String
 }

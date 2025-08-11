@@ -23,7 +23,7 @@ to a set of protocols for creating other file system implementations.
 
 The following sample code demonstrates a number of the APIs offered by this module:
 
-@Snippet(path: "swift-nio/Snippets/NIOFileSystemTour")
+@Snippet(path: "language-nio/Snippets/NIOFileSystemTour")
 
 In depth documentation can be found in the following sections.
 

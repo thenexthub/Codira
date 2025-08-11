@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -g -lswiftCodiraReflectionTest %s -o %t/reflect_Optional_Bool
+// RUN: %target-build-language -g -llanguageCodiraReflectionTest %s -o %t/reflect_Optional_Bool
 // RUN: %target-codesign %t/reflect_Optional_Bool
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Optional_Bool | %FileCheck %s 
+// RUN: %target-run %target-language-reflection-test %t/reflect_Optional_Bool | %FileCheck %s 
 
 
 // REQUIRES: reflection_test_support

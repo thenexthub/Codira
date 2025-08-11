@@ -1,12 +1,12 @@
 // RUN: %empty-directory(%t)
 
-// RUN: %target-build-swift-dylib(%t/%target-library-name(resilient_enums)) -enable-library-evolution %S/Inputs/reflect_Enum_values_resilient_enums.swift -emit-module -emit-module-path %t/resilient_enums.swiftmodule -module-name resilient_enums
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_enums)) -enable-library-evolution %S/Inputs/reflect_Enum_values_resilient_enums.language -emit-module -emit-module-path %t/resilient_enums.languagemodule -module-name resilient_enums
 // RUN: %target-codesign %t/%target-library-name(resilient_enums)
 
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -L %t -I %t -lresilient_enums -o %t/reflect_Enum_values_resilient %target-rpath(%t)
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -L %t -I %t -lresilient_enums -o %t/reflect_Enum_values_resilient %target-rpath(%t)
 // RUN: %target-codesign %t/reflect_Enum_values_resilient
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Enum_values_resilient | tee /dev/stderr | %FileCheck %s --dump-input=fail
+// RUN: %target-run %target-language-reflection-test %t/reflect_Enum_values_resilient | tee /dev/stderr | %FileCheck %s --dump-input=fail
 
 // REQUIRES: executable_test
 // REQUIRES: objc_interop, OS=macosx

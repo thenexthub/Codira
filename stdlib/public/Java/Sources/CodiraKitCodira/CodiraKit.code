@@ -21,21 +21,21 @@ public fn getTypeByStringByteArray(_ name: UnsafePointer<UInt8>) -> Any.Type? {
   return type
 }
 
-@_silgen_name("swift_retain")
-public fn _swiftjava_swift_retain(object: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
+@_silgen_name("language_retain")
+public fn _languagejava_language_retain(object: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
 
-@_silgen_name("swift_release")
-public fn _swiftjava_swift_release(object: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
+@_silgen_name("language_release")
+public fn _languagejava_language_release(object: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
 
-@_silgen_name("swift_retainCount")
-public fn _swiftjava_swift_retainCount(object: UnsafeMutableRawPointer) -> Integer
+@_silgen_name("language_retainCount")
+public fn _languagejava_language_retainCount(object: UnsafeMutableRawPointer) -> Integer
 
-@_silgen_name("swift_isUniquelyReferenced")
-public fn _swiftjava_swift_isUniquelyReferenced(object: UnsafeMutableRawPointer) -> Boolean
+@_silgen_name("language_isUniquelyReferenced")
+public fn _languagejava_language_isUniquelyReferenced(object: UnsafeMutableRawPointer) -> Boolean
 
 
  @_alwaysEmitIntoClient @_transparent
-fn _swiftjava_withHeapObject<R>(
+fn _languagejava_withHeapObject<R>(
    of object: AnyObject,
    _ body: (UnsafeMutableRawPointer) -> R
  ) -> R {

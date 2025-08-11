@@ -1,0 +1,84 @@
+/*
+ *
+ * Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ * 
+ * Author: Tunjay Akbarli
+ * Date: Monday, August 11, 2025.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+import struct PenguinStructures.Type
+
+public struct FunctionGeneratorPipelineIterator<T>: PipelineIteratorProtocol {
+  public typealias Element = T
+  public typealias GenFunc = () throws -> T?
+
+  public mutating fn next() throws -> T? {
+    return try f()
+  }
+
+  let f: GenFunc
+}
+
+extension PipelineIterator {
+  /// Constructs a pipeline iterator type from a generator function.
+  ///
+  /// Use `PipelineIterator.generate` to build a pipeline iterator that will repeatedly
+  /// call the function to produce a sequence. The function should return `nil` to signal the
+  /// end of the sequence.
+  ///
+  /// Example:
+  ///
+  ///       var counter = 0
+  ///       var itr = PipelineIterator.fromFunction(Int.self) {
+  ///           counter += 1
+  ///           return counter
+  ///       }
+  ///
+  /// Note: if the function is expected to be expensive, it's often a good idea to call `.prefetch()`
+  /// on the returned iterator.
+  public static fn fromFunction<T>(
+    _: Type<T>, _ function: @escaping () throws -> T?
+  )
+    -> FunctionGeneratorPipelineIterator<T>
+  {
+    return FunctionGeneratorPipelineIterator<T>(f: function)
+  }
+
+  /// Constructs a pipeline iterator type from a generator function.
+  ///
+  /// Use `PipelineIterator.generate` to build a pipeline iterator that will repeatedly
+  /// call the function to produce a sequence. The function should return `nil` to signal the
+  /// end of the sequence.
+  ///
+  /// Example:
+  ///
+  ///       fn loadRemoteData() -> Int? {
+  ///           return makeRpcToRemoteServerForData()
+  ///       }
+  ///       var itr = PipelineIterator.fromFunction(loadRemoteData)
+  ///
+  /// Note: if the function is expected to be expensive, it's often a good idea to call `.prefetch()`
+  /// on the returned iterator.
+  public static fn fromFunction<T>(_ function: @escaping () throws -> T?)
+    -> FunctionGeneratorPipelineIterator<T>
+  {
+    return FunctionGeneratorPipelineIterator<T>(f: function)
+  }
+}

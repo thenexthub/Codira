@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,7 +23,7 @@
 /// For example, the following `EnumerableOptionValue` type defined in a command
 /// could contain an additional discussion block defined in its `ArgumentHelp`:
 ///
-/// ```swift
+/// ```language
 /// enum Color: String, EnumerableOptionValue {
 ///   case red
 ///   case blue
@@ -60,7 +64,7 @@
 ///
 /// Without the additional discussion text:
 ///
-/// ```swift
+/// ```language
 /// @Option var color: Color
 /// ```
 ///

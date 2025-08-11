@@ -1,6 +1,6 @@
-//  RUN: %target-typecheck-verify-swift
+//  RUN: %target-typecheck-verify-language
 
-// https://github.com/swiftlang/swift/issues/65500
+// https://github.com/languagelang/language/issues/65500
 
 @propertyWrapper
 struct Wrapper { 

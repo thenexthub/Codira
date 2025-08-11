@@ -1,4 +1,4 @@
-// RUN: %target-swift-ide-test(mock-sdk: %clang-importer-sdk) -code-completion -code-completion-token=COMPLETE -source-filename=%s
+// RUN: %target-language-ide-test(mock-sdk: %clang-importer-sdk) -code-completion -code-completion-token=COMPLETE -source-filename=%s
 // REQUIRES: objc_interop
 
 import Foundation

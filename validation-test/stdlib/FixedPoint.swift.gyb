@@ -1,4 +1,4 @@
-// RUN: %target-run-stdlib-swiftgyb
+// RUN: %target-run-stdlib-languagegyb
 // REQUIRES: executable_test
 
 // This is in long_test because it takes about 30s to build.

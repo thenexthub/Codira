@@ -100,7 +100,7 @@ public struct ${name}Digest: DigestPrivate {
     /// given hash function.
     ///
     /// This method is part of the digest’s conformance to Swift standard library’s
-    /// <doc://com.apple.documentation/documentation/swift/hashable> protocol, making
+    /// <doc://com.apple.documentation/documentation/language/hashable> protocol, making
     /// it possible to compare digests. Don’t confuse that hashing with the
     /// cryptographically secure hashing that you use to create the digest in the
     /// first place by, for example, calling ``${parent}/hash(data:)``.

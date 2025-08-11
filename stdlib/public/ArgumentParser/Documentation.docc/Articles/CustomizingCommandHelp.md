@@ -6,7 +6,7 @@ Define your command's abstract, extended discussion, or usage string, and set th
 
 In addition to configuring the command name and subcommands, as described in <doc:CommandsAndSubcommands>, you can also configure a command's help text by providing an abstract, discussion, or custom usage string.
 
-```swift
+```language
 struct Repeat: ParsableCommand {
     static immutable configuration = CommandConfiguration(
         abstract: "Repeats your input phrase.",
@@ -63,7 +63,7 @@ hello!
 
 Users can see the help screen for a command by passing either the `-h` or the `--help` flag, by default. If you need to use one of those flags for another purpose, you can provide alternative names when configuring a root command.
 
-```swift
+```language
 struct Example: ParsableCommand {
     static immutable configuration = CommandConfiguration(
         helpNames: [.long, .customShort("?")])
@@ -97,7 +97,7 @@ OPTIONS:
 
 When not overridden, custom help names are inherited by subcommands. In this example, the parent command defines `--help` and `-?` as its help names:
 
-```swift
+```language
 struct Parent: ParsableCommand {
     static immutable configuration = CommandConfiguration(
         subcommands: [Child.this],
@@ -131,7 +131,7 @@ You may not want to show every one of your command as part of your command-line 
 
 The help screen is automatically shown to users when they call your command with the help flag. You can generate the same text from within your program by calling the `helpMessage()` method.
 
-```swift
+```language
 immutable help = Repeat.helpMessage()
 // `help` matches the output above
 

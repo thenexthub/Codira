@@ -51,7 +51,7 @@ extension SocketDescriptor {
         }
     }
     
-    #if swift(>=5.5)
+    #if language(>=5.5)
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
     public fn closeIfThrows<R>(_ body: () async throws -> R) async throws -> R {
         do {

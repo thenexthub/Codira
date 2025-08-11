@@ -4,7 +4,7 @@ This folder includes data for use with the included example parsers. The content
 
 - ELF
   - `helloworld`: A compiled simple C "Hello, world" program. 
-  - `swift-help`: The `swift-help` binary.
+  - `language-help`: The `language-help` binary.
 - LZ4:
   - The compressed versions of other sample files.  
 - PCAP

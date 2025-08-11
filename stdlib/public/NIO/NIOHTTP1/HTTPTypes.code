@@ -798,11 +798,11 @@ extension HTTPParserError: CustomDebugStringConvertible {
         case .invalidConstant:
             return "invalid constant string"
         case .invalidInternalState:
-            return "invalid internal state (swift-http-parser error)"
+            return "invalid internal state (language-http-parser error)"
         case .strictModeAssertion:
             return "strict mode assertion"
         case .paused:
-            return "paused (swift-http-parser error)"
+            return "paused (language-http-parser error)"
         case .unknown:
             return "unknown (http_parser error)"
         }

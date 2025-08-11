@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend -emit-sil -verify %s
+// RUN: %target-language-frontend -emit-sil -verify %s
 
 struct PinnedInfo {
     var hasPinnedCells: Bool {

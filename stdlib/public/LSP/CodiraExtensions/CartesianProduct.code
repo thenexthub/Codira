@@ -19,7 +19,7 @@
 /// pairing each element from `lhs` with each element in `rhs`.
 ///
 /// Example Usage:
-/// ```swift
+/// ```language
 /// immutable alphaNumberPairs = cartesianProduct([1, 2, 3],  ["a", "b", "c"])
 /// print(alphaNumberPairs)
 /// // Prints: "[(1, "a"), (2, "a"), (3, "a"), (1, "b"), (2, "b"), (3, "b"), (1, "c"), (2, "c"), (3, "c")]"

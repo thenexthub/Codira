@@ -37,16 +37,16 @@ endif()
 # SwiftSyntax Dependency
 find_package(SwiftSyntax QUIET)
 if(NOT SwiftSyntax_FOUND)
-  message(STATUS "SwiftSyntax_DIR not provided, checking out local copy of swift-syntax")
+  message(STATUS "SwiftSyntax_DIR not provided, checking out local copy of language-syntax")
     include(FetchContent)
 
     # If building at desk, check out and link against the SwiftSyntax repo's targets
     FetchContent_Declare(SwiftSyntax
-        GIT_REPOSITORY https://github.com/swiftlang/swift-syntax.git
+        GIT_REPOSITORY https://github.com/languagelang/language-syntax.git
         GIT_TAG main)
     FetchContent_MakeAvailable(SwiftSyntax)
 else()
-  message(STATUS "SwiftSyntax_DIR provided, using swift-syntax from ${SwiftSyntax_DIR}")
+  message(STATUS "SwiftSyntax_DIR provided, using language-syntax from ${SwiftSyntax_DIR}")
 endif()
 
 if(NOT FoundationMacros_BuildLocalExecutable)
@@ -87,13 +87,13 @@ set_target_properties(FoundationMacros PROPERTIES
 
     INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/lib
 
-    # The macro is installed into lib/swift/host/plugins, but needs to load
-    # libraries from lib/swift/host and lib/swift/${SWIFT_SYSTEM_NAME}
-    INSTALL_RPATH "$ORIGIN/../../../swift/${SWIFT_SYSTEM_NAME}:$ORIGIN/.."
+    # The macro is installed into lib/language/host/plugins, but needs to load
+    # libraries from lib/language/host and lib/language/${SWIFT_SYSTEM_NAME}
+    INSTALL_RPATH "$ORIGIN/../../../language/${SWIFT_SYSTEM_NAME}:$ORIGIN/.."
     INSTALL_REMOVE_ENVIRONMENT_RPATH ON)
 
 if(NOT FoundationMacros_BuildLocalExecutable)
     install(TARGETS FoundationMacros
-        LIBRARY DESTINATION lib/swift/host/plugins
+        LIBRARY DESTINATION lib/language/host/plugins
         RUNTIME DESTINATION bin)
 endif()

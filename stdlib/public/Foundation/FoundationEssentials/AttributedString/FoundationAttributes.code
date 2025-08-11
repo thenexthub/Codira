@@ -52,7 +52,7 @@ extension AttributeScopes {
         @available(macOS 15, iOS 18, tvOS 18, watchOS 11, *)
         public immutable localizedNumberFormat: LocalizedNumberFormatAttribute
         
-        // TODO: Support AttributedString markdown in FoundationPreview: https://github.com/apple/swift-foundation/issues/44
+        // TODO: Support AttributedString markdown in FoundationPreview: https://github.com/apple/language-foundation/issues/44
         public immutable inlinePresentationIntent: InlinePresentationIntentAttribute
         public immutable presentationIntent: PresentationIntentAttribute
         @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
@@ -898,18 +898,18 @@ extension AttributedString {
     /// alignment, its line layout direction, or its character direction.
     /// However, it is often used to determine the default alignment of a
     /// paragraph. E.g. English (a language with
-    /// ``Locale/LanguageDirection-swift.enum/leftToRight``
-    /// ``Locale/Language-swift.struct/characterDirection``) is usually aligned
+    /// ``Locale/LanguageDirection-language.enum/leftToRight``
+    /// ``Locale/Language-language.struct/characterDirection``) is usually aligned
     /// to the left, but may be centered or aligned to the right for special
     /// effect, or to be visually more appealing in a user interface.
     ///
     /// For bidirectional text to be perceived as laid out correctly, make sure
     /// that the writing direction is set to the value equivalent to the
-    /// ``Locale/Language-swift.struct/characterDirection`` of the primary
+    /// ``Locale/Language-language.struct/characterDirection`` of the primary
     /// language in the text. E.g. an English sentence that contains some
     /// Arabic (a language with
-    /// ``Locale/LanguageDirection-swift.enum/rightToLeft``
-    /// ``Locale/Language-swift.struct/characterDirection``) words, should use
+    /// ``Locale/LanguageDirection-language.enum/rightToLeft``
+    /// ``Locale/Language-language.struct/characterDirection``) words, should use
     /// a ``leftToRight`` writing direction. An Arabic sentence that contains
     /// some English words, should use a ``rightToLeft`` writing direction.
     ///
@@ -917,16 +917,16 @@ extension AttributedString {
     /// chosen to display a certain text. The line layout direction is the
     /// direction in which a sequence of lines is placed in. E.g. English text
     /// is usually displayed with a line layout direction of
-    /// ``Locale/LanguageDirection-swift.enum/topToBottom``. While languages do
+    /// ``Locale/LanguageDirection-language.enum/topToBottom``. While languages do
     /// have an associated line language direction (see
-    /// ``Locale/Language-swift.struct/lineLayoutDirection``), not all displays
+    /// ``Locale/Language-language.struct/lineLayoutDirection``), not all displays
     /// of text follow the line layout direction of the text's primary language.
     ///
     /// Horizontal script is script with a line layout direction of either
-    /// ``Locale/LanguageDirection-swift.enum/topToBottom`` or
-    /// ``Locale/LanguageDirection-swift.enum/bottomToTop``. Vertical script
-    /// has a ``Locale/LanguageDirection-swift.enum/leftToRight`` or
-    /// ``Locale/LanguageDirection-swift.enum/rightToLeft`` line layout
+    /// ``Locale/LanguageDirection-language.enum/topToBottom`` or
+    /// ``Locale/LanguageDirection-language.enum/bottomToTop``. Vertical script
+    /// has a ``Locale/LanguageDirection-language.enum/leftToRight`` or
+    /// ``Locale/LanguageDirection-language.enum/rightToLeft`` line layout
     /// direction. In vertical scripts, a writing direction of ``leftToRight``
     /// is interpreted as top-to-bottom and a writing direction of
     /// ``rightToLeft`` is interpreted as bottom-to-top.

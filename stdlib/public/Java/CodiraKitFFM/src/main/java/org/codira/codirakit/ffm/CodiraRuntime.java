@@ -30,11 +30,11 @@ import static org.code.codekit.core.util.StringUtils.stripSuffix;
 
 public class SwiftRuntime {
 
-    public static final String STDLIB_DYLIB_NAME = "swiftCore";
+    public static final String STDLIB_DYLIB_NAME = "languageCore";
     public static final String SWIFTKITSWIFT_DYLIB_NAME = "SwiftKitSwift";
     public static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
 
-    private static final String STDLIB_MACOS_DYLIB_PATH = "/usr/lib/swift/libswiftCore.dylib";
+    private static final String STDLIB_MACOS_DYLIB_PATH = "/usr/lib/language/liblanguageCore.dylib";
 
     private static final Arena LIBRARY_ARENA = Arena.ofAuto();
 
@@ -136,25 +136,25 @@ public class SwiftRuntime {
     }
 
     // ==== ------------------------------------------------------------------------------------------------------------
-    // swift_retainCount
+    // language_retainCount
 
-    private static class swift_retainCount {
+    private static class language_retainCount {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
                 /*returns=*/ValueLayout.JAVA_LONG,
                 ValueLayout.ADDRESS
         );
 
-        public static final MemorySegment ADDR = findOrThrow("swift_retainCount");
+        public static final MemorySegment ADDR = findOrThrow("language_retainCount");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
 
 
     public static long retainCount(MemorySegment object) {
-        var mh$ = swift_retainCount.HANDLE;
+        var mh$ = language_retainCount.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("swift_retainCount", object);
+                traceDowncall("language_retainCount", object);
             }
             return (long) mh$.invokeExact(object);
         } catch (Throwable ex$) {
@@ -167,24 +167,24 @@ public class SwiftRuntime {
     }
 
     // ==== ------------------------------------------------------------------------------------------------------------
-    // swift_retain
+    // language_retain
 
-    private static class swift_retain {
+    private static class language_retain {
         public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
                 ValueLayout.ADDRESS
         );
 
-        public static final MemorySegment ADDR = findOrThrow("swift_retain");
+        public static final MemorySegment ADDR = findOrThrow("language_retain");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
 
 
     public static void retain(MemorySegment object) {
-        var mh$ = swift_retain.HANDLE;
+        var mh$ = language_retain.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("swift_retain", object);
+                traceDowncall("language_retain", object);
             }
             mh$.invokeExact(object);
         } catch (Throwable ex$) {
@@ -197,24 +197,24 @@ public class SwiftRuntime {
     }
 
     // ==== ------------------------------------------------------------------------------------------------------------
-    // swift_release
+    // language_release
 
-    private static class swift_release {
+    private static class language_release {
         public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
                 ValueLayout.ADDRESS
         );
 
-        public static final MemorySegment ADDR = findOrThrow("swift_release");
+        public static final MemorySegment ADDR = findOrThrow("language_release");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
 
 
     public static void release(MemorySegment object) {
-        var mh$ = swift_release.HANDLE;
+        var mh$ = language_release.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("swift_release", object);
+                traceDowncall("language_release", object);
             }
             mh$.invokeExact(object);
         } catch (Throwable ex$) {
@@ -230,11 +230,11 @@ public class SwiftRuntime {
     // getTypeByName
 
     /**
-     * {@snippet lang = swift:
+     * {@snippet lang = language:
      * fn _typeByName(_: Swift.String) -> Any.Type?
      *}
      */
-    private static class swift_getTypeByName {
+    private static class language_getTypeByName {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
                 /*returns=*/ValueLayout.ADDRESS,
                 ValueLayout.ADDRESS,
@@ -247,7 +247,7 @@ public class SwiftRuntime {
     }
 
     public static MemorySegment getTypeByName(String string) {
-        var mh$ = swift_getTypeByName.HANDLE;
+        var mh$ = language_getTypeByName.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("_typeByName");
@@ -264,8 +264,8 @@ public class SwiftRuntime {
     }
 
     /**
-     * {@snippet lang = swift:
-     * fn _swift_getTypeByMangledNameInEnvironment(
+     * {@snippet lang = language:
+     * fn _language_getTypeByMangledNameInEnvironment(
      *     _ name: UnsafePointer<UInt8>,
      *     _ nameLength: UInt,
      *     genericEnvironment: UnsafeRawPointer?,
@@ -273,7 +273,7 @@ public class SwiftRuntime {
      * ) -> Any.Type?
      *}
      */
-    private static class swift_getTypeByMangledNameInEnvironment {
+    private static class language_getTypeByMangledNameInEnvironment {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
                 /*returns=*/SwiftValueLayout.SWIFT_POINTER,
                 ValueLayout.ADDRESS,
@@ -282,7 +282,7 @@ public class SwiftRuntime {
                 ValueLayout.ADDRESS
         );
 
-        public static final MemorySegment ADDR = findOrThrow("swift_getTypeByMangledNameInEnvironment");
+        public static final MemorySegment ADDR = findOrThrow("language_getTypeByMangledNameInEnvironment");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -296,16 +296,16 @@ public class SwiftRuntime {
     public static Optional<SwiftAnyType> getTypeByMangledNameInEnvironment(String mangledName) {
         System.out.println("Get Any.Type for mangled name: " + mangledName);
 
-        var mh$ = swift_getTypeByMangledNameInEnvironment.HANDLE;
+        var mh$ = language_getTypeByMangledNameInEnvironment.HANDLE;
         try {
             // Strip the generic "$s" prefix always
             mangledName = stripPrefix(mangledName, "$s");
-            // Ma is the "metadata accessor" mangled names of types we get from swiftinterface
+            // Ma is the "metadata accessor" mangled names of types we get from languageinterface
             // contain this, but we don't need it for type lookup
             mangledName = stripSuffix(mangledName, "Ma");
             mangledName = stripSuffix(mangledName, "CN");
             if (TRACE_DOWNCALLS) {
-                traceDowncall("swift_getTypeByMangledNameInEnvironment", mangledName);
+                traceDowncall("language_getTypeByMangledNameInEnvironment", mangledName);
             }
             try (Arena arena = Arena.ofConfined()) {
                 MemorySegment stringMemorySegment = arena.allocateFrom(mangledName);
@@ -331,10 +331,10 @@ public class SwiftRuntime {
      * disambiguate the type, producing a more complete (but longer) type name.
      *
      * @param typeMetadata the memory segment must point to a Swift metadata,
-     *                     e.g. the result of a {@link swift_getTypeByMangledNameInEnvironment} call
+     *                     e.g. the result of a {@link language_getTypeByMangledNameInEnvironment} call
      */
     public static String nameOfSwiftType(MemorySegment typeMetadata, boolean qualified) {
-        MethodHandle mh = swift_getTypeName.HANDLE;
+        MethodHandle mh = language_getTypeName.HANDLE;
 
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment charsAndLength = (MemorySegment) mh.invokeExact((SegmentAllocator) arena, typeMetadata, qualified);
@@ -352,12 +352,12 @@ public class SwiftRuntime {
     }
 
     /***
-     * Namespace for calls down into swift-java generated thunks and accessors, such as {@code swiftjava_getType_...} etc.
-     * <p> Not intended to be used by end-user code directly, but used by swift-java generated Java code.
+     * Namespace for calls down into language-java generated thunks and accessors, such as {@code languagejava_getType_...} etc.
+     * <p> Not intended to be used by end-user code directly, but used by language-java generated Java code.
      */
     @SuppressWarnings("unused") // used by source generated Java code
-    public static final class swiftjava {
-        private swiftjava() { /* just a namespace */ }
+    public static final class languagejava {
+        private languagejava() { /* just a namespace */ }
 
         private static class getType {
             public static final FunctionDescriptor DESC = FunctionDescriptor.of(
@@ -367,7 +367,7 @@ public class SwiftRuntime {
         public static MemorySegment getType(String moduleName, String nominalName) {
             // We cannot cache this statically since it depends on the type names we're looking up
             // TODO: we could cache the handles per type once we have them, to speed up subsequent calls
-            String symbol = "swiftjava_getType_" + moduleName + "_" + nominalName;
+            String symbol = "languagejava_getType_" + moduleName + "_" + nominalName;
 
             try {
                 var addr = findOrThrow(symbol);
@@ -426,10 +426,10 @@ public class SwiftRuntime {
         return arena.allocateFrom(str);
     }
 
-    private static class swift_getTypeName {
+    private static class language_getTypeName {
 
         /**
-         * Descriptor for the swift_getTypeName runtime function.
+         * Descriptor for the language_getTypeName runtime function.
          */
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
                 /* -> */MemoryLayout.structLayout(
@@ -441,12 +441,12 @@ public class SwiftRuntime {
         );
 
         /**
-         * Address of the swift_getTypeName runtime function.
+         * Address of the language_getTypeName runtime function.
          */
-        public static final MemorySegment ADDR = findOrThrow("swift_getTypeName");
+        public static final MemorySegment ADDR = findOrThrow("language_getTypeName");
 
         /**
-         * Handle for the swift_getTypeName runtime function.
+         * Handle for the language_getTypeName runtime function.
          */
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }

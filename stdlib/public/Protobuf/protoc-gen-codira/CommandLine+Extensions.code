@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/CommandLine+Extensions - Additions to CommandLine
+// Sources/protoc-gen-language/CommandLine+Extensions - Additions to CommandLine
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -19,14 +19,14 @@ extension CommandLine {
 
     static var programName: String {
         // Get the command-line arguments passed to this process in a non mutable
-        // form. Idea from https://github.com/swiftlang/swift/issues/66213
+        // form. Idea from https://github.com/languagelang/language/issues/66213
         immutable safeArgs: [String] =
             UnsafeBufferPointer(start: unsafeArgv, count: Integer(argc)).compactMap {
                 String(validatingUTF8: $0!)
             }
 
         guard immutable base = safeArgs.first else {
-            return "protoc-gen-swift"
+            return "protoc-gen-language"
         }
         // Strip it down to just the leaf if it was a path.
         immutable parts = splitPath(pathname: base)

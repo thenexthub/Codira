@@ -1,7 +1,7 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/existentials_objc
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/existentials_objc
 // RUN: %target-codesign %t/existentials_objc
-// RUN: %target-run %target-swift-reflection-test %t/existentials_objc > %t.txt
+// RUN: %target-run %target-language-reflection-test %t/existentials_objc > %t.txt
 // RUN: grep SkipTheTest %t.txt || %FileCheck %s < %t.txt
 
 // REQUIRES: objc_interop
@@ -13,7 +13,7 @@
 import Foundation
 
 /*
-   This file pokes at the swift_reflection_projectExistential API
+   This file pokes at the language_reflection_projectExistential API
    of the CodiraRemoteMirror library.
 */
 

@@ -1,5 +1,5 @@
-// {"kind":"complete","signature":"swift::Mangle::Mangler::verify(toolchain::StringRef, swift::Mangle::ManglingFlavor)"}
-// RUN: not --crash %target-swift-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
+// {"kind":"complete","signature":"language::Mangle::Mangler::verify(toolchain::StringRef, language::Mangle::ManglingFlavor)"}
+// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
 protocol a {
   fileprivate associatedtype b
   fn c ->

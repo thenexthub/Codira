@@ -8,7 +8,7 @@ To use `async`/`await` code in your commands' `run()` method implementations, fo
 
 The following example declares a `CountLines` command that uses Foundation's asynchronous `FileHandle.AsyncBytes` to read the lines from a file: 
 
-```swift
+```language
 import Foundation
 
 @main
@@ -37,7 +37,7 @@ Your root command cannot be designated as `@main`, unlike as described above.
 
 Instead, use the code snippet below, replacing the `<#RootCommand#>` placeholder with the name of your own root command.
 
-```swift
+```language
 @main struct AsyncMain: AsyncMainProtocol {
     typealias Command = <#RootCommand#>
 }

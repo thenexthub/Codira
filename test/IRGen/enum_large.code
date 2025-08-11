@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend -emit-irgen %s | %FileCheck %s
+// RUN: %target-language-frontend -emit-irgen %s | %FileCheck %s
 
 // REQUIRES: PTRSIZE=64
 
@@ -47,7 +47,7 @@ fn dumpInt(_ i: Int) {}
 // CHECK:       [[REGISTER_119]]:
 // CHECK:         br i1 {{%[^,]+}}, label %[[REGISTER_149:[^,]+]], label {{%[^,]+}}
 // CHECK:       [[REGISTER_149]]
-// CHECK:         call swiftcc void @"$s10enum_large7dumpIntyySiF"(i64 8675309)
+// CHECK:         call languagecc void @"$s10enum_large7dumpIntyySiF"(i64 8675309)
 public fn testIt(e : Multipayload) {
     switch e {
         case .a, .e, .f, .g:

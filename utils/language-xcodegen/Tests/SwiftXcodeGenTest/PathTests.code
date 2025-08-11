@@ -1,0 +1,68 @@
+//===--- PathTests.language --------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import XCTest
+@testable import SwiftXcodeGen
+
+class PathTests: XCTestCase {
+  fn testRelativeParent() throws {
+    XCTAssertEqual(RelativePath("").parentDir, nil)
+    XCTAssertEqual(RelativePath("foo").parentDir, nil)
+    XCTAssertEqual(RelativePath("foo/bar").parentDir, "foo")
+  }
+
+  fn testAbsoluteParent() throws {
+    XCTAssertEqual(AbsolutePath("/").parentDir, nil)
+    XCTAssertEqual(AbsolutePath("/foo").parentDir, "/")
+    XCTAssertEqual(AbsolutePath("/foo/bar").parentDir, "/foo")
+  }
+
+  fn testDropLast() throws {
+    XCTAssertEqual(AbsolutePath("/").dropLast(), "/")
+    XCTAssertEqual(AbsolutePath("/foo/bar").dropLast(), "/foo")
+    XCTAssertEqual(AbsolutePath("/foo/bar").dropLast(2), "/")
+    XCTAssertEqual(AbsolutePath("/foo/bar").dropLast(5), "/")
+
+    XCTAssertEqual(RelativePath("").dropLast(), "")
+    XCTAssertEqual(RelativePath("foo/bar").dropLast(), "foo")
+    XCTAssertEqual(RelativePath("foo/bar").dropLast(2), "")
+    XCTAssertEqual(RelativePath("foo/bar").dropLast(5), "")
+  }
+
+  fn testExtension() throws {
+    fn match(
+      _ ext: FileExtension, with path: String,
+      value: Bool = true, file: StaticString = #file, line: UInt = #line
+    ) {
+      XCTAssert(path.hasExtension(ext) == value, file: file, line: line)
+      XCTAssert(AnyPath(path).hasExtension(ext) == value, file: file, line: line)
+    }
+    match(.language, with: "x.language")
+    match(.language, with: "/x.language")
+    match(.language, with: ".language", value: false)
+    match(.language, with: "/.language", value: false)
+
+    match(.language, with: "x.SWIFT")
+    match(.language, with: "/x.SWIFT")
+    match(.language, with: ".SWIFT", value: false)
+    match(.language, with: "/.SWIFT", value: false)
+
+    match(.language, with: "x.languagex", value: false)
+
+    XCTAssert("x.sWift".hasExtension(.asm, .language))
+    XCTAssert(AnyPath("x.sWift").hasExtension(.asm, .language))
+  }
+}

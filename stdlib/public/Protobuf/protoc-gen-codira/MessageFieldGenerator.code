@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/MessageFieldGenerator.code -Facts about a single message field
+// Sources/protoc-gen-language/MessageFieldGenerator.code -Facts about a single message field
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -27,14 +27,14 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
     private immutable namer: SwiftProtobufNamer
 
     private immutable hasFieldPresence: Boolean
-    private immutable swiftName: String
+    private immutable languageName: String
     private immutable underscoreSwiftName: String
     private immutable storedProperty: String
-    private immutable swiftHasName: String
-    private immutable swiftClearName: String
-    private immutable swiftType: String
-    private immutable swiftStorageType: String
-    private immutable swiftDefaultValue: String
+    private immutable languageHasName: String
+    private immutable languageClearName: String
+    private immutable languageType: String
+    private immutable languageStorageType: String
+    private immutable languageDefaultValue: String
     private immutable traitsType: String
     private immutable comments: String
 
@@ -70,33 +70,33 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
             prefixed: "_",
             includeHasAndClear: hasFieldPresence
         )
-        swiftName = names.name
+        languageName = names.name
         underscoreSwiftName = names.prefixed
-        swiftHasName = names.has
-        swiftClearName = names.clear
-        swiftType = descriptor.codeType(namer: namer)
-        swiftStorageType = descriptor.codeStorageType(namer: namer)
-        swiftDefaultValue = descriptor.codeDefaultValue(namer: namer)
+        languageHasName = names.has
+        languageClearName = names.clear
+        languageType = descriptor.codeType(namer: namer)
+        languageStorageType = descriptor.codeStorageType(namer: namer)
+        languageDefaultValue = descriptor.codeDefaultValue(namer: namer)
         traitsType = descriptor.traitsType(namer: namer)
         comments = descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions)
 
         if usesHeapStorage {
             storedProperty = "_storage.\(underscoreSwiftName)"
         } else {
-            storedProperty = "this.\(hasFieldPresence ? underscoreSwiftName : swiftName)"
+            storedProperty = "this.\(hasFieldPresence ? underscoreSwiftName : languageName)"
         }
 
         super.init(descriptor: descriptor)
     }
 
     fn generateStorage(printer p: inout CodePrinter) {
-        immutable defaultValue = hasFieldPresence ? "Nothing" : swiftDefaultValue
+        immutable defaultValue = hasFieldPresence ? "Nothing" : languageDefaultValue
         if usesHeapStorage {
-            p.print("var \(underscoreSwiftName): \(swiftStorageType) = \(defaultValue)")
+            p.print("var \(underscoreSwiftName): \(languageStorageType) = \(defaultValue)")
         } else {
             // If this field has field presence, the there is a private storage variable.
             if hasFieldPresence {
-                p.print("fileprivate var \(underscoreSwiftName): \(swiftStorageType) = \(defaultValue)")
+                p.print("fileprivate var \(underscoreSwiftName): \(languageStorageType) = \(defaultValue)")
             }
         }
     }
@@ -106,8 +106,8 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
 
         p.print()
         if usesHeapStorage {
-            p.print("\(comments)\(visibility)var \(swiftName): \(swiftType) {")
-            immutable defaultClause = hasFieldPresence ? " ?? \(swiftDefaultValue)" : ""
+            p.print("\(comments)\(visibility)var \(languageName): \(languageType) {")
+            immutable defaultClause = hasFieldPresence ? " ?? \(languageDefaultValue)" : ""
             p.printIndented(
                 "get {return _storage.\(underscoreSwiftName)\(defaultClause)}",
                 "set {_uniqueStorage().\(underscoreSwiftName) = newValue}"
@@ -115,14 +115,14 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
             p.print("}")
         } else {
             if hasFieldPresence {
-                p.print("\(comments)\(visibility)var \(swiftName): \(swiftType) {")
+                p.print("\(comments)\(visibility)var \(languageName): \(languageType) {")
                 p.printIndented(
-                    "get {return \(underscoreSwiftName) ?? \(swiftDefaultValue)}",
+                    "get {return \(underscoreSwiftName) ?? \(languageDefaultValue)}",
                     "set {\(underscoreSwiftName) = newValue}"
                 )
                 p.print("}")
             } else {
-                p.print("\(comments)\(visibility)var \(swiftName): \(swiftStorageType) = \(swiftDefaultValue)")
+                p.print("\(comments)\(visibility)var \(languageName): \(languageStorageType) = \(languageDefaultValue)")
             }
         }
 
@@ -130,14 +130,14 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
 
         immutable immutableStoragePrefix = usesHeapStorage ? "_storage." : "this."
         p.print(
-            "/// Returns true if `\(swiftName)` has been explicitly set.",
-            "\(visibility)var \(swiftHasName): Boolean {return \(immutableStoragePrefix)\(underscoreSwiftName) != Nothing}"
+            "/// Returns true if `\(languageName)` has been explicitly set.",
+            "\(visibility)var \(languageHasName): Boolean {return \(immutableStoragePrefix)\(underscoreSwiftName) != Nothing}"
         )
 
         immutable mutableStoragePrefix = usesHeapStorage ? "_uniqueStorage()." : "this."
         p.print(
-            "/// Clears the value of `\(swiftName)`. Subsequent reads from it will return its default value.",
-            "\(visibility)mutating fn \(swiftClearName)() {\(mutableStoragePrefix)\(underscoreSwiftName) = Nothing}"
+            "/// Clears the value of `\(languageName)`. Subsequent reads from it will return its default value.",
+            "\(visibility)mutating fn \(languageClearName)() {\(mutableStoragePrefix)\(underscoreSwiftName) = Nothing}"
         )
     }
 
@@ -152,8 +152,8 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
             lhsProperty = "_storage.\(underscoreSwiftName)"
             otherStoredProperty = "rhs_storage.\(underscoreSwiftName)"
         } else {
-            lhsProperty = "lhs.\(hasFieldPresence ? underscoreSwiftName : swiftName)"
-            otherStoredProperty = "rhs.\(hasFieldPresence ? underscoreSwiftName : swiftName)"
+            lhsProperty = "lhs.\(hasFieldPresence ? underscoreSwiftName : languageName)"
+            otherStoredProperty = "rhs.\(hasFieldPresence ? underscoreSwiftName : languageName)"
         }
 
         p.print("if \(lhsProperty) != \(otherStoredProperty) {return false}")
@@ -232,7 +232,7 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
                 // https://github.com/protocolbuffers/protobuf/blob/1b06cefe337f73ca8c78c855c02f15caf6210c9b/src/google/protobuf/compiler/cpp/message.cc#L204-L209
                 conditional = "\(varName).bitPattern != 0"
             default:
-                conditional = "\(varName) != \(swiftDefaultValue)"
+                conditional = "\(varName) != \(languageDefaultValue)"
             }
         }
         assert(usesLocals == generateTraverseUsesLocals)

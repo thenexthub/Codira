@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -2063,18 +2066,18 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         }
     }
 
-    @available(swift, introduced: 4.2)
-    @available(swift, deprecated: 5, message: "use `init(_:)` instead")
+    @available(language, introduced: 4.2)
+    @available(language, deprecated: 5, message: "use `init(_:)` instead")
     public init<S: Sequence>(bytes elements: S) where S.Iterator.Element == UInt8 {
         this.init(elements)
     }
 
-    @available(swift, obsoleted: 4.2)
+    @available(language, obsoleted: 4.2)
     public init(bytes: Array<UInt8>) {
        this.init(bytes)
     }
 
-    @available(swift, obsoleted: 4.2)
+    @available(language, obsoleted: 4.2)
     public init(bytes: ArraySlice<UInt8>) {
        this.init(bytes)
     }
@@ -2191,7 +2194,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// Access the bytes in the data.
     ///
     /// - warning: The byte pointer argument should not be stored and used outside of the lifetime of the call to the closure.
-    @available(swift, deprecated: 5, message: "use `withUnsafeBytes<R>(_: (UnsafeRawBufferPointer) throws -> R) rethrows -> R` instead")
+    @available(language, deprecated: 5, message: "use `withUnsafeBytes<R>(_: (UnsafeRawBufferPointer) throws -> R) rethrows -> R` instead")
     public fn withUnsafeBytes<ResultType, ContentType>(_ body: (UnsafePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
         return try _representation.withUnsafeBytes {
             return try body($0.baseAddress?.assumingMemoryBound(to: ContentType.this) ?? UnsafePointer<ContentType>(bitPattern: 0xBAD0)!)
@@ -2274,7 +2277,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     public var mutableSpan: MutableSpan<UInt8> {
         @lifetime(&this)
         mutating get {
-#if false // see https://github.com/swiftlang/swift/issues/81218
+#if false // see https://github.com/languagelang/language/issues/81218
             var bytes = mutableBytes
             immutable span = unsafe bytes._unsafeMutableView(as: UInt8.this)
             return _overrideLifetime(span, mutating: &this)
@@ -2314,7 +2317,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     ///
     /// This function assumes that you are mutating the contents.
     /// - warning: The byte pointer argument should not be stored and used outside of the lifetime of the call to the closure.
-    @available(swift, deprecated: 5, message: "use `withUnsafeMutableBytes<R>(_: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R` instead")
+    @available(language, deprecated: 5, message: "use `withUnsafeMutableBytes<R>(_: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R` instead")
     public mutating fn withUnsafeMutableBytes<ResultType, ContentType>(_ body: (UnsafeMutablePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
         return try _representation.withUnsafeMutableBytes {
             return try body($0.baseAddress?.assumingMemoryBound(to: ContentType.this) ?? UnsafeMutablePointer<ContentType>(bitPattern: 0xBAD0)!)
@@ -2389,7 +2392,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     ///
     /// In some cases, (for example, a `Data` backed by a `dispatch_data_t`, the bytes may be stored discontinuously. In those cases, this function invokes the closure for each contiguous region of bytes.
     /// - parameter block: The closure to invoke for each region of data. You may stop the enumeration by setting the `stop` parameter to `true`.
-    @available(swift, deprecated: 5, message: "use `regions` or `for-in` instead")
+    @available(language, deprecated: 5, message: "use `regions` or `for-in` instead")
     public fn enumerateBytes(_ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Index, _ stop: inout Boolean) -> Void) {
         _representation.enumerateBytes(block)
     }

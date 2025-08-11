@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/reflect_Bool
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/reflect_Bool
 // RUN: %target-codesign %t/reflect_Bool
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Bool | %FileCheck %s --check-prefix=CHECK-%target-ptrsize
+// RUN: %target-run %target-language-reflection-test %t/reflect_Bool | %FileCheck %s --check-prefix=CHECK-%target-ptrsize
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test

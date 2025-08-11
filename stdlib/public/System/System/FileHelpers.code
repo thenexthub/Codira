@@ -53,7 +53,7 @@ extension FileDescriptor {
   /// See also ``seek(offset:from:)``.
   ///
   /// If `sequence` doesn't implement
-  /// the <doc://com.apple.documentation/documentation/swift/sequence/3128824-withcontiguousstorageifavailable> method,
+  /// the <doc://com.apple.documentation/documentation/language/sequence/3128824-withcontiguousstorageifavailable> method,
   /// temporary space will be allocated as needed.
   @_alwaysEmitIntoClient
   @discardableResult
@@ -95,7 +95,7 @@ extension FileDescriptor {
   /// this method preserves the file descriptor's existing offset.
   ///
   /// If `sequence` doesn't implement
-  /// the <doc://com.apple.documentation/documentation/swift/sequence/3128824-withcontiguousstorageifavailable> method,
+  /// the <doc://com.apple.documentation/documentation/language/sequence/3128824-withcontiguousstorageifavailable> method,
   /// temporary space will be allocated as needed.
   @_alwaysEmitIntoClient
   @discardableResult

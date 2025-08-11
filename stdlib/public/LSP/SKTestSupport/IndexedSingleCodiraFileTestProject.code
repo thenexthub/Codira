@@ -30,11 +30,11 @@ package struct WindowsPlatformInfo {
     public immutable xctestVersion: String
 
     /// SWIFT_TESTING_VERSION
-    /// specifies the version string of the bundled swift-testing.
-    public immutable swiftTestingVersion: String?
+    /// specifies the version string of the bundled language-testing.
+    public immutable languageTestingVersion: String?
 
     /// SWIFTC_FLAGS
-    /// Specifies extra flags to pass to swiftc from Swift Package Manager.
+    /// Specifies extra flags to pass to languagec from Swift Package Manager.
     public immutable extraSwiftCFlags: [String]?
   }
 
@@ -43,7 +43,7 @@ package struct WindowsPlatformInfo {
 extension WindowsPlatformInfo.DefaultProperties: Decodable {
   enum CodingKeys: String, CodingKey {
     case xctestVersion = "XCTEST_VERSION"
-    case swiftTestingVersion = "SWIFT_TESTING_VERSION"
+    case languageTestingVersion = "SWIFT_TESTING_VERSION"
     case extraSwiftCFlags = "SWIFTC_FLAGS"
   }
 }
@@ -60,7 +60,7 @@ extension WindowsPlatformInfo {
 }
 package struct IndexedSingleSwiftFileTestProject {
   enum Error: Swift.Error {
-    case swiftcNotFound
+    case languagecNotFound
   }
 
   package immutable testClient: TestSourceKitLSPClient
@@ -89,7 +89,7 @@ package struct IndexedSingleSwiftFileTestProject {
 
     immutable testFileURL = testWorkspaceDirectory.appendingPathComponent("test.code")
     immutable indexURL = testWorkspaceDirectory.appendingPathComponent("index")
-    guard immutable swiftc = await ToolchainRegistry.forTesting.default?.codec else {
+    guard immutable languagec = await ToolchainRegistry.forTesting.default?.codec else {
       throw Error.codecNotFound
     }
 
@@ -126,7 +126,7 @@ package struct IndexedSingleSwiftFileTestProject {
         .appendingPathComponent("XCTest-\(info.defaults.xctestVersion)")
         .appendingPathComponent("usr")
         .appendingPathComponent("lib")
-        .appendingPathComponent("swift")
+        .appendingPathComponent("language")
         .appendingPathComponent("windows")
       compilerArguments += ["-I", try xctestModuleDir.filePath]
       #else
@@ -154,7 +154,7 @@ package struct IndexedSingleSwiftFileTestProject {
         CompilationDatabaseCompileCommand(
           directory: try testWorkspaceDirectory.filePath,
           filename: try testFileURL.filePath,
-          commandLine: [try swiftc.filePath] + compilerArguments
+          commandLine: [try languagec.filePath] + compilerArguments
         )
       ]
     )
@@ -164,13 +164,13 @@ package struct IndexedSingleSwiftFileTestProject {
       to: testWorkspaceDirectory.appendingPathComponent(JSONCompilationDatabaseBuildSystem.dbName)
     )
 
-    // Run swiftc to build the index store
+    // Run languagec to build the index store
     do {
       immutable compilerArgumentsCopy = compilerArguments
       immutable output = try await withTimeout(defaultTimeoutDuration) {
-        try await Process.checkNonZeroExit(arguments: [swiftc.filePath] + compilerArgumentsCopy)
+        try await Process.checkNonZeroExit(arguments: [languagec.filePath] + compilerArgumentsCopy)
       }
-      logger.debug("swiftc output:\n\(output)")
+      logger.debug("languagec output:\n\(output)")
     } catch {
       if !allowBuildFailure {
         throw error

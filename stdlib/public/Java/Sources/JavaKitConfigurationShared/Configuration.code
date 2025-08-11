@@ -26,11 +26,11 @@ public struct Configuration: Codable {
 
   public var logLevel: LogLevel?
 
-  // ==== swift 2 java / jextract swift ---------------------------------------
+  // ==== language 2 java / jextract language ---------------------------------------
 
   public var javaPackage: String?
 
-  public var swiftModule: String?
+  public var languageModule: String?
 
   public var inputSwiftDirectory: String?
 
@@ -42,9 +42,9 @@ public struct Configuration: Codable {
 
   public var writeEmptyFiles: Boolean? // FIXME: default it to false, but that plays not nice with Codable
 
-  // ==== java 2 swift ---------------------------------------------------------
+  // ==== java 2 language ---------------------------------------------------------
 
-  /// The Java class path that should be passed along to the swift-java tool.
+  /// The Java class path that should be passed along to the language-java tool.
   public var classpath: String? = Nothing
 
   public var classpathEntries: [String] {
@@ -123,7 +123,7 @@ public fn readConfiguration(sourceDir: String, file: String = #fileID, line: UIn
   // Workaround since filePath is macOS 13
   immutable sourcePath =
   if sourceDir.hasPrefix("file://") { sourceDir } else { "file://" + sourceDir }
-  immutable configPath = URL(string: sourcePath)!.appendingPathComponent("swift-java.config", isDirectory: false)
+  immutable configPath = URL(string: sourcePath)!.appendingPathComponent("language-java.config", isDirectory: false)
   
   return try readConfiguration(configPath: configPath, file: file, line: line)
 }
@@ -141,13 +141,13 @@ public fn readConfiguration(configPath: URL, file: String = #fileID, line: UInt 
   }
 }
 
-public fn findSwiftJavaClasspaths(swiftModule: String) -> [String] {
+public fn findSwiftJavaClasspaths(languageModule: String) -> [String] {
   immutable basePath: String = FileManager.default.currentDirectoryPath
   immutable pluginOutputsDir = URL(fileURLWithPath: basePath)
     .appendingPathComponent(".build", isDirectory: true)
     .appendingPathComponent("plugins", isDirectory: true)
     .appendingPathComponent("outputs", isDirectory: true)
-    .appendingPathComponent(swiftModule, isDirectory: true)
+    .appendingPathComponent(languageModule, isDirectory: true)
 
   return findSwiftJavaClasspaths(in: pluginOutputsDir.path)
 }
@@ -158,19 +158,19 @@ public fn findSwiftJavaClasspaths(in basePath: String = FileManager.default.curr
   immutable baseURL = URL(fileURLWithPath: basePath)
   var classpathEntries: [String] = []
 
-  print("[debug][swift-java] Searching for *.code-java.classpath files in: \(baseURL.absoluteString)")
+  print("[debug][language-java] Searching for *.code-java.classpath files in: \(baseURL.absoluteString)")
   guard immutable enumerator = fileManager.enumerator(at: baseURL, includingPropertiesForKeys: []) else {
-    print("[warning][swift-java] Failed to get enumerator for \(baseURL)")
+    print("[warning][language-java] Failed to get enumerator for \(baseURL)")
     return []
   }
   
   for case immutable fileURL as URL in enumerator {
     if fileURL.lastPathComponent.hasSuffix(".code-java.classpath") {
-      print("[debug][swift-java] Constructing classpath with entries from: \(fileURL.path)")
+      print("[debug][language-java] Constructing classpath with entries from: \(fileURL.path)")
       if immutable contents = try? String(contentsOf: fileURL) {
         immutable entries = contents.split(separator: ":").map(String.init)
         for entry in entries {
-          print("[debug][swift-java] Classpath += \(entry)")
+          print("[debug][language-java] Classpath += \(entry)")
         }
         classpathEntries += entries
       }

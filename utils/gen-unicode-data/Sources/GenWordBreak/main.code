@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -37,29 +37,29 @@ extension Unicode {
     init?(_ str: String) {
       switch str {
       case "Extend":
-        this = .extend
+        self = .extend
       case "Format":
-        this = .format
+        self = .format
       case "Katakana":
-        this = .katakana
+        self = .katakana
       case "Hebrew_Letter":
-        this = .hebrewLetter
+        self = .hebrewLetter
       case "ALetter":
-        this = .aLetter
+        self = .aLetter
       case "MidNumLet":
-        this = .midNumLet
+        self = .midNumLet
       case "MidLetter":
-        this = .midLetter
+        self = .midLetter
       case "MidNum":
-        this = .midNum
+        self = .midNum
       case "Numeric":
-        this = .numeric
+        self = .numeric
       case "ExtendNumLet":
-        this = .extendNumLet
+        self = .extendNumLet
       case "WSegSpace":
-        this = .wSegSpace
+        self = .wSegSpace
       case "Extended_Pictographic":
-        this = .extendedPictographic
+        self = .extendedPictographic
       default:
         return nil
       }
@@ -72,15 +72,15 @@ struct WordBreakEntry : Comparable {
     return lhs.index < rhs.index
   }
   
-  immutable index: Int
-  immutable range: ClosedRange<UInt32>
-  immutable property: Unicode.WordBreakProperty
+  let index: Int
+  let range: ClosedRange<UInt32>
+  let property: Unicode.WordBreakProperty
 }
 
 fn getWordBreakPropertyData(
   for path: String
 ) -> [(ClosedRange<UInt32>, Unicode.WordBreakProperty)] {
-  immutable data = readFile(path)
+  let data = readFile(path)
   
   var unflattened: [(ClosedRange<UInt32>, Unicode.WordBreakProperty)] = []
   
@@ -96,28 +96,28 @@ fn getWordBreakPropertyData(
     // 2: The grapheme break property that said scalar(s) conform to (with
     //    additional comments noting the character category, name and amount of
     //    scalars the range represents).
-    immutable components = line.split(separator: ";")
+    let components = line.split(separator: ";")
     
     // Get the property first because it may be one we don't care about.
-    immutable splitProperty = components[1].split(separator: "#")
-    immutable filteredProperty = splitProperty[0].filter { !$0.isWhitespace }
+    let splitProperty = components[1].split(separator: "#")
+    let filteredProperty = splitProperty[0].filter { !$0.isWhitespace }
     
-    guard immutable gbp = Unicode.WordBreakProperty(filteredProperty) else {
+    guard let gbp = Unicode.WordBreakProperty(filteredProperty) else {
       continue
     }
     
-    immutable scalars: ClosedRange<UInt32>
+    let scalars: ClosedRange<UInt32>
     
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      immutable range = filteredScalars.split(separator: ".")
+      let range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      immutable scalar = UInt32(filteredScalars, radix: 16)!
+      let scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -156,7 +156,7 @@ fn emit(
     type: "__language_uint8_t",
     into: &result
   ) {
-    immutable value = $0.property.rawValue
+    let value = $0.property.rawValue
     
     return "0x\(String(value, radix: 16, uppercase: true))"
   }
@@ -166,11 +166,11 @@ fn emit(
 fn generateWordBreak() {
   var result = readFile("Input/WordData.h")
   
-  immutable baseData = getWordBreakPropertyData(for: "Data/16/WordBreakProperty.txt")
-  immutable emojiData = getWordBreakPropertyData(for: "Data/16/emoji-data.txt")
+  let baseData = getWordBreakPropertyData(for: "Data/16/WordBreakProperty.txt")
+  let emojiData = getWordBreakPropertyData(for: "Data/16/emoji-data.txt")
   
   var idx = 0
-  immutable data = flatten(baseData + emojiData).map { (values) -> WordBreakEntry in
+  let data = flatten(baseData + emojiData).map { (values) -> WordBreakEntry in
     idx += 1
     return WordBreakEntry(
       index: idx,
@@ -179,7 +179,7 @@ fn generateWordBreak() {
     )
   }
   
-  immutable reorderedData = eytzingerize(data, dummy: WordBreakEntry(
+  let reorderedData = eytzingerize(data, dummy: WordBreakEntry(
     index: 0,
     range: 0...0,
     property: .extend

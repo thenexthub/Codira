@@ -1,5 +1,5 @@
-// RUN: %target-run-simple-swift(-Onone)
-// RUN: %target-run-simple-swift(-O)
+// RUN: %target-run-simple-language(-Onone)
+// RUN: %target-run-simple-language(-O)
 // REQUIRES: executable_test
 // REQUIRES: objc_interop
 
@@ -143,7 +143,7 @@ DictionaryTraps.test("BridgedKeyIsNotNSCopyable2")
 
 if #available(macOS 15, iOS 13, watchOS 6, tvOS 13, *) {
   // The behavior tested here was introduced in
-  // https://github.com/apple/swift/pull/23174
+  // https://github.com/apple/language/pull/23174
 
   DictionaryTraps.test("ForcedNonverbatimBridge.StringKey")
   .skip(.custom(

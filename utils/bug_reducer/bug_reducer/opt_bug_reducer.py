@@ -133,7 +133,7 @@ def pass_bug_reducer(tools, config, passes, sil_opt_invoker, reduce_sil):
 def invoke_pass_bug_reducer(args):
     """Given a path to a sib file with canonical sil, attempt to find a
        perturbed list of passes that the perf pipeline"""
-    tools = language_tools.CodiraTools(args.code_build_dir)
+    tools = language_tools.SwiftTools(args.language_build_dir)
     config = language_tools.SILToolInvokerConfig(args)
 
     passes = []
@@ -156,7 +156,7 @@ def invoke_pass_bug_reducer(args):
 
 def add_parser_arguments(parser):
     """Add parser arguments for opt_bug_reducer"""
-    parser.set_defaults(fn=invoke_pass_bug_reducer)
+    parser.set_defaults(func=invoke_pass_bug_reducer)
     parser.add_argument('input_file', help='The input file to optimize')
     parser.add_argument('--module-cache', help='The module cache to use')
     parser.add_argument('--sdk', help='The sdk to pass to sil-opt')

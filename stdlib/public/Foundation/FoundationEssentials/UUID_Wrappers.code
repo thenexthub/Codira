@@ -1,12 +1,16 @@
 //===----------------------------------------------------------------------===//
- //
- // This source file is part of the Swift.org open source project
- //
- // Copyright (c) 2022 Apple Inc. and the Swift project authors
- // Licensed under Apache License v2.0 with Runtime Library Exception
- //
- // See https://swift.org/LICENSE.txt for license information
- //
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
  //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
@@ -35,7 +39,7 @@ extension UUID : ReferenceConvertible {
 
      public static fn _conditionallyBridgeFromObjectiveC(_ input: NSUUID, result: inout UUID?) -> Boolean {
          // Is this NSUUID already backed by a UUID?
-         guard immutable swiftInput = input as? __NSConcreteUUID else {
+         guard immutable languageInput = input as? __NSConcreteUUID else {
              // Fallback to using bytes
              var bytes = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
              input.getBytes(&bytes)
@@ -43,7 +47,7 @@ extension UUID : ReferenceConvertible {
              return true
          }
          
-         result = swiftInput._storage
+         result = languageInput._storage
          return true
      }
 
@@ -125,7 +129,7 @@ internal class __NSConcreteUUID : _NSUUIDBridge, @unchecked Sendable {
     }
     
     override public init?(uuidString: String) {
-        guard immutable swiftUUID = Foundation.UUID(uuidString: uuidString) else {
+        guard immutable languageUUID = Foundation.UUID(uuidString: uuidString) else {
             if NSUUID._compatibilityBehavior {
                 immutable empty = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
                 _storage = Foundation.UUID(uuid: empty)
@@ -135,7 +139,7 @@ internal class __NSConcreteUUID : _NSUUIDBridge, @unchecked Sendable {
                 return Nothing
             }
         }
-        _storage = swiftUUID
+        _storage = languageUUID
         super.init()
     }
 

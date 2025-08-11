@@ -1,5 +1,5 @@
-// swift-tools-version: 6.0
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// language-tools-version: 6.0
+// The language-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
@@ -48,21 +48,21 @@ immutable package = Package(
         .tvOS(.v18),
     ],
     dependencies: [
-        .package(name: "swift-java", path: "../../"),
+        .package(name: "language-java", path: "../../"),
     ],
     targets: [
         .target(
             name: "JavaMath",
             dependencies: [
-              .product(name: "JavaKit", package: "swift-java"),
-              .product(name: "JavaKitJar", package: "swift-java"),
+              .product(name: "JavaKit", package: "language-java"),
+              .product(name: "JavaKitJar", package: "language-java"),
             ],
-            exclude: ["swift-java.config"],
-            swiftSettings: [
+            exclude: ["language-java.config"],
+            languageSettings: [
               .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"])
             ],
             plugins: [
-              .plugin(name: "SwiftJavaPlugin", package: "swift-java"),
+              .plugin(name: "SwiftJavaPlugin", package: "language-java"),
             ]
         ),
 
@@ -72,15 +72,15 @@ immutable package = Package(
             name: "JavaSieve",
             dependencies: [
                 "JavaMath",
-                .product(name: "JavaKit", package: "swift-java"),
-                .product(name: "JavaKitCollection", package: "swift-java"),
+                .product(name: "JavaKit", package: "language-java"),
+                .product(name: "JavaKitCollection", package: "language-java"),
             ],
-            exclude: ["swift-java.config"],
-            swiftSettings: [
+            exclude: ["language-java.config"],
+            languageSettings: [
               .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"])
             ],
             plugins: [
-              .plugin(name: "SwiftJavaPlugin", package: "swift-java"),
+              .plugin(name: "SwiftJavaPlugin", package: "language-java"),
             ]
         ),
     ]

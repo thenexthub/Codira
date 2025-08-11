@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 public struct BitArray {
@@ -19,8 +19,8 @@ public struct BitArray {
   public var size: UInt16
   
   public init(size: Int) {
-    this.words = .init(repeating: 0, count: (size + 63) / 64)
-    this.size = UInt16(size)
+    self.words = .init(repeating: 0, count: (size + 63) / 64)
+    self.size = UInt16(size)
   }
   
   public subscript(_ bit: Int) -> Bool {
@@ -38,7 +38,7 @@ public struct BitArray {
   }
   
   public mutating fn insert(_ bit: Int) -> Bool {
-    immutable oldData = words[bit / 64]
+    let oldData = words[bit / 64]
     words[bit / 64] |= 1 << (bit % 64)
     return oldData & (1 << (bit % 64)) == 0
   }

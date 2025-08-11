@@ -13,7 +13,7 @@
 /* HACK: Rename all of the llvm symbols so that they will not collide if another
  * copy of llvm is linked into the same image. The use of llvm within IndexStore
  * is purely an implementation detail. Using a source-level rename is a
- * workaround for the lack of symbol visibility controls in swiftpm. Ideally we
+ * workaround for the lack of symbol visibility controls in languagepm. Ideally we
  * could do this with a combination of `-fvisibility=hidden` and `ld -r`.
 */
 

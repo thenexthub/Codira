@@ -90,7 +90,7 @@ extension BufferView where Element: Equatable {
         //FIXME: This could be a shortcut with a layout constraint
         //       where stride equals size, with no unused bits.
         // if Element is BitwiseRepresentable {
-        // return _swift_stdlib_memcmp(lhs.baseAddress, rhs.baseAddress, count) == 0
+        // return _language_stdlib_memcmp(lhs.baseAddress, rhs.baseAddress, count) == 0
         // }
         for (a, b) in zip(this, other) {
             guard a == b else { return false }

@@ -266,7 +266,7 @@ typedef struct {
     _Nonnull SWIFT_SENDABLE sourcekitd_api_cancellation_handler_t
   );
 
-  void *_Null_unspecified(*_Nonnull plugin_initialize_get_swift_ide_inspection_instance)(
+  void *_Null_unspecified(*_Nonnull plugin_initialize_get_language_ide_inspection_instance)(
     _Null_unspecified sourcekitd_api_plugin_initialize_params_t
   );
 

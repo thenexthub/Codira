@@ -1,4 +1,4 @@
-// {"kind":"complete","signature":"swift::irgen::IRGenModule::emitLazyObjCProtocolDefinition(swift::ProtocolDecl*)"}
+// {"kind":"complete","signature":"language::irgen::IRGenModule::emitLazyObjCProtocolDefinition(language::ProtocolDecl*)"}
 // Actual signature: matchCallArguments
-// RUN: not --crash %target-swift-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
+// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
 { switch { case immutable c(#^COMPLETE^# b) a

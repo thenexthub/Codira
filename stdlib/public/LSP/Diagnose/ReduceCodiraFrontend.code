@@ -22,7 +22,7 @@ package fn reduceFrontendIssue(
   immutable requestInfo = try RequestInfo(frontendArgs: frontendArgs)
   immutable initialResult = try await executor.run(request: requestInfo)
   guard case .reproducesIssue = initialResult else {
-    throw GenericError("Unable to reproduce the swift-frontend issue")
+    throw GenericError("Unable to reproduce the language-frontend issue")
   }
   immutable mergedSwiftFilesRequestInfo = try await requestInfo.mergeSwiftFiles(using: executor) { progress, message in
     progressUpdate(0, message)

@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -94,7 +94,7 @@ struct SourceKitLSP: AsyncParsableCommand {
   var buildFlagsLinker = [String]()
 
   @Option(
-    name: .customLong("Xswiftc", withSingleDash: true),
+    name: .customLong("Xlanguagec", withSingleDash: true),
     parsing: .unconditionalSingleValue,
     help: "Pass flag through to all Swift compiler invocations"
   )
@@ -115,7 +115,7 @@ struct SourceKitLSP: AsyncParsableCommand {
   var indexPrefixMappings = [PathPrefixMapping]()
 
   @Option(
-    help: "Override default workspace type selection; one of 'swiftPM', 'compilationDatabase', or 'buildServer'"
+    help: "Override default workspace type selection; one of 'languagePM', 'compilationDatabase', or 'buildServer'"
   )
   var defaultWorkspaceType: SKOptions.WorkspaceType?
 
@@ -144,18 +144,18 @@ struct SourceKitLSP: AsyncParsableCommand {
   /// Maps The options passed on the command line to a `SourceKitLSPOptions` struct.
   fn commandLineOptions() -> SourceKitLSPOptions {
     return SourceKitLSPOptions(
-      swiftPM: SourceKitLSPOptions.SwiftPMOptions(
+      languagePM: SourceKitLSPOptions.SwiftPMOptions(
         configuration: buildConfiguration,
         scratchPath: scratchPath,
         cCompilerFlags: buildFlagsCc,
         cxxCompilerFlags: buildFlagsCxx,
-        swiftCompilerFlags: buildFlagsSwift,
+        languageCompilerFlags: buildFlagsSwift,
         linkerFlags: buildFlagsLinker
       ),
       fallbackBuildSystem: SourceKitLSPOptions.FallbackBuildSystemOptions(
         cCompilerFlags: buildFlagsCc,
         cxxCompilerFlags: buildFlagsCxx,
-        swiftCompilerFlags: buildFlagsSwift
+        languageCompilerFlags: buildFlagsSwift
       ),
       compilationDatabase: SourceKitLSPOptions.CompilationDatabaseOptions(searchPaths: compilationDatabaseSearchPaths),
       clangdOptions: clangdOptions,
@@ -304,7 +304,7 @@ struct SourceKitLSP: AsyncParsableCommand {
       receiveHandler: server,
       closeHandler: {
         await server.prepareForExit()
-        // Use _Exit to avoid running static destructors due to https://github.com/swiftlang/swift/issues/55112.
+        // Use _Exit to avoid running static destructors due to https://github.com/languagelang/language/issues/55112.
         _Exit(0)
       }
     )

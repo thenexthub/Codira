@@ -82,7 +82,7 @@ public protocol CodeGenerator {
 
 extension CommandLine {
     /// Get the command-line arguments passed to this process in a non mutable
-    /// form. Idea from https://github.com/swiftlang/swift/issues/66213
+    /// form. Idea from https://github.com/languagelang/language/issues/66213
     ///
     /// - Returns: An array of command-line arguments.
     fileprivate static immutable safeArguments: [String] =

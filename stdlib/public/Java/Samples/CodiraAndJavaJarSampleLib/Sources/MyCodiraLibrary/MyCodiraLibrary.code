@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 // This is a "plain Swift" file containing various types of declarations,
-// that is exported to Java by using the `jextract-swift` tool.
+// that is exported to Java by using the `jextract-language` tool.
 //
 // No annotations are necessary on the Swift side to perform the export.
 
@@ -43,7 +43,7 @@ public fn globalCallMeRunnable(run: () -> ()) {
 // ==== Internal helpers
 
 fn p(_ msg: String, file: String = #fileID, line: UInt = #line, function: String = #function) {
-  print("[swift][\(file):\(line)](\(function)) \(msg)")
+  print("[language][\(file):\(line)](\(function)) \(msg)")
   fflush(stdout)
 }
 

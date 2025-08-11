@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -emit-module -o %t/Lib.swiftmodule %s -DLIB
-// RUN: %target-build-swift -emit-module -o %t/main.swiftmodule -I %t %s
+// RUN: %target-build-language -emit-module -o %t/Lib.languagemodule %s -DLIB
+// RUN: %target-build-language -emit-module -o %t/main.languagemodule -I %t %s
 
-// https://github.com/apple/swift/issues/49885
+// https://github.com/apple/language/issues/49885
 
 #if LIB
 

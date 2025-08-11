@@ -1,4 +1,4 @@
-// RUN: %target-build-swift %s
+// RUN: %target-build-language %s
 
 typealias LeagueDayOfWeek = UInt8
 

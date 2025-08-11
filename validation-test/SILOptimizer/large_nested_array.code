@@ -4,9 +4,9 @@
 // If the compiler needs more than 60 seconds, there is probably a real problem.
 // So please don't just increase the timeout in case this test fails.
 
-// RUN: %{python} %S/../../test/Inputs/timeout.py 60 %target-swift-frontend -O -parse-as-library -sil-verify-none -emit-sil %s | %FileCheck %s
+// RUN: %{python} %S/../../test/Inputs/timeout.py 60 %target-language-frontend -O -parse-as-library -sil-verify-none -emit-sil %s | %FileCheck %s
 
-// REQUIRES: swift_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
 // REQUIRES: CPU=arm64 || CPU=x86_64 || CPU=aarch64
 
 // CHECK: sil @$s18large_nested_array22getTwoDimensionalArraySaySaySiGGyF

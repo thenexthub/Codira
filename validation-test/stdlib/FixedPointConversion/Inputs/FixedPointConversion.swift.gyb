@@ -3,7 +3,7 @@
 % # cd validation-test/stdlib/FixedPointConversion/
 % #
 % # ../../../utils/gyb --line-directive="" \
-% #   ./Inputs/FixedPointConversion.swift.gyb | ../../../utils/split_file.py
+% #   ./Inputs/FixedPointConversion.language.gyb | ../../../utils/split_file.py
 %
 % from CodiraIntTypes import all_integer_types, int_max
 % from CodiraFloatingPointTypes import all_floating_point_types
@@ -22,17 +22,17 @@
 %     testSuite = 'FixedPointConversion_{configuration}{bitWidth}_To{SelfName}'\
 %       .format(**locals()) # TODO(python3): use f-string (PEP 498).
 %
-// BEGIN ${testSuite}.swift
+// BEGIN ${testSuite}.language
 //===----------------------------------------------------------------------===//
 //
-// Automatically Generated From ./Inputs/FixedPointConversion.swift.gyb
+// Automatically Generated From ./Inputs/FixedPointConversion.language.gyb
 // Do Not Edit Directly!
 //
 //===----------------------------------------------------------------------===//
 //
 // REQUIRES: executable_test
 // REQUIRES: PTRSIZE=${format(bitWidth)}
-// RUN: %target-run-simple-swift(${optimizations})
+// RUN: %target-run-simple-language(${optimizations})
 // END.
 //
 //===----------------------------------------------------------------------===//

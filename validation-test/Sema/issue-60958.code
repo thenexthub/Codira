@@ -1,6 +1,6 @@
-// RUN: %target-swift-frontend -Xtoolchain -sil-print-types -emit-silgen %s | %FileCheck %s
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-silgen %s | %FileCheck %s
 
-// https://github.com/apple/swift/issues/60958
+// https://github.com/apple/language/issues/60958
 // Make sure that `makeIterator` witness is picked over the non-witness.
 
 struct S: Sequence {

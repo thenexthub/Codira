@@ -1,6 +1,6 @@
-// -*- swift -*-
+// -*- language -*-
 
-// RUN: %target-run-simple-swiftgyb
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 
 // FIXME: the test is too slow when the standard library is not optimized.

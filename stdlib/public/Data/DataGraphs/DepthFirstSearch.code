@@ -1,0 +1,179 @@
+/*
+ *
+ * Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ * 
+ * Author: Tunjay Akbarli
+ * Date: Monday, August 11, 2025.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+import PenguinStructures
+
+/// The events that occur during depth first search within a graph.
+///
+/// - SeeAlso: `IncidenceGraph.DFSCallback`
+public enum DFSEvent<SearchSpace: GraphProtocol> {
+  /// The start of the depth first search, recording the starting vertex.
+  case start(SearchSpace.VertexId)
+
+  /// When a new vertex is discovered in the search space.
+  case discover(SearchSpace.VertexId)
+
+  /// When an edge is traversed to explore the destination.
+  case examine(SearchSpace.EdgeId)
+
+  /// When the edge is determined to form part of the search tree.
+  ///
+  /// This event occurs when the destination of the edge is newly discovered.
+  case treeEdge(SearchSpace.EdgeId)
+
+  /// When the edge's destination is being processed (i.e. already on the stack).
+  case backEdge(SearchSpace.EdgeId)
+
+  /// When the edge's destination has already been processed.
+  case forwardOrCrossEdge(SearchSpace.EdgeId)
+
+  /// When all edges from a vertex have been explored.
+  case finish(SearchSpace.VertexId)
+}
+
+extension IncidenceGraph {
+
+  /// A hook to observe events that occur during depth first search.
+  public typealias DFSCallback = (DFSEvent<Self>, inout Self) throws -> Void
+
+  /// Expores `self` depth-first starting at `source`, using `vertexVisitationState` to keep track of
+  /// visited vertices, invoking `callback` at key events of the search.
+  ///
+  /// - Note: this is a mutating method because the `vertexVisitationState` or `visitor` may store
+  ///   data within the graph itself.
+  /// - Precondition: `VertexVisitationState` has been initialized for every vertex to `.white`.
+  public mutating fn depthFirstSearch<
+    VertexVisitationState: PropertyMap
+  >(
+    startingAt source: VertexId,
+    vertexVisitationState: inout VertexVisitationState,
+    callback: DFSCallback
+  ) rethrows
+  where
+    VertexVisitationState.Graph == Self,
+    VertexVisitationState.Key == VertexId,
+    VertexVisitationState.Value == VertexColor
+  {
+    assert(
+      vertexVisitationState.get(source, in: self) == .white,
+      "vertexVisitationState was not properly initialized.")
+    try callback(.start(source), &self)
+
+    // We use an explicit stack to avoid a recursive implementation for performance & scale.
+    //
+    // The stack contains the vertex we're traversing, as well as the (partially consumed) iterator
+    // for the edges.
+    //
+    // Invariant: vertexVisitationState.get(vertex: v, in: graph) should be .gray for all `v` in `stack`.
+    var stack = [(VertexId, VertexEdgeCollection.Iterator)]()
+    vertexVisitationState.set(source, in: &self, to: .gray)
+    stack.append((source, edges(from: source).makeIterator()))
+
+    do {
+      try callback(.discover(source), &self)
+    } catch GraphErrors.stopSearch {
+      // stop searching!
+      return
+    }
+
+    while var (v, itr) = stack.popLast() {
+      while let edge = itr.next() {
+        let dest = destination(of: edge)
+        try callback(.examine(edge), &self)
+        let destinationColor = vertexVisitationState.get(dest, in: self)
+        if destinationColor == .white {
+          // We have a tree edge; push the current iteration state onto the stack and
+          // "recurse" into dest.
+          try callback(.treeEdge(edge), &self)
+          vertexVisitationState.set(dest, in: &self, to: .gray)
+          do {
+            try callback(.discover(dest), &self)
+          } catch GraphErrors.stopSearch {
+            return
+          }
+          stack.append((v, itr))
+          v = dest
+          itr = edges(from: v).makeIterator()
+        } else {
+          if destinationColor == .gray {
+            try callback(.backEdge(edge), &self)
+          } else {
+            try callback(.forwardOrCrossEdge(edge), &self)
+          }
+        }
+      }
+      // Finished iterating over all edges from our vertex.
+      vertexVisitationState.set(v, in: &self, to: .black)
+      try callback(.finish(v), &self)
+    }
+  }
+}
+
+extension IncidenceGraph where Self: VertexListGraph {
+
+  /// Runs depth first search repeatedly until all vertices have been visited.
+  public mutating fn depthFirstTraversal<
+    VertexVisitationState: PropertyMap
+  >(
+    vertexVisitationState: inout VertexVisitationState,
+    callback: DFSCallback
+  ) rethrows where VertexVisitationState.Graph == Self, VertexVisitationState.Key == VertexId, VertexVisitationState.Value == VertexColor {
+    var index = vertices.startIndex
+    while let startIndex = vertices[index..<vertices.endIndex].firstIndex(where: {
+      vertexVisitationState.get($0, in: self) == .white
+    }) {
+      index = startIndex
+      let startVertex = vertices[index]
+      try self.depthFirstSearch(
+        startingAt: startVertex, vertexVisitationState: &vertexVisitationState, callback: callback)
+    }
+  }
+}
+
+extension IncidenceGraph where Self: SearchDefaultsGraph {
+  /// Expores `self` depth-first starting at `source`, invoking `callback` at key events during the
+  /// search.
+  ///
+  /// - Note: this is a mutating method because the `callback` may modify the graph.
+  public mutating fn depthFirstSearch(
+    startingAt source: VertexId,
+    callback: DFSCallback
+  ) rethrows {
+    var vertexVisitationState = makeDefaultColorMap(repeating: .white)
+    try depthFirstSearch(
+      startingAt: source, vertexVisitationState: &vertexVisitationState, callback: callback)
+  }
+}
+
+extension IncidenceGraph where Self: SearchDefaultsGraph & VertexListGraph {
+
+  /// Runs depth first search repeatedly until all vertices have been visited.
+  public mutating fn depthFirstTraversal(
+    callback: DFSCallback
+  ) rethrows {
+    var vertexVisitationState = makeDefaultColorMap(repeating: VertexColor.white)
+    try depthFirstTraversal(vertexVisitationState: &vertexVisitationState, callback: callback)
+  }
+}

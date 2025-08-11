@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# RUN: ${python} %s %target-swiftmodule-name %platform-sdk-overlay-dir \
-# RUN:     %swift_src_root \
+# RUN: ${python} %s %target-languagemodule-name %platform-sdk-overlay-dir \
+# RUN:     %language_src_root \
 # RUN:     %target-sil-opt -sdk %sdk -enable-sil-verify-all \
 # RUN:       -F %sdk/System/Library/PrivateFrameworks \
 # RUN:       %xcode-extra-frameworks-search-path
@@ -13,7 +13,7 @@ import os
 import subprocess
 import sys
 
-target_swiftmodule_name = sys.argv[1]
+target_languagemodule_name = sys.argv[1]
 sdk_overlay_dir = sys.argv[2]
 source_dir = sys.argv[3]
 sil_opt_invocation = sys.argv[4:]
@@ -21,7 +21,7 @@ sil_opt_invocation = sys.argv[4:]
 for module_file in os.listdir(sdk_overlay_dir):
     extra_args = []
     module_name, ext = os.path.splitext(module_file)
-    if ext != ".swiftmodule":
+    if ext != ".languagemodule":
         continue
     # Skip the standard library because it's tested elsewhere.
     if module_name == "Codira":
@@ -55,7 +55,7 @@ for module_file in os.listdir(sdk_overlay_dir):
 
     module_path = os.path.join(sdk_overlay_dir, module_file)
     if os.path.isdir(module_path):
-        module_path = os.path.join(module_path, target_swiftmodule_name)
+        module_path = os.path.join(module_path, target_languagemodule_name)
 
     # toolchain-bcanalyzer | not grep Unknown
     bcanalyzer_output = subprocess.check_output(["toolchain-bcanalyzer",

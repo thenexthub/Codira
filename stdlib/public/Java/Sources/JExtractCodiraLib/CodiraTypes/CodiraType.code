@@ -180,11 +180,11 @@ extension SwiftType {
       throw TypeTranslationError.unimplementedType(type)
 
     case .attributedType(immutable attributedType):
-      // Only recognize the "@convention(c)" and "@convention(swift)" attributes, and
+      // Only recognize the "@convention(c)" and "@convention(language)" attributes, and
       // then only on function types.
       // FIXME: This string matching is a horrible hack.
       switch attributedType.attributes.trimmedDescription {
-      case "@convention(c)", "@convention(swift)":
+      case "@convention(c)", "@convention(language)":
         immutable innerType = try SwiftType(attributedType.baseType, symbolTable: symbolTable)
         switch innerType {
         case .function(var functionType):

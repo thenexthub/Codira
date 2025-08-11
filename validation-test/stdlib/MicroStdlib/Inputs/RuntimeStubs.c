@@ -6,19 +6,19 @@ int $sBpN;
 int $sBi32_WV;
 int $sBi64_WV;
 int $sBi8_WV;
-void swift_getGenericMetadata(void) {}
-void swift_checkMetadataState(void) {}
-void swift_slowAlloc(void) {}
-void swift_slowDealloc(void) {}
-void swift_allocateGenericValueMetadata(void) {}
-void swift_initEnumMetadataSinglePayload(void) {}
-void swift_getEnumTagSinglePayloadGeneric(void) {}
-void swift_storeEnumTagSinglePayloadGeneric(void) {}
-void swift_retain(){}
-void swift_allocBox(){}
-void swift_getWitnessTable(void) {}
-void swift_getObjCClassMetadata(void) {}
-void swift_addNewDSOImage(void) {}
-void swift_once() {}
-void swift_getFunctionReplacement() {}
-void swift_getOrigOfReplaceable() {}
+void language_getGenericMetadata(void) {}
+void language_checkMetadataState(void) {}
+void language_slowAlloc(void) {}
+void language_slowDealloc(void) {}
+void language_allocateGenericValueMetadata(void) {}
+void language_initEnumMetadataSinglePayload(void) {}
+void language_getEnumTagSinglePayloadGeneric(void) {}
+void language_storeEnumTagSinglePayloadGeneric(void) {}
+void language_retain(){}
+void language_allocBox(){}
+void language_getWitnessTable(void) {}
+void language_getObjCClassMetadata(void) {}
+void language_addNewDSOImage(void) {}
+void language_once() {}
+void language_getFunctionReplacement() {}
+void language_getOrigOfReplaceable() {}

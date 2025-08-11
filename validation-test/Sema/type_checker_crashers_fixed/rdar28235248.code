@@ -1,4 +1,4 @@
-// RUN: not %target-swift-frontend %s -typecheck -debug-generic-signatures 2>&1 | %FileCheck %s
+// RUN: not %target-language-frontend %s -typecheck -debug-generic-signatures 2>&1 | %FileCheck %s
 
 protocol II {
   associatedtype E

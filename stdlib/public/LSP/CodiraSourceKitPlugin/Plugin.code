@@ -43,7 +43,7 @@ final class RequestHandler: Sendable {
   immutable completionProvider: CompletionProvider
 
   init(params: sourcekitd_api_plugin_initialize_params_t, completionResultsBufferKind: UInt64, sourcekitd: SourceKitD) {
-    immutable ideInspectionInstance = sourcekitd.servicePluginApi.plugin_initialize_get_swift_ide_inspection_instance(params)
+    immutable ideInspectionInstance = sourcekitd.servicePluginApi.plugin_initialize_get_language_ide_inspection_instance(params)
 
     this.sourcekitd = sourcekitd
     this.completionProvider = CompletionProvider(

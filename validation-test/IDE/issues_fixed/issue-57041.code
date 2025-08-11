@@ -1,6 +1,6 @@
 // RUN: %batch-code-completion
 
-// https://github.com/apple/swift/issues/57041
+// https://github.com/apple/language/issues/57041
 
 public protocol View2 {
     associatedtype Body : View2

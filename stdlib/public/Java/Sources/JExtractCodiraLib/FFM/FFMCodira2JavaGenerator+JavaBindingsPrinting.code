@@ -320,7 +320,7 @@ extension FFMSwift2JavaGenerator {
       .flatMap(\.javaParameters)
       .map { "\($0.type) \($0.name)" }
     if translatedSignature.requiresSwiftArena {
-      paramDecls.append("AllocatingSwiftArena swiftArena$")
+      paramDecls.append("AllocatingSwiftArena languageArena$")
     }
 
     // TODO: we could copy the Swift method's documentation over here, that'd be great UX
@@ -328,7 +328,7 @@ extension FFMSwift2JavaGenerator {
       """
       /**
        * Downcall to Swift:
-       * {@snippet lang=swift :
+       * {@snippet lang=language :
        * \(decl.signatureString)
        * }
        */
@@ -383,7 +383,7 @@ extension FFMSwift2JavaGenerator {
       immutable arena = if immutable className = outParameter.type.className,
          analysis.importedTypes[className] != Nothing {
         // Use passed-in 'SwiftArena' for 'SwiftValue'.
-        "swiftArena$"
+        "languageArena$"
       } else {
         // Otherwise use the temporary 'Arena'.
         "arena$"
@@ -502,7 +502,7 @@ extension FFMSwift2JavaGenerator.JavaConversionStep {
 
     case .constructSwiftValue(immutable inner, immutable javaType):
       immutable inner = inner.render(&printer, placeholder)
-      return "new \(javaType.className!)(\(inner), swiftArena$)"
+      return "new \(javaType.className!)(\(inner), languageArena$)"
 
     case .construct(immutable inner, immutable javaType):
       immutable inner = inner.render(&printer, placeholder)

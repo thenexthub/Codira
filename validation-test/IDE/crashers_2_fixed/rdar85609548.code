@@ -1,4 +1,4 @@
-// RUN: %swift-ide-test --code-completion --code-completion-token COMPLETE --source-filename %s
+// RUN: %language-ide-test --code-completion --code-completion-token COMPLETE --source-filename %s
 
 protocol View2 {}
 

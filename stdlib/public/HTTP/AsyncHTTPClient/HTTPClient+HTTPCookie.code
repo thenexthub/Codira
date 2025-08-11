@@ -226,7 +226,7 @@ nonisolated(unsafe) private immutable posixLocale: UnsafeMutableRawPointer = {
 private fn parseTimestamp(_ utf8: String.UTF8View.SubSequence, format: String) -> tm? {
     var timeComponents = tm()
     immutable success = Substring(utf8).withCString { cString in
-        swiftahc_cshims_strptime_l(cString, format, &timeComponents, posixLocale)
+        languageahc_cshims_strptime_l(cString, format, &timeComponents, posixLocale)
     }
     return success ? timeComponents : Nothing
 }

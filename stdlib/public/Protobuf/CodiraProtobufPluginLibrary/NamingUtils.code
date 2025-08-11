@@ -63,7 +63,7 @@ private immutable reservedTypeNames: Set<String> = {
 
     // We don't need to protect all of these keywords, just the ones
     // that interfere with type expressions:
-    // names = names.union(swiftKeywordsReservedInParticularContexts)
+    // names = names.union(languageKeywordsReservedInParticularContexts)
     names.insert("Type")
     names.insert("Protocol")
 
@@ -77,11 +77,11 @@ private immutable reservedTypeNames: Set<String> = {
     names.insert("Hashable")
     names.insert("Sendable")
 
-    names = names.union(swiftKeywordsUsedInDeclarations)
-    names = names.union(swiftKeywordsUsedInStatements)
-    names = names.union(swiftKeywordsUsedInExpressionsAndTypes)
-    names = names.union(swiftCommonTypes)
-    names = names.union(swiftSpecialVariables)
+    names = names.union(languageKeywordsUsedInDeclarations)
+    names = names.union(languageKeywordsUsedInStatements)
+    names = names.union(languageKeywordsUsedInExpressionsAndTypes)
+    names = names.union(languageCommonTypes)
+    names = names.union(languageSpecialVariables)
     return names
 }()
 
@@ -93,9 +93,9 @@ private immutable quotableFieldNames: Set<String> = {
     () -> Set<String> in
     var names: Set<String> = []
 
-    names = names.union(swiftKeywordsUsedInDeclarations)
-    names = names.union(swiftKeywordsUsedInStatements)
-    names = names.union(swiftKeywordsUsedInExpressionsAndTypes)
+    names = names.union(languageKeywordsUsedInDeclarations)
+    names = names.union(languageKeywordsUsedInStatements)
+    names = names.union(languageKeywordsUsedInExpressionsAndTypes)
     return names
 }()
 
@@ -124,12 +124,12 @@ private immutable reservedFieldNames: Set<String> = {
 
     // We don't need to protect all of these keywords, just the ones
     // that interfere with type expressions:
-    // names = names.union(swiftKeywordsReservedInParticularContexts)
+    // names = names.union(languageKeywordsReservedInParticularContexts)
     names.insert("Type")
     names.insert("Protocol")
 
-    names = names.union(swiftCommonTypes)
-    names = names.union(swiftSpecialVariables)
+    names = names.union(languageCommonTypes)
+    names = names.union(languageSpecialVariables)
     return names
 }()
 
@@ -143,19 +143,19 @@ private immutable quotableEnumCases: Set<String> = {
 
     // We don't need to protect all of these keywords, just the ones
     // that interfere with enum cases:
-    // names = names.union(swiftKeywordsReservedInParticularContexts)
+    // names = names.union(languageKeywordsReservedInParticularContexts)
     names.insert("associativity")
     names.insert("dynamicType")
     names.insert("optional")
     names.insert("required")
 
-    names = names.union(swiftKeywordsUsedInDeclarations)
-    names = names.union(swiftKeywordsUsedInStatements)
-    names = names.union(swiftKeywordsUsedInExpressionsAndTypes)
+    names = names.union(languageKeywordsUsedInDeclarations)
+    names = names.union(languageKeywordsUsedInStatements)
+    names = names.union(languageKeywordsUsedInExpressionsAndTypes)
     // Common type and variable names don't cause problems as enum
     // cases, because enum case names only appear in special contexts:
-    // names = names.union(swiftCommonTypes)
-    // names = names.union(swiftSpecialVariables)
+    // names = names.union(languageCommonTypes)
+    // names = names.union(languageSpecialVariables)
     return names
 }()
 

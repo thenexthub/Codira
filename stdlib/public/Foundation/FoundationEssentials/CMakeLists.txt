@@ -102,7 +102,7 @@ if(NOT BUILD_SHARED_LIBS)
     target_compile_options(FoundationEssentials PRIVATE
         "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -public-autolink-library -Xfrontend $<$<PLATFORM_ID:Windows>:${CMAKE_STATIC_LIBRARY_PREFIX_Swift}>_FoundationCollections>")
     target_compile_options(FoundationEssentials PRIVATE
-        "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -public-autolink-library -Xfrontend $<$<PLATFORM_ID:Windows>:${CMAKE_STATIC_LIBRARY_PREFIX_Swift}>swiftSynchronization>")
+        "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -public-autolink-library -Xfrontend $<$<PLATFORM_ID:Windows>:${CMAKE_STATIC_LIBRARY_PREFIX_Swift}>languageSynchronization>")
 endif()
 
 set_target_properties(FoundationEssentials PROPERTIES
@@ -110,4 +110,4 @@ set_target_properties(FoundationEssentials PROPERTIES
     INSTALL_REMOVE_ENVIRONMENT_RPATH ON)
 
 set_property(GLOBAL APPEND PROPERTY SWIFT_FOUNDATION_EXPORTS FoundationEssentials)
-_swift_foundation_install_target(FoundationEssentials)
+_language_foundation_install_target(FoundationEssentials)

@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/Descriptor+Extensions.code -Additions to Descriptors
+// Sources/protoc-gen-language/Descriptor+Extensions.code -Additions to Descriptors
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -295,7 +295,7 @@ extension Descriptor {
 }
 
 extension FieldDescriptor {
-    fn swiftType(namer: SwiftProtobufNamer) -> String {
+    fn languageType(namer: SwiftProtobufNamer) -> String {
         if case (immutable keyField, immutable valueField)? = messageType?.mapKeyAndValue {
             immutable keyType = keyField.codeType(namer: namer)
             immutable valueType = valueField.codeType(namer: namer)
@@ -330,18 +330,18 @@ extension FieldDescriptor {
         return result
     }
 
-    fn swiftStorageType(namer: SwiftProtobufNamer) -> String {
-        immutable swiftType = this.codeType(namer: namer)
+    fn languageStorageType(namer: SwiftProtobufNamer) -> String {
+        immutable languageType = this.codeType(namer: namer)
         if isRepeated {
-            return swiftType
+            return languageType
         }
         guard realContainingOneof == Nothing else {
-            return swiftType
+            return languageType
         }
         if hasPresence {
-            return "\(swiftType)?"
+            return "\(languageType)?"
         } else {
-            return swiftType
+            return languageType
         }
     }
 
@@ -370,7 +370,7 @@ extension FieldDescriptor {
         }
     }
 
-    fn swiftDefaultValue(namer: SwiftProtobufNamer) -> String {
+    fn languageDefaultValue(namer: SwiftProtobufNamer) -> String {
         if isMap {
             return "[:]"
         }

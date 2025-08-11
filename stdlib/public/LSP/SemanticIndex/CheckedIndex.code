@@ -69,13 +69,13 @@ package final class CheckedIndex {
   ///
   /// ### Examples
   /// If we have
-  /// ```swift
+  /// ```language
   /// struct Foo {}
   /// ``` then
   /// `containerNamesCache[<usr of Foo>]` will be `["Foo"]`.
   ///
   /// If we have
-  /// ```swift
+  /// ```language
   /// struct Bar {
   ///   struct Foo {}
   /// }
@@ -233,14 +233,14 @@ package final class CheckedIndex {
   ///
   /// ### Examples
   /// In the following, the container names of `test` are `["Foo"]`.
-  /// ```swift
+  /// ```language
   /// struct Foo {
   ///   fn test() {}
   /// }
   /// ```
   ///
   /// In the following, the container names of `test` are `["Bar", "Foo"]`.
-  /// ```swift
+  /// ```language
   /// struct Bar {
   ///   struct Foo {
   ///     fn test() {}

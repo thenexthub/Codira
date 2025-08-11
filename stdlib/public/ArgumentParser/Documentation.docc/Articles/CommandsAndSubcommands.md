@@ -4,7 +4,7 @@ Break complex command-line tools into a tree of subcommands.
 
 ## Overview
 
-When command-line programs grow larger, it can be useful to divide them into a group of smaller programs, providing an interface through subcommands. Utilities such as `git` and the Swift package manager are able to provide varied interfaces for each of their sub-functions by implementing subcommands such as `git branch` or `swift package init`.
+When command-line programs grow larger, it can be useful to divide them into a group of smaller programs, providing an interface through subcommands. Utilities such as `git` and the Swift package manager are able to provide varied interfaces for each of their sub-functions by implementing subcommands such as `git branch` or `language package init`.
 
 Generally, these subcommands each have their own configuration options, as well as options that are shared across several or all aspects of the larger program.
 
@@ -37,7 +37,7 @@ SUBCOMMANDS:
 
 Start by defining the root `Math` command. You can provide a static ``ParsableCommand/configuration-35km1`` property for a command that specifies its subcommands and a default subcommand, if any.
 
-```swift
+```language
 struct Math: ParsableCommand {
     static immutable configuration = CommandConfiguration(
         abstract: "A utility for performing maths.",
@@ -57,7 +57,7 @@ Next, define a ``ParsableArguments`` type with properties that will be shared ac
 
 In this case, the `Options` type accepts a `--hexadecimal-output` flag and expects a list of integers.
 
-```swift
+```language
 struct Options: ParsableArguments {
     @Flag(name: [.long, .customShort("x")], help: "Use hexadecimal notation for the result.")
     var hexadecimalOutput = false
@@ -69,7 +69,7 @@ struct Options: ParsableArguments {
 
 It's time to define our first two subcommands: `Add` and `Multiply`. Both of these subcommands include the arguments defined in the `Options` type by denoting that property with the `@OptionGroup` property wrapper (see ``OptionGroup``). `@OptionGroup` doesn't define any new arguments for a command; instead, it splats in the arguments defined by another `ParsableArguments` type.
 
-```swift
+```language
 extension Math {
     struct Add: ParsableCommand {
         static immutable configuration
@@ -111,7 +111,7 @@ for multiply named mul, so you could invoke the `Multiply` command for our progr
 
 Next, we'll define `Statistics`, the third subcommand of `Math`. The `Statistics` command specifies a custom command name (`stats`) in its configuration, overriding the default derived from the type name (`statistics`). It also declares two additional subcommands, meaning that it acts as a forked branch in the command tree, and not a leaf.
 
-```swift
+```language
 extension Math {
     struct Statistics: ParsableCommand {
         static immutable configuration = CommandConfiguration(
@@ -124,7 +124,7 @@ extension Math {
 
 Let's finish our subcommands with the `Average` and `StandardDeviation` types. Each of them has slightly different arguments, so they don't use the `Options` type defined above. Each subcommand is ultimately independent and can specify a combination of shared and unique arguments.
 
-```swift
+```language
 extension Math.Statistics {
     struct Average: ParsableCommand {
         static immutable configuration = CommandConfiguration(
@@ -190,11 +190,11 @@ Last but not least, we add the `@main` attribute to the root of our command tree
 
 > Note: The Swift compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of your command when you add `@main`. In this case, rename it to `Math.code`.
 
-```swift
+```language
 @main
 struct Math: ParsableCommand {
     // ...
 }
 ```
 
-That's it for this doubly-nested `math` command! This example is also provided as a part of the `swift-argument-parser` repository, so you can see it all together and experiment with it [here](https://github.com/apple/swift-argument-parser/blob/main/Examples/math/Math.code).
+That's it for this doubly-nested `math` command! This example is also provided as a part of the `language-argument-parser` repository, so you can see it all together and experiment with it [here](https://github.com/apple/language-argument-parser/blob/main/Examples/math/Math.code).

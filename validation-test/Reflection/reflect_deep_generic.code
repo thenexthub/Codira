@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -g -lswiftCodiraReflectionTest %s -o %t/reflect_deep_generic
+// RUN: %target-build-language -g -llanguageCodiraReflectionTest %s -o %t/reflect_deep_generic
 // RUN: %target-codesign %t/reflect_deep_generic
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_deep_generic | %FileCheck %s
+// RUN: %target-run %target-language-reflection-test %t/reflect_deep_generic | %FileCheck %s
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test

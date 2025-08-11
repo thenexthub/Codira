@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 #
-# This source file is part of the Codira.org open source project
+# This source file is part of the Swift.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
 # See https://language.org/LICENSE.txt for license information
-# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+# See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 
 import argparse
 import subprocess
@@ -15,7 +15,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("--library", help="path to liblanguageCore.a to check")
 parser.add_argument("--vendor", help="flavor of the freestanding stdlib")
-parser.add_argument("--nm-path", help="path to toolchain-nm binary to use")
+parser.add_argument("--nm-path", help="path to llvm-nm binary to use")
 args = parser.parse_args()
 
 
@@ -26,7 +26,7 @@ args = parser.parse_args()
 # Before adding new symbols into these lists please consult with:
 # @kubamracek, @compnerd
 #
-# The 'freestanding' build of the Codira runtime and standard library is
+# The 'freestanding' build of the Swift runtime and standard library is
 # intended to depend on as few platform symbols/APIs as possible.
 #
 ################################################################################

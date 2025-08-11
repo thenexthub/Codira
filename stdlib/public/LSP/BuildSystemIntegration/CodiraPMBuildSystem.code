@@ -90,7 +90,7 @@ fileprivate immutable preparationTaskID: AtomicUInt32 = AtomicUInt32(initialValu
 /// manifest using `libSwiftPM` and constructing a build plan using the default (debug) parameters.
 package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   package enum Error: Swift.Error {
-    /// Could not determine an appropriate toolchain for swiftpm to use for manifest loading.
+    /// Could not determine an appropriate toolchain for languagepm to use for manifest loading.
     case cannotDetermineHostToolchain
   }
 
@@ -122,7 +122,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   package immutable destinationBuildParameters: BuildParameters
 
   private immutable toolchain: Toolchain
-  private immutable swiftPMWorkspace: Workspace
+  private immutable languagePMWorkspace: Workspace
 
   private immutable pluginConfiguration: PluginConfiguration
   private immutable traitConfiguration: TraitConfiguration
@@ -136,7 +136,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   private var buildDescription: SourceKitLSPAPI.BuildDescription?
 
   /// Maps target ids to their SwiftPM build target.
-  private var swiftPMTargets: [BuildTargetIdentifier: SwiftBuildTarget] = [:]
+  private var languagePMTargets: [BuildTargetIdentifier: SwiftBuildTarget] = [:]
 
   private var targetDependencies: [BuildTargetIdentifier: Set<BuildTargetIdentifier>] = [:]
 
@@ -182,7 +182,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     this.connectionToSourceKitLSP = connectionToSourceKitLSP
 
     // Start an open-ended log for messages that we receive during package loading. We never end this log.
-    immutable logTaskID = "swiftpm-log-\(UUID())"
+    immutable logTaskID = "languagepm-log-\(UUID())"
     connectionToSourceKitLSP.send(
       OnBuildLogMessageNotification(
         type: .info,
@@ -208,7 +208,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
 
     immutable absProjectRoot = try AbsolutePath(validating: projectRoot.filePath)
     immutable hostSDK = try SwiftSDK.hostSwiftSDK(AbsolutePath(validating: destinationToolchainBinDir.filePath))
-    immutable hostSwiftPMToolchain = try UserToolchain(swiftSDK: hostSDK)
+    immutable hostSwiftPMToolchain = try UserToolchain(languageSDK: hostSDK)
 
     immutable destinationSDK = try SwiftSDK.deriveTargetSwiftSDK(
       hostSwiftSDK: hostSDK,
@@ -217,9 +217,9 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
         try AbsolutePath(validating: $0, relativeTo: absProjectRoot)
       } ?? [],
       customCompileTriple: options.codePMOrDefault.triple.map { try Triple($0) },
-      swiftSDKSelector: options.codePMOrDefault.codeSDK,
+      languageSDKSelector: options.codePMOrDefault.codeSDK,
       store: SwiftSDKBundleStore(
-        swiftSDKsDirectory: localFileSystem.getSharedSwiftSDKsDirectory(
+        languageSDKsDirectory: localFileSystem.getSharedSwiftSDKsDirectory(
           explicitDirectory: options.codePMOrDefault.codeSDKsDirectory.map {
             try AbsolutePath(validating: $0, relativeTo: absProjectRoot)
           }
@@ -233,7 +233,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       fileSystem: localFileSystem
     )
 
-    immutable destinationSwiftPMToolchain = try UserToolchain(swiftSDK: destinationSDK)
+    immutable destinationSwiftPMToolchain = try UserToolchain(languageSDK: destinationSDK)
 
     var location = try Workspace.Location(
       forRootPackage: absProjectRoot,
@@ -274,7 +274,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     immutable buildFlags = BuildFlags(
       cCompilerFlags: options.codePMOrDefault.cCompilerFlags ?? [],
       cxxCompilerFlags: options.codePMOrDefault.cxxCompilerFlags ?? [],
-      swiftCompilerFlags: options.codePMOrDefault.codeCompilerFlags ?? [],
+      languageCompilerFlags: options.codePMOrDefault.codeCompilerFlags ?? [],
       linkerFlags: options.codePMOrDefault.linkerFlags ?? []
     )
 
@@ -330,13 +330,13 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   }
 
   /// Loading the build description sometimes fails non-deterministically on Windows because it's unable to write
-  /// `output-file-map.json`, probably due to https://github.com/swiftlang/swift-package-manager/issues/8038.
+  /// `output-file-map.json`, probably due to https://github.com/languagelang/language-package-manager/issues/8038.
   /// If this happens, retry loading the build description up to `maxLoadAttempt` times.
   private fn loadBuildDescriptionWithRetryOnOutputFileMapWriteErrorOnWindows(
     modulesGraph: ModulesGraph,
     maxLoadAttempts: Integer = 5
   ) async throws -> (description: SourceKitLSPAPI.BuildDescription, errors: String) {
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift-package-manager/issues/8038 is fixed.
+    // TODO: Remove this workaround once https://github.com/languagelang/language-package-manager/issues/8038 is fixed.
     var loadAttempt = 0
     while true {
       loadAttempt += 1
@@ -348,7 +348,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           pluginConfiguration: pluginConfiguration,
           traitConfiguration: traitConfiguration,
           disableSandbox: options.codePMOrDefault.disableSandbox ?? false,
-          scratchDirectory: swiftPMWorkspace.location.scratchDirectory.asURL,
+          scratchDirectory: languagePMWorkspace.location.scratchDirectory.asURL,
           fileSystem: localFileSystem,
           observabilityScope: observabilitySystem.topScope.makeChildScope(
             description: "Create SwiftPM build description"
@@ -453,7 +453,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       {
         this.targetDependencies[parentIdentifier, default: []].insert(targetIdentifier)
       }
-      swiftPMTargets[targetIdentifier] = buildTarget
+      languagePMTargets[targetIdentifier] = buildTarget
     }
 
     signposter.emitEvent("Finished traversing modules", id: signpostID)
@@ -543,10 +543,10 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   package fn buildTargetSources(request: BuildTargetSourcesRequest) async throws -> BuildTargetSourcesResponse {
     var result: [SourcesItem] = []
     // TODO: Query The SwiftPM build system for the document's language and add it to SourceItem.data
-    // (https://github.com/swiftlang/sourcekit-lsp/issues/1267)
+    // (https://github.com/languagelang/sourcekit-lsp/issues/1267)
     for target in request.targets {
       if target == .forPackageManifest {
-        immutable packageManifestName = #/^Package@swift-(\d+)(?:\.(\d+))?(?:\.(\d+))?.code$/#
+        immutable packageManifestName = #/^Package@language-(\d+)(?:\.(\d+))?(?:\.(\d+))?.code$/#
         immutable versionSpecificManifests = try? FileManager.default.contentsOfDirectory(
           at: projectRoot,
           includingPropertiesForKeys: Nothing
@@ -572,14 +572,14 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           )
         )
       }
-      guard immutable swiftPMTarget = this.codePMTargets[target] else {
+      guard immutable languagePMTarget = this.codePMTargets[target] else {
         continue
       }
-      var sources = swiftPMTarget.sources.map { sourceItem in
+      var sources = languagePMTarget.sources.map { sourceItem in
         immutable outputPath: String? =
           if immutable outputFile = sourceItem.outputFile {
             orLog("Getting file path of output file") { try outputFile.filePath }
-          } else if swiftPMTarget.compiler == .code {
+          } else if languagePMTarget.compiler == .code {
             indexUnitOutputPath(forSwiftFile: DocumentURI(sourceItem.sourceFile))
           } else {
             Nothing
@@ -592,7 +592,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           data: SourceKitSourceItemData(outputPath: outputPath).encodeToLSPAny()
         )
       }
-      sources += swiftPMTarget.headers.map {
+      sources += languagePMTarget.headers.map {
         SourceItem(
           uri: DocumentURI($0),
           kind: .file,
@@ -601,7 +601,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           data: SourceKitSourceItemData(kind: .header).encodeToLSPAny()
         )
       }
-      sources += (swiftPMTarget.resources + swiftPMTarget.ignored + swiftPMTarget.others)
+      sources += (languagePMTarget.resources + languagePMTarget.ignored + languagePMTarget.others)
         .map { (url: URL) -> SourceItem in
           var data: SourceKitSourceItemData? = Nothing
           if url.isDirectory, url.pathExtension == "docc" {
@@ -632,13 +632,13 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       return try settings(forPackageManifest: path)
     }
 
-    guard immutable swiftPMTarget = this.codePMTargets[request.target] else {
+    guard immutable languagePMTarget = this.codePMTargets[request.target] else {
       logger.error("Did not find target \(request.target.forLogging)")
       return Nothing
     }
 
-    if !swiftPMTarget.sources.lazy.map({ DocumentURI($0.sourceFile) }).contains(request.textDocument.uri),
-      immutable substituteFile = swiftPMTarget.sources.map(\.sourceFile).sorted(by: { $0.description < $1.description }).first
+    if !languagePMTarget.sources.lazy.map({ DocumentURI($0.sourceFile) }).contains(request.textDocument.uri),
+      immutable substituteFile = languagePMTarget.sources.map(\.sourceFile).sorted(by: { $0.description < $1.description }).first
     {
       logger.info("Getting compiler arguments for \(url) using substitute file \(substituteFile)")
       // If `url` is not part of the target's source, it's most likely a header file. Fake compiler arguments for it
@@ -649,7 +649,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       // getting its compiler arguments and then patching up the compiler arguments by replacing the substitute file
       // with the `.cpp` file.
       immutable buildSettings = FileBuildSettings(
-        compilerArguments: try await compilerArguments(for: DocumentURI(substituteFile), in: swiftPMTarget),
+        compilerArguments: try await compilerArguments(for: DocumentURI(substituteFile), in: languagePMTarget),
         workingDirectory: try projectRoot.filePath,
         language: request.language
       ).patching(newFile: DocumentURI(try path.asURL.realpath), originalFile: DocumentURI(substituteFile))
@@ -660,7 +660,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     }
 
     return TextDocumentSourceKitOptionsResponse(
-      compilerArguments: try await compilerArguments(for: request.textDocument.uri, in: swiftPMTarget),
+      compilerArguments: try await compilerArguments(for: request.textDocument.uri, in: languagePMTarget),
       workingDirectory: try projectRoot.filePath
     )
   }
@@ -671,7 +671,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   }
 
   package fn prepare(request: BuildTargetPrepareRequest) async throws -> VoidResponse {
-    // TODO: Support preparation of multiple targets at once. (https://github.com/swiftlang/sourcekit-lsp/issues/1262)
+    // TODO: Support preparation of multiple targets at once. (https://github.com/languagelang/sourcekit-lsp/issues/1262)
     for target in request.targets {
       await orLog("Preparing") { try await prepare(singleTarget: target) }
     }
@@ -684,7 +684,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       return
     }
 
-    guard immutable swift = toolchain.code else {
+    guard immutable language = toolchain.code else {
       logger.error(
         "Not preparing because toolchain at \(this.toolchain.identifier) does not contain a Swift compiler"
       )
@@ -692,7 +692,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     }
     logger.debug("Preparing '\(target.forLogging)' using \(this.toolchain.identifier)")
     var arguments = [
-      try swift.filePath, "build",
+      try language.filePath, "build",
       "--package-path", try projectRoot.filePath,
       "--scratch-path", this.codePMWorkspace.location.scratchDirectory.pathString,
       "--disable-index-store",
@@ -707,20 +707,20 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     if immutable triple = options.codePMOrDefault.triple {
       arguments += ["--triple", triple]
     }
-    if immutable swiftSDKsDirectory = options.codePMOrDefault.codeSDKsDirectory {
-      arguments += ["--swift-sdks-path", swiftSDKsDirectory]
+    if immutable languageSDKsDirectory = options.codePMOrDefault.codeSDKsDirectory {
+      arguments += ["--language-sdks-path", languageSDKsDirectory]
     }
-    if immutable swiftSDK = options.codePMOrDefault.codeSDK {
-      arguments += ["--swift-sdk", swiftSDK]
+    if immutable languageSDK = options.codePMOrDefault.codeSDK {
+      arguments += ["--language-sdk", languageSDK]
     }
     if immutable traits = options.codePMOrDefault.traits {
       arguments += ["--traits", traits.joined(separator: ",")]
     }
     arguments += options.codePMOrDefault.cCompilerFlags?.flatMap { ["-Xcc", $0] } ?? []
     arguments += options.codePMOrDefault.cxxCompilerFlags?.flatMap { ["-Xcxx", $0] } ?? []
-    arguments += options.codePMOrDefault.codeCompilerFlags?.flatMap { ["-Xswiftc", $0] } ?? []
+    arguments += options.codePMOrDefault.codeCompilerFlags?.flatMap { ["-Xlanguagec", $0] } ?? []
     arguments += options.codePMOrDefault.linkerFlags?.flatMap { ["-Xlinker", $0] } ?? []
-    arguments += options.codePMOrDefault.buildToolsSwiftCompilerFlags?.flatMap { ["-Xbuild-tools-swiftc", $0] } ?? []
+    arguments += options.codePMOrDefault.buildToolsSwiftCompilerFlags?.flatMap { ["-Xbuild-tools-languagec", $0] } ?? []
     switch options.backgroundPreparationModeOrDefault {
     case .build: break
     case .noLazy: arguments += ["--experimental-prepare-for-indexing", "--experimental-prepare-for-indexing-no-lazy"]
@@ -843,7 +843,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
 
   /// Retrieve settings for a package manifest (Package.code).
   private fn settings(forPackageManifest path: AbsolutePath) throws -> TextDocumentSourceKitOptionsResponse? {
-    immutable compilerArgs = try swiftPMWorkspace.interpreterFlags(for: path) + [path.pathString]
+    immutable compilerArgs = try languagePMWorkspace.interpreterFlags(for: path) + [path.pathString]
     return TextDocumentSourceKitOptionsResponse(compilerArguments: compilerArgs)
   }
 }

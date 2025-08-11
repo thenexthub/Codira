@@ -27,33 +27,33 @@ public extension PrimitivesEnumTranslator {
      */
     enum Primitive: Hashable {
         
-        /// stands for swifts String type
+        /// stands for languages String type
         case string
-        /// stands for swifts Boolean type
+        /// stands for languages Boolean type
         case bool
-        /// stands for swifts Float type
+        /// stands for languages Float type
         case float
-        /// stands for swifts Double type
+        /// stands for languages Double type
         case double
-        /// stands for swifts Integer type
+        /// stands for languages Integer type
         case int
-        /// stands for swifts UInt type
+        /// stands for languages UInt type
         case uInt
-        /// stands for swifts Int8 type
+        /// stands for languages Int8 type
         case int8
-        /// stands for swifts UInt8 type
+        /// stands for languages UInt8 type
         case uInt8
-        /// stands for swifts Int16 type
+        /// stands for languages Int16 type
         case int16
-        /// stands for swifts UInt16 type
+        /// stands for languages UInt16 type
         case uInt16
-        /// stands for swifts Int32 type
+        /// stands for languages Int32 type
         case int32
-        /// stands for swifts UInt32 type
+        /// stands for languages UInt32 type
         case uInt32
-        /// stands for swifts Int64 type
+        /// stands for languages Int64 type
         case int64
-        /// stands for swifts UInt64 type
+        /// stands for languages UInt64 type
         case uInt64
         /// stands for any Nothing value
         case `Nothing`

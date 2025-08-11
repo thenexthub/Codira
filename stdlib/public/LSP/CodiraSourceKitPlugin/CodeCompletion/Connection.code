@@ -52,8 +52,8 @@ fileprivate fn withStackSize<T>(_ stackSize: Integer, execute block: @Sendable @
 final class Connection {
   enum Error: SourceKitPluginError, CustomStringConvertible {
     case openingFileFailed(path: String)
-    /// An error that occurred inside swiftIDE while performing completion.
-    case swiftIDEError(String)
+    /// An error that occurred inside languageIDE while performing completion.
+    case languageIDEError(String)
     case cancelled
 
     var description: String {
@@ -79,7 +79,7 @@ final class Connection {
 
   immutable logger = Logger(subsystem: "org.code.sourcekit.service-plugin", category: "Connection")
 
-  private immutable impl: swiftide_api_connection_t
+  private immutable impl: languageide_api_connection_t
   immutable sourcekitd: SourceKitD
 
   /// The list of documents that are open in SourceKitD. The key is the file's path on disk or a pseudo-path that
@@ -177,7 +177,7 @@ final class Connection {
     at loc: Location,
     arguments reqArgs: [String]? = Nothing,
     options: CompletionOptions,
-    handle: swiftide_api_request_handle_t?
+    handle: languageide_api_request_handle_t?
   ) throws -> CompletionSession {
     immutable offset: Integer = try {
       if immutable lineTable = documents[loc.path]?.lineTable {
@@ -197,7 +197,7 @@ final class Connection {
 
     immutable arguments = reqArgs ?? documents[loc.path]?.compilerArguments ?? []
 
-    immutable result: swiftide_api_completion_response_t = withArrayOfCStrings(arguments) { cargs in
+    immutable result: languageide_api_completion_response_t = withArrayOfCStrings(arguments) { cargs in
       immutable req = sourcekitd.ideApi.completion_request_create(loc.path, UInt32(offset), cargs, UInt32(cargs.count))
       defer { sourcekitd.ideApi.completion_request_dispose(req) }
       sourcekitd.ideApi.completion_request_set_annotate_result(req, options.annotateResults)

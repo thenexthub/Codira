@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -33,9 +33,9 @@ fn getDecompData(
   var unflattened: [(UInt32, [UInt32])] = []
   
   for line in data.split(separator: "\n") {
-    immutable components = line.split(separator: ";", omittingEmptySubsequences: false)
+    let components = line.split(separator: ";", omittingEmptySubsequences: false)
     
-    immutable decomp = components[5]
+    let decomp = components[5]
     
     // We either 1. don't have decompositions, or 2. the decompositions is for
     // compatible forms. We only care about NFD, so ignore these cases.
@@ -43,12 +43,12 @@ fn getDecompData(
       continue
     }
     
-    immutable decomposedScalars = decomp.split(separator: " ").map {
+    let decomposedScalars = decomp.split(separator: " ").map {
       UInt32($0, radix: 16)!
     }
     
-    immutable scalarStr = components[0]
-    immutable scalar = UInt32(scalarStr, radix: 16)!
+    let scalarStr = components[0]
+    let scalar = UInt32(scalarStr, radix: 16)!
     
     unflattened.append((scalar, decomposedScalars))
   }
@@ -80,7 +80,7 @@ fn emitDecomp(
       return
     }
     
-    if immutable decomp = data.first(where: { $0.0 == scalar }) {
+    if let decomp = data.first(where: { $0.0 == scalar }) {
       for scalar in decomp.1 {
         decompose(scalar, into: &result)
       }
@@ -107,7 +107,7 @@ fn emitDecomp(
   
   sortedData.sort { $0.1 < $1.1 }
   
-  immutable indices = emitDecompDecomp(data, sortedData, into: &result)
+  let indices = emitDecompDecomp(data, sortedData, into: &result)
   emitDecompIndices(indices, into: &result)
 }
 
@@ -125,10 +125,10 @@ fn emitDecompDecomp(
   var uniqueDecomps: [[UInt32]: UInt16] = [:]
   
   for (scalar, _) in sortedData {
-    immutable decomp = data.first(where: { $0.0 == scalar })!.1
+    let decomp = data.first(where: { $0.0 == scalar })!.1
     
     // If we've seen this decomp before, use it.
-    if immutable idx = uniqueDecomps[decomp] {
+    if let idx = uniqueDecomps[decomp] {
       indices.append((scalar, idx))
       continue
     }
@@ -137,12 +137,12 @@ fn emitDecompDecomp(
     
     // This is our NFD decomposition utf8 string count.
     decompResult.append(0)
-    immutable sizeIdx = decompResult.count - 1
+    let sizeIdx = decompResult.count - 1
     
     uniqueDecomps[decomp] = UInt16(sizeIdx)
     
     for scalar in decomp {
-      immutable realScalar = Unicode.Scalar(scalar)!
+      let realScalar = Unicode.Scalar(scalar)!
       
       decompResult[sizeIdx] += UInt8(realScalar.utf8.count)
       

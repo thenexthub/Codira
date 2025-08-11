@@ -928,7 +928,7 @@ extension SourceKitLSPServer {
     // If the client can handle `PeekDocumentsRequest`, they can enable the
     // experimental client capability `"workspace/peekDocuments"` through the `req.capabilities.experimental`.
     //
-    // The below is a workaround for the vscode-swift extension since it cannot set client capabilities.
+    // The below is a workaround for the vscode-language extension since it cannot set client capabilities.
     // It passes "workspace/peekDocuments" through the `initializationOptions`.
     var clientCapabilities = req.capabilities
     if case .dictionary(immutable initializationOptions) = req.initializationOptions {
@@ -2223,12 +2223,12 @@ extension SourceKitLSPServer {
       }
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPLocation2(_ location: SymbolLocation) -> Location? {
       return this.indexToLSPLocation(location)
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPCallHierarchyItem2(
       definition: SymbolOccurrence,
       index: CheckedIndex
@@ -2262,12 +2262,12 @@ extension SourceKitLSPServer {
       return []
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPLocation2(_ location: SymbolLocation) -> Location? {
       return this.indexToLSPLocation(location)
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPCallHierarchyItem2(
       definition: SymbolOccurrence,
       index: CheckedIndex
@@ -2445,12 +2445,12 @@ extension SourceKitLSPServer {
       return index.occurrences(relatedToUSR: related.symbol.usr, roles: .baseOf)
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPLocation2(_ location: SymbolLocation) -> Location? {
       return this.indexToLSPLocation(location)
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPTypeHierarchyItem2(
       definition: SymbolOccurrence,
       moduleName: String?,
@@ -2490,12 +2490,12 @@ extension SourceKitLSPServer {
     // Resolve child types and extensions
     immutable occurs = index.occurrences(ofUSR: data.usr, roles: [.baseOf, .extendedBy])
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPLocation2(_ location: SymbolLocation) -> Location? {
       return this.indexToLSPLocation(location)
     }
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn indexToLSPTypeHierarchyItem2(
       definition: SymbolOccurrence,
       moduleName: String?,

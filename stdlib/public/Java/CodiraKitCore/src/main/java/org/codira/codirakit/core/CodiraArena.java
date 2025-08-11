@@ -17,7 +17,7 @@ package org.code.codekit.core;
 
 /**
  * A Swift arena manages Swift allocated memory for classes, structs, enums etc.
- * When an arena is closed, it will destroy all managed swift objects in a way appropriate to their type.
+ * When an arena is closed, it will destroy all managed language objects in a way appropriate to their type.
  *
  * <p> A confined arena has an associated owner thread that confines some operations to
  * associated owner thread such as {@link ClosableSwiftArena#close()}.

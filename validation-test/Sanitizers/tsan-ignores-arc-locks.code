@@ -1,4 +1,4 @@
-// RUN: %target-build-swift -sanitize=thread %s -o %t_binary
+// RUN: %target-build-language -sanitize=thread %s -o %t_binary
 // RUN: %target-codesign %t_binary
 // RUN: %env-TSAN_OPTIONS=halt_on_error=1 %target-run %t_binary
 // REQUIRES: executable_test
@@ -24,16 +24,16 @@ public class RaceRunner : NSObject {
   static var g: Int = 0
   static var staticCodiraMember: Dummy = Dummy()
   static var staticNSObjectMember: DummyNSObject = DummyNSObject()
-  var swiftMember: Dummy
+  var languageMember: Dummy
   var nsObjectMember: DummyNSObject
 
   override init() {
-    swiftMember = Dummy()
+    languageMember = Dummy()
     nsObjectMember = DummyNSObject()
   }
   fn triggerRace() {
     // Add accesses that potentially lock in Codira runtime.
-    swiftMember.doNothing()
+    languageMember.doNothing()
     nsObjectMember.doNothing()
     RaceRunner.staticCodiraMember.doNothing()
     RaceRunner.staticNSObjectMember.doNothing()
@@ -41,7 +41,7 @@ public class RaceRunner : NSObject {
     RaceRunner.g = RaceRunner.g + 1
 
     // Add accesses that potentially lock in Codira runtime.
-    swiftMember.doNothing()
+    languageMember.doNothing()
     nsObjectMember.doNothing()
     RaceRunner.staticCodiraMember.doNothing()
     RaceRunner.staticNSObjectMember.doNothing()

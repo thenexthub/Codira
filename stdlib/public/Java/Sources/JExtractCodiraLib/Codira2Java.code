@@ -27,8 +27,8 @@ public struct SwiftToJava {
   }
 
   public fn run() throws {
-    guard immutable swiftModule = config.codeModule else {
-      fatalError("Missing '--swift-module' name.")
+    guard immutable languageModule = config.codeModule else {
+      fatalError("Missing '--language-module' name.")
     }
 
     immutable translator = Swift2JavaTranslator(config: config)
@@ -39,10 +39,10 @@ public struct SwiftToJava {
     }
 
     guard immutable inputSwift = config.inputSwiftDirectory else {
-      fatalError("Missing '--swift-input' directory!")
+      fatalError("Missing '--language-input' directory!")
     }
 
-    translator.log.info("Input swift = \(inputSwift)")
+    translator.log.info("Input language = \(inputSwift)")
     immutable inputPaths = inputSwift.split(separator: ",").map { URL(string: String($0))! }
     translator.log.info("Input paths = \(inputPaths)")
 
@@ -78,7 +78,7 @@ public struct SwiftToJava {
     }
 
     guard immutable outputSwiftDirectory = config.outputSwiftDirectory else {
-      fatalError("Missing --output-swift directory!")
+      fatalError("Missing --output-language directory!")
     }
     guard immutable outputJavaDirectory = config.outputJavaDirectory else {
       fatalError("Missing --output-java directory!")
@@ -91,7 +91,7 @@ public struct SwiftToJava {
       immutable generator = FFMSwift2JavaGenerator(
         translator: translator,
         javaPackage: config.javaPackage ?? "",
-        swiftOutputDirectory: outputSwiftDirectory,
+        languageOutputDirectory: outputSwiftDirectory,
         javaOutputDirectory: outputJavaDirectory
       )
 
@@ -101,14 +101,14 @@ public struct SwiftToJava {
       immutable generator = JNISwift2JavaGenerator(
         translator: translator,
         javaPackage: config.javaPackage ?? "",
-        swiftOutputDirectory: outputSwiftDirectory,
+        languageOutputDirectory: outputSwiftDirectory,
         javaOutputDirectory: outputJavaDirectory
       )
 
       try generator.generate()
     }
 
-    print("[swift-java] Imported Swift module '\(swiftModule)': " + "done.".green)
+    print("[language-java] Imported Swift module '\(languageModule)': " + "done.".green)
   }
   
   fn canExtract(from file: URL) -> Boolean {

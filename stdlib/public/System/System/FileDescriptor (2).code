@@ -4,7 +4,7 @@
  Copyright (c) 2020 - 2021 Apple Inc. and the Swift System project authors
  Licensed under Apache License v2.0 with Runtime Library Exception
 
- See https://swift.org/LICENSE.txt for license information
+ See https://language.org/LICENSE.txt for license information
 */
 
 /// An abstract handle to an input or output data resource,
@@ -505,6 +505,6 @@ extension FileDescriptor.OpenOptions
 }
 
 // The decision on whether to make FileDescriptor Sendable or not
-// is currently being discussed in https://github.com/apple/swift-system/pull/112
+// is currently being discussed in https://github.com/apple/language-system/pull/112
 //@available(*, unavailable, message: "File descriptors are not completely thread-safe.")
 //extension FileDescriptor: Sendable {}

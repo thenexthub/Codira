@@ -1,4 +1,4 @@
-// RUN: not %target-swift-frontend %s
+// RUN: not %target-language-frontend %s
 
 typealias Element<S: Sequence> = S.Iterator.Element
 

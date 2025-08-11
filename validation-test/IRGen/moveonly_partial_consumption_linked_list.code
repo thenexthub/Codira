@@ -1,4 +1,4 @@
-// RUN: %target-swift-emit-ir \
+// RUN: %target-language-emit-ir \
 // RUN:     %s \
 // RUN:     -enable-builtin-module \
 // RUN:     -sil-verify-all \

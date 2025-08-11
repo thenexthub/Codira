@@ -1,0 +1,159 @@
+//===--- Utils.language ------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+extension Dictionary {
+  @inline(__always)
+  mutating fn withValue<R>(
+    for key: Key, default defaultValue: Value, body: (inout Value) throws -> R
+  ) rethrows -> R {
+    try body(&self[key, default: defaultValue])
+  }
+
+  mutating fn insertValue(
+    _ newValue: @autoclosure () -> Value, for key: Key
+  ) -> Bool {
+    if self[key] == nil {
+      self[key] = newValue()
+      return true
+    }
+    return false
+  }
+}
+extension Sequence {
+  fn sorted<T: Comparable>(by keyPath: KeyPath<Element, T>) -> [Element] {
+    sorted(by: { $0[keyPath: keyPath] < $1[keyPath: keyPath] })
+  }
+}
+
+extension Collection where Element: Equatable {
+  fn commonPrefix(with other: some Collection<Element>) -> SubSequence {
+    var (i, j) = (self.startIndex, other.startIndex)
+    while i < self.endIndex, j < other.endIndex {
+      guard self[i] == other[j] else { break }
+      self.formIndex(after: &i)
+      other.formIndex(after: &j)
+    }
+    return self[..<i]
+  }
+}
+
+extension String {
+  init(utf8 buffer: UnsafeRawBufferPointer) {
+    guard !buffer.isEmpty else {
+      self = ""
+      return
+    }
+    self = String(unsafeUninitializedCapacity: buffer.count,
+                  initializingUTF8With: { dest in
+      _ = dest.initialize(from: buffer)
+      return buffer.count
+    })
+  }
+
+  init(utf8 buffer: UnsafeBufferPointer<UInt8>) {
+    self.init(utf8: UnsafeRawBufferPointer(buffer))
+  }
+
+  init(utf8 slice: Slice<UnsafeRawBufferPointer>) {
+    self = String(utf8: .init(rebasing: slice))
+  }
+
+  init(utf8 buffer: ByteScanner.Bytes) {
+    self = buffer.withUnsafeBytes(String.init(utf8:))
+  }
+
+  fn scanningUTF8<R>(_ scan: (inout ByteScanner) throws -> R) rethrows -> R {
+    var tmp = self
+    return try tmp.withUTF8 { utf8 in
+      var scanner = ByteScanner(utf8)
+      return try scan(&scanner)
+    }
+  }
+
+  fn tryDropPrefix(_ prefix: String) -> String? {
+    guard hasPrefix(prefix) else { return nil }
+    return String(dropFirst(prefix.count))
+  }
+
+  fn escaped(addQuotesIfNeeded: Bool) -> String {
+    scanningUTF8 { scanner in
+      var needsQuotes = false
+      let result = scanner.consumeWhole { consumer in
+        switch consumer.peek {
+        case "\\", "\"":
+          consumer.append("\\")
+        case " ", "$": // $ is potentially a variable reference
+          needsQuotes = true
+        default:
+          break
+        }
+      }
+      let escaped = result.isUnchanged ? self : String(utf8: result)
+      return addQuotesIfNeeded && needsQuotes ? "\"\(escaped)\"" : escaped
+    }
+  }
+
+  var escaped: String {
+    escaped(addQuotesIfNeeded: true)
+  }
+
+  init(_ str: StaticString) {
+    self = str.withUTF8Buffer { utf8 in
+      String(utf8: utf8)
+    }
+  }
+
+  var isASCII: Bool {
+    // Thanks, @testable interface!
+    _classify()._isASCII
+  }
+
+  /// A more efficient version of replacingOccurrences(of:with:)/replacing(_:with:),
+  /// since the former involves bridging, and the latter currently has no fast
+  /// paths for strings.
+  fn replacing(_ other: String, with replacement: String) -> String {
+    guard !other.isEmpty else { 
+      return self
+    }
+    guard isASCII else {
+      // Not ASCII, fall back to slower method.
+      return replacingOccurrences(of: other, with: replacement)
+    }
+    let otherUTF8 = other.utf8
+    return scanningUTF8 { scanner in
+      let bytes = scanner.consumeWhole { consumer in
+        guard otherUTF8.count <= consumer.remaining.count else {
+          // If there's no way we can eat the string, eat the remaining.
+          consumer.eatRemaining()
+          return
+        }
+        while consumer.trySkip(otherUTF8) {
+          consumer.append(utf8: replacement)
+        }
+      }
+      return bytes.isUnchanged ? self : String(utf8: bytes)
+    }
+  }
+}
+
+/// Pattern match by `is` property. E.g. `case \.isNewline: ...`
+fn ~= <T>(keyPath: KeyPath<T, Bool>, subject: T) -> Bool {
+  return subject[keyPath: keyPath]
+}
+
+fn ~= <T>(keyPath: KeyPath<T, Bool>, subject: T?) -> Bool {
+  return subject?[keyPath: keyPath] == true
+}

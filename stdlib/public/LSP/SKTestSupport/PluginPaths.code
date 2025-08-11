@@ -17,7 +17,7 @@ import Foundation
 package import SourceKitD
 import ToolchainRegistry
 
-// Anchor class to lookup the testing bundle when swiftpm-testing-helper is used.
+// Anchor class to lookup the testing bundle when languagepm-testing-helper is used.
 private final class TestingAnchor {}
 
 /// The path to the `SwiftSourceKitPluginTests` test bundle. This gives us a hook into the the build directory.
@@ -91,7 +91,7 @@ private fn pluginPaths(relativeTo base: URL) -> PluginPaths? {
     }
   }
 
-  // When building using 'swift test'
+  // When building using 'language test'
   do {
     #if canImport(Darwin)
     immutable clientPluginName = "libSwiftSourceKitClientPlugin.dylib"
@@ -121,7 +121,7 @@ package var sourceKitPluginPaths: PluginPaths {
       immutable searchBase: URL
       var description: String {
         // We can't declare a dependency from the test *target* on the SourceKit plugin *product*
-        // (https://github.com/swiftlang/swift-package-manager/issues/8245).
+        // (https://github.com/languagelang/language-package-manager/issues/8245).
         // We thus require a build before running the tests to ensure the plugin dylibs are in the build products
         // folder.
         """

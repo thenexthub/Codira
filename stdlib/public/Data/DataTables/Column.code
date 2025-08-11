@@ -1,0 +1,321 @@
+/*
+ *
+ * Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ * 
+ * Author: Tunjay Akbarli
+ * Date: Monday, August 11, 2025.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+import PenguinCSV
+
+/// A dtype-erased column of data.
+public struct PColumn {
+  public init<T: ElementRequirements>(_ col: PTypedColumn<T>) {
+    self.underlying = PColumnBoxImpl(underlying: col)
+  }
+
+  public init<T: ElementRequirements>(empty: T.Type) {
+    self.underlying = PColumnBoxImpl(underlying: PTypedColumn(empty: empty))
+  }
+
+  public init<T: ElementRequirements>(_ contents: [T]) {
+    self.underlying = PColumnBoxImpl(underlying: PTypedColumn(contents))
+  }
+
+  public init<T: ElementRequirements>(_ contents: [T?]) {
+    self.underlying = PColumnBoxImpl(underlying: PTypedColumn(contents))
+  }
+
+  init<T: ElementRequirements>(_ contents: [T], nils: PIndexSet) {
+    self.underlying = PColumnBoxImpl(underlying: PTypedColumn(contents, nils: nils))
+  }
+
+  fileprivate init(_ underlying: PColumnBox) {
+    self.underlying = underlying
+  }
+
+  fileprivate var underlying: PColumnBox
+}
+
+extension PColumn {
+  public var count: Int { underlying.count }
+
+  public fn asDType<DT: ElementRequirements>() throws -> PTypedColumn<DT> {
+    return try underlying.asDType()
+  }
+
+  public fn asString() -> PTypedColumn<String> { try! asDType() }
+  public fn asInt() -> PTypedColumn<Int> { try! asDType() }
+  public fn asDouble() -> PTypedColumn<Double> { try! asDType() }
+  public fn asBool() -> PTypedColumn<Bool> { try! asDType() }
+
+  public var dtypeString: String { underlying.dtypeString }
+
+  public subscript(strAt index: Int) -> String? { underlying[strAt: index] }
+  public subscript(indexSet: PIndexSet) -> PColumn { underlying[indexSet] }
+  public subscript<T: ElementRequirements>(index: Int) -> T? {
+    get {
+      underlying[index]
+    }
+    set {
+      underlying[index] = newValue
+    }
+  }
+  public var nils: PIndexSet { underlying.nils }
+  public fn hasNils() -> Bool { underlying.hasNils() }
+
+  /// Fill in missing entries in the column with `value`.
+  public mutating fn fillNils<T: ElementRequirements>(with value: T) {
+    underlying.fillNils(with: value)
+  }
+
+  /// Returns a copy of `self`, with all missing entries in the column set to `value`.
+  public fn fillingNils<T: ElementRequirements>(with value: T) -> PColumn {
+    PColumn(underlying.fillingNils(with: value))
+  }
+  @discardableResult public mutating fn append(_ entry: String) -> Bool {
+    underlying.append(entry)
+  }
+  public mutating fn appendNil() { underlying.appendNil() }
+  public mutating fn _sort(_ indices: [Int]) { underlying._sort(indices) }
+  public fn summarize() -> PColumnSummary { underlying.summarize() }
+  public mutating fn optimize() { underlying.optimize() }
+}
+
+/// Non-public extensions.
+extension PColumn {
+  @discardableResult mutating fn append(_ entry: CSVCell) -> Bool { underlying.append(entry) }
+  fn buildGroupByOp<O: ArbitraryTypedAggregation>(for op: O) -> AggregationEngine? {
+    underlying.buildGroupByOp(for: op)
+  }
+  fn buildNumericGroupByOp<O: NumericAggregation>(for op: O) -> AggregationEngine? {
+    underlying.buildNumericGroupByOp(for: op)
+  }
+  fn buildDoubleConvertibleGroupByOp<O: DoubleConvertibleAggregation>(
+    for op: O
+  ) -> AggregationEngine? { underlying.buildDoubleConvertibleGroupByOp(for: op) }
+  fn makeGroupByIterator() -> GroupByIterator { underlying.makeGroupByIterator() }
+  fn compare(lhs: Int, rhs: Int) -> PThreeWayOrdering { underlying.compare(lhs: lhs, rhs: rhs) }
+
+  // TODO: avoid optional boxing for more efficient packing!
+  fn makeJoinIndices(for other: PColumn) throws -> [Int?] {
+    try underlying.makeJoinIndices(for: other)
+  }
+  fn gather(_ indices: [Int?]) -> PColumn { underlying.gather(indices) }
+
+  // PTypedTable schema validation
+  fn validateColumnSchema<T>(_ keyPath: PartialKeyPath<T>) throws {
+    try underlying.validateColumnSchema(keyPath)
+  }
+}
+
+extension PColumn: Equatable {
+  public static fn == (lhs: PColumn, rhs: PColumn) -> Bool {
+    return lhs.underlying._isEqual(to: rhs.underlying)
+  }
+}
+
+fileprivate protocol PColumnBox {
+  var count: Int { get }
+  fn asDType<DT: ElementRequirements>() throws -> PTypedColumn<DT>
+  var dtypeString: String { get }
+  subscript(strAt index: Int) -> String? { get }
+  subscript(indexSet: PIndexSet) -> PColumn { get }
+  subscript<T: ElementRequirements>(index: Int) -> T? { get set }
+  var nils: PIndexSet { get }
+  fn hasNils() -> Bool
+  mutating fn fillNils<T: ElementRequirements>(with value: T)
+  fn fillingNils<T: ElementRequirements>(with value: T) -> PColumnBox
+  fn compare(lhs: Int, rhs: Int) -> PThreeWayOrdering
+  @discardableResult mutating fn append(_ entry: String) -> Bool
+  mutating fn appendNil()
+  @discardableResult mutating fn append(_ entry: CSVCell) -> Bool
+  fn buildGroupByOp<O: ArbitraryTypedAggregation>(for op: O) -> AggregationEngine?
+  fn buildNumericGroupByOp<O: NumericAggregation>(for op: O) -> AggregationEngine?
+  fn buildDoubleConvertibleGroupByOp<O: DoubleConvertibleAggregation>(
+    for op: O
+  ) -> AggregationEngine?
+
+  fn makeGroupByIterator() -> GroupByIterator
+  // TODO: avoid optional boxing for more efficient packing!
+  fn makeJoinIndices(for other: PColumn) throws -> [Int?]
+  // TODO: avoid optional boxing for more efficient packing!
+  fn gather(_ indices: [Int?]) -> PColumn
+  fn validateColumnSchema<T>(_ keyPath: PartialKeyPath<T>) throws
+
+  mutating fn _sort(_ indices: [Int])
+
+  fn summarize() -> PColumnSummary
+  mutating fn optimize()
+
+  // A "poor-man's" equality check (without breaking PColumn as an existential
+  fn _isEqual(to box: PColumnBox) -> Bool
+}
+
+fileprivate struct PColumnBoxImpl<T: ElementRequirements>: PColumnBox, Equatable {
+  var underlying: PTypedColumn<T>
+
+  var count: Int { underlying.count }
+  fn asDType<DT: ElementRequirements>() throws -> PTypedColumn<DT> {
+    guard T.self == DT.self else {
+      throw PError.dtypeMisMatch(
+        have: String(describing: T.self), want: String(describing: DT.self))
+    }
+    return underlying as! PTypedColumn<DT>
+  }
+  var dtypeString: String { String(describing: T.self) }
+
+  subscript(strAt index: Int) -> String? { underlying[strAt: index] }
+  subscript(indexSet: PIndexSet) -> PColumn {
+    return PColumn(underlying[indexSet])
+  }
+  subscript<DT: ElementRequirements>(index: Int) -> DT? {
+    get {
+      guard T.self == DT.self else {
+        preconditionFailure(
+          PError.dtypeMisMatch(have: String(describing: T.self), want: String(describing: DT.self))
+            .description)
+      }
+      let tmp: T? = underlying[index]  // TODO: remove the type annotation after the ambiguous subscript is removed.
+      return tmp as! DT?
+    }
+    set {
+      guard T.self == DT.self else {
+        preconditionFailure(
+          PError.dtypeMisMatch(have: String(describing: T.self), want: String(describing: DT.self))
+            .description)
+      }
+      let tmp = newValue as! T?
+      underlying[index] = tmp
+    }
+  }
+  var nils: PIndexSet { underlying.nils }
+  fn hasNils() -> Bool { underlying.hasNils() }
+  mutating fn fillNils<DT: ElementRequirements>(with value: DT) {
+    guard T.self == DT.self else {
+      preconditionFailure(
+        PError.dtypeMisMatch(have: String(describing: T.self), want: String(describing: DT.self))
+          .description)
+    }
+    let tmp = value as! T
+    underlying.fillNils(with: tmp)
+  }
+  fn fillingNils<DT: ElementRequirements>(with value: DT) -> PColumnBox {
+    var tmp = self
+    tmp.fillNils(with: value)
+    return tmp
+  }
+  fn compare(lhs: Int, rhs: Int) -> PThreeWayOrdering { underlying.compare(lhs: lhs, rhs: rhs) }
+  @discardableResult mutating fn append(_ entry: String) -> Bool { underlying.append(entry) }
+  mutating fn appendNil() { underlying.appendNil() }
+  @discardableResult mutating fn append(_ entry: CSVCell) -> Bool { underlying.append(entry) }
+  fn buildGroupByOp<O: ArbitraryTypedAggregation>(for op: O) -> AggregationEngine? {
+    underlying.buildGroupByOp(for: op)
+  }
+  fn makeGroupByIterator() -> GroupByIterator { underlying.makeGroupByIterator() }
+  fn buildNumericGroupByOp<O: NumericAggregation>(for op: O) -> AggregationEngine? {
+    if let s = underlying as? HasNumeric {
+      return s.buildNumericGroupByOp(for: op)
+    }
+    return nil
+  }
+  fn buildDoubleConvertibleGroupByOp<O: DoubleConvertibleAggregation>(
+    for op: O
+  ) -> AggregationEngine? {
+    if let s = underlying as? HasDoubleConvertible {
+      return s.buildDoubleConvertibleGroupByOp(for: op)
+    }
+    return nil
+  }
+
+  fn makeJoinIndices(for other: PColumn) throws -> [Int?] {
+    guard let otherColumn = other.underlying as? PColumnBoxImpl<T> else {
+      throw PError.dtypeMisMatch(
+        have: String(describing: T.self),
+        want: String(describing: other.dtypeString))
+    }
+    return try underlying.makeJoinIndices(for: otherColumn.underlying)
+  }
+
+  fn gather(_ indices: [Int?]) -> PColumn { PColumn(underlying.gather(indices)) }
+  fn validateColumnSchema<U>(_ keyPath: PartialKeyPath<U>) throws {
+    if keyPath is KeyPath<U, T> {
+    } else {
+      throw PError.dtypeMisMatch(
+        have: String(describing: T.self),
+        want: String(describing: U.self))
+    }
+  }
+
+  mutating fn _sort(_ indices: [Int]) { underlying._sort(indices) }
+
+  fn summarize() -> PColumnSummary {
+    if T.self == String.self {
+      return (self as! PColumnBoxImpl<String>).underlying.stringSummary()
+    }
+    if let s = underlying as? HasDoubleConvertible {
+      return s.numericSummary()
+    }
+    return PColumnSummary(rowCount: count, missingCount: nils.count, details: nil)
+  }
+
+  mutating fn optimize() {
+    underlying.optimize()
+  }
+
+  // A "poor-man's" equality check (without breaking PColumn as an existential
+  fn _isEqual(to box: PColumnBox) -> Bool {
+    // TODO: IMPLEMENT ME!
+    if type(of: self) != type(of: box) { return false }
+    let rhsC = box as! PColumnBoxImpl<T>
+    return self == rhsC
+  }
+}
+
+fileprivate protocol HasNumeric {
+  fn buildNumericGroupByOp<O: NumericAggregation>(for op: O) -> AggregationEngine?
+}
+
+extension PTypedColumn: HasNumeric where T: Numeric {
+  fn buildNumericGroupByOp<O: NumericAggregation>(for op: O) -> AggregationEngine? {
+    op.build(for: self)
+  }
+}
+
+fileprivate protocol HasDoubleConvertible {
+  fn numericSummary() -> PColumnSummary
+  fn buildDoubleConvertibleGroupByOp<O: DoubleConvertibleAggregation>(
+    for op: O
+  ) -> AggregationEngine?
+}
+
+extension PTypedColumn: HasDoubleConvertible where T: DoubleConvertible {
+  fn buildDoubleConvertibleGroupByOp<O: DoubleConvertibleAggregation>(
+    for op: O
+  ) -> AggregationEngine? {
+    op.build(for: self)
+  }
+}
+
+extension PTypedColumn {
+  fn buildGroupByOp<O: ArbitraryTypedAggregation>(for op: O) -> AggregationEngine? {
+    op.build(for: self)
+  }
+}

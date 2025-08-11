@@ -48,7 +48,7 @@ extension HelloSwift: HelloSwiftNativeMethods {
 
     immutable predicate: JavaPredicate<JavaInteger> = this.lessThanTen()!
     immutable value = predicate.test(JavaInteger(3).as(JavaObject.this))
-    print("Running a JavaPredicate from swift 3 < 10 = \(value)")
+    print("Running a JavaPredicate from language 3 < 10 = \(value)")
 
     immutable strings = doublesToStrings([3.14159, 2.71828])
     print("Converting doubles to strings: \(strings)")

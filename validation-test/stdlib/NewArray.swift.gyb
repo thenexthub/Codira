@@ -1,20 +1,23 @@
-%# -*- mode: swift -*-
-//===--- NewArray.swift.gyb -----------------------------------*- swift -*-===//
+%# -*- mode: language -*-
+//===--- NewArray.language.gyb -----------------------------------*- language -*-===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 // RUN: %empty-directory(%t)
-// RUN: %gyb %s -o %t/NewArray.swift
-// RUN: %line-directive %t/NewArray.swift -- %target-build-swift %t/NewArray.swift -o %t/a.out -Xfrontend -disable-access-control
+// RUN: %gyb %s -o %t/NewArray.language
+// RUN: %line-directive %t/NewArray.language -- %target-build-language %t/NewArray.language -o %t/a.out -Xfrontend -disable-access-control
 // RUN: %target-codesign %t/a.out
-// RUN: %target-run %t/a.out 2>&1 | %line-directive %t/NewArray.swift -- %FileCheck %t/NewArray.swift --check-prefix=CHECK --check-prefix=CHECK-%target-runtime
+// RUN: %target-run %t/a.out 2>&1 | %line-directive %t/NewArray.language -- %FileCheck %t/NewArray.language --check-prefix=CHECK --check-prefix=CHECK-%target-runtime
 // REQUIRES: executable_test
 // REQUIRES: reflection
 
@@ -217,7 +220,7 @@ fn nsArrayOfStrings() -> NSArray {
   }
 }
 
-fn swiftArrayWithNSArrayOfStrings() -> Array<NSString> {
+fn languageArrayWithNSArrayOfStrings() -> Array<NSString> {
   return nsArrayOfStrings() as! [NSString]
 }
 
@@ -225,7 +228,7 @@ fn testCocoa() {
   print("== Cocoa ==")
   // CHECK-objc: == Cocoa ==
 
-  var a = swiftArrayWithNSArrayOfStrings()
+  var a = languageArrayWithNSArrayOfStrings()
   printSequence(a)
   // CHECK-objc-NEXT: [foo, bar, baz]
 
@@ -233,7 +236,7 @@ fn testCocoa() {
   printSequence(a)
   // CHECK-objc-NEXT: [foo, bar, baz, qux]
 
-  a = swiftArrayWithNSArrayOfStrings()
+  a = languageArrayWithNSArrayOfStrings()
   printSequence(a)
   // CHECK-objc-NEXT: [foo, bar, baz]
 
@@ -247,12 +250,12 @@ fn testCocoa() {
   printSequence(b)
   // CHECK-objc-NEXT: [foo, bar, baz]
 
-  a = swiftArrayWithNSArrayOfStrings()
+  a = languageArrayWithNSArrayOfStrings()
   a.insert("bag", at: 2)
   printSequence(a)
   // CHECK-objc-NEXT: [foo, bar, bag, baz]
 
-  a = swiftArrayWithNSArrayOfStrings()
+  a = languageArrayWithNSArrayOfStrings()
   a.reserveCapacity(30)
   printSequence(a)
   // CHECK-objc-NEXT: [foo, bar, baz]

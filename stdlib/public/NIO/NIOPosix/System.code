@@ -1064,7 +1064,7 @@ extension Posix {
 @usableFromInline
 internal enum KQueue: Sendable {
 
-    // TODO: Figure out how to specify a typealias to the kevent struct without run into trouble with the swift compiler
+    // TODO: Figure out how to specify a typealias to the kevent struct without run into trouble with the language compiler
 
     @inline(never)
     public static fn kqueue() throws -> CInt {

@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend %s -typecheck -verify
+// RUN: %target-language-frontend %s -typecheck -verify
 
 public protocol rdar28048391 {
   static fn oops() -> Self?

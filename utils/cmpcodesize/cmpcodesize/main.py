@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # cmpcodesize/main.py - Command-line entry point for cmpcodesize -*- python -*-
 #
-# This source file is part of the Codira.org open source project
+# This source file is part of the Swift.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
 # See https://language.org/LICENSE.txt for license information
-# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+# See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 
 import argparse
 import collections
@@ -36,9 +36,9 @@ def main():
 Compares code sizes of "new" files, taking "old" files as a reference.
 
 Environment variables:
-    LANGUAGE_NEW_BUILDDIR   The new build-dir
+    SWIFT_NEW_BUILDDIR   The new build-dir
 E.g. .../languagenew/build/Ninja-ReleaseAssert+stdlib-Release/language-macosx-x86_64
-    LANGUAGE_OLD_BUILDDIR   The old build-dir
+    SWIFT_OLD_BUILDDIR   The old build-dir
 E.g. .../languageold/build/Ninja-ReleaseAssert+stdlib-Release/language-macosx-x86_64
 
 How to specify files:
@@ -163,17 +163,17 @@ How to specify files:
 
         old_build_dir = parsed_arguments.old_build_dir
         if not old_build_dir:
-            old_build_dir = os.environ.get("LANGUAGE_OLD_BUILDDIR")
+            old_build_dir = os.environ.get("SWIFT_OLD_BUILDDIR")
         new_build_dir = parsed_arguments.new_build_dir
         if not new_build_dir:
-            new_build_dir = os.environ.get("LANGUAGE_NEW_BUILDDIR")
+            new_build_dir = os.environ.get("SWIFT_NEW_BUILDDIR")
 
         if not parsed_arguments.files:
             assert old_build_dir and new_build_dir, \
                 'Incorrect usage: You must specify either a list of ' + \
-                'files, or have both $LANGUAGE_OLD_BUILDDIR and ' + \
-                '$LANGUAGE_NEW_BUILDDIR environment variables set.\n' + \
-                '$LANGUAGE_OLD_BUILDDIR = {0}\n$LANGUAGE_NEW_BUILDDIR = {1}'.format(
+                'files, or have both $SWIFT_OLD_BUILDDIR and ' + \
+                '$SWIFT_NEW_BUILDDIR environment variables set.\n' + \
+                '$SWIFT_OLD_BUILDDIR = {0}\n$SWIFT_NEW_BUILDDIR = {1}'.format(
                     old_build_dir, new_build_dir)
             old_file_args = list(SHORTCUTS.keys())
 

@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: long_test
 // REQUIRES: executable_test
 // UNSUPPORTED: CPU=armv7k

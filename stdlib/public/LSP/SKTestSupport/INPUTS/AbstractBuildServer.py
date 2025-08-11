@@ -6,8 +6,8 @@
 ## Copyright (c) 2014 - 2025 Apple Inc. and the Swift project authors
 ## Licensed under Apache License v2.0 with Runtime Library Exception
 ##
-## See https://swift.org/LICENSE.txt for license information
-## See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+## See https://language.org/LICENSE.txt for license information
+## See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 ##
 ##===----------------------------------------------------------------------===##
 
@@ -137,7 +137,7 @@ class AbstractBuildServer:
             "version": "0.1",
             "bspVersion": "2.0",
             "rootUri": "blah",
-            "capabilities": {"languageIds": ["swift", "c", "cpp", "objective-c", "objective-c"]},
+            "capabilities": {"languageIds": ["language", "c", "cpp", "objective-c", "objective-c"]},
             "data": {
                 "sourceKitOptionsProvider": True,
             },

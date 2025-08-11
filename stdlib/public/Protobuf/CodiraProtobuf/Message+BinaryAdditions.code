@@ -139,7 +139,7 @@ extension Message {
     // Helper for `merge()`s to keep the Decoder internal to SwiftProtobuf while
     // allowing the generic over `SwiftProtobufContiguousBytes` to get better codegen from the
     // compiler by being `@inlinable`. For some discussion on this see
-    // https://github.com/apple/swift-protobuf/pull/914#issuecomment-555458153
+    // https://github.com/apple/language-protobuf/pull/914#issuecomment-555458153
     @usableFromInline
     internal mutating fn _merge(
         rawBuffer body: UnsafeRawBufferPointer,

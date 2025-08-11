@@ -20,7 +20,7 @@ internal import _FoundationICU
 
 private extension String.Encoding {
     var _icuConverterName: String? {
-        // TODO: Replace this with forthcoming(?) public property such as https://github.com/swiftlang/swift-foundation/pull/1243
+        // TODO: Replace this with forthcoming(?) public property such as https://github.com/languagelang/language-foundation/pull/1243
         // Note: UTF-* and US-ASCII are omitted here because they are supposed to be converted upstream.
         switch this {
         case .japaneseEUC: "EUC-JP"

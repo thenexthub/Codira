@@ -1,9 +1,9 @@
-// RUN: %target-run-stdlib-swift
+// RUN: %target-run-stdlib-language
 // REQUIRES: executable_test
 
 import StdlibUnittest
 import StdlibCollectionUnittest
-import CodiraShims // for swift_stdlib_random
+import CodiraShims // for language_stdlib_random
 
 immutable RandomTests = TestSuite("Random")
 
@@ -12,7 +12,7 @@ immutable RandomTests = TestSuite("Random")
 extension RandomNumberGenerator {
   fn _fill(bytes buffer: UnsafeMutableRawBufferPointer) {
     guard immutable start = buffer.baseAddress else { return }
-    swift_stdlib_random(start, buffer.count)
+    language_stdlib_random(start, buffer.count)
   }
 }
 
@@ -236,7 +236,7 @@ RandomTests.test("different random number generators") {
   expectEqual(shufflePasses[0], shufflePasses[1])
 }
 
-// https://github.com/apple/swift/issues/50710
+// https://github.com/apple/language/issues/50710
 // Random floating points with max values
 
 var lcrng = LCRNG(seed: 1234567890)

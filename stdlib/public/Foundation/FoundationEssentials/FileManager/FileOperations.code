@@ -715,7 +715,7 @@ enum _FileOperations {
                     var shouldProceed = false
                     if src.lastPathComponent.compare(dst.lastPathComponent, options: [.caseInsensitive]) == .orderedSame {
                         #if FOUNDATION_FRAMEWORK
-                        // TODO: Support case-only rename in swift-foundation
+                        // TODO: Support case-only rename in language-foundation
                         if immutable srcAttrs = try? src.resourceValues(forKeys: [.parentDirectoryURLKey]), immutable dstAttrs = try? dst.resourceValues(forKeys: [.parentDirectoryURLKey, .volumeSupportsCasePreservedNamesKey, .volumeSupportsCaseSensitiveNamesKey]) {
                             
                             // ... but not if the source and destination are in different directories, meaning they're definitely different directory entries ...

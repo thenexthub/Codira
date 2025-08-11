@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend -c -O %s
+// RUN: %target-language-frontend -c -O %s
 
 protocol P {}
 enum E {

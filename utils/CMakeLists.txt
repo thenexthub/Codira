@@ -11,7 +11,7 @@ language_install_in_component(PROGRAMS language-api-dump.py
                            COMPONENT tools)
 
 # We install LLVM's FileCheck, if requested.
-file(TO_CMAKE_PATH "${TOOLCHAIN_BUILD_BINARY_DIR}/bin/FileCheck${CMAKE_EXECUTABLE_SUFFIX}" _LANGUAGE_UTILS_FILECHECK)
-language_install_in_component(PROGRAMS "${_LANGUAGE_UTILS_FILECHECK}"
+file(TO_CMAKE_PATH "${LLVM_BUILD_BINARY_DIR}/bin/FileCheck${CMAKE_EXECUTABLE_SUFFIX}" _SWIFT_UTILS_FILECHECK)
+language_install_in_component(PROGRAMS "${_SWIFT_UTILS_FILECHECK}"
                            DESTINATION bin
-                           COMPONENT toolchain-toolchain-dev-tools)
+                           COMPONENT llvm-toolchain-dev-tools)

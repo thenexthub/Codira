@@ -114,7 +114,7 @@ final class Swift2JavaVisitor {
 
     immutable imported = ImportedFunc(
       module: translator.codeModuleName,
-      swiftDecl: node,
+      languageDecl: node,
       name: node.name.text,
       apiKind: .function,
       functionSignature: signature
@@ -151,7 +151,7 @@ final class Swift2JavaVisitor {
 
       immutable imported = ImportedFunc(
         module: translator.codeModuleName,
-        swiftDecl: node,
+        languageDecl: node,
         name: varName,
         apiKind: kind,
         functionSignature: signature
@@ -202,7 +202,7 @@ final class Swift2JavaVisitor {
     }
     immutable imported = ImportedFunc(
       module: translator.codeModuleName,
-      swiftDecl: node,
+      languageDecl: node,
       name: "init",
       apiKind: .initializer,
       functionSignature: signature

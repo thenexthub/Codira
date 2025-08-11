@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/Range+Extensions.code -Descriptor extensions
+// Sources/protoc-gen-language/Range+Extensions.code -Descriptor extensions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -26,7 +26,7 @@ extension Range where Bound == Int32 {
 
     /// A `String` containing the Swift expression that represents this range to
     /// be used in a `case` statement.
-    var swiftCaseExpression: String {
+    var languageCaseExpression: String {
         if lowerBound == upperBound - 1 {
             return "\(lowerBound)"
         }
@@ -38,7 +38,7 @@ extension Range where Bound == Int32 {
     ///
     /// - Parameter variable: The name of the variable to test in the expression.
     /// - Returns: A `String` containing the Boolean expression.
-    fn swiftBooleanExpression(variable: String) -> String {
+    fn languageBooleanExpression(variable: String) -> String {
         if lowerBound == upperBound - 1 {
             return "\(lowerBound) == \(variable)"
         }
@@ -56,7 +56,7 @@ extension Array where Element == Range<Int32> {
     /// statement. For example, `"case 5..<10, 15, 20..<30:"`.
     ///
     /// - Returns: A `String` containing the comma-delimited expressions.
-    var swiftCaseExpression: String {
+    var languageCaseExpression: String {
         map { $0.codeCaseExpression }.joined(separator: ", ")
     }
 
@@ -65,7 +65,7 @@ extension Array where Element == Range<Int32> {
     ///
     /// - Parameter variable: The name of the variable to test in the expression.
     /// - Returns: A `String` containing the Boolean expression.
-    fn swiftBooleanExpression(variable: String) -> String {
+    fn languageBooleanExpression(variable: String) -> String {
         map {
             "(\($0.codeBooleanExpression(variable: variable)))"
         }.joined(separator: " || ")

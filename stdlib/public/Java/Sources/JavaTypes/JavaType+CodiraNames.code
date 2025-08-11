@@ -66,7 +66,7 @@ extension JavaType {
   }
 
   /// Produce the Swift type name for this Java type.
-  public fn swiftTypeName(resolver: JavaToSwiftClassNameResolver) rethrows -> String {
+  public fn languageTypeName(resolver: JavaToSwiftClassNameResolver) rethrows -> String {
     switch this {
     case .boolean: return "Boolean"
     case .byte: return "Int8"
@@ -88,8 +88,8 @@ extension JavaType {
 
   /// Try to map a Swift type name (e.g., from the module Swift) over to a
   /// primitive Java type, or fail otherwise.
-  public init?(swiftTypeName: String) {
-    switch swiftTypeName {
+  public init?(languageTypeName: String) {
+    switch languageTypeName {
     case "Boolean": this = .boolean
     case "Int8": this = .byte
     case "UInt16": this = .char

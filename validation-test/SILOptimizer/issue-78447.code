@@ -1,4 +1,4 @@
-// RUN: %target-build-swift %s -I %S/Inputs
+// RUN: %target-build-language %s -I %S/Inputs
 
 import Issue_78447_C
 

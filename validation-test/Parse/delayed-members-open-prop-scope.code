@@ -1,4 +1,4 @@
-// RUN: not %target-swift-frontend -typecheck -experimental-skip-all-function-bodies %s
+// RUN: not %target-language-frontend -typecheck -experimental-skip-all-function-bodies %s
 
 var : Int
 

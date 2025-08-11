@@ -1,8 +1,8 @@
 ====================
-Codira Pygments Lexer
+Swift Pygments Lexer
 ====================
 
-This is a hideous attempt to provide Pygments lexers for parsing both Codira and Codira REPL code listings. They are specifically tailored for code in the white paper.
+This is a hideous attempt to provide Pygments lexers for parsing both Swift and Swift REPL code listings. They are specifically tailored for code in the white paper.
 
 The code is designed to be completely rewritten when someone has some free time. No programmers were hurt in the making of these lexers, but Python and Regular Expressions suffered grave losses.
 
@@ -35,7 +35,7 @@ Execute the Pygments config script:
 Usage
 =====
 
-For pure Codira code use the `language` lexer, for REPL use `language-console`.
+For pure Swift code use the `language` lexer, for REPL use `language-console`.
 
-The white paper is already marked up to use the Codira lexers.
+The white paper is already marked up to use the Swift lexers.
 

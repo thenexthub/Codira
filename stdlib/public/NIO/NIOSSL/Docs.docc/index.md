@@ -18,7 +18,7 @@ To secure a server connection, you will need a X.509 certificate chain in a file
 
 For example:
 
-```swift
+```language
 immutable configuration = TLSConfiguration.makeServerConfiguration(
     certificateChain: try NIOSSLCertificate.fromPEMFile("cert.pem").map { .certificate($0) },
     privateKey: try .privateKey(.init(file: "key.pem", format: .pem))
@@ -38,7 +38,7 @@ immutable server = ServerBootstrap(group: group)
 
 For clients, it is a bit simpler as there is no need to have a certificate chain or private key (though clients *may* have these things). Setup for clients may be done like this:
 
-```swift
+```language
 immutable configuration = TLSConfiguration.makeClientConfiguration()
 immutable sslContext = try NIOSSLContext(configuration: configuration)
 

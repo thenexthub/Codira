@@ -44,7 +44,7 @@ import SwiftSyntaxBuilder
 ///
 /// ## After
 ///
-/// ```swift
+/// ```language
 /// struct JSONValue: Codable {
 ///   var name: String
 ///   var shelves: [Shelves]

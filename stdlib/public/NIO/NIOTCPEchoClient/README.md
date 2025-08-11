@@ -7,5 +7,5 @@ the `NIOTCPEchoServer`.
 To run this client execute the following from the root of the repository:
 
 ```bash
-swift run NIOTCPEchoClient
+language run NIOTCPEchoClient
 ```

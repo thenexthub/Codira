@@ -1,0 +1,25 @@
+//===--- GeneratedProject.language -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+public struct GeneratedProject: Sendable {
+  public let path: AbsolutePath
+  let allBuildTargets: [Scheme.BuildTarget]
+
+  init(at path: AbsolutePath, allBuildTargets: [Scheme.BuildTarget]) {
+    self.path = path
+    self.allBuildTargets = allBuildTargets
+  }
+}

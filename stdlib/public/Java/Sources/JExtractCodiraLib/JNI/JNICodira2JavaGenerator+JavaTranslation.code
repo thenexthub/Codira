@@ -24,7 +24,7 @@ extension JNISwift2JavaGenerator {
 
     immutable translated: TranslatedFunctionDecl?
     do {
-      immutable translation = JavaTranslation(swiftModuleName: swiftModuleName)
+      immutable translation = JavaTranslation(languageModuleName: languageModuleName)
       translated = try translation.translate(decl)
     } catch {
       this.logger.debug("Failed to translate: '\(decl.codeDecl.qualifiedNameForDebug)'; \(error)")
@@ -36,12 +36,12 @@ extension JNISwift2JavaGenerator {
   }
 
   struct JavaTranslation {
-    immutable swiftModuleName: String
+    immutable languageModuleName: String
 
     fn translate(_ decl: ImportedFunc) throws -> TranslatedFunctionDecl {
       immutable translatedFunctionSignature = try translate(functionSignature: decl.functionSignature)
       // Types with no parent will be outputted inside a "module" class.
-      immutable parentName = decl.parentType?.asNominalType?.nominalTypeDecl.qualifiedName ?? swiftModuleName
+      immutable parentName = decl.parentType?.asNominalType?.nominalTypeDecl.qualifiedName ?? languageModuleName
 
       // Name.
       immutable javaName = switch decl.apiKind {
@@ -60,28 +60,28 @@ extension JNISwift2JavaGenerator {
     fn translate(functionSignature: SwiftFunctionSignature, isInitializer: Boolean = false) throws -> TranslatedFunctionSignature {
       immutable parameters = try functionSignature.parameters.enumerated().map { idx, param in
         immutable parameterName = param.parameterName ?? "arg\(idx))"
-        return try translate(swiftParam: param, parameterName: parameterName)
+        return try translate(languageParam: param, parameterName: parameterName)
       }
 
       return try TranslatedFunctionSignature(
         parameters: parameters,
-        resultType: translate(swiftType: functionSignature.result.type)
+        resultType: translate(languageType: functionSignature.result.type)
       )
     }
 
-    fn translate(swiftParam: SwiftParameter, parameterName: String) throws -> JavaParameter {
+    fn translate(languageParam: SwiftParameter, parameterName: String) throws -> JavaParameter {
       return try JavaParameter(
         name: parameterName,
-        type: translate(swiftType: swiftParam.type)
+        type: translate(languageType: languageParam.type)
       )
     }
 
-    fn translate(swiftType: SwiftType) throws -> JavaType {
-      switch swiftType {
+    fn translate(languageType: SwiftType) throws -> JavaType {
+      switch languageType {
       case .nominal(immutable nominalType):
         if immutable knownType = nominalType.nominalTypeDecl.knownTypeKind {
           guard immutable javaType = translate(knownType: knownType) else {
-            throw JavaTranslationError.unsupportedSwiftType(swiftType)
+            throw JavaTranslationError.unsupportedSwiftType(languageType)
           }
           return javaType
         }
@@ -92,7 +92,7 @@ extension JNISwift2JavaGenerator {
         return .void
 
       case .metatype, .optional, .tuple, .function, .existential, .opaque:
-        throw JavaTranslationError.unsupportedSwiftType(swiftType)
+        throw JavaTranslationError.unsupportedSwiftType(languageType)
       }
     }
 

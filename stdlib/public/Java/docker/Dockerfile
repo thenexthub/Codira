@@ -1,9 +1,9 @@
-ARG swift_version=nightly-main
+ARG language_version=nightly-main
 ARG ubuntu_version=jammy
-ARG base_image=docker.io/swiftlang/swift:${swift_version}-${ubuntu_version}
+ARG base_image=docker.io/languagelang/language:${language_version}-${ubuntu_version}
 FROM $base_image
 # needed to do again after FROM due to docker limitation
-ARG swift_version
+ARG language_version
 ARG ubuntu_version
 
 # set as UTF-8

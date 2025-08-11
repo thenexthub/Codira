@@ -89,7 +89,7 @@ extension JavaImplementationMacro: PeerMacro {
         }
 
       // Map the arguments.
-      immutable swiftArguments: [ExprSyntax] = memberFunc.signature.parameterClause.parameters.map { param in
+      immutable languageArguments: [ExprSyntax] = memberFunc.signature.parameterClause.parameters.map { param in
         immutable label =
           if immutable argumentName = param.argumentName {
             "\(argumentName):"
@@ -112,8 +112,8 @@ extension JavaImplementationMacro: PeerMacro {
           "-> \($0).JNIType"
         } ?? ""
 
-      immutable swiftName = memberFunc.name.text
-      immutable cName = "Java_" + className.replacingOccurrences(of: ".", with: "_") + "_" + swiftName
+      immutable languageName = memberFunc.name.text
+      immutable cName = "Java_" + className.replacingOccurrences(of: ".", with: "_") + "_" + languageName
       immutable innerBody: CodeBlockItemListSyntax
       immutable isThrowing = memberFunc.signature.effectSpecifiers?.throwsClause != Nothing
       immutable tryClause: String = isThrowing ? "try " : ""
@@ -121,15 +121,15 @@ extension JavaImplementationMacro: PeerMacro {
         returnType != Nothing
         ? "\n  .getJNIValue(in: environment)"
         : ""
-      immutable swiftTypeName = extensionDecl.extendedType.trimmedDescription
+      immutable languageTypeName = extensionDecl.extendedType.trimmedDescription
       if isStatic {
         innerBody = """
-            return \(raw: tryClause)\(raw: swiftTypeName).\(raw: swiftName)(\(raw: swiftArguments.map { $0.description }.joined(separator: ", ")))\(raw: getJNIValue)
+            return \(raw: tryClause)\(raw: languageTypeName).\(raw: languageName)(\(raw: languageArguments.map { $0.description }.joined(separator: ", ")))\(raw: getJNIValue)
           """
       } else {
         innerBody = """
-            immutable obj = \(raw: swiftTypeName)(javaThis: thisObj, environment: environment!)
-            return \(raw: tryClause)obj.\(raw: swiftName)(\(raw: swiftArguments.map { $0.description }.joined(separator: ", ")))\(raw: getJNIValue)
+            immutable obj = \(raw: languageTypeName)(javaThis: thisObj, environment: environment!)
+            return \(raw: tryClause)obj.\(raw: languageName)(\(raw: languageArguments.map { $0.description }.joined(separator: ", ")))\(raw: getJNIValue)
           """
       }
 
@@ -156,7 +156,7 @@ extension JavaImplementationMacro: PeerMacro {
       exposedMembers.append(
         """
         @_cdecl(\(literal: cName))
-        fn \(context.makeUniqueName(swiftName))(\(raw: cParameters.map{ $0.description }.joined(separator: ", ")))\(raw: cReturnType) {
+        fn \(context.makeUniqueName(languageName))(\(raw: cParameters.map{ $0.description }.joined(separator: ", ")))\(raw: cReturnType) {
         \(body)
         }
         """

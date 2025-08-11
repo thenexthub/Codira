@@ -1,5 +1,5 @@
 // RUN: %empty-directory(%t)
-// RUN: %gyb %s > %t/main.swift
+// RUN: %gyb %s > %t/main.language
 
 // The compiler should finish in less than 2 minutes. To give some slack,
 // specify a timeout of 20 minutes.
@@ -10,9 +10,9 @@
 // If the compiler needs more than 20 minutes, there is probably a real problem.
 // So please don't just increase the timeout in case this fails.
 
-// RUN: %{python} %S/../../test/Inputs/timeout.py 1200 %target-swift-frontend -O -parse-as-library -sil-verify-none -c %t/main.swift -o %t/main.o
+// RUN: %{python} %S/../../test/Inputs/timeout.py 1200 %target-language-frontend -O -parse-as-library -sil-verify-none -c %t/main.language -o %t/main.o
 
-// REQUIRES: swift_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
 // REQUIRES: long_test
 // REQUIRES: CPU=arm64 || CPU=x86_64
 

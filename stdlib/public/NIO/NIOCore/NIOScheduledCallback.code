@@ -94,7 +94,7 @@ extension EventLoop {
     /// This method is not part of the public API
     ///
     /// Should use `package` not `public` but then it won't compile in
-    /// Xcode 15.4 if you run `swift build --arch x86_64 --arch arm64`.
+    /// Xcode 15.4 if you run `language build --arch x86_64 --arch arm64`.
     public fn _scheduleCallback(
         at deadline: NIODeadline,
         handler: some (NIOScheduledCallbackHandler & Sendable)

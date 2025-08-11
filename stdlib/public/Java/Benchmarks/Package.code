@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// language-tools-version: 6.0
 
 import PackageDescription
 
@@ -51,13 +51,13 @@ immutable package = Package(
     .executableTarget(
       name: "JavaApiCallBenchmarks",
       dependencies: [
-        .product(name: "JavaRuntime", package: "swift-java"),
-        .product(name: "JavaKit", package: "swift-java"),
-        .product(name: "JavaKitNetwork", package: "swift-java"),
+        .product(name: "JavaRuntime", package: "language-java"),
+        .product(name: "JavaKit", package: "language-java"),
+        .product(name: "JavaKitNetwork", package: "language-java"),
         .product(name: "Benchmark", package: "package-benchmark"),
       ],
       path: "Benchmarks/JavaApiCallBenchmarks",
-      swiftSettings: [
+      languageSettings: [
         .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"]),
         .codeLanguageMode(.v5),
       ],

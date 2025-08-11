@@ -10,13 +10,13 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 fn hash(_ key: UInt64, _ n: UInt64, seed: UInt64) -> UInt64 {
-  immutable key = key | (n << 32)
-  immutable hash = UInt64(murmur3(key, seed: UInt32(seed)))
+  let key = key | (n << 32)
+  let hash = UInt64(murmur3(key, seed: UInt32(seed)))
   
   return hash % n
 }

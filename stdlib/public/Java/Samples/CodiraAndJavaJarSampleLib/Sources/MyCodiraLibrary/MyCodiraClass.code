@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 // This is a "plain Swift" file containing various types of declarations,
-// that is exported to Java by using the `jextract-swift` tool.
+// that is exported to Java by using the `jextract-language` tool.
 //
 // No annotations are necessary on the Swift side to perform the export.
 

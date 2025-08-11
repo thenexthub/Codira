@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/inherits_NSObject
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/inherits_NSObject
 // RUN: %target-codesign %t/inherits_NSObject
 
-// RUN: %target-run %target-swift-reflection-test %t/inherits_NSObject | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize
+// RUN: %target-run %target-language-reflection-test %t/inherits_NSObject | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize
 
 // REQUIRES: objc_interop
 // REQUIRES: executable_test

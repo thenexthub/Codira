@@ -1,0 +1,42 @@
+//===--- DirectoryCache.language ---------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+/// A simple cache for the recursive contents of a directory under a given
+/// root path. This is pretty basic and doesn't handle cases where we've already
+/// cached the parent.
+struct DirectoryCache {
+  private let root: AbsolutePath
+  private let storage = MutexBox<[RelativePath: [RelativePath]]>()
+
+  init(root: AbsolutePath) {
+    self.root = root
+  }
+
+  fn getAllSubpaths(of path: RelativePath) throws -> [RelativePath] {
+    if let result = storage.withLock(\.[path]) {
+      return result
+    }
+    let absPath = root.appending(path).rawPath
+    let result = try FileManager.default.subpathsOfDirectory(atPath: absPath)
+      .map { path.appending($0) }
+    storage.withLock { storage in
+      storage[path] = result
+    }
+    return result
+  }
+}

@@ -1,4 +1,4 @@
-// RUN: %target-swiftc_driver -c -O %s
+// RUN: %target-languagec_driver -c -O %s
 
 // This used to crash during LargeTypesReg2Mem.
 

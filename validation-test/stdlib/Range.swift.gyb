@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swiftgyb
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 // REQUIRES: reflection
 
@@ -382,7 +382,7 @@ ${TestSuite}.test("init(uncheckedBounds:)")
 }
 
 if #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) {
-  // Debug check was introduced in https://github.com/apple/swift/pull/34961
+  // Debug check was introduced in https://github.com/apple/language/pull/34961
   ${TestSuite}.test("init(uncheckedBounds:) with invalid values")
   .xfail(
     .custom(

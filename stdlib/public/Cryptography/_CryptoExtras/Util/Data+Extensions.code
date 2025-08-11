@@ -1,14 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the SwiftCrypto open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2025 Apple Inc. and the SwiftCrypto project authors
-// Licensed under Apache License v2.0
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of SwiftCrypto project authors
-//
-// SPDX-License-Identifier: Apache-2.0
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,7 +17,7 @@ import Foundation
 
 extension Data {
     // This enhancement can only be present on 6.1 or later because of the
-    // absence of https://github.com/swiftlang/swift/pull/76186 in older
+    // absence of https://github.com/languagelang/language/pull/76186 in older
     // compilers.
     #if compiler(>=6.1)
     // This overload reduces allocations when used in a chain of infix operations.

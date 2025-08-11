@@ -1,6 +1,6 @@
-// RUN: %target-swift-frontend -Xtoolchain -sil-print-types -emit-silgen %s | %FileCheck %s
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-silgen %s | %FileCheck %s
 
-// https://github.com/apple/swift/issues/60514
+// https://github.com/apple/language/issues/60514
 // Make sure that `makeIterator` witness is picked over the non-witness.
 
 public protocol VectorSectionReader: Sequence where Element == Result<Item, Error> {

@@ -1,5 +1,5 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-swift-frontend -disable-availability-checking %s -emit-ir > /dev/null
+// RUN: %target-language-frontend -disable-availability-checking %s -emit-ir > /dev/null
 
 struct Section: Identifiable {
     immutable id: Int

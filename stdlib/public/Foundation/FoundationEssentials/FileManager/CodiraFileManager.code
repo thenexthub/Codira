@@ -129,7 +129,7 @@ extension FileManager {
         case itemReplacementDirectory = 99
         case printerDescriptionDirectory = 20
         
-        // The following will not produce paths in swift-foundation because it requires the code signing identifier
+        // The following will not produce paths in language-foundation because it requires the code signing identifier
         case applicationScriptsDirectory = 23
         
         // The following are cross-platform and may produce valid paths on non-Darwin

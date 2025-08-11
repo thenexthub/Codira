@@ -24,7 +24,7 @@ def run_build_script_with_data_file(build_script, data_file, verbose=False):
     build_script_args = [
         build_script,
         DEFAULT_PRESENTS,
-        r'extra_language_args=^Codira$;-Xfrontend\;' +
+        r'extra_language_args=^Swift$;-Xfrontend\;' +
         r'-external-pass-pipeline-filename\;-Xfrontend\;%s' % data_file]
     sys.stdout.write("Running build script with: %s..." %
                      ' '.join(build_script_args))
@@ -118,7 +118,7 @@ def main():
         specific slices enabled. Currently what this means is that we perform
         the normal pipeline order, stopping after N pipelines have run.
     """))
-    slice_pipeline_parser.set_defaults(fn=build_disable_slice_pipelines)
+    slice_pipeline_parser.set_defaults(func=build_disable_slice_pipelines)
     add_default_parser_args(slice_pipeline_parser)
 
     disable_individual_passes_parser = subparsers.add_parser(
@@ -128,7 +128,7 @@ def main():
         with that pass disabled.
     """))
     disable_individual_passes_parser.set_defaults(
-        fn=build_disable_individual_passes)
+        func=build_disable_individual_passes)
     add_default_parser_args(disable_individual_passes_parser)
 
     disable_individual_pass_parser = subparsers.add_parser(
@@ -142,11 +142,11 @@ def main():
         choices=PASSES,
         type=str)
     disable_individual_pass_parser.set_defaults(
-        fn=build_disable_individual_pass)
+        func=build_disable_individual_pass)
     add_default_parser_args(disable_individual_pass_parser)
 
     args = parser.parse_args()
-    args.fn(**vars(args))
+    args.func(**vars(args))
 
 
 if __name__ == "__main__":

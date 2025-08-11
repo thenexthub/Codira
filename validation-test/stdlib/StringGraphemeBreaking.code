@@ -1,5 +1,5 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-run-stdlib-swift %S/Inputs/
+// RUN: %target-run-stdlib-language %S/Inputs/
 
 // REQUIRES: executable_test
 // REQUIRES: objc_interop

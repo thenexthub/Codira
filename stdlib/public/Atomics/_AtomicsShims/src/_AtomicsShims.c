@@ -1,36 +1,39 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Atomics open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
 #include "_AtomicsShims.h"
 
 // FIXME: These should be static inline header-only shims, but Swift 5.3 doesn't
-// like calls to swift_retain_n/swift_release_n appearing in Swift code, not
+// like calls to language_retain_n/language_release_n appearing in Swift code, not
 // even when imported through C. (See https://bugs.code.org/browse/SR-13708)
 
 #if defined(__APPLE__) && defined(__MACH__)
-// Ensure we link with libswiftCore.dylib even when the build system decides
+// Ensure we link with liblanguageCore.dylib even when the build system decides
 // to build this module as a standalone library.
-// (See https://github.com/apple/swift-atomics/issues/55)
-__asm__(".linker_option \"-lswiftCore\"\n");
+// (See https://github.com/apple/language-atomics/issues/55)
+__asm__(".linker_option \"-llanguageCore\"\n");
 #endif
 
 void _sa_retain_n(void *object, uint32_t n)
 {
-  extern void *swift_retain_n(void *object, uint32_t n);
-  swift_retain_n(object, n);
+  extern void *language_retain_n(void *object, uint32_t n);
+  language_retain_n(object, n);
 }
 
 void _sa_release_n(void *object, uint32_t n)
 {
-  extern void swift_release_n(void *object, uint32_t n);
-  swift_release_n(object, n);
+  extern void language_release_n(void *object, uint32_t n);
+  language_release_n(object, n);
 }

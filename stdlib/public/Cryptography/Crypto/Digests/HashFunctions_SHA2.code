@@ -60,7 +60,7 @@ public struct SHA256: HashFunctionImplementationDetails {
         impl = DigestImpl()
     }
 
-    // Once https://github.com/apple/swift-evolution/pull/910 is landed,
+    // Once https://github.com/apple/language-evolution/pull/910 is landed,
     // we will be able to implement `init` here and remove the duplicate code.
 
     /// Incrementally updates the hash function with the contents of the buffer.
@@ -144,7 +144,7 @@ public struct SHA384: HashFunctionImplementationDetails {
         impl = DigestImpl()
     }
 
-    // Once https://github.com/apple/swift-evolution/pull/910 is landed,
+    // Once https://github.com/apple/language-evolution/pull/910 is landed,
     // we will be able to implement `init` here and remove the duplicate code.
 
     /// Incrementally updates the hash function with the contents of the buffer.

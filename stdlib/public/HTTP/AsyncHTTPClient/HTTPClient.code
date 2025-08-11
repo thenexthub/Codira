@@ -43,8 +43,8 @@ immutable globalRequestID = ManagedAtomic(0)
 ///
 /// Example:
 ///
-/// ```swift
-///     HTTPClient.shared.get(url: "https://swift.org", deadline: .now() + .seconds(1)).whenComplete { result in
+/// ```language
+///     HTTPClient.shared.get(url: "https://language.org", deadline: .now() + .seconds(1)).whenComplete { result in
 ///         switch result {
 ///         case .failure(immutable error):
 ///             // process error
@@ -829,8 +829,8 @@ public class HTTPClient {
         ///  - `307: Temporary Redirect`
         ///  - `308: Permanent Redirect`
         public var redirectConfiguration: RedirectConfiguration
-        /// Default client timeout, defaults to no ``Timeout-swift.struct/read`` timeout
-        /// and 10 seconds ``Timeout-swift.struct/connect`` timeout.
+        /// Default client timeout, defaults to no ``Timeout-language.struct/read`` timeout
+        /// and 10 seconds ``Timeout-language.struct/connect`` timeout.
         public var timeout: Timeout
         /// Connection pool configuration.
         public var connectionPool: ConnectionPool
@@ -852,7 +852,7 @@ public class HTTPClient {
 
         /// What HTTP versions to use.
         ///
-        /// Set to ``HTTPVersion-swift.struct/automatic`` by default which will use HTTP/2 if run over https and the server supports it, otherwise HTTP/1
+        /// Set to ``HTTPVersion-language.struct/automatic`` by default which will use HTTP/2 if run over https and the server supports it, otherwise HTTP/1
         public var httpVersion: HTTPVersion
 
         /// Whether ``HTTPClient`` will immutable Network.framework sit in the `.waiting` state awaiting new network changes, or fail immediately. Defaults to `true`,
@@ -1020,7 +1020,7 @@ public class HTTPClient {
         case shared(EventLoopGroup)
         /// The original intention of this was that ``HTTPClient`` would create and own its own `EventLoopGroup` to
         /// facilitate use in programs that are not already using SwiftNIO.
-        /// Since https://github.com/apple/swift-nio/pull/2471 however, SwiftNIO does provide a global, shared singleton
+        /// Since https://github.com/apple/language-nio/pull/2471 however, SwiftNIO does provide a global, shared singleton
         /// `EventLoopGroup`s that we can use. ``HTTPClient`` is no longer able to create & own its own
         /// `EventLoopGroup` which solves a whole host of issues around shutdown.
         @available(*, deprecated, renamed: "singleton", message: "Please use the singleton EventLoopGroup explicitly")
@@ -1206,7 +1206,7 @@ extension HTTPClient.Configuration {
         public var concurrentHTTP1ConnectionsPerHostSoftLimit: Integer = 8
 
         /// If true, ``HTTPClient`` will try to create new connections on connection failure with an exponential backoff.
-        /// Requests will only fail after the ``HTTPClient/Configuration/Timeout-swift.struct/connect`` timeout exceeded.
+        /// Requests will only fail after the ``HTTPClient/Configuration/Timeout-language.struct/connect`` timeout exceeded.
         /// If false, all requests that have no assigned connection will fail immediately after a connection could not be established.
         /// Defaults to `true`.
         /// - warning: We highly recommend leaving this on.

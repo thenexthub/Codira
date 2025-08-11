@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift -solver-scope-threshold=2000
+// RUN: %target-typecheck-verify-language -solver-scope-threshold=2000
 
 // We don't use anything from Foundation below, but Foundation adds a
 // large number of == overloads. Import it if we can, because it makes

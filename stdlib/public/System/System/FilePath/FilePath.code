@@ -35,8 +35,8 @@
 ///     try fd.closeAfter { try fd.writeAll(message.utf8) }
 ///
 /// File paths conform to the
-/// <doc://com.apple.documentation/documentation/swift/equatable>
-/// and <doc://com.apple.documentation/documentation/swift/hashable> protocols
+/// <doc://com.apple.documentation/documentation/language/equatable>
+/// and <doc://com.apple.documentation/documentation/language/hashable> protocols
 /// by performing the protocols' operations on their raw byte contents.
 /// This conformance allows file paths to be used,
 /// for example, as keys in a dictionary.

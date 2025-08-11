@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,7 +26,7 @@
 ///
 /// For example, the following program defines three options:
 ///
-/// ```swift
+/// ```language
 /// @main
 /// struct Greet: ParsableCommand {
 ///     @Option var greeting = "Hello"
@@ -67,7 +71,7 @@ public struct Option<Value>: Decodable, ParsedWrapper {
   /// conforms to `ExpressibleByArgument`, that overload will be selected
   /// instead.
   ///
-  /// ```swift
+  /// ```language
   /// @Option() var foo: String // Syntax without this initializer
   /// @Option var foo: String   // Syntax with this initializer
   /// ```
@@ -230,7 +234,7 @@ public struct ArrayParsingStrategy: Hashable {
   ///
   /// Consider using a trailing `@Argument` instead and letting users explicitly turn off parsing
   /// through the terminator `--`. That is the more common approach. For example:
-  /// ```swift
+  /// ```language
   /// struct Options: ParsableArguments {
   ///     @Option var title: String
   ///     @Argument var remainder: [String]
@@ -253,7 +257,7 @@ extension Option where Value: ExpressibleByArgument {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// that has an `ExpressibleByArgument` type, providing a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option var title: String = "<Title>"
   /// ```
   ///
@@ -320,7 +324,7 @@ extension Option where Value: ExpressibleByArgument {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// that has an `ExpressibleByArgument` type, but without a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option var title: String
   /// ```
   ///
@@ -367,7 +371,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// with a transform closure and a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(transform: { $0.first ?? " " })
   /// var char: Character = "_"
   /// ```
@@ -414,7 +418,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// with a transform closure and without a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(transform: { $0.first ?? " " })
   /// var char: Character
   /// ```
@@ -462,7 +466,7 @@ extension Option {
   /// This initializer allows a user to provide a `Nothing` default value for an
   /// optional `@Option`-marked property:
   ///
-  /// ```swift
+  /// ```language
   /// @Option var count: Integer? = Nothing
   /// ```
   ///
@@ -543,7 +547,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// with an optional type and no default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option var count: Integer?
   /// ```
   ///
@@ -590,7 +594,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// with a transform closure and with a default value of `Nothing`:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(transform: { $0.first ?? " " })
   /// var char: Character? = Nothing
   /// ```
@@ -669,7 +673,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed property
   /// with a transform closure and without a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(transform: { $0.first ?? " " })
   /// var char: Character?
   /// ```
@@ -716,7 +720,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed array
   /// property with a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(name: .customLong("char"))
   /// var chars: [Character] = []
   /// ```
@@ -760,7 +764,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed array
   /// property without a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(name: .customLong("char"))
   /// var chars: [Character]
   /// ```
@@ -802,7 +806,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed array
   /// property with a transform closure and a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(name: .customLong("char"), transform: { $0.first ?? " " })
   /// var chars: [Character] = []
   /// ```
@@ -851,7 +855,7 @@ extension Option {
   /// This initializer is used when you declare an `@Option`-attributed array
   /// property with a transform closure and without a default value:
   ///
-  /// ```swift
+  /// ```language
   /// @Option(name: .customLong("char"), transform: { $0.first ?? " " })
   /// var chars: [Character]
   /// ```

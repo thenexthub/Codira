@@ -2,7 +2,7 @@
 # SIL Bug Reducer
 
 This directory contains a script called bug_reducer. It is a reimplementation of
-toolchain's bugpoint using a python script + high level IR utilities. This will
+llvm's bugpoint using a python script + high level IR utilities. This will
 enable bugpoint to easily be ported to newer IRs.
 
 An example invocation would be:
@@ -13,7 +13,7 @@ An example invocation would be:
         --module-name=${MODULE_NAME} \
         --work-dir=${PWD}/bug_reducer \
         --module-cache=${PWD}/bug_reducer/module-cache \
-        ${LANGUAGE_BUILD_DIR} \
+        ${SWIFT_BUILD_DIR} \
         ${SIB_FILE}
 
 This is still very alpha and needs a lot of work including tests, so please do
@@ -23,7 +23,7 @@ hopefully help fix them/add tests).
 
 # Tasks
 
-1. A lot of this code was inspired by toolchain's bisect tool. This includes a bit of
+1. A lot of this code was inspired by llvm's bisect tool. This includes a bit of
    the code style, we should clean this up and pythonify these parts of the
    tool.
 2. Reduction at a function level is complete, we should look into block/instruction
@@ -31,7 +31,7 @@ hopefully help fix them/add tests).
 3. Then we need to implement miscompile detection support. This implies
    implementing support for codegening code from this tool using languagec. This
    implies splitting modules into optimized and unoptimized parts. Luckily,
-   sil-fn-extractor can perform this task modulo one task*.
+   sil-func-extractor can perform this task modulo one task*.
 
 * Specifically, we need to be able to create internal shims that call shared
   functions so that if a shared function is partitioned on the opposite side of
@@ -41,12 +41,12 @@ hopefully help fix them/add tests).
 
 # High Level Example
 
-Imagine that I have a test case foo.code that causes the optimizer to assert in
+Imagine that I have a test case foo.language that causes the optimizer to assert in
 the normal performance pipeline. I decide I want to use the bug_reducer to
 reduce the passes and or size of the test case. First I emit a SIB file with the
 performance optimizations disabled:
 
-    ${LANGUAGEC_CMDLINE} -emit-sib -Xtoolchain -disable-sil-optzns -O -o ${OUTPUT}.sib
+    ${SWIFTC_CMDLINE} -emit-sib -Xllvm -disable-sil-optzns -O -o ${OUTPUT}.sib
 
 Then I invoke the bug reducer as follows:
 
@@ -57,7 +57,7 @@ Then I invoke the bug reducer as follows:
         --work-dir=${PWD}/bug_reducer \
         --module-cache=${PWD}/bug_reducer/module-cache \
         --reduce-sil \
-        ${LANGUAGE_BUILD_DIR} \
+        ${SWIFT_BUILD_DIR} \
         ${OUTPUT_SIB}
 
 Then the bug_reducer will first attempt to reduce the passes. Then, it will

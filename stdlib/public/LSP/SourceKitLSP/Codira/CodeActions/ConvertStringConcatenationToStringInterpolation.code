@@ -80,11 +80,11 @@ struct ConvertStringConcatenationToStringInterpolation: SyntaxRefactoringProvide
   /// expression for string interpolation. `exprList` must also contain at least one string literal child.
   ///
   /// The following is a valid string concatenation.
-  /// ``` swift
+  /// ``` language
   /// "Hello " + aString + "\(1)World"
   /// ```
   /// The following are invalid string concatenations.
-  /// ``` swift
+  /// ``` language
   /// aString + bString // no string literals
   ///
   /// "Hello " * aString - "World" // non `+` operators

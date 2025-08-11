@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swiftgyb
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 // REQUIRES: reflection
 

@@ -10,5 +10,5 @@ target_link_libraries(LanguageServerProtocolJSONRPC PRIVATE
   LanguageServerProtocol
   SKLogging)
 target_link_libraries(LanguageServerProtocolJSONRPC PRIVATE
-  $<$<NOT:$<PLATFORM_ID:Darwin>>:swiftDispatch>
+  $<$<NOT:$<PLATFORM_ID:Darwin>>:languageDispatch>
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)

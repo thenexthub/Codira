@@ -11,7 +11,7 @@ may result in a runtime error.
 For example, the following code parses two values from a ``ParserSpan``,
 and then uses them to create a range:
 
-```swift
+```language
 immutable start = try UInt16(parsingBigEndian: &input)
 immutable count = try UInt8(parsing: &input)
 guard immutable range = start ..<? (start +? count) else {

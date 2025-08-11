@@ -2,7 +2,7 @@
 
 `ParsableCommand` types are the basic building blocks for command-line tools built using `ArgumentParser`. To create a command, declare properties using the `@Argument`, `@Option`, and `@Flag` property wrappers, or include groups of options with `@OptionGroup`. Finally, implement your command's functionality in the ``run()-7p2fr`` method.
 
-```swift
+```language
 @main
 struct Repeat: ParsableCommand {
     @Argument(help: "The phrase to repeat.")

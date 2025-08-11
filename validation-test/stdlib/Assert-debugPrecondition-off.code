@@ -1,7 +1,7 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift %s -Xfrontend -disable-access-control -o %t/Assert_Debug -Onone
-// RUN: %target-build-swift %s -Xfrontend -disable-access-control -o %t/Assert_Release -O
-// RUN: %target-build-swift %s -Xfrontend -disable-access-control -o %t/Assert_Unchecked -Ounchecked
+// RUN: %target-build-language %s -Xfrontend -disable-access-control -o %t/Assert_Debug -Onone
+// RUN: %target-build-language %s -Xfrontend -disable-access-control -o %t/Assert_Release -O
+// RUN: %target-build-language %s -Xfrontend -disable-access-control -o %t/Assert_Unchecked -Ounchecked
 // RUN: %target-codesign %t/Assert_Debug
 // RUN: %target-codesign %t/Assert_Release
 // RUN: %target-codesign %t/Assert_Unchecked
@@ -9,7 +9,7 @@
 // RUN: %target-run %t/Assert_Release | %FileCheck --check-prefixes=RELEASE %s
 // RUN: %target-run %t/Assert_Unchecked | %FileCheck --check-prefixes=UNCHECKED %s
 
-// UNSUPPORTED: swift_stdlib_debug_preconditions_in_release
+// UNSUPPORTED: language_stdlib_debug_preconditions_in_release
 // REQUIRES: executable_test
 
 // DEBUG: _isStdlibDebugChecksEnabled: true

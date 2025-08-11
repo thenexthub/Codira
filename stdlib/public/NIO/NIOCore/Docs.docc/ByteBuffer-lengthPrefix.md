@@ -51,7 +51,7 @@ complex to work out the total length of that data.
 
 We decided to add the following API to ByteBuffer:
 
-```swift
+```language
 /// - Parameters:
 ///   - strategy: The strategy to use for encoding the length.
 ///   - writeData: A closure that takes a buffer, writes some data to it, and returns the number of bytes written.
@@ -64,7 +64,7 @@ public mutating fn writeLengthPrefixed<Strategy: NIOBinaryIntegerEncodingStrateg
 
 Users could use the function as follows:
 
-```swift
+```language
 myBuffer.writeLengthPrefixed(strategy: .quic) { buffer in
     buffer.writeString("something")
     buffer.writeSomethingComplex(something)
@@ -96,7 +96,7 @@ will be able to adjust the way they encode such that they can use exactly that m
 We added the following function to the ``NIOBinaryIntegerEncodingStrategy`` protocol. This is optional to implement, and
 will default to simply calling the existing ``NIOBinaryIntegerEncodingStrategy/writeInteger(_:to:)`` function.
 
-```swift
+```language
 /// - Parameters:
 ///   - integer: The integer to write
 ///   - reservedCapacity: The capacity already reserved for writing this integer

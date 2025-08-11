@@ -2,22 +2,22 @@
 // by the Codira compiler.
 
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -emit-library -emit-module -o %t/libfirst.dylib -emit-objc-header-path %t/first.h %S/Inputs/class-stubs-weak/first.swift -Xlinker -install_name -Xlinker @executable_path/libfirst.dylib -enable-library-evolution
-// RUN: %target-build-swift -emit-library -o %t/libsecond.dylib -emit-objc-header-path %t/second.h -I %t %S/Inputs/class-stubs-weak/second.swift -Xlinker -install_name -Xlinker @executable_path/libsecond.dylib -lfirst -L %t -target %target-next-stable-abi-triple -DBEFORE
+// RUN: %target-build-language -emit-library -emit-module -o %t/libfirst.dylib -emit-objc-header-path %t/first.h %S/Inputs/class-stubs-weak/first.language -Xlinker -install_name -Xlinker @executable_path/libfirst.dylib -enable-library-evolution
+// RUN: %target-build-language -emit-library -o %t/libsecond.dylib -emit-objc-header-path %t/second.h -I %t %S/Inputs/class-stubs-weak/second.language -Xlinker -install_name -Xlinker @executable_path/libsecond.dylib -lfirst -L %t -target %target-next-stable-abi-triple -DBEFORE
 // RUN: cp %S/Inputs/class-stubs-weak/module.modulemap %t/
 
 // Note: This is the just-built Clang, not the system Clang.
 // RUN: xcrun -sdk %sdk %clang %s -I %t -L %t -fmodules -fobjc-arc -o %t/main -lfirst -lsecond -target %target-triple
 
 // Now rebuild the library, omitting the weak-exported class
-// RUN: %target-build-swift -emit-library -o %t/libsecond.dylib -I %t %S/Inputs/class-stubs-weak/second.swift -Xlinker -install_name -Xlinker @executable_path/libsecond.dylib -lfirst -L %t -target %target-next-stable-abi-triple
+// RUN: %target-build-language -emit-library -o %t/libsecond.dylib -I %t %S/Inputs/class-stubs-weak/second.language -Xlinker -install_name -Xlinker @executable_path/libsecond.dylib -lfirst -L %t -target %target-next-stable-abi-triple
 
 // RUN: %target-codesign %t/main %t/libfirst.dylib %t/libsecond.dylib
 // RUN: %target-run %t/main %t/libfirst.dylib %t/libsecond.dylib
 
 // REQUIRES: executable_test
 // REQUIRES: objc_interop
-// REQUIRES: swift_stable_abi
+// REQUIRES: language_stable_abi
 
 // REQUIRES: rdar62692550
 

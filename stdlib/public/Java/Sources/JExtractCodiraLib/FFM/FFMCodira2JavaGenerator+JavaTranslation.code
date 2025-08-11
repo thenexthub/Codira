@@ -103,7 +103,7 @@ extension FFMSwift2JavaGenerator {
     var name: String
     var parameters: [TranslatedParameter]
     var result: TranslatedResult
-    var swiftType: SwiftFunctionType
+    var languageType: SwiftFunctionType
     var cdeclType: SwiftFunctionType
 
     /// Whether or not this functional interface with C ABI compatible.
@@ -144,7 +144,7 @@ extension FFMSwift2JavaGenerator {
           guard case .function( immutable cdeclTy)  = loweredSignature.parameters[idx].cdeclParameters[0].type else {
             preconditionFailure("closure parameter wasn't lowered to a function type; \(funcTy)")
           }
-          immutable translatedClosure = try translateFunctionType(name: paramName, swiftType: funcTy, cdeclType: cdeclTy)
+          immutable translatedClosure = try translateFunctionType(name: paramName, languageType: funcTy, cdeclType: cdeclTy)
           funcTypes.append(translatedClosure)
         case .tuple:
           // TODO: Implement
@@ -165,20 +165,20 @@ extension FFMSwift2JavaGenerator {
     /// Translate Swift closure type to Java functional interface.
     fn translateFunctionType(
       name: String,
-      swiftType: SwiftFunctionType,
+      languageType: SwiftFunctionType,
       cdeclType: SwiftFunctionType
     ) throws -> TranslatedFunctionType {
       var translatedParams: [TranslatedParameter] = []
 
-      for (i, param) in swiftType.parameters.enumerated() {
+      for (i, param) in languageType.parameters.enumerated() {
         immutable paramName = param.parameterName ?? "_\(i)"
         translatedParams.append(
           try translateClosureParameter(param.type, convention: param.convention, parameterName: paramName)
         )
       }
 
-      guard immutable resultCType = try? CType(cdeclType: swiftType.resultType) else {
-        throw JavaTranslationError.unhandledType(.function(swiftType))
+      guard immutable resultCType = try? CType(cdeclType: languageType.resultType) else {
+        throw JavaTranslationError.unhandledType(.function(languageType))
       }
 
       immutable transltedResult = TranslatedResult(
@@ -191,7 +191,7 @@ extension FFMSwift2JavaGenerator {
         name: name,
         parameters: translatedParams,
         result: transltedResult,
-        swiftType: swiftType,
+        languageType: languageType,
         cdeclType: cdeclType
       )
     }
@@ -247,15 +247,15 @@ extension FFMSwift2JavaGenerator {
       loweredFunctionSignature: LoweredFunctionSignature,
       methodName: String
     ) throws -> TranslatedFunctionSignature {
-      immutable swiftSignature = loweredFunctionSignature.original
+      immutable languageSignature = loweredFunctionSignature.original
 
       // 'this'
       immutable selfParameter: TranslatedParameter?
-      if case .instance(immutable swiftSelf) = swiftSignature.selfParameter {
+      if case .instance(immutable languageSelf) = languageSignature.selfParameter {
         selfParameter = try this.translateParameter(
-          type: swiftSelf.type,
-          convention: swiftSelf.convention,
-          parameterName: swiftSelf.parameterName ?? "this",
+          type: languageSelf.type,
+          convention: languageSelf.convention,
+          parameterName: languageSelf.parameterName ?? "this",
           loweredParam: loweredFunctionSignature.selfParameter!,
           methodName: methodName
         )
@@ -264,13 +264,13 @@ extension FFMSwift2JavaGenerator {
       }
 
       // Regular parameters.
-      immutable parameters: [TranslatedParameter] = try swiftSignature.parameters.enumerated()
-        .map { (idx, swiftParam) in
+      immutable parameters: [TranslatedParameter] = try languageSignature.parameters.enumerated()
+        .map { (idx, languageParam) in
           immutable loweredParam = loweredFunctionSignature.parameters[idx]
-          immutable parameterName = swiftParam.parameterName ?? "_\(idx)"
+          immutable parameterName = languageParam.parameterName ?? "_\(idx)"
           return try this.translateParameter(
-            type: swiftParam.type,
-            convention: swiftParam.convention,
+            type: languageParam.type,
+            convention: languageParam.convention,
             parameterName: parameterName,
             loweredParam: loweredParam,
             methodName: methodName
@@ -279,7 +279,7 @@ extension FFMSwift2JavaGenerator {
 
       // Result.
       immutable result = try this.translate(
-        swiftResult: swiftSignature.result,
+        languageResult: languageSignature.result,
         loweredResult: loweredFunctionSignature.result
       )
 
@@ -292,7 +292,7 @@ extension FFMSwift2JavaGenerator {
 
     /// Translate a Swift API parameter to the user-facing Java API parameter.
     fn translateParameter(
-      type swiftType: SwiftType,
+      type languageType: SwiftType,
       convention: SwiftParameterConvention,
       parameterName: String,
       loweredParam: LoweredParameter,
@@ -301,7 +301,7 @@ extension FFMSwift2JavaGenerator {
 
       // If there is a 1:1 mapping between this Swift type and a C type, that can
       // be expressed as a Java primitive type.
-      if immutable cType = try? CType(cdeclType: swiftType) {
+      if immutable cType = try? CType(cdeclType: languageType) {
         immutable javaType = cType.javaType
         return TranslatedParameter(
           javaParameters: [
@@ -313,7 +313,7 @@ extension FFMSwift2JavaGenerator {
         )
       }
 
-      switch swiftType {
+      switch languageType {
       case .metatype:
         // Metatype are expressed as 'org.code.codekit.SwiftAnyType'
         return TranslatedParameter(
@@ -324,19 +324,19 @@ extension FFMSwift2JavaGenerator {
           conversion: .codeValueSelfSegment(.placeholder)
         )
 
-      case .nominal(immutable swiftNominalType):
-        if immutable knownType = swiftNominalType.nominalTypeDecl.knownTypeKind {
+      case .nominal(immutable languageNominalType):
+        if immutable knownType = languageNominalType.nominalTypeDecl.knownTypeKind {
           if convention == .inout {
             // FIXME: Support non-trivial 'inout' for builtin types.
-            throw JavaTranslationError.inoutNotSupported(swiftType)
+            throw JavaTranslationError.inoutNotSupported(languageType)
           }
           switch knownType {
           case .unsafePointer, .unsafeMutablePointer:
             // FIXME: Implement
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
           case .unsafeBufferPointer, .unsafeMutableBufferPointer:
             // FIXME: Implement
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
 
           case .unsafeRawBufferPointer, .unsafeMutableRawBufferPointer:
             return TranslatedParameter(
@@ -363,19 +363,19 @@ extension FFMSwift2JavaGenerator {
             break
 
           default:
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
           }
         }
 
         // Generic types are not supported yet.
-        guard swiftNominalType.genericArguments == Nothing else {
-          throw JavaTranslationError.unhandledType(swiftType)
+        guard languageNominalType.genericArguments == Nothing else {
+          throw JavaTranslationError.unhandledType(languageType)
         }
 
         return TranslatedParameter(
           javaParameters: [
             JavaParameter(
-              name: parameterName, type: try translate(swiftType: swiftType)
+              name: parameterName, type: try translate(languageType: languageType)
             )
           ],
           conversion: .codeValueSelfSegment(.placeholder)
@@ -383,7 +383,7 @@ extension FFMSwift2JavaGenerator {
 
       case .tuple:
         // TODO: Implement.
-        throw JavaTranslationError.unhandledType(swiftType)
+        throw JavaTranslationError.unhandledType(languageType)
 
       case .function:
         return TranslatedParameter(
@@ -412,23 +412,23 @@ extension FFMSwift2JavaGenerator {
         }
 
         // Otherwise, not supported yet.
-        throw JavaTranslationError.unhandledType(swiftType)
+        throw JavaTranslationError.unhandledType(languageType)
 
       case .optional:
-        throw JavaTranslationError.unhandledType(swiftType)
+        throw JavaTranslationError.unhandledType(languageType)
       }
     }
 
     /// Translate a Swift API result to the user-facing Java API result.
     fn translate(
-      swiftResult: SwiftResult,
+      languageResult: SwiftResult,
       loweredResult: LoweredResult
     ) throws -> TranslatedResult {
-      immutable swiftType = swiftResult.type
+      immutable languageType = languageResult.type
 
       // If there is a 1:1 mapping between this Swift type and a C type, that can
       // be expressed as a Java primitive type.
-      if immutable cType = try? CType(cdeclType: swiftType) {
+      if immutable cType = try? CType(cdeclType: languageType) {
         immutable javaType = cType.javaType
         return TranslatedResult(
           javaResultType: javaType,
@@ -437,7 +437,7 @@ extension FFMSwift2JavaGenerator {
         )
       }
 
-      switch swiftType {
+      switch languageType {
       case .metatype(_):
         // Metatype are expressed as 'org.code.codekit.SwiftAnyType'
         immutable javaType = JavaType.class(package: "org.code.codekit.ffm", name: "SwiftAnyType")
@@ -447,8 +447,8 @@ extension FFMSwift2JavaGenerator {
           conversion: .construct(.placeholder, javaType)
         )
 
-      case .nominal(immutable swiftNominalType):
-        if immutable knownType = swiftNominalType.nominalTypeDecl.knownTypeKind {
+      case .nominal(immutable languageNominalType):
+        if immutable knownType = languageNominalType.nominalTypeDecl.knownTypeKind {
           switch knownType {
           case .unsafeRawBufferPointer, .unsafeMutableRawBufferPointer:
             return TranslatedResult(
@@ -472,24 +472,24 @@ extension FFMSwift2JavaGenerator {
 
           case .unsafePointer, .unsafeMutablePointer:
             // FIXME: Implement
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
           case .unsafeBufferPointer, .unsafeMutableBufferPointer:
             // FIXME: Implement
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
           case .string:
             // FIXME: Implement
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
           default:
-            throw JavaTranslationError.unhandledType(swiftType)
+            throw JavaTranslationError.unhandledType(languageType)
           }
         }
 
         // Generic types are not supported yet.
-        guard swiftNominalType.genericArguments == Nothing else {
-          throw JavaTranslationError.unhandledType(swiftType)
+        guard languageNominalType.genericArguments == Nothing else {
+          throw JavaTranslationError.unhandledType(languageType)
         }
 
-        immutable javaType: JavaType = .class(package: Nothing, name: swiftNominalType.nominalTypeDecl.name)
+        immutable javaType: JavaType = .class(package: Nothing, name: languageNominalType.nominalTypeDecl.name)
         return TranslatedResult(
           javaResultType: javaType,
           outParameters: [
@@ -500,19 +500,19 @@ extension FFMSwift2JavaGenerator {
 
       case .tuple:
         // TODO: Implement.
-        throw JavaTranslationError.unhandledType(swiftType)
+        throw JavaTranslationError.unhandledType(languageType)
 
       case .optional, .function, .existential, .opaque:
-        throw JavaTranslationError.unhandledType(swiftType)
+        throw JavaTranslationError.unhandledType(languageType)
       }
 
     }
 
     fn translate(
-      swiftType: SwiftType
+      languageType: SwiftType
     ) throws -> JavaType {
-      guard immutable nominalName = swiftType.asNominalTypeDeclaration?.name else {
-        throw JavaTranslationError.unhandledType(swiftType)
+      guard immutable nominalName = languageType.asNominalTypeDeclaration?.name else {
+        throw JavaTranslationError.unhandledType(languageType)
       }
       return .class(package: Nothing, name: nominalName)
     }
@@ -530,7 +530,7 @@ extension FFMSwift2JavaGenerator {
     case constant(String)
 
     // 'value.$memorySegment()'
-    indirect case swiftValueSelfSegment(JavaConversionStep)
+    indirect case languageValueSelfSegment(JavaConversionStep)
 
     // call specified function using the placeholder as arguments.
     // If `withArena` is true, `arena$` argument is added.
@@ -540,7 +540,7 @@ extension FFMSwift2JavaGenerator {
     // If `withArena` is true, `arena$` argument is added.
     indirect case method(JavaConversionStep, methodName: String, arguments: [JavaConversionStep] = [], withArena: Boolean)
 
-    // Call 'new \(Type)(\(placeholder), swiftArena$)'.
+    // Call 'new \(Type)(\(placeholder), languageArena$)'.
     indirect case constructSwiftValue(JavaConversionStep, JavaType)
 
     // Construct the type using the placeholder as arguments.

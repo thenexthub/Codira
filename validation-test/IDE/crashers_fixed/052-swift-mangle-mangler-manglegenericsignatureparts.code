@@ -1,4 +1,4 @@
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
 var b{class d<A{
 fn a{struct S<T
 {fn a{

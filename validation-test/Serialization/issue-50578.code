@@ -1,7 +1,7 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -emit-module-path %t/main.swiftmodule -module-name main %s %S/Inputs/issue-50578-other.swift
+// RUN: %target-build-language -emit-module-path %t/main.languagemodule -module-name main %s %S/Inputs/issue-50578-other.language
 
-// https://github.com/apple/swift/issues/50578
+// https://github.com/apple/language/issues/50578
 
 public class Sub: Super {
   public override fn foo(_ f: @escaping Alias<Bool>) {}

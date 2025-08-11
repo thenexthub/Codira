@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/reflect_Enum_SinglePayload_generic1
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/reflect_Enum_SinglePayload_generic1
 // RUN: %target-codesign %t/reflect_Enum_SinglePayload_generic1
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Enum_SinglePayload_generic1 | tee /dev/stderr | %FileCheck %s --check-prefix=CHECK --check-prefix=X%target-ptrsize %add_num_extra_inhabitants --dump-input=fail
+// RUN: %target-run %target-language-reflection-test %t/reflect_Enum_SinglePayload_generic1 | tee /dev/stderr | %FileCheck %s --check-prefix=CHECK --check-prefix=X%target-ptrsize %add_num_extra_inhabitants --dump-input=fail
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test

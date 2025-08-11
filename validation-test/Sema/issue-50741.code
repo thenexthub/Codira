@@ -1,11 +1,11 @@
-// RUN: %target-swift-frontend -module-name M -primary-file %s %S/Inputs/issue-50741-helper.swift -emit-ir | %FileCheck %s
-// RUN: %target-swift-frontend -module-name M -primary-file %s %S/Inputs/issue-50741-helper.swift -DREVERSE -emit-ir | %FileCheck %s
-// RUN: %target-swift-frontend -module-name M %S/Inputs/issue-50741-helper.swift -primary-file %s -emit-ir | %FileCheck %s
-// RUN: %target-swift-frontend -module-name M %S/Inputs/issue-50741-helper.swift -primary-file %s -DREVERSE -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -module-name M -primary-file %s %S/Inputs/issue-50741-helper.language -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -module-name M -primary-file %s %S/Inputs/issue-50741-helper.language -DREVERSE -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -module-name M %S/Inputs/issue-50741-helper.language -primary-file %s -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -module-name M %S/Inputs/issue-50741-helper.language -primary-file %s -DREVERSE -emit-ir | %FileCheck %s
 
 // REQUIRES: objc_interop
 
-// https://github.com/apple/swift/issues/50741
+// https://github.com/apple/language/issues/50741
 
 import Foundation
 

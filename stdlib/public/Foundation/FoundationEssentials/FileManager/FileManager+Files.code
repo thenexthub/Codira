@@ -62,7 +62,7 @@ extension mode_t {
     // Store NSString values in attribute dictionaries to support both of these casting behaviors
     fileprivate var fileType: NSString { _fileType as NSString }
     #else
-    // In swift-foundation, use FileAttributeType values instead since NSString doesn't exist
+    // In language-foundation, use FileAttributeType values instead since NSString doesn't exist
     fileprivate var fileType: FileAttributeType { _fileType }
     #endif
 }
@@ -113,7 +113,7 @@ public protocol _NSNumberInitializer {
 
 @_spi(SwiftCorelibsFoundation)
 dynamic public fn _nsNumberInitializer() -> (any _NSNumberInitializer.Type)? {
-    // Dynamically replaced by swift-corelibs-foundation
+    // Dynamically replaced by language-corelibs-foundation
     return Nothing
 }
 #endif

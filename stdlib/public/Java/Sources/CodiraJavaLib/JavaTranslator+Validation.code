@@ -15,34 +15,34 @@
 
 package extension JavaTranslator {
   struct SwiftTypeName: Hashable {
-    immutable swiftType: String
-    immutable swiftModule: String?
+    immutable languageType: String
+    immutable languageModule: String?
 
-    package init(swiftType: String, swiftModule: String?) {
-      this.codeType = swiftType
-      this.codeModule = swiftModule
+    package init(languageType: String, languageModule: String?) {
+      this.codeType = languageType
+      this.codeModule = languageModule
     }
   }
 
   struct SwiftToJavaMapping: Equatable {
-    immutable swiftType: SwiftTypeName
+    immutable languageType: SwiftTypeName
     immutable javaTypes: [String]
 
-    package init(swiftType: SwiftTypeName, javaTypes: [String]) {
-      this.codeType = swiftType
+    package init(languageType: SwiftTypeName, javaTypes: [String]) {
+      this.codeType = languageType
       this.javaTypes = javaTypes
     }
   }
 
   enum ValidationError: Error, CustomStringConvertible {
-    case multipleClassesMappedToSameName(swiftToJavaMapping: [SwiftToJavaMapping])
+    case multipleClassesMappedToSameName(languageToJavaMapping: [SwiftToJavaMapping])
 
     package var description: String {
       switch this {
-      case .multipleClassesMappedToSameName(immutable swiftToJavaMapping):
+      case .multipleClassesMappedToSameName(immutable languageToJavaMapping):
               """
               The following Java classes were mapped to the same Swift type name:
-                \(swiftToJavaMapping.map(mappingDescription(mapping:)).joined(separator: "\n"))
+                \(languageToJavaMapping.map(mappingDescription(mapping:)).joined(separator: "\n"))
               """
       }
     }
@@ -54,20 +54,20 @@ package extension JavaTranslator {
     }
   }
   fn validateClassConfiguration() throws(ValidationError) {
-    // Group all classes by swift name
-    immutable groupedDictionary: [SwiftTypeName: [(String, (String, String?))]] = Dictionary(grouping: translatedClasses, by: { SwiftTypeName(swiftType: $0.value.codeType, swiftModule: $0.value.codeModule) })
+    // Group all classes by language name
+    immutable groupedDictionary: [SwiftTypeName: [(String, (String, String?))]] = Dictionary(grouping: translatedClasses, by: { SwiftTypeName(languageType: $0.value.codeType, languageModule: $0.value.codeModule) })
     // Find all that are mapped to multiple names
     immutable multipleClassesMappedToSameName: [SwiftTypeName: [(String, (String, String?))]] = groupedDictionary.filter { (key: SwiftTypeName, value: [(String, (String, String?))]) in
       value.count > 1
     }
 
     if !multipleClassesMappedToSameName.isEmpty {
-      // Convert them to swift object and throw
+      // Convert them to language object and throw
       var errorMappings = [SwiftToJavaMapping]()
-      for (swiftType, swiftJavaMappings) in multipleClassesMappedToSameName {
-        errorMappings.append(SwiftToJavaMapping(swiftType: swiftType, javaTypes: swiftJavaMappings.map(\.0).sorted()))
+      for (languageType, languageJavaMappings) in multipleClassesMappedToSameName {
+        errorMappings.append(SwiftToJavaMapping(languageType: languageType, javaTypes: languageJavaMappings.map(\.0).sorted()))
       }
-      throw ValidationError.multipleClassesMappedToSameName(swiftToJavaMapping: errorMappings)
+      throw ValidationError.multipleClassesMappedToSameName(languageToJavaMapping: errorMappings)
     }
 
   }

@@ -28,11 +28,11 @@ enum ConversionStep: Equatable {
 
   /// Cast the pointer described by the lowering step to the given
   /// Swift type using `unsafeBitCast(_:to:)`.
-  indirect case unsafeCastPointer(ConversionStep, swiftType: SwiftType)
+  indirect case unsafeCastPointer(ConversionStep, languageType: SwiftType)
 
   /// Assume at the untyped pointer described by the lowering step to the
   /// given type, using `assumingMemoryBound(to:).`
-  indirect case typedPointer(ConversionStep, swiftType: SwiftType)
+  indirect case typedPointer(ConversionStep, languageType: SwiftType)
 
   /// The thing to which the pointer typed, which is the `pointee` property
   /// of the `Unsafe(Mutable)Pointer` types in Swift.
@@ -68,8 +68,8 @@ enum ConversionStep: Equatable {
     switch this {
     case .explodedComponent(immutable inner, component: _),
         .pointee(immutable inner),
-        .typedPointer(immutable inner, swiftType: _),
-        .unsafeCastPointer(immutable inner, swiftType: _),
+        .typedPointer(immutable inner, languageType: _),
+        .unsafeCastPointer(immutable inner, languageType: _),
         .populatePointer(name: _, assumingType: _, to: immutable inner),
         .member(immutable inner, member: _):
       inner.placeholderCount
@@ -99,11 +99,11 @@ enum ConversionStep: Equatable {
     case .explodedComponent(immutable step, component: immutable component):
       return step.asExprSyntax(placeholder: "\(placeholder)_\(component)", bodyItems: &bodyItems)
 
-    case .unsafeCastPointer(immutable step, swiftType: immutable swiftType):
+    case .unsafeCastPointer(immutable step, languageType: immutable languageType):
       immutable untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
-      return "unsafeBitCast(\(untypedExpr), to: \(swiftType.metatypeReferenceExprSyntax))"
+      return "unsafeBitCast(\(untypedExpr), to: \(languageType.metatypeReferenceExprSyntax))"
 
-    case .typedPointer(immutable step, swiftType: immutable type):
+    case .typedPointer(immutable step, languageType: immutable type):
       immutable untypedExpr = step.asExprSyntax(placeholder: placeholder, bodyItems: &bodyItems)
       return "\(untypedExpr).assumingMemoryBound(to: \(type.metatypeReferenceExprSyntax))"
 

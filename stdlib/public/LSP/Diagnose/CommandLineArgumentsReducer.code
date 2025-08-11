@@ -83,7 +83,7 @@ fileprivate class CommandLineArgumentReducer {
         progressUpdate(progress, "Reduced compiler arguments to \(requestInfo.compilerArgs.count)")
       }
       var numberOfArgumentsToRemove = simultaneousRemove
-      // If the argument is preceded by -Xswiftc or -Xcxx, we need to remove the `-X` flag as well.
+      // If the argument is preceded by -Xlanguagec or -Xcxx, we need to remove the `-X` flag as well.
       if requestInfo.compilerArgs[safe: argumentIndexToRemove - numberOfArgumentsToRemove]?.hasPrefix("-X") ?? false {
         numberOfArgumentsToRemove += 1
       }
@@ -100,7 +100,7 @@ fileprivate class CommandLineArgumentReducer {
       if requestInfo.compilerArgs[safe: argumentIndexToRemove - numberOfArgumentsToRemove]?.hasPrefix("-") ?? false {
         numberOfArgumentsToRemove += 1
 
-        // If the argument is preceded by -Xswiftc or -Xcxx, we need to remove the `-X` flag as well.
+        // If the argument is preceded by -Xlanguagec or -Xcxx, we need to remove the `-X` flag as well.
         if requestInfo.compilerArgs[safe: argumentIndexToRemove - numberOfArgumentsToRemove]?.hasPrefix("-X") ?? false {
           numberOfArgumentsToRemove += 1
         }

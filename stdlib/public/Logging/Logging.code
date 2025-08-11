@@ -41,7 +41,7 @@ import WASILibc
 ///
 /// The most basic usage of a `Logger` is
 ///
-/// ```swift
+/// ```language
 /// logger.info("Hello World!")
 /// ```
 public struct Logger {

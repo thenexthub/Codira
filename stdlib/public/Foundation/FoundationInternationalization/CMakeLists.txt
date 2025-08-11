@@ -49,7 +49,7 @@ if(NOT BUILD_SHARED_LIBS)
     target_compile_options(FoundationInternationalization PRIVATE
         "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -public-autolink-library -Xfrontend _FoundationICU>")
     target_compile_options(FoundationEssentials PRIVATE
-        "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -public-autolink-library -Xfrontend $<$<PLATFORM_ID:Windows>:${CMAKE_STATIC_LIBRARY_PREFIX_Swift}>swiftSynchronization>")
+        "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -public-autolink-library -Xfrontend $<$<PLATFORM_ID:Windows>:${CMAKE_STATIC_LIBRARY_PREFIX_Swift}>languageSynchronization>")
 endif()
 
 set_target_properties(FoundationInternationalization PROPERTIES
@@ -57,4 +57,4 @@ set_target_properties(FoundationInternationalization PROPERTIES
     INSTALL_REMOVE_ENVIRONMENT_RPATH ON)
 
 set_property(GLOBAL APPEND PROPERTY SWIFT_FOUNDATION_EXPORTS FoundationInternationalization)
-_swift_foundation_install_target(FoundationInternationalization)
+_language_foundation_install_target(FoundationInternationalization)

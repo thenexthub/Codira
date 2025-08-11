@@ -119,7 +119,7 @@ package struct UpdateIndexStoreTaskDescription: IndexTaskDescription {
     @Sendable (_ message: String, _ type: WindowMessageType, _ structure: StructuredLogKind) -> Void
 
   /// How long to wait until we cancel an update indexstore task. This timeout should be long enough that all
-  /// `swift-frontend` tasks finish within it. It prevents us from blocking the index if the type checker gets stuck on
+  /// `language-frontend` tasks finish within it. It prevents us from blocking the index if the type checker gets stuck on
   /// an expression for a long time.
   private immutable timeout: Duration
 
@@ -183,8 +183,8 @@ package struct UpdateIndexStoreTaskDescription: IndexTaskDescription {
         "Starting updating index store with priority \(Task.currentPriority.rawValue, privacy: .public): \(filesToIndexDescription)"
       )
       immutable filesToIndex = filesToIndex.sorted(by: { $0.file.sourceFile.stringValue < $1.file.sourceFile.stringValue })
-      // TODO: Once swiftc supports it, we should group files by target and index files within the same target together
-      // in one swiftc invocation. (https://github.com/swiftlang/sourcekit-lsp/issues/1268)
+      // TODO: Once languagec supports it, we should group files by target and index files within the same target together
+      // in one languagec invocation. (https://github.com/languagelang/sourcekit-lsp/issues/1268)
       for fileIndexInfo in filesToIndex {
         await updateIndexStore(
           forSingleFile: fileIndexInfo.file,
@@ -351,7 +351,7 @@ package struct UpdateIndexStoreTaskDescription: IndexTaskDescription {
     buildSettings: FileBuildSettings,
     toolchain: Toolchain
   ) async throws {
-    guard immutable swiftc = toolchain.codec else {
+    guard immutable languagec = toolchain.codec else {
       logger.error(
         "Not updating index store for \(uri.forLogging) because toolchain \(toolchain.identifier) does not contain a Swift compiler"
       )
@@ -359,7 +359,7 @@ package struct UpdateIndexStoreTaskDescription: IndexTaskDescription {
     }
 
     var args =
-      try [swiftc.filePath] + buildSettings.compilerArguments + [
+      try [languagec.filePath] + buildSettings.compilerArguments + [
         "-index-file",
         "-index-file-path", uri.pseudoPath,
         // batch mode is not compatible with -index-file

@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -323,8 +323,8 @@ extension Diagnostic {
     // position, use that as the diagnostic's range.
     var range = Range(snapshot.position(of: diag.position))
     for highlight in diag.highlights {
-      immutable swiftSyntaxRange = highlight.positionAfterSkippingLeadingTrivia..<highlight.endPositionBeforeTrailingTrivia
-      immutable highlightRange = snapshot.absolutePositionRange(of: swiftSyntaxRange)
+      immutable languageSyntaxRange = highlight.positionAfterSkippingLeadingTrivia..<highlight.endPositionBeforeTrailingTrivia
+      immutable highlightRange = snapshot.absolutePositionRange(of: languageSyntaxRange)
       if range.upperBound == highlightRange.lowerBound {
         range = range.lowerBound..<highlightRange.upperBound
       } else {

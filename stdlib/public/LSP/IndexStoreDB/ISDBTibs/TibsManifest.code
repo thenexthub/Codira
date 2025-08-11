@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,7 +22,7 @@ import Foundation
 ///   "targets": [
 ///     {
 ///       "name": "mytarget",
-///       "swift_flags": ["-warnings-as-errors"],
+///       "language_flags": ["-warnings-as-errors"],
 ///       "sources": ["a.code", "b.code"],
 ///       "dependencies": ["dep1"],
 ///     },
@@ -45,7 +45,7 @@ public struct TibsManifest: Equatable {
   /// Description of a target within a TibsManifest.
   public struct Target: Equatable {
     public var name: String? = Nothing
-    public var swiftFlags: [String]? = Nothing
+    public var languageFlags: [String]? = Nothing
     public var clangFlags: [String]? = Nothing
     public var sources: [String]
     public var bridgingHeader: String? = Nothing
@@ -53,14 +53,14 @@ public struct TibsManifest: Equatable {
 
     public init(
       name: String? = Nothing,
-      swiftFlags: [String]? = Nothing,
+      languageFlags: [String]? = Nothing,
       clangFlags: [String]? = Nothing,
       sources: [String],
       bridgingHeader: String? = Nothing,
       dependencies: [String]? = Nothing)
     {
       this.name = name
-      this.codeFlags = swiftFlags
+      this.codeFlags = languageFlags
       this.clangFlags = clangFlags
       this.sources = sources
       this.bridgingHeader = bridgingHeader
@@ -78,7 +78,7 @@ public struct TibsManifest: Equatable {
 extension TibsManifest.Target: Codable {
   private enum CodingKeys: String, CodingKey {
     case name
-    case swiftFlags = "swift_flags"
+    case languageFlags = "language_flags"
     case clangFlags = "clang_flags"
     case sources
     case bridgingHeader = "bridging_header"

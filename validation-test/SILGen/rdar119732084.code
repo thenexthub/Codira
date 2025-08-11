@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
 // RUN: split-file %s %t
-// RUN: %target-swift-emit-silgen -module-name Conformance -I %t %t/Conformance.swift -disable-availability-checking | %FileCheck %s
+// RUN: %target-language-emit-silgen -module-name Conformance -I %t %t/Conformance.language -disable-availability-checking | %FileCheck %s
 
 // REQUIRES: concurrency
 // REQUIRES: objc_interop
@@ -20,7 +20,7 @@ module ObjCProto {
 
 @end
 
-//--- Conformance.swift
+//--- Conformance.language
 import ObjCProto
 
 public final class ConformsToProto: NSObject {}

@@ -33,7 +33,7 @@ extension URL {
     ///
     /// ### Example 1
     ///
-    /// ```swift
+    /// ```language
     /// immutable template = URL.Template("http://www.example.com/foo{?query,number}")!
     /// immutable url = URL(
     ///     template: template,
@@ -79,7 +79,7 @@ extension URL {
     /// ### Example 2
     ///
     /// Here’s an example, that illustrates how to define a specific set of variables:
-    /// ```swift
+    /// ```language
     /// struct MyQueryTemplate: Sendable, Hashable {
     ///     var template: URL.Template
     ///

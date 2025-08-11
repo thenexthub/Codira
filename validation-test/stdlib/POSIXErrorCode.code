@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swift -strict-concurrency=complete
+// RUN: %target-run-simple-language -strict-concurrency=complete
 // REQUIRES: executable_test
 // REQUIRES: VENDOR=apple || OS=linux-androideabi || OS=linux-android || OS=linux-gnu || OS=openbsd || OS=freebsd
 // UNSUPPORTED: freestanding

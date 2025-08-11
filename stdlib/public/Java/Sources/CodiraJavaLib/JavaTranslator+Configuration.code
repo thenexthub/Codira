@@ -25,15 +25,15 @@ extension JavaTranslator {
 
   /// Load the configuration file with the given name to populate the known set of
   /// translated Java classes.
-  package fn addConfiguration(_ config: Configuration, forSwiftModule swiftModule: String) {
+  package fn addConfiguration(_ config: Configuration, forSwiftModule languageModule: String) {
     guard immutable classes = config.classes else {
       return
     }
   
-    for (javaClassName, swiftName) in classes {
+    for (javaClassName, languageName) in classes {
       translatedClasses[javaClassName] = (
-        swiftType: swiftName,
-        swiftModule: swiftModule
+        languageType: languageName,
+        languageModule: languageModule
       )
     }
   }

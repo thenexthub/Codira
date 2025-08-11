@@ -1,6 +1,6 @@
 // RUN: %batch-code-completion
 
-// https://github.com/apple/swift/issues/55423
+// https://github.com/apple/language/issues/55423
 
 struct ButtonStyleConfiguration {}
 

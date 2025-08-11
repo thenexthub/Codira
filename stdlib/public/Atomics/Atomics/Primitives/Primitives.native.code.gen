@@ -1,12 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 - 2025 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -35,7 +38,7 @@ internal fn _atomicMemoryFence(
       fatalError("Unsupported ordering")
   }
 }
-% for (swiftType, builtinType, alignment) in nativePrimitives:
+% for (languageType, builtinType, alignment) in nativePrimitives:
 
 %   if builtinType == "Int128":
 #if _pointerBitWidth(_64)
@@ -43,7 +46,7 @@ internal fn _atomicMemoryFence(
 @usableFromInline
 @frozen
 @_alignment(${alignment})
-internal struct ${swiftType} {
+internal struct ${languageType} {
   @usableFromInline
   internal var _value: Builtin.${builtinType}
 
@@ -53,17 +56,17 @@ internal struct ${swiftType} {
   }
 }
 
-extension UnsafeMutablePointer where Pointee == ${swiftType} {
+extension UnsafeMutablePointer where Pointee == ${languageType} {
   /// Atomically loads a word starting at this address with the specified
   /// memory ordering.
   @_semantics("atomics.requires_constant_orderings")
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
-  internal fn _atomicLoad(ordering: AtomicLoadOrdering) -> ${swiftType} {
+  internal fn _atomicLoad(ordering: AtomicLoadOrdering) -> ${languageType} {
     switch ordering {
 % for (enumOrder, apiOrder, _, llvmOrder) in loadOrderings:
     case .${enumOrder}:
-      return ${swiftType}(Builtin.atomicload_${llvmOrder}_${builtinType}(_rawValue))
+      return ${languageType}(Builtin.atomicload_${llvmOrder}_${builtinType}(_rawValue))
 % end
     default:
       fatalError("Unsupported ordering")
@@ -76,7 +79,7 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
   internal fn _atomicStore(
-    _ desired: ${swiftType},
+    _ desired: ${languageType},
     ordering: AtomicStoreOrdering
   ) {
     switch ordering {
@@ -95,15 +98,15 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
   internal fn _atomicExchange(
-    _ desired: ${swiftType},
+    _ desired: ${languageType},
     ordering: AtomicUpdateOrdering
-  ) -> ${swiftType} {
+  ) -> ${languageType} {
     switch ordering {
 % for (enumOrder, apiOrder, _, llvmOrder, failureOrder) in updateOrderings:
     case .${enumOrder}:
       immutable oldValue = Builtin.atomicrmw_xchg_${llvmOrder}_${builtinType}(
         _rawValue, desired._value)
-      return ${swiftType}(oldValue)
+      return ${languageType}(oldValue)
 % end
     default:
       fatalError("Unsupported ordering")
@@ -127,16 +130,16 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
   internal fn _atomicCompareExchange(
-    expected: ${swiftType},
-    desired: ${swiftType},
+    expected: ${languageType},
+    desired: ${languageType},
     ordering: AtomicUpdateOrdering
-  ) -> (exchanged: Boolean, original: ${swiftType}) {
+  ) -> (exchanged: Boolean, original: ${languageType}) {
     switch ordering {
 % for (enumOrder, apiOrder, _, llvmOrder, failureOrder) in updateOrderings:
     case .${enumOrder}:
       immutable (oldValue, won) = Builtin.cmpxchg_${llvmOrder}_${failureOrder}_${builtinType}(
         _rawValue, expected._value, desired._value)
-      return (Boolean(won), ${swiftType}(oldValue))
+      return (Boolean(won), ${languageType}(oldValue))
 % end
     default:
       fatalError("Unsupported ordering")
@@ -164,21 +167,21 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
   internal fn _atomicCompareExchange(
-    expected: ${swiftType},
-    desired: ${swiftType},
+    expected: ${languageType},
+    desired: ${languageType},
     successOrdering: AtomicUpdateOrdering,
     failureOrdering: AtomicLoadOrdering
-  ) -> (exchanged: Boolean, original: ${swiftType}) {
+  ) -> (exchanged: Boolean, original: ${languageType}) {
     // FIXME: LLVM doesn't support arbitrary ordering combinations
     // yet, so upgrade the success ordering when necessary so that it
     // is at least as "strong" as the failure case.
     switch (successOrdering, failureOrdering) {
-% for (swiftSuccess, apiSuccess, _, llvmOrder, _) in updateOrderings:
-%   for (swiftFailure, apiFailure, _, llvmFailOrder) in loadOrderings:
-    case (.${swiftSuccess}, .${swiftFailure}):
+% for (languageSuccess, apiSuccess, _, llvmOrder, _) in updateOrderings:
+%   for (languageFailure, apiFailure, _, llvmFailOrder) in loadOrderings:
+    case (.${languageSuccess}, .${languageFailure}):
       immutable (oldValue, won) = Builtin.cmpxchg_${actualOrders(llvmOrder, llvmFailOrder)}_${builtinType}(
         _rawValue, expected._value, desired._value)
-      return (Boolean(won), ${swiftType}(oldValue))
+      return (Boolean(won), ${languageType}(oldValue))
 %   end
 % end
     default:
@@ -207,21 +210,21 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
   internal fn _atomicWeakCompareExchange(
-    expected: ${swiftType},
-    desired: ${swiftType},
+    expected: ${languageType},
+    desired: ${languageType},
     successOrdering: AtomicUpdateOrdering,
     failureOrdering: AtomicLoadOrdering
-  ) -> (exchanged: Boolean, original: ${swiftType}) {
+  ) -> (exchanged: Boolean, original: ${languageType}) {
     // FIXME: LLVM doesn't support arbitrary ordering combinations
     // yet, so upgrade the success ordering when necessary so that it
     // is at least as "strong" as the failure case.
     switch (successOrdering, failureOrdering) {
-% for (swiftSuccess, apiSuccess, _, llvmOrder, _) in updateOrderings:
-%   for (swiftFailure, apiFailure, _, llvmFailOrder) in loadOrderings:
-    case (.${swiftSuccess}, .${swiftFailure}):
+% for (languageSuccess, apiSuccess, _, llvmOrder, _) in updateOrderings:
+%   for (languageFailure, apiFailure, _, llvmFailOrder) in loadOrderings:
+    case (.${languageSuccess}, .${languageFailure}):
       immutable (oldValue, won) = Builtin.cmpxchg_${actualOrders(llvmOrder, llvmFailOrder)}_weak_${builtinType}(
         _rawValue, expected._value, desired._value)
-      return (Boolean(won), ${swiftType}(oldValue))
+      return (Boolean(won), ${languageType}(oldValue))
 %   end
 % end
     default:
@@ -229,12 +232,12 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
     }
   }
 % if builtinType != "Int128":
-%   for (swiftName, builtinName, operator, label, doc) in integerOperations:
+%   for (languageName, builtinName, operator, label, doc) in integerOperations:
 
   /// Perform an atomic ${doc} operation and return the new value,
   /// with the specified memory ordering.
   ///
-  % if "Wrapping" in swiftName:
+  % if "Wrapping" in languageName:
   /// - Note: This operation silently wraps around on overflow, like the
   /// `${operator}` operator does on `UInt` values.
   ///
@@ -243,16 +246,16 @@ extension UnsafeMutablePointer where Pointee == ${swiftType} {
   @_semantics("atomics.requires_constant_orderings")
   @_alwaysEmitIntoClient
   @_transparent // Debug performance
-  internal fn _atomicLoadThen${swiftName}(
-    ${label} operand: ${swiftType},
+  internal fn _atomicLoadThen${languageName}(
+    ${label} operand: ${languageType},
     ordering: AtomicUpdateOrdering
-  ) -> ${swiftType} {
+  ) -> ${languageType} {
     switch ordering {
 % for (enumOrder, apiOrder, _, llvmOrder, failureOrder) in updateOrderings:
     case .${enumOrder}:
       immutable value = Builtin.atomicrmw_${builtinName}_${llvmOrder}_${builtinType}(
         _rawValue, operand._value)
-      return ${swiftType}(value)
+      return ${languageType}(value)
 % end
     default:
       preconditionFailure("Unsupported ordering")

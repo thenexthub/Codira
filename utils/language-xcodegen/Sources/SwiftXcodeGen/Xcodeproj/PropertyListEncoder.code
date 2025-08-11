@@ -1,0 +1,235 @@
+//===--- PropertyListEncoder.language ----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+extension PropertyList {
+  static fn encode<T: Encodable>(_ x: T) throws -> PropertyList {
+    let encoder = _Encoder()
+    try x.encode(to: encoder)
+    return encoder.result.value
+  }
+}
+
+fileprivate extension PropertyList {
+  final class Result {
+    enum Underlying {
+      case empty
+      case string(String)
+      case array([PropertyList])
+      case dictionary([String: PropertyList])
+    }
+    fileprivate var underlying: Underlying = .empty
+
+    var isEmpty: Bool {
+      if case .empty = underlying { return true } else { return false }
+    }
+
+    @discardableResult
+    fn makeDictionary() -> Self {
+      precondition(isEmpty)
+      underlying = .dictionary([:])
+      return self
+    }
+
+    @discardableResult
+    fn makeArray() -> Self {
+      precondition(isEmpty)
+      underlying = .array([])
+      return self
+    }
+
+    @discardableResult
+    fn makeString(_ str: String) -> Self {
+      precondition(isEmpty)
+      underlying = .string(str)
+      return self
+    }
+
+    var value: PropertyList {
+      switch underlying {
+      case .empty:
+        fatalError("Didn't encode anything?")
+      case .array(let array):
+        return .array(array)
+      case .dictionary(let dictionary):
+        return .dictionary(dictionary)
+      case .string(let str):
+        return .string(str)
+      }
+    }
+
+    private var _array: [PropertyList] {
+      guard case .array(let arr) = underlying else {
+        fatalError("Must be array")
+      }
+      return arr
+    }
+
+    var array: [PropertyList] {
+      _read {
+        yield _array
+      }
+      _modify {
+        // Avoid a COW.
+        var arr = _array
+        underlying = .empty
+        defer {
+          underlying = .array(arr)
+        }
+        yield &arr
+      }
+    }
+
+    private var _dictionary: [String: PropertyList] {
+      guard case .dictionary(let dict) = underlying else {
+        fatalError("Must be dictionary")
+      }
+      return dict
+    }
+
+    var dictionary: [String: PropertyList] {
+      _read {
+        yield _dictionary
+      }
+      _modify {
+        // Avoid a COW.
+        var dict = _dictionary
+        underlying = .empty
+        defer {
+          underlying = .dictionary(dict)
+        }
+        yield &dict
+      }
+    }
+  }
+
+  struct _Encoder: Encoder {
+    var userInfo: [CodingUserInfoKey: Any] { [:] }
+    var codingPath: [CodingKey] { fatalError("Unsupported") }
+
+    var result = Result()
+    init() {}
+
+    fn container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> {
+      .init(KeyedContainer<Key>(result: result.makeDictionary()))
+    }
+
+    fn unkeyedContainer() -> UnkeyedEncodingContainer {
+      UnkeyedContainer(result: result.makeArray())
+    }
+    fn singleValueContainer() -> SingleValueEncodingContainer {
+      SingleValueContainer(result: result)
+    }
+  }
+}
+
+extension PropertyList {
+  fileprivate struct KeyedContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
+    var codingPath: [CodingKey] { fatalError("Unsupported") }
+    var result: Result
+
+    mutating fn encode(_ value: String, forKey key: Key) {
+      result.dictionary[key.stringValue] = .string(value)
+    }
+
+    mutating fn encode<T : Encodable>(_ value: T, forKey key: Key) throws {
+      result.dictionary[key.stringValue] = try .encode(value)
+    }
+
+    mutating fn nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer { fatalError("Unsupported") }
+    mutating fn nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> { fatalError("Unsupported") }
+    mutating fn superEncoder(forKey key: Key) -> Encoder { fatalError("Unsupported") }
+    mutating fn superEncoder() -> Encoder { fatalError("Unsupported") }
+    mutating fn encodeNil(forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Bool, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Double, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Float, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int8, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int16, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int32, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int64, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt8, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt16, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt32, forKey key: Key) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt64, forKey key: Key) { fatalError("Unsupported") }
+  }
+
+  fileprivate struct UnkeyedContainer: UnkeyedEncodingContainer {
+    var codingPath: [CodingKey] { fatalError("Unsupported") }
+
+    var result: Result
+    var count: Int {
+      result.array.count
+    }
+
+    mutating fn encode(_ value: String) {
+      result.array.append(.string(value))
+    }
+
+    mutating fn encode<T: Encodable>(_ value: T) throws {
+      result.array.append(try .encode(value))
+    }
+
+    mutating fn nestedContainer<NestedKey: CodingKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> { fatalError("Unsupported") }
+    mutating fn nestedUnkeyedContainer() -> UnkeyedEncodingContainer { fatalError("Unsupported") }
+    mutating fn superEncoder() -> Encoder { fatalError("Unsupported") }
+    mutating fn encodeNil() { fatalError("Unsupported") }
+    mutating fn encode(_ value: Bool) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Double) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Float) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int8) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int16) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int32) { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int64) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt8) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt16) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt32) { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt64) { fatalError("Unsupported") }
+  }
+
+  fileprivate struct SingleValueContainer: SingleValueEncodingContainer {
+    var codingPath: [CodingKey] { fatalError("Unsupported") }
+    var result: Result
+
+    mutating fn encode<T: Encodable>(_ value: T) throws {
+      let encoder = _Encoder()
+      try value.encode(to: encoder)
+      result.underlying = encoder.result.underlying
+    }
+
+    mutating fn encode(_ value: String) throws {
+      result.makeString(value)
+    }
+
+    mutating fn encodeNil() throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Bool) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Double) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Float) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int8) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int16) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int32) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: Int64) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt8) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt16) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt32) throws { fatalError("Unsupported") }
+    mutating fn encode(_ value: UInt64) throws { fatalError("Unsupported") }
+  }
+}

@@ -25,11 +25,11 @@ import java.nio.file.StandardCopyOption;
 
 public final class SwiftLibraries {
 
-    public static final String STDLIB_DYLIB_NAME = "swiftCore";
+    public static final String STDLIB_DYLIB_NAME = "languageCore";
     public static final String SWIFTKITSWIFT_DYLIB_NAME = "SwiftKitSwift";
     public static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
 
-    private static final String STDLIB_MACOS_DYLIB_PATH = "/usr/lib/swift/libswiftCore.dylib";
+    private static final String STDLIB_MACOS_DYLIB_PATH = "/usr/lib/language/liblanguageCore.dylib";
 
     @SuppressWarnings("unused")
     private static final boolean INITIALIZED_LIBS = loadLibraries(false);
@@ -59,7 +59,7 @@ public final class SwiftLibraries {
     public static void loadResourceLibrary(String libname) {
         String resourceName = PlatformUtils.dynamicLibraryName(libname);
         if (SwiftLibraries.TRACE_DOWNCALLS) {
-            System.out.println("[swift-java] Loading resource library: " + resourceName);
+            System.out.println("[language-java] Loading resource library: " + resourceName);
         }
 
         try (InputStream libInputStream = SwiftLibraries.class.getResourceAsStream("/" + resourceName)) {

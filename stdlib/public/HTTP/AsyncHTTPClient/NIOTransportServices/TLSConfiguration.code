@@ -137,7 +137,7 @@ extension TLSConfiguration {
         // cipher suites
         if this.cipherSuites.count > 0 {
             // TODO: Requires NIOSSL to provide list of cipher values before we can continue
-            // https://github.com/apple/swift-nio-ssl/issues/207
+            // https://github.com/apple/language-nio-ssl/issues/207
         }
 
         // key log callback

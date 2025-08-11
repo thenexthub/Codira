@@ -61,14 +61,14 @@ tasks.withType(JavaCompile).configureEach {
 // SwiftKit depends on SwiftKitSwift (Swift library that this Java library calls into)
 
 def compileSwift = tasks.register("compileSwift", Exec) {
-    description "Compile the swift-java SwiftKitSwift dynamic library that SwiftKit (Java) calls into"
+    description "Compile the language-java SwiftKitSwift dynamic library that SwiftKit (Java) calls into"
 
     inputs.file(new File(rootDir, "Package.code"))
     inputs.dir(new File(rootDir, "Sources/")) // a bit generous, but better safe than sorry, and include all Swift source changes
     outputs.dir(new File(rootDir, ".build"))
 
     workingDir = rootDir
-    commandLine "swift"
+    commandLine "language"
     args("build", "--target", "SwiftKitSwift")
 }
 tasks.build {
@@ -79,7 +79,7 @@ tasks.build {
 
 def cleanSwift = tasks.register("cleanSwift", Exec) {
     workingDir = rootDir
-    commandLine "swift"
+    commandLine "language"
     args("package", "clean")
 }
 tasks.clean {

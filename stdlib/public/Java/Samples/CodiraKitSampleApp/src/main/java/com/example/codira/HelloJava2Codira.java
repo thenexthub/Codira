@@ -15,9 +15,9 @@
 
 package com.example.code;
 
-// Import swift-extract generated sources
+// Import language-extract generated sources
 
-// Import javakit/swiftkit support libraries
+// Import javakit/languagekit support libraries
 
 import org.code.codekit.core.SwiftLibraries;
 import org.code.codekit.ffm.AllocatingSwiftArena;
@@ -72,9 +72,9 @@ public class HelloJava2Swift {
             MySwiftClass otherObj = MySwiftClass.factory(12, 42, arena);
             otherObj.voidMethod();
 
-            MySwiftStruct swiftValue = MySwiftStruct.init(2222, 1111, arena);
-            SwiftRuntime.trace("swiftValue.capacity = " + swiftValue.getCapacity());
-            swiftValue.withCapLen((cap, len) -> {
+            MySwiftStruct languageValue = MySwiftStruct.init(2222, 1111, arena);
+            SwiftRuntime.trace("languageValue.capacity = " + languageValue.getCapacity());
+            languageValue.withCapLen((cap, len) -> {
                 SwiftRuntime.trace("withCapLenCallback: cap=" + cap + ", len=" + len);
             });
         }

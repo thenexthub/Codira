@@ -1,9 +1,9 @@
-// RUN: %target-swift-frontend %s -typecheck
+// RUN: %target-language-frontend %s -typecheck
 
-// https://github.com/apple/swift/issues/45240
+// https://github.com/apple/language/issues/45240
 
 //
-//  main.swift
+//  main.language
 //  TypeBasics
 //
 //  Created by David Scrève on 16/11/2014.

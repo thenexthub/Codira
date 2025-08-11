@@ -4,9 +4,9 @@
 #include <vector>
 
 #define private public
-#include "language/Basic/PriorityQueue.h"
+#include "swift/Basic/PriorityQueue.h"
 
-using namespace language;
+using namespace swift;
 
 namespace {
 

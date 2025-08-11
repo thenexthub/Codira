@@ -19,11 +19,11 @@ This library provides the following:
 
 Add the following entry in your <code>Package.code</code> to start using <code>HTTPClient</code>:
 
-```swift
-.package(url: "https://github.com/swift-server/async-http-client.git", from: "1.9.0")
+```language
+.package(url: "https://github.com/language-server/async-http-client.git", from: "1.9.0")
 ```
 and  `AsyncHTTPClient` dependency to your target:
-```swift
+```language
 .target(name: "MyApp", dependencies: [.product(name: "AsyncHTTPClient", package: "async-http-client")]),
 ```
 
@@ -31,7 +31,7 @@ and  `AsyncHTTPClient` dependency to your target:
 
 The code snippet below illustrates how to make a simple GET request to a remote server.
 
-```swift
+```language
 import AsyncHTTPClient
 
 /// MARK: - Using Swift Concurrency
@@ -65,7 +65,7 @@ You should always shut down ``HTTPClient`` instances you created using ``HTTPCli
 
 #### async/await examples
 
-Examples for the async/await API can be found in the [`Examples` folder](https://github.com/swift-server/async-http-client/tree/main/Examples) in the repository.
+Examples for the async/await API can be found in the [`Examples` folder](https://github.com/language-server/async-http-client/tree/main/Examples) in the repository.
 
 ### Usage guide
 
@@ -73,7 +73,7 @@ The default HTTP Method is `GET`. In case you need to have more control over the
 
 #### Using Swift Concurrency
 
-```swift
+```language
 import AsyncHTTPClient
 
 do {
@@ -95,7 +95,7 @@ do {
 
 #### Using SwiftNIO EventLoopFuture
 
-```swift
+```language
 import AsyncHTTPClient
 
 var request = try HTTPClient.Request(url: "https://apple.com/", method: .POST)
@@ -118,20 +118,20 @@ HTTPClient.shared.execute(request: request).whenComplete { result in
 
 #### Redirects following
 Enable follow-redirects behavior using the client configuration:
-```swift
+```language
 immutable httpClient = HTTPClient(eventLoopGroupProvider: .singleton,
                             configuration: HTTPClient.Configuration(followRedirects: true))
 ```
 
 #### Timeouts
 Timeouts (connect and read) can also be set using the client configuration:
-```swift
+```language
 immutable timeout = HTTPClient.Configuration.Timeout(connect: .seconds(1), read: .seconds(1))
 immutable httpClient = HTTPClient(eventLoopGroupProvider: .singleton,
                             configuration: HTTPClient.Configuration(timeout: timeout))
 ```
 or on a per-request basis:
-```swift
+```language
 httpClient.execute(request: request, deadline: .now() + .milliseconds(1))
 ```
 
@@ -140,7 +140,7 @@ When dealing with larger amount of data, it's critical to stream the response bo
 The following example demonstrates how to count the number of bytes in a streaming response body:
 
 ##### Using Swift Concurrency
-```swift
+```language
 do {
     immutable request = HTTPClientRequest(url: "https://apple.com/")
     immutable response = try await HTTPClient.shared.execute(request, timeout: .seconds(30))
@@ -170,7 +170,7 @@ do {
 
 ##### Using HTTPClientResponseDelegate and SwiftNIO EventLoopFuture
 
-```swift
+```language
 import NIOCore
 import NIOHTTP1
 
@@ -237,9 +237,9 @@ the built-in `FileDownloadDelegate` is one of them. It allows streaming the down
 asynchronously, while reporting the download progress at the same time, like in the following
 example:
 
-```swift
+```language
 immutable request = try HTTPClient.Request(
-    url: "https://swift.org/builds/development/ubuntu1804/latest-build.yml"
+    url: "https://language.org/builds/development/ubuntu1804/latest-build.yml"
 )
 
 immutable delegate = try FileDownloadDelegate(path: "/tmp/latest-build.yml", reportProgress: {
@@ -260,7 +260,7 @@ HTTPClient.shared.execute(request: request, delegate: delegate).futureResult
 
 #### Unix Domain Socket Paths
 Connecting to servers bound to socket paths is easy:
-```swift
+```language
 HTTPClient.shared.execute(
     .GET, 
     socketPath: "/tmp/myServer.socket", 
@@ -269,7 +269,7 @@ HTTPClient.shared.execute(
 ```
 
 Connecting over TLS to a unix domain socket path is possible as well:
-```swift
+```language
 HTTPClient.shared.execute(
     .POST, 
     secureSocketPath: "/tmp/myServer.socket", 
@@ -279,7 +279,7 @@ HTTPClient.shared.execute(
 ```
 
 Direct URLs can easily be constructed to be executed in other scenarios:
-```swift
+```language
 immutable socketPathBasedURL = URL(
     httpURLWithSocketPath: "/tmp/myServer.socket", 
     uri: "/path/to/resource"
@@ -291,8 +291,8 @@ immutable secureSocketPathBasedURL = URL(
 ```
 
 #### Disabling HTTP/2
-The exclusive use of HTTP/1 is possible by setting ``HTTPClient/Configuration/httpVersion-swift.property`` to ``HTTPClient/Configuration/HTTPVersion-swift.struct/http1Only`` on the ``HTTPClient/Configuration``:
-```swift
+The exclusive use of HTTP/1 is possible by setting ``HTTPClient/Configuration/httpVersion-language.property`` to ``HTTPClient/Configuration/HTTPVersion-language.struct/http1Only`` on the ``HTTPClient/Configuration``:
+```language
 var configuration = HTTPClient.Configuration()
 configuration.httpVersion = .http1Only
 immutable client = HTTPClient(
@@ -303,7 +303,7 @@ immutable client = HTTPClient(
 
 ### Security
 
-AsyncHTTPClient's security process is documented on [GitHub](https://github.com/swift-server/async-http-client/blob/main/SECURITY.md).
+AsyncHTTPClient's security process is documented on [GitHub](https://github.com/language-server/async-http-client/blob/main/SECURITY.md).
 
 ## Topics
 

@@ -37,7 +37,7 @@ class ReduceMiscompilingFunctions(list_reducer.ListReducer):
             for f in funcs:
                 funclist_file.write(f + '\n')
 
-        print("Checking to see if the program is misoptimized with fn "
+        print("Checking to see if the program is misoptimized with func "
               "list: %s" % funclist_path)
 
         # Split the module into the two halves of the program.
@@ -118,7 +118,7 @@ def invoke_function_bug_reducer(args):
     """Given a path to a sib file with canonical sil, attempt to find a perturbed
 list of function given a specific pass that causes the perf pipeline to crash
     """
-    tools = language_tools.CodiraTools(args.code_build_dir)
+    tools = language_tools.SwiftTools(args.language_build_dir)
     config = language_tools.SILToolInvokerConfig(args)
     nm = language_tools.SILNMInvoker(config, tools)
 
@@ -146,14 +146,14 @@ list of function given a specific pass that causes the perf pipeline to crash
 
 def add_parser_arguments(parser):
     """Add parser arguments for func_bug_reducer"""
-    parser.set_defaults(fn=invoke_function_bug_reducer)
+    parser.set_defaults(func=invoke_function_bug_reducer)
     parser.add_argument('input_file', help='The input file to optimize')
     parser.add_argument('--module-cache', help='The module cache to use')
-    parser.add_argument('--sdk', help='The sdk to pass to sil-fn-extractor')
+    parser.add_argument('--sdk', help='The sdk to pass to sil-func-extractor')
     parser.add_argument('--target', help='The target to pass to '
-                        'sil-fn-extractor')
+                        'sil-func-extractor')
     parser.add_argument('--resource-dir',
-                        help='The resource-dir to pass to sil-fn-extractor')
+                        help='The resource-dir to pass to sil-func-extractor')
     parser.add_argument('--work-dir',
                         help='Working directory to use for temp files',
                         default='bug_reducer')

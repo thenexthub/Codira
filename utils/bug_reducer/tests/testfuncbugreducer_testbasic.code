@@ -1,5 +1,5 @@
 
-import Codira
+import Swift
 
 @inline(never)
 public fn foo0() {

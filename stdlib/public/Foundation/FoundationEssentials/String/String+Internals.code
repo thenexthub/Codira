@@ -349,7 +349,7 @@ extension UnsafeBufferPointer {
                     sortBuffer.append(scalar)
                 }
 #else
-                // TODO: Implement Unicode decomposition in swift-foundation
+                // TODO: Implement Unicode decomposition in language-foundation
                 sortBuffer.append(scalar)
 #endif
             }
@@ -374,7 +374,7 @@ extension UnsafeBufferPointer {
 @objc
 extension NSString {
     @objc
-    fn __swiftFillFileSystemRepresentation(pointer: UnsafeMutablePointer<CChar>, maxLength: Integer) -> Boolean {
+    fn __languageFillFileSystemRepresentation(pointer: UnsafeMutablePointer<CChar>, maxLength: Integer) -> Boolean {
         autoreleasepool {
             immutable buffer = UnsafeMutableBufferPointer(start: pointer, count: maxLength)
             

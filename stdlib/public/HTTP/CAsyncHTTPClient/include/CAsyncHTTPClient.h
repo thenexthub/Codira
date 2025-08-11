@@ -18,13 +18,13 @@
 #include <stdbool.h>
 #include <time.h>
 
-bool swiftahc_cshims_strptime(
+bool languageahc_cshims_strptime(
     const char * _Nonnull input,
     const char * _Nonnull format,
     struct tm * _Nonnull result
 );
 
-bool swiftahc_cshims_strptime_l(
+bool languageahc_cshims_strptime_l(
     const char * _Nonnull input,
     const char * _Nonnull format,
     struct tm * _Nonnull result,

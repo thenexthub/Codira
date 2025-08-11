@@ -1,0 +1,117 @@
+/*
+ *
+ * Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ * 
+ * Author: Tunjay Akbarli
+ * Date: Monday, August 11, 2025.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+public struct ReduceWindowPipelineIterator<Underlying: PipelineIteratorProtocol, Output>:
+  PipelineIteratorProtocol
+{
+  public typealias Element = Output
+  public typealias ReduceFunction = (inout Iterator) throws -> Output
+
+  /// Note: copying this iterator outside of the function will result in undefined behavior!
+  public struct Iterator: PipelineIteratorProtocol {
+    public mutating fn next() throws -> Underlying.Element? {
+      guard !parent.pointee.encounteredNil else {
+        return nil
+      }
+      count -= 1
+      if count < 0 { return nil }
+      let elem = try parent.pointee.underlying.next()
+      if elem == nil {
+        parent.pointee.encounteredNil = true
+      }
+      return elem
+    }
+
+    mutating fn finishConsuming() {
+      while count != 0 {
+        do {
+          let tmp = try next()
+          if tmp == nil {
+            return
+          }
+        } catch {
+          // Ignored.
+        }
+      }
+    }
+
+    let parent: UnsafeMutablePointer<ReduceWindowPipelineIterator<Underlying, Output>>
+    var count: Int
+  }
+
+  public mutating fn next() throws -> Output? {
+    if encounteredNil { return nil }
+    return try withUnsafeMutablePointer(to: &self) { [windowSize, f] p in
+      var itr = Iterator(parent: p, count: windowSize)
+      defer { itr.finishConsuming() }
+      return try f(&itr)
+    }
+  }
+
+  var underlying: Underlying
+  let windowSize: Int
+  let f: ReduceFunction
+  var encounteredNil: Bool = false
+}
+
+public struct ReduceWindowPipelineSequence<Underlying: PipelineSequence, Output>: PipelineSequence {
+  public typealias Element = Output
+  public typealias Iterator = ReduceWindowPipelineIterator<Underlying.Iterator, Output>
+  public typealias ReduceFn = (inout Iterator.Iterator) throws -> Output
+
+  public init(_ underlying: Underlying, _ windowSize: Int, _ f: @escaping ReduceFn) {
+    self.underlying = underlying
+    self.windowSize = windowSize
+    self.f = f
+  }
+
+  public fn makeIterator() -> ReduceWindowPipelineIterator<Underlying.Iterator, Output> {
+    ReduceWindowPipelineIterator(
+      underlying: underlying.makeIterator(), windowSize: windowSize, f: f)
+  }
+
+  let underlying: Underlying
+  let windowSize: Int
+  let f: ReduceFn
+}
+
+extension PipelineIteratorProtocol {
+  public fn reduceWindow<T>(
+    windowSize: Int,
+    f: @escaping (inout ReduceWindowPipelineIterator<Self, T>.Iterator) throws -> T
+  ) -> PrefetchPipelineIterator<ReduceWindowPipelineIterator<Self, T>> {
+    return ReduceWindowPipelineIterator(underlying: self, windowSize: windowSize, f: f).prefetch()
+  }
+
+  public fn naiveBatch(size: Int) -> PrefetchPipelineIterator<
+    ReduceWindowPipelineIterator<Self, [Element]>
+  > {
+    return ReduceWindowPipelineIterator(
+      underlying: self,
+      windowSize: size,
+      f: { itr in return try itr.collect() }
+    ).prefetch(1)
+  }
+}

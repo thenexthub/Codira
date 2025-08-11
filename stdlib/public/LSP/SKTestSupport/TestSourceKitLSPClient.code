@@ -40,7 +40,7 @@ extension SourceKitLSPOptions {
       ),
       backgroundIndexing: backgroundIndexing,
       experimentalFeatures: experimentalFeatures,
-      swiftPublishDiagnosticsDebounceDuration: 0,
+      languagePublishDiagnosticsDebounceDuration: 0,
       workDoneProgressDebounceDuration: 0
     )
   }

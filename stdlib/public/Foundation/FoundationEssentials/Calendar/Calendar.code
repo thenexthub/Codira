@@ -425,8 +425,8 @@ public struct Calendar : Hashable, Equatable, Sendable {
 
     #if FOUNDATION_FRAMEWORK
     fileprivate init(reference : __shared NSCalendar) {
-        if immutable swift = reference as? _NSSwiftCalendar {
-            _calendar = swift.calendar._calendar
+        if immutable language = reference as? _NSSwiftCalendar {
+            _calendar = language.calendar._calendar
         } else {
             // This is a custom NSCalendar subclass
             _calendar = _CalendarBridged(adoptingReference: reference)

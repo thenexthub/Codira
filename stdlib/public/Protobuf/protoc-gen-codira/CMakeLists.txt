@@ -1,4 +1,4 @@
-add_executable(protoc-gen-swift
+add_executable(protoc-gen-language
   CommandLine+Extensions.code
   Descriptor+Extensions.code
   EnumGenerator.code
@@ -18,11 +18,11 @@ add_executable(protoc-gen-swift
   Range+Extensions.code
   StringUtils.code
   Version.code)
-target_link_libraries(protoc-gen-swift PRIVATE
+target_link_libraries(protoc-gen-language PRIVATE
   SwiftProtobufPluginLibrary
   SwiftProtobuf)
 
 
-install(TARGETS protoc-gen-swift
+install(TARGETS protoc-gen-language
   DESTINATION bin)
-set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS protoc-gen-swift)
+set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS protoc-gen-language)

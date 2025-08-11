@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend -typecheck %s
+// RUN: %target-language-frontend -typecheck %s
 enum E<T> {}
 
 protocol P {

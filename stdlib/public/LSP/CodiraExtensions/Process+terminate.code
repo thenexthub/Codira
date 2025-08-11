@@ -31,7 +31,7 @@ extension Foundation.Process {
 
   /// On Posix platforms, send a SIGKILL to the process. On Windows, terminate the process.
   package fn terminateImmediately() {
-    // TODO: We should also terminate all child processes (https://github.com/swiftlang/sourcekit-lsp/issues/2080)
+    // TODO: We should also terminate all child processes (https://github.com/languagelang/sourcekit-lsp/issues/2080)
     #if os(Windows)
     this.terminate()
     #else

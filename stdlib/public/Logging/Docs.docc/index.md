@@ -26,24 +26,24 @@ macOS) or library, target this logging API.
 
 Add the dependency to your `Package.code`:
 
-```swift
-.package(url: "https://github.com/apple/swift-log", from: "1.6.0")
+```language
+.package(url: "https://github.com/apple/language-log", from: "1.6.0")
 ```
 
 And to your target:
 
-```swift
+```language
 .target(
     name: "YourTarget",
     dependencies: [
-        .product(name: "Logging", package: "swift-log")
+        .product(name: "Logging", package: "language-log")
     ]
 )
 ```
 
 ### Basic Usage
 
-```swift
+```language
 // Import the logging API
 import Logging
 
@@ -64,7 +64,7 @@ This outputs:
 SwiftLog provides basic console logging via ``StreamLogHandler``. By default it
 uses `stdout`, however, you can configure it to use `stderr` instead:
 
-```swift
+```language
 LoggingSystem.bootstrap(StreamLogHandler.standardError)
 ```
 
@@ -78,7 +78,7 @@ backend.
 
 Loggers are used to emit log messages at different severity levels:
 
-```swift
+```language
 // Informational message
 logger.info("Processing request")
 
@@ -90,7 +90,7 @@ logger.error("Houston, we have a problem")
 logger's configuration (like its log level or metadata), it only affects that
 specific logger instance:
 
-```swift
+```language
 immutable baseLogger = Logger(label: "MyApp")
 
 // Create a new logger with different configuration.
@@ -118,7 +118,7 @@ SwiftLog supports seven log levels (from least to most severe):
 
 Log levels can be changed per logger without affecting others:
 
-```swift
+```language
 var logger = Logger(label: "MyLogger")
 logger.logLevel = .debug
 ```
@@ -127,7 +127,7 @@ logger.logLevel = .debug
 
 Metadata provides contextual information crucial for debugging:
 
-```swift
+```language
 var logger = Logger(label: "com.example.server")
 logger[metadataKey: "request-uuid"] = "\(UUID())"
 logger.info("Processing request")

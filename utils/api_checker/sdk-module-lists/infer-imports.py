@@ -25,8 +25,8 @@ def collect_catalyst_frameworks(frameworks_path):
             # being supported
             macabi_interface_path = \
                 os.path.join(frameworks_path, frame,
-                             'Modules', name + '.codemodule',
-                             'x86_64-apple-ios-macabi.codeinterface')
+                             'Modules', name + '.languagemodule',
+                             'x86_64-apple-ios-macabi.languageinterface')
             if os.path.exists(macabi_interface_path):
                 if name not in denylist:
                     names.append(name)
@@ -51,7 +51,7 @@ def get_frameworks(sdk_path, language_frameworks_only):
             name = frame[:-len(".framework")]
             header_dir_path = frameworks_path + '/' + frame + '/Headers'
             module_dir_path = frameworks_path + '/' + frame + '/Modules'
-            languagemodule_path = module_dir_path + '/' + name + '.codemodule'
+            languagemodule_path = module_dir_path + '/' + name + '.languagemodule'
             old_modulemap_path = frameworks_path + '/' + frame + '/module.map'
             old_modulemap_private_path = frameworks_path + '/' + frame + \
                 '/module_private.map'
@@ -60,7 +60,7 @@ def get_frameworks(sdk_path, language_frameworks_only):
                 if name not in denylist:
                     names.append(name)
                 continue
-            # We only care about Codira frameworks then we are done.
+            # We only care about Swift frameworks then we are done.
             if language_frameworks_only:
                 continue
 
@@ -92,8 +92,8 @@ def get_overlays(sdk_path):
     overlay_path = sdk_path + "/usr/lib/language/"
     names = []
     for overlay in os.listdir(overlay_path):
-        if overlay.endswith(".codemodule"):
-            overlay = overlay[:-len(".codemodule")]
+        if overlay.endswith(".languagemodule"):
+            overlay = overlay[:-len(".languagemodule")]
             if overlay in denylist:
                 continue
             names.append(overlay)
@@ -152,17 +152,17 @@ def main():
         parser.error(
             "output mode not specified: 'clang-import'/'language-import'/'list'")
 
-    if opts.code_overlay_only:
+    if opts.language_overlay_only:
         frames = get_overlays(opts.sdk)
     else:
         if opts.catalyst:
-            if opts.code_frameworks_only:
+            if opts.language_frameworks_only:
                 frames = get_catalyst_frameworks(opts.sdk)
             else:
                 parser.error("only support find catalyst frameworks "
                              "with --language-frameworks-only")
         else:
-            frames = get_frameworks(opts.sdk, opts.code_frameworks_only)
+            frames = get_frameworks(opts.sdk, opts.language_frameworks_only)
     if opts.v:
         for name in frames:
             print('Including: ', name, file=sys.stderr)

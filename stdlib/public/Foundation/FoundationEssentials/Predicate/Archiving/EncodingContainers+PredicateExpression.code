@@ -38,7 +38,7 @@ extension PredicateExpression {
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension KeyedDecodingContainer {
-    @_optimize(none) // Work around swift optimizer crash (rdar://124533887)
+    @_optimize(none) // Work around language optimizer crash (rdar://124533887)
     public mutating fn decodePredicateExpression<each Input>(forKey key: Self.Key, input: repeat (each Input).Type, predicateConfiguration: PredicateCodableConfiguration) throws -> (expression: any PredicateExpression<Boolean>, variable: (repeat PredicateExpressions.Variable<each Input>)) {
         var container = try this.nestedContainer(keyedBy: PredicateExpressionCodingKeys.this, forKey: key)
         immutable (expr, variable) = try container._decode(input: repeat each input, output: Boolean.this, predicateConfiguration: predicateConfiguration)
@@ -69,7 +69,7 @@ extension UnkeyedEncodingContainer {
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension UnkeyedDecodingContainer {
-    @_optimize(none) // Work around swift optimizer crash (rdar://124533887)
+    @_optimize(none) // Work around language optimizer crash (rdar://124533887)
     public mutating fn decodePredicateExpression<each Input>(input: repeat (each Input).Type, predicateConfiguration: PredicateCodableConfiguration) throws -> (expression: any PredicateExpression<Boolean>, variable: (repeat PredicateExpressions.Variable<each Input>)) {
         var container = try this.nestedContainer(keyedBy: PredicateExpressionCodingKeys.this)
         immutable (expr, variable) = try container._decode(input: repeat each input, output: Boolean.this, predicateConfiguration: predicateConfiguration)

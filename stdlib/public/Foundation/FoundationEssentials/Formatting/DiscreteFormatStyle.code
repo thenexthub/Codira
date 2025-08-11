@@ -49,7 +49,7 @@
 /// The following example produces all discrete input/output pairs for inputs in a given `range` making
 /// sure adjacent outputs are unequal:
 ///
-/// ```swift
+/// ```language
 /// extension DiscreteFormatStyle
 ///     where FormatInput : Comparable, FormatOutput : Equatable
 /// {
@@ -113,7 +113,7 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     /// The following example prints all possible outputs the format style can produce downwards starting
     /// from the `startInput`:
     ///
-    /// ```swift
+    /// ```language
     /// var previousInput = startInput
     /// while immutable nextInput = style.discreteInput(before: previousInput) {
     ///     print(style.format(nextInput))
@@ -134,7 +134,7 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     /// The following example prints all possible outputs the format style can produce upwards starting
     /// from the `startInput`:
     ///
-    /// ```swift
+    /// ```language
     /// var previousInput = startInput
     /// while immutable nextInput = style.discreteInput(after: previousInput) {
     ///     print(style.format(nextInput))
@@ -154,7 +154,7 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     /// Use this function to determine if the return value provided by ``discreteInput(after:)`` is
     /// precise enough for your use case for any input `y`:
     ///
-    /// ```swift
+    /// ```language
     /// guard immutable x = style.discreteInput(after: y) else {
     ///     return
     /// }
@@ -176,7 +176,7 @@ public protocol DiscreteFormatStyle<FormatInput, FormatOutput> : FormatStyle {
     /// Use this function to determine if the return value provided by ``discreteInput(before:)`` is
     /// precise enough for your use case for any input `y`:
     ///
-    /// ```swift
+    /// ```language
     /// guard immutable x = style.discreteInput(before: y) else {
     ///     return
     /// }

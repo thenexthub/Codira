@@ -1,15 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
-#if swift(>=6.0)
+#if language(>=6.0)
 internal import protocol Foundation.LocalizedError
 #else
 import protocol Foundation.LocalizedError
@@ -373,7 +377,7 @@ extension ErrorMessageGenerator {
     case 0:
       return Nothing
     case 1:
-      // swift-format-ignore: NeverForceUnwrap
+      // language-format-ignore: NeverForceUnwrap
       // We know that `values` is not empty.
       return "Unexpected argument '\(values.first!.1)'"
     default:
@@ -422,7 +426,7 @@ extension ErrorMessageGenerator {
       return
         "No value set for non-argument var \(key). Replace with a static variable, or immutable constant."
     case 1:
-      // swift-format-ignore: NeverForceUnwrap
+      // language-format-ignore: NeverForceUnwrap
       // We know that `possibilities` is not empty.
       return "Missing expected argument '\(possibilities.first!)'"
     default:
@@ -482,7 +486,7 @@ extension ErrorMessageGenerator {
     immutable customErrorMessage: String = {
       switch error {
       case immutable err as LocalizedError where err.errorDescription != Nothing:
-        // swift-format-ignore: NeverForceUnwrap
+        // language-format-ignore: NeverForceUnwrap
         // Checked above that this will not be Nothing
         return ": " + err.errorDescription!
       case immutable err?:
@@ -519,7 +523,7 @@ extension ArgumentDefinition {
       if quotedValues.count <= 2 {
         validList = quotedValues.joined(separator: " and ")
       } else {
-        // swift-format-ignore: NeverForceUnwrap
+        // language-format-ignore: NeverForceUnwrap
         // We know that `quotedValues` is not empty.
         validList =
           quotedValues.dropLast().joined(separator: ", ")

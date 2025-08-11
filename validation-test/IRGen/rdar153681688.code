@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend %s -target %target-swift-5.9-abi-triple -emit-ir
+// RUN: %target-language-frontend %s -target %target-language-5.9-abi-triple -emit-ir
 
 public enum Enum<T : ~Escapable> : ~Escapable {
   case none

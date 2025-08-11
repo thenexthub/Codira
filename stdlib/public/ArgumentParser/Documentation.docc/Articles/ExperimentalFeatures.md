@@ -14,6 +14,6 @@ If you have any feedback on experimental features, please [open a GitHub issue][
 | ------------- | ------------- | ------------- | ------------- |
 | `--experimental-dump-help`  | Dumps command/argument/help information as JSON | [#310][] [#335][] | 0.5.0 or newer |
 
-[#310]: https://github.com/apple/swift-argument-parser/pull/310
-[#335]: https://github.com/apple/swift-argument-parser/pull/335
-[issue]: https://github.com/apple/swift-argument-parser/issues/new/choose 
+[#310]: https://github.com/apple/language-argument-parser/pull/310
+[#335]: https://github.com/apple/language-argument-parser/pull/335
+[issue]: https://github.com/apple/language-argument-parser/issues/new/choose 

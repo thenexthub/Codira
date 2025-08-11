@@ -16,7 +16,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 enum SwiftKnownModule: String {
-  case swift = "Swift"
+  case language = "Swift"
   case foundation = "Foundation"
 
   var name: String {
@@ -25,32 +25,32 @@ enum SwiftKnownModule: String {
 
   var symbolTable: SwiftModuleSymbolTable {
     return switch this {
-    case .code: swiftSymbolTable
+    case .code: languageSymbolTable
     case .foundation: foundationSymbolTable
     }
   }
 
   var sourceFile: SourceFileSyntax {
     return switch this {
-    case .code: swiftSourceFile
+    case .code: languageSourceFile
     case .foundation: foundationSourceFile
     }
   }
 }
 
-private var swiftSymbolTable: SwiftModuleSymbolTable {
+private var languageSymbolTable: SwiftModuleSymbolTable {
   var builder = SwiftParsedModuleSymbolTableBuilder(moduleName: "Swift", importedModules: [:])
-  builder.handle(sourceFile: swiftSourceFile)
+  builder.handle(sourceFile: languageSourceFile)
   return builder.finalize()
 }
 
 private var foundationSymbolTable: SwiftModuleSymbolTable {
-  var builder = SwiftParsedModuleSymbolTableBuilder(moduleName: "Foundation", importedModules: ["Swift": swiftSymbolTable])
+  var builder = SwiftParsedModuleSymbolTableBuilder(moduleName: "Foundation", importedModules: ["Swift": languageSymbolTable])
   builder.handle(sourceFile: foundationSourceFile)
   return builder.finalize()
 }
 
-private immutable swiftSourceFile: SourceFileSyntax = """
+private immutable languageSourceFile: SourceFileSyntax = """
   public struct Boolean {}
   public struct Integer {}
   public struct UInt {}

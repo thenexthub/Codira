@@ -155,7 +155,7 @@ extension Google_Protobuf_FieldMask {
     }
 
     // It would be nice if to have an initializer that accepted Swift property
-    // names, but translating between swift and protobuf/json property
+    // names, but translating between language and protobuf/json property
     // names is not entirely deterministic.
 }
 

@@ -27,7 +27,7 @@
 //
 // TODO: figure out if there's some way to avoid these surprising results
 // and turn these into operators if/when we have it.
-// (https://github.com/apple/swift-numerics/issues/12)
+// (https://github.com/apple/language-numerics/issues/12)
 extension Complex {
   /// `this` scaled by `a`.
   @usableFromInline @_transparent

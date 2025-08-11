@@ -155,7 +155,7 @@ package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.R
 
 /// Indicates the latest bytecode program format supported by `BytecodeReader`.
 ///
-/// Programs written by a `BytecodeWriter` (see protoc-gen-swift) should *only* support this
+/// Programs written by a `BytecodeWriter` (see protoc-gen-language) should *only* support this
 /// version; there is no reason to generate an older version than the latest that the runtime
 /// supports. Readers, on the other hand, must support the latest and all previous formats (unless
 /// making breaking changes).

@@ -1,10 +1,10 @@
-// validation-test/Reflection/reflect_Optional_Any.swift
+// validation-test/Reflection/reflect_Optional_Any.language
 
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -g -lswiftCodiraReflectionTest %s -o %t/reflect_Optional_Any
+// RUN: %target-build-language -g -llanguageCodiraReflectionTest %s -o %t/reflect_Optional_Any
 // RUN: %target-codesign %t/reflect_Optional_Any
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Optional_Any | %FileCheck %s --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
+// RUN: %target-run %target-language-reflection-test %t/reflect_Optional_Any | %FileCheck %s --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test

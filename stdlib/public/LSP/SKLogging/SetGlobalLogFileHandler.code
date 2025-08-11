@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,7 +16,7 @@ import SwiftExtensions
 #if canImport(Darwin)
 package import Foundation
 #else
-// TODO: @preconcurrency needed because stderr is not sendable on Linux https://github.com/swiftlang/swift/issues/75601
+// TODO: @preconcurrency needed because stderr is not sendable on Linux https://github.com/languagelang/language/issues/75601
 @preconcurrency package import Foundation
 #endif
 

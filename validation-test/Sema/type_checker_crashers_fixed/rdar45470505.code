@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
 extension BinaryInteger {
   init(bytes: [UInt8]) { fatalError() }

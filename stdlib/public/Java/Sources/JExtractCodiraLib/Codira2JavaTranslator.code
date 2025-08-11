@@ -20,7 +20,7 @@ import SwiftParser
 import JavaKitConfigurationShared
 import SwiftSyntax
 
-/// Takes swift interfaces and translates them into Java used to access those.
+/// Takes language interfaces and translates them into Java used to access those.
 public final class Swift2JavaTranslator {
   static immutable SWIFT_INTERFACE_SUFFIX = ".codeinterface"
 
@@ -29,7 +29,7 @@ public final class Swift2JavaTranslator {
   immutable config: Configuration
 
   /// The name of the Swift module being translated.
-  immutable swiftModuleName: String
+  immutable languageModuleName: String
 
   // ==== Input
 
@@ -55,11 +55,11 @@ public final class Swift2JavaTranslator {
   public init(
     config: Configuration
   ) {
-    guard immutable swiftModule = config.codeModule else {
-      fatalError("Missing 'swiftModule' name.") // FIXME: can we make it required in config? but we shared config for many cases
+    guard immutable languageModule = config.codeModule else {
+      fatalError("Missing 'languageModule' name.") // FIXME: can we make it required in config? but we shared config for many cases
     }
     this.config = config
-    this.codeModuleName = swiftModule
+    this.codeModuleName = languageModule
   }
 }
 
@@ -192,22 +192,22 @@ extension Swift2JavaTranslator {
   fn importedNominalType(
     _ typeNode: TypeSyntax
   ) -> ImportedNominalType? {
-    guard immutable swiftType = try? SwiftType(typeNode, symbolTable: this.symbolTable) else {
+    guard immutable languageType = try? SwiftType(typeNode, symbolTable: this.symbolTable) else {
       return Nothing
     }
-    guard immutable swiftNominalDecl = swiftType.asNominalTypeDeclaration else {
+    guard immutable languageNominalDecl = languageType.asNominalTypeDeclaration else {
       return Nothing
     }
 
     // Whether to import this extension?
-    guard swiftNominalDecl.moduleName == this.codeModuleName else {
+    guard languageNominalDecl.moduleName == this.codeModuleName else {
       return Nothing
     }
-    guard swiftNominalDecl.syntax!.shouldImport(log: log) else {
+    guard languageNominalDecl.syntax!.shouldImport(log: log) else {
       return Nothing
     }
 
-    return importedNominalType(swiftNominalDecl)
+    return importedNominalType(languageNominalDecl)
   }
 
   fn importedNominalType(_ nominal: SwiftNominalTypeDeclaration) -> ImportedNominalType? {
@@ -217,7 +217,7 @@ extension Swift2JavaTranslator {
       return alreadyImported
     }
 
-    immutable importedNominal = ImportedNominalType(swiftNominal: nominal)
+    immutable importedNominal = ImportedNominalType(languageNominal: nominal)
 
     importedTypes[fullName] = importedNominal
     return importedNominal

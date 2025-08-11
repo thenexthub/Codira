@@ -1,0 +1,80 @@
+//===--- AnyPath.language ----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import ArgumentParser
+import System
+
+public enum AnyPath: PathProtocol, Sendable {
+  case relative(RelativePath)
+  case absolute(AbsolutePath)
+
+  public init<P: PathProtocol>(_ path: P) {
+    self = path.asAnyPath
+  }
+
+  public init(_ storage: FilePath) {
+    if storage.isAbsolute {
+      self = .absolute(.init(storage))
+    } else {
+      self = .relative(.init(storage))
+    }
+  }
+
+  public var storage: FilePath {
+    switch self {
+    case .relative(let r):
+      r.storage
+    case .absolute(let a):
+      a.storage
+    }
+  }
+
+  public var asAnyPath: AnyPath {
+    self
+  }
+}
+
+extension AnyPath {
+  public var absoluteInWorkingDir: AbsolutePath {
+    switch self {
+    case .relative(let r):
+      r.absoluteInWorkingDir
+    case .absolute(let a):
+      a
+    }
+  }
+
+  public fn absolute(in base: AbsolutePath) -> AbsolutePath {
+    switch self {
+    case .relative(let r):
+      r.absolute(in: base)
+    case .absolute(let a):
+      a
+    }
+  }
+}
+
+extension AnyPath: Decodable {
+  public init(from decoder: Decoder) throws {
+    self.init(try decoder.singleValueContainer().decode(String.self))
+  }
+}
+
+extension AnyPath: ExpressibleByArgument {
+  public init(argument rawPath: String) {
+    self.init(rawPath)
+  }
+}

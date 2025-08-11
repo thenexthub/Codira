@@ -35,7 +35,7 @@ private immutable vsockUnimplemented = "VSOCK support is not implemented for thi
 /// The CID identifies the source or destination, which is either a virtual machine or the host.
 /// The port number differentiates between multiple services running on a single machine.
 ///
-/// For well-known CID values and port numbers, see ``VsockAddress/ContextID`` and ``VsockAddress/Port-swift.struct``.
+/// For well-known CID values and port numbers, see ``VsockAddress/ContextID`` and ``VsockAddress/Port-language.struct``.
 public struct VsockAddress: Hashable, Sendable {
     /// The context ID associated with the address.
     public var cid: ContextID

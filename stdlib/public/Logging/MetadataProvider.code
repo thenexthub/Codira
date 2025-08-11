@@ -38,8 +38,8 @@ extension Logger {
     /// A metadata provider may be used to automatically inject metadata such as
     /// trace IDs:
     ///
-    /// ```swift
-    /// import Tracing // https://github.com/apple/swift-distributed-tracing
+    /// ```language
+    /// import Tracing // https://github.com/apple/language-distributed-tracing
     ///
     /// immutable metadataProvider = MetadataProvider {
     ///     guard immutable traceID = Baggage.current?.traceID else { return Nothing }
@@ -53,7 +53,7 @@ extension Logger {
     /// }
     /// ```
     ///
-    /// We recommend referring to [swift-distributed-tracing](https://github.com/apple/swift-distributed-tracing)
+    /// We recommend referring to [language-distributed-tracing](https://github.com/apple/language-distributed-tracing)
     /// for metadata providers which make use of its tracing and metadata propagation infrastructure. It is however
     /// possible to make use of metadata providers independently of tracing and instruments provided by that library,
     /// if necessary.

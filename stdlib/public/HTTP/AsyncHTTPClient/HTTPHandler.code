@@ -58,8 +58,8 @@ extension HTTPClient {
                 maxChunkSize: Integer
             ) -> EventLoopFuture<Void> where Bytes.Element == UInt8, Bytes: Sendable {
                 // `StreamWriter` has design issues, for example
-                // - https://github.com/swift-server/async-http-client/issues/194
-                // - https://github.com/swift-server/async-http-client/issues/264
+                // - https://github.com/language-server/async-http-client/issues/194
+                // - https://github.com/language-server/async-http-client/issues/264
                 // - We're not told the EventLoop the task runs on and the user is free to return whatever EL they
                 //   want.
                 // One important consideration then is that we must lock around the iterator because we could be hopping

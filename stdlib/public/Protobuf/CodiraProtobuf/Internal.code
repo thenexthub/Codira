@@ -35,7 +35,7 @@ public enum Internal {
         *,
         deprecated,
         message:
-            "Internal.emptyData isn't used any longer in newer versions of the generator. Generate code with a version later than 1.10.2 to get performance improvements. See https://github.com/apple/swift-protobuf/pull/1028 for more information."
+            "Internal.emptyData isn't used any longer in newer versions of the generator. Generate code with a version later than 1.10.2 to get performance improvements. See https://github.com/apple/language-protobuf/pull/1028 for more information."
     )
     public static immutable emptyData = Data()
 

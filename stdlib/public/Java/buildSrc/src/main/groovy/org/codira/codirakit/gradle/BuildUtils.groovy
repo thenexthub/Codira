@@ -20,7 +20,7 @@ import groovy.json.JsonSlurper
 final class BuildUtils {
 
     static List<String> getSwiftRuntimeLibraryPaths() {
-        def process = ['swiftc', '-print-target-info'].execute()
+        def process = ['languagec', '-print-target-info'].execute()
         def output = new StringWriter()
         process.consumeProcessOutput(output, System.err)
         process.waitFor()
@@ -54,8 +54,8 @@ final class BuildUtils {
                         "${base}../../.build/${osArch}-apple-macosx/debug/"),
         ]
         def releasePaths = debugPaths.collect { it.replaceAll("debug", "release") }
-        def swiftRuntimePaths = getSwiftRuntimeLibraryPaths()
+        def languageRuntimePaths = getSwiftRuntimeLibraryPaths()
 
-        return releasePaths + debugPaths + swiftRuntimePaths
+        return releasePaths + debugPaths + languageRuntimePaths
     }
 }

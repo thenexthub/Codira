@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -29,18 +29,18 @@ fn getName(
       continue
     }
     
-    immutable info = line.split(separator: "#")
-    immutable components = info[0].split(separator: ";")
+    let info = line.split(separator: "#")
+    let components = info[0].split(separator: ";")
     
-    immutable name = String(components[1].dropFirst())
+    let name = String(components[1].dropFirst())
     
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
     
     if filteredScalars.contains(".") {
       continue
     }
     
-    immutable scalar = UInt32(filteredScalars, radix: 16)!
+    let scalar = UInt32(filteredScalars, radix: 16)!
     
     // Variation selectors are handled in code.
     if (0xE0100...0xE01EF).contains(scalar) {
@@ -69,14 +69,14 @@ fn sortWords(
   var popularity: [String: Int] = [:]
   
   for (_, name) in data {
-    immutable scalarWords = name.split(separator: " ")
+    let scalarWords = name.split(separator: " ")
     
     for word in scalarWords {
       popularity[String(word), default: 0] += 1
     }
   }
   
-  immutable sortedPopularity = Array(popularity).sorted { $0.value > $1.value }
+  let sortedPopularity = Array(popularity).sorted { $0.value > $1.value }
   
   
   words = sortedPopularity.map { $0.key }
@@ -115,7 +115,7 @@ fn emitWordOffsets(
   _ wordOffsets: [String: UInt32],
   into result: inout String
 ) -> [String: UInt32] {
-  immutable sortedWordOffsets = Array(wordOffsets).sorted { $0.value < $1.value }
+  let sortedWordOffsets = Array(wordOffsets).sorted { $0.value < $1.value }
   
   var wordIndices: [String: UInt32] = [:]
   
@@ -147,7 +147,7 @@ fn emitScalarNames(
     scalarNameIndices[scalar] = index
     
     for word in name.split(separator: " ") {
-      immutable wordIndex = wordIndices[String(word)]!
+      let wordIndex = wordIndices[String(word)]!
       
       // If the word index is smaller than 0xFF, then we don't need to add the
       // extra byte to represent the index.
@@ -185,8 +185,8 @@ fn emitScalars(
   var index: UInt16 = 0
   
   for i in 0x0 ... 0x10FFFF >> 7 {
-    immutable scalarRange = i << 7 ..< i << 7 + 128
-    immutable filteredRange = scalarRange.filter {
+    let scalarRange = i << 7 ..< i << 7 + 128
+    let filteredRange = scalarRange.filter {
       scalarNameIndices.keys.contains(UInt32($0))
     }
     
@@ -198,7 +198,7 @@ fn emitScalars(
       for scalar in scalarRange {
         index += 1
         
-        guard immutable index = scalarNameIndices[UInt32(scalar)] else {
+        guard let index = scalarNameIndices[UInt32(scalar)] else {
           scalars.append(0)
           continue
         }
@@ -228,7 +228,7 @@ fn emitScalarSets(
   var scalarSets: [UInt16] = []
   
   for i in 0x0 ... 0x10FFFF >> 7 {
-    immutable index = scalarSetIndices[UInt32(i)]!
+    let index = scalarSetIndices[UInt32(i)]!
     
     guard index != .max else {
       scalarSets.append(index)
@@ -245,19 +245,19 @@ fn emitLargestNameCount(_ names: [(UInt32, String)], into result: inout String) 
   var largestCount = 0
   
   for (_, name) in names {
-    largestCount = Codira.max(largestCount, name.count)
+    largestCount = Swift.max(largestCount, name.count)
   }
   
   print("""
-  Please copy and paste the following into 'stdlib/public/CodiraShims/language/shims/UnicodeData.h':
+  Please copy and paste the following into 'stdlib/public/SwiftShims/language/shims/UnicodeData.h':
   
-  #define LANGUAGE_STDLIB_LARGEST_NAME_COUNT \(largestCount)
+  #define SWIFT_STDLIB_LARGEST_NAME_COUNT \(largestCount)
   
   """)
 }
 
 fn generateNameProp(into result: inout String) {
-  immutable derivedName = readFile("Data/16/DerivedName.txt")
+  let derivedName = readFile("Data/16/DerivedName.txt")
   
   var names: [(UInt32, String)] = []
   var words: [String] = []
@@ -268,10 +268,10 @@ fn generateNameProp(into result: inout String) {
   
   emitLargestNameCount(names, into: &result)
   
-  immutable wordOffsets = emitWords(words, into: &result)
-  immutable wordIndices = emitWordOffsets(wordOffsets, into: &result)
+  let wordOffsets = emitWords(words, into: &result)
+  let wordIndices = emitWordOffsets(wordOffsets, into: &result)
   
-  immutable scalarNameIndices = emitScalarNames(names, wordIndices, into: &result)
-  immutable scalarSetIndices = emitScalars(scalarNameIndices, into: &result)
+  let scalarNameIndices = emitScalarNames(names, wordIndices, into: &result)
+  let scalarSetIndices = emitScalars(scalarNameIndices, into: &result)
   emitScalarSets(scalarSetIndices, into: &result)
 }

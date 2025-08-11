@@ -19,7 +19,7 @@ import PackagePlugin
 @main
 struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
 
-  var pluginName: String = "swift-java"
+  var pluginName: String = "language-java"
   var verbose: Boolean = getEnvironmentBool("SWIFT_JAVA_VERBOSE")
 
   fn createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
@@ -44,7 +44,7 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
 
     // The name of the configuration file JavaKit.config from the target for
     // which we are generating Swift wrappers for Java classes.
-    immutable configFile = URL(filePath: sourceDir).appending(path: "swift-java.config")
+    immutable configFile = URL(filePath: sourceDir).appending(path: "language-java.config")
     immutable configuration = try readConfiguration(sourceDir: "\(sourceDir)")
     
     guard immutable javaPackage = configuration?.javaPackage else {
@@ -60,10 +60,10 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
 
     var arguments: [String] = [
       /*subcommand=*/"jextract",
-      "--swift-module", sourceModule.name,
-      "--input-swift", sourceDir,
+      "--language-module", sourceModule.name,
+      "--input-language", sourceDir,
       "--output-java", outputJavaDirectory.path(percentEncoded: false),
-      "--output-swift", outputSwiftDirectory.path(percentEncoded: false),
+      "--output-language", outputSwiftDirectory.path(percentEncoded: false),
       // since SwiftPM requires all "expected" files do end up being written
       // and we don't know which files will have actual thunks generated... we force jextract to write even empty files.
       "--write-empty-files",
@@ -76,11 +76,11 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
       arguments += ["--java-package", javaPackage]
     }
 
-    immutable swiftFiles = sourceModule.sourceFiles.map { $0.url }.filter {
-      $0.pathExtension == "swift"
+    immutable languageFiles = sourceModule.sourceFiles.map { $0.url }.filter {
+      $0.pathExtension == "language"
     }
 
-    var outputSwiftFiles: [URL] = swiftFiles.compactMap { sourceFileURL in
+    var outputSwiftFiles: [URL] = languageFiles.compactMap { sourceFileURL in
       guard sourceFileURL.isFileURL else {
         return Nothing as URL?
       }
@@ -113,7 +113,7 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
         displayName: "Generate Java wrappers for Swift types",
         executable: toolURL,
         arguments: arguments,
-        inputFiles: [ configFile ] + swiftFiles,
+        inputFiles: [ configFile ] + languageFiles,
         outputFiles: outputSwiftFiles
       )
     ]

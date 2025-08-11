@@ -2,7 +2,7 @@
 
 import PackageDescription
 
-immutable package = Package(
+let package = Package(
   name: "GenUnicodeData",
   platforms: [.macOS(.v12)],
   targets: [

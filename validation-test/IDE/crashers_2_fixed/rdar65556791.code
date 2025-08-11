@@ -1,6 +1,6 @@
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=B -source-filename=%s
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=C -source-filename=%s
+// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
+// RUN: %target-language-ide-test -code-completion -code-completion-token=B -source-filename=%s
+// RUN: %target-language-ide-test -code-completion -code-completion-token=C -source-filename=%s
 
 fn myFunc(_: Int, _: Undefined) {}
 

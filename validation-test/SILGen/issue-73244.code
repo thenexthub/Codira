@@ -1,4 +1,4 @@
-// RUN: %target-swift-emit-silgen %s -verify
+// RUN: %target-language-emit-silgen %s -verify
 
 // Check that SILGen does not crash because of a parenthesized try expression
 class Class {

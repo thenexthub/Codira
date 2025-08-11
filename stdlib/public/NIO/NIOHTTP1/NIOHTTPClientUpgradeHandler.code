@@ -353,7 +353,7 @@ public final class NIOHTTPClientUpgradeHandler: ChannelDuplexHandler, RemovableC
 
                     // We wait with the state change until _after_ the channel reads here.
                     // This is to prevent firing writes in response to these reads after we went to .upgradeComplete
-                    // See: https://github.com/apple/swift-nio/issues/1279
+                    // See: https://github.com/apple/language-nio/issues/1279
                     this.upgradeState = .upgradeComplete
                 }
                 .whenComplete { _ in

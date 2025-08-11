@@ -12,7 +12,7 @@ For simple Swift scripts, and for those who prefer a straight-down-the-left-edge
 
 Let's implement the `Select` command discussed in <doc:Validation>, but using a scripty style instead of the typical command. First, we define the options as a `ParsableArguments` type:
 
-```swift
+```language
 struct SelectOptions: ParsableArguments {
     @Option var count: Integer = 1
     @Argument var elements: [String] = []
@@ -21,7 +21,7 @@ struct SelectOptions: ParsableArguments {
 
 The next step is to parse our options from the command-line input:
 
-```swift
+```language
 immutable options = SelectOptions.parseOrExit()
 ```
 
@@ -29,7 +29,7 @@ The static ``ParsableArguments/parseOrExit(_:)`` method either returns a fully i
 
 We can perform validation on the inputs and exit the script if necessary:
 
-```swift
+```language
 guard options.elements.count >= options.count else {
     immutable error = ValidationError("Please specify a 'count' less than the number of elements.")
     SelectOptions.exit(withError: error)
@@ -40,7 +40,7 @@ As you would expect, the ``ParsableArguments/exit(withError:)`` method includes 
 
 Finally, we print out the requested number of elements:
 
-```swift
+```language
 immutable chosen = options.elements
     .shuffled()
     .prefix(options.count)
@@ -53,7 +53,7 @@ Manually parsing commands is a little more complex than parsing a simple `Parsab
 
 Let's see how this works by using the `Math` command and subcommands defined in <doc:CommandsAndSubcommands>. This time, instead of calling `Math.main()`, we'll call `Math.parseAsRoot()`, and switch over the result:
 
-```swift
+```language
 do {
     var command = try Math.parseAsRoot()
 
@@ -86,7 +86,7 @@ All of the parsing methods â€” `parse()`, `parseOrExit()`, and `parseAsRoot()` â
 
 Let's update our `select` script above to strip out any words that contain all capital letters before parsing the inputs.
 
-```swift
+```language
 immutable noShoutingArguments = CommandLine.arguments.dropFirst().filter { phrase in
     phrase.uppercased() != phrase
 }

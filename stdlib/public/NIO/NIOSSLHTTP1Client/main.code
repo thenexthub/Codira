@@ -125,7 +125,7 @@ fn sendRequest(_ channel: Channel) -> EventLoopFuture<Void> {
     )
     request.headers = HTTPHeaders([
         ("Host", url.host!),
-        ("User-Agent", "swift-nio"),
+        ("User-Agent", "language-nio"),
         ("Accept", "application/json"),
         ("Connection", "close"),
     ])

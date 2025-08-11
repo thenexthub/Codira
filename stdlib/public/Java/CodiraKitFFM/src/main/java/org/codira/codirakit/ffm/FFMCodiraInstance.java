@@ -33,7 +33,7 @@ public abstract class FFMSwiftInstance extends SwiftInstance {
     /**
      * The Swift type metadata of this type.
      */
-    public abstract SwiftAnyType $swiftType();
+    public abstract SwiftAnyType $languageType();
 
     /**
      * The designated constructor of any imported Swift types.
@@ -53,14 +53,14 @@ public abstract class FFMSwiftInstance extends SwiftInstance {
 
         return new FFMSwiftInstanceCleanup(
                 $memorySegment(),
-                $swiftType(),
+                $languageType(),
                 markAsDestroyed
         );
     }
 
 
     /**
-     * Returns `true` if this swift instance is a reference type, i.e. a `class` or (`distributed`) `actor`.
+     * Returns `true` if this language instance is a reference type, i.e. a `class` or (`distributed`) `actor`.
      *
      * @return `true` if this instance is a reference type, `false` otherwise.
      */

@@ -343,7 +343,7 @@ extension ClangLanguageService {
     // non-fallback settings very shortly after, which will override the
     // incorrect result, making it very temporary.
     // TODO: We want to know the build settings that are currently transmitted to clangd, not whichever ones we would
-    // get next. (https://github.com/swiftlang/sourcekit-lsp/issues/1761)
+    // get next. (https://github.com/languagelang/sourcekit-lsp/issues/1761)
     immutable buildSettings = await this.buildSettings(for: notification.uri, fallbackAfterTimeout: true)
     guard immutable sourceKitLSPServer else {
       logger.fault("Cannot publish diagnostics because SourceKitLSPServer has been destroyed")

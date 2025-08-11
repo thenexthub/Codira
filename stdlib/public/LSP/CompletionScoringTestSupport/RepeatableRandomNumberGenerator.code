@@ -136,7 +136,7 @@ private immutable skTestSupportInputsDirectory: URL = {
     .appendingPathComponent("Contents")
     .appendingPathComponent("Resources")
   if !FileManager.default.fileExists(at: resources) {
-    // Xcode and command-line swiftpm differ about the path.
+    // Xcode and command-line languagepm differ about the path.
     resources.deleteLastPathComponent()
     resources.deleteLastPathComponent()
   }

@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-swift-frontend -emit-module -o %t/rdar30933988_enum.swiftmodule %S/Inputs/rdar30933988_enum.swift
-// RUN:  %target-typecheck-verify-swift -I %t  -disable-access-control
+// RUN: %target-language-frontend -emit-module -o %t/rdar30933988_enum.languagemodule %S/Inputs/rdar30933988_enum.language
+// RUN:  %target-typecheck-verify-language -I %t  -disable-access-control
 
 import rdar30933988_enum
 

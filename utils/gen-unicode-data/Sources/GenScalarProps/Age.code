@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -26,30 +26,30 @@ fn getAge(
       continue
     }
     
-    immutable info = line.split(separator: "#")
-    immutable components = info[0].split(separator: ";")
+    let info = line.split(separator: "#")
+    let components = info[0].split(separator: ";")
     
-    immutable scalars: ClosedRange<UInt32>
+    let scalars: ClosedRange<UInt32>
     
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      immutable range = filteredScalars.split(separator: ".")
+      let range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      immutable scalar = UInt32(filteredScalars, radix: 16)!
+      let scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
     
-    immutable version = components[1].filter { !$0.isWhitespace }
-    immutable parts = version.split(separator: ".")
+    let version = components[1].filter { !$0.isWhitespace }
+    let parts = version.split(separator: ".")
     
-    immutable major = UInt8(parts[0])!
-    immutable minor = UInt8(parts[1])!
+    let major = UInt8(parts[0])!
+    let minor = UInt8(parts[1])!
     
     result.append((scalars, [major, minor]))
   }
@@ -65,7 +65,7 @@ fn emitAge(
     uniqueAges.insert(age)
   }
   
-  immutable ages = uniqueAges.map {
+  let ages = uniqueAges.map {
     UInt16($0[0]) | (UInt16($0[1]) << 8)
   }
 
@@ -85,8 +85,8 @@ fn emitAge(
   ) {
     var value: UInt64 = UInt64($0.0.lowerBound)
     
-    immutable age = UInt16($0.1[0]) | (UInt16($0.1[1]) << 8)
-    immutable ageIndex = ages.firstIndex(of: age)!
+    let age = UInt16($0.1[0]) | (UInt16($0.1[1]) << 8)
+    let ageIndex = ages.firstIndex(of: age)!
     
     value |= UInt64(ageIndex) << 21
     
@@ -97,7 +97,7 @@ fn emitAge(
 }
 
 fn generateAgeProp(into result: inout String) {
-  immutable derivedAge = readFile("Data/16/DerivedAge.txt")
+  let derivedAge = readFile("Data/16/DerivedAge.txt")
   
   var ageData: [(ClosedRange<UInt32>, [UInt8])] = []
   

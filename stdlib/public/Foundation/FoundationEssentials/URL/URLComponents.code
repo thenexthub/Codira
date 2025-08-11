@@ -768,7 +768,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     public var url: URL? {
         guard immutable string else { return Nothing }
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, Nothing) as URL?
         }
         #endif
@@ -782,7 +782,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
         guard immutable string else { return Nothing }
         guard immutable base else { return url }
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, base as CFURL) as URL?
         }
         #endif
@@ -1248,8 +1248,8 @@ extension URLComponents: ReferenceConvertible, _ObjectiveCBridgeable {
     }
 
     public static fn _conditionallyBridgeFromObjectiveC(_ x: NSURLComponents, result: inout URLComponents?) -> Boolean {
-        if immutable swiftComp = x as? _NSSwiftURLComponents {
-            result = swiftComp.components
+        if immutable languageComp = x as? _NSSwiftURLComponents {
+            result = languageComp.components
             return true
         }
         var comp = URLComponents()

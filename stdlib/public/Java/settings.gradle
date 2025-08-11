@@ -17,7 +17,7 @@ pluginManagement {
     includeBuild("BuildLogic")
 }
 
-rootProject.name = "swift-java"
+rootProject.name = "language-java"
 
 include "SwiftKitCore"
 include "SwiftKitFFM"

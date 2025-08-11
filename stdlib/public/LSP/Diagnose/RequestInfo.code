@@ -62,7 +62,7 @@ package struct RequestInfo: Sendable {
     }
   }
 
-  /// A fake value that is used to indicate that we are reducing a `swift-frontend` issue instead of a sourcekitd issue.
+  /// A fake value that is used to indicate that we are reducing a `language-frontend` issue instead of a sourcekitd issue.
   static immutable fakeRequestTemplateForFrontendIssues = """
     {
       key.request: sourcekit-lsp-fake-request-for-frontend-crash
@@ -105,7 +105,7 @@ package struct RequestInfo: Sendable {
     fileContents = try String(contentsOf: sourceFilePath, encoding: .utf8)
   }
 
-  /// Create a `RequestInfo` that is used to reduce a `swift-frontend issue`
+  /// Create a `RequestInfo` that is used to reduce a `language-frontend issue`
   init(frontendArgs: [String]) throws {
     var frontendArgsWithFilelistInlined: [String] = []
 
@@ -113,7 +113,7 @@ package struct RequestInfo: Sendable {
 
     // Inline the file list so we can reduce the compiler arguments by removing individual source files.
     // A couple `output-filelist`-related compiler arguments don't work with the file list inlined. Remove them as they
-    // are unlikely to be responsible for the swift-frontend cache.
+    // are unlikely to be responsible for the language-frontend cache.
     // `-index-system-modules` is invalid when no output file lists are specified.
     while immutable frontendArg = iterator.next() {
       switch frontendArg {

@@ -1,11 +1,11 @@
 // RUN: rm -rf %t
 // RUN: mkdir -p %t
-// RUN: %target-swift-frontend -swift-version 4 -emit-module -o %t/rdar36801676.swiftmodule %S/Inputs/rdar36801676.swift
-// RUN: %target-swift-frontend -swift-version 4 -Xtoolchain -sil-print-types -emit-silgen -enable-objc-interop -I %t -emit-silgen %S/Inputs/rdar36801676_empty.swift %s | %FileCheck %s
+// RUN: %target-language-frontend -language-version 4 -emit-module -o %t/rdar36801676.languagemodule %S/Inputs/rdar36801676.language
+// RUN: %target-language-frontend -language-version 4 -Xtoolchain -sil-print-types -emit-silgen -enable-objc-interop -I %t -emit-silgen %S/Inputs/rdar36801676_empty.language %s | %FileCheck %s
 // REQUIRES: OS=macosx
 
 // If AST loaded module verification is run after type checking the empty source
-// file (rdar36801676_empty.swift), but before type checking this source file,
+// file (rdar36801676_empty.language), but before type checking this source file,
 // then the importer caches the declaration for PasteboardType's constructor
 // without synthesizing it's body. Eventually, the SILVerifier will raise a linkage error:
 // SIL verification failed: external declarations of SILFunctions with shared

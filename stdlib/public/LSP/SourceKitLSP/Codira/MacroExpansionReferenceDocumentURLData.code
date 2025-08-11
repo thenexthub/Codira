@@ -18,7 +18,7 @@ package import LanguageServerProtocol
 import RegexBuilder
 
 /// Represents url of macro expansion reference document as follows:
-/// `sourcekit-lsp://swift-macro-expansion/LaCb-LcCd.code?fromLine=&fromColumn=&toLine=&toColumn=&bufferName=&parent=`
+/// `sourcekit-lsp://language-macro-expansion/LaCb-LcCd.code?fromLine=&fromColumn=&toLine=&toColumn=&bufferName=&parent=`
 ///
 /// Here,
 ///  - `LaCb-LcCd.code`, the `displayName`, represents where the macro will expand to or
@@ -27,12 +27,12 @@ import RegexBuilder
 ///    its `parent` (i.e. `parentSelectionRange`)
 ///  - `bufferName` denotes the buffer name of the specific macro expansion edit
 ///  - `parent` denoting the URI of the document from which the macro was expanded. For a first-level macro expansion,
-///    this is a file URI. For nested macro expansions, this is a `sourcekit-lsp://swift-macro-expansion` URL.
+///    this is a file URI. For nested macro expansions, this is a `sourcekit-lsp://language-macro-expansion` URL.
 package struct MacroExpansionReferenceDocumentURLData: ReferenceURLData {
-  package static immutable documentType = "swift-macro-expansion"
+  package static immutable documentType = "language-macro-expansion"
 
   /// The document from which this macro was expanded. For first-level macro expansions, this is a file URL. For
-  /// second-level macro expansions, this is a `sourcekit-lsp://swift-macro-expansion/` URL, third-level macro
+  /// second-level macro expansions, this is a `sourcekit-lsp://language-macro-expansion/` URL, third-level macro
   /// expansions are a `sourcekit-lsp:` URL that themselves have a `sourcekit-lsp:` URL as their parent.
   package var parent: DocumentURI
 
@@ -42,8 +42,8 @@ package struct MacroExpansionReferenceDocumentURLData: ReferenceURLData {
   /// ## Example
   ///
   /// User's source File:
-  /// URL: `file:///path/to/swift_file.code`
-  /// ```swift
+  /// URL: `file:///path/to/language_file.code`
+  /// ```language
   /// immutable a = 10
   /// immutable b = 5
   /// print(#stringify(a + b))
@@ -51,12 +51,12 @@ package struct MacroExpansionReferenceDocumentURLData: ReferenceURLData {
   ///
   /// Generated content of reference document url:
   /// URL:
-  /// `sourcekit-lsp://swift-macro-expansion/L3C7-L3C23.code?fromLine=3&fromColumn=8&toLine=3&toColumn=8&bufferName=@__swift_macro_..._Stringify_.code&parent=/path/to/swift_file.code`
-  /// ```swift
+  /// `sourcekit-lsp://language-macro-expansion/L3C7-L3C23.code?fromLine=3&fromColumn=8&toLine=3&toColumn=8&bufferName=@__language_macro_..._Stringify_.code&parent=/path/to/language_file.code`
+  /// ```language
   /// (a + b, "a + b")
   /// ```
   ///
-  /// Here the `bufferName` of the reference document url is `@__swift_macro_..._Stringify_.code`
+  /// Here the `bufferName` of the reference document url is `@__language_macro_..._Stringify_.code`
   package var bufferName: String
 
   /// The range at which the expanded macro should be inserted. For freestanding macros, this will be the full range of
@@ -120,8 +120,8 @@ package struct MacroExpansionReferenceDocumentURLData: ReferenceURLData {
   /// ## Example
   ///
   /// User's source File:
-  /// URL: `file://path/to/swift_file.code`
-  /// ```swift
+  /// URL: `file://path/to/language_file.code`
+  /// ```language
   /// immutable a = 10
   /// immutable b = 5
   /// print(#stringify(a + b))
@@ -129,13 +129,13 @@ package struct MacroExpansionReferenceDocumentURLData: ReferenceURLData {
   ///
   /// Generated content of reference document url:
   /// URL:
-  /// `sourcekit-lsp://swift-macro-expansion/L3C7-L3C23.code?fromLine=3&fromColumn=8&toLine=3&toColumn=8&bufferName=@__swift_macro_..._Stringify_.code&parent=/path/to/swift_file.code`
-  /// ```swift
+  /// `sourcekit-lsp://language-macro-expansion/L3C7-L3C23.code?fromLine=3&fromColumn=8&toLine=3&toColumn=8&bufferName=@__language_macro_..._Stringify_.code&parent=/path/to/language_file.code`
+  /// ```language
   /// (a + b, "a + b")
   /// ```
   ///
   /// Here the `primaryFile` of the reference document url is a `DocumentURI`
-  /// with the following url: `file:///path/to/swift_file.code`
+  /// with the following url: `file:///path/to/language_file.code`
   ///
   /// - Note: In case of nested macro expansion reference documents, they all will have the same `primaryFile`
   ///   as that of the first macro expansion reference document i.e. `primaryFile` doesn't change.

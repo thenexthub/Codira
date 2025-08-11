@@ -23,7 +23,7 @@ dependencies {
 
 def cleanSwift = tasks.register("cleanSwift", Exec) {
     workingDir = layout.projectDirectory
-    commandLine "swift"
+    commandLine "language"
     args("package", "clean")
 }
 tasks.clean {

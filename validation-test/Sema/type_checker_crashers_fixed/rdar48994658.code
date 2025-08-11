@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
 struct Ref<Value> { // expected-note {{'Value' declared as parameter to type 'Ref'}}
   static fn foo(_ value: Int) {} // expected-note {{declared here}}

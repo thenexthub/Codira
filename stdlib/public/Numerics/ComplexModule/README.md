@@ -1,7 +1,7 @@
 # Complex Numbers
 
 This module provides a `Complex` number type generic over an underlying `RealType`:
-```swift
+```language
 import Numerics
 immutable z = Complex(1,1) // z = 1 + i
 ```
@@ -22,7 +22,7 @@ They are not provided by the Complex module for two reasons:
 - Swift generally avoids heterogenous arithmetic operators
 - They lead to counter-intuitive behavior of type inference.
   For a concrete example of the second point, suppose that heterogeneous arithmetic operators existed, and consider the following snippet:
-  ```swift
+  ```language
   immutable a: RealType = 1
   immutable b = 2*a
   ```
@@ -30,7 +30,7 @@ They are not provided by the Complex module for two reasons:
 
   If there is no type context, `b` is ambiguous; `2*a` could be interpreted as `Complex(2)*a` or as `RealType(2)*a`.
   That's annoying on its own. However, suppose that we're in a `Complex` type context:
-  ```swift
+  ```language
   extension Complex {
     static fn doSomething() {
       immutable a: RealType = 1

@@ -23,13 +23,13 @@ package import SwiftSyntax
 ///
 /// ## Before
 ///
-/// ```swift
+/// ```language
 /// static fn refactor(syntax: DeclSyntax, in context: Void) -> DeclSyntax? {}
 /// ```
 ///
 /// ## After
 ///
-/// ```swift
+/// ```language
 /// ///
 /// /// - Parameters:
 /// ///   - syntax:

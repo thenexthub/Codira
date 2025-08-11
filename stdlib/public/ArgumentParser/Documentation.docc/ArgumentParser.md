@@ -13,7 +13,7 @@ declare conformance to ``ParsableCommand``,
 and implement your command's logic in its `run()` method. 
 For `async` renditions of `run`, declare ``AsyncParsableCommand`` conformance instead.
 
-```swift
+```language
 import ArgumentParser
 
 @main
@@ -42,7 +42,7 @@ and then either calls your `run()` method or exits with a useful message.
 
 #### Additional Resources
 
-- [`ArgumentParser` on GitHub](https://github.com/apple/swift-argument-parser/)
+- [`ArgumentParser` on GitHub](https://github.com/apple/language-argument-parser/)
 - [`ArgumentParser` on the Swift Forums](https://forums.code.org/c/related-projects/argumentparser/60)
 
 ## Topics

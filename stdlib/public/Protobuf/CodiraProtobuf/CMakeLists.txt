@@ -91,12 +91,12 @@ set_target_properties(SwiftProtobuf PROPERTIES
 
 
 install(TARGETS SwiftProtobuf
-  ARCHIVE DESTINATION lib/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
-  LIBRARY DESTINATION lib/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
+  ARCHIVE DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
+  LIBRARY DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
   RUNTIME DESTINATION bin)
-get_swift_host_arch(swift_arch)
+get_language_host_arch(language_arch)
 install(FILES
   $<TARGET_PROPERTY:SwiftProtobuf,Swift_MODULE_DIRECTORY>/SwiftProtobuf.codedoc
   $<TARGET_PROPERTY:SwiftProtobuf,Swift_MODULE_DIRECTORY>/SwiftProtobuf.codemodule
-  DESTINATION lib/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>/${swift_arch})
+  DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>/${language_arch})
 set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS SwiftProtobuf)

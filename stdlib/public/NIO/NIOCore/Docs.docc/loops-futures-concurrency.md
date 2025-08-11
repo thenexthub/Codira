@@ -11,7 +11,7 @@ the concepts that Swift uses, or have overlapping responsibilities.
 
 First, a quick recap. The core of Swift 6's data-race safety protection is the concept of an "isolation
 domain". Some valuable reading regarding the concept can be found in
-[SE-0414 (Region based isolation)](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0414-region-based-isolation.md)
+[SE-0414 (Region based isolation)](https://github.com/languagelang/language-evolution/blob/main/proposals/0414-region-based-isolation.md)
 but at a high level an isolation domain can be understood to be a collection of state and methods within which there cannot be
 multiple executors executing code at the same time.
 
@@ -23,7 +23,7 @@ multiple domains), or that the `sending` keyword is used to force the value to b
 to another.
 
 A related concept to an "isolation domain" is an "executor". Again, useful reading can be found in
-[SE-0392 (Custom actor executors)](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md).
+[SE-0392 (Custom actor executors)](https://github.com/languagelang/language-evolution/blob/main/proposals/0392-custom-actor-executors.md).
 At a high level, an executor is simply an object that is capable of executing Swift `Task`s. Executors can be
 concurrent, or they can be serial. Serial executors are the most common, as they can be used to back an
 actor.
@@ -33,7 +33,7 @@ actor.
 NIO's core execution primitive is the ``EventLoop``. An ``EventLoop`` is fundamentally nothing more than
 a Swift Concurrency Serial Executor that can also perform I/O operations directly. Indeed, NIO's
 ``EventLoop``s can be exposed as serial executors, using ``EventLoop/executor``. This provides a mechanism
-to protect actor-isolated state using a NIO event-loop. With [the introduction of task executors](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0417-task-executor-preference.md),
+to protect actor-isolated state using a NIO event-loop. With [the introduction of task executors](https://github.com/languagelang/language-evolution/blob/main/proposals/0417-task-executor-preference.md),
 future versions of SwiftNIO will also be able to offer their event loops for individual `Task`s to execute
 on as well.
 

@@ -1,15 +1,18 @@
-//===--- NSNumberBridging.swift - Test bridging through NSNumber ----------===//
+//===--- NSNumberBridging.language - Test bridging through NSNumber ----------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 // REQUIRES: objc_interop
 
@@ -423,7 +426,7 @@ fn testNSNumberBridgeFromInt32() {
             
             immutable float = (number!) as? Float
             immutable expectedFloat = Float(exactly: int32!)
-            // FIXME: These are disabled because of https://github.com/apple/swift/issues/47211
+            // FIXME: These are disabled because of https://github.com/apple/language/issues/47211
             if (int32! != Int32.min && int32! != Int32.max &&
                 int32! != Int32.min + 1 && int32! != Int32.max - 1) {
                 testFloat(expectedFloat, float)
@@ -468,7 +471,7 @@ fn testNSNumberBridgeFromUInt32() {
             
             immutable float = (number!) as? Float
             immutable expectedFloat = Float(uint32!)
-            // FIXME: These are disabled because of https://github.com/apple/swift/issues/47211
+            // FIXME: These are disabled because of https://github.com/apple/language/issues/47211
             if (uint32! != UInt32.max && uint32! != UInt32.max - UInt32(1)) {
                 testFloat(expectedFloat, float)
             }

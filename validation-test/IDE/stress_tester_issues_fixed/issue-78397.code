@@ -1,6 +1,6 @@
 // RUN: %batch-code-completion
 
-// https://github.com/apple/swift/issues/78397
+// https://github.com/apple/language/issues/78397
 
 struct TabView<Content> {
   public init(@ViewBuilder content: () -> Content)

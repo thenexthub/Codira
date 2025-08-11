@@ -33,7 +33,7 @@ public class SwiftArenaTest {
     }
 
     // FIXME: The destroy witness table call hangs on x86_64 platforms during the destroy witness table call
-    //        See: https://github.com/swiftlang/swift-java/issues/97
+    //        See: https://github.com/languagelang/language-java/issues/97
     @Test
     @DisabledIf("isAmd64")
     public void arena_releaseClassOnClose_class_ok() {
@@ -49,7 +49,7 @@ public class SwiftArenaTest {
     }
 
     // FIXME: The destroy witness table call hangs on x86_64 platforms during the destroy witness table call
-    //        See: https://github.com/swiftlang/swift-java/issues/97
+    //        See: https://github.com/languagelang/language-java/issues/97
     @Test
     public void arena_markAsDestroyed_preventUseAfterFree_class() {
         MySwiftClass unsafelyEscapedOutsideArenaScope = null;
@@ -68,7 +68,7 @@ public class SwiftArenaTest {
     }
 
     // FIXME: The destroy witness table call hangs on x86_64 platforms during the destroy witness table call
-    //        See: https://github.com/swiftlang/swift-java/issues/97
+    //        See: https://github.com/languagelang/language-java/issues/97
     @Test
     public void arena_markAsDestroyed_preventUseAfterFree_struct() {
         MySwiftStruct unsafelyEscapedOutsideArenaScope = null;

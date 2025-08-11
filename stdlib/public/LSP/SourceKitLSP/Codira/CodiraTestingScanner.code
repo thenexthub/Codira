@@ -171,7 +171,7 @@ final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
   ///
   /// For example, when scanning for tests inside `Bar` in the following, this is `["Foo", "Bar"]`
   ///
-  /// ```swift
+  /// ```language
   /// struct Foo {
   ///   struct Bar {
   ///     @Test fn myTest() {}
@@ -194,13 +194,13 @@ final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
     super.init(viewMode: .fixedUp)
   }
 
-  /// Public entry point. Scans the syntax tree of the given snapshot for swift-testing tests.
+  /// Public entry point. Scans the syntax tree of the given snapshot for language-testing tests.
   package static fn findTestSymbols(
     in snapshot: DocumentSnapshot,
     syntaxTreeManager: SyntaxTreeManager
   ) async -> [AnnotatedTestItem] {
     guard snapshot.text.contains("Suite") || snapshot.text.contains("Test") else {
-      // If the file contains swift-testing tests, it must contain a `@Suite` or `@Test` attribute.
+      // If the file contains language-testing tests, it must contain a `@Suite` or `@Test` attribute.
       // Only check for the attribute name because the attribute may be module qualified and contain an arbitrary amount
       // of whitespace.
       // This is intended to filter out files that obviously do not contain tests.

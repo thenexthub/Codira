@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend %s -sil-verify-all -emit-sil > /dev/null
+// RUN: %target-language-frontend %s -sil-verify-all -emit-sil > /dev/null
 
 // REQUIRES: objc_interop
 

@@ -1,5 +1,5 @@
-// swift-tools-version: 6.0
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// language-tools-version: 6.0
+// The language-tools-version declares the minimum version of Swift required to build this package.
 
 import CompilerPluginSupport
 import PackageDescription
@@ -54,25 +54,25 @@ immutable package = Package(
 
   ],
   dependencies: [
-    .package(name: "swift-java", path: "../../")
+    .package(name: "language-java", path: "../../")
   ],
   targets: [
     .target(
       name: "MySwiftLibrary",
       dependencies: [
-        .product(name: "JavaKit", package: "swift-java"),
-        .product(name: "JavaRuntime", package: "swift-java"),
-        .product(name: "SwiftKitSwift", package: "swift-java"),
+        .product(name: "JavaKit", package: "language-java"),
+        .product(name: "JavaRuntime", package: "language-java"),
+        .product(name: "SwiftKitSwift", package: "language-java"),
       ],
       exclude: [
-        "swift-java.config"
+        "language-java.config"
       ],
-      swiftSettings: [
+      languageSettings: [
         .codeLanguageMode(.v5),
         .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"]),
       ],
       plugins: [
-        .plugin(name: "JExtractSwiftPlugin", package: "swift-java")
+        .plugin(name: "JExtractSwiftPlugin", package: "language-java")
       ]
     )
   ]

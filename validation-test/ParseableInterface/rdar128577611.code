@@ -1,7 +1,7 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-swift-emit-module-interface(%t/Library.swiftinterface) %s -module-name Library
-// RUN: %target-swift-typecheck-module-from-interface(%t/Library.swiftinterface) -module-name Library
-// RUN: %FileCheck %s < %t/Library.swiftinterface
+// RUN: %target-language-emit-module-interface(%t/Library.languageinterface) %s -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.languageinterface) -module-name Library
+// RUN: %FileCheck %s < %t/Library.languageinterface
 
 struct InternalStruct {}
 extension [Int: InternalStruct]: Sendable {}

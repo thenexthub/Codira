@@ -5,8 +5,8 @@
 // Copyright (c) 2022-2023 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -449,7 +449,7 @@ private fn createDescription<each Input, Output>(variable: repeat PredicateExpre
 
 @available(macOS 14.4, iOS 17.4, tvOS 17.4, watchOS 10.4, *)
 extension Predicate : CustomStringConvertible {
-    @_optimize(none) // Work around swift optimizer crash (rdar://124533887)
+    @_optimize(none) // Work around language optimizer crash (rdar://124533887)
     public var description: String {
         createDescription(variable: repeat each variable, expression: expression, typeName: "Predicate")
     }

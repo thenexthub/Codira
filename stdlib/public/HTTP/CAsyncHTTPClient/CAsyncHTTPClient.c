@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include <time.h>
 
-bool swiftahc_cshims_strptime(const char * string, const char * format, struct tm * result) {
+bool languageahc_cshims_strptime(const char * string, const char * format, struct tm * result) {
     const char * firstNonProcessed = strptime(string, format, result);
     if (firstNonProcessed) {
         return *firstNonProcessed == 0;
@@ -29,7 +29,7 @@ bool swiftahc_cshims_strptime(const char * string, const char * format, struct t
     return false;
 }
 
-bool swiftahc_cshims_strptime_l(const char * string, const char * format, struct tm * result, void * locale) {
+bool languageahc_cshims_strptime_l(const char * string, const char * format, struct tm * result, void * locale) {
     // The pointer cast is fine as long we make sure it really points to a locale_t.
 #if defined(__musl__) || defined(__ANDROID__)
     const char * firstNonProcessed = strptime(string, format, result);

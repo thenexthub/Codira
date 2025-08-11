@@ -20,7 +20,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SWIFT_SENDABLE __attribute__((__swift_attr__("@Sendable")))
+#define SWIFT_SENDABLE __attribute__((__language_attr__("@Sendable")))
 
 // Avoid including <sourcekitd/sourcekitd.h> to make sure we don't call the
 // functions directly. But we need the types to form the function pointers.

@@ -39,7 +39,7 @@ public protocol FileSystemProtocol: Sendable {
     /// Opens the file at `path` for reading and returns a handle to it.
     ///
     /// The file being opened must exist otherwise this function will throw a ``FileSystemError``
-    /// with code ``FileSystemError/Code-swift.struct/notFound``.
+    /// with code ``FileSystemError/Code-language.struct/notFound``.
     ///
     /// - Parameters:
     ///   - path: The path of the file to open.
@@ -171,8 +171,8 @@ public protocol FileSystemProtocol: Sendable {
     /// Copies the item at the specified path to a new location.
     ///
     /// The following error codes may be thrown:
-    /// - ``FileSystemError/Code-swift.struct/notFound`` if the item at `sourcePath` does not exist,
-    /// - ``FileSystemError/Code-swift.struct/invalidArgument`` if an item at `destinationPath`
+    /// - ``FileSystemError/Code-language.struct/notFound`` if the item at `sourcePath` does not exist,
+    /// - ``FileSystemError/Code-language.struct/invalidArgument`` if an item at `destinationPath`
     ///   exists prior to the copy or its parent directory does not exist.
     ///
     /// Note that other errors may also be thrown.
@@ -273,8 +273,8 @@ public protocol FileSystemProtocol: Sendable {
     /// Moves the file or directory at the specified path to a new location.
     ///
     /// The following error codes may be thrown:
-    /// - ``FileSystemError/Code-swift.struct/notFound`` if the item at `sourcePath` does not exist,
-    /// - ``FileSystemError/Code-swift.struct/invalidArgument`` if an item at `destinationPath`
+    /// - ``FileSystemError/Code-language.struct/notFound`` if the item at `sourcePath` does not exist,
+    /// - ``FileSystemError/Code-language.struct/invalidArgument`` if an item at `destinationPath`
     ///   exists prior to the copy or its parent directory does not exist.
     ///
     /// Note that other errors may also be thrown.
@@ -289,9 +289,9 @@ public protocol FileSystemProtocol: Sendable {
     /// Replaces the item at `destinationPath` with the item at `existingPath`.
     ///
     /// The following error codes may be thrown:
-    /// - ``FileSystemError/Code-swift.struct/notFound`` if the item at `existingPath` does
+    /// - ``FileSystemError/Code-language.struct/notFound`` if the item at `existingPath` does
     ///    not exist,
-    /// - ``FileSystemError/Code-swift.struct/io`` if the file at `existingPath` was successfully
+    /// - ``FileSystemError/Code-language.struct/io`` if the file at `existingPath` was successfully
     ///    copied to `destinationPath` but an error occurred while removing it from `existingPath.`
     ///
     /// Note that other errors may also be thrown.
@@ -423,7 +423,7 @@ extension FileSystemProtocol {
     /// Opens the file at `path` for reading and returns a handle to it.
     ///
     /// The file being opened must exist otherwise this function will throw a ``FileSystemError``
-    /// with code ``FileSystemError/Code-swift.struct/notFound``.
+    /// with code ``FileSystemError/Code-language.struct/notFound``.
     ///
     /// - Parameters:
     ///   - path: The path of the file to open.
@@ -462,8 +462,8 @@ extension FileSystemProtocol {
     /// Copies the item at the specified path to a new location.
     ///
     /// The following error codes may be thrown:
-    /// - ``FileSystemError/Code-swift.struct/notFound`` if the item at `sourcePath` does not exist,
-    /// - ``FileSystemError/Code-swift.struct/invalidArgument`` if an item at `destinationPath`
+    /// - ``FileSystemError/Code-language.struct/notFound`` if the item at `sourcePath` does not exist,
+    /// - ``FileSystemError/Code-language.struct/invalidArgument`` if an item at `destinationPath`
     ///   exists prior to the copy or its parent directory does not exist.
     ///
     /// Note that other errors may also be thrown. If any error is encountered during the copy
@@ -501,8 +501,8 @@ extension FileSystemProtocol {
     /// #### Errors
     ///
     /// Error codes thrown include:
-    /// - ``FileSystemError/Code-swift.struct/notFound`` if `sourcePath` doesn't exist.
-    /// - ``FileSystemError/Code-swift.struct/fileAlreadyExists`` if `destinationPath` exists.
+    /// - ``FileSystemError/Code-language.struct/notFound`` if `sourcePath` doesn't exist.
+    /// - ``FileSystemError/Code-language.struct/fileAlreadyExists`` if `destinationPath` exists.
     ///
     /// #### Backward Compatibility details
     ///
@@ -544,8 +544,8 @@ extension FileSystemProtocol {
     /// Copies the item at the specified path to a new location.
     ///
     /// The following error codes may be thrown:
-    /// - ``FileSystemError/Code-swift.struct/notFound`` if the item at `sourcePath` does not exist,
-    /// - ``FileSystemError/Code-swift.struct/invalidArgument`` if an item at `destinationPath`
+    /// - ``FileSystemError/Code-language.struct/notFound`` if the item at `sourcePath` does not exist,
+    /// - ``FileSystemError/Code-language.struct/invalidArgument`` if an item at `destinationPath`
     ///   exists prior to the copy or its parent directory does not exist.
     ///
     /// Note that other errors may also be thrown.

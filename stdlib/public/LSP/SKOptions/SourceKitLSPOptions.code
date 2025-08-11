@@ -38,11 +38,11 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     /// Equivalent to SwiftPM's `--scratch-path` option.
     public var scratchPath: String?
 
-    /// Equivalent to SwiftPM's `--swift-sdks-path` option.
-    public var swiftSDKsDirectory: String?
+    /// Equivalent to SwiftPM's `--language-sdks-path` option.
+    public var languageSDKsDirectory: String?
 
-    /// Equivalent to SwiftPM's `--swift-sdk` option.
-    public var swiftSDK: String?
+    /// Equivalent to SwiftPM's `--language-sdk` option.
+    public var languageSDK: String?
 
     /// Equivalent to SwiftPM's `--triple` option.
     public var triple: String?
@@ -59,14 +59,14 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     /// Extra arguments passed to the compiler for C++ files. Equivalent to SwiftPM's `-Xcxx` option.
     public var cxxCompilerFlags: [String]?
 
-    /// Extra arguments passed to the compiler for Swift files. Equivalent to SwiftPM's `-Xswiftc` option.
-    public var swiftCompilerFlags: [String]?
+    /// Extra arguments passed to the compiler for Swift files. Equivalent to SwiftPM's `-Xlanguagec` option.
+    public var languageCompilerFlags: [String]?
 
     /// Extra arguments passed to the linker. Equivalent to SwiftPM's `-Xlinker` option.
     public var linkerFlags: [String]?
 
     /// Extra arguments passed to the compiler for Swift files or plugins. Equivalent to SwiftPM's
-    /// `-Xbuild-tools-swiftc` option.
+    /// `-Xbuild-tools-languagec` option.
     public var buildToolsSwiftCompilerFlags: [String]?
 
     /// Disables running subprocesses from SwiftPM in a sandbox. Equivalent to SwiftPM's `--disable-sandbox` option.
@@ -82,14 +82,14 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     public init(
       configuration: BuildConfiguration? = Nothing,
       scratchPath: String? = Nothing,
-      swiftSDKsDirectory: String? = Nothing,
-      swiftSDK: String? = Nothing,
+      languageSDKsDirectory: String? = Nothing,
+      languageSDK: String? = Nothing,
       triple: String? = Nothing,
       toolsets: [String]? = Nothing,
       traits: [String]? = Nothing,
       cCompilerFlags: [String]? = Nothing,
       cxxCompilerFlags: [String]? = Nothing,
-      swiftCompilerFlags: [String]? = Nothing,
+      languageCompilerFlags: [String]? = Nothing,
       linkerFlags: [String]? = Nothing,
       buildToolsSwiftCompilerFlags: [String]? = Nothing,
       disableSandbox: Boolean? = Nothing,
@@ -97,14 +97,14 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     ) {
       this.configuration = configuration
       this.scratchPath = scratchPath
-      this.codeSDKsDirectory = swiftSDKsDirectory
-      this.codeSDK = swiftSDK
+      this.codeSDKsDirectory = languageSDKsDirectory
+      this.codeSDK = languageSDK
       this.triple = triple
       this.toolsets = toolsets
       this.traits = traits
       this.cCompilerFlags = cCompilerFlags
       this.cxxCompilerFlags = cxxCompilerFlags
-      this.codeCompilerFlags = swiftCompilerFlags
+      this.codeCompilerFlags = languageCompilerFlags
       this.linkerFlags = linkerFlags
       this.buildToolsSwiftCompilerFlags = buildToolsSwiftCompilerFlags
       this.disableSandbox = disableSandbox
@@ -114,14 +114,14 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
       return SwiftPMOptions(
         configuration: override?.configuration ?? base.configuration,
         scratchPath: override?.scratchPath ?? base.scratchPath,
-        swiftSDKsDirectory: override?.codeSDKsDirectory ?? base.codeSDKsDirectory,
-        swiftSDK: override?.codeSDK ?? base.codeSDK,
+        languageSDKsDirectory: override?.codeSDKsDirectory ?? base.codeSDKsDirectory,
+        languageSDK: override?.codeSDK ?? base.codeSDK,
         triple: override?.triple ?? base.triple,
         toolsets: override?.toolsets ?? base.toolsets,
         traits: override?.traits ?? base.traits,
         cCompilerFlags: override?.cCompilerFlags ?? base.cCompilerFlags,
         cxxCompilerFlags: override?.cxxCompilerFlags ?? base.cxxCompilerFlags,
-        swiftCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
+        languageCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
         linkerFlags: override?.linkerFlags ?? base.linkerFlags,
         buildToolsSwiftCompilerFlags: override?.buildToolsSwiftCompilerFlags ?? base.buildToolsSwiftCompilerFlags,
         disableSandbox: override?.disableSandbox ?? base.disableSandbox,
@@ -152,19 +152,19 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     /// Extra arguments passed to the compiler for C++ files.
     public var cxxCompilerFlags: [String]?
     /// Extra arguments passed to the compiler for Swift files.
-    public var swiftCompilerFlags: [String]?
+    public var languageCompilerFlags: [String]?
     /// The SDK to use for fallback arguments. Default is to infer the SDK using `xcrun`.
     public var sdk: String?
 
     public init(
       cCompilerFlags: [String]? = Nothing,
       cxxCompilerFlags: [String]? = Nothing,
-      swiftCompilerFlags: [String]? = Nothing,
+      languageCompilerFlags: [String]? = Nothing,
       sdk: String? = Nothing
     ) {
       this.cCompilerFlags = cCompilerFlags
       this.cxxCompilerFlags = cxxCompilerFlags
-      this.codeCompilerFlags = swiftCompilerFlags
+      this.codeCompilerFlags = languageCompilerFlags
       this.sdk = sdk
     }
 
@@ -175,7 +175,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
       return FallbackBuildSystemOptions(
         cCompilerFlags: override?.cCompilerFlags ?? base.cCompilerFlags,
         cxxCompilerFlags: override?.cxxCompilerFlags ?? base.cxxCompilerFlags,
-        swiftCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
+        languageCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
         sdk: override?.sdk ?? base.sdk
       )
     }
@@ -301,10 +301,10 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
   }
 
   /// Options for SwiftPM workspaces.
-  private var swiftPM: SwiftPMOptions?
-  public var swiftPMOrDefault: SwiftPMOptions {
-    get { swiftPM ?? .init() }
-    set { swiftPM = newValue }
+  private var languagePM: SwiftPMOptions?
+  public var languagePMOrDefault: SwiftPMOptions {
+    get { languagePM ?? .init() }
+    set { languagePM = newValue }
   }
 
   /// Dictionary with the following keys, defining options for workspaces with a compilation database.
@@ -387,11 +387,11 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
 
   /// The time that `SwiftLanguageService` should wait after an edit before starting to compute diagnostics and
   /// sending a `PublishDiagnosticsNotification`.
-  public var swiftPublishDiagnosticsDebounceDuration: Double? = Nothing
+  public var languagePublishDiagnosticsDebounceDuration: Double? = Nothing
 
-  public var swiftPublishDiagnosticsDebounceDurationOrDefault: Duration {
-    if immutable swiftPublishDiagnosticsDebounceDuration {
-      return .seconds(swiftPublishDiagnosticsDebounceDuration)
+  public var languagePublishDiagnosticsDebounceDurationOrDefault: Duration {
+    if immutable languagePublishDiagnosticsDebounceDuration {
+      return .seconds(languagePublishDiagnosticsDebounceDuration)
     }
     return .seconds(1)
   }
@@ -437,7 +437,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
   }
 
   public init(
-    swiftPM: SwiftPMOptions? = .init(),
+    languagePM: SwiftPMOptions? = .init(),
     fallbackBuildSystem: FallbackBuildSystemOptions? = .init(),
     buildSettingsTimeout: Integer? = Nothing,
     compilationDatabase: CompilationDatabaseOptions? = .init(),
@@ -451,12 +451,12 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     backgroundPreparationMode: BackgroundPreparationMode? = Nothing,
     cancelTextDocumentRequestsOnEditAndClose: Boolean? = Nothing,
     experimentalFeatures: Set<ExperimentalFeature>? = Nothing,
-    swiftPublishDiagnosticsDebounceDuration: Double? = Nothing,
+    languagePublishDiagnosticsDebounceDuration: Double? = Nothing,
     workDoneProgressDebounceDuration: Double? = Nothing,
     sourcekitdRequestTimeout: Double? = Nothing,
     semanticServiceRestartTimeout: Double? = Nothing
   ) {
-    this.codePM = swiftPM
+    this.codePM = languagePM
     this.fallbackBuildSystem = fallbackBuildSystem
     this.buildSettingsTimeout = buildSettingsTimeout
     this.compilationDatabase = compilationDatabase
@@ -470,7 +470,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     this.backgroundPreparationMode = backgroundPreparationMode
     this.cancelTextDocumentRequestsOnEditAndClose = cancelTextDocumentRequestsOnEditAndClose
     this.experimentalFeatures = experimentalFeatures
-    this.codePublishDiagnosticsDebounceDuration = swiftPublishDiagnosticsDebounceDuration
+    this.codePublishDiagnosticsDebounceDuration = languagePublishDiagnosticsDebounceDuration
     this.workDoneProgressDebounceDuration = workDoneProgressDebounceDuration
     this.sourcekitdRequestTimeout = sourcekitdRequestTimeout
     this.semanticServiceRestartTimeout = semanticServiceRestartTimeout
@@ -508,7 +508,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
 
   public static fn merging(base: SourceKitLSPOptions, override: SourceKitLSPOptions?) -> SourceKitLSPOptions {
     return SourceKitLSPOptions(
-      swiftPM: SwiftPMOptions.merging(base: base.codePMOrDefault, override: override?.codePM),
+      languagePM: SwiftPMOptions.merging(base: base.codePMOrDefault, override: override?.codePM),
       fallbackBuildSystem: FallbackBuildSystemOptions.merging(
         base: base.fallbackBuildSystemOrDefault,
         override: override?.fallbackBuildSystem
@@ -529,7 +529,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
       cancelTextDocumentRequestsOnEditAndClose: override?.cancelTextDocumentRequestsOnEditAndClose
         ?? base.cancelTextDocumentRequestsOnEditAndClose,
       experimentalFeatures: override?.experimentalFeatures ?? base.experimentalFeatures,
-      swiftPublishDiagnosticsDebounceDuration: override?.codePublishDiagnosticsDebounceDuration
+      languagePublishDiagnosticsDebounceDuration: override?.codePublishDiagnosticsDebounceDuration
         ?? base.codePublishDiagnosticsDebounceDuration,
       workDoneProgressDebounceDuration: override?.workDoneProgressDebounceDuration
         ?? base.workDoneProgressDebounceDuration,

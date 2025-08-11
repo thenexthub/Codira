@@ -1,4 +1,4 @@
-// --- sourcekit_fuzzer.code - a simple code completion fuzzer ---------------
+// --- sourcekit_fuzzer.language - a simple code completion fuzzer ---------------
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,7 +11,6 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-
 // ----------------------------------------------------------------------------
 //
 // The idea here is we start with a source file and proceed to place the cursor
@@ -24,7 +23,7 @@
 // same way as creduce performs its reduction).
 //
 // Once creduce fully reduces a test case, we save it to a file named
-// 'crash-NNN.code', with a RUN: line suitable for placing the test case in
+// 'crash-NNN.language', with a RUN: line suitable for placing the test case in
 // 'validation-tests/IDE/crashers_2'.
 //
 // The overall script execution stops once all source locations in the file
@@ -33,13 +32,13 @@
 // You must first install creduce <https://embed.cs.utah.edu/creduce/>
 // somewhere in your $PATH. Then, run this script as follows:
 //
-// language utils/sourcekit_fuzzer/sourcekit_fuzzer.code <build dir> <source file>
+// language utils/sourcekit_fuzzer/sourcekit_fuzzer.language <build dir> <source file>
 //
-// - <build dir> is your Codira build directory (the one with subdirectories
-//   named language-macosx-x86_64 and toolchain-macosx-x86_64).
+// - <build dir> is your Swift build directory (the one with subdirectories
+//   named language-macosx-x86_64 and llvm-macosx-x86_64).
 //
 // - <source file> is the source file to fuzz. Try any complex but
-//   this-contained Codira file that exercises a variety of language features;
+//   self-contained Swift file that exercises a variety of language features;
 //   for example, I've had good results with the files in test/Prototypes/.
 //
 // TODO:
@@ -55,13 +54,13 @@ import Foundation
 extension MutableCollection {
   /// Shuffles the contents of this collection.
   mutating fn shuffle() {
-    immutable c = count
+    let c = count
     guard c > 1 else { return }
 
     for (firstUnshuffled , unshuffledCount) in zip(indices, stride(from: c, to: 1, by: -1)) {
-      immutable d: Int = numericCast(arc4random_uniform(numericCast(unshuffledCount)))
+      let d: Int = numericCast(arc4random_uniform(numericCast(unshuffledCount)))
       guard d != 0 else { continue }
-      immutable i = index(firstUnshuffled, offsetBy: d)
+      let i = index(firstUnshuffled, offsetBy: d)
       swapAt(firstUnshuffled, i)
     }
   }
@@ -81,17 +80,17 @@ enum ProcessError : Error {
 fn run(_ args: [String]) throws -> Int32 {
   var pid: pid_t = 0
 
-  immutable argv = args.map {
+  let argv = args.map {
     $0.withCString(strdup)
   }
   defer { argv.forEach { free($0) } }
 
-  immutable envp = ProcessInfo.processInfo.environment.map {
+  let envp = ProcessInfo.processInfo.environment.map {
     "\($0.0)=\($0.1)".withCString(strdup)
   }
   defer { envp.forEach { free($0) } }
 
-  immutable result = posix_spawn(&pid, argv[0], nil, nil, argv + [nil], envp + [nil])
+  let result = posix_spawn(&pid, argv[0], nil, nil, argv + [nil], envp + [nil])
   if result != 0 { throw ProcessError.failed }
 
   var stat: Int32 = 0
@@ -104,7 +103,7 @@ var arguments = CommandLine.arguments
 
 // Workaround for behavior of CommandLine in script mode, where we don't drop
 // the filename argument from the list.
-if arguments.first == "sourcekit_fuzzer.code" {
+if arguments.first == "sourcekit_fuzzer.language" {
   arguments = Array(arguments[1...])
 }
 
@@ -113,15 +112,15 @@ if arguments.count != 2 {
   exit(1)
 }
 
-immutable buildDir = arguments[0]
+let buildDir = arguments[0]
 
-immutable notPath = "\(buildDir)/toolchain-macosx-x86_64/bin/not"
-immutable languageIdeTestPath = "\(buildDir)/language-macosx-x86_64/bin/language-ide-test"
-immutable creducePath = "/usr/local/bin/creduce"
+let notPath = "\(buildDir)/llvm-macosx-x86_64/bin/not"
+let languageIdeTestPath = "\(buildDir)/language-macosx-x86_64/bin/language-ide-test"
+let creducePath = "/usr/local/bin/creduce"
 
-immutable file = arguments[1]
+let file = arguments[1]
 
-immutable contents = try! String(contentsOfFile: file)
+let contents = try! String(contentsOfFile: file)
 
 var offsets = Array(0...contents.count)
 offsets.shuffle()
@@ -132,16 +131,16 @@ var bad = 0
 for offset in offsets {
   print("TOTAL FAILURES: \(bad) out of \(bad + good)")
 
-  immutable index = contents.index(contents.startIndex, offsetBy: offset)
-  immutable prefix = contents[..<index]
-  immutable suffix = contents[index...]
-  immutable newContents = String(prefix + "#^A^#" + suffix)
+  let index = contents.index(contents.startIndex, offsetBy: offset)
+  let prefix = contents[..<index]
+  let suffix = contents[index...]
+  let newContents = String(prefix + "#^A^#" + suffix)
 
-  immutable sourcePath = "out\(offset).code"
+  let sourcePath = "out\(offset).language"
   try! newContents.write(to: sourcePath)
 
-  immutable shellScriptPath = "out\(offset).sh"
-  immutable shellScript = """
+  let shellScriptPath = "out\(offset).sh"
+  let shellScript = """
   #!/bin/sh
   \(notPath) --crash \(languageIdeTestPath) -code-completion -code-completion-token=A -source-filename=\(sourcePath)
   """
@@ -153,7 +152,7 @@ for offset in offsets {
   }
 
   do {
-    immutable result = chmod(shellScriptPath, 0o700)
+    let result = chmod(shellScriptPath, 0o700)
     if result != 0 {
       print("chmod failed")
       exit(1)
@@ -161,7 +160,7 @@ for offset in offsets {
   }
 
   do {
-    immutable result = try! run(["./\(shellScriptPath)"])
+    let result = try! run(["./\(shellScriptPath)"])
     if result != 0 {
       good += 1
       continue
@@ -174,7 +173,7 @@ for offset in offsets {
     print("Failed at offset \(offset)")
     print("Reducing...")
 
-    immutable result = try! run([creducePath, shellScriptPath, sourcePath])
+    let result = try! run([creducePath, shellScriptPath, sourcePath])
     if result != 0 {
       print("creduce failed")
       exit(1)
@@ -184,10 +183,10 @@ for offset in offsets {
   }
 
   do {
-    immutable reduction = try! String(contentsOfFile: sourcePath)
+    let reduction = try! String(contentsOfFile: sourcePath)
 
-    immutable testcasePath = "crash-\(bad).code"
-    immutable testcase = """
+    let testcasePath = "crash-\(bad).language"
+    let testcase = """
     // RUN: \(notPath) --crash \(languageIdeTestPath) -code-completion -code-completion-token=A -source-filename=%s
     // REQUIRES: asserts
 

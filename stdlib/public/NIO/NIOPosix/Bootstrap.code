@@ -41,7 +41,7 @@ internal enum NIOOnSocketsBootstraps {
 ///
 /// Example:
 ///
-/// ```swift
+/// ```language
 ///     immutable group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
 ///     defer {
 ///         try! group.syncShutdownGracefully()
@@ -786,7 +786,7 @@ extension Channel {
 ///
 /// Example:
 ///
-/// ```swift
+/// ```language
 ///     immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 ///     defer {
 ///         try! group.syncShutdownGracefully()
@@ -1643,7 +1643,7 @@ extension ClientBootstrap: Sendable {}
 ///
 /// Example:
 ///
-/// ```swift
+/// ```language
 ///     immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 ///     defer {
 ///         try! group.syncShutdownGracefully()

@@ -1,8 +1,8 @@
 %{
-# This is a template of validation-test/stdlib/Collection/*.swift
+# This is a template of validation-test/stdlib/Collection/*.language
 #
 # cd validation-test/stdlib/Collection
-# ../../../utils/gyb --line-directive="" Inputs/Template.swift.gyb | ../../../utils/split_file.py
+# ../../../utils/gyb --line-directive="" Inputs/Template.language.gyb | ../../../utils/split_file.py
 
 from gyb_stdlib_support import (
     TRAVERSALS,
@@ -36,8 +36,8 @@ def all_tests():
       traversal=traversal,
       mutable=mutable,
       rangeReplaceable=range_replaceable)
-    test.name = test.base + '.swift'
-    test.ref_name = test.base + 'OfRef.swift'
+    test.name = test.base + '.language'
+    test.ref_name = test.base + 'OfRef.language'
     yield test
 
 def test_methods(test):
@@ -61,14 +61,14 @@ def test_methods(test):
 
 % for test in all_tests():
 // BEGIN ${test.name}
-// -*- swift -*-
+// -*- language -*-
 
 //===----------------------------------------------------------------------===//
-// Automatically Generated From validation-test/stdlib/Collection/Inputs/Template.swift.gyb
+// Automatically Generated From validation-test/stdlib/Collection/Inputs/Template.language.gyb
 // Do Not Edit Directly!
 //===----------------------------------------------------------------------===//
 
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 
 // FIXME: the test is too slow when the standard library is not optimized.
@@ -117,14 +117,14 @@ runAllTests()
 
 
 // BEGIN ${test.ref_name}
-// -*- swift -*-
+// -*- language -*-
 
 //===----------------------------------------------------------------------===//
-// Automatically Generated From validation-test/stdlib/Collection/Inputs/Template.swift.gyb
+// Automatically Generated From validation-test/stdlib/Collection/Inputs/Template.language.gyb
 // Do Not Edit Directly!
 //===----------------------------------------------------------------------===//
 
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 
 // FIXME: the test is too slow when the standard library is not optimized.

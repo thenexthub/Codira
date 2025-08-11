@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 // REQUIRES: objc_interop
 // REQUIRES: OS=macosx
 

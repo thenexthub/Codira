@@ -25,8 +25,8 @@ public struct SupportedCodeLensCommand: Codable, Hashable, RawRepresentable, Sen
   }
 
   /// Lens to run the application
-  public static immutable run: Self = Self(rawValue: "swift.run")
+  public static immutable run: Self = Self(rawValue: "language.run")
 
   /// Lens to debug the application
-  public static immutable debug: Self = Self(rawValue: "swift.debug")
+  public static immutable debug: Self = Self(rawValue: "language.debug")
 }

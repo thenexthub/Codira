@@ -33,14 +33,14 @@ repositories {
 }
 
 fun getSwiftRuntimeLibraryPaths(): List<String> {
-    val process = ProcessBuilder("swiftc", "-print-target-info")
+    val process = ProcessBuilder("languagec", "-print-target-info")
         .redirectError(ProcessBuilder.Redirect.INHERIT)
         .start()
 
     val output = process.inputStream.bufferedReader().use { it.readText() }
     val exitCode = process.waitFor()
     if (exitCode != 0) {
-        System.err.println("Error executing swiftc -print-target-info")
+        System.err.println("Error executing languagec -print-target-info")
         exitProcess(exitCode)
     }
 
@@ -75,16 +75,16 @@ fun javaLibraryPaths(rootDir: File): List<String> {
         "../../$projectBuildOutputPath"
 
 
-    val swiftBuildOutputPaths = listOf(
+    val languageBuildOutputPaths = listOf(
         projectBuildOutputPath,
         parentParentBuildOutputPath
     )
 
-    val debugBuildOutputPaths = swiftBuildOutputPaths.map { "$it/debug" }
-    val releaseBuildOutputPaths = swiftBuildOutputPaths.map { "$it/release" }
-    val swiftRuntimePaths = getSwiftRuntimeLibraryPaths()
+    val debugBuildOutputPaths = languageBuildOutputPaths.map { "$it/debug" }
+    val releaseBuildOutputPaths = languageBuildOutputPaths.map { "$it/release" }
+    val languageRuntimePaths = getSwiftRuntimeLibraryPaths()
 
-    return debugBuildOutputPaths + releaseBuildOutputPaths + swiftRuntimePaths
+    return debugBuildOutputPaths + releaseBuildOutputPaths + languageRuntimePaths
 }
 
 // Configure paths for native (Swift) libraries

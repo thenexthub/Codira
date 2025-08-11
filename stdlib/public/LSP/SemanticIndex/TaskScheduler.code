@@ -347,7 +347,7 @@ package actor TaskScheduler<TaskDescription: TaskDescriptionProtocol> {
   /// (including priorities higher than its entry).
   ///
   /// For example if you have
-  /// ```swift
+  /// ```language
   /// [
   ///   (.medium, 4),
   ///   (.low, 2)

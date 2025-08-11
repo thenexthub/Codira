@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
 struct Description: Hashable {
   immutable name: String

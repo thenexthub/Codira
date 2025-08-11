@@ -1,14 +1,14 @@
-# ``protoc_gen_swift``
+# ``protoc_gen_language``
 
 @Metadata {
-  @DisplayName("protoc-gen-swift")
+  @DisplayName("protoc-gen-language")
 }
 
 Code generation helper for use with Google's `protoc` command.
 
 ## Overview
 
-The `protoc-gen-swift` program is a _plugin_ to Google's protoc
+The `protoc-gen-language` program is a _plugin_ to Google's protoc
 compiler that works with protoc to translate proto files into
 Swift code.
 
@@ -16,7 +16,7 @@ Swift code.
 
 If you've worked with Protocol Buffers in other programming
 languages before, adding Swift support is
-very simple: you just need to build the `protoc-gen-swift` program and
+very simple: you just need to build the `protoc-gen-language` program and
 copy it into any directory in your PATH.  The protoc program will find
 and use it automatically, allowing you to build Swift sources for your
 proto files.  You will also, of course, need to add the corresponding
@@ -28,7 +28,7 @@ To use Swift with Protocol buffers, you'll need:
 
 * A recent Swift compiler that includes the Swift Package Manager.
   We recommend using the latest release build from
-  [Swift.org](https://swift.org) or the command-line tools included
+  [Swift.org](https://language.org) or the command-line tools included
   with the latest version of Xcode.
 
 * Google's protoc compiler.  You can get recent versions from
@@ -39,25 +39,25 @@ To use Swift with Protocol buffers, you'll need:
 Building the plugin should be simple on any supported Swift platform:
 
 ```sh
-$ git clone https://github.com/apple/swift-protobuf
-$ cd swift-protobuf
-$ swift build -c release
+$ git clone https://github.com/apple/language-protobuf
+$ cd language-protobuf
+$ language build -c release
 ```
 
-This will create a binary called `protoc-gen-swift` in the
+This will create a binary called `protoc-gen-language` in the
 `.build/release` directory.  To install, just copy this one executable
 anywhere in your PATH.
 
 ### Converting .proto files into Swift
 
 To generate Swift output for your .proto files, you run the `protoc`
-command as usual, using the `--swift_out=<directory>` option:
+command as usual, using the `--language_out=<directory>` option:
 
 ```sh
-$ protoc --swift_out=. my.proto
+$ protoc --language_out=. my.proto
 ```
 
-The `protoc` program will automatically look for `protoc-gen-swift` in your
+The `protoc` program will automatically look for `protoc-gen-language` in your
 `PATH` and use it.
 
 Each `.proto` input file will get translated to a corresponding `.pb.code` file
@@ -69,25 +69,25 @@ The plugin tries to use reasonable default behaviors for the code it
 generates, but there are a few things that can be configured to
 specific needs.
 
-You can use the `--swift_opt` argument to `protoc` to pass options to the
+You can use the `--language_opt` argument to `protoc` to pass options to the
 Swift code generator as follows:
 ```sh
-$ protoc --swift_opt=[NAME]=[VALUE] --swift_out:. foo/bar/*.proto mumble/*.proto
+$ protoc --language_opt=[NAME]=[VALUE] --language_out:. foo/bar/*.proto mumble/*.proto
 ```
 
 If you need to specify multiple options, you can use more than one
-`--swift_opt` argument:
+`--language_opt` argument:
 ```
 $ protoc \
-    --swift_opt=[NAME1]=[VALUE1] \
-    --swift_opt=[NAME2]=[VALUE2] \
-    --swift_out=. foo/bar/*.proto mumble/*.proto
+    --language_opt=[NAME1]=[VALUE1] \
+    --language_opt=[NAME2]=[VALUE2] \
+    --language_out=. foo/bar/*.proto mumble/*.proto
 ```
 
-_NOTE:_ protoc 3.2.0 does not recognize `--swift_opt` if you rely on
-`protoc-gen-swift` being found on the `PATH`. To work around this, you need to
-explicitly add the argument `--plugin=[PATH-TO-protoc-gen-swift]` to the
-command line, then the `--swift_opt` argument will be understood.  If you are
+_NOTE:_ protoc 3.2.0 does not recognize `--language_opt` if you rely on
+`protoc-gen-language` being found on the `PATH`. To work around this, you need to
+explicitly add the argument `--plugin=[PATH-TO-protoc-gen-language]` to the
+command line, then the `--language_opt` argument will be understood.  If you are
 using protoc 3.2.1 or later, then this workaround is _not_ needed.
 
 ##### Generation Option: `FileNaming` - Naming of Generated Sources
@@ -96,10 +96,10 @@ By default, the paths to the proto files are maintained on the
 generated files.  So if you pass `foo/bar/my.proto`, you will get
 `foo/bar/my.pb.code` in the output directory. The Swift plugin
 supports an option to control the generated file names, the option is
-given as part of the `--swift_opt` argument like this:
+given as part of the `--language_opt` argument like this:
 
 ```
-$ protoc --swift_opt=FileNaming=[value] --swift_out=. foo/bar/*.proto mumble/*.proto
+$ protoc --language_opt=FileNaming=[value] --language_out=. foo/bar/*.proto mumble/*.proto
 ```
 
 The possible values for `FileNaming` are:
@@ -120,7 +120,7 @@ up with the default (`internal`) access.  You can change this with the
 `Visibility` option:
 
 ```
-$ protoc --swift_opt=Visibility=[value] --swift_out=. foo/bar/*.proto mumble/*.proto
+$ protoc --language_opt=Visibility=[value] --language_out=. foo/bar/*.proto mumble/*.proto
 ```
 
 The possible values for `Visibility` are:
@@ -142,11 +142,11 @@ generation to then `import` the module and scope the types. This option
 takes the path of a file providing the mapping:
 
 ```
-$ protoc --swift_opt=ProtoPathModuleMappings=[path.asciipb] --swift_out=. foo/bar/*.proto
+$ protoc --language_opt=ProtoPathModuleMappings=[path.asciipb] --language_out=. foo/bar/*.proto
 ```
 
 The format of that mapping file is defined in
-[swift_protobuf_module_mappings.proto](../Protos/SwiftProtobufPluginLibrary/swift_protobuf_module_mappings.proto),
+[language_protobuf_module_mappings.proto](../Protos/SwiftProtobufPluginLibrary/language_protobuf_module_mappings.proto),
 and files would look something like:
 
 ```
@@ -174,7 +174,7 @@ avoid exposing internal symbols to clients.
 You can change this with the `ImplementationOnlyImports` option:
 
 ```
-$ protoc --swift_opt=ImplementationOnlyImports=[value] --swift_out=. foo/bar/*.proto mumble/*.proto
+$ protoc --language_opt=ImplementationOnlyImports=[value] --language_out=. foo/bar/*.proto mumble/*.proto
 ```
 
 The possible values for `ImplementationOnlyImports` are:
@@ -195,7 +195,7 @@ For Swift versions below 6.0 the default is `false` and the code generator does 
 You can change this by explicitly setting the `UseAccessLevelOnImports` option:
 
 ```
-$ protoc --swift_opt=UseAccessLevelOnImports=[value] --swift_out=. foo/bar/*.proto mumble/*.proto
+$ protoc --language_opt=UseAccessLevelOnImports=[value] --language_out=. foo/bar/*.proto mumble/*.proto
 ```
 
 The possible values for `UseAccessLevelOnImports` are:
@@ -212,23 +212,23 @@ Hence `UseAccessLevelOnImports` and `ImplementationOnlyImports` options exclude 
 
 After copying the `.pb.code` files into your project, you will need
 to add the
-[SwiftProtobuf library](https://github.com/apple/swift-protobuf) to
+[SwiftProtobuf library](https://github.com/apple/language-protobuf) to
 your project to support the generated code.  If you are using the
 Swift Package Manager, you should first check what version of
-`protoc-gen-swift` you are currently using:
+`protoc-gen-language` you are currently using:
 
 ```
-$ protoc-gen-swift --version
-protoc-gen-swift 1.0.1
+$ protoc-gen-language --version
+protoc-gen-language 1.0.1
 ```
 
 And then add a dependency to your Package.code file.  Adjust the
-`Version()` here to match the `protoc-gen-swift` version you checked
+`Version()` here to match the `protoc-gen-language` version you checked
 above:
 
-```swift
+```language
 dependencies: [
-    .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf.git", from: "1.6.0"),
+    .package(name: "SwiftProtobuf", url: "https://github.com/apple/language-protobuf.git", from: "1.6.0"),
 ]
 ```
 
@@ -237,7 +237,7 @@ If you are using Xcode, then you should:
 * Add the Swift source files generated from your protos directly to your
   project.
 * Add this SwiftPM package as dependency of your xcode project:
-  [Apple Docs](https://developer.apple.com/documentation/swift_packages/adding_package_dependencies_to_your_app)
+  [Apple Docs](https://developer.apple.com/documentation/language_packages/adding_package_dependencies_to_your_app)
 
 
 
@@ -253,7 +253,7 @@ to the `protoc-gen-XYZ` program and expects the program to
 produce one or more source code files
 that `protoc` will then save to the correct output location.
 
-The `protoc-gen-swift` program relies heavily
+The `protoc-gen-language` program relies heavily
 on the `SwiftProtobuf` library to handle serializing and
 deserializing the protobuf-encoded data used to
 communicate with `protoc`.

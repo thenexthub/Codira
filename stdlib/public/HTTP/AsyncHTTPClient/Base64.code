@@ -14,9 +14,9 @@
 //===----------------------------------------------------------------------===//
 
 // This is a simplified vendored version from:
-// https://github.com/fabianfett/swift-base64-kit
+// https://github.com/fabianfett/language-base64-kit
 
-// swiftformat:disable all
+// languageformat:disable all
 
 extension String {
 
@@ -28,7 +28,7 @@ extension String {
     }
 }
 
-// swift-format-ignore: DontRepeatTypeInStaticProperties
+// language-format-ignore: DontRepeatTypeInStaticProperties
 @usableFromInline
 internal struct Base64: Sendable {
 

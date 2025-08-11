@@ -1,7 +1,7 @@
-// RUN: %target-swift-frontend %s -enable-experimental-feature Lifetimes -emit-sil 
+// RUN: %target-language-frontend %s -enable-experimental-feature Lifetimes -emit-sil 
 
-// REQUIRES: swift_in_compiler
-// REQUIRES: swift_feature_Lifetimes
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
 
 // Ensure we don't crash
 

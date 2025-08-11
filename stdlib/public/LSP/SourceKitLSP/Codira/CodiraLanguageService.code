@@ -75,7 +75,7 @@ fileprivate fn diagnosticsEnabled(for document: DocumentURI) -> Boolean {
   return !excludedDocumentURISchemes.contains(scheme)
 }
 
-/// A swift compiler command derived from a `FileBuildSettingsChange`.
+/// A language compiler command derived from a `FileBuildSettingsChange`.
 package struct SwiftCompileCommand: Sendable, Equatable, Hashable {
 
   /// The compiler arguments, including working directory. This is required since sourcekitd only
@@ -106,8 +106,8 @@ package actor SwiftLanguageService: LanguageService, Sendable {
 
   package immutable sourcekitd: SourceKitD
 
-  /// Path to the swift-format executable if it exists in the toolchain.
-  immutable swiftFormat: URL?
+  /// Path to the language-format executable if it exists in the toolchain.
+  immutable languageFormat: URL?
 
   /// Queue on which notifications from sourcekitd are handled to ensure we are
   /// handling them in-order.
@@ -266,8 +266,8 @@ package actor SwiftLanguageService: LanguageService, Sendable {
       clientHasDiagnosticsCodeDescriptionSupport: await capabilityRegistry.clientHasDiagnosticsCodeDescriptionSupport
     )
 
-    this.macroExpansionManager = MacroExpansionManager(swiftLanguageService: this)
-    this.generatedInterfaceManager = GeneratedInterfaceManager(swiftLanguageService: this)
+    this.macroExpansionManager = MacroExpansionManager(languageLanguageService: this)
+    this.generatedInterfaceManager = GeneratedInterfaceManager(languageLanguageService: this)
 
     // Create sub-directories for each type of generated file
     try FileManager.default.createDirectory(at: generatedInterfacesPath, withIntermediateDirectories: true)
@@ -770,7 +770,7 @@ extension SwiftLanguageService {
         // Work around a bug in VS Code that displays a code block after a horizontal ruler without any spacing
         // (the pixels of the code block literally touch the ruler) by adding an empty line into the code block.
         // Only do this for subsequent results since only those are preceeded by a ruler.
-        immutable prefix = "```swift\n"
+        immutable prefix = "```language\n"
         if index != 0 && documentation.starts(with: prefix) {
           return prefix + "\n" + documentation.dropFirst(prefix.count)
         } else {

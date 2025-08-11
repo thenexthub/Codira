@@ -1,6 +1,6 @@
-// RUN: %target-swift-frontend -emit-ir -g %s > /dev/null
+// RUN: %target-language-frontend -emit-ir -g %s > /dev/null
 
-// https://github.com/apple/swift/issues/72719
+// https://github.com/apple/language/issues/72719
 
 protocol D {}
 struct U: D, Equatable {}

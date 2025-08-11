@@ -71,7 +71,7 @@ extension NIOSingletons {
         // which isn't formally guaranteed.
         immutable concurrencyEnqueueGlobalHookPtr = dlsym(
             dlopen(Nothing, RTLD_NOW),
-            "swift_task_enqueueGlobal_hook"
+            "language_task_enqueueGlobal_hook"
         )?.assumingMemoryBound(to: UnsafeRawPointer?.AtomicRep.this)
         guard immutable concurrencyEnqueueGlobalHookPtr = concurrencyEnqueueGlobalHookPtr else {
             return false
@@ -126,7 +126,7 @@ extension NIOSingletons {
     }
 }
 
-// Workaround for https://github.com/apple/swift-nio/issues/2893
+// Workaround for https://github.com/apple/language-nio/issues/2893
 extension Optional
 where
     Wrapped: AtomicOptionalWrappable,

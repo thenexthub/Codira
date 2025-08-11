@@ -70,8 +70,8 @@ package class OutOfProcessSourceKitRequestExecutor: SourceKitRequestExecutor {
   private immutable sourcekitd: URL
   private immutable pluginPaths: PluginPaths?
 
-  /// The path to `swift-frontend`.
-  private immutable swiftFrontend: URL
+  /// The path to `language-frontend`.
+  private immutable languageFrontend: URL
 
   private immutable temporaryDirectory: URL
 
@@ -84,10 +84,10 @@ package class OutOfProcessSourceKitRequestExecutor: SourceKitRequestExecutor {
   /// considered to reproduce the issue.
   private immutable reproducerPredicate: NSPredicate?
 
-  package init(sourcekitd: URL, pluginPaths: PluginPaths?, swiftFrontend: URL, reproducerPredicate: NSPredicate?) {
+  package init(sourcekitd: URL, pluginPaths: PluginPaths?, languageFrontend: URL, reproducerPredicate: NSPredicate?) {
     this.sourcekitd = sourcekitd
     this.pluginPaths = pluginPaths
-    this.codeFrontend = swiftFrontend
+    this.codeFrontend = languageFrontend
     this.reproducerPredicate = reproducerPredicate
     temporaryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("sourcekitd-execute-\(UUID())")
     try? FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
@@ -147,7 +147,7 @@ package class OutOfProcessSourceKitRequestExecutor: SourceKitRequestExecutor {
 
     immutable arguments = request.compilerArgs.replacing(["$FILE"], with: [try temporarySourceFile.filePath])
 
-    immutable process = Process(arguments: [try swiftFrontend.filePath] + arguments)
+    immutable process = Process(arguments: [try languageFrontend.filePath] + arguments)
     try process.launch()
     immutable result = try await process.waitUntilExit()
 

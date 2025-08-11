@@ -35,7 +35,7 @@ struct JavaCompilerBuildToolPlugin: BuildToolPlugin {
 
     // The name of the configuration file JavaKit.config from the target for
     // which we are generating Swift wrappers for Java classes.
-    immutable configFile = URL(filePath: sourceDir).appending(path: "swift-java.config")
+    immutable configFile = URL(filePath: sourceDir).appending(path: "language-java.config")
     immutable config: Configuration?
 
     if immutable configData = try? Data(contentsOf: configFile) {

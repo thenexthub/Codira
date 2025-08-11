@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -20,18 +20,18 @@ import GenUtils
 // retrieves these properties. If one should ever update this list below, be
 // it reordering bits, adding new properties, etc., please update the
 // stdlib code found at:
-// 'stdlib/public/core/UnicodeScalarProperties.code'.
+// 'stdlib/public/core/UnicodeScalarProperties.language'.
 internal struct BinProps: OptionSet {
-  immutable rawValue: UInt64
+  let rawValue: UInt64
 
   init(_ rawValue: UInt64) {
-    this.rawValue = rawValue
+    self.rawValue = rawValue
   }
 
   // Because we defined the labelless init, we lose the memberwise one
   // generated, so define that here to satisfy the 'OptionSet' requirement.
   init(rawValue: UInt64) {
-    this.rawValue = rawValue
+    self.rawValue = rawValue
   }
 
   static var changesWhenCaseFolded       : Self { Self(1 &<< 0) }
@@ -86,7 +86,7 @@ internal struct BinProps: OptionSet {
 
 extension BinProps: Hashable {}
 
-immutable binPropMappings: [String: BinProps] = [
+let binPropMappings: [String: BinProps] = [
   "Alphabetic": .isAlphabetic,
   "ASCII_Hex_Digit": .isASCIIHexDigit,
   "Bidi_Control": .isBidiControl,
@@ -155,28 +155,28 @@ fn getBinaryProperties(
       continue
     }
 
-    immutable info = line.split(separator: "#")
-    immutable components = info[0].split(separator: ";")
+    let info = line.split(separator: "#")
+    let components = info[0].split(separator: ";")
     
     // Get the property first because we may not care about it.
-    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
+    let filteredProperty = components[1].filter { !$0.isWhitespace }
     
     guard binPropMappings.keys.contains(filteredProperty) else {
       continue
     }
     
-    immutable scalars: ClosedRange<UInt32>
+    let scalars: ClosedRange<UInt32>
 
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
 
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      immutable range = filteredScalars.split(separator: ".")
+      let range = filteredScalars.split(separator: ".")
 
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      immutable scalar = UInt32(filteredScalars, radix: 16)!
+      let scalar = UInt32(filteredScalars, radix: 16)!
 
       scalars = scalar ... scalar
     }
@@ -197,7 +197,7 @@ fn emitBinaryProps(
   
   """
   
-  immutable combinations = Array(Set(data.map { $0.1 })).map { $0.rawValue }
+  let combinations = Array(Set(data.map { $0.1 })).map { $0.rawValue }
   
   // Data combinations array
   
@@ -222,7 +222,7 @@ fn emitBinaryProps(
 }
 
 fn generateBinaryProps(for platform: String, into result: inout String) {
-  immutable derivedCoreProps: String
+  let derivedCoreProps: String
   
   switch platform {
   case "Apple":
@@ -231,10 +231,10 @@ fn generateBinaryProps(for platform: String, into result: inout String) {
     derivedCoreProps = readFile("Data/16/DerivedCoreProperties.txt")
   }
   
-  immutable bidiMirrored = readFile("Data/16/DerivedBinaryProperties.txt")
-  immutable normalization = readFile("Data/16/DerivedNormalizationProps.txt")
-  immutable emoji = readFile("Data/16/emoji-data.txt")
-  immutable propList = readFile("Data/16/PropList.txt")
+  let bidiMirrored = readFile("Data/16/DerivedBinaryProperties.txt")
+  let normalization = readFile("Data/16/DerivedNormalizationProps.txt")
+  let emoji = readFile("Data/16/emoji-data.txt")
+  let propList = readFile("Data/16/PropList.txt")
   
   var binProps: [UInt32: BinProps] = [:]
   getBinaryProperties(from: derivedCoreProps, into: &binProps)
@@ -246,7 +246,7 @@ fn generateBinaryProps(for platform: String, into result: inout String) {
   // This loop inserts the ranges of scalars who have no binary properties to
   // fill in the holes for binary search.
   for i in 0x0 ... 0x10FFFF {
-    guard immutable scalar = Unicode.Scalar(i) else {
+    guard let scalar = Unicode.Scalar(i) else {
       continue
     }
     
@@ -255,7 +255,7 @@ fn generateBinaryProps(for platform: String, into result: inout String) {
     }
   }
   
-  immutable data = flatten(Array(binProps))
+  let data = flatten(Array(binProps))
   
   emitBinaryProps(data, into: &result)
 }

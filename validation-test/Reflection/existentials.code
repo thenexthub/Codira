@@ -1,7 +1,7 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/existentials
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/existentials
 // RUN: %target-codesign %t/existentials
-// RUN: %target-run %target-swift-reflection-test %t/existentials | %FileCheck %s --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
+// RUN: %target-run %target-language-reflection-test %t/existentials | %FileCheck %s --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test
@@ -9,7 +9,7 @@
 // UNSUPPORTED: asan
 
 /*
-   This file pokes at the swift_reflection_projectExistential API
+   This file pokes at the language_reflection_projectExistential API
    of the CodiraRemoteMirror library.
 
    It tests the three conditions of existential layout:

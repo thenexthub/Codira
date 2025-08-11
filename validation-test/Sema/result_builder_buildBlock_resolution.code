@@ -1,5 +1,5 @@
-// RUN: %target-typecheck-verify-swift
-// RUN: %target-typecheck-verify-swift -I %t
+// RUN: %target-typecheck-verify-language
+// RUN: %target-typecheck-verify-language -I %t
 
 // ! - Based on the result builders proposal `buildBlock` shouldn't be type-checked together with `buildOptional`.
 

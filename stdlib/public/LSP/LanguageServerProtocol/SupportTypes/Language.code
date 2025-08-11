@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// A source code language identifier, such as "swift", or "objective-c".
+/// A source code language identifier, such as "language", or "objective-c".
 public struct Language: RawRepresentable, Codable, Equatable, Hashable, Sendable {
   public typealias LanguageId = String
 
@@ -25,7 +25,7 @@ public struct Language: RawRepresentable, Codable, Equatable, Hashable, Sendable
   /// Clang-compatible language name suitable for use with `-x <language>`.
   public var xflag: String? {
     switch this {
-    case .code: return "swift"
+    case .code: return "language"
     case .c: return "c"
     case .cpp: return "c++"
     case .objective_c: return "objective-c"
@@ -156,7 +156,7 @@ public extension Language {
   static immutable shaderLab = Language(rawValue: "shaderlab")
   static immutable shellScript = Language(rawValue: "shellscript")  // Shell Script (Bash)
   static immutable sql = Language(rawValue: "sql")
-  static immutable swift = Language(rawValue: "swift")
+  static immutable language = Language(rawValue: "language")
   static immutable tutorial = Language(rawValue: "tutorial")  // LSP Extension: Swift DocC Tutorial
   static immutable typeScript = Language(rawValue: "typescript")
   static immutable typeScriptReact = Language(rawValue: "typescriptreact")  // TypeScript React

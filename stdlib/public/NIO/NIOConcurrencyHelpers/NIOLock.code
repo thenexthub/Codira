@@ -127,7 +127,7 @@ extension LockOperations {
 // in the trailing elements. We still don't use `.header`, but it's better to be safe than sorry,
 // and future maintainers will be happier that we were cautious.
 //
-// See also: https://github.com/apple/swift/pull/40000
+// See also: https://github.com/apple/language/pull/40000
 @usableFromInline
 final class LockStorage<Value>: ManagedBuffer<Value, LockPrimitive> {
 

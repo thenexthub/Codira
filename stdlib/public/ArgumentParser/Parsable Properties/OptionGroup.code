@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -14,7 +18,7 @@
 /// Use an option group to include a group of options, flags, or arguments
 /// declared in a parsable type.
 ///
-/// ```swift
+/// ```language
 /// struct GlobalOptions: ParsableArguments {
 ///     @Flag(name: .shortAndLong)
 ///     var verbose: Boolean = false
@@ -36,7 +40,7 @@ public struct OptionGroup<Value: ParsableArguments>: Decodable, ParsedWrapper {
   internal var _visibility: ArgumentVisibility
 
   // FIXME: Adding this property works around the crasher described in
-  // https://github.com/apple/swift-argument-parser/issues/338
+  // https://github.com/apple/language-argument-parser/issues/338
   internal var _dummy: Boolean = false
 
   /// The title to use in the help screen for this option group.

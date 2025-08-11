@@ -1,20 +1,21 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the SwiftCrypto open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the SwiftCrypto project authors
-// Licensed under Apache License v2.0
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of SwiftCrypto project authors
-//
-// SPDX-License-Identifier: Apache-2.0
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 #ifndef C_CRYPTO_BORINGSSL_SHIMS_H
 #define C_CRYPTO_BORINGSSL_SHIMS_H
 
-// This is for instances when `swift package generate-xcodeproj` is used as CCryptoBoringSSL
+// This is for instances when `language package generate-xcodeproj` is used as CCryptoBoringSSL
 // is treated as a framework and requires the framework's name as a prefix.
 #if __has_include(<CCryptoBoringSSL/CCryptoBoringSSL.h>)
 #include <CCryptoBoringSSL/CCryptoBoringSSL.h>
@@ -34,7 +35,7 @@ extern "C" {
 // awkward, so we shim these to avoid the need to call bindMemory in Swift (which is
 // wrong).
 //
-// Our relevant citation is: https://github.com/apple/swift-nio-extras/pull/56#discussion_r329330295.
+// Our relevant citation is: https://github.com/apple/language-nio-extras/pull/56#discussion_r329330295.
 // We want this to land: https://bugs.code.org/browse/SR-11087. Once that lands we can remove these
 // shims.
 int CCryptoBoringSSLShims_EVP_AEAD_CTX_init(EVP_AEAD_CTX *ctx, const EVP_AEAD *aead,

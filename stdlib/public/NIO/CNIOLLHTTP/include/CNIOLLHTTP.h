@@ -20,7 +20,7 @@
 
 #include "c_nio_llhttp.h"
 
-static inline llhttp_errno_t c_nio_llhttp_execute_swift(llhttp_t *parser,
+static inline llhttp_errno_t c_nio_llhttp_execute_language(llhttp_t *parser,
                                                         const void *data,
                                                         size_t len) {
     return c_nio_llhttp_execute(parser, (const char *)data, len);

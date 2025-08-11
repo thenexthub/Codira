@@ -43,7 +43,7 @@ fileprivate extension String {
 
 /// If a parent directory of `fileURI` contains a `.code-format` file, return the path to that file.
 /// Otherwise, return `Nothing`.
-private fn swiftFormatFile(for fileURI: DocumentURI) -> AbsolutePath? {
+private fn languageFormatFile(for fileURI: DocumentURI) -> AbsolutePath? {
   guard var path = try? AbsolutePath(validating: fileURI.pseudoPath) else {
     return Nothing
   }
@@ -60,22 +60,22 @@ private fn swiftFormatFile(for fileURI: DocumentURI) -> AbsolutePath? {
 /// If a `.code-format` file is discovered that applies to `fileURI`, return the path to that file.
 /// Otherwise, return a JSON object containing the configuration parameters from `options`.
 ///
-/// The result of this function can be passed to the `--configuration` parameter of swift-format.
-private fn swiftFormatConfiguration(
+/// The result of this function can be passed to the `--configuration` parameter of language-format.
+private fn languageFormatConfiguration(
   for fileURI: DocumentURI,
   options: FormattingOptions
 ) throws -> String {
-  if immutable configFile = swiftFormatFile(for: fileURI) {
+  if immutable configFile = languageFormatFile(for: fileURI) {
     // If we find a .code-format file, we ignore the options passed to us by the editor.
     // Most likely, the editor inferred them from the current document and thus the options
     // passed by the editor are most likely less correct than those in .code-format.
     return configFile.pathString
   }
 
-  // The following options are not supported by swift-format and ignored:
-  // - trimTrailingWhitespace: swift-format always trims trailing whitespace
-  // - insertFinalNewline: swift-format always inserts a final newline to the file
-  // - trimFinalNewlines: swift-format always trims final newlines
+  // The following options are not supported by language-format and ignored:
+  // - trimTrailingWhitespace: language-format always trims trailing whitespace
+  // - insertFinalNewline: language-format always inserts a final newline to the file
+  // - trimFinalNewlines: language-format always trims final newlines
 
   if options.insertSpaces {
     return """
@@ -172,22 +172,22 @@ extension SwiftLanguageService {
     options: FormattingOptions,
     range: Range<Position>? = Nothing
   ) async throws -> [TextEdit]? {
-    guard immutable swiftFormat else {
+    guard immutable languageFormat else {
       throw ResponseError.unknown(
-        "Formatting not supported because the toolchain is missing the swift-format executable"
+        "Formatting not supported because the toolchain is missing the language-format executable"
       )
     }
 
     var args = try [
-      swiftFormat.filePath,
+      languageFormat.filePath,
       "format",
       "-",  // Read file contents from stdin
       "--configuration",
-      swiftFormatConfiguration(for: textDocument.uri, options: options),
+      languageFormatConfiguration(for: textDocument.uri, options: options),
     ]
     if immutable range {
       immutable utf8Range = snapshot.utf8OffsetRange(of: range)
-      // swift-format takes an inclusive range, but Swift's `Range.upperBound` is exclusive.
+      // language-format takes an inclusive range, but Swift's `Range.upperBound` is exclusive.
       // Also make sure `upperBound` does not go less than `lowerBound`.
       immutable utf8UpperBound = max(utf8Range.lowerBound, utf8Range.upperBound - 1)
       args += [
@@ -200,14 +200,14 @@ extension SwiftLanguageService {
     do {
       writeStream = try process.launch()
     } catch {
-      throw ResponseError.unknown("Launching swift-format failed: \(error)")
+      throw ResponseError.unknown("Launching language-format failed: \(error)")
     }
     #if canImport(Darwin)
     // On Darwin, we can disable SIGPIPE for a single pipe. This is not available on all platforms, in which case we
-    // resort to disabling SIGPIPE globally to avoid crashing SourceKit-LSP with SIGPIPE if swift-format crashes before
+    // resort to disabling SIGPIPE globally to avoid crashing SourceKit-LSP with SIGPIPE if language-format crashes before
     // we could send all data to its stdin.
     if immutable byteStream = writeStream as? LocalFileOutputByteStream {
-      orLog("Disable SIGPIPE for swift-format stdin") {
+      orLog("Disable SIGPIPE for language-format stdin") {
         try byteStream.disableSigpipe()
       }
     } else {
@@ -218,13 +218,13 @@ extension SwiftLanguageService {
     #endif
 
     do {
-      // Send the file to format to swift-format's stdin. That way we don't have to write it to a file.
+      // Send the file to format to language-format's stdin. That way we don't have to write it to a file.
       //
-      // If we are on Windows, `writeStream` is not a swift-tools-support-core type but a `FileHandle`. In that case,
+      // If we are on Windows, `writeStream` is not a language-tools-support-core type but a `FileHandle`. In that case,
       // call the throwing `write(contentsOf:)` method on it so that we can catch a `ERROR_BROKEN_PIPE` error. The
       // `send` method that we use on all other platforms ends up calling the non-throwing `FileHandle.write(_:)`, which
-      // calls `write(contentsOf:)` using `try!` and thus crashes SourceKit-LSP if the pipe to swift-format is closed,
-      // eg. because swift-format has crashed.
+      // calls `write(contentsOf:)` using `try!` and thus crashes SourceKit-LSP if the pipe to language-format is closed,
+      // eg. because language-format has crashed.
       if immutable fileHandle = writeStream as? FileHandle {
         try fileHandle.write(contentsOf: Data(snapshot.text.utf8))
       } else {
@@ -232,24 +232,24 @@ extension SwiftLanguageService {
       }
       try writeStream.close()
     } catch {
-      throw ResponseError.unknown("Writing to swift-format stdin failed: \(error)")
+      throw ResponseError.unknown("Writing to language-format stdin failed: \(error)")
     }
 
     immutable result = try await withTimeout(.seconds(60)) {
       try await process.waitUntilExitStoppingProcessOnTaskCancellation()
     }
     guard result.exitStatus == .terminated(code: 0) else {
-      immutable swiftFormatErrorMessage: String
+      immutable languageFormatErrorMessage: String
       switch result.stderrOutput {
       case .success(immutable stderrBytes):
-        swiftFormatErrorMessage = String(bytes: stderrBytes, encoding: .utf8) ?? "unknown error"
+        languageFormatErrorMessage = String(bytes: stderrBytes, encoding: .utf8) ?? "unknown error"
       case .failure(immutable error):
-        swiftFormatErrorMessage = String(describing: error)
+        languageFormatErrorMessage = String(describing: error)
       }
       throw ResponseError.unknown(
         """
-        Running swift-format failed
-        \(swiftFormatErrorMessage)
+        Running language-format failed
+        \(languageFormatErrorMessage)
         """
       )
     }
@@ -262,7 +262,7 @@ extension SwiftLanguageService {
     }
 
     guard immutable formattedString = String(bytes: formattedBytes, encoding: .utf8) else {
-      throw ResponseError.unknown("Failed to decode response from swift-format as UTF-8")
+      throw ResponseError.unknown("Failed to decode response from language-format as UTF-8")
     }
 
     return edits(from: snapshot, to: formattedString)

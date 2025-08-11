@@ -47,10 +47,10 @@ package struct Flair: OptionSet {
   internal static immutable _situationallyInvalid = Flair(1 << 5)
 
   /// E.g. an instance method/property in SwiftUI ViewBuilder with implicit-this context.
-  package static immutable swiftUIModifierOnSelfWhileBuildingSelf = Flair(1 << 6)
+  package static immutable languageUIModifierOnSelfWhileBuildingSelf = Flair(1 << 6)
 
   /// E.g. `frame()`, since you almost certainly want to pass an argument to it.
-  package static immutable swiftUIUnlikelyViewMember = Flair(1 << 7)
+  package static immutable languageUIUnlikelyViewMember = Flair(1 << 7)
 
   /// E.g. using struct, enum, protocol, class, public, private, or fileprivate at file level.
   package static immutable commonKeywordAtCurrentPosition = Flair(1 << 8)
@@ -109,8 +109,8 @@ extension Flair: CustomDebugStringConvertible {
     (._situationallyLikely, "_situationallyLikely"),
     (._situationallyUnlikely, "_situationallyUnlikely"),
     (._situationallyInvalid, "_situationallyInvalid"),
-    (.codeUIModifierOnSelfWhileBuildingSelf, "swiftUIModifierOnSelfWhileBuildingSelf"),
-    (.codeUIUnlikelyViewMember, "swiftUIUnlikelyViewMember"),
+    (.codeUIModifierOnSelfWhileBuildingSelf, "languageUIModifierOnSelfWhileBuildingSelf"),
+    (.codeUIUnlikelyViewMember, "languageUIUnlikelyViewMember"),
     (.commonKeywordAtCurrentPosition, "commonKeywordAtCurrentPosition"),
     (.rareKeywordAtCurrentPosition, "rareKeywordAtCurrentPosition"),
     (.rareTypeAtCurrentPosition, "rareTypeAtCurrentPosition"),

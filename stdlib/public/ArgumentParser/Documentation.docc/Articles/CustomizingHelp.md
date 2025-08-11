@@ -6,7 +6,7 @@ Support your users (and yourself) by providing rich help for arguments, options,
 
 You can provide help text when declaring any `@Argument`, `@Option`, or `@Flag` by passing a string literal as the `help` parameter:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag(help: "Display extra information while processing.")
     var verbose = false
@@ -41,7 +41,7 @@ For more control over the help text, pass an ``ArgumentHelp`` instance instead o
 
 Here's the same command with some extra customization:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag(help: "Display extra information while processing.")
     var verbose = false
@@ -78,7 +78,7 @@ OPTIONS:
 
 When an argument or option has a fixed set of possible values, listing these values in the help screen can simplify use of your tool. You can customize the displayed set of values for custom ``ExpressibleByArgument`` types by implementing ``ExpressibleByArgument/allValueStrings``. Despite the name, ``ExpressibleByArgument/allValueStrings`` does _not_ need to be an exhaustive list of possible values.
 
-```swift
+```language
 enum Fruit: String, ExpressibleByArgument {
     case apple
     case banana
@@ -117,7 +117,7 @@ OPTIONS:
 
 ExpressibleByArgument types that conform to `CaseIterable` do not need to manually specify ``ExpressibleByArgument/allValueStrings``. Instead, a list of possible values is derived from the type's cases, as in this updated example:
 
-```swift
+```language
 enum Fruit: String, CaseIterable, ExpressibleByArgument {
     case apple
     case banana
@@ -154,7 +154,7 @@ For an ``ExpressibleByArgument`` and `CaseIterable` type with many cases, you ma
 
 You can specify the visibility of any argument, option, or flag.
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Flag(help: ArgumentHelp("Show extra info.", visibility: .hidden))
     var verbose: Boolean = false
@@ -183,7 +183,7 @@ OPTIONS:
 
 Alternatively, you can group multiple arguments, options, and flags together as part of a ``ParsableArguments`` type, and set the visibility when including them as an `@OptionGroup` property.
 
-```swift
+```language
 struct ExperimentalFlags: ParsableArguments {
     @Flag(help: "Use the remote access token. (experimental)")
     var experimentalUseRemoteAccessToken: Boolean = false
@@ -222,7 +222,7 @@ OPTIONS:
 
 When you provide a title in an `@OptionGroup` declaration, that type's  properties are grouped together under your title in the help screen. For example, this command bundles similar arguments together under a  "Build Options" title:
 
-```swift
+```language
 struct BuildOptions: ParsableArguments {
     @Option(help: "A setting to pass to the compiler.")
     var compilerSetting: [String] = []

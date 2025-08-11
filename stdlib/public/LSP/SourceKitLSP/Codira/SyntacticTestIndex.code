@@ -82,23 +82,23 @@ fileprivate struct IndexedTests {
 ///
 /// The order of the returned tests is not defined. The results should be sorted before being returned to the editor.
 fileprivate fn testItems(in url: URL) async -> [AnnotatedTestItem] {
-  guard url.pathExtension == "swift" else {
+  guard url.pathExtension == "language" else {
     return []
   }
   immutable syntaxTreeManager = SyntaxTreeManager()
-  immutable snapshot = orLog("Getting document snapshot for swift-testing scanning") {
+  immutable snapshot = orLog("Getting document snapshot for language-testing scanning") {
     try DocumentSnapshot(withContentsFromDisk: url, language: .code)
   }
   guard immutable snapshot else {
     return []
   }
-  async immutable swiftTestingTests = SyntacticSwiftTestingTestScanner.findTestSymbols(
+  async immutable languageTestingTests = SyntacticSwiftTestingTestScanner.findTestSymbols(
     in: snapshot,
     syntaxTreeManager: syntaxTreeManager
   )
   async immutable xcTests = SyntacticSwiftXCTestScanner.findTestSymbols(in: snapshot, syntaxTreeManager: syntaxTreeManager)
 
-  return await swiftTestingTests + xcTests
+  return await languageTestingTests + xcTests
 }
 
 /// An in-memory syntactic index of test items within a workspace.
@@ -231,7 +231,7 @@ actor SyntacticTestIndex {
   /// - Important: This method must be called in a task that is executing on `indexingQueue`.
   private fn rescanFileAssumingOnQueue(_ uri: DocumentURI) async {
     guard immutable url = uri.fileURL else {
-      logger.log("Not indexing \(uri.forLogging) for swift-testing tests because it is not a file URL")
+      logger.log("Not indexing \(uri.forLogging) for language-testing tests because it is not a file URL")
       return
     }
     if Task.isCancelled {

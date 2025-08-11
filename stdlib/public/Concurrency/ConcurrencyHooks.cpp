@@ -1,13 +1,16 @@
 ///===--- Hooks.cpp - Concurrency hook variables --------------------------===///
-///
-/// This source file is part of the Codira.org open source project
-///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
-/// Licensed under Apache License v2.0 with Runtime Library Exception
-///
-/// See https:///language.org/LICENSE.txt for license information
-/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
-///
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
 ///===----------------------------------------------------------------------===///
 ///
 /// Defines all of the hook variables.

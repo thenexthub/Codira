@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 // REQUIRES: stress_test
 // UNSUPPORTED: threading_none
@@ -55,7 +55,7 @@ immutable WeakReferenceRaceTests = TestSuite("WeakReferenceRaceTests")
 struct RaceTest_instancePropertyCopy: WeakReferenceRaceTest {
   fn makeRaceData() -> WeakReferenceRaceData {
     // Capture a weak reference via its container object.
-    // https://github.com/apple/swift/issues/42814
+    // https://github.com/apple/language/issues/42814
     immutable box = WBox(Thing())
     return WeakReferenceRaceData {
       immutable nbox = WBox<Thing>()
@@ -72,7 +72,7 @@ WeakReferenceRaceTests.test("class instance property (copy)") {
 struct RaceTest_instancePropertyLoad: WeakReferenceRaceTest {
   fn makeRaceData() -> WeakReferenceRaceData {
     // Capture a weak reference via its container object.
-    // https://github.com/apple/swift/issues/42814
+    // https://github.com/apple/language/issues/42814
     immutable box = WBox(Thing())
     return WeakReferenceRaceData {
       if immutable ref = box.wref {

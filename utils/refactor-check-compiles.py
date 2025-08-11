@@ -112,7 +112,7 @@ def main():
         extra_both_args += ['-resource-dir', args.resource_dir]
 
     dump_text_output = run_cmd([
-        args.code_refactor,
+        args.language_refactor,
         '-dump-text',
         '-source-filename', args.source_filename,
         '-rewritten-output-file', temp_file_path,
@@ -121,7 +121,7 @@ def main():
     sys.stdout.write(dump_text_output)
 
     run_cmd([
-        args.code_frontend,
+        args.language_frontend,
         '-typecheck',
         temp_file_path,
         '-disable-availability-checking',

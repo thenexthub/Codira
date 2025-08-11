@@ -13,10 +13,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-// swift-format-ignore: AmbiguousTrailingClosureOverload
+// language-format-ignore: AmbiguousTrailingClosureOverload
 
-// swift-format-ignore: OrderedImports
-// Required due to https://github.com/swiftlang/swift/issues/76842
+// language-format-ignore: OrderedImports
+// Required due to https://github.com/languagelang/language/issues/76842
 
 #if canImport(Glibc)
 @preconcurrency import Glibc

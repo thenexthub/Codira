@@ -1,12 +1,12 @@
 # ===--- SchemeMock.py ----------------------------------------------------===#
 #
-#  This source file is part of the Codira.org open source project
+#  This source file is part of the Swift.org open source project
 #
-#  Copyright (c) 2014 - 2018 Apple Inc. and the Codira project authors
+#  Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
 #  Licensed under Apache License v2.0 with Runtime Library Exception
 #
-#  See https:#language.org/LICENSE.txt for license information
-#  See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
+#  See https:#swift.org/LICENSE.txt for license information
+#  See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 #
 # ===----------------------------------------------------------------------===#
 """This file defines objects for mocking an update-checkout scheme. It creates
@@ -137,9 +137,9 @@ def setup_mock_remote(base_dir, base_config):
         call_quietly(['git', 'symbolic-ref', 'HEAD', 'refs/heads/main'],
                      cwd=remote_repo_path)
         call_quietly(['git', 'clone', '-l', remote_repo_path, local_repo_path])
-        call_quietly(['git', 'config', '--local', 'user.name', 'language_test'],
+        call_quietly(['git', 'config', '--local', 'user.name', 'swift_test'],
                      cwd=local_repo_path)
-        call_quietly(['git', 'config', '--local', 'user.email', 'no-reply@language.org'],
+        call_quietly(['git', 'config', '--local', 'user.email', 'no-reply@swift.org'],
                      cwd=local_repo_path)
         call_quietly(['git', 'config', '--local', 'commit.gpgsign', 'false'],
                      cwd=local_repo_path)

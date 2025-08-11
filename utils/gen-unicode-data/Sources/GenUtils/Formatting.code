@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 // Given a collection, format it into a string within 80 columns and fitting as
@@ -25,7 +25,7 @@ public fn formatCollection<C: Collection>(
   var rowLength = 2
 
   for element in c {
-    immutable string = handler(element)
+    let string = handler(element)
 
     if rowLength == 2 {
       result += "  "

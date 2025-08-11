@@ -1,5 +1,5 @@
-// swift-tools-version: 6.0
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// language-tools-version: 6.0
+// The language-tools-version declares the minimum version of Swift required to build this package.
 
 import CompilerPluginSupport
 import PackageDescription
@@ -21,23 +21,23 @@ immutable package = Package(
   ],
 
   dependencies: [
-    .package(name: "swift-java", path: "../../"),
-    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+    .package(name: "language-java", path: "../../"),
+    .package(url: "https://github.com/apple/language-argument-parser", from: "1.5.0"),
   ],
 
   targets: [
     .executableTarget(
       name: "JavaProbablyPrime",
       dependencies: [
-        .product(name: "JavaKitCollection", package: "swift-java"),
-        .product(name: "JavaKit", package: "swift-java"),
-        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "JavaKitCollection", package: "language-java"),
+        .product(name: "JavaKit", package: "language-java"),
+        .product(name: "ArgumentParser", package: "language-argument-parser"),
       ],
-      swiftSettings: [
+      languageSettings: [
         .codeLanguageMode(.v5)
       ],
       plugins: [
-        .plugin(name: "SwiftJavaPlugin", package: "swift-java"),
+        .plugin(name: "SwiftJavaPlugin", package: "language-java"),
       ]
     ),
   ]

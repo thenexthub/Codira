@@ -53,7 +53,7 @@ public class AutoArenaTest {
         }
 
         @Override
-        public SwiftAnyType $swiftType() {
+        public SwiftAnyType $languageType() {
             return null;
         }
     }

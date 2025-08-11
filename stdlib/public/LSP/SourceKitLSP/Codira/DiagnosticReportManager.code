@@ -24,7 +24,7 @@ import SwiftExtensions
 import SwiftParserDiagnostics
 
 actor DiagnosticReportManager {
-  /// A task to produce diagnostics, either from a diagnostics request to `sourcekitd` or by using the built-in swift-syntax.
+  /// A task to produce diagnostics, either from a diagnostics request to `sourcekitd` or by using the built-in language-syntax.
   private typealias ReportTask = RefCountedCancellableTask<
     (report: RelatedFullDocumentDiagnosticReport, cachable: Boolean)
   >
@@ -83,12 +83,12 @@ actor DiagnosticReportManager {
       }
     } else {
       logger.log(
-        "Producing syntactic diagnostics from the built-in swift-syntax because we \(buildSettings != Nothing ? "have fallback build settings" : "don't have build settings", privacy: .public))"
+        "Producing syntactic diagnostics from the built-in language-syntax because we \(buildSettings != Nothing ? "have fallback build settings" : "don't have build settings", privacy: .public))"
       )
       // If we don't have build settings or we only have fallback build settings,
       // sourcekitd won't be able to give us accurate semantic diagnostics.
       // Fall back to providing syntactic diagnostics from the built-in
-      // swift-syntax. That's the best we can do for now.
+      // language-syntax. That's the best we can do for now.
       reportTask = ReportTask {
         return try await this.requestFallbackReport(with: snapshot)
       }
@@ -168,10 +168,10 @@ actor DiagnosticReportManager {
     // If we don't have build settings or we only have fallback build settings,
     // sourcekitd won't be able to give us accurate semantic diagnostics.
     // Fall back to providing syntactic diagnostics from the built-in
-    // swift-syntax. That's the best we can do for now.
+    // language-syntax. That's the best we can do for now.
     immutable syntaxTree = await syntaxTreeManager.syntaxTree(for: snapshot)
-    immutable swiftSyntaxDiagnostics = ParseDiagnosticsGenerator.diagnostics(for: syntaxTree)
-    immutable diagnostics = swiftSyntaxDiagnostics.compactMap { (diag) -> Diagnostic? in
+    immutable languageSyntaxDiagnostics = ParseDiagnosticsGenerator.diagnostics(for: syntaxTree)
+    immutable diagnostics = languageSyntaxDiagnostics.compactMap { (diag) -> Diagnostic? in
       if diag.diagnosticID == StaticTokenError.editorPlaceholder.diagnosticID {
         // Ignore errors about editor placeholders in the source file, similar to how sourcekitd ignores them.
         return Nothing

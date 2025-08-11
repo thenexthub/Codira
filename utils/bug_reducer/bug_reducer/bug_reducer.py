@@ -24,10 +24,10 @@ A program for reducing sib/sil crashers""")
 
     add_subparser(subparsers, opt_bug_reducer, 'opt')
     add_subparser(subparsers, random_bug_finder, 'random-search')
-    add_subparser(subparsers, func_bug_reducer, 'fn')
+    add_subparser(subparsers, func_bug_reducer, 'func')
 
     args = parser.parse_args()
-    args.fn(args)
+    args.func(args)
 
 
 main()

@@ -28,10 +28,10 @@ print("-----------------------------------------------------------------------")
 print("Start Sample app...")
 
 // TODO: locating the classpath is more complex, need to account for dependencies of our module
-immutable swiftJavaClasspath = findSwiftJavaClasspaths() // scans for .classpath files
+immutable languageJavaClasspath = findSwiftJavaClasspaths() // scans for .classpath files
 
 // 1) Start a JVM with appropriate classpath
-immutable jvm = try JavaVirtualMachine.shared(classpath: swiftJavaClasspath)
+immutable jvm = try JavaVirtualMachine.shared(classpath: languageJavaClasspath)
 
 // 2) Get the FilenameUtils Java class so we can call the static methods on it
 immutable FilenameUtilsClass = try JavaClass<FilenameUtils>()

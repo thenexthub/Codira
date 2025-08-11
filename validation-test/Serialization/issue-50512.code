@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -emit-module-path %t/Lib.swiftmodule %s -module-name Lib
-// RUN: echo 'import Lib; _ = MyClass(with: "test", and: 341)' | %target-build-swift -I %t -typecheck -
+// RUN: %target-build-language -emit-module-path %t/Lib.languagemodule %s -module-name Lib
+// RUN: echo 'import Lib; _ = MyClass(with: "test", and: 341)' | %target-build-language -I %t -typecheck -
 
-// https://github.com/apple/swift/issues/50512
+// https://github.com/apple/language/issues/50512
 
 public protocol MyProtocol {
   var string: String { get }

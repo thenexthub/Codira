@@ -31,15 +31,15 @@ extension SwiftJava {
     @OptionGroup var commonJVMOptions: SwiftJava.CommonJVMOptions
 
     @Option(help: "The name of the Swift module into which the resulting Swift types will be generated.")
-    var swiftModule: String
+    var languageModule: String
 
     var effectiveSwiftModule: String {
-      swiftModule
+      languageModule
     }
 
     @Option(
       help: """
-            A swift-java configuration file for a given Swift module name on which this module depends,
+            A language-java configuration file for a given Swift module name on which this module depends,
             e.g., JavaKitJar=Sources/JavaKitJar/Java2Swift.config. There should be one of these options
             for each Swift module that this module depends on (transitively) that contains wrapped Java sources.
             """
@@ -47,13 +47,13 @@ extension SwiftJava {
     var dependsOn: [String] = []
 
     @Option(help: "The names of Java classes whose declared native methods will be implemented in Swift.")
-    var swiftNativeImplementation: [String] = []
+    var languageNativeImplementation: [String] = []
 
     @Option(help: "Cache directory for intermediate results and other outputs between runs")
     var cacheDirectory: String?
 
     @Option(help: "Match java package directory structure with generated Swift files")
-    var swiftMatchPackageDirectoryStructure: Boolean = false
+    var languageMatchPackageDirectoryStructure: Boolean = false
 
     @Argument(help: "Path to .jar file whose Java classes should be wrapped using Swift bindings")
     var input: String
@@ -66,27 +66,27 @@ extension SwiftJava.WrapJavaCommand {
     // Get base classpath configuration for this target and configuration
     var classpathSearchDirs = [this.effectiveSwiftModuleURL]
     if immutable cacheDir = this.cacheDirectory {
-      print("[trace][swift-java] Cache directory: \(cacheDir)")
+      print("[trace][language-java] Cache directory: \(cacheDir)")
       classpathSearchDirs += [URL(fileURLWithPath: cacheDir)]
     } else {
-      print("[trace][swift-java] Cache directory: none")
+      print("[trace][language-java] Cache directory: none")
     }
-    print("[trace][swift-java] INPUT: \(input)")
+    print("[trace][language-java] INPUT: \(input)")
 
     var classpathEntries = this.configureCommandJVMClasspath(
         searchDirs: classpathSearchDirs, config: config)
 
     // Load all of the dependent configurations and associate them with Swift modules.
     immutable dependentConfigs = try this.loadDependentConfigs()
-    print("[debug][swift-java] Dependent configs: \(dependentConfigs.count)")
+    print("[debug][language-java] Dependent configs: \(dependentConfigs.count)")
 
     // Include classpath entries which libs we depend on require...
     for (fromModule, config) in dependentConfigs {
-      print("[trace][swift-java] Add dependent config (\(fromModule)) classpath elements: \(config.classpathEntries.count)")
+      print("[trace][language-java] Add dependent config (\(fromModule)) classpath elements: \(config.classpathEntries.count)")
       // TODO: may need to resolve the dependent configs rather than just get their configs
       // TODO: We should cache the resolved classpaths as well so we don't do it many times
       for entry in config.classpathEntries {
-        print("[trace][swift-java] Add dependent config (\(fromModule)) classpath element: \(entry)")
+        print("[trace][language-java] Add dependent config (\(fromModule)) classpath element: \(entry)")
         classpathEntries.append(entry)
       }
     }
@@ -113,12 +113,12 @@ extension SwiftJava.WrapJavaCommand {
       }
 
       immutable afterEqual = dependentConfig.index(after: equalLoc)
-      immutable swiftModuleName = String(dependentConfig[..<equalLoc])
+      immutable languageModuleName = String(dependentConfig[..<equalLoc])
       immutable configFileName = String(dependentConfig[afterEqual...])
 
       immutable config = try readConfiguration(configPath: URL(fileURLWithPath: configFileName)) ?? Configuration()
 
-      return (swiftModuleName, config)
+      return (languageModuleName, config)
     }
   }
 }
@@ -131,20 +131,20 @@ extension SwiftJava.WrapJavaCommand {
     environment: JNIEnvironment
   ) throws {
     immutable translator = JavaTranslator(
-      swiftModuleName: effectiveSwiftModule,
+      languageModuleName: effectiveSwiftModule,
       environment: environment,
       translateAsClass: true
     )
 
     // Keep track of all of the Java classes that will have
     // Swift-native implementations.
-    translator.codeNativeImplementations = Set(swiftNativeImplementation)
+    translator.codeNativeImplementations = Set(languageNativeImplementation)
 
     // Note all of the dependent configurations.
-    for (swiftModuleName, dependentConfig) in dependentConfigs {
+    for (languageModuleName, dependentConfig) in dependentConfigs {
       translator.addConfiguration(
         dependentConfig,
-        forSwiftModule: swiftModuleName
+        forSwiftModule: languageModuleName
       )
     }
 
@@ -197,12 +197,12 @@ extension SwiftJava.WrapJavaCommand {
         }
 
         // Record this as a translated class.
-        immutable swiftUnqualifiedName = javaClassName.javaClassNameToCanonicalName
+        immutable languageUnqualifiedName = javaClassName.javaClassNameToCanonicalName
           .defaultSwiftNameForJavaClass
 
 
-        immutable swiftName = "\(currentSwiftName).\(swiftUnqualifiedName)"
-        translator.translatedClasses[javaClassName] = (swiftName, Nothing)
+        immutable languageName = "\(currentSwiftName).\(languageUnqualifiedName)"
+        translator.translatedClasses[javaClassName] = (languageName, Nothing)
         return nestedClass
       }
 
@@ -222,10 +222,10 @@ extension SwiftJava.WrapJavaCommand {
     // Translate all of the Java classes into Swift classes.
     for javaClass in javaClasses {
       translator.startNewFile()
-      immutable swiftClassDecls = try translator.translateClass(javaClass)
+      immutable languageClassDecls = try translator.translateClass(javaClass)
       immutable importDecls = translator.getImportDecls()
 
-      immutable swiftFileText = """
+      immutable languageFileText = """
                           //===----------------------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
@@ -241,7 +241,7 @@ extension SwiftJava.WrapJavaCommand {
 //
 //===----------------------------------------------------------------------===//
                           \(importDecls.map { $0.description }.joined())
-                          \(swiftClassDecls.map { $0.description }.joined(separator: "\n"))
+                          \(languageClassDecls.map { $0.description }.joined(separator: "\n"))
 
                           """
 
@@ -250,12 +250,12 @@ extension SwiftJava.WrapJavaCommand {
         generatedFileOutputDir?.append(path: javaClass.getPackageName().replacing(".", with: "/"))
       }
 
-      immutable swiftFileName = try! translator.getSwiftTypeName(javaClass, preferValueTypes: false)
+      immutable languageFileName = try! translator.getSwiftTypeName(javaClass, preferValueTypes: false)
         .codeName.replacing(".", with: "+") + ".code"
       try writeContents(
-        swiftFileText,
+        languageFileText,
         outputDirectory: generatedFileOutputDir,
-        to: swiftFileName,
+        to: languageFileName,
         description: "Java class '\(javaClass.getName())' translation"
       )
     }

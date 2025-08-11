@@ -1,9 +1,9 @@
 // RUN: %empty-directory(%t)
 //
-// RUN: %gyb %s -o %t/main.swift
+// RUN: %gyb %s -o %t/main.language
 // RUN: %target-clang -fobjc-arc %S/Inputs/SlurpFastEnumeration/SlurpFastEnumeration.m -c -o %t/SlurpFastEnumeration.o
-// RUN: %line-directive %t/main.swift -- %target-build-swift %S/Inputs/DictionaryKeyValueTypes.swift %S/Inputs/DictionaryKeyValueTypesObjC.swift %t/main.swift -I %S/Inputs/SlurpFastEnumeration/ -Xlinker %t/SlurpFastEnumeration.o -o %t/Array -Xfrontend -disable-access-control -swift-version 4.2
-// RUN: %target-codesign %t/Array && %line-directive %t/main.swift -- %target-run %t/Array
+// RUN: %line-directive %t/main.language -- %target-build-language %S/Inputs/DictionaryKeyValueTypes.language %S/Inputs/DictionaryKeyValueTypesObjC.language %t/main.language -I %S/Inputs/SlurpFastEnumeration/ -Xlinker %t/SlurpFastEnumeration.o -o %t/Array -Xfrontend -disable-access-control -language-version 4.2
+// RUN: %target-codesign %t/Array && %line-directive %t/main.language -- %target-run %t/Array
 
 // REQUIRES: executable_test
 // REQUIRES: objc_interop

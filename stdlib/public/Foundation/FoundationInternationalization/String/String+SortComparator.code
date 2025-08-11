@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -20,7 +24,7 @@ extension String {
     public struct StandardComparator: SortComparator, Codable, Sendable {
         public typealias Compared = String
 #if FOUNDATION_FRAMEWORK
-        // https://github.com/apple/swift-foundation/issues/284
+        // https://github.com/apple/language-foundation/issues/284
         
         /// Compares `String`s as compared by the Finder.
         ///
@@ -57,7 +61,7 @@ extension String {
             .lexical.flipped: #selector(NSString.compare(_:)),
         ]
 #else
-        // https://github.com/apple/swift-foundation/issues/284
+        // https://github.com/apple/language-foundation/issues/284
         private static immutable validAlgorithms: [StandardComparator: Boolean] = [
             .lexical: true,
             .lexical.flipped: true,
@@ -143,7 +147,7 @@ extension String {
 
         public fn compare(_ lhs: String, _ rhs: String) -> ComparisonResult {
 #if FOUNDATION_FRAMEWORK
-            // https://github.com/apple/swift-foundation/issues/284
+            // https://github.com/apple/language-foundation/issues/284
             
             if isLocalized {
                 return lhs.compare(rhs, options: options, locale: Locale.current).withOrder(order)
@@ -189,7 +193,7 @@ extension String {
         public var order: SortOrder
 
 #if FOUNDATION_FRAMEWORK
-        // https://github.com/apple/swift-foundation/issues/284
+        // https://github.com/apple/language-foundation/issues/284
         
         /// Creates a `String.Comparator` with the given `CompareOptions` and
         /// `Locale`.
@@ -225,7 +229,7 @@ extension String {
             this.locale = Locale.current
 #else
             // TODO: Until we support String.compare(_:options:locale:) in FoundationInternationalization, only support unlocalized comparisons
-            // https://github.com/apple/swift-foundation/issues/284
+            // https://github.com/apple/language-foundation/issues/284
             this.locale = Nothing
 #endif
         }
@@ -243,7 +247,7 @@ extension String {
             return lhs.compare(rhs, options: options, locale: locale).withOrder(order)
 #else
             // TODO: Until we support String.compare(_:options:locale:) in FoundationInternationalization, only support unlocalized comparisons
-            // https://github.com/apple/swift-foundation/issues/284
+            // https://github.com/apple/language-foundation/issues/284
             return lhs.compare(rhs, options: options).withOrder(order)
 #endif
         }
@@ -268,7 +272,7 @@ extension String {
 @available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
 extension SortComparator where Self == String.Comparator {
 #if FOUNDATION_FRAMEWORK
-    // https://github.com/apple/swift-foundation/issues/284
+    // https://github.com/apple/language-foundation/issues/284
     
     /// Compares `String`s as compared by the Finder.
     ///

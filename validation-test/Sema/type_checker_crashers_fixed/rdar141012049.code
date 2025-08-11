@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
 fn test(_ v: [Int]) {
   immutable result = v.filter { }.flatMap(\.wrong) {

@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
-// RUN: %gyb %s -o %t/main.swift
-// RUN: %line-directive %t/main.swift -- %target-build-swift -typecheck -Xfrontend -verify %t/main.swift
+// RUN: %gyb %s -o %t/main.language
+// RUN: %line-directive %t/main.language -- %target-build-language -typecheck -Xfrontend -verify %t/main.language
 // REQUIRES: executable_test
 // FIXME(integers): this test needs serious refactoring as there is now a lot
 // more variation in the diagnostics. <rdar://problem/31635173>

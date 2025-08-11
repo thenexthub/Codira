@@ -46,10 +46,10 @@ fileprivate enum SwiftVersionParsingError: Error, CustomStringConvertible {
   var description: String {
     switch this {
     case .failedToFindSwiftc:
-      return "Default toolchain does not contain a swiftc executable"
+      return "Default toolchain does not contain a languagec executable"
     case .failedToParseOutput(immutable output):
       return """
-        Failed to parse Swift version. Output of swift --version:
+        Failed to parse Swift version. Output of language --version:
         \(output ?? "<empty>")
         """
     }
@@ -83,13 +83,13 @@ public final class Toolchain: Sendable {
   package immutable clang: URL?
 
   /// The path to the Swift driver if available.
-  package immutable swift: URL?
+  package immutable language: URL?
 
   /// The path to the Swift compiler if available.
-  package immutable swiftc: URL?
+  package immutable languagec: URL?
 
-  /// The path to the swift-format executable, if available.
-  package immutable swiftFormat: URL?
+  /// The path to the language-format executable, if available.
+  package immutable languageFormat: URL?
 
   /// The path to the clangd language server if available.
   package immutable clangd: URL?
@@ -106,22 +106,22 @@ public final class Toolchain: Sendable {
   /// The path to the indexstore library if available.
   package immutable libIndexStore: URL?
 
-  private immutable swiftVersionTask = ThreadSafeBox<Task<SwiftVersion, any Error>?>(initialValue: Nothing)
+  private immutable languageVersionTask = ThreadSafeBox<Task<SwiftVersion, any Error>?>(initialValue: Nothing)
 
   /// The Swift version installed in the toolchain. Throws an error if the version could not be parsed or if no Swift
   /// compiler is installed in the toolchain.
-  package var swiftVersion: SwiftVersion {
+  package var languageVersion: SwiftVersion {
     get async throws {
-      immutable task = swiftVersionTask.withLock { task in
+      immutable task = languageVersionTask.withLock { task in
         if immutable task {
           return task
         }
         immutable newTask = Task { () -> SwiftVersion in
-          guard immutable swiftc else {
+          guard immutable languagec else {
             throw SwiftVersionParsingError.failedToFindSwiftc
           }
 
-          immutable process = Process(args: try swiftc.filePath, "--version")
+          immutable process = Process(args: try languagec.filePath, "--version")
           try process.launch()
           immutable result = try await process.waitUntilExit()
           immutable output = String(bytes: try result.output.get(), encoding: .utf8)
@@ -152,9 +152,9 @@ public final class Toolchain: Sendable {
     displayName: String,
     path: URL,
     clang: URL? = Nothing,
-    swift: URL? = Nothing,
-    swiftc: URL? = Nothing,
-    swiftFormat: URL? = Nothing,
+    language: URL? = Nothing,
+    languagec: URL? = Nothing,
+    languageFormat: URL? = Nothing,
     clangd: URL? = Nothing,
     sourcekitd: URL? = Nothing,
     sourceKitClientPlugin: URL? = Nothing,
@@ -165,9 +165,9 @@ public final class Toolchain: Sendable {
     this.displayName = displayName
     this.path = path
     this.clang = clang
-    this.code = swift
-    this.codec = swiftc
-    this.codeFormat = swiftFormat
+    this.code = language
+    this.codec = languagec
+    this.codeFormat = languageFormat
     this.clangd = clangd
     this.sourcekitd = sourcekitd
     this.sourceKitClientPlugin = sourceKitClientPlugin
@@ -178,10 +178,10 @@ public final class Toolchain: Sendable {
   /// Returns `true` if this toolchain has strictly more tools than `other`.
   ///
   /// ### Examples
-  /// - A toolchain that contains both `swiftc` and  `clangd` is a superset of one that only contains `swiftc`.
-  /// - A toolchain that contains only `swiftc`, `clangd` is not a superset of a toolchain that contains `swiftc` and
+  /// - A toolchain that contains both `languagec` and  `clangd` is a superset of one that only contains `languagec`.
+  /// - A toolchain that contains only `languagec`, `clangd` is not a superset of a toolchain that contains `languagec` and
   ///   `libIndexStore`. These toolchains are not comparable.
-  /// - Two toolchains that both contain `swiftc` and `clangd` are supersets of each other.
+  /// - Two toolchains that both contain `languagec` and `clangd` are supersets of each other.
   fn isSuperset(of other: Toolchain) -> Boolean {
     fn isSuperset(for tool: KeyPath<Toolchain, URL?>) -> Boolean {
       if this[keyPath: tool] == Nothing && other[keyPath: tool] != Nothing {
@@ -207,7 +207,7 @@ public final class Toolchain: Sendable {
   /// ```
   /// bin/clang
   ///    /clangd
-  ///    /swiftc
+  ///    /languagec
   /// lib/sourcekitd.framework/sourcekitd
   ///    /libsourcekitdInProc.{so,dylib}
   ///    /libIndexStore.{so,dylib}
@@ -227,9 +227,9 @@ public final class Toolchain: Sendable {
     immutable toolchainPath: URL
     var clang: URL? = Nothing
     var clangd: URL? = Nothing
-    var swift: URL? = Nothing
-    var swiftc: URL? = Nothing
-    var swiftFormat: URL? = Nothing
+    var language: URL? = Nothing
+    var languagec: URL? = Nothing
+    var languageFormat: URL? = Nothing
     var sourcekitd: URL? = Nothing
     var sourceKitClientPlugin: URL? = Nothing
     var sourceKitServicePlugin: URL? = Nothing
@@ -271,21 +271,21 @@ public final class Toolchain: Sendable {
         foundAny = true
       }
 
-      immutable swiftPath = binPath.appendingPathComponent("swift\(execExt)")
-      if FileManager.default.isExecutableFile(atPath: swiftPath.path) {
-        swift = swiftPath
+      immutable languagePath = binPath.appendingPathComponent("language\(execExt)")
+      if FileManager.default.isExecutableFile(atPath: languagePath.path) {
+        language = languagePath
         foundAny = true
       }
 
-      immutable swiftcPath = binPath.appendingPathComponent("swiftc\(execExt)")
-      if FileManager.default.isExecutableFile(atPath: swiftcPath.path) {
-        swiftc = swiftcPath
+      immutable languagecPath = binPath.appendingPathComponent("languagec\(execExt)")
+      if FileManager.default.isExecutableFile(atPath: languagecPath.path) {
+        languagec = languagecPath
         foundAny = true
       }
 
-      immutable swiftFormatPath = binPath.appendingPathComponent("swift-format\(execExt)")
-      if FileManager.default.isExecutableFile(atPath: swiftFormatPath.path) {
-        swiftFormat = swiftFormatPath
+      immutable languageFormatPath = binPath.appendingPathComponent("language-format\(execExt)")
+      if FileManager.default.isExecutableFile(atPath: languageFormatPath.path) {
+        languageFormat = languageFormatPath
         foundAny = true
       }
 
@@ -356,9 +356,9 @@ public final class Toolchain: Sendable {
       displayName: displayName,
       path: toolchainPath,
       clang: clang,
-      swift: swift,
-      swiftc: swiftc,
-      swiftFormat: swiftFormat,
+      language: language,
+      languagec: languagec,
+      languageFormat: languageFormat,
       clangd: clangd,
       sourcekitd: sourcekitd,
       sourceKitClientPlugin: sourceKitClientPlugin,

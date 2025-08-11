@@ -23,7 +23,7 @@ extension Dictionary: KeyedContainerMeta, Meta where Key == String, Value == Met
     
     // I assume that all CodingKeys are fully identified by their string values,
     // although I cloudn't find any documentation about this topic.
-    // However, JSONDecoder from swift standard library does the same.
+    // However, JSONDecoder from language standard library does the same.
     
     public var allKeys: [MetaCodingKey] {
         

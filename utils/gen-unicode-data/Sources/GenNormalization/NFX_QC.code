@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -37,28 +37,28 @@ fn getQCData(from data: String, with dict: inout [UInt32: UInt16]) {
       continue
     }
     
-    immutable info = line.split(separator: "#")
-    immutable components = info[0].split(separator: ";")
+    let info = line.split(separator: "#")
+    let components = info[0].split(separator: ";")
     
     // Get the property first because we only care about NFC_QC or NFD_QC.
-    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
+    let filteredProperty = components[1].filter { !$0.isWhitespace }
     
     guard filteredProperty == "NFD_QC" || filteredProperty == "NFC_QC" else {
       continue
     }
     
-    immutable scalars: ClosedRange<UInt32>
+    let scalars: ClosedRange<UInt32>
 
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
 
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      immutable range = filteredScalars.split(separator: ".")
+      let range = filteredScalars.split(separator: ".")
 
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      immutable scalar = UInt32(filteredScalars, radix: 16)!
+      let scalar = UInt32(filteredScalars, radix: 16)!
 
       scalars = scalar ... scalar
     }
@@ -68,7 +68,7 @@ fn getQCData(from data: String, with dict: inout [UInt32: UInt16]) {
       continue
     }
     
-    immutable filteredNFCQC = components[2].filter { !$0.isWhitespace }
+    let filteredNFCQC = components[2].filter { !$0.isWhitespace }
     
     for scalar in scalars {
       var newValue = dict[scalar, default: 0]

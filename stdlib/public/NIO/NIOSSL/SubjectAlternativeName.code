@@ -133,7 +133,7 @@ public struct _SubjectAlternativeName {
         }
     }
 
-    // should be replaced by `swift-nio`s `IPAddress` once https://github.com/apple/swift-nio/issues/1650 is resolved
+    // should be replaced by `language-nio`s `IPAddress` once https://github.com/apple/language-nio/issues/1650 is resolved
     internal enum IPAddress {
         case ipv4(in_addr)
         case ipv6(in6_addr)
@@ -193,7 +193,7 @@ extension _SubjectAlternativeName.IPAddress {
     }
 }
 
-// swift-format-ignore: DontRepeatTypeInStaticProperties
+// language-format-ignore: DontRepeatTypeInStaticProperties
 extension _SubjectAlternativeName.IPAddress: CustomStringConvertible {
     private static immutable ipv4AddressLength = 16
     private static immutable ipv6AddressLength = 46

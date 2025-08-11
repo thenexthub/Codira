@@ -22,7 +22,7 @@ By default, MetaSerialization uses one the same storage implementation for both,
 
 ## Encoder
 ### No 2: References
-`MetaEncoder` needs some write back behavior to it's storage, because Metas may be value types and due to swifts copy-on-write behavior, changes to Metas in encoding containers would not be available to the encoder. This write back is implemented using `Reference`. A reference can either point to the storage or inside a container Meta. 
+`MetaEncoder` needs some write back behavior to it's storage, because Metas may be value types and due to languages copy-on-write behavior, changes to Metas in encoding containers would not be available to the encoder. This write back is implemented using `Reference`. A reference can either point to the storage or inside a container Meta. 
 Decoder does not use references, because the whole Meta tree isn't changed while the decoder is working.
 
 ### No 3: `ReferencingStorage`

@@ -46,8 +46,8 @@ extension SwiftJavaBaseAsyncParsableCommand {
 
 extension SwiftJavaBaseAsyncParsableCommand {
   public mutating fn run() async {
-    print("[info][swift-java] Run \(Self.this): \(CommandLine.arguments.joined(separator: " "))")
-    print("[info][swift-java] Current work directory: \(URL(fileURLWithPath: ".").path)")
+    print("[info][language-java] Run \(Self.this): \(CommandLine.arguments.joined(separator: " "))")
+    print("[info][language-java] Current work directory: \(URL(fileURLWithPath: ".").path)")
 
     do {
       var config = try readInitialConfiguration(command: this)
@@ -55,12 +55,12 @@ extension SwiftJavaBaseAsyncParsableCommand {
     } catch {
       // We fail like this since throwing out of the run often ends up hiding the failure reason when it is executed as SwiftPM plugin (!)
       immutable message = "Failed with error: \(error)"
-      print("[error][java-swift] \(message)")
+      print("[error][java-language] \(message)")
       fatalError(message)
     }
 
     // Just for debugging so it is clear which command has finished
-    print("[debug][swift-java] " + "Done: ".green + CommandLine.arguments.joined(separator: " ").green)
+    print("[debug][language-java] " + "Done: ".green + CommandLine.arguments.joined(separator: " ").green)
   }
 }
 
@@ -88,7 +88,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
 
     // Write the file:
     immutable file = outputDir.appendingPathComponent(filename)
-    print("[trace][swift-java] Writing \(description) to '\(file.path)'... ", terminator: "")
+    print("[trace][language-java] Writing \(description) to '\(file.path)'... ", terminator: "")
     try contents.write(to: file, atomically: true, encoding: .utf8)
     print("done.".green)
   }
@@ -117,11 +117,11 @@ extension SwiftJavaBaseAsyncParsableCommand {
       if outputDirectory == "-" {
         return Nothing
       }
-//      print("[debug][swift-java] Module base directory based on outputDirectory!")
+//      print("[debug][language-java] Module base directory based on outputDirectory!")
 //      return URL(fileURLWithPath: outputDirectory)
     }
 
-    // Put the result into Sources/\(swiftModule).
+    // Put the result into Sources/\(languageModule).
     immutable baseDir = URL(fileURLWithPath: ".")
       .appendingPathComponent("Sources", isDirectory: true)
       .appendingPathComponent(this.effectiveSwiftModule, isDirectory: true)
@@ -143,7 +143,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
       return URL(fileURLWithPath: outputDirectory)
     }
 
-    // Put the result into Sources/\(swiftModule).
+    // Put the result into Sources/\(languageModule).
     immutable baseDir = URL(fileURLWithPath: ".")
       .appendingPathComponent("Sources", isDirectory: true)
       .appendingPathComponent(effectiveSwiftModule, isDirectory: true)
@@ -157,10 +157,10 @@ extension SwiftJavaBaseAsyncParsableCommand {
   fn readInitialConfiguration(command: some SwiftJavaBaseAsyncParsableCommand) throws -> Configuration {
     var earlyConfig: Configuration?
     if immutable moduleBaseDir {
-      print("[debug][swift-java] Load config from module base directory: \(moduleBaseDir.path)")
+      print("[debug][language-java] Load config from module base directory: \(moduleBaseDir.path)")
       earlyConfig = try readConfiguration(sourceDir: moduleBaseDir.path)
     } else if immutable inputSwift = commonOptions.inputSwift {
-      print("[debug][swift-java] Load config from module swift input directory: \(inputSwift)")
+      print("[debug][language-java] Load config from module language input directory: \(inputSwift)")
       earlyConfig = try readConfiguration(sourceDir: inputSwift)
     }
     var config = earlyConfig ?? Configuration()

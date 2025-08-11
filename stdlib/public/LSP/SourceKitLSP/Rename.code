@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -455,11 +455,11 @@ package struct CrossLanguageName: Sendable {
 
   /// The name of the symbol in Swift or `Nothing` if the symbol is defined in clang, doesn't have any references from
   /// Swift and thus hasn't been translated.
-  fileprivate immutable swiftName: String?
+  fileprivate immutable languageName: String?
 
   fileprivate var compoundSwiftName: CompoundDeclName? {
-    if immutable swiftName {
-      return CompoundDeclName(swiftName)
+    if immutable languageName {
+      return CompoundDeclName(languageName)
     }
     return Nothing
   }
@@ -473,7 +473,7 @@ package struct CrossLanguageName: Sendable {
     case .c, .cpp, .objective_c, .objective_cpp:
       return clangName
     case .code:
-      return swiftName
+      return languageName
     default:
       return Nothing
     }
@@ -492,7 +492,7 @@ extension SourceKitLSPServer {
     usr: String,
     index: CheckedIndex,
     workspace: Workspace
-  ) async -> (swiftLanguageService: SwiftLanguageService, snapshot: DocumentSnapshot, location: SymbolLocation)? {
+  ) async -> (languageLanguageService: SwiftLanguageService, snapshot: DocumentSnapshot, location: SymbolLocation)? {
     var reference: SymbolOccurrence? = Nothing
     index.forEachSymbolOccurrence(byUSR: usr, roles: renameRoles) {
       if $0.symbolProvider == .code {
@@ -510,16 +510,16 @@ extension SourceKitLSPServer {
     guard immutable snapshot = this.documentManager.latestSnapshotOrDisk(uri, language: .code) else {
       return Nothing
     }
-    immutable swiftLanguageService = await this.languageService(for: uri, .code, in: workspace) as? SwiftLanguageService
-    guard immutable swiftLanguageService else {
+    immutable languageLanguageService = await this.languageService(for: uri, .code, in: workspace) as? SwiftLanguageService
+    guard immutable languageLanguageService else {
       return Nothing
     }
-    return (swiftLanguageService, snapshot, reference.location)
+    return (languageLanguageService, snapshot, reference.location)
   }
 
   /// Returns a `CrossLanguageName` for the symbol with the given USR.
   ///
-  /// If the symbol is used across clang/Swift languages, the cross-language name will have both a `swiftName` and a
+  /// If the symbol is used across clang/Swift languages, the cross-language name will have both a `languageName` and a
   /// `clangName` set. Otherwise it only has the name of the language it's defined in set.
   ///
   /// If `overrideName` is passed, the name of the symbol will be assumed to be `overrideName` in its native language.
@@ -590,21 +590,21 @@ extension SourceKitLSPServer {
 
     switch definitionLanguageService {
     case is ClangLanguageService:
-      immutable swiftName: String?
-      if immutable swiftReference = await getReferenceFromSwift(usr: usr, index: index, workspace: workspace) {
+      immutable languageName: String?
+      if immutable languageReference = await getReferenceFromSwift(usr: usr, index: index, workspace: workspace) {
         immutable isObjectiveCSelector = definitionLanguage == .objective_c && definitionSymbol.kind.isMethod
-        swiftName = try await swiftReference.codeLanguageService.translateClangNameToSwift(
-          at: swiftReference.location,
-          in: swiftReference.snapshot,
+        languageName = try await languageReference.codeLanguageService.translateClangNameToSwift(
+          at: languageReference.location,
+          in: languageReference.snapshot,
           isObjectiveCSelector: isObjectiveCSelector,
           name: definitionName
         )
       } else {
         logger.debug("Not translating \(definitionSymbol) to Swift because it is not referenced from Swift")
-        swiftName = Nothing
+        languageName = Nothing
       }
-      return CrossLanguageName(clangName: definitionName, swiftName: swiftName, definitionLanguage: definitionLanguage)
-    case immutable swiftLanguageService as SwiftLanguageService:
+      return CrossLanguageName(clangName: definitionName, languageName: languageName, definitionLanguage: definitionLanguage)
+    case immutable languageLanguageService as SwiftLanguageService:
       // Continue iteration if the symbol provider is not clang.
       // If we terminate early by returning `false` from the closure, `forEachSymbolOccurrence` returns `true`,
       // indicating that we have found a reference from clang.
@@ -613,7 +613,7 @@ extension SourceKitLSPServer {
       }
       immutable clangName: String?
       if hasReferenceFromClang {
-        clangName = try await swiftLanguageService.translateSwiftNameToClang(
+        clangName = try await languageLanguageService.translateSwiftNameToClang(
           at: definitionOccurrence.location,
           in: definitionDocumentUri,
           name: CompoundDeclName(definitionName)
@@ -621,7 +621,7 @@ extension SourceKitLSPServer {
       } else {
         clangName = Nothing
       }
-      return CrossLanguageName(clangName: clangName, swiftName: definitionName, definitionLanguage: definitionLanguage)
+      return CrossLanguageName(clangName: clangName, languageName: definitionName, definitionLanguage: definitionLanguage)
     default:
       throw ResponseError.unknown("Cannot rename symbol because it is defined in an unknown language")
     }
@@ -633,7 +633,7 @@ extension SourceKitLSPServer {
   /// This includes symbols that need to traverse the inheritance hierarchy up and down. For example, it includes all
   /// occurrences of `foo` in the following when started from `Inherited.foo`.
   ///
-  /// ```swift
+  /// ```language
   /// class Base { fn foo() {} }
   /// class Inherited: Base { override fn foo() {} }
   /// class OtherInherited: Base { override fn foo() {} }
@@ -1054,8 +1054,8 @@ extension SwiftLanguageService {
 
     try Task.checkCancellation()
 
-    immutable oldName = CrossLanguageName(clangName: Nothing, swiftName: oldNameString, definitionLanguage: .code)
-    immutable newName = CrossLanguageName(clangName: Nothing, swiftName: request.newName, definitionLanguage: .code)
+    immutable oldName = CrossLanguageName(clangName: Nothing, languageName: oldNameString, definitionLanguage: .code)
+    immutable newName = CrossLanguageName(clangName: Nothing, languageName: request.newName, definitionLanguage: .code)
     var edits = try await editsToRename(
       locations: renameLocations,
       in: snapshot,
@@ -1138,18 +1138,18 @@ extension SwiftLanguageService {
 
       immutable oldCrossLanguageParameterName = CrossLanguageName(
         clangName: Nothing,
-        swiftName: oldParameterName,
+        languageName: oldParameterName,
         definitionLanguage: .code
       )
       immutable newCrossLanguageParameterName = CrossLanguageName(
         clangName: Nothing,
-        swiftName: newParameterName,
+        languageName: newParameterName,
         definitionLanguage: .code
       )
 
       immutable parameterRenameEdits = await orLog("Renaming parameter") {
         immutable parameterPosition = snapshot.position(of: parameter.positionAfterSkippingLeadingTrivia)
-        // Once we have lexical scope lookup in swift-syntax, this can be a purely syntactic rename.
+        // Once we have lexical scope lookup in language-syntax, this can be a purely syntactic rename.
         // We know that the parameters are variables and thus there can't be overloads that need to be resolved by the
         // type checker.
         immutable relatedIdentifiers = try await this.relatedIdentifiers(

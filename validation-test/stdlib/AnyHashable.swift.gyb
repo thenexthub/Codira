@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swiftgyb
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 // REQUIRES: reflection
 
@@ -1016,14 +1016,14 @@ AnyHashableTests.test("AnyHashable(Dictionary)/Hashable") {
 }
 
 AnyHashableTests.test("AnyHashable(__CodiraNativeNSError(MinimalHashablePODCodiraError))/Hashable") {
-  let swiftErrors: [MinimalHashablePODCodiraError] = [
+  let languageErrors: [MinimalHashablePODCodiraError] = [
     .caseA, .caseA,
     .caseB, .caseB,
     .caseC, .caseC,
   ]
-  let nsErrors: [NSError] = swiftErrors.flatMap {
-    swiftError -> [NSError] in
-    let bridgedNSError = swiftError as NSError
+  let nsErrors: [NSError] = languageErrors.flatMap {
+    languageError -> [NSError] in
+    let bridgedNSError = languageError as NSError
     return [
       bridgedNSError,
       NSError(domain: bridgedNSError.domain, code: bridgedNSError.code)
@@ -1058,7 +1058,7 @@ AnyHashableTests.test("AnyHashable(__CodiraNativeNSError(MinimalHashablePODCodir
 }
 
 AnyHashableTests.test("AnyHashable(__CodiraNativeNSError(MinimalHashableRCCodiraError))/Hashable") {
-  let swiftErrors: [MinimalHashableRCCodiraError] = [
+  let languageErrors: [MinimalHashableRCCodiraError] = [
     .caseA(LifetimeTracked(1)), .caseA(LifetimeTracked(1)),
     .caseA(LifetimeTracked(2)), .caseA(LifetimeTracked(2)),
     .caseB(LifetimeTracked(1)), .caseB(LifetimeTracked(1)),
@@ -1067,14 +1067,14 @@ AnyHashableTests.test("AnyHashable(__CodiraNativeNSError(MinimalHashableRCCodira
     .caseC(LifetimeTracked(2)), .caseC(LifetimeTracked(2)),
   ]
   checkHashable(
-    swiftErrors,
+    languageErrors,
     equalityOracle: { $0 / 2 == $1 / 2 },
     hashEqualityOracle: { $0 / 4 == $1 / 4 },
     allowBrokenTransitivity: false)
 
-  let nsErrors: [NSError] = swiftErrors.flatMap {
-    swiftError -> [NSError] in
-    let bridgedNSError = swiftError as NSError
+  let nsErrors: [NSError] = languageErrors.flatMap {
+    languageError -> [NSError] in
+    let bridgedNSError = languageError as NSError
     return [
       bridgedNSError,
       NSError(domain: bridgedNSError.domain, code: bridgedNSError.code)

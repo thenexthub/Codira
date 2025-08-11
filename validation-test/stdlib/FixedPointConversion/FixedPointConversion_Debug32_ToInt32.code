@@ -1,13 +1,13 @@
 //===----------------------------------------------------------------------===//
 //
-// Automatically Generated From ./Inputs/FixedPointConversion.swift.gyb
+// Automatically Generated From ./Inputs/FixedPointConversion.language.gyb
 // Do Not Edit Directly!
 //
 //===----------------------------------------------------------------------===//
 //
 // REQUIRES: executable_test
 // REQUIRES: PTRSIZE=32
-// RUN: %target-run-simple-swift(-Onone)
+// RUN: %target-run-simple-language(-Onone)
 // END.
 //
 //===----------------------------------------------------------------------===//

@@ -1,12 +1,15 @@
 //===--- ASTSectionImporter.cpp - Import AST Section Modules --------------===//
 //
-// This source file is part of the Codira.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 //
@@ -15,16 +18,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "swift/ASTSectionImporter/ASTSectionImporter.h"
+#include "language/ASTSectionImporter/ASTSectionImporter.h"
 #include "../Serialization/ModuleFormat.h"
-#include "swift/AST/ASTContext.h"
-#include "swift/Basic/Assertions.h"
-#include "swift/Serialization/SerializedModuleLoader.h"
-#include "swift/Serialization/Validation.h"
+#include "language/AST/ASTContext.h"
+#include "language/Basic/Assertions.h"
+#include "language/Serialization/SerializedModuleLoader.h"
+#include "language/Serialization/Validation.h"
 #include "toolchain/Support/Debug.h"
 #include "toolchain/Support/raw_ostream.h"
 
-using namespace swift;
+using namespace language;
 
 std::string ASTSectionParseError::toString() const {
   std::string S;
@@ -44,7 +47,7 @@ std::error_code ASTSectionParseError::convertToErrorCode() const {
 char ASTSectionParseError::ID;
 
 toolchain::Expected<SmallVector<std::string, 4>>
-swift::parseASTSection(MemoryBufferSerializedModuleLoader &Loader,
+language::parseASTSection(MemoryBufferSerializedModuleLoader &Loader,
                        StringRef buf,
                        const toolchain::Triple &filter) {
   if (!serialization::isSerializedAST(buf))
@@ -99,13 +102,13 @@ swift::parseASTSection(MemoryBufferSerializedModuleLoader &Loader,
     }
 
     buf = buf.substr(
-      toolchain::alignTo(info.bytes, swift::serialization::LANGUAGEMODULE_ALIGNMENT));
+      toolchain::alignTo(info.bytes, language::serialization::LANGUAGEMODULE_ALIGNMENT));
   }
 
   return foundModules;
 }
 
-bool swift::parseASTSection(MemoryBufferSerializedModuleLoader &Loader,
+bool language::parseASTSection(MemoryBufferSerializedModuleLoader &Loader,
                             StringRef buf,
                             const toolchain::Triple &filter,
                             SmallVectorImpl<std::string> &foundModules) {

@@ -25,7 +25,7 @@ package actor Debouncer<Parameter: Sendable> {
   /// ### Example
   ///
   /// Two `scheduleCall` calls that are made within a time period shorter than `debounceDuration` like the following
-  /// ```swift
+  /// ```language
   /// debouncer.scheduleCall(5)
   /// debouncer.scheduleCall(10)
   /// ```

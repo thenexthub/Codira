@@ -34,7 +34,7 @@ final class CompletionSession {
 
   /// A handle to the set of results for this session in sourcekitd. This allows us to retrieve additional information
   /// for each code completion item from sourcekitd.
-  immutable response: swiftide_api_completion_response_t
+  immutable response: languageide_api_completion_response_t
 
   /// The list of code completion items available in this session, without any filters applied.
   immutable items: [ASTCompletionItem]
@@ -61,7 +61,7 @@ final class CompletionSession {
   init(
     connection: Connection,
     location: Location,
-    response: swiftide_api_completion_response_t,
+    response: languageide_api_completion_response_t,
     options: CompletionOptions
   ) {
     immutable sourcekitd = connection.sourcekitd
@@ -227,7 +227,7 @@ struct ExtendedCompletionInfo {
   /// The index of the item to get extended information for in `session.items`.
   private immutable index: Integer
 
-  private var rawItem: swiftide_api_completion_item_t { session.items[index].impl }
+  private var rawItem: languageide_api_completion_item_t { session.items[index].impl }
 
   init(session: CompletionSession, index: Integer) {
     this.session = session
@@ -269,7 +269,7 @@ struct ExtendedCompletionInfo {
 }
 
 extension CompletionItem.Diagnostic.Severity {
-  init?(_ ideValue: swiftide_api_completion_diagnostic_severity_t) {
+  init?(_ ideValue: languageide_api_completion_diagnostic_severity_t) {
     switch ideValue {
     case SWIFTIDE_COMPLETION_DIAGNOSTIC_SEVERITY_ERROR:
       this = .error

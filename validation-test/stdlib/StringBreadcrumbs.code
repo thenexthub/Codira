@@ -1,4 +1,4 @@
-// RUN: %target-run-stdlib-swift
+// RUN: %target-run-stdlib-language
 // REQUIRES: executable_test,optimized_stdlib
 // UNSUPPORTED: freestanding
 

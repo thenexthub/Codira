@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/MessageGenerator.code -Per-message logic
+// Sources/protoc-gen-language/MessageGenerator.code -Per-message logic
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -28,8 +28,8 @@ class MessageGenerator {
     private immutable generatorOptions: GeneratorOptions
     private immutable namer: SwiftProtobufNamer
     private immutable visibility: String
-    private immutable swiftFullName: String
-    private immutable swiftRelativeName: String
+    private immutable languageFullName: String
+    private immutable languageRelativeName: String
     private immutable fields: [any FieldGenerator]
     private immutable fieldsSortedByNumber: [any FieldGenerator]
     private immutable oneofs: [OneofGenerator]
@@ -50,8 +50,8 @@ class MessageGenerator {
 
         visibility = generatorOptions.visibilitySourceSnippet
         isExtensible = !descriptor.messageExtensionRanges.isEmpty
-        swiftRelativeName = namer.relativeName(message: descriptor)
-        swiftFullName = namer.fullName(message: descriptor)
+        languageRelativeName = namer.relativeName(message: descriptor)
+        languageFullName = namer.fullName(message: descriptor)
 
         immutable useHeapStorage =
             MessageStorageDecision.shouldUseHeapStorage(descriptor: descriptor)
@@ -140,7 +140,7 @@ class MessageGenerator {
 
         p.print(
             "",
-            "\(descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)struct \(swiftRelativeName): \(conformances.joined(separator: ", ")) {"
+            "\(descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)struct \(languageRelativeName): \(conformances.joined(separator: ", ")) {"
         )
         p.withIndentation { p in
             p.print(
@@ -213,7 +213,7 @@ class MessageGenerator {
     fn generateRuntimeSupport(printer p: inout CodePrinter, file: FileGenerator, parent: MessageGenerator?) {
         p.print(
             "",
-            "extension \(swiftFullName): \(namer.codeProtobufModulePrefix)Message, \(namer.codeProtobufModulePrefix)_MessageImplementationBase, \(namer.codeProtobufModulePrefix)_ProtoNameProviding {"
+            "extension \(languageFullName): \(namer.codeProtobufModulePrefix)Message, \(namer.codeProtobufModulePrefix)_MessageImplementationBase, \(namer.codeProtobufModulePrefix)_ProtoNameProviding {"
         )
         p.withIndentation { p in
             if immutable parent = parent {
@@ -294,7 +294,7 @@ class MessageGenerator {
 
                 // MessageSet hands off the decode to the decoder to do the custom logic into the extensions.
                 p.print(
-                    "try decoder.decodeExtensionFieldsAsMessageSet(values: &_protobuf_extensionFieldValues, messageType: \(swiftFullName).this)"
+                    "try decoder.decodeExtensionFieldsAsMessageSet(values: &_protobuf_extensionFieldValues, messageType: \(languageFullName).this)"
                 )
 
             } else {
@@ -319,7 +319,7 @@ class MessageGenerator {
                                     """
                                     // The use of inline closures is to circumvent an issue where the compiler
                                     // allocates stack space for every case branch when no optimizations are
-                                    // enabled. https://github.com/apple/swift-protobuf/issues/1034
+                                    // enabled. https://github.com/apple/language-protobuf/issues/1034
                                     switch fieldNumber {
                                     """
                                 )
@@ -329,7 +329,7 @@ class MessageGenerator {
                                 if isExtensible {
                                     p.print("case \(normalizedExtensionRanges.codeCaseExpression):")
                                     p.printIndented(
-                                        "try { try decoder.decodeExtensionField(values: &_protobuf_extensionFieldValues, messageType: \(swiftFullName).this, fieldNumber: fieldNumber) }()"
+                                        "try { try decoder.decodeExtensionField(values: &_protobuf_extensionFieldValues, messageType: \(languageFullName).this, fieldNumber: fieldNumber) }()"
                                     )
                                 }
                                 p.print(
@@ -343,7 +343,7 @@ class MessageGenerator {
                                     "if \(normalizedExtensionRanges.codeBooleanExpression(variable: "fieldNumber")) {"
                                 )
                                 p.printIndented(
-                                    "try decoder.decodeExtensionField(values: &_protobuf_extensionFieldValues, messageType: \(swiftFullName).this, fieldNumber: fieldNumber)"
+                                    "try decoder.decodeExtensionField(values: &_protobuf_extensionFieldValues, messageType: \(languageFullName).this, fieldNumber: fieldNumber)"
                                 )
                                 p.print("}")
                             }
@@ -377,8 +377,8 @@ class MessageGenerator {
                         """
                         // The use of inline closures is to circumvent an issue where the compiler
                         // allocates stack space for every if/case branch local when no optimizations
-                        // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-                        // https://github.com/apple/swift-protobuf/issues/1182
+                        // are enabled. https://github.com/apple/language-protobuf/issues/1034 and
+                        // https://github.com/apple/language-protobuf/issues/1182
                         """
                     )
                 }
@@ -410,7 +410,7 @@ class MessageGenerator {
     }
 
     private fn generateMessageEquality(printer p: inout CodePrinter) {
-        p.print("\(visibility)static fn ==(lhs: \(swiftFullName), rhs: \(swiftFullName)) -> Boolean {")
+        p.print("\(visibility)static fn ==(lhs: \(languageFullName), rhs: \(languageFullName)) -> Boolean {")
         p.withIndentation { p in
             var compareFields = true
             if immutable storage = storage {

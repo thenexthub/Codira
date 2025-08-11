@@ -1,6 +1,6 @@
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
+// RUN: %target-language-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
 
-// https://github.com/swiftlang/swift/pull/82147
+// https://github.com/languagelang/language/pull/82147
 
 protocol P {
   associatedtype X

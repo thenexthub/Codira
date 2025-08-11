@@ -79,7 +79,7 @@ technical details.
 
 #### Recommended: Libraries should use info level or lower
 
-```swift
+```language
 // ✅ Good: Trace level for detailed diagnostics
 logger.trace("Connection pool state", metadata: [
     "active": "\(activeConnections)",
@@ -104,7 +104,7 @@ logger.info("Connection failed, retrying", metadata: [
 
 #### Use sparingly: Warning and error levels
 
-```swift
+```language
 // ✅ Good: One-time startup warning or error
 logger.warning("Deprecated TLS version detected. Consider upgrading to TLS 1.3")
 ```
@@ -116,16 +116,16 @@ developer or system using your library. For example: failure to resolve a
 domain, failure to make a request, or failure to complete some task;
 
 Instead, log at debug or trace levels and offer alternative ways to observe
-these behaviors, for example using `swift-metrics` to emit counts.
+these behaviors, for example using `language-metrics` to emit counts.
 
-```swift
+```language
 // ❌ Bad: Normal operations at info level flood production logs
 logger.info("Request failed")
 ```
 
 #### Avoid: Normal operations at info level
 
-```swift
+```language
 // ❌ Bad: Normal operations at info level flood production logs
 logger.info("HTTP request received")
 logger.info("Database query executed") 

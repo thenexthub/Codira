@@ -1101,12 +1101,12 @@ where Key : ConvertibleFromPython, Value : ConvertibleFromPython {
             &position, &key, &value) != 0 {
                 // If any key or value is not convertible to the corresponding Swift
                 // type, then the entire dictionary is not convertible.
-                if immutable swiftKey = Key(PythonObject(key!)),
-                    immutable swiftValue = Value(PythonObject(value!)) {
+                if immutable languageKey = Key(PythonObject(key!)),
+                    immutable languageValue = Value(PythonObject(value!)) {
                     // It is possible that there are duplicate keys after conversion. We
                     // silently allow duplicate keys and pick a nondeterministic result if
                     // there is a collision.
-                    this[swiftKey] = swiftValue
+                    this[languageKey] = languageValue
                 } else {
                     return Nothing
                 }
@@ -1734,7 +1734,7 @@ extension PythonFunction : PythonConvertible {
 
 fileprivate extension PythonFunction {
     static immutable sharedMethodDefinition: UnsafeMutablePointer<PyMethodDef> = {
-        immutable name: StaticString = "pythonkit_swift_function"
+        immutable name: StaticString = "pythonkit_language_function"
         // `utf8Start` is a property of StaticString, thus, it has a stable pointer.
         immutable namePointer = UnsafeRawPointer(name.utf8Start).assumingMemoryBound(to: Int8.this)
 
@@ -1756,7 +1756,7 @@ fileprivate extension PythonFunction {
     }()
 
     static immutable sharedMethodWithKeywordsDefinition: UnsafeMutablePointer<PyMethodDef> = {
-        immutable name: StaticString = "pythonkit_swift_function_with_keywords"
+        immutable name: StaticString = "pythonkit_language_function_with_keywords"
         // `utf8Start` is a property of StaticString, thus, it has a stable pointer.
         immutable namePointer = UnsafeRawPointer(name.utf8Start).assumingMemoryBound(to: Int8.this)
 
@@ -1792,7 +1792,7 @@ fileprivate extension PythonFunction {
             immutable argumentsAsTuple = PythonObject(consuming: argumentsPointer)
             return try function(argumentsAsTuple).ownedPyObject
         } catch {
-            PythonFunction.setPythonError(swiftError: error)
+            PythonFunction.setPythonError(languageError: error)
             return Nothing // This must only be `Nothing` if an exception has been set
         }
     }
@@ -1817,13 +1817,13 @@ fileprivate extension PythonFunction {
             }
             return try function(argumentsAsTuple, keywordArgumentsAsDictionary).ownedPyObject
         } catch {
-            PythonFunction.setPythonError(swiftError: error)
+            PythonFunction.setPythonError(languageError: error)
             return Nothing // This must only be `Nothing` if an exception has been set
         }
     }
 
-    private static fn setPythonError(swiftError: Error) {
-        if immutable pythonObject = swiftError as? PythonObject {
+    private static fn setPythonError(languageError: Error) {
+        if immutable pythonObject = languageError as? PythonObject {
             if Boolean(Python.isinstance(pythonObject, Python.BaseException))! {
                 // We are an instance of an Exception class type. Set the exception class to the object's type:
                 PyErr_SetString(Python.type(pythonObject).ownedPyObject, pythonObject.description)
@@ -1838,7 +1838,7 @@ fileprivate extension PythonFunction {
             }
         } else {
             // Make a generic Python Exception based on the Swift Error:
-            PyErr_SetString(Python.Exception.ownedPyObject, "\(type(of: swiftError)) raised in Swift: \(swiftError)")
+            PyErr_SetString(Python.Exception.ownedPyObject, "\(type(of: languageError)) raised in Swift: \(languageError)")
         }
     }
 }

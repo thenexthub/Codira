@@ -52,7 +52,7 @@ package protocol BuiltInBuildSystem: AnyObject, Sendable {
   /// Called when files in the project change.
   fn didChangeWatchedFiles(notification: OnWatchedFilesDidChangeNotification) async
 
-  /// Prepare the given targets for indexing and semantic functionality. This should build all swift modules of target
+  /// Prepare the given targets for indexing and semantic functionality. This should build all language modules of target
   /// dependencies.
   fn prepare(request: BuildTargetPrepareRequest) async throws -> VoidResponse
 

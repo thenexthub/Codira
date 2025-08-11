@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend -c %s -verify
+// RUN: %target-language-frontend -c %s -verify
 
 fn testFatalError(_ message: @autoclosure () -> String = String()) -> Never {
   Codira.fatalError()

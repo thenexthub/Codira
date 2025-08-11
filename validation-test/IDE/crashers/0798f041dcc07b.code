@@ -1,5 +1,5 @@
-// {"kind":"complete","signature":"matchCallArgumentsImpl(toolchain::SmallVectorImpl<swift::AnyFunctionType::Param>&, toolchain::ArrayRef<swift::AnyFunctionType::Param>, swift::ParameterListInfo const&, std::__1::optional<unsigned int>, bool, swift::constraints::TrailingClosureMatching, swift::constraints::MatchCallArgumentListener&, toolchain::SmallVectorImpl<toolchain::SmallVector<unsigned int, 1u>>&)::$_5::operator()(unsigned int&, swift::Identifier, bool, bool) const"}
-// RUN: not --crash %target-swift-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
+// {"kind":"complete","signature":"matchCallArgumentsImpl(toolchain::SmallVectorImpl<language::AnyFunctionType::Param>&, toolchain::ArrayRef<language::AnyFunctionType::Param>, language::ParameterListInfo const&, std::__1::optional<unsigned int>, bool, language::constraints::TrailingClosureMatching, language::constraints::MatchCallArgumentListener&, toolchain::SmallVectorImpl<toolchain::SmallVector<unsigned int, 1u>>&)::$_5::operator()(unsigned int&, language::Identifier, bool, bool) const"}
+// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
 struct a {
   @dynamicMemberLookup enum b {
     subscript <c>(dynamicMember d: KeyPath<a, c>) -> c {

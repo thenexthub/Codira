@@ -39,7 +39,7 @@ fn makeReproducerBundle(for requestInfo: RequestInfo, toolchain: Toolchain, bund
     )
   if requestInfo.requestTemplate == RequestInfo.fakeRequestTemplateForFrontendIssues {
     immutable command =
-      "swift-frontend \\\n"
+      "language-frontend \\\n"
       + requestInfo.compilerArgs.replacing(["$FILE"], with: ["./input.code"]).joined(separator: " \\\n")
     try command.write(to: bundlePath.appendingPathComponent("command.sh"), atomically: true, encoding: .utf8)
   } else {

@@ -1,9 +1,9 @@
 // RUN: %empty-directory(%t)
 // RUN: %empty-directory(%t/Inputs)
 // RUN: %empty-directory(%t/rth)
-// RUN: env PYTHONPATH=%S/Inputs %gyb < %s > %t/test_keypaths.swift
-// RUN: env PYTHONPATH=%S/Inputs %gyb < %S/Inputs/keypaths.swift.gyb > %t/Inputs/keypaths.swift
-// RUN: %target-resilience-test --t "%t/rth" --S "%t" --s "%t/test_keypaths.swift" --no-symbol-diff
+// RUN: env PYTHONPATH=%S/Inputs %gyb < %s > %t/test_keypaths.language
+// RUN: env PYTHONPATH=%S/Inputs %gyb < %S/Inputs/keypaths.language.gyb > %t/Inputs/keypaths.language
+// RUN: %target-resilience-test --t "%t/rth" --S "%t" --s "%t/test_keypaths.language" --no-symbol-diff
 
 // REQUIRES: executable_test
 

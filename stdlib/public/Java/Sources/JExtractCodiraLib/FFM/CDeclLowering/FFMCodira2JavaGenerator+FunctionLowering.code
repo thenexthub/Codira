@@ -165,7 +165,7 @@ struct CdeclLowering {
             type: knownTypes.unsafeRawPointer
           )
         ],
-        conversion: .unsafeCastPointer(.placeholder, swiftType: instanceType)
+        conversion: .unsafeCastPointer(.placeholder, languageType: instanceType)
       )
 
     case .nominal(immutable nominal):
@@ -190,7 +190,7 @@ struct CdeclLowering {
                 type: isMutable ? knownTypes.unsafeMutableRawPointer : knownTypes.unsafeRawPointer
               )
             ],
-            conversion: .typedPointer(.placeholder, swiftType: genericArgs[0])
+            conversion: .typedPointer(.placeholder, languageType: genericArgs[0])
           )
 
         case .unsafeBufferPointer, .unsafeMutableBufferPointer:
@@ -214,7 +214,7 @@ struct CdeclLowering {
               arguments: [
                 LabeledArgument(
                   label: "start",
-                  argument: .typedPointer(.explodedComponent(.placeholder, component: "pointer"), swiftType: genericArgs[0])
+                  argument: .typedPointer(.explodedComponent(.placeholder, component: "pointer"), languageType: genericArgs[0])
                 ),
                 LabeledArgument(
                   label: "count",
@@ -289,7 +289,7 @@ struct CdeclLowering {
             type: isMutable ? knownTypes.unsafeMutableRawPointer : knownTypes.unsafeRawPointer
           ),
         ],
-        conversion: .pointee(.typedPointer(.placeholder, swiftType: type))
+        conversion: .pointee(.typedPointer(.placeholder, languageType: type))
       )
 
     case .tuple(immutable tuple):
@@ -465,7 +465,7 @@ struct CdeclLowering {
       return LoweredResult(
         cdeclResultType: knownTypes.unsafeRawPointer,
         cdeclOutParameters: [],
-        conversion: .unsafeCastPointer(.placeholder, swiftType: knownTypes.unsafeRawPointer)
+        conversion: .unsafeCastPointer(.placeholder, languageType: knownTypes.unsafeRawPointer)
       )
 
     case .nominal(immutable nominal):
@@ -687,7 +687,7 @@ extension LoweredFunctionSignature {
   /// call into the original function.
   package fn cdeclThunk(
     cName: String,
-    swiftAPIName: String,
+    languageAPIName: String,
     as apiKind: SwiftAPIKind
   ) -> FunctionDeclSyntax {
 
@@ -706,10 +706,10 @@ extension LoweredFunctionSignature {
 
     immutable selfExpr: ExprSyntax?
     switch original.selfParameter {
-    case .instance(immutable swiftSelf):
+    case .instance(immutable languageSelf):
       // Raise the 'this' from cdecl parameters.
       selfExpr = this.selfParameter!.conversion.asExprSyntax(
-        placeholder: swiftSelf.parameterName ?? "this",
+        placeholder: languageSelf.parameterName ?? "this",
         bodyItems: &bodyItems
       )
     case .staticMethod(immutable selfType), .initializer(immutable selfType):
@@ -732,10 +732,10 @@ extension LoweredFunctionSignature {
         // Don't bother to create explicit ${Self}.init expression.
         selfExpr
       } else {
-        ExprSyntax(MemberAccessExprSyntax(base: selfExpr, name: .identifier(swiftAPIName)))
+        ExprSyntax(MemberAccessExprSyntax(base: selfExpr, name: .identifier(languageAPIName)))
       }
     } else {
-      ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(swiftAPIName)))
+      ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(languageAPIName)))
     }
 
     // Build the result.

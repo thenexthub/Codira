@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend \
+// RUN: %target-language-frontend \
 // RUN:     -primary-file %s   \
 // RUN:     -module-name main  \
 // RUN:     -O                 \
@@ -13,7 +13,7 @@
 // REQUIRES: PTRSIZE=64
 
 // This test expects the stdlib to be in its properly optimized form.
-// REQUIRES: swift_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
 
 // No need to run this test that has a hard-coded target of macos10.13 on other
 // platforms.

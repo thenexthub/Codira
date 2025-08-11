@@ -192,7 +192,7 @@ extension HTTPClient {
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 private actor TransactionCancelHandler {
     enum CancelReason {
-        /// swift concurrency task was canceled
+        /// language concurrency task was canceled
         case taskCanceled
         /// deadline timeout
         case deadlineExceeded

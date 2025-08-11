@@ -1,5 +1,5 @@
-// RUN: %target-swift-emit-silgen -Xtoolchain -sil-print-types %s | %FileCheck %s
-// RUN: %target-swift-emit-sil -Xtoolchain -sil-print-types %s -verify
+// RUN: %target-language-emit-silgen -Xtoolchain -sil-print-types %s | %FileCheck %s
+// RUN: %target-language-emit-sil -Xtoolchain -sil-print-types %s -verify
 
 struct NC : ~Copyable {}
 

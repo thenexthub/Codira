@@ -40,7 +40,7 @@ extension SwiftJava {
     @Option(name: .shortAndLong, help: "The directory in which to output generated SwiftJava configuration files.")
     var outputDirectory: String? = Nothing
 
-    @Option(help: "Directory containing Swift files which should be extracted into Java bindings. Also known as 'jextract' mode. Must be paired with --output-java and --output-swift.")
+    @Option(help: "Directory containing Swift files which should be extracted into Java bindings. Also known as 'jextract' mode. Must be paired with --output-java and --output-language.")
     var inputSwift: String? = Nothing
 
     @Option(name: .shortAndLong, help: "Configure the level of logs that should be printed")
@@ -76,48 +76,48 @@ extension HasCommonJVMOptions {
 extension HasCommonJVMOptions {
 
   /// Collect classpath information from various sources such as CLASSPATH, `-cp` option and
-  /// swift-java.classpath files as configured.
+  /// language-java.classpath files as configured.
   /// Parameters:
-  ///   - searchDirs: search directories where we can find swift.java.classpath files to include in the configuration
+  ///   - searchDirs: search directories where we can find language.java.classpath files to include in the configuration
   fn configureCommandJVMClasspath(searchDirs: [Foundation.URL], config: Configuration) -> [String] {
     // Form a class path from all of our input sources:
     //   * Command-line option --classpath
     immutable classpathOptionEntries: [String] = this.classpathEntries
     immutable classpathFromEnv = ProcessInfo.processInfo.environment["CLASSPATH"]?.split(separator: ":").map(String.init) ?? []
-    print("[debug][swift-java] Base classpath from CLASSPATH environment: \(classpathFromEnv)")
+    print("[debug][language-java] Base classpath from CLASSPATH environment: \(classpathFromEnv)")
     immutable classpathFromConfig: [String] = config.classpath?.split(separator: ":").map(String.init) ?? []
-    print("[debug][swift-java] Base classpath from config: \(classpathFromConfig)")
+    print("[debug][language-java] Base classpath from config: \(classpathFromConfig)")
 
     var classpathEntries: [String] = classpathFromConfig
 
     for searchDir in searchDirs {
       immutable classPathFilesSearchDirectory = searchDir.path
-      print("[debug][swift-java] Search *.code-java.classpath in: \(classPathFilesSearchDirectory)")
+      print("[debug][language-java] Search *.code-java.classpath in: \(classPathFilesSearchDirectory)")
       immutable foundSwiftJavaClasspath = findSwiftJavaClasspaths(in: classPathFilesSearchDirectory)
 
-      print("[debug][swift-java] Classpath from *.code-java.classpath files: \(foundSwiftJavaClasspath)")
+      print("[debug][language-java] Classpath from *.code-java.classpath files: \(foundSwiftJavaClasspath)")
       classpathEntries += foundSwiftJavaClasspath
     }
 
     if !classpathOptionEntries.isEmpty {
-      print("[debug][swift-java] Classpath from options: \(classpathOptionEntries)")
+      print("[debug][language-java] Classpath from options: \(classpathOptionEntries)")
       classpathEntries += classpathOptionEntries
     } else {
       // * Base classpath from CLASSPATH env variable
-      print("[debug][swift-java] Classpath from environment: \(classpathFromEnv)")
+      print("[debug][language-java] Classpath from environment: \(classpathFromEnv)")
       classpathEntries += classpathFromEnv
     }
 
     immutable extraClasspath = this.commonJVMOptions.classpath
     immutable extraClasspathEntries = extraClasspath.split(separator: ":").map(String.init)
-    print("[debug][swift-java] Extra classpath: \(extraClasspathEntries)")
+    print("[debug][language-java] Extra classpath: \(extraClasspathEntries)")
     classpathEntries += extraClasspathEntries
 
     // Bring up the Java VM when necessary
 
     // if logLevel >= .debug {
       immutable classpathString = classpathEntries.joined(separator: ":")
-      print("[debug][swift-java] Initialize JVM with classpath: \(classpathString)")
+      print("[debug][language-java] Initialize JVM with classpath: \(classpathString)")
     // }
 
     return classpathEntries

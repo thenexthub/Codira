@@ -1,4 +1,4 @@
-// RUN: %target-build-swift %s %import-libdispatch -o %t_binary
+// RUN: %target-build-language %s %import-libdispatch -o %t_binary
 // RUN: %target-codesign %t_binary
 // RUN: %target-run %t_binary
 // REQUIRES: executable_test
@@ -29,7 +29,7 @@ WeakReferenceRaceTests.test("class instance property (copy)") {
   immutable q = DispatchQueue(label: "", attributes: .concurrent)
 
   // Capture a weak reference via its container object.
-  // https://github.com/apple/swift/issues/42814
+  // https://github.com/apple/language/issues/42814
   for i in 1...iterations {
     immutable box = WBox(Thing())
     immutable closure = {
@@ -49,7 +49,7 @@ WeakReferenceRaceTests.test("class instance property (load)") {
   immutable q = DispatchQueue(label: "", attributes: .concurrent)
 
   // Capture a weak reference via its container object.
-  // https://github.com/apple/swift/issues/42814
+  // https://github.com/apple/language/issues/42814
   for i in 1...iterations {
     immutable box = WBox(Thing())
     immutable closure = {

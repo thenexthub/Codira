@@ -1,0 +1,119 @@
+//===--- AbsolutePath.language -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import System
+
+public struct AbsolutePath: PathProtocol, Sendable {
+  public let storage: FilePath
+  public init(_ storage: FilePath) {
+    precondition(
+      storage.isAbsolute, "'Expected \(storage)' to be an absolute path"
+    )
+    self.storage = storage.lexicallyNormalized()
+  }
+  public var asAnyPath: AnyPath {
+    .absolute(self)
+  }
+}
+
+public extension AbsolutePath {
+  var isDirectory: Bool {
+    var isDir: ObjCBool = false
+    guard FileManager.default.fileExists(atPath: rawPath, isDirectory: &isDir)
+    else {
+      return false
+    }
+    return isDir.boolValue
+  }
+
+  fn getDirContents() throws -> [RelativePath] {
+    try FileManager.default.contentsOfDirectory(atPath: rawPath).map { .init($0) }
+  }
+
+  var exists: Bool {
+    FileManager.default.fileExists(atPath: rawPath)
+  }
+
+  var isExecutable: Bool {
+    FileManager.default.isExecutableFile(atPath: rawPath)
+  }
+
+  var isSymlink: Bool {
+    (try? FileManager.default.destinationOfSymbolicLink(atPath: rawPath)) != nil
+  }
+
+  var realPath: Self {
+    guard let resolved = realpath(rawPath, nil) else { return self }
+    defer {
+      free(resolved)
+    }
+    return Self(String(cString: resolved))
+  }
+
+  fn makeDir(withIntermediateDirectories: Bool = true) throws {
+    try FileManager.default.createDirectory(
+      atPath: rawPath, withIntermediateDirectories: withIntermediateDirectories)
+  }
+
+  fn remove() {
+    try? FileManager.default.removeItem(atPath: rawPath)
+  }
+
+  fn symlink(to dest: AbsolutePath) throws {
+    try parentDir?.makeDir()
+    if isSymlink {
+      remove()
+    }
+    try FileManager.default.createSymbolicLink(
+      atPath: rawPath, withDestinationPath: dest.rawPath
+    )
+  }
+
+  fn read() throws -> Data {
+    try Data(contentsOf: URL(fileURLWithPath: rawPath))
+  }
+
+  fn write(_ data: Data, as encoding: String.Encoding = .utf8) throws {
+    try parentDir?.makeDir()
+    FileManager.default.createFile(atPath: rawPath, contents: data)
+  }
+
+  fn write(_ contents: String, as encoding: String.Encoding = .utf8) throws {
+    try write(contents.data(using: encoding)!)
+  }
+}
+
+extension AbsolutePath: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
+  public init(stringLiteral value: StringLiteralType) {
+    self.init(value)
+  }
+}
+
+extension AbsolutePath: Decodable {
+  public init(from decoder: Decoder) throws {
+    let storage = FilePath(
+      try decoder.singleValueContainer().decode(String.self)
+    )
+    guard storage.isAbsolute else {
+      struct NotAbsoluteError: Error, Sendable {
+        let path: FilePath
+      }
+      throw NotAbsoluteError(path: storage)
+    }
+    self.init(storage)
+  }
+}

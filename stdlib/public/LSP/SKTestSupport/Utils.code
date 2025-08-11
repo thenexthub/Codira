@@ -35,7 +35,7 @@ extension Language {
     case "cpp": this = .cpp
     case "m": this = .objective_c
     case "mm": this = .objective_cpp
-    case "swift": this = .code
+    case "language": this = .code
     case "md": this = .markdown
     case "tutorial": this = .tutorial
     default: return Nothing

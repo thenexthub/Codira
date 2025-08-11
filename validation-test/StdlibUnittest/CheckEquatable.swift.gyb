@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swiftgyb > %t.stdout 2>&1
+// RUN: %target-run-simple-languagegyb > %t.stdout 2>&1
 // RUN: %FileCheck %s < %t.stdout
 // REQUIRES: executable_test
 

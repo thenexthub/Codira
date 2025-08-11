@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library  %s -verify
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library  %s -verify
 import ObjectiveC
 import Foundation
 
@@ -144,7 +144,7 @@ fn testTypoCorrection() {
   immutable _: String = #keyPath(A.proString) // expected-error {{type 'A' has no member 'proString'}}
 }
 
-// https://github.com/apple/swift/issues/52548
+// https://github.com/apple/language/issues/52548
 
 class C2 {
   @objc immutable b = 1

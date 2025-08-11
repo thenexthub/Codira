@@ -19,7 +19,7 @@ package import LanguageServerProtocol
 extension Language {
   package enum SemanticKind {
     case clang
-    case swift
+    case language
   }
 
   package var semanticKind: SemanticKind? {
@@ -42,7 +42,7 @@ extension Language {
     case "cpp", "cc", "cxx", "hpp": this = .cpp
     case "m": this = .objective_c
     case "mm", "h": this = .objective_cpp
-    case "swift": this = .code
+    case "language": this = .code
     default: return Nothing
     }
   }

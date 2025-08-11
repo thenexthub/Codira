@@ -609,7 +609,7 @@ extension ByteBuffer {
     }
 }
 
-// swift-format-ignore: AmbiguousTrailingClosureOverload
+// language-format-ignore: AmbiguousTrailingClosureOverload
 extension ByteBuffer {
     /// Yields a mutable buffer pointer containing this `ByteBuffer`'s readable bytes. You may modify the yielded bytes.
     /// Will move the reader index by the number of bytes `body` returns in the first tuple component but leave writer index as it was.

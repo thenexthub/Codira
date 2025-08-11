@@ -110,7 +110,7 @@ public struct SymbolDetails: ResponseType, Hashable {
   /// If the symbol is dynamic, the USRs of the types that might be called.
   ///
   /// This is relevant in the following cases
-  /// ```swift
+  /// ```language
   /// class A {
   ///   fn doThing() {}
   /// }

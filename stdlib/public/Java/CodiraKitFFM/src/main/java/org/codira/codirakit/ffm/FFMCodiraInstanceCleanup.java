@@ -36,7 +36,7 @@ public class FFMSwiftInstanceCleanup implements SwiftInstanceCleanup {
 
         // Allow null pointers just for AutoArena tests.
         if (selfType != null && selfPointer != null) {
-            System.out.println("[debug] Destroy swift value [" + selfType.getSwiftName() + "]: " + selfPointer);
+            System.out.println("[debug] Destroy language value [" + selfType.getSwiftName() + "]: " + selfPointer);
             SwiftValueWitnessTable.destroy(selfType, selfPointer);
         }
     }

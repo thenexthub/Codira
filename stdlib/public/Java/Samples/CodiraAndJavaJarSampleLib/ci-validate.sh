@@ -5,7 +5,7 @@ set -x
 
 ./gradlew jar
 
-SWIFT_VERSION="$(swift -version | awk '/Swift version/ { print $3 }')"
+SWIFT_VERSION="$(language -version | awk '/Swift version/ { print $3 }')"
 
 # This is how env variables are set by setup-java
 if [ "$(uname -m)" = 'arm64' ]; then
@@ -38,24 +38,24 @@ $JAVAC -cp "${CLASSPATH}" Example.java
 # FIXME: move all this into Gradle or SwiftPM and make it easier to get the right classpath for running
 if [ "$(uname -s)" = 'Linux' ]
 then
-  SWIFT_LIB_PATHS=/usr/lib/swift/linux
+  SWIFT_LIB_PATHS=/usr/lib/language/linux
   SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(find . | grep libMySwiftLibrary.so$ | sort | head -n1 | xargs dirname)"
 
   # if we are on linux, find the Swiftly or System-wide installed libraries dir
-  SWIFT_CORE_LIB=$(find "$HOME"/.local -name "libswiftCore.so" 2>/dev/null | grep "$SWIFT_VERSION" | head -n1)
+  SWIFT_CORE_LIB=$(find "$HOME"/.local -name "liblanguageCore.so" 2>/dev/null | grep "$SWIFT_VERSION" | head -n1)
   if [ -n "$SWIFT_CORE_LIB" ]; then
     SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(dirname "$SWIFT_CORE_LIB")"
     ls "$SWIFT_LIB_PATHS"
   else
     # maybe there is one installed system-wide in /usr/lib?
-    SWIFT_CORE_LIB2=$(find /usr/lib -name "libswiftCore.so" 2>/dev/null | grep "$SWIFT_VERSION" | head -n1)
+    SWIFT_CORE_LIB2=$(find /usr/lib -name "liblanguageCore.so" 2>/dev/null | grep "$SWIFT_VERSION" | head -n1)
     if [ -n "$SWIFT_CORE_LIB2" ]; then
       SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(dirname "$SWIFT_CORE_LIB2")"
     fi
   fi
 elif [ "$(uname -s)" = 'Darwin' ]
 then
-  SWIFT_LIB_PATHS=$(find "$(swiftly use --print-location)" | grep dylib$ | grep libswiftCore | grep macos | head -n1 | xargs dirname)
+  SWIFT_LIB_PATHS=$(find "$(languagely use --print-location)" | grep dylib$ | grep liblanguageCore | grep macos | head -n1 | xargs dirname)
   SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(pwd)/$(find . | grep libMySwiftLibrary.dylib$ | sort | head -n1 | xargs dirname)"
 
 fi

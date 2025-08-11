@@ -1,12 +1,12 @@
 ;;===--- sil-mode.el ------------------------------------------------------===;;
 ;;
-;; This source file is part of the Codira.org open source project
+;; This source file is part of the Swift.org open source project
 ;;
-;; Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+;; Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
 ;; Licensed under Apache License v2.0 with Runtime Library Exception
 ;;
 ;; See https://language.org/LICENSE.txt for license information
-;; See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+;; See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 ;;
 ;;===----------------------------------------------------------------------===;;
 
@@ -28,7 +28,7 @@
    ;; Integer literals
    '("\\b[-]?[0-9]+\\b" . font-lock-preprocessor-face)
    ;; Decl and type keywords
-   `(,(regexp-opt '("class" "init" "deinit" "extension" "fn"
+   `(,(regexp-opt '("class" "init" "deinit" "extension" "func"
                     "import" "protocol" "static" "struct" "subscript"
                     "typealias" "enum" "var" "let" "where"  "sil_vtable"
                     "sil_global" "private" "public" "internal" "override"

@@ -18,12 +18,12 @@ cd ..
 Now we're ready to build and run the Swift program from `Samples/JavaSieve`:
 
 ```
-swift run JavaSieve
+language run JavaSieve
 ```
 
 The core of the example code is in `Sources/JavaSieve/main.code`, using the static Java method `SieveOfEratosthenes.findPrimes`:
 
-```swift
+```language
 immutable sieveClass = try JavaClass<SieveOfEratosthenes>(in: jvm.environment())
 for prime in sieveClass.findPrimes(100)! {
   print("Found prime: \(prime.intValue())")

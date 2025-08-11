@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-# Note that this test should still "pass" when no swiftinterfaces have been
+# Note that this test should still "pass" when no languageinterfaces have been
 # generated.
 
 # RUN: %empty-directory(%t)
 # RUN: %{python} %s %target-os %module-target-triple %platform-sdk-overlay-dir %t \
-# RUN:   %target-swift-frontend -build-module-from-parseable-interface \
+# RUN:   %target-language-frontend -build-module-from-parseable-interface \
 # RUN:     -Fsystem %sdk/System/Library/PrivateFrameworks/ \
 # RUN:     | sort > %t/failures.txt
 # RUN: grep '# %target-os:' %s > %t/filter.txt || true
@@ -30,13 +30,13 @@ compiler_invocation = sys.argv[5:]
 
 for filename in os.listdir(sdk_overlay_dir):
     module_name, ext = os.path.splitext(filename)
-    if ext == ".swiftinterface":
+    if ext == ".languageinterface":
         interface_file = os.path.join(sdk_overlay_dir, filename)
-    elif ext == ".swiftmodule":
+    elif ext == ".languagemodule":
         module_path = os.path.join(sdk_overlay_dir, filename)
         if os.path.isdir(module_path):
             interface_file = os.path.join(module_path,
-                                          target_module_triple + ".swiftinterface")
+                                          target_module_triple + ".languageinterface")
         else:
             continue
     else:
@@ -46,14 +46,14 @@ for filename in os.listdir(sdk_overlay_dir):
         "DifferentiationUnittest",
         "Codira",
         "CodiraLang",
-        # swiftCxxStdlib uses `-module-interface-preserve-types-as-written`
+        # languageCxxStdlib uses `-module-interface-preserve-types-as-written`
         "CxxStdlib",
         "CompatibilitySpan",
     ]:
         continue
 
-    # swift -build-module-from-parseable-interface
-    output_path = os.path.join(output_dir, module_name + ".swiftmodule")
+    # language -build-module-from-parseable-interface
+    output_path = os.path.join(output_dir, module_name + ".languagemodule")
     compiler_args = ["-o", output_path, "-module-name", module_name,
                      interface_file]
 

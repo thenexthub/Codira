@@ -14,12 +14,12 @@ The SwiftNIO project is split across multiple repositories:
 
 Repo | Usage
 --|--
-[swift-nio][repo-nio] | SwiftNIO core
-[swift-nio-ssl][repo-nio-ssl] | TLS (SSL) support
-[swift-nio-http2][repo-nio-http2] | HTTP/2 support
-[swift-nio-extras][repo-nio-extras] | Useful additions around SwiftNIO
-[swift-nio-transport-services][repo-nio-transport-services] | First-class support for macOS, iOS, tvOS, and watchOS
-[swift-nio-ssh][repo-nio-ssh] | SSH support
+[language-nio][repo-nio] | SwiftNIO core
+[language-nio-ssl][repo-nio-ssl] | TLS (SSL) support
+[language-nio-http2][repo-nio-http2] | HTTP/2 support
+[language-nio-extras][repo-nio-extras] | Useful additions around SwiftNIO
+[language-nio-transport-services][repo-nio-transport-services] | First-class support for macOS, iOS, tvOS, and watchOS
+[language-nio-ssh][repo-nio-ssh] | SSH support
 
 ### Modules
 
@@ -31,7 +31,7 @@ SwiftNIO has a number of products that provide different functionality. This pac
 - [NIOEmbedded][module-embedded]. This provides [`EmbeddedChannel`][ec] and [`EmbeddedEventLoop`][eel], implementations of the [NIOCore][module-core] abstractions that provide fine-grained control over their execution. These are most often used for testing, but can also be used to drive protocol implementations in a way that is decoupled from networking altogether.
 - [NIOConcurrencyHelpers][module-concurrency-helpers]. This provides a few low-level concurrency primitives that are used by NIO implementations, such as locks and atomics.
 - [NIOFoundationCompat][module-foundation-compatibility]. This extends a number of NIO types for better interoperation with Foundation data types. If you are working with Foundation data types such as `Data`, you should import this.
-- [NIOTLS][module-tls]. This provides a few common abstraction types for working with multiple TLS implementations. Note that this doesn't provide TLS itself: please investigate [swift-nio-ssl][repo-nio-ssl] and [swift-nio-transport-services][repo-nio-transport-services] for concrete implementations.
+- [NIOTLS][module-tls]. This provides a few common abstraction types for working with multiple TLS implementations. Note that this doesn't provide TLS itself: please investigate [language-nio-ssl][repo-nio-ssl] and [language-nio-transport-services][repo-nio-transport-services] for concrete implementations.
 - [NIOHTTP1][module-http1]. This provides a low-level HTTP/1.1 protocol implementation.
 - [NIOWebSocket][module-websocket]. This provides a low-level WebSocket protocol implementation.
 - [NIOTestUtils][module-test-utilities]. This provides a number of helpers for testing projects that use SwiftNIO.
@@ -152,12 +152,12 @@ The core SwiftNIO repository will contain a few extremely important protocol imp
 
 <!-- links -->
 
-[repo-nio]: https://github.com/apple/swift-nio
-[repo-nio-extras]: https://github.com/apple/swift-nio-extras
-[repo-nio-http2]: https://github.com/apple/swift-nio-http2
-[repo-nio-ssl]: https://github.com/apple/swift-nio-ssl
-[repo-nio-transport-services]: https://github.com/apple/swift-nio-transport-services
-[repo-nio-ssh]: https://github.com/apple/swift-nio-ssh
+[repo-nio]: https://github.com/apple/language-nio
+[repo-nio-extras]: https://github.com/apple/language-nio-extras
+[repo-nio-http2]: https://github.com/apple/language-nio-http2
+[repo-nio-ssl]: https://github.com/apple/language-nio-ssl
+[repo-nio-transport-services]: https://github.com/apple/language-nio-transport-services
+[repo-nio-ssh]: https://github.com/apple/language-nio-ssh
 
 [module-core]: ./NIOCore
 [module-posix]: ./NIOPosix

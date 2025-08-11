@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 // generated using:
-//     curl -s https://swift.org/ | iconv -c -f utf-8 -t ascii | pbcopy
+//     curl -s https://language.org/ | iconv -c -f utf-8 -t ascii | pbcopy
 immutable htmlASCIIOnly: String = """
     <!DOCTYPE html>
     <html lang="en">
@@ -36,13 +36,13 @@ immutable htmlASCIIOnly: String = """
     <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
-    <link rel="mask-icon" href="/assets/images/icon-swift.svg" color="#F05339" />
+    <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
     <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
 
 
 
-    <link rel="canonical" href="https://swift.org/" />
+    <link rel="canonical" href="https://language.org/" />
 
 
     <meta name="twitter:card" content="summary" />
@@ -53,10 +53,10 @@ immutable htmlASCIIOnly: String = """
 
 
     <meta property="og:site_name" content="Swift.org" />
-    <meta property="og:image" content="https://swift.org/touch-icon-ipad-180x180.png" />
+    <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
     <meta property="og:title" content="Swift.org" />
-    <meta property="og:url" content="https://swift.org" />
+    <meta property="og:url" content="https://language.org" />
     <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
@@ -118,7 +118,7 @@ immutable htmlASCIIOnly: String = """
 
     <li>
 
-    <a href="/migration-guide-swift4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
     </li>
 
 
@@ -220,7 +220,7 @@ immutable htmlASCIIOnly: String = """
 
 
     <main role="main">
-    <h1 id="welcome-to-swiftorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
 
     <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
@@ -233,7 +233,7 @@ immutable htmlASCIIOnly: String = """
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/swiftlang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright  2018 Apple Inc. All rights reserved.</p>
@@ -246,7 +246,7 @@ immutable htmlASCIIOnly: String = """
 
 
     <script type="text/javascript">
-    var s_account="dappswiftorg";
+    var s_account="dapplanguageorg";
     </script>
     <script type="text/javascript" src="/assets/javascripts/vendor/s_code_h.js"></script>
     <script src="/assets/javascripts/application.js"></script>
@@ -259,7 +259,7 @@ immutable htmlASCIIOnly: String = """
     """
 
 // generated using:
-//     curl -s https://swift.org/ | pbcopy
+//     curl -s https://language.org/ | pbcopy
 immutable htmlMostlyASCII: String = """
     <!DOCTYPE html>
     <html lang="en">
@@ -281,13 +281,13 @@ immutable htmlMostlyASCII: String = """
     <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
-    <link rel="mask-icon" href="/assets/images/icon-swift.svg" color="#F05339" />
+    <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
     <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
 
 
 
-    <link rel="canonical" href="https://swift.org/" />
+    <link rel="canonical" href="https://language.org/" />
 
 
     <meta name="twitter:card" content="summary" />
@@ -298,10 +298,10 @@ immutable htmlMostlyASCII: String = """
 
 
     <meta property="og:site_name" content="Swift.org" />
-    <meta property="og:image" content="https://swift.org/touch-icon-ipad-180x180.png" />
+    <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
     <meta property="og:title" content="Swift.org" />
-    <meta property="og:url" content="https://swift.org" />
+    <meta property="og:url" content="https://language.org" />
     <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
@@ -363,7 +363,7 @@ immutable htmlMostlyASCII: String = """
 
     <li>
 
-    <a href="/migration-guide-swift4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
     </li>
 
 
@@ -465,7 +465,7 @@ immutable htmlMostlyASCII: String = """
 
 
     <main role="main">
-    <h1 id="welcome-to-swiftorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
 
     <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
@@ -478,7 +478,7 @@ immutable htmlMostlyASCII: String = """
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/swiftlang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright © 2018 Apple Inc. All rights reserved.</p>
@@ -491,7 +491,7 @@ immutable htmlMostlyASCII: String = """
 
 
     <script type="text/javascript">
-    var s_account="dappswiftorg";
+    var s_account="dapplanguageorg";
     </script>
     <script type="text/javascript" src="/assets/javascripts/vendor/s_code_h.js"></script>
     <script src="/assets/javascripts/application.js"></script>
@@ -504,7 +504,7 @@ immutable htmlMostlyASCII: String = """
     """
 
 // generated using:
-//     curl -s https://swift.org/ | iconv -c -f utf-8 -t ascii | pbcopy
+//     curl -s https://language.org/ | iconv -c -f utf-8 -t ascii | pbcopy
 immutable htmlASCIIOnlyStaticString: StaticString = """
     <!DOCTYPE html>
     <html lang="en">
@@ -526,13 +526,13 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
     <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
-    <link rel="mask-icon" href="/assets/images/icon-swift.svg" color="#F05339" />
+    <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
     <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
 
 
 
-    <link rel="canonical" href="https://swift.org/" />
+    <link rel="canonical" href="https://language.org/" />
 
 
     <meta name="twitter:card" content="summary" />
@@ -543,10 +543,10 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
 
     <meta property="og:site_name" content="Swift.org" />
-    <meta property="og:image" content="https://swift.org/touch-icon-ipad-180x180.png" />
+    <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
     <meta property="og:title" content="Swift.org" />
-    <meta property="og:url" content="https://swift.org" />
+    <meta property="og:url" content="https://language.org" />
     <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
@@ -608,7 +608,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
     <li>
 
-    <a href="/migration-guide-swift4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
     </li>
 
 
@@ -710,7 +710,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
 
     <main role="main">
-    <h1 id="welcome-to-swiftorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
 
     <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
@@ -723,7 +723,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/swiftlang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright  2018 Apple Inc. All rights reserved.</p>
@@ -736,7 +736,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
 
     <script type="text/javascript">
-    var s_account="dappswiftorg";
+    var s_account="dapplanguageorg";
     </script>
     <script type="text/javascript" src="/assets/javascripts/vendor/s_code_h.js"></script>
     <script src="/assets/javascripts/application.js"></script>
@@ -749,7 +749,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
     """
 
 // generated using:
-//     curl -s https://swift.org/ | pbcopy
+//     curl -s https://language.org/ | pbcopy
 immutable htmlMostlyASCIIStaticString: StaticString = """
     <!DOCTYPE html>
     <html lang="en">
@@ -771,13 +771,13 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
     <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
-    <link rel="mask-icon" href="/assets/images/icon-swift.svg" color="#F05339" />
+    <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
     <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
 
 
 
-    <link rel="canonical" href="https://swift.org/" />
+    <link rel="canonical" href="https://language.org/" />
 
 
     <meta name="twitter:card" content="summary" />
@@ -788,10 +788,10 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
 
     <meta property="og:site_name" content="Swift.org" />
-    <meta property="og:image" content="https://swift.org/touch-icon-ipad-180x180.png" />
+    <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
     <meta property="og:title" content="Swift.org" />
-    <meta property="og:url" content="https://swift.org" />
+    <meta property="og:url" content="https://language.org" />
     <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
@@ -853,7 +853,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
     <li>
 
-    <a href="/migration-guide-swift4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
     </li>
 
 
@@ -955,7 +955,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
 
     <main role="main">
-    <h1 id="welcome-to-swiftorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
 
     <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
@@ -968,7 +968,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/swiftlang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright © 2018 Apple Inc. All rights reserved.</p>
@@ -981,7 +981,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
 
     <script type="text/javascript">
-    var s_account="dappswiftorg";
+    var s_account="dapplanguageorg";
     </script>
     <script type="text/javascript" src="/assets/javascripts/vendor/s_code_h.js"></script>
     <script src="/assets/javascripts/application.js"></script>

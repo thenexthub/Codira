@@ -1,8 +1,8 @@
 %{
-# This is a template of validation-test/stdlib/Collection/LazyMap*.swift
+# This is a template of validation-test/stdlib/Collection/LazyMap*.language
 #
 # cd validation-test/stdlib/Collection
-# ../../../utils/gyb --line-directive="" Inputs/LazyMapTemplate.swift.gyb | ../../../utils/split_file.py
+# ../../../utils/gyb --line-directive="" Inputs/LazyMapTemplate.language.gyb | ../../../utils/split_file.py
 
 variations = [
   ('', 'Sequence'),
@@ -14,15 +14,15 @@ variations = [
 
 
 % for (traversal, kind) in variations:
-// BEGIN LazyMap${traversal}${kind}.swift
-// -*- swift -*-
+// BEGIN LazyMap${traversal}${kind}.language
+// -*- language -*-
 
 //===----------------------------------------------------------------------===//
-// Automatically Generated From validation-test/stdlib/Collection/Inputs/LazyMapTemplate.swift.gyb
+// Automatically Generated From validation-test/stdlib/Collection/Inputs/LazyMapTemplate.language.gyb
 // Do Not Edit Directly!
 //===----------------------------------------------------------------------===//
 
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 
 import StdlibUnittest

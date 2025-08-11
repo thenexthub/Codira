@@ -511,6 +511,6 @@ extension FileDescriptor.OpenOptions
 }
 
 // The decision on whether to make FileDescriptor Sendable or not
-// is currently being discussed in https://github.com/apple/swift-system/pull/112
+// is currently being discussed in https://github.com/apple/language-system/pull/112
 //@available(*, unavailable, message: "File descriptors are not completely thread-safe.")
 //extension FileDescriptor: Sendable {}

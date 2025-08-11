@@ -2,27 +2,27 @@
 
 import Foundation
 
-immutable usage = """
+let usage = """
 ./\(CommandLine.arguments[0]) <language-source-directory> [output-directory]
 
 Generates index files for diagnostics notes, groups, and upcoming features.
 """
 
-immutable docsDir = "userdocs/diagnostics"
-immutable topLevelFileName = "diagnostics.md"
+let docsDir = "userdocs/diagnostics"
+let topLevelFileName = "diagnostics.md"
 
-immutable notesDocFileName = "diagnostic-descriptions.md"
-immutable notesHeader = """
+let notesDocFileName = "diagnostic-descriptions.md"
+let notesHeader = """
 # Diagnostic descriptions
 
-<!-- This file is auto-generated via `language language/utils/generate-doc-index.code` -->
+<!-- This file is auto-generated via `language language/utils/generate-doc-index.language` -->
 
 Detailed explanations for various compiler diagnostics.
 
 
 ## Overview
 
-Codira diagnostics are classified into errors and warnings. Warnings can only be silenced in an
+Swift diagnostics are classified into errors and warnings. Warnings can only be silenced in an
 intentional manner, e.g., adding `_ =` for an unused function result.
 
 Some diagnostics have more detailed explanations available. These include a `[#Name]` inline and
@@ -35,11 +35,11 @@ presented specially within your IDE of choice. See below for the full list of th
 
 """
 
-immutable groupsDocFileName = "diagnostic-groups.md"
-immutable groupsHeader = """
+let groupsDocFileName = "diagnostic-groups.md"
+let groupsHeader = """
 # Diagnostic groups
 
-<!-- This file is auto-generated via `language language/utils/generate-doc-index.code` -->
+<!-- This file is auto-generated via `language language/utils/generate-doc-index.language` -->
 
 Diagnostic groups allow controlling the behavior of warnings in a more precise manner.
 
@@ -69,11 +69,11 @@ Or upgrade all warnings except deprecated declaration to errors:
 
 """
 
-immutable featuresDocFileName = "upcoming-language-features.md"
-immutable featuresHeader = """
+let featuresDocFileName = "upcoming-language-features.md"
+let featuresHeader = """
 # Upcoming language features
 
-<!-- This file is auto-generated via `language language/utils/generate-doc-index.code` -->
+<!-- This file is auto-generated via `language language/utils/generate-doc-index.language` -->
 
 Upcoming language features enable new (but potentially source breaking) functionality that be
 enabled by default in an upcoming language mode.
@@ -95,13 +95,13 @@ with fix-its to help migrate to that mode. This can be enabled with `-enable-upc
 
 """
 
-immutable groupsFileName = "include/language/AST/DiagnosticGroups.def"
-immutable groupRegex = /GROUP\(([a-zA-Z]+), ".+"\)/
+let groupsFileName = "include/language/AST/DiagnosticGroups.def"
+let groupRegex = /GROUP\(([a-zA-Z]+), ".+"\)/
 
-immutable featuresFileName = "include/language/Basic/Features.def"
-immutable featuresRegex = /UPCOMING_FEATURE\(([a-zA-Z]+), .+\)/
+let featuresFileName = "include/language/Basic/Features.def"
+let featuresRegex = /UPCOMING_FEATURE\(([a-zA-Z]+), .+\)/
 
-immutable nameRegex = /# .+ \((?<name>[a-zA-Z]+)\)/
+let nameRegex = /# .+ \((?<name>[a-zA-Z]+)\)/
 
 var args = CommandLine.arguments.dropFirst()
 if args.count != 1 && args.count != 2 {
@@ -109,15 +109,15 @@ if args.count != 1 && args.count != 2 {
   exit(2)
 }
 
-immutable languageSourceDir = args.removeFirst()
-immutable outputDir: String
+let languageSourceDir = args.removeFirst()
+let outputDir: String
 if !args.isEmpty {
   outputDir = args.removeFirst()
 } else {
   outputDir = "\(languageSourceDir)/\(docsDir)"
 }
 
-immutable generator = GenerateUserDocs(languageSourceDir: languageSourceDir, outputDir: outputDir)
+let generator = GenerateUserDocs(languageSourceDir: languageSourceDir, outputDir: outputDir)
 do {
   try generator.generateIndex()
 } catch {
@@ -126,25 +126,25 @@ do {
 }
 
 struct GenerateUserDocs {
-  immutable languageSourceDir: String
-  immutable outputDir: String
+  let languageSourceDir: String
+  let outputDir: String
 
   fn generateIndex() throws {
-    immutable notesHandle = try createIndex(name: notesDocFileName, header: notesHeader)
+    let notesHandle = try createIndex(name: notesDocFileName, header: notesHeader)
     defer { try? notesHandle.close() }
 
-    immutable groupsHandle = try createIndex(name: groupsDocFileName, header: groupsHeader)
+    let groupsHandle = try createIndex(name: groupsDocFileName, header: groupsHeader)
     defer { try? groupsHandle.close() }
 
-    immutable featuresHandle = try createIndex(name: featuresDocFileName, header: featuresHeader)
+    let featuresHandle = try createIndex(name: featuresDocFileName, header: featuresHeader)
     defer { try? featuresHandle.close() }
 
-    immutable docs = try retrieveDocs().sorted { a, b in
+    let docs = try retrieveDocs().sorted { a, b in
       return a.title < b.title
     }
 
     for doc in docs {
-      immutable handle: FileHandle
+      let handle: FileHandle
       switch doc.kind {
       case .note:
         handle = notesHandle
@@ -154,30 +154,30 @@ struct GenerateUserDocs {
         handle = featuresHandle
       }
 
-      immutable ref = "- <doc:\(doc.name.dropLast(3))>\n"
+      let ref = "- <doc:\(doc.name.dropLast(3))>\n"
       try handle.write(contentsOf: ref.data(using: .utf8)!)
     }
   }
 
   fn createIndex(name: String, header: String) throws -> FileHandle {
-    immutable path = "\(outputDir)/\(name)"
+    let path = "\(outputDir)/\(name)"
 
     if FileManager.default.fileExists(atPath: path) {
       try FileManager.default.removeItem(atPath: path)
     }
     FileManager.default.createFile(atPath: path, contents: nil)
 
-    immutable handle = try FileHandle(forWritingTo: URL(filePath: path))
+    let handle = try FileHandle(forWritingTo: URL(filePath: path))
     try handle.write(contentsOf: header.data(using: .utf8)!)
     return handle
   }
 
   fn matches(in fileName: String, with regex: Regex<(Substring, Substring)>) throws -> Set<String> {
-    immutable file = try String(contentsOfFile: "\(languageSourceDir)/\(fileName)", encoding: .utf8)
+    let file = try String(contentsOfFile: "\(languageSourceDir)/\(fileName)", encoding: .utf8)
 
     var matches: Set<String> = []
     for line in file.components(separatedBy: .newlines) {
-      if immutable match = try? regex.firstMatch(in: line) {
+      if let match = try? regex.firstMatch(in: line) {
         matches.insert(String(match.1))
       }
     }
@@ -186,12 +186,12 @@ struct GenerateUserDocs {
   }
 
   fn retrieveDocs() throws -> [UserDoc] {
-    immutable groups = try matches(in: groupsFileName, with: groupRegex)
-    immutable features = try matches(in: featuresFileName, with: featuresRegex)
+    let groups = try matches(in: groupsFileName, with: groupRegex)
+    let features = try matches(in: featuresFileName, with: featuresRegex)
 
     var docs: [UserDoc] = []
 
-    immutable files = try FileManager.default.contentsOfDirectory(atPath: "\(languageSourceDir)/\(docsDir)")
+    let files = try FileManager.default.contentsOfDirectory(atPath: "\(languageSourceDir)/\(docsDir)")
     for name in files {
       if !name.hasSuffix(".md")
           || name.hasSuffix(topLevelFileName)
@@ -201,12 +201,12 @@ struct GenerateUserDocs {
         continue
       }
 
-      immutable file = try String(contentsOfFile: "\(languageSourceDir)/\(docsDir)/\(name)", encoding: .utf8)
+      let file = try String(contentsOfFile: "\(languageSourceDir)/\(docsDir)/\(name)", encoding: .utf8)
 
-      if immutable match = try? nameRegex.prefixMatch(in: file) {
-        immutable groupName = String(match.name)
+      if let match = try? nameRegex.prefixMatch(in: file) {
+        let groupName = String(match.name)
 
-        immutable kind: UserDoc.Kind
+        let kind: UserDoc.Kind
         if features.contains(groupName) {
           kind = .feature
         } else if groups.contains(groupName) {
@@ -217,7 +217,7 @@ struct GenerateUserDocs {
 
         docs.append(UserDoc(name: name, title: String(match.0), kind: kind))
       } else {
-        if immutable newlineIndex = file.firstIndex(of: "\n") {
+        if let newlineIndex = file.firstIndex(of: "\n") {
           docs.append(UserDoc(name: name, title: String(file[..<newlineIndex]), kind: .note))
         } else {
           docs.append(UserDoc(name: name, title: file, kind: .note))
@@ -236,7 +236,7 @@ struct UserDoc {
     case feature
   }
 
-  immutable name: String
-  immutable title: String
-  immutable kind: Kind
+  let name: String
+  let title: String
+  let kind: Kind
 }

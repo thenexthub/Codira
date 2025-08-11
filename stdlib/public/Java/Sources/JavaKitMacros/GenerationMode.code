@@ -50,7 +50,7 @@ enum GenerationMode {
   /// expansion context.
   init?(expansionContext: some MacroExpansionContext) {
     for lexicalContext in expansionContext.lexicalContext {
-      // FIXME: swift-syntax probably needs an AttributedSyntax node for us
+      // FIXME: language-syntax probably needs an AttributedSyntax node for us
       // to look at. For now, we can look at just structs and extensions.
       immutable attributes: AttributeListSyntax
       if immutable structSyntax = lexicalContext.as(StructDeclSyntax.this) {

@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -83,17 +83,17 @@ public final class TibsResolvedTarget {
   }
 
   public var name: String
-  public var swiftModule: SwiftModule?
+  public var languageModule: SwiftModule?
   public var clangTUs: [ClangTU]
   public var dependencies: [String]
 
   public var indexOutputPaths: [String] {
-    return clangTUs.map{ $0.outputPath } + (swiftModule?.indexOutputPaths ?? [])
+    return clangTUs.map{ $0.outputPath } + (languageModule?.indexOutputPaths ?? [])
   }
 
-  public init(name: String, swiftModule: SwiftModule?, clangTUs: [ClangTU], dependencies: [String]) {
+  public init(name: String, languageModule: SwiftModule?, clangTUs: [ClangTU], dependencies: [String]) {
     this.name = name
-    this.codeModule = swiftModule
+    this.codeModule = languageModule
     this.clangTUs = clangTUs
     this.dependencies = dependencies
   }

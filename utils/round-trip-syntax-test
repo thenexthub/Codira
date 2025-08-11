@@ -26,7 +26,7 @@ class RoundTripTask(object):
             "{} tool is not accessible!".format(language_syntax_test)
         self.input_filename = input_filename
         self.action = action
-        self.code_syntax_test = language_syntax_test
+        self.language_syntax_test = language_syntax_test
         self.skip_bad_syntax = skip_bad_syntax
         self.returncode = None
         self.stdout = None
@@ -34,7 +34,7 @@ class RoundTripTask(object):
 
     @property
     def test_command(self):
-        return [self.code_syntax_test, self.action,
+        return [self.language_syntax_test, self.action,
                 '-input-source-filename', self.input_filename]
 
     def run(self):
@@ -92,7 +92,7 @@ def language_files_in_dir(d):
     language_files = []
     for root, dirs, files in os.walk(d):
         for basename in files:
-            if not basename.endswith('.code'):
+            if not basename.endswith('.language'):
                 continue
             abs_file = os.path.abspath(os.path.join(root, basename))
             language_files.append(abs_file)
@@ -118,18 +118,18 @@ def main():
     tool_description = '''
 Checks for round-trip lex/parse/print compatibility.
 
-Codira's syntax representation should be "full-fidelity", meaning that there is
+Swift's syntax representation should be "full-fidelity", meaning that there is
 a perfect representation of what is in the source. When printing a syntax tree
 to a file, that file should be identical to the file that was
 originally parsed.
 
 This driver invokes language-syntax-test using -round-trip-lex and
--round-trip-parse on .code files and .code files in directories.
+-round-trip-parse on .language files and .language files in directories.
 '''
     parser = argparse.ArgumentParser(description=tool_description)
     parser.add_argument('--directory', '-d', action='append',
                         dest='input_directories', default=[],
-                        help='Add a directory, searching for .code files'
+                        help='Add a directory, searching for .language files'
                              ' within')
     parser.add_argument('--file', '-f', action='append',
                         dest='individual_input_files', default=[],

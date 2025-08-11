@@ -1,10 +1,10 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -emit-module-path %t/main4.swiftmodule -swift-version 4 %s
-// RUN: %target-build-swift -emit-module-path %t/main4_2.swiftmodule -swift-version 4.2 %s
+// RUN: %target-build-language -emit-module-path %t/main4.languagemodule -language-version 4 %s
+// RUN: %target-build-language -emit-module-path %t/main4_2.languagemodule -language-version 4.2 %s
 
 // REQUIRES: OS=ios
 
-// https://github.com/apple/swift/issues/50414
+// https://github.com/apple/language/issues/50414
 
 import UIKit
 

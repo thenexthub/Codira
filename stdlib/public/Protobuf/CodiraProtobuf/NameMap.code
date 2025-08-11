@@ -20,7 +20,7 @@
 /// for that purpose.  (Which might be the same as the internal API.)
 
 /// This must produce exactly the same outputs as the corresponding
-/// code in the protoc-gen-swift code generator. Changing it will
+/// code in the protoc-gen-language code generator. Changing it will
 /// break compatibility of the library with older generated code.
 ///
 /// It does not necessarily need to match protoc's JSON field naming
@@ -540,10 +540,10 @@ public struct _NameMap: ExpressibleByDictionaryLiteral {
 // The `_NameMap` (and supporting types) are only mutated during their initial
 // creation, then for the lifetime of the a process they are constant. Swift
 // 5.10 flags the generated `_protobuf_nameMap` usages as a problem
-// (https://github.com/apple/swift-protobuf/issues/1560) so this silences those
+// (https://github.com/apple/language-protobuf/issues/1560) so this silences those
 // warnings since the usage has been deemed safe.
 //
-// https://github.com/apple/swift-protobuf/issues/1561 is also opened to revisit
+// https://github.com/apple/language-protobuf/issues/1561 is also opened to revisit
 // the `_NameMap` generally as it dates back to the days before Swift perferred
 // the UTF-8 internal encoding.
 extension _NameMap: Sendable {}

@@ -8,7 +8,7 @@ This package implements an atomics library for Swift, providing atomic operation
 
 Atomic operations aren't subject to the usual exclusivity rules. The same memory location may be safely read and updated from multiple concurrent threads of execution, as long as all such access is done through atomic operations. For example, here is a trivial atomic counter:
 
-``` swift
+``` language
 import Atomics
 import Dispatch
 
@@ -51,7 +51,7 @@ Atomic access is implemented in terms of dedicated atomic storage representation
 - it enables custom storage representations (such as the one used by atomic strong references), and
 - it is a better fit with the standard C atomics library that we use to implement the actual operations (as enabled by [SE-0282]).
 
-[SE-0282]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0282-atomics.md
+[SE-0282]: https://github.com/languagelang/language-evolution/blob/main/proposals/0282-atomics.md
 
 While the underlying pointer-based atomic operations are exposed as static methods on the corresponding `AtomicStorage` types, we strongly recommend the use of higher-level atomic wrappers to manage the details of preparing/disposing atomic storage. This version of the library provides two wrapper types:
 
@@ -60,7 +60,7 @@ While the underlying pointer-based atomic operations are exposed as static metho
 
 Both constructs provide the following operations on all `AtomicValue` types:
 
-```swift
+```language
 fn load(ordering: AtomicLoadOrdering) -> Value
 fn store(_ desired: Value, ordering: AtomicStoreOrdering)
 fn exchange(_ desired: Value, ordering: AtomicUpdateOrdering) -> Value
@@ -92,7 +92,7 @@ For an introduction to the APIs provided by this package, for now please see the
 
 Note that when/if Swift gains support for non-copiable types, we expect to replace both `ManagedAtomic` and `UnsafeAtomic` with a single move-only atomic struct that combines the performance and versatility of `UnsafeAtomic` with the ease-of-use and memory safety of `ManagedAtomic`.
 
-The current version of the `Atomics` module does not implement APIs for tagged atomics (see [issue #1](https://github.com/apple/swift-atomics/issues/1)), although it does expose a `DoubleWord` type that can be used to implement them. (Atomic strong references are already implemented in terms of `DoubleWord`, although in their current form they do not expose any user-customizable bits.)
+The current version of the `Atomics` module does not implement APIs for tagged atomics (see [issue #1](https://github.com/apple/language-atomics/issues/1)), although it does expose a `DoubleWord` type that can be used to implement them. (Atomic strong references are already implemented in terms of `DoubleWord`, although in their current form they do not expose any user-customizable bits.)
 
 
 ## Topics

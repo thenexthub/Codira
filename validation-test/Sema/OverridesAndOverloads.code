@@ -1,5 +1,5 @@
-// RUN: %target-typecheck-verify-swift -D ERRORS
-// RUN: %target-run-simple-swift
+// RUN: %target-typecheck-verify-language -D ERRORS
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 
 import StdlibUnittest
@@ -76,7 +76,7 @@ Overrides.test("covariant argument override, optional derived class to non-optio
 }
 
 Overrides.test("covariant argument override, protocol to protocol") {
-  // FIXME: https://github.com/apple/swift/issues/43346
+  // FIXME: https://github.com/apple/language/issues/43346
   // Covariant overrides don't work with protocols
   class Base {
     fn foo(_: P1x) { which = "Base.foo(P1x)" }
@@ -93,7 +93,7 @@ Overrides.test("covariant argument override, protocol to protocol") {
 }
 
 Overrides.test("covariant argument override, struct to protocol") {
-  // FIXME: https://github.com/apple/swift/issues/43346
+  // FIXME: https://github.com/apple/language/issues/43346
   // Covariant overrides don't work with protocols
   class Base {
     fn foo(_: P1ImplS1) { which = "Base.foo(P1ImplS1)" }
@@ -102,7 +102,7 @@ Overrides.test("covariant argument override, struct to protocol") {
     /*FIXME: override */ fn foo(_: P1) { which = "Derived.foo(P1)" }
   }
 
-  // FIXME: https://github.com/apple/swift/issues/43346
+  // FIXME: https://github.com/apple/language/issues/43346
   Derived().foo(P1ImplS1())
   expectEqual("Base.foo(P1ImplS1)", which)
 
@@ -162,7 +162,7 @@ Overrides.test("contravariant return type override, optional base class to non-o
 }
 
 Overrides.test("contravariant return type override, protocol to protocol") {
-  // FIXME: https://github.com/apple/swift/issues/43348
+  // FIXME: https://github.com/apple/language/issues/43348
   // Contravariant overrides on return type don't work with protocols
   class Base {
     // expected-note@+1 {{found this candidate}}
@@ -176,7 +176,7 @@ Overrides.test("contravariant return type override, protocol to protocol") {
   }
 
 #if ERRORS
-  // FIXME: https://github.com/apple/swift/issues/43348
+  // FIXME: https://github.com/apple/language/issues/43348
   Derived().foo() as P1 // expected-error {{ambiguous use of 'foo()'}}
   expectEqual("Derived.foo() -> P1x", which)
 #endif
@@ -186,7 +186,7 @@ Overrides.test("contravariant return type override, protocol to protocol") {
 }
 
 Overrides.test("contravariant return type override, protocol to struct") {
-  // FIXME: https://github.com/apple/swift/issues/43348
+  // FIXME: https://github.com/apple/language/issues/43348
   // Contravariant overrides on return type don't work with protocols
   class Base {
     // expected-note@+1 {{found this candidate}}
@@ -200,7 +200,7 @@ Overrides.test("contravariant return type override, protocol to struct") {
   }
 
 #if ERRORS
-  // FIXME: https://github.com/apple/swift/issues/43348
+  // FIXME: https://github.com/apple/language/issues/43348
   Derived().foo() as P1 // expected-error {{ambiguous use of 'foo()'}}
   expectEqual("Derived.foo() -> P1ImplS1", which)
 #endif

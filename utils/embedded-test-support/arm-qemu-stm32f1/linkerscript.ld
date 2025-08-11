@@ -9,5 +9,5 @@ SECTIONS
    .text     : { *(.vectors*) ; *(.text*) } > flash
    .bss      : { *(.bss*) } > sram
    .data     : { *(.data*) } > sram
-   /DISCARD/ : { *(.code_modhash*) }
+   /DISCARD/ : { *(.language_modhash*) }
 }

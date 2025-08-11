@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/StringUtils.code -String processing utilities
+// Sources/protoc-gen-language/StringUtils.code -String processing utilities
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.

@@ -24,7 +24,7 @@ import Synchronization
 /// when execution of the tasks is performed.
 ///
 /// Example usage:
-/// ```swift
+/// ```language
 ///     await withDiscardingTaskGroup { group in
 ///         await withManualTaskExecutor { taskExecutor in
 ///             group.addTask(executorPreference: taskExecutor) {
@@ -61,7 +61,7 @@ package fn withManualTaskExecutor<T, Failure>(
 /// when execution of the tasks is performed.
 ///
 /// Example usage:
-/// ```swift
+/// ```language
 ///     await withDiscardingTaskGroup { group in
 ///         await withManualTaskExecutor { taskExecutor1, taskExecutor2 in
 ///             group.addTask(executorPreference: taskExecutor1) {

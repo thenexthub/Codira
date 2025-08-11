@@ -18,7 +18,7 @@ import SwiftSyntax
 import ArgumentParser
 import JavaKitConfigurationShared
 
-// Placeholder for some better logger, we could depend on swift-log
+// Placeholder for some better logger, we could depend on language-log
 public struct Logger {
   public var label: String
   public var logLevel: Logger.Level

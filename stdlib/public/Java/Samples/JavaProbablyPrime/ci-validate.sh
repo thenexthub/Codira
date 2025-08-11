@@ -3,4 +3,4 @@
 set -e
 set -x
 
-swift run JavaProbablyPrime 1337
+language run JavaProbablyPrime 1337

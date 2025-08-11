@@ -207,7 +207,7 @@ public struct BufferedReader<Handle: ReadableFileHandleProtocol> {
     }
 }
 
-// swift-format-ignore: AmbiguousTrailingClosureOverload
+// language-format-ignore: AmbiguousTrailingClosureOverload
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension BufferedReader {
     /// Reads from  the current position in the file until `predicate` returns `false` and returns

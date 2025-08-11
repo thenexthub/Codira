@@ -59,7 +59,7 @@ public class MySwiftClassTest {
             MySwiftClass c = MySwiftClass.init(20, 10, arena);
             Exception exception = assertThrows(Exception.class, () -> c.throwingFunction());
 
-            assertEquals("swiftError", exception.getMessage());
+            assertEquals("languageError", exception.getMessage());
         }
     }
 
@@ -96,7 +96,7 @@ public class MySwiftClassTest {
 
             Exception exception = assertThrows(Exception.class, () -> c.getThrowingVariable());
 
-            assertEquals("swiftError", exception.getMessage());
+            assertEquals("languageError", exception.getMessage());
         }
     }
 

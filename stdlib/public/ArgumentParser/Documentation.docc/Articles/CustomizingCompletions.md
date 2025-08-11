@@ -8,7 +8,7 @@ Provide custom shell completions for your command-line tool's arguments and opti
 
 When declaring an option or argument, you can customize the completions that are offered by specifying a ``CompletionKind``. With this completion kind you can specify that the value should be a file, a directory, or one of a list of strings:
 
-```swift
+```language
 struct Example: ParsableCommand {
     @Option(help: "The file to read from.", completion: .file())
     var input: String
@@ -32,7 +32,7 @@ The generated completion script will suggest only file names for the `--input` o
 
 You can define the default completion kind for custom ``ExpressibleByArgument`` types by implementing ``ExpressibleByArgument/defaultCompletionKind-866se``. For example, any arguments or options with this `File` type will automatically use files for completions:
 
-```swift
+```language
 struct File: Hashable, ExpressibleByArgument {
     var path: String
     
@@ -48,7 +48,7 @@ struct File: Hashable, ExpressibleByArgument {
 
 For even more control over the suggested completions, you can specify a function that will be called during completion by using the `.custom` completion kind.
 
-```swift
+```language
 fn listExecutables(_ arguments: [String]) -> [String] {
     // Generate the list of executables in the current directory
 }
@@ -77,7 +77,7 @@ are themselves arguments to a `CompletionKind` creation function.
 
 e.g.:
 
-```swift
+```language
 struct Tool {
     @Option(completion: .shellCommand(generateCommandPerShell()))
     var x: String?

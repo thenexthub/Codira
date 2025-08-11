@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/FieldGenerator.code -Base class for Field Generators
+// Sources/protoc-gen-language/FieldGenerator.code -Base class for Field Generators
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -42,8 +42,8 @@ protocol FieldGenerator {
     fn generateDecodeFieldCase(printer: inout CodePrinter)
 
     /// True/False for if the generated traverse code will need use any locals.
-    /// See https://github.com/apple/swift-protobuf/issues/1034 and
-    /// https://github.com/apple/swift-protobuf/issues/1182 for more information.
+    /// See https://github.com/apple/language-protobuf/issues/1034 and
+    /// https://github.com/apple/language-protobuf/issues/1182 for more information.
     var generateTraverseUsesLocals: Boolean { get }
 
     /// Generate the support for traversing this field.

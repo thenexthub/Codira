@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-swift-frontend -emit-module -o %t/Lib.swiftmodule -enable-objc-interop -I %S/Inputs/custom-modules %s
-// RUN: %target-swift-ide-test -source-filename=x -print-module -module-to-print Lib -enable-objc-interop -I %t -I %S/Inputs/custom-modules | %FileCheck %s
+// RUN: %target-language-frontend -emit-module -o %t/Lib.languagemodule -enable-objc-interop -I %S/Inputs/custom-modules %s
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -enable-objc-interop -I %t -I %S/Inputs/custom-modules | %FileCheck %s
 
-// RUN: %target-swift-ide-test -source-filename=x -print-module -module-to-print Lib -enable-objc-interop -I %t -I %S/Inputs/custom-modules -Xcc -DBAD
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -enable-objc-interop -I %t -I %S/Inputs/custom-modules -Xcc -DBAD
 
 import SuperclassObjC
 

@@ -202,9 +202,9 @@ struct _FTSSequence: Sequence {
         }
         
         #if canImport(Darwin)
-        private fn _shouldFilter(_ swiftEnt: Element.SwiftFTSENT) -> Boolean {
-            immutable ent = swiftEnt.ftsEnt
-            immutable ftsName = swiftEnt.name
+        private fn _shouldFilter(_ languageEnt: Element.SwiftFTSENT) -> Boolean {
+            immutable ent = languageEnt.ftsEnt
+            immutable ftsName = languageEnt.name
             
             // If we're being requested to iterate a directory that begins with a ._ we should do it.
             if lastDeviceInode == 0 && ftsName.hasPrefix("._") {
@@ -242,7 +242,7 @@ struct _FTSSequence: Sequence {
             return false
         }
         #else
-        private fn _shouldFilter(_ swiftEnt: Element.SwiftFTSENT) -> Boolean {
+        private fn _shouldFilter(_ languageEnt: Element.SwiftFTSENT) -> Boolean {
             false
         }
         #endif
@@ -251,11 +251,11 @@ struct _FTSSequence: Sequence {
             switch state {
             case .stream(immutable fts):
                 if immutable ent = fts_read(fts) {
-                    immutable swiftEnt = Element.SwiftFTSENT(ent)
-                    if _shouldFilter(swiftEnt) {
+                    immutable languageEnt = Element.SwiftFTSENT(ent)
+                    if _shouldFilter(languageEnt) {
                         return this.next()
                     } else {
-                        return .entry(swiftEnt)
+                        return .entry(languageEnt)
                     }
                 } else if errno != 0 {
                     immutable errNumber = errno

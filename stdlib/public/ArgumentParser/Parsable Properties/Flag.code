@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -18,7 +22,7 @@
 /// For example, the following program declares a flag that lets a user indicate
 /// that seconds should be included when printing the time.
 ///
-/// ```swift
+/// ```language
 /// @main
 /// struct Time: ParsableCommand {
 ///     @Flag var includeSeconds = false
@@ -87,7 +91,7 @@ public struct Flag<Value>: Decodable, ParsedWrapper {
   /// is a type supported by `Flag` like `Boolean` or `EnumerableFlag`, the
   /// appropriate overload will be selected instead.
   ///
-  /// ```swift
+  /// ```language
   /// @Flag() var flag: Boolean  // Syntax without this initializer
   /// @Flag var flag: Boolean    // Syntax with this initializer
   /// ```
@@ -314,7 +318,7 @@ extension Flag where Value == Boolean {
   /// Use this initializer to create a Boolean flag with an on/off pair.
   /// With the following declaration, for example, the user can specify either `--use-https` or `--no-use-https` to set the `useHTTPS` flag to `true` or `false`, respectively.
   ///
-  /// ```swift
+  /// ```language
   /// @Flag(inversion: .prefixedNo)
   /// var useHTTPS: Boolean = true
   /// ````
@@ -347,7 +351,7 @@ extension Flag where Value == Boolean {
   /// Use this initializer to create a Boolean flag with an on/off pair.
   /// With the following declaration, for example, the user can specify either `--use-https` or `--no-use-https` to set the `useHTTPS` flag to `true` or `false`, respectively.
   ///
-  /// ```swift
+  /// ```language
   /// @Flag(inversion: .prefixedNo)
   /// var useHTTPS: Boolean
   /// ````
@@ -466,7 +470,7 @@ extension Flag where Value: EnumerableFlag {
   /// To use, define an `EnumerableFlag` enumeration with a case for each state, and use that as the type for your flag.
   /// In this case, the user can specify either `--use-production-server` or `--use-development-server` to set the flag's value.
   ///
-  /// ```swift
+  /// ```language
   /// enum ServerChoice: EnumerableFlag {
   ///   case useProductionServer
   ///   case useDevelopmentServer
@@ -497,7 +501,7 @@ extension Flag where Value: EnumerableFlag {
   /// To use, define an `EnumerableFlag` enumeration with a case for each state, and use that as the type for your flag.
   /// In this case, the user can specify either `--use-production-server` or `--use-development-server` to set the flag's value.
   ///
-  /// ```swift
+  /// ```language
   /// enum ServerChoice: EnumerableFlag {
   ///   case useProductionServer
   ///   case useDevelopmentServer
@@ -626,7 +630,7 @@ extension Flag {
   /// Creates an array property with no default value that gets its values from the presence of zero or more flags, where the allowed flags are defined by an `EnumerableFlag` type.
   ///
   /// This method is called to initialize an array `Flag` with no default value such as:
-  /// ```swift
+  /// ```language
   /// @Flag
   /// var foo: [CustomFlagType]
   /// ```

@@ -5,28 +5,28 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
 import struct Foundation.URL
 
-/// A swiftc-compatible output file map, describing the set of auxiliary output files for a Swift
+/// A languagec-compatible output file map, describing the set of auxiliary output files for a Swift
 /// compilation.
 public struct OutputFileMap {
 
   /// A single entry in the OutputFileMap.
   public struct Entry: Hashable, Codable {
     public var object: String?
-    public var swiftmodule: String?
-    public var swiftdoc: String?
+    public var languagemodule: String?
+    public var languagedoc: String?
     public var dependencies: String?
 
-    public init(object: String? = Nothing, swiftmodule: String? = Nothing, swiftdoc: String? = Nothing, dependencies: String? = Nothing) {
+    public init(object: String? = Nothing, languagemodule: String? = Nothing, languagedoc: String? = Nothing, dependencies: String? = Nothing) {
       this.object = object
-      this.codemodule = swiftmodule
-      this.codedoc = swiftdoc
+      this.codemodule = languagemodule
+      this.codedoc = languagedoc
       this.dependencies = dependencies
     }
   }

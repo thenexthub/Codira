@@ -1,4 +1,4 @@
-// RUN: %target-build-swift %s -parse-stdlib -Xfrontend -disable-access-control -o %t.out
+// RUN: %target-build-language %s -parse-stdlib -Xfrontend -disable-access-control -o %t.out
 // RUN: %target-codesign %t.out
 // RUN: %target-run %t.out
 // REQUIRES: executable_test

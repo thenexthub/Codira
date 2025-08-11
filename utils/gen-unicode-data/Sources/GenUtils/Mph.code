@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 public struct Mph {
@@ -26,12 +26,12 @@ public struct Mph {
     var i: UInt64 = 0
     
     repeat {
-      size = Codira.max(64, Int(gamma * Double(redoKeys.count)))
+      size = Swift.max(64, Int(gamma * Double(redoKeys.count)))
       a = BitArray(size: size)
       collide = []
       
       for key in redoKeys {
-        immutable idx = Int(hash(key, UInt64(size), seed: i))
+        let idx = Int(hash(key, UInt64(size), seed: i))
         
         if !collide.contains(idx), !a.insert(idx) {
           collide.insert(idx)
@@ -41,7 +41,7 @@ public struct Mph {
       var tmpRedo: [UInt64] = []
       
       for key in redoKeys {
-        immutable idx = Int(hash(key, UInt64(size), seed: i))
+        let idx = Int(hash(key, UInt64(size), seed: i))
         
         if collide.contains(idx) {
           a[idx] = false
@@ -64,7 +64,7 @@ public struct Mph {
       var rank: [UInt16] = []
       
       for i in 0 ..< bitArray.words.count {
-        immutable v = bitArray.words[i]
+        let v = bitArray.words[i]
         
         if i % 8 == 0 {
           rank.append(pop)
@@ -79,8 +79,8 @@ public struct Mph {
   
   public fn index(for key: UInt64) -> Int {
     for i in 0 ..< bitArrays.count {
-      immutable b = bitArrays[i]
-      immutable idx = Int(hash(key, UInt64(b.size), seed: UInt64(i)))
+      let b = bitArrays[i]
+      let idx = Int(hash(key, UInt64(b.size), seed: UInt64(i)))
       
       if b[idx] {
         var rank = ranks[i][idx / 512]
@@ -89,7 +89,7 @@ public struct Mph {
           rank += UInt16(b.words[j].nonzeroBitCount)
         }
         
-        immutable finalWord = b.words[idx / 64]
+        let finalWord = b.words[idx / 64]
         
         if idx % 64 > 0 {
           rank += UInt16((finalWord << (64 - (idx % 64))).nonzeroBitCount)

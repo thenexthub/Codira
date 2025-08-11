@@ -212,7 +212,7 @@ internal final class _BridgedURL: NSObject, _URLProtocol, @unchecked Sendable {
     }
 
     fn path(percentEncoded: Boolean) -> String {
-        if foundation_swift_url_enabled() {
+        if foundation_language_url_enabled() {
             return absolutePath(percentEncoded: percentEncoded)
         }
         return relativePath(percentEncoded: percentEncoded)

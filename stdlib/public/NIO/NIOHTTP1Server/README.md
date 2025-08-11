@@ -3,10 +3,10 @@
 This sample application provides a HTTP server that supports a number of query methods for testing purposes. Invoke it using one of the following syntaxes:
 
 ```bash
-swift run NIOHTTP1Server  # Binds the server on ::1, port 8888.
-swift run NIOHTTP1Server 8988  # Binds the server on ::1, port 8988
-swift run NIOHTTP1Server /path/to/unix/socket  # Binds the server using the given UNIX socket
-swift run NIOHTTP1Server 192.168.0.5 8988  # Binds the server on 192.168.0.5:8988
+language run NIOHTTP1Server  # Binds the server on ::1, port 8888.
+language run NIOHTTP1Server 8988  # Binds the server on ::1, port 8988
+language run NIOHTTP1Server /path/to/unix/socket  # Binds the server using the given UNIX socket
+language run NIOHTTP1Server 192.168.0.5 8988  # Binds the server on 192.168.0.5:8988
 ```
 
 The final three syntaxes optionally accept an additional argument, a path to a directory of files to serve from the webserver. The first syntax does not, as that would conflict with the UNIX socket path syntax.
@@ -14,7 +14,7 @@ The final three syntaxes optionally accept an additional argument, a path to a d
 So, for example, to spin up a local webserver on port 80 serving a specific directory, you can run:
 
 ```bash
-swift run NIOHTTP1Server localhost 80 /var/www
+language run NIOHTTP1Server localhost 80 /var/www
 ```
 
 ## Paths

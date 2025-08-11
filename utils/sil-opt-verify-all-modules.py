@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# utils/sil-opt-verify-all-modules.py - Verifies Codira modules -*- python -*-
+# utils/sil-opt-verify-all-modules.py - Verifies Swift modules -*- python -*-
 #
-# This source file is part of the Codira.org open source project
+# This source file is part of the Swift.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
 # See https://language.org/LICENSE.txt for license information
-# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+# See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 
 import argparse
 import glob
@@ -71,9 +71,9 @@ def get_verify_resource_dir_modules_commands(
     for (subdir, arch, triple) in known_platforms:
         modules_dir = os.path.join(resource_dir, subdir, arch)
         print(modules_dir)
-        modules = glob.glob(os.path.join(modules_dir, '*.codemodule'))
+        modules = glob.glob(os.path.join(modules_dir, '*.languagemodule'))
         for module_file_name in modules:
-            if module_file_name.endswith('XCTest.codemodule'):
+            if module_file_name.endswith('XCTest.languagemodule'):
                 # FIXME: sil-opt does not have the '-F' option.
                 continue
             commands.append([
@@ -122,14 +122,14 @@ def run_commands_in_parallel(commands):
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""Verifies Codira modules.""")
+        description="""Verifies Swift modules.""")
     parser.add_argument(
         "--sil-opt",
         help="use the specified 'sil-opt' binary",
         metavar="PATH")
     parser.add_argument(
         "--verify-build-dir",
-        help="verify the Codira resource directory under the given build dir.",
+        help="verify the Swift resource directory under the given build dir.",
         metavar="PATH")
     parser.add_argument(
         "--verify-xcode",

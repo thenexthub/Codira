@@ -1,7 +1,7 @@
-// RUN: %target-run-simple-swift | %FileCheck %s
+// RUN: %target-run-simple-language | %FileCheck %s
 // REQUIRES: executable_test
 
-// https://github.com/apple/swift/issues/52070
+// https://github.com/apple/language/issues/52070
 
 protocol P {
   associatedtype T

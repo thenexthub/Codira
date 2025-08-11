@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/MessageStorageClassGenerator.code -Message storage class logic
+// Sources/protoc-gen-language/MessageStorageClassGenerator.code -Message storage class logic
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.

@@ -17,7 +17,7 @@ import SwiftSyntax
 
 struct SwiftFunctionType: Equatable {
   enum Convention: Equatable {
-    case swift
+    case language
     case c
   }
 

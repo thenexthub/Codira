@@ -1,5 +1,5 @@
-// -*- swift -*-
-// RUN: %target-run-simple-swiftgyb
+// -*- language -*-
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 
 import StdlibUnittest

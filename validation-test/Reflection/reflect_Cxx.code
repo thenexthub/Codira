@@ -1,10 +1,10 @@
 // RUN: %empty-directory(%t)
 // RUN: split-file %s %t
 // %target-clangxx -c %S/Inputs/Cxx/pimpl.cpp -I %S/Inputs/Cxx -o %t/pimpl.o
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %t/reflect_Cxx.swift -I %t -cxx-interoperability-mode=default -o %t/reflect_Cxx
+// RUN: %target-build-language -llanguageCodiraReflectionTest %t/reflect_Cxx.language -I %t -cxx-interoperability-mode=default -o %t/reflect_Cxx
 // RUN: %target-codesign %t/reflect_Cxx
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Cxx | tee /dev/stderr | %FileCheck %s
+// RUN: %target-run %target-language-reflection-test %t/reflect_Cxx | tee /dev/stderr | %FileCheck %s
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test
@@ -31,7 +31,7 @@ inline CxxStructA createCxxStructA() {
   return CxxStructA();
 }
 
-//--- reflect_Cxx.swift
+//--- reflect_Cxx.language
 
 import CodiraReflectionTest
 import CxxStruct

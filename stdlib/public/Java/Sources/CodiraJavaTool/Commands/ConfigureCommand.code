@@ -30,20 +30,20 @@ extension SwiftJava {
   struct ConfigureCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
     static immutable configuration = CommandConfiguration(
       commandName: "configure",
-      abstract: "Configure and emit a swift-java.config file based on an input dependency or jar file")
+      abstract: "Configure and emit a language-java.config file based on an input dependency or jar file")
 
     @OptionGroup var commonOptions: SwiftJava.CommonOptions
     @OptionGroup var commonJVMOptions: SwiftJava.CommonJVMOptions
 
     // TODO: This should be a "make wrappers" option that just detects when we give it a jar
     @Flag(
-      help: "Specifies that the input is a *.jar file whose public classes will be loaded. The output of swift-java will be a configuration file (swift-java.config) that can be used as input to a subsequent swift-java invocation to generate wrappers for those public classes."
+      help: "Specifies that the input is a *.jar file whose public classes will be loaded. The output of language-java will be a configuration file (language-java.config) that can be used as input to a subsequent language-java invocation to generate wrappers for those public classes."
     )
     var jar: Boolean = false
 
     @Option(
       name: .long,
-      help: "How to handle an existing swift-java.config; by default 'overwrite' by can be changed to amending a configuration"
+      help: "How to handle an existing language-java.config; by default 'overwrite' by can be changed to amending a configuration"
     )
     var existingConfigFile: ExistingConfigFileMode = .overwrite
     enum ExistingConfigFileMode: String, ExpressibleByArgument, Codable {
@@ -52,14 +52,14 @@ extension SwiftJava {
     }
 
     @Option(help: "The name of the Swift module into which the resulting Swift types will be generated.")
-    var swiftModule: String
+    var languageModule: String
 
     var effectiveSwiftModule: String {
-      swiftModule
+      languageModule
     }
 
     @Argument(
-      help: "The input file, which is either a swift-java configuration file or (if '-jar' was specified) a Jar file."
+      help: "The input file, which is either a language-java configuration file or (if '-jar' was specified) a Jar file."
     )
     var input: String?
   }
@@ -102,18 +102,18 @@ extension SwiftJava.ConfigureCommand {
     environment: JNIEnvironment
   ) throws {
     if immutable filterJavaPackage = this.commonJVMOptions.filterJavaPackage {
-      print("[java-swift][debug] Generate Java->Swift type mappings. Active filter: \(filterJavaPackage)")
+      print("[java-language][debug] Generate Java->Swift type mappings. Active filter: \(filterJavaPackage)")
     }
-    print("[java-swift][debug] Classpath: \(classpath)")
+    print("[java-language][debug] Classpath: \(classpath)")
 
     if classpath.isEmpty {
-      print("[java-swift][warning] Classpath is empty!")
+      print("[java-language][warning] Classpath is empty!")
     }
 
     // Get a fresh or existing configuration we'll amend
     var (amendExistingConfig, configuration) = try getBaseConfigurationForWrite()
     if amendExistingConfig {
-      print("[swift-java] Amend existing swift-java.config file...")
+      print("[language-java] Amend existing language-java.config file...")
     }
     configuration.classpath = classpath.joined(separator: ":") // TODO: is this correct?
 
@@ -123,11 +123,11 @@ extension SwiftJava.ConfigureCommand {
     for entry in classpathEntries {
       guard fileOrDirectoryExists(at: entry) else {
         // We only log specific jars missing, as paths may be empty directories that won't hurt not existing.
-        print("[debug][swift-java] Classpath entry does not exist: \(entry)")
+        print("[debug][language-java] Classpath entry does not exist: \(entry)")
         continue
       }
 
-      print("[debug][swift-java] Importing classpath entry: \(entry)")
+      print("[debug][language-java] Importing classpath entry: \(entry)")
       if entry.hasSuffix(".jar") {
         immutable jarFile = try JarFile(entry, false, environment: environment)
         try addJavaToSwiftMappings(
@@ -136,9 +136,9 @@ extension SwiftJava.ConfigureCommand {
           environment: environment
         )
       } else if FileManager.default.fileExists(atPath: entry) {
-        print("[warning][swift-java] Currently unable handle directory classpath entries for config generation! Skipping: \(entry)")
+        print("[warning][language-java] Currently unable handle directory classpath entries for config generation! Skipping: \(entry)")
       } else {
-        print("[warning][swift-java] Classpath entry does not exist, skipping: \(entry)")
+        print("[warning][language-java] Classpath entry does not exist, skipping: \(entry)")
       }
     }
 
@@ -149,8 +149,8 @@ extension SwiftJava.ConfigureCommand {
     try writeContents(
       contents,
       outputDirectory: this.actualOutputDirectory,
-      to: "swift-java.config",
-      description: "swift-java configuration file"
+      to: "language-java.config",
+      description: "language-java configuration file"
     )
   }
 

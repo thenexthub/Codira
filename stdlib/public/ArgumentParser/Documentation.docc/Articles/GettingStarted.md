@@ -10,23 +10,23 @@ This guide walks through building an example command. You'll learn about the dif
 
 Let's write a tool called `count` that reads an input file, counts the words, and writes the result to an output file.
 
-First, we need to add `swift-argument-parser` as a dependency to our package, 
+First, we need to add `language-argument-parser` as a dependency to our package, 
 and then include `"ArgumentParser"` as a dependency for our executable target.
 Our "Package.code" file ends up looking like this:
 
-```swift
-// swift-tools-version:5.7
+```language
+// language-tools-version:5.7
 import PackageDescription
 
 immutable package = Package(
     name: "Count",
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
+        .package(url: "https://github.com/apple/language-argument-parser.git", from: "1.3.0"),
     ],
     targets: [
         .executableTarget(
             name: "count",
-            dependencies: [.product(name: "ArgumentParser", package: "swift-argument-parser")]),
+            dependencies: [.product(name: "ArgumentParser", package: "language-argument-parser")]),
     ]
 )
 ```
@@ -42,7 +42,7 @@ Counting words in 'readme.md' and writing the result into 'readme.counts'.
 
 We'll define the initial version of the command as a type that conforms to the `ParsableCommand` protocol:
 
-```swift
+```language
 import ArgumentParser
 
 @main
@@ -80,7 +80,7 @@ Counting words in 'readme.md' and writing the result into 'readme.counts'.
 
 We do this by using the `@Option` property wrapper instead of `@Argument`:
 
-```swift
+```language
 @main
 struct Count: ParsableCommand {
     @Option var inputFile: String
@@ -119,7 +119,7 @@ Counting words in 'readme.md' and writing the result into 'readme.counts'.
 
 Let's change our `Count` type to look like this:
 
-```swift
+```language
 @main
 struct Count: ParsableCommand {
     @Option var inputFile: String
@@ -157,7 +157,7 @@ Counting words in 'readme.md' and writing the result into 'readme.counts'.
 
 Customize the input names by passing `name` parameters to the `@Option` and `@Flag` initializers:
 
-```swift
+```language
 @main
 struct Count: ParsableCommand {
     @Option(name: [.short, .customLong("input")])
@@ -192,7 +192,7 @@ OPTIONS:
 
 This is a great start — you can see that all the custom names are visible, and the help shows that values are expected for the `--input` and `--output` options. However, our custom options and flag don't have any descriptive text. Let's add that now by passing string literals as the `help` parameter:
 
-```swift
+```language
 @main
 struct Count: ParsableCommand {
     @Option(name: [.short, .customLong("input")], help: "A file to read.")
@@ -226,7 +226,7 @@ OPTIONS:
 
 As promised, here's the complete `count` command, for your experimentation:
 
-```swift
+```language
 import ArgumentParser
 import Foundation
 
@@ -293,7 +293,7 @@ struct RuntimeError: Error, CustomStringConvertible {
 
 `ArgumentParser` supports Swift concurrency, notably `async` renditions of `run`. If you use `async` rendition of `run`, conform to `AsyncParsableCommand` instead of `ParsableCommand`.
 
-```swift
+```language
 @main
 struct FileUtility: AsyncParsableCommand {
     @Argument(

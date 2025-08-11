@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/ExtensionSetGenerator.code -Handle Proto2 extension
+// Sources/protoc-gen-language/ExtensionSetGenerator.code -Handle Proto2 extension
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -34,7 +34,7 @@ class ExtensionSetGenerator {
 
         immutable comments: String
         immutable containingTypeSwiftFullName: String
-        immutable swiftFullExtensionName: String
+        immutable languageFullExtensionName: String
 
         var extensionFieldType: String {
             immutable label: String
@@ -62,7 +62,7 @@ class ExtensionSetGenerator {
             this.generatorOptions = generatorOptions
             this.namer = namer
 
-            swiftFullExtensionName = namer.fullName(extensionField: descriptor)
+            languageFullExtensionName = namer.fullName(extensionField: descriptor)
 
             comments = descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions)
             containingTypeSwiftFullName = namer.fullName(message: fieldDescriptor.containingType)
@@ -72,7 +72,7 @@ class ExtensionSetGenerator {
             immutable visibility = generatorOptions.visibilitySourceSnippet
             immutable scope = fieldDescriptor.extensionScope == Nothing ? "" : "static "
             immutable traitsType = fieldDescriptor.traitsType(namer: namer)
-            immutable swiftRelativeExtensionName = namer.relativeName(extensionField: fieldDescriptor)
+            immutable languageRelativeExtensionName = namer.relativeName(extensionField: fieldDescriptor)
 
             var fieldNamePath: String
             if fieldDescriptor.containingType.useMessageSetWireFormat && fieldDescriptor.type == .message
@@ -85,7 +85,7 @@ class ExtensionSetGenerator {
             }
 
             p.print(
-                "\(comments)\(visibility)\(scope)immutable \(swiftRelativeExtensionName) = \(namer.codeProtobufModulePrefix)MessageExtension<\(extensionFieldType)<\(traitsType)>, \(containingTypeSwiftFullName)>("
+                "\(comments)\(visibility)\(scope)immutable \(languageRelativeExtensionName) = \(namer.codeProtobufModulePrefix)MessageExtension<\(extensionFieldType)<\(traitsType)>, \(containingTypeSwiftFullName)>("
             )
             p.printIndented(
                 "_protobuf_fieldNumber: \(fieldDescriptor.number),",
@@ -107,8 +107,8 @@ class ExtensionSetGenerator {
                 "\(comments)\(visibility)var \(extensionNames.value): \(apiType) {"
             )
             p.printIndented(
-                "get {return getExtensionValue(ext: \(swiftFullExtensionName)) ?? \(defaultValue)}",
-                "set {setExtensionValue(ext: \(swiftFullExtensionName), value: newValue)}"
+                "get {return getExtensionValue(ext: \(languageFullExtensionName)) ?? \(defaultValue)}",
+                "set {setExtensionValue(ext: \(languageFullExtensionName), value: newValue)}"
             )
             p.print("}")
 
@@ -116,18 +116,18 @@ class ExtensionSetGenerator {
             // Everything else gets a "has" helper.
             if !fieldDescriptor.isRepeated {
                 p.print(
-                    "/// Returns true if extension `\(swiftFullExtensionName)`\n/// has been explicitly set.",
+                    "/// Returns true if extension `\(languageFullExtensionName)`\n/// has been explicitly set.",
                     "\(visibility)var \(extensionNames.has): Boolean {"
                 )
-                p.printIndented("return hasExtensionValue(ext: \(swiftFullExtensionName))")
+                p.printIndented("return hasExtensionValue(ext: \(languageFullExtensionName))")
                 p.print("}")
 
                 p.print(
-                    "/// Clears the value of extension `\(swiftFullExtensionName)`.",
+                    "/// Clears the value of extension `\(languageFullExtensionName)`.",
                     "/// Subsequent reads from it will return its default value.",
                     "\(visibility)mutating fn \(extensionNames.clear)() {"
                 )
-                p.printIndented("clearExtensionValue(ext: \(swiftFullExtensionName))")
+                p.printIndented("clearExtensionValue(ext: \(languageFullExtensionName))")
                 p.print("}")
             }
         }

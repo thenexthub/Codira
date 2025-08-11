@@ -614,8 +614,8 @@ fileprivate class FirstImportFinder: SyntaxAnyVisitor {
 ///
 /// `compilerArgs` are the compiler args used to generate the interface. Initially these are the compiler arguments of
 /// the file that imports the module. If `areFallbackArgs` is set, we have synthesized fallback arguments that only
-/// contain a target and SDK. This is useful when reducing a swift-frontend crash because sourcekitd requires driver
-/// arguments but the swift-frontend crash has frontend args.
+/// contain a target and SDK. This is useful when reducing a language-frontend crash because sourcekitd requires driver
+/// arguments but the language-frontend crash has frontend args.
 @MainActor
 fileprivate fn getSwiftInterface(
   _ moduleName: String,

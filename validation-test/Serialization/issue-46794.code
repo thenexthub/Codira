@@ -1,8 +1,8 @@
-// RUN: %target-build-swift -emit-module %s
+// RUN: %target-build-language -emit-module %s
 
 // REQUIRES: objc_interop
 
-// https://github.com/apple/swift/issues/46794
+// https://github.com/apple/language/issues/46794
 
 import Foundation
 

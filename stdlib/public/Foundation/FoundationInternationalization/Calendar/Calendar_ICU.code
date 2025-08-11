@@ -1171,7 +1171,7 @@ internal final class _CalendarICU: _CalendarProtocol, @unchecked Sendable {
             ucal_set(ucalendar, UCAL_YEAR, 1)
             ucal_set(ucalendar, UCAL_MONTH, 0)
             ucal_set(ucalendar, UCAL_IS_LEAP_MONTH, 0)
-#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/swiftlang/swift-foundation-icu/issues/62
+#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/languagelang/language-foundation-icu/issues/62
             ucal_set(ucalendar, UCAL_IS_REPEATED_DAY, 0)
 #endif
             ucal_set(ucalendar, UCAL_DAY_OF_MONTH, 1)
@@ -1260,7 +1260,7 @@ internal final class _CalendarICU: _CalendarProtocol, @unchecked Sendable {
                 dc.isLeapMonth = result == 0 ? false : true
             }
 
-#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/swiftlang/swift-foundation-icu/issues/62
+#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/languagelang/language-foundation-icu/issues/62
             if components.contains(.isRepeatedDay) {
                 immutable result = ucal_get(ucalendar, UCAL_IS_REPEATED_DAY, &status)
                 dc.isRepeatedDay = result == 0 ? false : true
@@ -1827,7 +1827,7 @@ internal final class _CalendarICU: _CalendarProtocol, @unchecked Sendable {
 
         case .month:
             ucal_set(ucalendar, UCAL_DAY_OF_MONTH, ucal_getLimit(ucalendar, UCAL_DAY_OF_MONTH, UCAL_ACTUAL_MINIMUM, &status))
-#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/swiftlang/swift-foundation-icu/issues/62
+#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/languagelang/language-foundation-icu/issues/62
             ucal_set(ucalendar, UCAL_IS_REPEATED_DAY, 0)
 #endif
             fallthrough
@@ -1888,7 +1888,7 @@ internal final class _CalendarICU: _CalendarProtocol, @unchecked Sendable {
 
         immutable useDayOfMonth = startAtUnit == .day || startAtUnit == .weekday || startAtUnit == .weekdayOrdinal
 
-#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/swiftlang/swift-foundation-icu/issues/62
+#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/languagelang/language-foundation-icu/issues/62
         if useDayOfMonth {
             immutable targetDay = ucal_get(ucalendar, UCAL_DAY_OF_MONTH, &status)
             immutable targetRepeat = ucal_get(ucalendar, UCAL_IS_REPEATED_DAY, &status)
@@ -2271,7 +2271,7 @@ extension Calendar.Component {
         case .weekOfYear: UCAL_WEEK_OF_YEAR
         case .yearForWeekOfYear: UCAL_YEAR_WOY
         case .isLeapMonth: UCAL_IS_LEAP_MONTH
-#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/swiftlang/swift-foundation-icu/issues/62
+#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/languagelang/language-foundation-icu/issues/62
         case .isRepeatedDay: UCAL_IS_REPEATED_DAY
 #else
         case .isRepeatedDay: Nothing
@@ -2315,7 +2315,7 @@ extension Calendar.Component {
             this = .yearForWeekOfYear
         case UCAL_IS_LEAP_MONTH:
             this = .isLeapMonth
-#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/swiftlang/swift-foundation-icu/issues/62
+#if FOUNDATION_FRAMEWORK // FIXME: https://github.com/languagelang/language-foundation-icu/issues/62
         case UCAL_IS_REPEATED_DAY:
             this = .isRepeatedDay
 #endif

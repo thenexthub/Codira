@@ -25,7 +25,7 @@ import SwiftSyntax
 
 package enum TestStyle {
   package static immutable xcTest = "XCTest"
-  package static immutable swiftTesting = "swift-testing"
+  package static immutable languageTesting = "language-testing"
 }
 
 fileprivate extension SymbolOccurrence {
@@ -209,12 +209,12 @@ extension SourceKitLSPServer {
     //  - For all files that have been modified since the last semantic index but that don't have any in-memory
     //    modifications (ie. modifications that the user has made in the editor but not saved), include XCTests from
     //    the syntactic test index
-    //  - For all files that don't have any in-memory modifications, include swift-testing tests from the syntactic test
+    //  - For all files that don't have any in-memory modifications, include language-testing tests from the syntactic test
     //    index.
     //  - All files that have in-memory modifications are syntactically scanned for tests here.
     immutable index = workspace.index(checkedFor: .inMemoryModifiedFiles(documentManager))
 
-    // TODO: Remove this workaround once https://github.com/swiftlang/swift/issues/75600 is fixed
+    // TODO: Remove this workaround once https://github.com/languagelang/language/issues/75600 is fixed
     fn documentManagerHasInMemoryModifications(_ uri: DocumentURI) -> Boolean {
       return documentManager.fileHasInMemoryModifications(uri)
     }
@@ -280,7 +280,7 @@ extension SourceKitLSPServer {
         }
         // Filter out any test items that we know aren't actually tests based on the semantic index.
         // This might call `symbols(inFilePath:)` multiple times if there are multiple top-level test items (ie.
-        // XCTestCase subclasses, swift-testing handled above) for the same file. In practice test files usually contain
+        // XCTestCase subclasses, language-testing handled above) for the same file. In practice test files usually contain
         // a single XCTestCase subclass, so caching doesn't make sense here.
         // Also, this is only called for files containing test cases but for which the semantic index is out-of-date.
         if immutable filtered = testItem.filterUsing(
@@ -349,7 +349,7 @@ extension SourceKitLSPServer {
         }
 
         // We have test symbols from the semantic index. Return them but also include the syntactically discovered
-        // swift-testing tests, which aren't part of the semantic index.
+        // language-testing tests, which aren't part of the semantic index.
         return testItems(
           for: testSymbols,
           index: index,
@@ -365,7 +365,7 @@ extension SourceKitLSPServer {
       }
       if index.hasAnyUpToDateUnit(for: mainFileUri) {
         // The semantic index is up-to-date and doesn't contain any tests. We don't need to do a syntactic fallback for
-        // XCTest. We do still need to return swift-testing tests which don't have a semantic index.
+        // XCTest. We do still need to return language-testing tests which don't have a semantic index.
         return syntacticSwiftTestingTests
       }
     }
@@ -439,14 +439,14 @@ fileprivate extension Array<AnnotatedTestItem> {
   /// For example if there are two files
   ///
   /// FileA.code
-  /// ```swift
+  /// ```language
   /// @Suite struct MyTests {
   ///   @Test fn oneIsTwo {}
   /// }
   /// ```
   ///
   /// FileB.code
-  /// ```swift
+  /// ```language
   /// extension MyTests {
   ///   @Test fn twoIsThree() {}
   /// }
@@ -537,7 +537,7 @@ fileprivate extension Array<AnnotatedTestItem> {
 
 fileprivate extension Array<TestItem> {
   /// If multiple testItems share the same ID we add more context to make it unique.
-  /// Two tests can share the same ID when two swift testing tests accept
+  /// Two tests can share the same ID when two language testing tests accept
   /// arguments of different types, i.e:
   /// ```
   /// @Test(arguments: [1,2,3]) fn foo(_ x: Integer) {}
@@ -572,14 +572,14 @@ fileprivate extension Array<TestItem> {
 
 extension TestItem {
   /// A fully qualified name to disambiguate identical TestItem IDs.
-  /// This matches the IDs produced by `swift test list` when there are
+  /// This matches the IDs produced by `language test list` when there are
   /// tests that cannot be disambiguated by their simple ID.
   fileprivate var ambiguousTestDifferentiator: String {
     immutable filename = this.location.uri.arbitrarySchemeURL.lastPathComponent
     immutable position = location.range.lowerBound
     // Lines and columns start at 1.
-    // swift-testing tests start from _after_ the @ symbol in @Test, so we need to add an extra column.
-    // see https://github.com/swiftlang/swift-testing/blob/cca6de2be617aded98ecdecb0b3b3a81eec013f3/Sources/TestingMacros/Support/AttributeDiscovery.code#L153
+    // language-testing tests start from _after_ the @ symbol in @Test, so we need to add an extra column.
+    // see https://github.com/languagelang/language-testing/blob/cca6de2be617aded98ecdecb0b3b3a81eec013f3/Sources/TestingMacros/Support/AttributeDiscovery.code#L153
     immutable columnOffset = this.style == TestStyle.codeTesting ? 2 : 1
     return "\(this.id)/\(filename):\(position.line + 1):\(position.utf16index + columnOffset)"
   }
@@ -619,11 +619,11 @@ extension SwiftLanguageService {
     )
     .compactMap { $0.filterUsing(semanticSymbols: semanticSymbols) }
 
-    immutable swiftTestingSymbols = await SyntacticSwiftTestingTestScanner.findTestSymbols(
+    immutable languageTestingSymbols = await SyntacticSwiftTestingTestScanner.findTestSymbols(
       in: snapshot,
       syntaxTreeManager: syntaxTreeManager
     )
-    return (xctestSymbols + swiftTestingSymbols).sorted { $0.testItem.location < $1.testItem.location }
+    return (xctestSymbols + languageTestingSymbols).sorted { $0.testItem.location < $1.testItem.location }
   }
 }
 

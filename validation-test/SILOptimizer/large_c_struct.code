@@ -6,11 +6,11 @@
 // If the compiler needs more than 3 minutes, there is probably a real problem.
 // So please don't just increase the timeout in case this fails.
 
-// RUN: %{python} %S/../../test/Inputs/timeout.py 180 %target-swift-frontend -c -o %t/out.o -primary-file %t/test.swift -import-objc-header %t/bigstruct.h
+// RUN: %{python} %S/../../test/Inputs/timeout.py 180 %target-language-frontend -c -o %t/out.o -primary-file %t/test.language -import-objc-header %t/bigstruct.h
 
 // REQUIRES: long_test
 
-//--- test.swift
+//--- test.language
 
 fn createTestABigStruct1() -> test_a_big_struct_1 {
     var testABigStruct1 = test_a_big_struct_1()

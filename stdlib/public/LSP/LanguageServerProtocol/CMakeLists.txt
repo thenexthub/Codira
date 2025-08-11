@@ -151,5 +151,5 @@ add_library(LanguageServerProtocol STATIC
 set_target_properties(LanguageServerProtocol PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
 target_link_libraries(LanguageServerProtocol PUBLIC
-  $<$<NOT:$<PLATFORM_ID:Darwin>>:swiftDispatch>
+  $<$<NOT:$<PLATFORM_ID:Darwin>>:languageDispatch>
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)

@@ -425,7 +425,7 @@ final internal class URing {
             // - we simply can't know when the kernel will process our SQE without
             // heavy-handed synchronization which would dump performance.
             // Discussion here:
-            // https://github.com/apple/swift-nio/pull/1804#discussion_r621304055
+            // https://github.com/apple/language-nio/pull/1804#discussion_r621304055
             // including clarifications from @isilence (one of the io_uring developers)
             case -EBADF:
                 _debugPrint("Failed poll with -EBADF for cqeIndex[\(cqeIndex)]")

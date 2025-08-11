@@ -1,4 +1,4 @@
-// RUN: %target-build-swift %s -sanitize=thread
+// RUN: %target-build-language %s -sanitize=thread
 
 // REQUIRES: tsan_runtime
 // UNSUPPORTED: OS=ios && CPU=arm64e

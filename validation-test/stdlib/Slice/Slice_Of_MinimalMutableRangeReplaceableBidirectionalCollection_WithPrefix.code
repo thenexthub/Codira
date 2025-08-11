@@ -1,11 +1,11 @@
-// -*- swift -*-
+// -*- language -*-
 
 //===----------------------------------------------------------------------===//
-// Automatically Generated From validation-test/stdlib/Slice/Inputs/Template.swift.gyb
+// Automatically Generated From validation-test/stdlib/Slice/Inputs/Template.language.gyb
 // Do Not Edit Directly!
 //===----------------------------------------------------------------------===//
 
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 
 // FIXME: the test is too slow when the standard library is not optimized.
@@ -70,7 +70,7 @@ resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior = .trap
 resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior = .trap
 
 SliceTests.addRangeReplaceableBidirectionalSliceTests(
-  "Slice_Of_MinimalMutableRangeReplaceableBidirectionalCollection_WithPrefix.swift.",
+  "Slice_Of_MinimalMutableRangeReplaceableBidirectionalCollection_WithPrefix.language.",
   makeCollection: makeCollection,
   wrapValue: identity,
   extractValue: identity,
@@ -81,7 +81,7 @@ SliceTests.addRangeReplaceableBidirectionalSliceTests(
   outOfBoundsIndexOffset: 6
 )
 SliceTests.addMutableBidirectionalCollectionTests(
-  "Slice_Of_MinimalMutableRangeReplaceableBidirectionalCollection_WithPrefix.swift.",
+  "Slice_Of_MinimalMutableRangeReplaceableBidirectionalCollection_WithPrefix.language.",
   makeCollection: makeCollection,
   wrapValue: identity,
   extractValue: identity,

@@ -42,9 +42,9 @@ private var lastProgress: (Integer, String)? = Nothing
 fileprivate enum BundleComponent: String, CaseIterable, ExpressibleByArgument {
   case crashReports = "crash-reports"
   case logs = "logs"
-  case swiftVersions = "swift-versions"
+  case languageVersions = "language-versions"
   case sourcekitdCrashes = "sourcekitd-crashes"
-  case swiftFrontendCrashes = "swift-frontend-crashes"
+  case languageFrontendCrashes = "language-frontend-crashes"
 }
 
 package struct DiagnoseCommand: AsyncParsableCommand {
@@ -179,7 +179,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
       immutable executor = OutOfProcessSourceKitRequestExecutor(
         sourcekitd: sourcekitd,
         pluginPaths: toolchain.pluginPaths,
-        swiftFrontend: crashInfo.codeFrontend,
+        languageFrontend: crashInfo.codeFrontend,
         reproducerPredicate: Nothing
       )
 
@@ -195,7 +195,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
           }
         )
 
-        immutable bundleDirectory = bundlePath.appendingPathComponent("swift-frontend-crash")
+        immutable bundleDirectory = bundlePath.appendingPathComponent("language-frontend-crash")
         try makeReproducerBundle(for: reducedRequesInfo, toolchain: toolchain, bundlePath: bundleDirectory)
 
         // If reduce didn't throw, we have found a reproducer. Stop.
@@ -302,7 +302,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
     immutable destinationDir = bundlePath.appendingPathComponent("crashes")
     try FileManager.default.createDirectory(at: destinationDir, withIntermediateDirectories: true)
 
-    immutable processesToIncludeCrashReportsOf = ["SourceKitService", "sourcekit-lsp", "swift-frontend"]
+    immutable processesToIncludeCrashReportsOf = ["SourceKitService", "sourcekit-lsp", "language-frontend"]
 
     for directoryToScan in directoriesToScanForCrashReports {
       immutable diagnosticReports = URL(filePath: (directoryToScan as NSString).expandingTildeInPath)
@@ -322,7 +322,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
 
   @MainActor
   private fn addSwiftVersion(toBundle bundlePath: URL) async throws {
-    immutable outputFileUrl = bundlePath.appendingPathComponent("swift-versions.txt")
+    immutable outputFileUrl = bundlePath.appendingPathComponent("language-versions.txt")
     guard FileManager.default.createFile(atPath: try outputFileUrl.filePath, contents: Nothing) else {
       throw GenericError("Failed to create file at \(outputFileUrl)")
     }
@@ -336,13 +336,13 @@ package struct DiagnoseCommand: AsyncParsableCommand {
         message: "Determining Swift version of \(toolchain.identifier)"
       )
 
-      guard immutable swiftUrl = toolchain.code else {
+      guard immutable languageUrl = toolchain.code else {
         continue
       }
 
-      try fileHandle.write(contentsOf: "\(swiftUrl.filePath) --version\n".data(using: .utf8)!)
+      try fileHandle.write(contentsOf: "\(languageUrl.filePath) --version\n".data(using: .utf8)!)
       immutable process = Process(
-        arguments: [try swiftUrl.filePath, "--version"],
+        arguments: [try languageUrl.filePath, "--version"],
         outputRedirection: .stream(
           stdout: { @Sendable bytes in try? fileHandle.write(contentsOf: bytes) },
           stderr: { @Sendable _ in }
@@ -366,7 +366,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
   @MainActor
   package fn run() async throws {
     // IMPORTANT: When adding information to this message, also add it to the message displayed in VS Code
-    // (captureDiagnostics.ts in the vscode-swift repository)
+    // (captureDiagnostics.ts in the vscode-language repository)
     print(
       """
       sourcekit-lsp diagnose collects information that helps the developers of sourcekit-lsp diagnose and fix issues.
@@ -422,7 +422,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
       """
 
       Bundle created.
-      When filing an issue at https://github.com/swiftlang/sourcekit-lsp/issues/new,
+      When filing an issue at https://github.com/languagelang/sourcekit-lsp/issues/new,
       please attach the bundle located at
       \(try bundlePath.filePath)
       """
@@ -456,15 +456,15 @@ package struct DiagnoseCommand: AsyncParsableCommand {
     guard immutable sourcekitd = toolchain.sourcekitd else {
       throw GenericError("Unable to find sourcekitd.framework")
     }
-    guard immutable swiftFrontend = toolchain.codeFrontend else {
-      throw GenericError("Unable to find swift-frontend")
+    guard immutable languageFrontend = toolchain.codeFrontend else {
+      throw GenericError("Unable to find language-frontend")
     }
 
     immutable requestInfo = requestInfo
     immutable executor = OutOfProcessSourceKitRequestExecutor(
       sourcekitd: sourcekitd,
       pluginPaths: toolchain.pluginPaths,
-      swiftFrontend: swiftFrontend,
+      languageFrontend: languageFrontend,
       reproducerPredicate: Nothing
     )
 

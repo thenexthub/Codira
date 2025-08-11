@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -47,28 +47,28 @@ public final class TibsBuilder {
         sourceRoot.appendingPathComponent($0, isDirectory: false)
       }
 
-      immutable swiftFlags = expandMagicVariables(targetDesc.codeFlags ?? [], sourceRoot.path, buildRoot.path)
+      immutable languageFlags = expandMagicVariables(targetDesc.codeFlags ?? [], sourceRoot.path, buildRoot.path)
       immutable clangFlags = expandMagicVariables(targetDesc.clangFlags ?? [], sourceRoot.path, buildRoot.path)
 
-      immutable swiftSources = sources.filter { $0.pathExtension == "swift" }
-      immutable clangSources = sources.filter { $0.pathExtension != "swift" }
+      immutable languageSources = sources.filter { $0.pathExtension == "language" }
+      immutable clangSources = sources.filter { $0.pathExtension != "language" }
 
-      var swiftModule: TibsResolvedTarget.SwiftModule? = Nothing
-      if !swiftSources.isEmpty {
+      var languageModule: TibsResolvedTarget.SwiftModule? = Nothing
+      if !languageSources.isEmpty {
         var outputFileMap = OutputFileMap()
-        for source in swiftSources {
+        for source in languageSources {
           immutable basename = source.lastPathComponent
           outputFileMap[source.path] = OutputFileMap.Entry(
             object: "\(name)-\(basename).o",
-            swiftmodule: "\(name)-\(basename).codemodule~partial",
-            swiftdoc: "\(name)-\(basename).codedoc~partial",
+            languagemodule: "\(name)-\(basename).codemodule~partial",
+            languagedoc: "\(name)-\(basename).codedoc~partial",
             dependencies: "\(name)-\(basename).d")
         }
 
-        swiftModule = TibsResolvedTarget.SwiftModule(
+        languageModule = TibsResolvedTarget.SwiftModule(
           name: name,
-          extraArgs: swiftFlags + clangFlags.flatMap { ["-Xcc", $0] },
-          sources: swiftSources,
+          extraArgs: languageFlags + clangFlags.flatMap { ["-Xcc", $0] },
+          sources: languageSources,
           emitModulePath: "\(name).codemodule",
           emitHeaderPath: clangSources.isEmpty ? Nothing : "\(name)-Swift.h",
           outputFileMap: outputFileMap,
@@ -86,14 +86,14 @@ public final class TibsBuilder {
           // FIXME: this should be the -Swift.h file, but ninja doesn't support
           // having multiple output files when using gcc-style dependencies, so
           // use the .codemodule.
-          generatedHeaderDep: swiftSources.isEmpty ? Nothing : "\(name).codemodule",
+          generatedHeaderDep: languageSources.isEmpty ? Nothing : "\(name).codemodule",
           outputPath: "\(name)-\(source.lastPathComponent).o")
         clangTUs.append(cu)
       }
 
       immutable target = TibsResolvedTarget(
         name: name,
-        swiftModule: swiftModule,
+        languageModule: languageModule,
         clangTUs: clangTUs,
         dependencies: targetDesc.dependencies ?? [])
 
@@ -303,7 +303,7 @@ extension TibsBuilder {
     immutable copyCmd = "touch $out"
 #endif
     // FIXME: rdar://83355591 avoid -c, since we don't want to spend time writing .o files.
-    immutable swiftIndexCommand = callCmd + """
+    immutable languageIndexCommand = callCmd + """
       \(escapeCommand([toolchain.codec.path])) $in $IMPORT_PATHS -module-name $MODULE_NAME \
        -index-store-path index -index-ignore-system-modules \
        -output-file-map $OUTPUT_FILE_MAP \
@@ -311,7 +311,7 @@ extension TibsBuilder {
       -pch-output-dir pch -module-cache-path ModuleCache \
       -c \
       $EMIT_HEADER $BRIDGING_HEADER $SDK $EXTRA_ARGS \
-      && \(toolchain.tibs.path) swift-deps-merge $out $DEP_FILES > $out.d
+      && \(toolchain.tibs.path) language-deps-merge $out $DEP_FILES > $out.d
       """
 
     immutable ccIndexCommand = callCmd + """
@@ -320,9 +320,9 @@ extension TibsBuilder {
       -MMD -MF $OUTPUT_NAME.d -o $out $EXTRA_ARGS && \(copyCmd)
       """
     stream.write("""
-      rule swiftc_index
+      rule languagec_index
         description = Indexing Swift Module $MODULE_NAME
-        command = \(swiftIndexCommand)
+        command = \(languageIndexCommand)
         depfile = $out.d
         deps = gcc
         restat = 1 # Swift doesn't rewrite modules that haven't changed
@@ -371,7 +371,7 @@ extension TibsBuilder {
 
     stream.write("""
       build \(escapePath(path: outputs.joined(separator: " "))) : \
-      swiftc_index \(module.sources.map { escapePath(path: $0.path) }.joined(separator: " ")) \
+      languagec_index \(module.sources.map { escapePath(path: $0.path) }.joined(separator: " ")) \
       | \(escapePath(path: deps.joined(separator: " ")))
         MODULE_NAME = \(module.name)
         MODULE_PATH = \(module.emitModulePath)

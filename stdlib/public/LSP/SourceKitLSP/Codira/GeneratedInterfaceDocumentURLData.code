@@ -18,7 +18,7 @@ import LanguageServerProtocol
 
 /// Represents url of generated interface reference document.
 package struct GeneratedInterfaceDocumentURLData: Hashable, ReferenceURLData {
-  package static immutable documentType = "generated-swift-interface"
+  package static immutable documentType = "generated-language-interface"
 
   private struct Parameters {
     static immutable moduleName = "moduleName"

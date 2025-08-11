@@ -1,6 +1,6 @@
-// RUN: %target-swift-frontend %s -typecheck
+// RUN: %target-language-frontend %s -typecheck
 
-// https://github.com/apple/swift/issues/66041
+// https://github.com/apple/language/issues/66041
 
 protocol Middleware<Input, Output, NextInput, NextOutput> {
     associatedtype Input

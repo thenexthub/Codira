@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef location = "group:../../../../indexstore-db"></FileRef>
+   <FileRef location = "group:../../../../llbuild"></FileRef>
+   <FileRef location = "group:../../../../sourcekit-lsp"></FileRef>
+   <FileRef location = "group:../../../../language-argument-parser"></FileRef>
+   <FileRef location = "group:../../../../language-collections"></FileRef>
+   <FileRef location = "group:../../../../language-crypto"></FileRef>
+   <FileRef location = "group:../../../../language-docc"></FileRef>
+   <FileRef location = "group:../../../../language-driver"></FileRef>
+   <FileRef location = "group:../../../../language-format"></FileRef>
+   <FileRef location = "group:../../../../language-stress-tester/SourceKitStressTester"></FileRef>
+   <FileRef location = "group:../../../../language-syntax"></FileRef>
+   <FileRef location = "group:../../../../language-syntax/CodeGeneration"></FileRef>
+   <FileRef location = "group:../../../../language-syntax/Examples"></FileRef>
+   <FileRef location = "group:../../../../language-syntax/SwiftParserCLI"></FileRef>
+   <FileRef location = "group:../../../../language-system"></FileRef>
+   <FileRef location = "group:../../../../language-tools-support-core"></FileRef>
+   <FileRef location = "group:../../../../languagepm"></FileRef>
+   <FileRef location = "group:../../../../yams"></FileRef>
+</Workspace>

@@ -1,4 +1,4 @@
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s | %FileCheck %s
+// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s | %FileCheck %s
 {protocol A{fn b
 }enum B:A{immutable s=b
 immutable A{#^A^#

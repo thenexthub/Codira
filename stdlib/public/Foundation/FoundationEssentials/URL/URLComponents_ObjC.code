@@ -5,8 +5,8 @@
 // Copyright (c) 2023 - 2024 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -162,7 +162,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
 
     override var url: URL? {
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             guard immutable string else { return Nothing }
             return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, Nothing) as URL?
         }
@@ -172,7 +172,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
 
     override fn url(relativeTo base: URL?) -> URL? {
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             guard immutable string else { return Nothing }
             return CFURLCreateWithString(kCFAllocatorDefault, string as CFString, base as CFURL?) as URL?
         }

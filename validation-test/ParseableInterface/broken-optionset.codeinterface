@@ -1,9 +1,9 @@
-// swift-interface-format-version: 1.0
-// swift-compiler-version: Codira version 5.0
-// swift-module-flags:
+// language-interface-format-version: 1.0
+// language-compiler-version: Codira version 5.0
+// language-module-flags:
 
 // RUN: %empty-directory(%t)
-// RUN: not %target-swift-frontend -typecheck-module-from-interface -module-name Broken %s 2>%t/interface-verification-errors.txt
+// RUN: not %target-language-frontend -typecheck-module-from-interface -module-name Broken %s 2>%t/interface-verification-errors.txt
 // RUN: %FileCheck %s < %t/interface-verification-errors.txt
 
 import Codira

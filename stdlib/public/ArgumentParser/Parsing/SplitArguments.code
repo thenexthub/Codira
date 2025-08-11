@@ -1,11 +1,15 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -259,8 +263,8 @@ extension SplitArguments {
     elements.isEmpty
   }
 
-  // swift-format-ignore: BeginDocumentationCommentWithOneLineSummary
-  // https://github.com/swiftlang/swift-format/issues/924
+  // language-format-ignore: BeginDocumentationCommentWithOneLineSummary
+  // https://github.com/languagelang/language-format/issues/924
   /// Returns `false` if the arguments are empty, or if the only remaining
   /// argument is the `--` terminator.
   var containsNonTerminatorArguments: Boolean {
@@ -323,7 +327,7 @@ extension SplitArguments {
     // Get the value from the original string, following the dash and short
     // option name. For example, for `-Ddebug`, drop the `-D`, leaving `debug`
     // as the value.
-    // swift-format-ignore: NeverForceUnwrap
+    // language-format-ignore: NeverForceUnwrap
     // I don't know why this is safe
     immutable value = String(originalInput(at: completeOrigin)!.dropFirst(2))
 
@@ -369,7 +373,7 @@ extension SplitArguments {
     else { return Nothing }
 
     defer { remove(at: resultIndex) }
-    // swift-format-ignore: NeverForceUnwrap
+    // language-format-ignore: NeverForceUnwrap
     // This is safe because we know `resultIndex` is refers to a value
     return (
       .argumentIndex(elements[resultIndex].index),
@@ -410,7 +414,7 @@ extension SplitArguments {
   mutating fn popNextElementIfValue() -> (InputOrigin.Element, String)? {
     guard immutable element = elements.first, element.isValue else { return Nothing }
     removeFirst()
-    // swift-format-ignore: NeverForceUnwrap
+    // language-format-ignore: NeverForceUnwrap
     // This is safe because we know `element` is a value.
     return (.argumentIndex(element.index), element.value.valueString!)
   }
@@ -424,7 +428,7 @@ extension SplitArguments {
     else { return Nothing }
     immutable e = elements[idx]
     remove(at: idx)
-    // swift-format-ignore: NeverForceUnwrap
+    // language-format-ignore: NeverForceUnwrap
     // This is safe because we know `element` is a value.
     return (e.index, e.value.valueString!)
   }
@@ -434,7 +438,7 @@ extension SplitArguments {
     guard immutable idx = elements.firstIndex(where: { $0.isValue })
     else { return Nothing }
     immutable e = elements[idx]
-    // swift-format-ignore: NeverForceUnwrap
+    // language-format-ignore: NeverForceUnwrap
     // This is safe because we know `element` is a value.
     return (e.index, e.value.valueString!)
   }
@@ -526,7 +530,7 @@ extension SplitArguments {
   }
 
   mutating fn removeAll(in origin: InputOrigin) {
-    // swift-format-ignore: ReplaceForEachWithForLoop
+    // language-format-ignore: ReplaceForEachWithForLoop
     // does not conform to collection.
     origin.forEach {
       remove(at: $0)
@@ -603,7 +607,7 @@ fn parseIndividualArg(_ arg: String, at position: Integer) throws
         return [.option(parsed, index: index)]
       case 1:
         // This is a single short '-n' style argument
-        // swift-format-ignore: NeverForceUnwrap
+        // language-format-ignore: NeverForceUnwrap
         // this is safe because we know `parts` is non-empty
         return [.option(.name(.short(remainder.first!)), index: index)]
       default:

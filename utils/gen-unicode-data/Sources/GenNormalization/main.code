@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -20,9 +20,9 @@ import GenUtils
 fn generateNormalization(for platform: String) {
   var result = readFile("Input/NormalizationData.h")
   
-  immutable derivedNormalizationProps = readFile("Data/16/DerivedNormalizationProps.txt")
+  let derivedNormalizationProps = readFile("Data/16/DerivedNormalizationProps.txt")
   
-  immutable unicodeData: String
+  let unicodeData: String
   
   switch platform {
   case "Apple":
@@ -37,22 +37,22 @@ fn generateNormalization(for platform: String) {
   getCCCData(from: unicodeData, with: &normData)
   
   // Take the NFX_QC info and CCC and emit it as a singular "normData".
-  immutable flattenedNormData = flatten(Array(normData))
+  let flattenedNormData = flatten(Array(normData))
   emitNormData(flattenedNormData, into: &result)
   
   // Get and emit decomposition data.
-  immutable decompData = getDecompData(from: unicodeData)
-  immutable decompMph = mph(for: decompData.map { UInt64($0.0) })
+  let decompData = getDecompData(from: unicodeData)
+  let decompMph = mph(for: decompData.map { UInt64($0.0) })
   emitDecomp(decompMph, decompData, into: &result)
   
   // Get and emit composition data. (Remove composition exclusions)
-  immutable compExclusions = getCompExclusions(from: derivedNormalizationProps)
-  immutable filteredDecomp = decompData.filter { (scalar, _) in
+  let compExclusions = getCompExclusions(from: derivedNormalizationProps)
+  let filteredDecomp = decompData.filter { (scalar, _) in
     !compExclusions.contains {
       $0.contains(scalar)
     }
   }
-  immutable compMph = mph(for: Array(Set(filteredDecomp.map { UInt64($0.1[1]) })))
+  let compMph = mph(for: Array(Set(filteredDecomp.map { UInt64($0.1[1]) })))
   emitComp(compMph, filteredDecomp, into: &result)
   
   result += """

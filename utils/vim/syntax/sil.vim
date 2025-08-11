@@ -1,10 +1,10 @@
-" This source file is part of the Codira.org open source project
+" This source file is part of the Swift.org open source project
 "
-" Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
+" Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
 " Licensed under Apache License v2.0 with Runtime Library Exception
 "
 " See https://language.org/LICENSE.txt for license information
-" See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+" See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 "
 " Vim syntax file
 " Language: sil
@@ -112,7 +112,7 @@ syn match languageTypeName /\<[A-Za-z_][A-Za-z_0-9\.]*\>/ contained nextgroup=la
 
 syn region languageTypeParameters start="<" end=">" skipwhite contained
 
-syn keyword languageFuncDefinition fn skipwhite nextgroup=languageFuncAttributes,languageFuncName,languageOperator
+syn keyword languageFuncDefinition func skipwhite nextgroup=languageFuncAttributes,languageFuncName,languageOperator
 syn region languageFuncAttributes start="\[" end="\]" skipwhite contained nextgroup=languageFuncName,languageOperator
 syn match languageFuncName /\<[A-Za-z_][A-Za-z_0-9]*\>/ skipwhite contained nextgroup=languageTypeParameters
 syn keyword languageFuncKeyword subscript init destructor nextgroup=languageTypeParameters

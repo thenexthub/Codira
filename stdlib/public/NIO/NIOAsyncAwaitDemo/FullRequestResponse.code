@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// THIS FILE IS MOSTLY COPIED FROM swift-nio-extras
+// THIS FILE IS MOSTLY COPIED FROM language-nio-extras
 
 import NIOCore
 import NIOHTTP1

@@ -179,6 +179,6 @@ void IndexStoreDB::printSymbolRoles(SymbolRoleSet Roles, raw_ostream &OS) {
 Optional<SymbolProviderKind> IndexStoreDB::getSymbolProviderKindFromIdentifer(StringRef ident) {
   return llvm::StringSwitch<Optional<SymbolProviderKind>>(ident)
     .Case("clang", SymbolProviderKind::Clang)
-    .Case("swift", SymbolProviderKind::Swift)
+    .Case("language", SymbolProviderKind::Swift)
     .Default(llvm::None);
 }

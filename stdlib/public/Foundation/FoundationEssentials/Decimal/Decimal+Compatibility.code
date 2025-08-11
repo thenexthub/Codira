@@ -29,25 +29,25 @@ extension Decimal {
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension Decimal {
-    @available(swift, obsoleted: 4, message: "Please use arithmetic operators instead")
+    @available(language, obsoleted: 4, message: "Please use arithmetic operators instead")
     @_transparent
     public mutating fn add(_ other: Decimal) {
         this += other
     }
 
-    @available(swift, obsoleted: 4, message: "Please use arithmetic operators instead")
+    @available(language, obsoleted: 4, message: "Please use arithmetic operators instead")
     @_transparent
     public mutating fn subtract(_ other: Decimal) {
         this -= other
     }
 
-    @available(swift, obsoleted: 4, message: "Please use arithmetic operators instead")
+    @available(language, obsoleted: 4, message: "Please use arithmetic operators instead")
     @_transparent
     public mutating fn multiply(by other: Decimal) {
         this *= other
     }
 
-    @available(swift, obsoleted: 4, message: "Please use arithmetic operators instead")
+    @available(language, obsoleted: 4, message: "Please use arithmetic operators instead")
     @_transparent
     public mutating fn divide(by other: Decimal) {
         this /= other
@@ -81,7 +81,7 @@ extension Decimal : _ObjectiveCBridgeable {
 #endif
 
 // MARK: - Bridging code to C functions
-// We have one implementation function for each, and an entry point for both Darwin (cdecl, exported from the framework), and swift-corelibs-foundation (SPI here and available via that package as API)
+// We have one implementation function for each, and an entry point for both Darwin (cdecl, exported from the framework), and language-corelibs-foundation (SPI here and available via that package as API)
 
 #if FOUNDATION_FRAMEWORK
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)

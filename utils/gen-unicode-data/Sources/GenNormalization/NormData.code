@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -20,21 +20,21 @@ fn emitNormData(
   _ data: [(ClosedRange<UInt32>, UInt16)],
   into result: inout String
 ) {
-  immutable uniqueData = Array(Set(data.map { $0.1 }))
+  let uniqueData = Array(Set(data.map { $0.1 }))
   
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  immutable chunkSize = 0x110000 / 64 / 64
+  let chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    immutable lower = i * chunkSize
-    immutable upper = lower + chunkSize - 1
+    let lower = i * chunkSize
+    let upper = lower + chunkSize - 1
     
-    immutable idx = i / 64
-    immutable bit = i % 64
+    let idx = i / 64
+    let bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0.contains(UInt32(scalar)) }) {
@@ -84,10 +84,10 @@ fn emitNormData(
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    immutable lower = chunk * chunkSize
-    immutable upper = lower + chunkSize
+    let lower = chunk * chunkSize
+    let upper = lower + chunkSize
     
-    immutable chunkDataIdx = UInt64(dataIndices.endIndex)
+    let chunkDataIdx = UInt64(dataIndices.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -97,11 +97,11 @@ fn emitNormData(
       if data.contains(where: { $0.0.contains(UInt32(scalar)) }) {
         chunkBA[scalar % chunkSize] = true
         
-        immutable data = data[data.firstIndex {
+        let data = data[data.firstIndex {
           $0.0.contains(UInt32(scalar))
         }!].1
         
-        immutable dataIdx = uniqueData.firstIndex(of: data)!
+        let dataIdx = uniqueData.firstIndex(of: data)!
         
         dataIndices.append(UInt8(dataIdx))
       }

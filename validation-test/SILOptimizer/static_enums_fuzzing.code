@@ -1,11 +1,11 @@
 // RUN: %empty-directory(%t) 
-// RUN: %swift_driver %s >%t/static_enums.swift
+// RUN: %language_driver %s >%t/static_enums.language
 
-// RUN: %target-build-swift -parse-as-library -O %t/static_enums.swift -module-name=test -o %t/a.out
-// RUN: %target-run %t/a.out | %FileCheck %t/static_enums.swift
+// RUN: %target-build-language -parse-as-library -O %t/static_enums.language -module-name=test -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %t/static_enums.language
 
-// REQUIRES: executable_test,swift_stdlib_no_asserts,optimized_stdlib
-// REQUIRES: swift_in_compiler
+// REQUIRES: executable_test,language_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_in_compiler
 
 // Note: This code is not the testfile itself but generates the testfile in the %t directory.
 

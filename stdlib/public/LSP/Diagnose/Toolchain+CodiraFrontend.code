@@ -19,10 +19,10 @@ import ToolchainRegistry
 import struct TSCBasic.AbsolutePath
 
 extension Toolchain {
-  /// The path to `swift-frontend` in the toolchain, found relative to `swift`.
+  /// The path to `language-frontend` in the toolchain, found relative to `language`.
   ///
-  /// - Note: Not discovered as part of the toolchain because `swift-frontend` is only needed in the diagnose commands.
-  package var swiftFrontend: URL? {
-    return swift?.deletingLastPathComponent().appendingPathComponent("swift-frontend")
+  /// - Note: Not discovered as part of the toolchain because `language-frontend` is only needed in the diagnose commands.
+  package var languageFrontend: URL? {
+    return language?.deletingLastPathComponent().appendingPathComponent("language-frontend")
   }
 }

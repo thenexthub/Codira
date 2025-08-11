@@ -1,7 +1,7 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
-// https://github.com/apple/swift/issues/59294
-// https://github.com/apple/swift/issues/59295
+// https://github.com/apple/language/issues/59294
+// https://github.com/apple/language/issues/59295
 
 @propertyWrapper
 struct WrapperValue<Value> {

@@ -1,5 +1,5 @@
-#include "language/Basic/SuccessorMap.h"
-#include "toolchain/Support/raw_ostream.h"
+#include "swift/Basic/SuccessorMap.h"
+#include "llvm/Support/raw_ostream.h"
 #include <map>
 #include <random>
 
@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   std::default_random_engine generator(randomDevice());
   std::uniform_int_distribution<unsigned> distribution(0,RandomSpread);
 
-  language::SuccessorMap<unsigned, unsigned> map;
+  swift::SuccessorMap<unsigned, unsigned> map;
   std::map<unsigned, unsigned> stdMap;
 
   if (argc < 0) map.dump(); // force this to be used
@@ -33,25 +33,25 @@ int main(int argc, char **argv) {
       auto iter = stdMap.upper_bound(key);
       auto stdResult = (iter == stdMap.end() ? nullptr : &iter->second);
 
-      toolchain::outs() << "  EXPECT_EQ(";
+      llvm::outs() << "  EXPECT_EQ(";
       if (stdResult) {
-        toolchain::outs() << *stdResult << ", *";
+        llvm::outs() << *stdResult << ", *";
       } else {
-        toolchain::outs() << "InvalidValue, ";
+        llvm::outs() << "InvalidValue, ";
       }
-      toolchain::outs() << "map.findLeastUpperBound(" << key << "));\n";
+      llvm::outs() << "map.findLeastUpperBound(" << key << "));\n";
 
       auto result = map.findLeastUpperBound(key);
       if (result && stdResult && *result != *stdResult) {
-        toolchain::outs() << "FAILURE: found " << *result
+        llvm::outs() << "FAILURE: found " << *result
                      << ", but should have found " << *stdResult << "\n";
         abort();
       } else if (!result && stdResult) {
-        toolchain::outs() << "FAILURE: found nothing, but should have found "
+        llvm::outs() << "FAILURE: found nothing, but should have found "
                      << *stdResult << "\n";
         abort();
       } else if (result && !stdResult) {
-        toolchain::outs() << "FAILURE: found " << *result
+        llvm::outs() << "FAILURE: found " << *result
                      << ", but should have found nothing\n";
         abort();
       }
@@ -60,17 +60,17 @@ int main(int argc, char **argv) {
       unsigned key = nextUnmappedKey();
       unsigned value = next();
 
-      toolchain::outs() << "  map.insert(" << key << ", " << value << ");\n";
+      llvm::outs() << "  map.insert(" << key << ", " << value << ");\n";
 
       map.insert((unsigned) key, (unsigned) value);
       stdMap.insert(std::make_pair(key, value));
     } else {
-      toolchain::outs() << "  map.clear();\n";
+      llvm::outs() << "  map.clear();\n";
       map.clear();
       stdMap.clear();
     }
 
-    toolchain::outs() << "  map.validate();\n";
+    llvm::outs() << "  map.validate();\n";
     map.validate();
   }
 }

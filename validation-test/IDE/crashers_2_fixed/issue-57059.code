@@ -1,6 +1,6 @@
-// RUN: %swift-ide-test --code-completion --source-filename %s --code-completion-token=CC
+// RUN: %language-ide-test --code-completion --source-filename %s --code-completion-token=CC
 
-// https://github.com/apple/swift/issues/57059
+// https://github.com/apple/language/issues/57059
 
 struct Listing {}
 

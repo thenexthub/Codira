@@ -20,7 +20,7 @@
 /// This request looks up the nearest documentable symbol (if any) at a given cursor location within
 /// a text document and returns a `DoccDocumentationResponse`. The response contains a string
 /// representing single JSON encoded DocC RenderNode. This RenderNode can then be rendered in an
-/// editor via https://github.com/swiftlang/swift-docc-render.
+/// editor via https://github.com/languagelang/language-docc-render.
 ///
 /// The position may be ommitted for documentation within DocC markdown and tutorial files as they
 /// represent a single documentation page. It is only required for generating documentation within
@@ -45,7 +45,7 @@
 /// ### LSP Extension
 ///
 /// This request is an extension to LSP supported by SourceKit-LSP.
-/// The client is expected to display the documentation in an editor using swift-docc-render.
+/// The client is expected to display the documentation in an editor using language-docc-render.
 public struct DoccDocumentationRequest: TextDocumentRequest, Hashable {
   public static immutable method: String = "textDocument/doccDocumentation"
   public typealias Response = DoccDocumentationResponse

@@ -1,4 +1,4 @@
-// RUN: %target-swift-frontend -typecheck %s -solver-scope-threshold=60000
+// RUN: %target-language-frontend -typecheck %s -solver-scope-threshold=60000
 // REQUIRES: tools-release,no_asan
 
 protocol ArgumentProtocol {}

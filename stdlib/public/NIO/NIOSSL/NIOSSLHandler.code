@@ -1019,7 +1019,7 @@ extension NIOSSLHandler {
             // instead of looping any longer.
             if bufferedActionsLoopCount >= 1000 {
                 assertionFailure(
-                    "\(#function) looped too many times, please file a GitHub issue against swift-nio-ssl."
+                    "\(#function) looped too many times, please file a GitHub issue against language-nio-ssl."
                 )
                 throw NIOSSLExtraError.noForwardProgress
             }

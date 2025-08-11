@@ -1,7 +1,7 @@
-// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// RUN: %target-typecheck-verify-language -solver-expression-time-threshold=1
 // REQUIRES: tools-release,no_asan
 
-// https://github.com/apple/swift/issues/62390
+// https://github.com/apple/language/issues/62390
 // Compiler is extremely slow to compile simple closure
 
 fn testFn<U>(_: ((Int, Int)) -> U) {}

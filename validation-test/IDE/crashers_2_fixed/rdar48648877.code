@@ -1,28 +1,28 @@
 // RUN: %empty-directory(%t)
 // RUN: %{python} %utils/split_file.py -o %t %s
-// RUN: %target-swift-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%t/main.swift %t/a.swift %t/b.swift %t/c.swift %t/d.swift
+// RUN: %target-language-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%t/main.language %t/a.language %t/b.language %t/c.language %t/d.language
 
-// BEGIN main.swift
+// BEGIN main.language
 fn foo(x: Int, y: Int) {
   x + y #^COMPLETE^#
 }
 
-// BEGIN a.swift
+// BEGIN a.language
 
 infix operator ***
 
-// BEGIN b.swift
+// BEGIN b.language
 
 infix operator ***
 
-// BEGIN c.swift
+// BEGIN c.language
 
 precedencegroup FooPrecedenceGroup {
   higherThan: MultiplicationPrecedence
 }
 infix operator **** : FooPrecedenceGroup
 
-// BEGIN d.swift
+// BEGIN d.language
 
 precedencegroup FooPrecedenceGroup {
   higherThan: MultiplicationPrecedence

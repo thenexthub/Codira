@@ -18,7 +18,7 @@ import NIOCore
 ///
 /// Example:
 ///
-/// ```swift
+/// ```language
 ///     immutable group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 ///     defer {
 ///         try! group.syncShutdownGracefully()

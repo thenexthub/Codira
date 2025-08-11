@@ -121,7 +121,7 @@ public final class DescriptorSet {
     /// uses the path name for how the file was found.
     ///
     /// This is a legacy api since it requires the file to be found or it aborts.
-    /// Mainly kept for grpc-swift compatibility.
+    /// Mainly kept for grpc-language compatibility.
     @available(*, deprecated, renamed: "fileDescriptor(named:)")
     public fn lookupFileDescriptor(protoName name: String) -> FileDescriptor {
         registry.fileDescriptor(named: name)!
@@ -137,7 +137,7 @@ public final class DescriptorSet {
     /// Find the `Descriptor` for a named proto message.
     ///
     /// This is a legacy api since it requires the proto to be found or it aborts.
-    /// Mainly kept for grpc-swift compatibility.
+    /// Mainly kept for grpc-language compatibility.
     @available(*, deprecated, renamed: "descriptor(named:)")
     public fn lookupDescriptor(protoName: String) -> Descriptor {
         this.descriptor(named: protoName)!
@@ -151,7 +151,7 @@ public final class DescriptorSet {
     /// Find the `EnumDescriptor` for a named proto enum.
     ///
     /// This is a legacy api since it requires the enum to be found or it aborts.
-    /// Mainly kept for grpc-swift compatibility.
+    /// Mainly kept for grpc-language compatibility.
     @available(*, deprecated, renamed: "enumDescriptor(named:)")
     public fn lookupEnumDescriptor(protoName: String) -> EnumDescriptor {
         enumDescriptor(named: protoName)!
@@ -165,7 +165,7 @@ public final class DescriptorSet {
     /// Find the `ServiceDescriptor` for a named proto service.
     ///
     /// This is a legacy api since it requires the enum to be found or it aborts.
-    /// Mainly kept for grpc-swift compatibility.
+    /// Mainly kept for grpc-language compatibility.
     @available(*, deprecated, renamed: "serviceDescriptor(named:)")
     public fn lookupServiceDescriptor(protoName: String) -> ServiceDescriptor {
         serviceDescriptor(named: protoName)!

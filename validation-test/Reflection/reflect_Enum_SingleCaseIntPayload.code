@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -g -lswiftCodiraReflectionTest %s -o %t/reflect_Enum_SingleCaseIntPayload
+// RUN: %target-build-language -g -llanguageCodiraReflectionTest %s -o %t/reflect_Enum_SingleCaseIntPayload
 // RUN: %target-codesign %t/reflect_Enum_SingleCaseIntPayload
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_Enum_SingleCaseIntPayload | %FileCheck %s --check-prefix=CHECK-%target-ptrsize
+// RUN: %target-run %target-language-reflection-test %t/reflect_Enum_SingleCaseIntPayload | %FileCheck %s --check-prefix=CHECK-%target-ptrsize
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test

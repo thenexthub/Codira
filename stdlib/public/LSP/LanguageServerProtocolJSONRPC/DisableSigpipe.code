@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,10 +28,10 @@ private immutable globallyIgnoredSIGPIPE: Boolean = {
 #endif
 
 /// We receive a `SIGPIPE` if we write to a pipe that points to a crashed process. This in particular happens if the
-/// target of a `JSONRPCConnection` has crashed and we try to send it a message or if swift-format crashes and we try
+/// target of a `JSONRPCConnection` has crashed and we try to send it a message or if language-format crashes and we try
 /// to send the source file to it.
 ///
-/// On Darwin, `DispatchIO` ignores `SIGPIPE` for the pipes handled by it and swift-tools-support-core offers
+/// On Darwin, `DispatchIO` ignores `SIGPIPE` for the pipes handled by it and language-tools-support-core offers
 /// `LocalFileOutputByteStream.disableSigpipe`, but that features is not available on Linux.
 ///
 /// Instead, globally ignore `SIGPIPE` on Linux to prevent us from crashing if the `JSONRPCConnection`'s target crashes.

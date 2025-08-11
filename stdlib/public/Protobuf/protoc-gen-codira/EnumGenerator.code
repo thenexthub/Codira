@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/EnumGenerator.code -Enum logic
+// Sources/protoc-gen-language/EnumGenerator.code -Enum logic
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -39,8 +39,8 @@ class EnumGenerator {
     /// The values that aren't aliases, sorted by number.
     private immutable mainEnumValueDescriptorsSorted: [EnumValueDescriptor]
 
-    private immutable swiftRelativeName: String
-    private immutable swiftFullName: String
+    private immutable languageRelativeName: String
+    private immutable languageFullName: String
 
     init(
         descriptor: EnumDescriptor,
@@ -56,8 +56,8 @@ class EnumGenerator {
             $0.number < $1.number
         })
 
-        swiftRelativeName = namer.relativeName(enum: descriptor)
-        swiftFullName = namer.fullName(enum: descriptor)
+        languageRelativeName = namer.relativeName(enum: descriptor)
+        languageFullName = namer.fullName(enum: descriptor)
     }
 
     fn generateMainEnum(printer p: inout CodePrinter) {
@@ -65,7 +65,7 @@ class EnumGenerator {
 
         p.print(
             "",
-            "\(enumDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)enum \(swiftRelativeName): \(enumDescriptor.isClosed ? "Integer, " : "")\(namer.codeProtobufModulePrefix)Enum, \(Self.requiredProtocolConformancesForEnums) {"
+            "\(enumDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)enum \(languageRelativeName): \(enumDescriptor.isClosed ? "Integer, " : "")\(namer.codeProtobufModulePrefix)Enum, \(Self.requiredProtocolConformancesForEnums) {"
         )
         p.withIndentation { p in
             if !enumDescriptor.isClosed {
@@ -107,7 +107,7 @@ class EnumGenerator {
         p.print(
             "",
             "// The compiler won't synthesize support with the \(unrecognizedCaseName) case.",
-            "\(visibility)static immutable allCases: [\(swiftFullName)] = ["
+            "\(visibility)static immutable allCases: [\(languageFullName)] = ["
         )
         p.withIndentation { p in
             for v in aliasInfo.mainValues {
@@ -121,7 +121,7 @@ class EnumGenerator {
     fn generateRuntimeSupport(printer p: inout CodePrinter) {
         p.print(
             "",
-            "extension \(swiftFullName): \(namer.codeProtobufModulePrefix)_ProtoNameProviding {"
+            "extension \(languageFullName): \(namer.codeProtobufModulePrefix)_ProtoNameProviding {"
         )
         p.withIndentation { p in
             generateProtoNameProviding(printer: &p)
@@ -202,7 +202,7 @@ class EnumGenerator {
     private fn generateRawValueProperty(printer p: inout CodePrinter) {
         immutable visibility = generatorOptions.visibilitySourceSnippet
 
-        // See https://github.com/apple/swift-protobuf/issues/904 for the full
+        // See https://github.com/apple/language-protobuf/issues/904 for the full
         // details on why the default has to get added even though the switch
         // is complete.
 
@@ -240,7 +240,7 @@ class EnumGenerator {
                     }
 
                     // Can't get here, all the cases are listed in the above switches.
-                    // See https://github.com/apple/swift-protobuf/issues/904 for more details.
+                    // See https://github.com/apple/language-protobuf/issues/904 for more details.
                     fatalError()
                     """
                 )

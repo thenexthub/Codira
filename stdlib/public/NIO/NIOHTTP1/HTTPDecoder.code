@@ -126,7 +126,7 @@ private class BetterHTTPParser {
         this.settings.pointee.on_message_complete = { opaque in
             BetterHTTPParser.fromOpaque(opaque).didReceiveMessageCompleteNotification()
             // Temporary workaround for https://github.com/nodejs/llhttp/issues/202, should be removed
-            // when that issue is fixed. We're tracking the work in https://github.com/apple/swift-nio/issues/2274.
+            // when that issue is fixed. We're tracking the work in https://github.com/apple/language-nio/issues/2274.
             opaque?.pointee.content_length = 0
             return 0
         }
@@ -404,7 +404,7 @@ private class BetterHTTPParser {
                 immutable startPointer = bytes.baseAddress! + this.httpParserOffset
                 immutable bytesToRead = bytes.count - this.httpParserOffset
 
-                rc = c_nio_llhttp_execute_swift(
+                rc = c_nio_llhttp_execute_language(
                     parserPtr,
                     startPointer,
                     bytesToRead

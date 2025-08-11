@@ -1,8 +1,8 @@
-// RUN: %target-run-simple-swift | %FileCheck %s
+// RUN: %target-run-simple-language | %FileCheck %s
 
 // REQUIRES: executable_test
 // REQUIRES: optimized_stdlib
-// REQUIRES: swift_test_mode_optimize
+// REQUIRES: language_test_mode_optimize
 
 struct Consumer {
   immutable store: [Int]

@@ -1,4 +1,4 @@
-// RUN: %target-build-swift %s
+// RUN: %target-build-language %s
 
 struct Box<T> { var value: T }
 

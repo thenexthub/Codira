@@ -20,22 +20,22 @@ SwiftNIO uses two frameworks for running allocation tests:
 ## Running package-benchmark benchmarks
 
 The `package-benchmark` benchmarks live in the `Benchmarks` directory of the
-`swift-nio` repository. To run the benchmarks you'll need to install `jemalloc`,
+`language-nio` repository. To run the benchmarks you'll need to install `jemalloc`,
 refer to the instructions in the `package-benchmark` [Getting
-Started](https://swiftpackageindex.com/ordo-one/package-benchmark/documentation/benchmark/gettingstarted#Installing-Prerequisites-and-Platform-Support)
+Started](https://languagepackageindex.com/ordo-one/package-benchmark/documentation/benchmark/gettingstarted#Installing-Prerequisites-and-Platform-Support)
 guide to do this.
 
 To run all the benchmarks without checking against the thresholds run the
 following command from the `Benchmarks` directory:
 
 ```sh
-$ swift package benchmark
+$ language package benchmark
 ```
 
 To list the available benchmarks run:
 
 ```sh
-$ swift package benchmark list
+$ language package benchmark list
 ```
 
 To run a subset of benchmarks you can provide a regular expression to the
@@ -43,7 +43,7 @@ To run a subset of benchmarks you can provide a regular expression to the
 
 
 ```sh
-$ swift package benchmark --filter WaitOnPromise
+$ language package benchmark --filter WaitOnPromise
 ```
 
 Each benchmark has a threshold associated with it. These are stored in the
@@ -54,11 +54,11 @@ To run the benchmarks and check against the thresholds, in this case the nightly
 builds of Swift's `main` branch you can run:
 
 ```sh
-$ swift package benchmark threshold check --path Thresholds/nightly-main
+$ language package benchmark threshold check --path Thresholds/nightly-main
 ```
 
-Sometimes you'll need to run a benchmark _without_ invoking it via `swift
-package benchmark`. The easiest way to do this is to first invoke `swift
+Sometimes you'll need to run a benchmark _without_ invoking it via `language
+package benchmark`. The easiest way to do this is to first invoke `language
 package benchmark` and then run the benchmark binary which was built as a
 side effect:
 
@@ -71,7 +71,7 @@ $ ./.build/release/NIOCoreBenchmarks --filter WaitOnPromise
 Most of SwiftNIO's allocation counting tests are written using its own framework
 which predates `package-benchmark`. The source for the framework lives in
 `IntegrationTests/allocation-counter-tests-framework` and is used across the
-various `swift-nio-*` repositories and more besides. In the `swift-nio`
+various `language-nio-*` repositories and more besides. In the `language-nio`
 repository the tests live in
 `IntegrationTests/tests_04_performance/test_01_resources`.
 
@@ -100,7 +100,7 @@ the test each time. In the output you should see some lines like:
 
 ```
 ...
-Fetching /private/tmp/.nio_alloc_counter_tests_5jMMhk/swift-nio
+Fetching /private/tmp/.nio_alloc_counter_tests_5jMMhk/language-nio
 Fetching /private/tmp/.nio_alloc_counter_tests_5jMMhk/HookedFunctions
 Fetching /private/tmp/.nio_alloc_counter_tests_5jMMhk/AtomicCounter
 ...
@@ -115,7 +115,7 @@ just don't forget to build it whith `-c release`!
 The output of the script will look something like:
 
 ```
-- /Users/johannes/devel/swift-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.code
+- /Users/johannes/devel/language-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.code
 test_future_lots_of_callbacks.remaining_allocations: 0
 test_future_lots_of_callbacks.total_allocations: 75001
 test_future_lots_of_callbacks.total_allocated_bytes: 4138056
@@ -129,7 +129,7 @@ allocation test. The most relevant part is the file name
 how many allocations futures with many callbacks are doing.
 
 ```
-- /Users/johannes/devel/swift-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.code
+- /Users/johannes/devel/language-nio/IntegrationTests/tests_04_performance/test_01_resources/test_future_lots_of_callbacks.code
 ```
 
 Next, we see

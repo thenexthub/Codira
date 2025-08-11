@@ -1,10 +1,10 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-swift-frontend -emit-module %s -o %t -enable-experimental-feature LifetimeDependence
+// RUN: %target-language-frontend -emit-module %s -o %t -enable-experimental-feature LifetimeDependence
 
-// RUN: %target-swift-frontend -emit-sil %t/rdar151768216.swiftmodule \
+// RUN: %target-language-frontend -emit-sil %t/rdar151768216.languagemodule \
 // RUN: -enable-experimental-feature LifetimeDependence
 
-// REQUIRES: swift_feature_LifetimeDependence
+// REQUIRES: language_feature_LifetimeDependence
 
 // Ensure no crash
 extension Result {   

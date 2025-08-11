@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -263,7 +263,7 @@ public struct InitializeBuildResponseDataKind: RawRepresentable, Hashable, Codab
 
 public struct SourceKitInitializeBuildResponseData: LSPAnyCodable, Codable, Sendable {
   /// The directory to which the index store is written during compilation, ie. the path passed to `-index-store-path`
-  /// for `swiftc` or `clang` invocations
+  /// for `languagec` or `clang` invocations
   public var indexDatabasePath: String?
 
   /// The path at which SourceKit-LSP can store its index database, aggregating data from `indexStorePath`

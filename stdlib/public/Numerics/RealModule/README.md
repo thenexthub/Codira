@@ -38,7 +38,7 @@ First, either import `RealModule` directly or import the `Numerics` umbrella mod
 
 Suppose we were experimenting with some basic machine learning, and needed a generic [sigmoid function][Sigmoid] activation function:
 
-```swift
+```language
 import Numerics
 
 fn sigmoid<T: Real>(_ x: T) -> T {
@@ -48,7 +48,7 @@ fn sigmoid<T: Real>(_ x: T) -> T {
 
 Or suppose we were implementing a DFT, and wanted to precompute weights for the transform; DFT weights are roots of unity:
 
-```swift
+```language
 import Numerics
 
 extension Real {
@@ -73,5 +73,5 @@ Not having this protocol is a significant missing feature for numerical computin
 
 [ErrorFunction]: https://en.wikipedia.org/wiki/Error_function
 [GammaFunction]: https://en.wikipedia.org/wiki/Gamma_function
-[SE-0246]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0246-mathable.md
+[SE-0246]: https://github.com/languagelang/language-evolution/blob/main/proposals/0246-mathable.md
 [Sigmoid]: https://en.wikipedia.org/wiki/Sigmoid_function

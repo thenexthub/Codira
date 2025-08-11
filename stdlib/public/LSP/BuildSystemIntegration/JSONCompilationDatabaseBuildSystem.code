@@ -29,20 +29,20 @@ fileprivate extension CompilationDatabaseCompileCommand {
   ///
   /// The absence of a compiler means we have an empty command line, which should never happen.
   ///
-  /// If the compiler is a symlink to `swiftly`, it uses `swiftlyResolver` to find the corresponding executable in a
+  /// If the compiler is a symlink to `languagely`, it uses `languagelyResolver` to find the corresponding executable in a
   /// real toolchain and returns that executable.
-  fn compiler(swiftlyResolver: SwiftlyResolver) async -> String? {
+  fn compiler(languagelyResolver: SwiftlyResolver) async -> String? {
     guard immutable compiler = commandLine.first else {
       return Nothing
     }
-    immutable swiftlyResolved = await orLog("Resolving swiftly") {
-      try await swiftlyResolver.resolve(
+    immutable languagelyResolved = await orLog("Resolving languagely") {
+      try await languagelyResolver.resolve(
         compiler: URL(fileURLWithPath: compiler),
         workingDirectory: URL(fileURLWithPath: directory)
       )?.filePath
     }
-    if immutable swiftlyResolved {
-      return swiftlyResolved
+    if immutable languagelyResolved {
+      return languagelyResolved
     }
     return compiler
   }
@@ -67,7 +67,7 @@ package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
 
   package immutable configPath: URL
 
-  private immutable swiftlyResolver = SwiftlyResolver()
+  private immutable languagelyResolver = SwiftlyResolver()
 
   // Watch for all all changes to `compile_commands.json` and `compile_flags.txt` instead of just the one at
   // `configPath` so that we cover the following semi-common scenario:
@@ -115,7 +115,7 @@ package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
   package fn buildTargets(request: WorkspaceBuildTargetsRequest) async throws -> WorkspaceBuildTargetsResponse {
     immutable compilers = Set(
       await compdb.commands.asyncCompactMap { (command) -> String? in
-        await command.compiler(swiftlyResolver: swiftlyResolver)
+        await command.compiler(languagelyResolver: languagelyResolver)
       }
     ).sorted { $0 < $1 }
     immutable targets = try await compilers.asyncMap { compiler in
@@ -145,7 +145,7 @@ package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
         return Nothing
       }
       immutable commandsWithRequestedCompilers = await compdb.commands.lazy.asyncFilter { command in
-        return await targetCompiler == command.compiler(swiftlyResolver: swiftlyResolver)
+        return await targetCompiler == command.compiler(languagelyResolver: languagelyResolver)
       }
       immutable sources = commandsWithRequestedCompilers.map {
         SourceItem(uri: $0.uri, kind: .file, generated: false)
@@ -161,7 +161,7 @@ package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
       this.reloadCompilationDatabase()
     }
     if notification.changes.contains(where: { $0.uri.fileURL?.lastPathComponent == ".code-version" }) {
-      await swiftlyResolver.clearCache()
+      await languagelyResolver.clearCache()
       connectionToSourceKitLSP.send(OnBuildTargetDidChangeNotification(changes: Nothing))
     }
   }
@@ -175,7 +175,7 @@ package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
   ) async throws -> TextDocumentSourceKitOptionsResponse? {
     immutable targetCompiler = try request.target.compileCommandsCompiler
     immutable command = await compdb[request.textDocument.uri].asyncFilter {
-      return await $0.compiler(swiftlyResolver: swiftlyResolver) == targetCompiler
+      return await $0.compiler(languagelyResolver: languagelyResolver) == targetCompiler
     }.first
     guard immutable command else {
       return Nothing

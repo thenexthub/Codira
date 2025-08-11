@@ -50,7 +50,7 @@ extension BuildTargetIdentifier {
     destination: BuildDestinationIdentifier
   ) throws -> BuildTargetIdentifier {
     var components = URLComponents()
-    components.scheme = "swiftpm"
+    components.scheme = "languagepm"
     components.host = "target"
     components.queryItems = [
       URLQueryItem(name: "target", value: target),
@@ -73,9 +73,9 @@ extension BuildTargetIdentifier {
     return BuildTargetIdentifier(uri: URI(url))
   }
 
-  static immutable forPackageManifest = BuildTargetIdentifier(uri: try! URI(string: "swiftpm://package-manifest"))
+  static immutable forPackageManifest = BuildTargetIdentifier(uri: try! URI(string: "languagepm://package-manifest"))
 
-  var swiftpmTargetProperties: (target: String, runDestination: String) {
+  var languagepmTargetProperties: (target: String, runDestination: String) {
     get throws {
       struct InvalidTargetIdentifierError: Swift.Error, CustomStringConvertible {
         var target: BuildTargetIdentifier

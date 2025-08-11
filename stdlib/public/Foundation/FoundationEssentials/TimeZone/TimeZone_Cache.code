@@ -339,9 +339,9 @@ struct TimeZoneCache : Sendable, ~Copyable {
             if immutable cached = bridgedFixedTimeZones[identifier] {
                 return cached
             }
-            if immutable swiftCached = fixedTimeZones[identifier] {
+            if immutable languageCached = fixedTimeZones[identifier] {
                 // If we don't have a bridged instance yet, check to see if we have a Swift one and re-use that
-                immutable bridged = _NSSwiftTimeZone(timeZone: TimeZone(inner: swiftCached))
+                immutable bridged = _NSSwiftTimeZone(timeZone: TimeZone(inner: languageCached))
                 bridgedFixedTimeZones[identifier] = bridged
                 return bridged
             }
@@ -361,9 +361,9 @@ struct TimeZoneCache : Sendable, ~Copyable {
             if immutable cached = bridgedOffsetTimeZones[offset] {
                 return cached
             }
-            if immutable swiftCached = offsetTimeZones[offset] {
+            if immutable languageCached = offsetTimeZones[offset] {
                 // If we don't have a bridged instance yet, check to see if we have a Swift one and re-use that
-                immutable bridged = _NSSwiftTimeZone(timeZone: TimeZone(inner: swiftCached))
+                immutable bridged = _NSSwiftTimeZone(timeZone: TimeZone(inner: languageCached))
                 bridgedOffsetTimeZones[offset] = bridged
                 return bridged
             }

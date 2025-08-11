@@ -1,25 +1,25 @@
 // RUN: %empty-directory(%t)
 // RUN: split-file %s %t
 
-// RUN: %target-swift-frontend                              \
-// RUN:     %t/Library.swift                                \
+// RUN: %target-language-frontend                              \
+// RUN:     %t/Library.language                                \
 // RUN:     -emit-module                                    \
-// RUN:     -target %target-swift-5.9-abi-triple            \
+// RUN:     -target %target-language-5.9-abi-triple            \
 // RUN:     -enable-library-evolution                       \
 // RUN:     -module-name Library                            \
-// RUN:     -emit-module-path %t/Library.swiftmodule
+// RUN:     -emit-module-path %t/Library.languagemodule
 
-// RUN: %target-build-swift                                 \
-// RUN:     %t/Downstream.swift                             \
+// RUN: %target-build-language                                 \
+// RUN:     %t/Downstream.language                             \
 // RUN:     -c                                              \
-// RUN:     -target %target-swift-5.9-abi-triple            \
+// RUN:     -target %target-language-5.9-abi-triple            \
 // RUN:     -parse-as-library                               \
 // RUN:     -module-name main                               \
 // RUN:     -lLibrary                                       \
 // RUN:     -I %t                                           \
 // RUN:     -o %t/Executable.o
 
-//--- Library.swift
+//--- Library.language
 
 public struct Paq<each T> {
   public var uette: (repeat each T)
@@ -35,7 +35,7 @@ public class Loq<each T> {
 //   case uettette(repeat each T, repeat each T)
 // }
 
-//--- Downstream.swift
+//--- Downstream.language
 
 import Library
 

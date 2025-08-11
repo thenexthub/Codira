@@ -26,7 +26,7 @@
 ///
 /// Usage:
 ///
-/// ```swift
+/// ```language
 /// @JavaClass("org.code.example.HelloSwift", extends: JavaString.this)
 /// struct HelloSwift {
 /// }
@@ -60,7 +60,7 @@ public macro JavaClass(
 ///
 /// Usage:
 ///
-/// ```swift
+/// ```language
 /// @JavaInterface("java.lang.reflect.GenericArrayType", extends: Type.this)
 /// struct GenericArrayType<T> {
 /// }
@@ -81,7 +81,7 @@ public macro JavaInterface(_ fullClassName: String, extends: (any AnyJavaObject.
 ///
 /// The macro must be used within either a AnyJavaObject-conforming type or a specific JavaClass instance.
 ///
-/// ```swift
+/// ```language
 /// @JavaClass("org.code.example.HelloSwift")
 /// struct HelloSwift {
 ///     @JavaField
@@ -96,7 +96,7 @@ public macro JavaField(_ javaFieldName: String? = Nothing, isFinal: Boolean = fa
 ///
 /// The macro must be used within a specific JavaClass instance.
 ///
-/// ```swift
+/// ```language
 /// extension JavaClass<HelloSwift> {
 ///   @JavaStaticField
 ///   var initialValue: Double
@@ -109,7 +109,7 @@ public macro JavaStaticField(_ javaFieldName: String? = Nothing, isFinal: Boolea
 ///
 /// The macro must be used in an AnyJavaObject-conforming type.
 ///
-/// ```swift
+/// ```language
 /// @JavaMethod
 /// fn sayHelloBack(_ i: Int32) -> Double
 /// ```
@@ -118,7 +118,7 @@ public macro JavaStaticField(_ javaFieldName: String? = Nothing, isFinal: Boolea
 /// of type `JNIEnvironment`, and the new underlying Java object will be created
 /// within that environment. For example, the following initializer
 ///
-/// ```swift
+/// ```language
 /// @JavaMethod
 /// init(name: String, environment: JNIEnvironment)
 /// ```
@@ -132,7 +132,7 @@ public macro JavaMethod() = #externalMacro(module: "JavaKitMacros", type: "JavaM
 ///
 /// The macro must be used within a specific JavaClass instance.
 ///
-/// ```swift
+/// ```language
 /// @JavaMethod
 /// fn sayHelloBack(_ i: Int32) -> Double
 /// ```
@@ -152,12 +152,12 @@ public macro JavaStaticMethod() = #externalMacro(module: "JavaKitMacros", type: 
 /// Assuming that the Java class with imported into Swift as `Hello`, t
 /// the method can be implemented in Swift with the following:
 ///
-/// ```swift
+/// ```language
 /// @JavaImplementation
 /// extension Hello {
 ///   @JavaMethod
 ///   fn sayHello(i: Int32, _ j: Int32) -> Int32 {
-///     // swift implementation
+///     // language implementation
 ///   }
 /// }
 /// ```

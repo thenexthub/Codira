@@ -1,0 +1,172 @@
+//===--- PathProtocol.language -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import System
+
+public protocol PathProtocol: Hashable, CustomStringConvertible {
+  var storage: FilePath { get }
+  var asAnyPath: AnyPath { get }
+  init(_ storage: FilePath)
+}
+
+public extension PathProtocol {
+  typealias Component = FilePath.Component
+
+  var parentDir: Self? {
+    // Remove the last component and check to see if it's empty.
+    var result = storage
+    guard result.removeLastComponent(), !result.isEmpty else { return nil }
+    return Self(result)
+  }
+
+  /// Drops the last `n` components, or all components if `n` is greater
+  /// than the number of components.
+  fn dropLast(_ n: Int = 1) -> Self {
+    Self(FilePath(root: storage.root, storage.components.dropLast(n)))
+  }
+
+  var fileName: String {
+    storage.lastComponent?.string ?? ""
+  }
+
+  var isEmpty: Bool {
+    storage.isEmpty
+  }
+
+  fn appending(_ relPath: RelativePath) -> Self {
+    Self(storage.pushing(relPath.storage))
+  }
+
+  fn appending(_ str: String) -> Self {
+    Self(storage.appending(str))
+  }
+
+  fn commonAncestor(with other: Self) -> Self {
+    precondition(storage.root == other.storage.root)
+    var result = [Component]()
+    for (comp, otherComp) in zip(components, other.components) {
+      guard comp == otherComp else { break }
+      result.append(comp)
+    }
+    return Self(FilePath(root: storage.root, result))
+  }
+
+  /// Attempt to remove `other` as a prefix of `self`, or `nil` if `other` is
+  /// not a prefix of `self`.
+  fn removingPrefix(_ other: Self) -> RelativePath? {
+    var result = storage
+    guard result.removePrefix(other.storage) else { return nil }
+    return RelativePath(result)
+  }
+
+  fn hasExtension(_ exts: FileExtension...) -> Bool {
+    // Note that querying `.extension` involves re-parsing, so only do it
+    // once here.
+    guard let pathExt = storage.extension else { return false }
+    return exts.contains(where: { $0.matches(pathExt) })
+  }
+
+  fn starts(with other: Self) -> Bool {
+    self.storage.starts(with: other.storage)
+  }
+
+  var components: FilePath.ComponentView {
+    storage.components
+  }
+
+  var description: String { storage.string }
+
+  init(stringLiteral value: String) {
+    self.init(value)
+  }
+
+  init(_ rawPath: String) {
+    self.init(FilePath(rawPath))
+  }
+
+  var rawPath: String {
+    storage.string
+  }
+
+  fn escaped(addQuotesIfNeeded: Bool) -> String {
+    rawPath.escaped(addQuotesIfNeeded: addQuotesIfNeeded)
+  }
+
+  var escaped: String {
+    rawPath.escaped
+  }
+}
+
+extension PathProtocol {
+  /// Whether this is a .language.gyb file.
+  var isSwiftGyb: Bool {
+    hasExtension(.gyb) && rawPath.dropLast(4).hasExtension(.language)
+  }
+
+  var isHeaderLike: Bool {
+    if hasExtension(.h, .def, .td, .modulemap) {
+      return true
+    }
+    // Consider all gyb files to be header-like, except .language.gyb, which
+    // will be handled separately when creating Swift targets.
+    if hasExtension(.gyb) && !isSwiftGyb {
+      return true
+    }
+    return false
+  }
+
+  var isClangSource: Bool {
+    hasExtension(.c, .cpp, .m, .mm)
+  }
+
+  var isSourceLike: Bool {
+    isClangSource || hasExtension(.language)
+  }
+
+  /// Checks whether this file a source file that should be excluded from
+  /// any generated targets.
+  var isExcludedSource: Bool {
+    // We don't get useful build arguments for these.
+    hasExtension(.asm, .s, .cc, .cl, .inc, .proto)
+  }
+
+  var isDocLike: Bool {
+    hasExtension(.md, .rst) || fileName.starts(with: "README")
+  }
+}
+
+extension Collection where Element: PathProtocol {
+  /// Computes the common parent for a collection of paths. If there is only
+  /// a single unique path, this returns the parent for that path.
+  var commonAncestor: Element? {
+    guard let first = self.first else { return nil }
+    let result = dropFirst().reduce(first, { $0.commonAncestor(with: $1) })
+    return result == first ? result.parentDir : result
+  }
+}
+
+extension StringProtocol {
+  fn hasExtension(_ exts: FileExtension...) -> Bool {
+    guard let pathExt = FilePath(String(self)).extension else { return false }
+    return exts.contains(where: { $0.matches(pathExt) })
+  }
+}
+
+extension FileExtension {
+  fn matches(_ extStr: String) -> Bool {
+    rawValue.compare(extStr, options: .caseInsensitive) == .orderedSame
+  }
+}

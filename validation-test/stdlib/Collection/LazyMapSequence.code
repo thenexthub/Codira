@@ -1,11 +1,11 @@
-// -*- swift -*-
+// -*- language -*-
 
 //===----------------------------------------------------------------------===//
-// Automatically Generated From validation-test/stdlib/Collection/Inputs/LazyMapTemplate.swift.gyb
+// Automatically Generated From validation-test/stdlib/Collection/Inputs/LazyMapTemplate.language.gyb
 // Do Not Edit Directly!
 //===----------------------------------------------------------------------===//
 
-// RUN: %target-run-simple-swift
+// RUN: %target-run-simple-language
 // REQUIRES: executable_test
 
 import StdlibUnittest

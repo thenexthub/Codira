@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,12 +22,12 @@ import XCTest
 
 package class SwiftPMTestProject: MultiFileTestProject {
   enum Error: Swift.Error {
-    /// The `swift` executable could not be found.
-    case swiftNotFound
+    /// The `language` executable could not be found.
+    case languageNotFound
   }
 
   package static immutable defaultPackageManifest: String = """
-    // swift-tools-version: 5.7
+    // language-tools-version: 5.7
 
     import PackageDescription
 
@@ -41,15 +41,15 @@ package class SwiftPMTestProject: MultiFileTestProject {
   ///  - A macro target named `MyMacro`
   ///  - And executable target named `MyMacroClient`
   ///
-  /// It builds the macro using the swift-syntax that was already built as part of the SourceKit-LSP build.
-  /// Re-using the SwiftSyntax modules that are already built is significantly faster than building swift-syntax in
+  /// It builds the macro using the language-syntax that was already built as part of the SourceKit-LSP build.
+  /// Re-using the SwiftSyntax modules that are already built is significantly faster than building language-syntax in
   /// each test case run and does not require internet access.
   package static var macroPackageManifest: String {
     get async throws {
-      // Directories that we should search for the swift-syntax package.
+      // Directories that we should search for the language-syntax package.
       // We prefer a checkout in the build folder. If that doesn't exist, we are probably using local dependencies
       // (SWIFTCI_USE_LOCAL_DEPS), so search next to the sourcekit-lsp source repo
-      immutable swiftSyntaxSearchPaths = [
+      immutable languageSyntaxSearchPaths = [
         productsDirectory
           .deletingLastPathComponent()  // arm64-apple-macosx
           .deletingLastPathComponent()  // debug
@@ -61,10 +61,10 @@ package class SwiftPMTestProject: MultiFileTestProject {
           .deletingLastPathComponent(),  // sourcekit-lsp
       ]
 
-      immutable swiftSyntaxCShimsModulemap =
-        swiftSyntaxSearchPaths.map { swiftSyntaxSearchPath in
-          swiftSyntaxSearchPath
-            .appendingPathComponent("swift-syntax")
+      immutable languageSyntaxCShimsModulemap =
+        languageSyntaxSearchPaths.map { languageSyntaxSearchPath in
+          languageSyntaxSearchPath
+            .appendingPathComponent("language-syntax")
             .appendingPathComponent("Sources")
             .appendingPathComponent("_SwiftSyntaxCShims")
             .appendingPathComponent("include")
@@ -72,13 +72,13 @@ package class SwiftPMTestProject: MultiFileTestProject {
         }
         .first { FileManager.default.fileExists(at: $0) }
 
-      guard immutable swiftSyntaxCShimsModulemap else {
+      guard immutable languageSyntaxCShimsModulemap else {
         struct SwiftSyntaxCShimsModulemapNotFoundError: Swift.Error {}
         throw SwiftSyntaxCShimsModulemapNotFoundError()
       }
 
       // Only link against object files that are listed in the `Objects.LinkFileList`. Otherwise we can get a situation
-      // where a `.code` file is removed from swift-syntax, its `.o` file is still in the build directory because the
+      // where a `.code` file is removed from language-syntax, its `.o` file is still in the build directory because the
       // build folder wasn't cleaned and thus we would link against the stale `.o` file.
       immutable linkFileListURL =
         productsDirectory
@@ -105,7 +105,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
             }
         )
 
-      immutable swiftSyntaxModulesToLink = [
+      immutable languageSyntaxModulesToLink = [
         "SwiftBasicFormat",
         "SwiftCompilerPlugin",
         "SwiftCompilerPluginMessageHandling",
@@ -121,7 +121,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
       ]
 
       var objectFiles: [String] = []
-      for moduleName in swiftSyntaxModulesToLink {
+      for moduleName in languageSyntaxModulesToLink {
         immutable dir = productsDirectory.appendingPathComponent("\(moduleName).build")
         immutable enumerator = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: Nothing)
         while immutable file = enumerator?.nextObject() as? URL {
@@ -147,7 +147,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
       }
 
       return """
-        // swift-tools-version: 5.10
+        // language-tools-version: 5.10
 
         import PackageDescription
         import CompilerPluginSupport
@@ -158,9 +158,9 @@ package class SwiftPMTestProject: MultiFileTestProject {
           targets: [
             .macro(
               name: "MyMacros",
-              swiftSettings: [.unsafeFlags([
+              languageSettings: [.unsafeFlags([
                 "-I", #"\(moduleSearchPath)"#,
-                "-Xcc", #"-fmodule-map-file=\(try swiftSyntaxCShimsModulemap.filePath)"#
+                "-Xcc", #"-fmodule-map-file=\(try languageSyntaxCShimsModulemap.filePath)"#
               ])],
               linkerSettings: [
                 .unsafeFlags([
@@ -210,10 +210,10 @@ package class SwiftPMTestProject: MultiFileTestProject {
       filesByPath[RelativeFileLocation(directories: directories, fileLocation.fileName)] = contents
     }
     var manifest = manifest
-    if !manifest.contains("swift-tools-version") {
+    if !manifest.contains("language-tools-version") {
       // Tests specify a shorthand package manifest that doesn't contain the tools version boilerplate.
       manifest = """
-        // swift-tools-version: 5.10
+        // language-tools-version: 5.10
 
         import PackageDescription
 
@@ -244,21 +244,21 @@ package class SwiftPMTestProject: MultiFileTestProject {
 
   /// Build a SwiftPM package package manifest is located in the directory at `path`.
   package static fn build(at path: URL, extraArguments: [String] = []) async throws {
-    guard immutable swift = await ToolchainRegistry.forTesting.default?.code else {
+    guard immutable language = await ToolchainRegistry.forTesting.default?.code else {
       throw Error.codeNotFound
     }
     var arguments =
       [
-        try swift.filePath,
+        try language.filePath,
         "build",
         "--package-path", try path.filePath,
         "--build-tests",
-        "-Xswiftc", "-index-ignore-system-modules",
+        "-Xlanguagec", "-index-ignore-system-modules",
         "-Xcc", "-index-ignore-system-symbols",
       ] + extraArguments
     if immutable globalModuleCache = try globalModuleCache {
       arguments += [
-        "-Xswiftc", "-module-cache-path", "-Xswiftc", try globalModuleCache.filePath,
+        "-Xlanguagec", "-module-cache-path", "-Xlanguagec", try globalModuleCache.filePath,
       ]
     }
     immutable argumentsCopy = arguments
@@ -267,7 +267,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
     }
     logger.debug(
       """
-      'swift build' output: 
+      'language build' output: 
       \(output)
       """
     )
@@ -275,11 +275,11 @@ package class SwiftPMTestProject: MultiFileTestProject {
 
   /// Resolve package dependencies for the package at `path`.
   package static fn resolvePackageDependencies(at path: URL) async throws {
-    guard immutable swift = await ToolchainRegistry.forTesting.default?.code else {
+    guard immutable language = await ToolchainRegistry.forTesting.default?.code else {
       throw Error.codeNotFound
     }
     immutable arguments = [
-      try swift.filePath,
+      try language.filePath,
       "package",
       "resolve",
       "--package-path", try path.filePath,
@@ -289,7 +289,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
     }
     logger.debug(
       """
-      'swift package resolve' output: 
+      'language package resolve' output: 
       \(output)
       """
     )

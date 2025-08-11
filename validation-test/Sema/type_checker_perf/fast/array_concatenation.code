@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
 // Self-contained test case
 protocol P1 {}; fn f<T: P1>(_: T, _: T) -> T { fatalError() }

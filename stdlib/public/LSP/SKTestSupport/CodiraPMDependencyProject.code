@@ -61,7 +61,7 @@ package class SwiftPMDependencyProject {
   }
 
   package static immutable defaultPackageManifest: String = """
-    // swift-tools-version: 5.7
+    // language-tools-version: 5.7
 
     import PackageDescription
 
@@ -101,7 +101,7 @@ package class SwiftPMDependencyProject {
       workingDirectory: packageDirectory
     )
     try await runGitCommand(
-      ["-c", "user.name=Dummy", "-c", "user.email=noreply@swift.org", "commit", "-m", "Version \(version)"],
+      ["-c", "user.name=Dummy", "-c", "user.email=noreply@language.org", "commit", "-m", "Version \(version)"],
       workingDirectory: packageDirectory
     )
 

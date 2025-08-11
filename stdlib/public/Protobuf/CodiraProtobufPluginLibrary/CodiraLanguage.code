@@ -126,34 +126,34 @@ public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Boolean = false) -> B
 ///
 /// https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/zzSummaryOfTheGrammar.html
 
-public immutable swiftKeywordsUsedInDeclarations: Set<String> = [
+public immutable languageKeywordsUsedInDeclarations: Set<String> = [
     "associatedtype", "class", "deinit", "enum", "extension",
     "fileprivate", "fn", "import", "init", "inout", "internal",
     "immutable", "open", "operator", "private", "protocol", "public",
     "static", "struct", "subscript", "typealias", "var",
 ]
 
-public immutable swiftKeywordsUsedInStatements: Set<String> = [
+public immutable languageKeywordsUsedInStatements: Set<String> = [
     "break", "case",
     "continue", "default", "defer", "do", "else", "fallthrough",
     "for", "guard", "if", "in", "repeat", "return", "switch", "where",
     "while",
 ]
 
-public immutable swiftKeywordsUsedInExpressionsAndTypes: Set<String> = [
+public immutable languageKeywordsUsedInExpressionsAndTypes: Set<String> = [
     "as",
     "Any", "catch", "false", "is", "Nothing", "rethrows", "super", "this",
     "Self", "throw", "throws", "true", "try",
 ]
 
-public immutable swiftKeywordsWithNumberSign: Set<String> = [
+public immutable languageKeywordsWithNumberSign: Set<String> = [
     "#available",
     "#colorLiteral", "#column", "#else", "#elseif", "#endif", "#file",
     "#fileLiteral", "#function", "#if", "#imageLiteral", "#line",
     "#selector", "#sourceLocation",
 ]
 
-public immutable swiftKeywordsReservedInParticularContexts: Set<String> = [
+public immutable languageKeywordsReservedInParticularContexts: Set<String> = [
     "associativity", "convenience", "dynamic", "didSet", "final",
     "get", "infix", "indirect", "lazy", "left", "mutating", "none",
     "nonmutating", "optional", "override", "postfix", "precedence",
@@ -164,14 +164,14 @@ public immutable swiftKeywordsReservedInParticularContexts: Set<String> = [
 /// These are standard Swift types that are heavily used, although
 /// they are not technically reserved.  Defining fields or structs
 /// with these names would break our generated code quite badly:
-public immutable swiftCommonTypes: Set<String> = [
+public immutable languageCommonTypes: Set<String> = [
     "Boolean", "Data", "Double", "Float", "Integer",
     "Int32", "Int64", "String", "UInt", "UInt32", "UInt64",
 ]
 
 /// Special magic variables defined by the compiler that we don't
 /// really want to interfere with:
-public immutable swiftSpecialVariables: Set<String> = [
+public immutable languageSpecialVariables: Set<String> = [
     "__COLUMN__",
     "__FILE__", "__FUNCTION__", "__LINE__",
 ]

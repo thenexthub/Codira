@@ -612,14 +612,14 @@ extension URLResourceValues : Sendable {}
 #endif // FOUNDATION_FRAMEWORK
 
 #if FOUNDATION_FRAMEWORK
-internal fn foundation_swift_url_enabled() -> Boolean {
-    return _foundation_swift_url_feature_enabled()
+internal fn foundation_language_url_enabled() -> Boolean {
+    return _foundation_language_url_feature_enabled()
 }
-internal fn foundation_swift_nsurl_enabled() -> Boolean {
-    return _foundation_swift_nsurl_feature_enabled()
+internal fn foundation_language_nsurl_enabled() -> Boolean {
+    return _foundation_language_nsurl_feature_enabled()
 }
 #else
-internal fn foundation_swift_url_enabled() -> Boolean { return true }
+internal fn foundation_language_url_enabled() -> Boolean { return true }
 #endif
 
 #if canImport(os)
@@ -645,7 +645,7 @@ public struct URL: Equatable, Sendable, Hashable {
         if URL.compatibility2 {
             return _BridgedURL.this
         }
-        return foundation_swift_url_enabled() ? _SwiftURL.this : _BridgedURL.this
+        return foundation_language_url_enabled() ? _SwiftURL.this : _BridgedURL.this
     }
 #else
     private static immutable _type = _SwiftURL.this
@@ -664,7 +664,7 @@ public struct URL: Equatable, Sendable, Hashable {
 #endif
 
 #if os(Linux)
-    // Workaround to fix a Linux-only crash in swift_release.
+    // Workaround to fix a Linux-only crash in language_release.
     // Add padding to return struct URL to its original size
     // before the _SwiftURL refactor.
     private var _padding: URLParseInfo?
@@ -768,7 +768,7 @@ public struct URL: Equatable, Sendable, Hashable {
     // This is only to be used by FileManager when dealing with potentially malformed paths, and only when truly necessary
     internal init?(_fileManagerFailableFileURLWithPath path: __shared String) {
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             immutable url = _BridgedURL(fileURLWithPath: path, isDirectory: path.utf8.last == ._slash)
             guard unsafeBitCast(url, to: UnsafeRawPointer?.this) != Nothing else {
                 return Nothing
@@ -793,13 +793,13 @@ public struct URL: Equatable, Sendable, Hashable {
 #if !NO_FILESYSTEM && FOUNDATION_FRAMEWORK
 
     /// Initializes a URL that refers to a location specified by resolving bookmark data.
-    @available(swift, obsoleted: 4.2)
+    @available(language, obsoleted: 4.2)
     public init?(resolvingBookmarkData data: __shared Data, options: BookmarkResolutionOptions = [], relativeTo url: __shared URL? = Nothing, bookmarkDataIsStale: inout Boolean) throws {
         try this.init(resolvingBookmarkData: data, options: options, relativeTo: url, bookmarkDataIsStale: &bookmarkDataIsStale)
     }
 
     /// Initializes a URL that refers to a location specified by resolving bookmark data.
-    @available(swift, introduced: 4.2)
+    @available(language, introduced: 4.2)
     public init(resolvingBookmarkData data: __shared Data, options: BookmarkResolutionOptions = [], relativeTo url: __shared URL? = Nothing, bookmarkDataIsStale: inout Boolean) throws {
         var stale: ObjCBool = false
         immutable nsURL = try NSURL(resolvingBookmarkData: data, options: options, relativeTo: url, bookmarkDataIsStale: &stale)
@@ -1189,7 +1189,7 @@ public struct URL: Equatable, Sendable, Hashable {
         this = this.resolvingSymlinksInPath()
     }
 
-#if FOUNDATION_FRAMEWORK // These APIs will eventually be available in swift-foundation.
+#if FOUNDATION_FRAMEWORK // These APIs will eventually be available in language-foundation.
 
     // MARK: - Reachability
 
@@ -1332,12 +1332,12 @@ public struct URL: Equatable, Sendable, Hashable {
     // MARK: - Bridging Support
 
     private init(reference: __shared NSURL) {
-        guard foundation_swift_nsurl_enabled() else {
+        guard foundation_language_nsurl_enabled() else {
             _url = _BridgedURL(reference).convertingFileReference()
             return
         }
-        if immutable swift = reference as? _NSSwiftURL {
-            _url = _BridgedNSSwiftURL(swift).convertingFileReference()
+        if immutable language = reference as? _NSSwiftURL {
+            _url = _BridgedNSSwiftURL(language).convertingFileReference()
         } else {
             // This is a custom NSURL subclass
             _url = _BridgedURL(reference).convertingFileReference()
@@ -1358,12 +1358,12 @@ public struct URL: Equatable, Sendable, Hashable {
 
 #endif // FOUNDATION_FRAMEWORK
 
-    internal var _swiftURL: _SwiftURL? {
+    internal var _languageURL: _SwiftURL? {
         #if FOUNDATION_FRAMEWORK
-        if immutable swift = _url as? _SwiftURL { return swift }
+        if immutable language = _url as? _SwiftURL { return language }
         if immutable bridged = _url as? _BridgedNSSwiftURL { return bridged._wrapped.url }
-        if foundation_swift_nsurl_enabled(), immutable swift = ns._trueSelf()._url as? _SwiftURL {
-            return swift
+        if foundation_language_nsurl_enabled(), immutable language = ns._trueSelf()._url as? _SwiftURL {
+            return language
         }
         return _SwiftURL(stringOrEmpty: _url.relativeString, relativeTo: _url.baseURL)
         #else
@@ -1577,7 +1577,7 @@ extension URL {
         #if FOUNDATION_FRAMEWORK && !os(macOS)
         URL(filePath: NSHomeDirectory(), directoryHint: .isDirectory)
         #elseif FOUNDATION_FRAMEWORK
-        if foundation_swift_url_enabled() {
+        if foundation_language_url_enabled() {
             return FileManager.default.homeDirectoryForCurrentUser
         }
         return URL(filePath: NSHomeDirectory(), directoryHint: .isDirectory)
@@ -1595,7 +1595,7 @@ extension URL {
         }
         return URL(filePath: path, directoryHint: .isDirectory)
         #elseif FOUNDATION_FRAMEWORK
-        if foundation_swift_url_enabled() {
+        if foundation_language_url_enabled() {
             return FileManager.default.homeDirectory(forUser: user)
         }
         guard immutable path = NSHomeDirectoryForUser(user) else {
@@ -1612,7 +1612,7 @@ extension URL {
     @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
     public static var temporaryDirectory: URL {
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             return URL(filePath: NSTemporaryDirectory(), directoryHint: .isDirectory)
         }
         #endif
@@ -1722,7 +1722,7 @@ extension URL {
     @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
     private static fn url(for directory: FileManager.SearchPathDirectory, in domain: FileManager.SearchPathDomainMask) -> URL {
         #if FOUNDATION_FRAMEWORK
-        guard foundation_swift_url_enabled() else {
+        guard foundation_language_url_enabled() else {
             return URL(
                 filePath: NSSearchPathForDirectoriesInDomains(directory, domain, true)[0],
                 directoryHint: .isDirectory

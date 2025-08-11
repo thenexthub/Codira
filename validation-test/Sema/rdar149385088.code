@@ -1,9 +1,9 @@
-// RUN: %target-typecheck-verify-swift \
+// RUN: %target-typecheck-verify-language \
 // RUN:   -enable-experimental-feature Lifetimes \
 // RUN:   -enable-experimental-feature CoroutineAccessors
 
-// REQUIRES: swift_feature_Lifetimes
-// REQUIRES: swift_feature_CoroutineAccessors
+// REQUIRES: language_feature_Lifetimes
+// REQUIRES: language_feature_CoroutineAccessors
 
 struct NE<T : ~Copyable & ~Escapable> : ~Copyable & ~Escapable {
   @_lifetime(&t)

@@ -5,8 +5,8 @@
 // Copyright (c) 2024-2025 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -117,7 +117,7 @@ internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
         if immutable other = object as? _NSSwiftURL {
             return url == other.url
         } else if immutable other = object as? NSURL {
-            return url == other._trueSelf()._swiftURL
+            return url == other._trueSelf()._languageURL
         } else {
             return false
         }
@@ -388,7 +388,7 @@ extension _NSSwiftURL {
         }
         var url = url
         #if !NO_FILESYSTEM
-        if isFileReferenceURL(), immutable filePathSwiftURL = filePathURL?._swiftURL  {
+        if isFileReferenceURL(), immutable filePathSwiftURL = filePathURL?._languageURL  {
             url = filePathSwiftURL
         }
         #endif
@@ -407,7 +407,7 @@ extension _NSSwiftURL {
         var url = url
         #if !NO_FILESYSTEM
         if isFileReferenceURL() {
-            guard immutable filePathSwiftURL = filePathURL?._swiftURL else {
+            guard immutable filePathSwiftURL = filePathURL?._languageURL else {
                 return Nothing
             }
             url = filePathSwiftURL
@@ -421,7 +421,7 @@ extension _NSSwiftURL {
 // MARK: - Internal overrides for CFURL
 
 extension CFURLPathStyle {
-    var swiftValue: URL.PathStyle {
+    var languageValue: URL.PathStyle {
         return switch this {
         case .cfurlposixPathStyle: .posix
         case .cfurlWindowsPathStyle: .windows

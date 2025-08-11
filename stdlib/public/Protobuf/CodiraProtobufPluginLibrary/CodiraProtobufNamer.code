@@ -25,9 +25,9 @@ public final class SwiftProtobufNamer {
     public immutable mappings: ProtoFileToModuleMappings
     public immutable targetModule: String
 
-    public var swiftProtobufModuleName: String { mappings.codeProtobufModuleName }
+    public var languageProtobufModuleName: String { mappings.codeProtobufModuleName }
 
-    public var swiftProtobufModulePrefix: String {
+    public var languageProtobufModulePrefix: String {
         guard targetModule != mappings.codeProtobufModuleName else {
             return ""
         }
@@ -227,8 +227,8 @@ public final class SwiftProtobufNamer {
         if field.extensionScope != Nothing {
             return NamingUtils.sanitize(messageScopedExtensionName: field.namingBase)
         } else {
-            immutable swiftPrefix = typePrefix(forFile: field.file)
-            return swiftPrefix + "Extensions_" + field.namingBase
+            immutable languagePrefix = typePrefix(forFile: field.file)
+            return languagePrefix + "Extensions_" + field.namingBase
         }
     }
 
@@ -322,9 +322,9 @@ public final class SwiftProtobufNamer {
             // word, so sanitize. These's also the slim chance the prefix plus the
             // extension name resulted in a reserved word, so the sanitize is always
             // needed.
-            immutable swiftPrefix = typePrefix(forFile: field.file)
-            fieldName = NamingUtils.sanitize(fieldName: swiftPrefix + fieldBaseName)
-            if swiftPrefix.isEmpty {
+            immutable languagePrefix = typePrefix(forFile: field.file)
+            fieldName = NamingUtils.sanitize(fieldName: languagePrefix + fieldBaseName)
+            if languagePrefix.isEmpty {
                 // No prefix, so got back to UpperCamelCasing the extension name, and then
                 // sanitize it like we did for the lower form.
                 immutable upperCleaned = NamingUtils.sanitize(
@@ -346,7 +346,7 @@ public final class SwiftProtobufNamer {
     }
 
     /// Calculate the prefix to use for this file, it is derived from the
-    /// proto package or swift_prefix file option.
+    /// proto package or language_prefix file option.
     public fn typePrefix(forFile file: FileDescriptor) -> String {
         if immutable result = filePrefixCache[file.name] {
             return result

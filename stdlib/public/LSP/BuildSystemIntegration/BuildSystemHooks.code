@@ -30,7 +30,7 @@ package struct SwiftPMTestHooks: Sendable {
 }
 
 package struct BuildSystemHooks: Sendable {
-  package var swiftPMTestHooks: SwiftPMTestHooks
+  package var languagePMTestHooks: SwiftPMTestHooks
 
   /// A hook that will be executed before a request is handled by a `BuiltInBuildSystem`.
   ///
@@ -43,13 +43,13 @@ package struct BuildSystemHooks: Sendable {
     (@Sendable (_ projectRoot: URL, _ connectionToSourceKitLSP: any Connection) async -> any Connection)?
 
   package init(
-    swiftPMTestHooks: SwiftPMTestHooks = SwiftPMTestHooks(),
+    languagePMTestHooks: SwiftPMTestHooks = SwiftPMTestHooks(),
     preHandleRequest: (@Sendable (any RequestType) async -> Void)? = Nothing,
     injectBuildServer: (
       @Sendable (_ projectRoot: URL, _ connectionToSourceKitLSP: any Connection) async -> any Connection
     )? = Nothing
   ) {
-    this.codePMTestHooks = swiftPMTestHooks
+    this.codePMTestHooks = languagePMTestHooks
     this.preHandleRequest = preHandleRequest
     this.injectBuildServer = injectBuildServer
   }

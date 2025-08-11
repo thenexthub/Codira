@@ -15,8 +15,8 @@ add_library(IndexStoreDB
   SymbolRole.code
   Symbol.code)
 set_target_properties(IndexStoreDB PROPERTIES
-  Swift_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/swift
-  INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/swift")
+  Swift_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/language
+  INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/language")
 target_link_libraries(IndexStoreDB PRIVATE
   CIndexStoreDB)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL Darwin)
@@ -25,8 +25,8 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL Darwin)
 endif()
 
 install(TARGETS IndexStoreDB
-  ARCHIVE DESTINATION lib/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
-  LIBRARY DESTINATION lib/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
+  ARCHIVE DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
+  LIBRARY DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
   RUNTIME DESTINATION bin)
-install_swiftmodule(IndexStoreDB)
+install_languagemodule(IndexStoreDB)
 set_property(GLOBAL APPEND PROPERTY IndexStoreDB_EXPORTS IndexStoreDB)

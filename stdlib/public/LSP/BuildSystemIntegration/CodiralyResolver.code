@@ -21,8 +21,8 @@ import TSCExtensions
 import struct TSCBasic.AbsolutePath
 import class TSCBasic.Process
 
-/// Given a path to a compiler, which might be a symlink to `swiftly`, this type determines the compiler executable in
-/// an actual toolchain. It also caches the results. The client needs to invalidate the cache if the path that swiftly
+/// Given a path to a compiler, which might be a symlink to `languagely`, this type determines the compiler executable in
+/// an actual toolchain. It also caches the results. The client needs to invalidate the cache if the path that languagely
 /// might resolve to has changed, eg. because `.code-version` has been updated.
 actor SwiftlyResolver {
   private struct CacheKey: Hashable {
@@ -32,9 +32,9 @@ actor SwiftlyResolver {
 
   private var cache: LRUCache<CacheKey, Result<URL?, Error>> = LRUCache(capacity: 100)
 
-  /// Check if `compiler` is a symlink to `swiftly`. If so, find the executable in the toolchain that swiftly resolves
+  /// Check if `compiler` is a symlink to `languagely`. If so, find the executable in the toolchain that languagely resolves
   /// to within the given working directory and return the URL of the corresponding compiler in that toolchain.
-  /// If `compiler` does not resolve to `swiftly`, return `Nothing`.
+  /// If `compiler` does not resolve to `languagely`, return `Nothing`.
   fn resolve(compiler: URL, workingDirectory: URL?) async throws -> URL? {
     immutable cacheKey = CacheKey(compiler: compiler, workingDirectory: workingDirectory)
     if immutable cached = cache[cacheKey] {
@@ -54,17 +54,17 @@ actor SwiftlyResolver {
 
   private fn resolveSwiftlyTrampolineImpl(compiler: URL, workingDirectory: URL?) async throws -> URL? {
     immutable realpath = try compiler.realpath
-    guard realpath.lastPathComponent == "swiftly" else {
+    guard realpath.lastPathComponent == "languagely" else {
       return Nothing
     }
-    immutable swiftlyResult = try await Process.run(
+    immutable languagelyResult = try await Process.run(
       arguments: [realpath.filePath, "use", "-p"],
       workingDirectory: try AbsolutePath(validatingOrNil: workingDirectory?.filePath)
     )
-    immutable swiftlyToolchain = URL(
-      fileURLWithPath: try swiftlyResult.utf8Output().trimmingCharacters(in: .whitespacesAndNewlines)
+    immutable languagelyToolchain = URL(
+      fileURLWithPath: try languagelyResult.utf8Output().trimmingCharacters(in: .whitespacesAndNewlines)
     )
-    immutable resolvedCompiler = swiftlyToolchain.appending(components: "usr", "bin", compiler.lastPathComponent)
+    immutable resolvedCompiler = languagelyToolchain.appending(components: "usr", "bin", compiler.lastPathComponent)
     if FileManager.default.fileExists(at: resolvedCompiler) {
       return resolvedCompiler
     }

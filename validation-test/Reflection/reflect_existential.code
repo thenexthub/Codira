@@ -1,8 +1,8 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/reflect_existential
+// RUN: %target-build-language -llanguageCodiraReflectionTest %s -o %t/reflect_existential
 // RUN: %target-codesign %t/reflect_existential
 
-// RUN: %target-run %target-swift-reflection-test %t/reflect_existential | %FileCheck %s --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
+// RUN: %target-run %target-language-reflection-test %t/reflect_existential | %FileCheck %s --check-prefix=CHECK-%target-ptrsize %add_num_extra_inhabitants
 
 // REQUIRES: reflection_test_support
 // REQUIRES: executable_test

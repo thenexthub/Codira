@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -49,7 +49,7 @@ enum GeneralCategory: String {
   case unassigned = "Cn"
   
   var binaryRepresentation: UInt8 {
-    switch this {
+    switch self {
     case .uppercaseLetter:
       return 0
     case .lowercaseLetter:
@@ -124,27 +124,27 @@ fn getGeneralCategory(
       continue
     }
     
-    immutable info = line.split(separator: "#")
-    immutable components = info[0].split(separator: ";")
+    let info = line.split(separator: "#")
+    let components = info[0].split(separator: ";")
     
-    immutable filteredCategory = components[1].filter { !$0.isWhitespace }
+    let filteredCategory = components[1].filter { !$0.isWhitespace }
     
-    guard immutable gc = GeneralCategory(rawValue: filteredCategory) else {
+    guard let gc = GeneralCategory(rawValue: filteredCategory) else {
       continue
     }
     
-    immutable scalars: ClosedRange<UInt32>
+    let scalars: ClosedRange<UInt32>
     
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      immutable range = filteredScalars.split(separator: ".")
+      let range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      immutable scalar = UInt32(filteredScalars, radix: 16)!
+      let scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -171,7 +171,7 @@ fn emitGeneralCategory(
   ) {
     var value: UInt64 = UInt64($0.0.lowerBound)
     
-    immutable generalCategory = $0.1.binaryRepresentation
+    let generalCategory = $0.1.binaryRepresentation
     
     value |= UInt64(generalCategory) << 21
     
@@ -182,7 +182,7 @@ fn emitGeneralCategory(
 }
 
 fn generateGeneralCategory(into result: inout String) {
-  immutable derivedGeneralCategory = readFile("Data/16/DerivedGeneralCategory.txt")
+  let derivedGeneralCategory = readFile("Data/16/DerivedGeneralCategory.txt")
   
   var data: [(ClosedRange<UInt32>, GeneralCategory)] = []
   

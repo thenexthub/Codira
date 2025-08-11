@@ -1,28 +1,28 @@
 // RUN: %empty-directory(%t)
 
-// RUN: %target-build-swift \
+// RUN: %target-build-language \
 // RUN:     -emit-module \
-// RUN:     %S/Inputs/rdar87914343_Resilient.swift \
+// RUN:     %S/Inputs/rdar87914343_Resilient.language \
 // RUN:     -parse-as-library \
 // RUN:     -enable-library-evolution \
 // RUN:     -module-name Resilient \
-// RUN:     -emit-module-path %t/Resilient.swiftmodule
+// RUN:     -emit-module-path %t/Resilient.languagemodule
 
-// RUN: %target-build-swift \
+// RUN: %target-build-language \
 // RUN:     -c \
-// RUN:     %S/Inputs/rdar87914343_Resilient.swift \
+// RUN:     %S/Inputs/rdar87914343_Resilient.language \
 // RUN:     -parse-as-library \
 // RUN:     -enable-library-evolution \
 // RUN:     -module-name Resilient \
 // RUN:     -o %t/Resilient.o
 
-// RUN: %target-build-swift \
+// RUN: %target-build-language \
 // RUN:     -c \
 // RUN:     %s \
 // RUN:     -o %t/main.o \
 // RUN:     -I %t
 
-// RUN: %target-swiftc_driver \
+// RUN: %target-languagec_driver \
 // RUN:     %t/Resilient.o \
 // RUN:     %t/main.o \
 // RUN:     -o %t/main

@@ -1,4 +1,4 @@
-// RUN: %target-run-simple-swiftgyb
+// RUN: %target-run-simple-languagegyb
 // REQUIRES: executable_test
 
 // FIXME: The optimized-build behavior of UnsafeBufferPointer bounds/overflow
@@ -9,7 +9,7 @@
 // the client code, and thereby subject the stdlib implementation to the test
 // case's compile options.
 //
-// REQUIRES: swift_test_mode_optimize_none
+// REQUIRES: language_test_mode_optimize_none
 
 import StdlibUnittest
 import StdlibCollectionUnittest

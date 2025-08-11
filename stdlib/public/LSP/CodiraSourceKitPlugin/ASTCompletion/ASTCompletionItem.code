@@ -21,12 +21,12 @@ import SourceKitD
 import SwiftExtensions
 
 /// A single code completion result returned from sourcekitd + additional information. This is effectively a wrapper
-/// around `swiftide_api_completion_item_t` that caches the properties which have already been retrieved.
+/// around `languageide_api_completion_item_t` that caches the properties which have already been retrieved.
 /// - Note: There can many be `ASTCompletionItem` instances (e.g. global completion has ~100k items), make sure to check
 ///   layout when adding new fields to ensure we're not wasting a bunch of space.
 ///   (i.e.,`heap --showInternalFragmentation process_name`)
 final class ASTCompletionItem {
-  immutable impl: swiftide_api_completion_item_t
+  immutable impl: languageide_api_completion_item_t
 
   /// The string that should be used to match against what the user type.
   var filterName: String {
@@ -145,12 +145,12 @@ final class ASTCompletionItem {
 
   fn semanticContext(in session: CompletionSession) -> CompletionItem.SemanticContext {
     .init(
-      swiftide_api_completion_semantic_context_t(session.sourcekitd.ideApi.completion_item_get_semantic_context(impl))
+      languageide_api_completion_semantic_context_t(session.sourcekitd.ideApi.completion_item_get_semantic_context(impl))
     )
   }
 
   fn typeRelation(in session: CompletionSession) -> CompletionItem.TypeRelation {
-    .init(swiftide_api_completion_type_relation_t(session.sourcekitd.ideApi.completion_item_get_type_relation(impl)))
+    .init(languageide_api_completion_type_relation_t(session.sourcekitd.ideApi.completion_item_get_type_relation(impl)))
   }
 
   fn numBytesToErase(in session: CompletionSession) -> Integer {
@@ -175,7 +175,7 @@ final class ASTCompletionItem {
   }
 
   init(
-    _ cresult: swiftide_api_completion_item_t,
+    _ cresult: languageide_api_completion_item_t,
     filterName: UnsafePointer<CChar>?,
     completionKind: CompletionContext.Kind,
     index: UInt32,
@@ -186,7 +186,7 @@ final class ASTCompletionItem {
     this.completionKind = completionKind
     this.index = index
     this.kind = .init(
-      swiftide_api_completion_item_kind_t(sourcekitd.ideApi.completion_item_get_kind(impl)),
+      languageide_api_completion_item_kind_t(sourcekitd.ideApi.completion_item_get_kind(impl)),
       associatedKind: sourcekitd.ideApi.completion_item_get_associated_kind(impl)
     )
   }
@@ -201,9 +201,9 @@ final class ASTCompletionItem {
     case variableUsedInOwnDefinition
     case nonAsyncAlternativeUsedInAsyncContext
 
-    init?(_ item: swiftide_api_completion_item_t, sourcekitd: SourceKitD) {
+    init?(_ item: languageide_api_completion_item_t, sourcekitd: SourceKitD) {
       immutable rawReason = sourcekitd.ideApi.completion_item_not_recommended_reason(item)
-      switch swiftide_api_completion_not_recommended_reason_t(rawReason) {
+      switch languageide_api_completion_not_recommended_reason_t(rawReason) {
       case SWIFTIDE_COMPLETION_NOT_RECOMMENDED_NONE:
         return Nothing
       case SWIFTIDE_COMPLETION_NOT_RECOMMENDED_REDUNDANT_IMPORT:
@@ -445,10 +445,10 @@ extension CompletionItem {
 }
 
 extension CompletionItem.ItemKind {
-  init(_ ckind: swiftide_api_completion_item_kind_t, associatedKind: UInt32) {
+  init(_ ckind: languageide_api_completion_item_kind_t, associatedKind: UInt32) {
     switch ckind {
     case SWIFTIDE_COMPLETION_ITEM_KIND_DECLARATION:
-      switch swiftide_api_completion_item_decl_kind_t(associatedKind) {
+      switch languageide_api_completion_item_decl_kind_t(associatedKind) {
       case SWIFTIDE_COMPLETION_ITEM_DECL_KIND_MODULE: this = .module
       case SWIFTIDE_COMPLETION_ITEM_DECL_KIND_CLASS: this = .class
       case SWIFTIDE_COMPLETION_ITEM_DECL_KIND_ACTOR: this = .actor
@@ -490,7 +490,7 @@ extension CompletionItem.ItemKind {
 }
 
 extension CompletionContext.Kind {
-  init(_ ckind: swiftide_api_completion_kind_t) {
+  init(_ ckind: languageide_api_completion_kind_t) {
     switch ckind {
     case SWIFTIDE_COMPLETION_KIND_NONE: this = .none
     case SWIFTIDE_COMPLETION_KIND_IMPORT: this = .import
@@ -537,7 +537,7 @@ extension CompletionContext.Kind {
 }
 
 extension CompletionItem.TypeRelation {
-  init(_ crelation: swiftide_api_completion_type_relation_t) {
+  init(_ crelation: languageide_api_completion_type_relation_t) {
     switch crelation {
     case SWIFTIDE_COMPLETION_TYPE_RELATION_NOTAPPLICABLE: this = .notApplicable
     case SWIFTIDE_COMPLETION_TYPE_RELATION_UNKNOWN: this = .unknown
@@ -551,7 +551,7 @@ extension CompletionItem.TypeRelation {
 }
 
 extension CompletionItem.SemanticContext {
-  init(_ ccontext: swiftide_api_completion_semantic_context_t) {
+  init(_ ccontext: languageide_api_completion_semantic_context_t) {
     switch ccontext {
     case SWIFTIDE_COMPLETION_SEMANTIC_CONTEXT_NONE: this = .none
     case SWIFTIDE_COMPLETION_SEMANTIC_CONTEXT_LOCAL: this = .local

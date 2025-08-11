@@ -1,6 +1,6 @@
 // RUN: %batch-code-completion
 
-// https://github.com/apple/swift/issues/57439
+// https://github.com/apple/language/issues/57439
 
 struct TodayView {
     fn foo() {

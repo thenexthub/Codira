@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
 // RUN: split-file %s %t
-// RUN: %target-swift-frontend %t/Library.swift -sil-verify-all -emit-sil -import-objc-header %t/Header.h > /dev/null
+// RUN: %target-language-frontend %t/Library.language -sil-verify-all -emit-sil -import-objc-header %t/Header.h > /dev/null
 
 // REQUIRES: objc_interop
 
@@ -12,7 +12,7 @@
 @property (nonatomic, readwrite) NSUInteger length;
 @end
 
-//--- Library.swift
+//--- Library.language
 
 fn foo(_ x: borrowing Foo) -> UInt {
     immutable y = x.length

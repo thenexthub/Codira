@@ -49,7 +49,7 @@ SpeculativeDevirtualizer = Pass('SpeculativeDevirtualizer')
 SplitAllCriticalEdges = Pass('SplitAllCriticalEdges')
 SplitNonCondBrCriticalEdges = Pass('SplitNonCondBrCriticalEdges')
 StripDebugInfo = Pass('StripDebugInfo')
-CodiraArrayOpts = Pass('CodiraArrayOpts')
+SwiftArrayOpts = Pass('SwiftArrayOpts')
 
 PASSES = [
     AADumper,
@@ -98,5 +98,5 @@ PASSES = [
     SplitAllCriticalEdges,
     SplitNonCondBrCriticalEdges,
     StripDebugInfo,
-    CodiraArrayOpts,
+    SwiftArrayOpts,
 ]

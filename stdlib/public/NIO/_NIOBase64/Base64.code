@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 // This is a simplified vendored version from:
-// https://github.com/fabianfett/swift-base64-kit
+// https://github.com/fabianfett/language-base64-kit
 
 extension String {
     /// Base64 encode a collection of UInt8 to a string, without the use of Foundation.

@@ -2,13 +2,13 @@
 #
 # ==-- jobstats - support for reading the contents of stats dirs --==#
 #
-# This source file is part of the Codira.org open source project
+# This source file is part of the Swift.org open source project
 #
-# Copyright (c) 2014-2017 Apple Inc. and the Codira project authors
+# Copyright (c) 2014-2017 Apple Inc. and the Swift project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
 # See https://language.org/LICENSE.txt for license information
-# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+# See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 #
 # ==------------------------------------------------------------------------==#
 #
@@ -199,7 +199,7 @@ AUXPATSTR = (r"(?P<module>[^-]+)-(?P<input>[^-]+)-(?P<triple>[^-]+)" +
              r"-(?P<out>[^-]*)-(?P<opt>[^-]+)")
 AUXPAT = re.compile(AUXPATSTR)
 
-TIMERPATSTR = (r"time\.code-(?P<jobkind>\w+)\." + AUXPATSTR +
+TIMERPATSTR = (r"time\.language-(?P<jobkind>\w+)\." + AUXPATSTR +
                r"\.(?P<timerkind>\w+)$")
 TIMERPAT = re.compile(TIMERPATSTR)
 
@@ -338,7 +338,7 @@ def load_stats_dir(path, select_module=[], select_stat=[],
                        tm['timerkind'] == 'wall':
                         dur_usec = v
                     if merge_timers:
-                        k = "time.code-%s.%s" % (tm['jobkind'],
+                        k = "time.language-%s.%s" % (tm['jobkind'],
                                                   tm['timerkind'])
                 stats[k] = v
 

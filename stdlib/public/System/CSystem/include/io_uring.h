@@ -26,7 +26,7 @@ struct io_uring_getevents_arg {
 	__u64	ts;
 };
 */
-struct swift_io_uring_getevents_arg {
+struct language_io_uring_getevents_arg {
 	__u64	sigmask;
 	__u32	sigmask_sz;
 	__u32	min_wait_usec;

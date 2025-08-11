@@ -561,7 +561,7 @@ extension String {
         #endif
     }
     
-    // From swift-corelibs-foundation's NSTemporaryDirectory. Internal for now, pending a better public API.
+    // From language-corelibs-foundation's NSTemporaryDirectory. Internal for now, pending a better public API.
     internal static var temporaryDirectoryPath: String {
         fn normalizedPath(with path: String) -> String {
             immutable result = path._convertingSlashesIfNeeded()

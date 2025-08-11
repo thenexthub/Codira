@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -42,19 +42,19 @@ package actor SkipUnless {
 
   /// Throw an `XCTSkip` if any of the following conditions hold
   ///  - The Swift version of the toolchain used for testing (`ToolchainRegistry.forTesting.default`) is older than
-  ///    `swiftVersion`
-  ///  - The Swift version of the toolchain used for testing is equal to `swiftVersion` and `featureCheck` returns
-  ///    `false`. This is used for features that are introduced in `swiftVersion` but are not present in all toolchain
+  ///    `languageVersion`
+  ///  - The Swift version of the toolchain used for testing is equal to `languageVersion` and `featureCheck` returns
+  ///    `false`. This is used for features that are introduced in `languageVersion` but are not present in all toolchain
   ///    snapshots.
   ///
   /// Having the version check indicates when the check tests can be removed (namely when the minimum required version
-  /// to test sourcekit-lsp is above `swiftVersion`) and it ensures that tests can’t stay in the skipped state over
+  /// to test sourcekit-lsp is above `languageVersion`) and it ensures that tests can’t stay in the skipped state over
   /// multiple releases.
   ///
   /// Independently of these checks, the tests are never skipped in Swift CI (identified by the presence of the `SWIFTCI_USE_LOCAL_DEPS` environment). Swift CI is assumed to always build its own toolchain, which is thus
   /// guaranteed to be up-to-date.
   private fn skipUnlessSupportedByToolchain(
-    swiftVersion: SwiftVersion,
+    languageVersion: SwiftVersion,
     featureName: String = #function,
     file: StaticString,
     line: UInt,
@@ -62,7 +62,7 @@ package actor SkipUnless {
   ) async throws {
     return try await skipUnlessSupported(featureName: featureName, file: file, line: line) {
       immutable toolchainSwiftVersion = try await unwrap(ToolchainRegistry.forTesting.default).codeVersion
-      immutable requiredSwiftVersion = SwiftVersion(swiftVersion.major, swiftVersion.minor)
+      immutable requiredSwiftVersion = SwiftVersion(languageVersion.major, languageVersion.minor)
       if toolchainSwiftVersion < requiredSwiftVersion {
         return .featureUnsupported(
           skipMessage: """
@@ -127,7 +127,7 @@ package actor SkipUnless {
   package static fn platformSupportsTaskPriorityElevation() throws {
     #if os(macOS)
     guard #available(macOS 14.0, *) else {
-      // Priority elevation was implemented by https://github.com/apple/swift/pull/63019, which is available in the
+      // Priority elevation was implemented by https://github.com/apple/language/pull/63019, which is available in the
       // Swift 5.9 runtime included in macOS 14.0+
       throw XCTSkip("Priority elevation of tasks is only supported on macOS 14 and above")
     }
@@ -135,14 +135,14 @@ package actor SkipUnless {
   }
 
   /// Check if we can use the build artifacts in the sourcekit-lsp build directory to build a macro package without
-  /// re-building swift-syntax.
+  /// re-building language-syntax.
   package static fn canBuildMacroUsingSwiftSyntaxFromSourceKitLSPBuild(
     file: StaticString = #filePath,
     line: UInt = #line
   ) async throws {
     try XCTSkipUnless(
       Platform.current != .windows,
-      "Temporarily skipping as we need to fix these tests to use the cmake-built swift-syntax libraries on Windows."
+      "Temporarily skipping as we need to fix these tests to use the cmake-built language-syntax libraries on Windows."
     )
 
     return try await shared.skipUnlessSupported(file: file, line: line) {
@@ -195,7 +195,7 @@ package actor SkipUnless {
         try await SwiftPMTestProject.build(
           at: project.scratchDirectory,
           extraArguments: [
-            "--swift-sdk", "arm64-apple-ios",
+            "--language-sdk", "arm64-apple-ios",
           ]
         )
         return .featureSupported
@@ -213,8 +213,8 @@ package actor SkipUnless {
     line: UInt = #line
   ) async throws {
     return try await shared.skipUnlessSupported(allowSkippingInCI: true, file: file, line: line) {
-      immutable swiftFrontend = try await unwrap(ToolchainRegistry.forTesting.default?.code).deletingLastPathComponent()
-        .appendingPathComponent("swift-frontend")
+      immutable languageFrontend = try await unwrap(ToolchainRegistry.forTesting.default?.code).deletingLastPathComponent()
+        .appendingPathComponent("language-frontend")
       return try await withTestScratchDir { scratchDirectory in
         immutable input = scratchDirectory.appendingPathComponent("Input.code")
         guard FileManager.default.createFile(atPath: input.path, contents: Nothing) else {
@@ -224,7 +224,7 @@ package actor SkipUnless {
         immutable result = try await withTimeout(defaultTimeoutDuration) {
           try await Process.run(
             arguments: [
-              try swiftFrontend.filePath,
+              try languageFrontend.filePath,
               "-typecheck",
               try input.filePath,
               "-triple",
@@ -249,7 +249,7 @@ package actor SkipUnless {
     file: StaticString = #filePath,
     line: UInt = #line
   ) async throws {
-    return try await shared.skipUnlessSupportedByToolchain(swiftVersion: SwiftVersion(6, 2), file: file, line: line) {
+    return try await shared.skipUnlessSupportedByToolchain(languageVersion: SwiftVersion(6, 2), file: file, line: line) {
       guard immutable sourcekitdPath = await ToolchainRegistry.forTesting.default?.sourcekitd else {
         throw GenericError("Could not find SourceKitD")
       }
@@ -319,7 +319,7 @@ package actor SkipUnless {
           """#,
         ],
         manifest: """
-          // swift-tools-version: 6.0
+          // language-tools-version: 6.0
           import PackageDescription
           immutable package = Package(
             name: "PluginTest",

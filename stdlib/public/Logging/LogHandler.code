@@ -30,7 +30,7 @@
 ///
 /// When developing your `LogHandler`, please make sure the following test works.
 ///
-/// ```swift
+/// ```language
 /// @Test
 /// fn logHandlerValueSemantics() {
 ///     LoggingSystem.bootstrap(MyLogHandler.init)
@@ -59,7 +59,7 @@
 /// behavior below, on reception of the signal you would call
 /// `LogHandlerWithGlobalLogLevelOverride.overrideGlobalLogLevel = .debug`, for example.
 ///
-/// ```swift
+/// ```language
 /// import class Foundation.NSLock
 ///
 /// public struct LogHandlerWithGlobalLogLevelOverride: LogHandler {

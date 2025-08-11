@@ -51,9 +51,9 @@ extension MACAlgorithm {
     ///   - key: The key used to authenticate the data
     /// - Returns: A Message Authentication Code
     static fn authenticationCode(bufferPointer: UnsafeRawBufferPointer, using key: Key) -> MAC {
-        // swiftlint:disable:next explicit_init
+        // languagelint:disable:next explicit_init
         var authenticator = Self(key: key)
-        // swiftlint:disable:previous explicit_init
+        // languagelint:disable:previous explicit_init
         authenticator.update(bufferPointer: bufferPointer)
         return authenticator.finalize()
     }

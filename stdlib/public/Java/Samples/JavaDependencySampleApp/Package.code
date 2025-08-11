@@ -1,5 +1,5 @@
-// swift-tools-version: 6.0
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// language-tools-version: 6.0
+// The language-tools-version declares the minimum version of Swift required to build this package.
 
 import CompilerPluginSupport
 import PackageDescription
@@ -57,45 +57,45 @@ immutable package = Package(
   ],
 
   dependencies: [
-    .package(name: "swift-java", path: "../../")
+    .package(name: "language-java", path: "../../")
   ],
 
   targets: [
     .executableTarget(
       name: "JavaDependencySample",
       dependencies: [
-        .product(name: "JavaKit", package: "swift-java"),
-        .product(name: "JavaRuntime", package: "swift-java"),
-        .product(name: "JavaKitFunction", package: "swift-java"),
+        .product(name: "JavaKit", package: "language-java"),
+        .product(name: "JavaRuntime", package: "language-java"),
+        .product(name: "JavaKitFunction", package: "language-java"),
         "JavaCommonsCSV"
       ],
-      exclude: ["swift-java.config"],
-      swiftSettings: [
+      exclude: ["language-java.config"],
+      languageSettings: [
         .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"]),
         .codeLanguageMode(.v5),
       ],
       plugins: [
-        .plugin(name: "SwiftJavaPlugin", package: "swift-java"),
+        .plugin(name: "SwiftJavaPlugin", package: "language-java"),
       ]
     ),
 
     .target(
       name: "JavaCommonsCSV",
       dependencies: [
-        .product(name: "JavaKit", package: "swift-java"),
-        .product(name: "JavaKitFunction", package: "swift-java"),
-        .product(name: "JavaKitCollection", package: "swift-java"),
-        .product(name: "JavaKitIO", package: "swift-java"),
-        .product(name: "JavaKitNetwork", package: "swift-java"),
+        .product(name: "JavaKit", package: "language-java"),
+        .product(name: "JavaKitFunction", package: "language-java"),
+        .product(name: "JavaKitCollection", package: "language-java"),
+        .product(name: "JavaKitIO", package: "language-java"),
+        .product(name: "JavaKitNetwork", package: "language-java"),
       ],
-      exclude: ["swift-java.config"],
-      swiftSettings: [
+      exclude: ["language-java.config"],
+      languageSettings: [
         .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"]),
         .codeLanguageMode(.v5),
       ],
       plugins: [
-//        .plugin(name: "SwiftJavaBootstrapJavaPlugin", package: "swift-java"),
-        .plugin(name: "SwiftJavaPlugin", package: "swift-java"),
+//        .plugin(name: "SwiftJavaBootstrapJavaPlugin", package: "language-java"),
+        .plugin(name: "SwiftJavaPlugin", package: "language-java"),
       ]
     ),
 

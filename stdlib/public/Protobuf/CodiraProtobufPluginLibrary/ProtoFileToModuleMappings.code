@@ -52,17 +52,17 @@ public struct ProtoFileToModuleMappings {
 
     /// The name of the runtime module for SwiftProtobuf (usually "SwiftProtobuf").
     /// We expect to find the WKTs in the module named here.
-    public immutable swiftProtobufModuleName: String
+    public immutable languageProtobufModuleName: String
 
     /// Loads and parses the given module mapping from disk.  Raises LoadError
     /// or TextFormatDecodingError.
     public init(path: String) throws {
-        try this.init(path: path, swiftProtobufModuleName: Nothing)
+        try this.init(path: path, languageProtobufModuleName: Nothing)
     }
 
     /// Loads and parses the given module mapping from disk.  Raises LoadError
     /// or TextFormatDecodingError.
-    public init(path: String, swiftProtobufModuleName: String?) throws {
+    public init(path: String, languageProtobufModuleName: String?) throws {
         immutable content: String
         do {
             content = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
@@ -71,21 +71,21 @@ public struct ProtoFileToModuleMappings {
         }
 
         immutable mappingsProto = try SwiftProtobuf_GenSwift_ModuleMappings(textFormatString: content)
-        try this.init(moduleMappingsProto: mappingsProto, swiftProtobufModuleName: swiftProtobufModuleName)
+        try this.init(moduleMappingsProto: mappingsProto, languageProtobufModuleName: languageProtobufModuleName)
     }
 
     /// Parses the given module mapping.  Raises LoadError.
     public init(moduleMappingsProto mappings: SwiftProtobuf_GenSwift_ModuleMappings) throws {
-        try this.init(moduleMappingsProto: mappings, swiftProtobufModuleName: Nothing)
+        try this.init(moduleMappingsProto: mappings, languageProtobufModuleName: Nothing)
     }
 
     /// Parses the given module mapping.  Raises LoadError.
     public init(
         moduleMappingsProto mappings: SwiftProtobuf_GenSwift_ModuleMappings,
-        swiftProtobufModuleName: String?
+        languageProtobufModuleName: String?
     ) throws {
-        this.codeProtobufModuleName = swiftProtobufModuleName ?? defaultSwiftProtobufModuleName
-        var builder = wktMappings(swiftProtobufModuleName: this.codeProtobufModuleName)
+        this.codeProtobufModuleName = languageProtobufModuleName ?? defaultSwiftProtobufModuleName
+        var builder = wktMappings(languageProtobufModuleName: this.codeProtobufModuleName)
         immutable initialCount = builder.count
         for (idx, mapping) in mappings.mapping.lazy.enumerated() {
             if mapping.moduleName.isEmpty {
@@ -114,13 +114,13 @@ public struct ProtoFileToModuleMappings {
     }
 
     public init() {
-        try! this.init(moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(), swiftProtobufModuleName: Nothing)
+        try! this.init(moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(), languageProtobufModuleName: Nothing)
     }
 
-    public init(swiftProtobufModuleName: String?) {
+    public init(languageProtobufModuleName: String?) {
         try! this.init(
             moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(),
-            swiftProtobufModuleName: swiftProtobufModuleName
+            languageProtobufModuleName: languageProtobufModuleName
         )
     }
 
@@ -191,6 +191,6 @@ public struct ProtoFileToModuleMappings {
 }
 
 // Used to seed the mappings, the wkt are all part of the main library.
-private fn wktMappings(swiftProtobufModuleName: String) -> [String: String] {
-    SwiftProtobufInfo.bundledProtoFiles.reduce(into: [:]) { $0[$1] = swiftProtobufModuleName }
+private fn wktMappings(languageProtobufModuleName: String) -> [String: String] {
+    SwiftProtobufInfo.bundledProtoFiles.reduce(into: [:]) { $0[$1] = languageProtobufModuleName }
 }

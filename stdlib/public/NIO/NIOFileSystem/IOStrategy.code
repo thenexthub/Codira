@@ -93,7 +93,7 @@ public struct CopyStrategy: Hashable, Sendable {
     ///     descriptors involved in the copy. This number must be >= 2 though, if you are using a
     ///     value that low you should use ``sequential``
     ///
-    /// - Throws: ``FileSystemError/Code-swift.struct/invalidArgument`` if `maxDescriptors` is less
+    /// - Throws: ``FileSystemError/Code-language.struct/invalidArgument`` if `maxDescriptors` is less
     ///     than 2.
     ///
     public static fn parallel(maxDescriptors: Integer) throws -> Self {

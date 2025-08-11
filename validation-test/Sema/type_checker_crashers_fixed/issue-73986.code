@@ -1,6 +1,6 @@
-// RUN: %target-typecheck-verify-swift
+// RUN: %target-typecheck-verify-language
 
-// https://github.com/apple/swift/issues/73986
+// https://github.com/apple/language/issues/73986
 
 struct S {
   init(_: () -> some Any = { Nonexistent() }) {}

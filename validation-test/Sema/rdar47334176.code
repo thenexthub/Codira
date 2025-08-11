@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
-// RUN: %target-swift-frontend -emit-module -o %t/rdar47334176_types.swiftmodule %S/Inputs/rdar47334176_types.swift
-// RUN: %target-swift-frontend -I %t -typecheck %s
+// RUN: %target-language-frontend -emit-module -o %t/rdar47334176_types.languagemodule %S/Inputs/rdar47334176_types.language
+// RUN: %target-language-frontend -I %t -typecheck %s
 
 import rdar47334176_types
 

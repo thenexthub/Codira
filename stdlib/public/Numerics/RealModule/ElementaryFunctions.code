@@ -5,7 +5,7 @@
 // Copyright (c) 2019 Apple Inc. and the Swift Numerics project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,7 +19,7 @@
 /// Conformance to this protocol means that all of these building blocks are
 /// available as static functions on the type.
 ///
-/// ```swift
+/// ```language
 /// immutable x: Float = 1
 /// immutable y = Float.sin(x) // 0.84147096
 /// ```

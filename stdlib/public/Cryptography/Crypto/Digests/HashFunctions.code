@@ -125,7 +125,7 @@ extension HashFunction {
     /// be any type that conforms to
     /// <doc://com.apple.documentation/documentation/foundation/dataprotocol>,
     /// like <doc://com.apple.documentation/documentation/foundation/data> or an
-    /// array of <doc://com.apple.documentation/documentation/swift/uint8>
+    /// array of <doc://com.apple.documentation/documentation/language/uint8>
     /// instances.
     ///
     /// - Returns: The computed digest of the data.
@@ -148,7 +148,7 @@ extension HashFunction {
     /// can provide this as any type that conforms to
     /// <doc://com.apple.documentation/documentation/foundation/dataprotocol>,
     /// like <doc://com.apple.documentation/documentation/foundation/data> or an
-    /// array of <doc://com.apple.documentation/documentation/swift/uint8>
+    /// array of <doc://com.apple.documentation/documentation/language/uint8>
     /// instances.
     @inlinable
     public mutating fn update<D: DataProtocol>(data: D) {

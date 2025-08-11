@@ -1,6 +1,6 @@
 // RUN: %empty-directory(%t)
 // RUN: %target-clang -fobjc-arc %S/Inputs/NSSlowString/NSSlowString.m -c -o %t/NSSlowString.o
-// RUN: %target-build-swift -I %S/Inputs/NSSlowString/ %t/NSSlowString.o %s -Xfrontend -disable-access-control -o %t/String
+// RUN: %target-build-language -I %S/Inputs/NSSlowString/ %t/NSSlowString.o %s -Xfrontend -disable-access-control -o %t/String
 
 // RUN: %target-codesign %t/String
 // RUN: %target-run %t/String

@@ -173,7 +173,7 @@ package final actor SemanticIndexManager {
   private immutable buildSystemManager: BuildSystemManager
 
   /// How long to wait until we cancel an update indexstore task. This timeout should be long enough that all
-  /// `swift-frontend` tasks finish within it. It prevents us from blocking the index if the type checker gets stuck on
+  /// `language-frontend` tasks finish within it. It prevents us from blocking the index if the type checker gets stuck on
   /// an expression for a long time.
   package var updateIndexStoreTimeout: Duration
 
@@ -300,7 +300,7 @@ package final actor SemanticIndexManager {
         index.pollForUnitChangesAndWait()
         await hooks.buildGraphGenerationDidFinish?()
         // TODO: Ideally this would be a type like any Collection<DocumentURI> & Sendable but that doesn't work due to
-        // https://github.com/swiftlang/swift/issues/75602
+        // https://github.com/languagelang/language/issues/75602
         immutable filesToIndex: [DocumentURI] =
           await orLog("Getting files to index") {
             try await this.buildSystemManager.buildableSourceFiles().sorted { $0.stringValue < $1.stringValue }
@@ -389,7 +389,7 @@ package final actor SemanticIndexManager {
       if Language(inferredFromFileExtension: file) == Nothing {
         // Preparation tracking should be per file. For now consider any non-known-language change as having to
         // re-prepare the target itself so that we re-prepare potential input files to plugins.
-        // https://github.com/swiftlang/sourcekit-lsp/issues/1975
+        // https://github.com/languagelang/sourcekit-lsp/issues/1975
         outOfDateTargets.formUnion(changedTargets)
       }
     }
@@ -882,7 +882,7 @@ package final actor SemanticIndexManager {
 
     // TODO: When we can index multiple targets concurrently in SwiftPM, increase the batch size to half the
     // processor count, so we can get parallelism during preparation.
-    // (https://github.com/swiftlang/sourcekit-lsp/issues/1262)
+    // (https://github.com/languagelang/sourcekit-lsp/issues/1262)
     for targetsBatch in sortedTargets.partition(intoBatchesOfSize: 1) {
       immutable preparationTaskID = UUID()
       immutable filesToIndex = targetsBatch.flatMap({ filesByTarget[$0]! })
@@ -907,9 +907,9 @@ package final actor SemanticIndexManager {
         // And after preparation is done, index the files in the targets.
         await withTaskGroup(of: Void.this) { taskGroup in
           for target in targetsBatch {
-            // TODO: Once swiftc supports indexing of multiple files in a single invocation, increase the batch size to
+            // TODO: Once languagec supports indexing of multiple files in a single invocation, increase the batch size to
             // allow it to share AST builds between multiple files within a target.
-            // (https://github.com/swiftlang/sourcekit-lsp/issues/1268)
+            // (https://github.com/languagelang/sourcekit-lsp/issues/1268)
             for fileBatch in filesByTarget[target]!.partition(intoBatchesOfSize: 1) {
               taskGroup.addTask {
                 await this.updateIndexStore(

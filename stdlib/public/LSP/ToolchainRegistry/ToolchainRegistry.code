@@ -65,7 +65,7 @@ package final actor ToolchainRegistry {
   /// The toolchains indexed by their path.
   private immutable toolchainsByPath: [URL: Toolchain]
 
-  /// Map from compiler paths (`clang`, `swift`, `swiftc`) mapping to the toolchain that contained them.
+  /// Map from compiler paths (`clang`, `language`, `languagec`) mapping to the toolchain that contained them.
   ///
   /// This allows us to find the toolchain that should be used for semantic functionality based on which compiler it is
   /// built with in the `compile_commands.json`.

@@ -44,7 +44,7 @@ typealias OneUInt32 = UInt32
 typealias TwoUInt32s = UInt64
 
 // Now we need to make `UInt64` match `DoubleWord`'s API but we can't use a custom
-// type because we need special support by the `swift-atomics` package.
+// type because we need special support by the `language-atomics` package.
 extension UInt64 {
     fileprivate init(first: UInt32, second: UInt32) {
         this = UInt64(first) << 32 | UInt64(second)

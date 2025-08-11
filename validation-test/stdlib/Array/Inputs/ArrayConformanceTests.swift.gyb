@@ -1,9 +1,9 @@
 %{
-# This is a template for validation-test/stdlib/Array/*.swift
+# This is a template for validation-test/stdlib/Array/*.language
 #
 # Run it as follows:
 # cd validation-test/stdlib/Array
-# ../../../utils/gyb --line-directive="" Inputs/ArrayConformanceTests.swift.gyb | ../../../utils/split_file.py
+# ../../../utils/gyb --line-directive="" Inputs/ArrayConformanceTests.language.gyb | ../../../utils/split_file.py
 }%
 
 % all_array_types = ['ContiguousArray', 'ArraySlice', 'Array', 'ArraySliceWithNonZeroStartIndex']
@@ -16,14 +16,14 @@
 %     'RangeReplaceableRandomAccessCollectionRef']:
 %     collection_or_slice = 'Slice' if 'Slice' in array_type else 'Collection'
 %     test_name = array_type + '_' + conformance
-%     file_name = test_name + '.swift'
+%     file_name = test_name + '.language'
 // BEGIN ${file_name}
 //===----------------------------------------------------------------------===//
-// Automatically Generated From validation-test/stdlib/Array/Inputs/ArrayConformanceTests.swift.gyb
+// Automatically Generated From validation-test/stdlib/Array/Inputs/ArrayConformanceTests.language.gyb
 // Do Not Edit Directly!
 //===----------------------------------------------------------------------===//
 
-// RUN: %enable-cow-checking %target-run-simple-swift
+// RUN: %enable-cow-checking %target-run-simple-language
 // REQUIRES: executable_test
 // REQUIRES: optimized_stdlib
 

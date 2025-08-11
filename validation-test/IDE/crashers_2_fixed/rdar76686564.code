@@ -1,5 +1,5 @@
-// RUN: %target-swift-ide-test --conforming-methods -code-completion-token=COMPLETE_EXPR --conforming-methods-expected-types=s:14swift_ide_test10MySequenceP -source-filename %s
-// RUN: %target-swift-ide-test --conforming-methods -code-completion-token=COMPLETE_STMT --conforming-methods-expected-types=s:14swift_ide_test10MySequenceP -source-filename %s
+// RUN: %target-language-ide-test --conforming-methods -code-completion-token=COMPLETE_EXPR --conforming-methods-expected-types=s:14language_ide_test10MySequenceP -source-filename %s
+// RUN: %target-language-ide-test --conforming-methods -code-completion-token=COMPLETE_STMT --conforming-methods-expected-types=s:14language_ide_test10MySequenceP -source-filename %s
 
 protocol MySequence {
   associatedtype Element

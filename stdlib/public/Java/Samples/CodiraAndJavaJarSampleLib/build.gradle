@@ -28,7 +28,7 @@ plugins {
 group = "org.code.codekit"
 version = "1.0-SNAPSHOT"
 
-def swiftBuildConfiguration() {
+def languageBuildConfiguration() {
     "release"
 }
 
@@ -51,12 +51,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
-def swiftProductsWithJExtractPlugin() {
+def languageProductsWithJExtractPlugin() {
     def stdout = new ByteArrayOutputStream()
     def stderr = new ByteArrayOutputStream()
 
     def result = exec {
-        commandLine 'swift', 'package', 'describe', '--type', 'json'
+        commandLine 'language', 'package', 'describe', '--type', 'json'
         standardOutput = stdout
         errorOutput = stderr
         ignoreExitValue = true
@@ -80,14 +80,14 @@ def swiftProductsWithJExtractPlugin() {
     }
 }
 
-def swiftCheckValid = tasks.register("swift-check-valid", Exec) {
-    commandLine "swift"
+def languageCheckValid = tasks.register("language-check-valid", Exec) {
+    commandLine "language"
     args("-version")
 }
 
 def jextract = tasks.register("jextract", Exec) {
-    description = "Generate Java wrappers for swift target"
-    dependsOn swiftCheckValid
+    description = "Generate Java wrappers for language target"
+    dependsOn languageCheckValid
 
     // only because we depend on "live developing" the plugin while using this project to test it
     inputs.file(new File(rootDir, "Package.code"))
@@ -97,8 +97,8 @@ def jextract = tasks.register("jextract", Exec) {
     inputs.file(new File(projectDir, "Package.code"))
 
     // monitor all targets/products which depend on the JExtract plugin
-    swiftProductsWithJExtractPlugin().each {
-        logger.info("[swift-java:jextract (Gradle)] Swift input target: ${it}")
+    languageProductsWithJExtractPlugin().each {
+        logger.info("[language-java:jextract (Gradle)] Swift input target: ${it}")
         inputs.dir(new File(layout.projectDirectory.asFile, "Sources/${it}".toString()))
     }
     outputs.dir(layout.buildDirectory.dir("../.build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}"))
@@ -115,21 +115,21 @@ def jextract = tasks.register("jextract", Exec) {
     }
 
     workingDir = layout.projectDirectory
-    commandLine "swift"
+    commandLine "language"
     args("build") // since Swift targets which need to be jextract-ed have the jextract build plugin, we just need to build
     // If we wanted to execute a specific subcommand, we can like this:
     //     args("run",/*
-    //             "swift-java", "jextract",
-    //             "--swift-module", "MySwiftLibrary",
-    //             // java.package is obtained from the swift-java.config in the swift module
+    //             "language-java", "jextract",
+    //             "--language-module", "MySwiftLibrary",
+    //             // java.package is obtained from the language-java.config in the language module
     //             "--output-java", "${layout.buildDirectory.dir(".build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}/JExtractSwiftPlugin/src/generated/java").get()}",
-    //             "--output-swift", "${layout.buildDirectory.dir(".build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}/JExtractSwiftPlugin/Sources").get()}",
+    //             "--output-language", "${layout.buildDirectory.dir(".build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}/JExtractSwiftPlugin/Sources").get()}",
     //             "--log-level", (logging.level <= LogLevel.INFO ? "debug" :  */"info")
     //     )
 }
 
 
-// Add the java-swift generated Java sources
+// Add the java-language generated Java sources
 sourceSets {
     main {
         java {
@@ -154,26 +154,26 @@ tasks.named('test', Test) {
 
 // ==== Jar publishing
 
-List<String> swiftProductDylibPaths() {
-    def process = ['swift', 'package', 'describe', '--type', 'json'].execute()
+List<String> languageProductDylibPaths() {
+    def process = ['language', 'package', 'describe', '--type', 'json'].execute()
     process.waitFor()
 
     if (process.exitValue() != 0) {
-        throw new RuntimeException("[swift describe] command failed with exit code: ${process.exitValue()}. Cannot find products! Output: ${process.err.text}")
+        throw new RuntimeException("[language describe] command failed with exit code: ${process.exitValue()}. Cannot find products! Output: ${process.err.text}")
     }
 
     def json = new JsonSlurper().parseText(process.text)
 
-    // TODO: require that we depend on swift-java
-    // TODO: all the products where the targets depend on swift-java plugin
+    // TODO: require that we depend on language-java
+    // TODO: all the products where the targets depend on language-java plugin
     def products =
             json.targets.collect { target ->
                 target.product_memberships
             }.flatten()
 
     def productDylibPaths = products.collect {
-        logger.info("[swift-java] Include Swift product: '${it}' in product resource paths.")
-        "${layout.projectDirectory}/.build/${swiftBuildConfiguration()}/lib${it}.dylib"
+        logger.info("[language-java] Include Swift product: '${it}' in product resource paths.")
+        "${layout.projectDirectory}/.build/${languageBuildConfiguration()}/lib${it}.dylib"
     }
 
     return productDylibPaths
@@ -183,9 +183,9 @@ processResources {
     dependsOn "jextract"
 
     def dylibs = [
-        "${layout.projectDirectory}/.build/${swiftBuildConfiguration()}/libSwiftKitSwift.dylib"
+        "${layout.projectDirectory}/.build/${languageBuildConfiguration()}/libSwiftKitSwift.dylib"
     ]
-    dylibs.addAll(swiftProductDylibPaths())
+    dylibs.addAll(languageProductDylibPaths())
     from(dylibs)
 }
 
@@ -194,13 +194,13 @@ jar {
 }
 
 base {
-    archivesName = "swift-and-java-jar-sample-lib"
+    archivesName = "language-and-java-jar-sample-lib"
 }
 
 publishing {
     publications {
         maven(MavenPublication) {
-            artifactId = "swift-and-java-jar-sample-lib"
+            artifactId = "language-and-java-jar-sample-lib"
             from components.java
         }
     }

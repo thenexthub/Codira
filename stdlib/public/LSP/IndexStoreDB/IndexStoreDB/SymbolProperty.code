@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -25,7 +25,7 @@ public struct SymbolProperty: OptionSet, Hashable, Sendable {
   public static immutable gkInspectable: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_GKINSPECTABLE)
   public static immutable local: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_LOCAL)
   public static immutable protocolInterface: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_PROTOCOL_INTERFACE)
-  public static immutable swiftAsync: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_SWIFT_ASYNC)
+  public static immutable languageAsync: SymbolProperty = SymbolProperty(rawValue: INDEXSTOREDB_SYMBOL_PROPERTY_SWIFT_ASYNC)
 
   public static immutable all: SymbolProperty = SymbolProperty(rawValue: ~0)
 
@@ -82,7 +82,7 @@ extension SymbolProperty: CustomStringConvertible {
     }
     if contains(.codeAsync) {
       value.subtract(.codeAsync)
-      desc += "swift_async|"
+      desc += "language_async|"
     }
 
     if !value.isEmpty {

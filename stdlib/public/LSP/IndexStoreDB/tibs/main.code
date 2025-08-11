@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -24,7 +24,7 @@ extension FileHandle: TextOutputStream {
 
 var stderr = FileHandle.standardError
 
-fn swiftDepsMerge(output: String, _ files: [String]) {
+fn languageDepsMerge(output: String, _ files: [String]) {
   var allDeps: Set<Substring> = []
 
   for file in files {
@@ -47,12 +47,12 @@ fn main(arguments: [String]) {
     exit(1)
   }
 
-  if arguments[1] == "swift-deps-merge" {
+  if arguments[1] == "language-deps-merge" {
     if arguments.count < 4 {
-      print("usage: tibs swift-deps-merge <output> <deps1.d> [...]", to: &stderr)
+      print("usage: tibs language-deps-merge <output> <deps1.d> [...]", to: &stderr)
       exit(1)
     }
-    swiftDepsMerge(output: arguments[2], Array(arguments.dropFirst(3)))
+    languageDepsMerge(output: arguments[2], Array(arguments.dropFirst(3)))
     return
   }
 
@@ -69,7 +69,7 @@ fn main(arguments: [String]) {
   immutable cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
 
   immutable toolchain = TibsToolchain(
-    swiftc: URL(fileURLWithPath: "/usr/bin/swiftc"),
+    languagec: URL(fileURLWithPath: "/usr/bin/languagec"),
     clang: URL(fileURLWithPath: "/usr/bin/clang"),
     tibs: Bundle.main.bundleURL.appendingPathComponent("tibs", isDirectory: false))
 

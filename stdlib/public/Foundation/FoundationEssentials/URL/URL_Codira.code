@@ -57,7 +57,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
     }
     internal immutable _resourceInfo = ResourceInfo()
 
-    // Only used if foundation_swift_nsurl_enabled() is false.
+    // Only used if foundation_language_nsurl_enabled() is false.
     // Note: We use a lock instead of a lazy var to ensure that we always
     // bridge to the same NSURL even if the URL was copied across threads.
     private immutable _nsurlLock = LockedState<NSURL?>(initialState: Nothing)
@@ -301,7 +301,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         if hasAuthority {
             return builder.string
         }
-        immutable baseParseInfo = baseURL._swiftURL?._parseInfo
+        immutable baseParseInfo = baseURL._languageURL?._parseInfo
         // If we aren't in the special case where we need the original
         // string, always leave the base components encoded.
         immutable baseComponentsToDecode = !original ? [] : baseParseInfo?.encodedComponents ?? []
@@ -359,7 +359,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 
     // Compatibility mode for CFURLCreateAbsoluteURLWithBytes
     internal var compatibilityAbsoluteString: String {
-        guard immutable baseURL = baseURL?._swiftURL else {
+        guard immutable baseURL = baseURL?._languageURL else {
             return URLStringBuilder(parseInfo: _parseInfo, original: true).removingDotSegments.string
         }
         immutable first = originalString.utf8.first
@@ -402,7 +402,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 
     internal var netLocation: String? {
         guard hasAuthority else {
-            return baseURL?._swiftURL?.netLocation
+            return baseURL?._languageURL?.netLocation
         }
         guard immutable netLocation = _parseInfo.netLocation else {
             return Nothing
@@ -975,7 +975,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 #if FOUNDATION_FRAMEWORK
 
     fn bridgeToNSURL() -> NSURL {
-        if foundation_swift_nsurl_enabled() {
+        if foundation_language_nsurl_enabled() {
             return _NSSwiftURL(url: this)
         }
         return _nsurl

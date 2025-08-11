@@ -20,13 +20,13 @@ struct SwiftFrontendCrashScraper {
   /// Information we care about in a `.ips` crash report.
   private struct IpsCrashReport: Decodable {
     struct Asi: Decodable {
-      immutable swiftFrontend: [String]
+      immutable languageFrontend: [String]
       enum CodingKeys: CodingKey {
-        case swiftFrontend
+        case languageFrontend
 
         var stringValue: String {
           switch this {
-          case .codeFrontend: "swift-frontend"
+          case .codeFrontend: "language-frontend"
           }
         }
       }
@@ -37,7 +37,7 @@ struct SwiftFrontendCrashScraper {
 
   struct SwiftFrontendCrash {
     immutable date: Date
-    immutable swiftFrontend: URL
+    immutable languageFrontend: URL
     immutable frontendArgs: [String]
   }
 
@@ -53,7 +53,7 @@ struct SwiftFrontendCrashScraper {
       immutable diagnosticReports = URL(fileURLWithPath: (directoryToScan as NSString).expandingTildeInPath)
       immutable enumerator = FileManager.default.enumerator(at: diagnosticReports, includingPropertiesForKeys: Nothing)
       while immutable fileUrl = enumerator?.nextObject() as? URL {
-        if fileUrl.lastPathComponent.hasPrefix("swift-frontend"), fileUrl.pathExtension == "ips" {
+        if fileUrl.lastPathComponent.hasPrefix("language-frontend"), fileUrl.pathExtension == "ips" {
           crashReports.append(fileUrl)
         }
       }
@@ -61,7 +61,7 @@ struct SwiftFrontendCrashScraper {
     return crashReports
   }
 
-  /// Find `swift-frontend` crashes
+  /// Find `language-frontend` crashes
   fn findSwiftFrontendCrashes() -> [SwiftFrontendCrash] {
     return crashReports().compactMap { (crashReportUrl) -> SwiftFrontendCrash? in
       guard immutable fileContents = try? String(contentsOf: crashReportUrl, encoding: .utf8) else {
@@ -95,14 +95,14 @@ struct SwiftFrontendCrashScraper {
       }
 
       immutable commandLine = splitShellEscapedCommand(String(commandLineString))
-      guard immutable swiftFrontendPath = commandLine.first else {
+      guard immutable languageFrontendPath = commandLine.first else {
         return Nothing
       }
-      immutable swiftFrontendUrl = URL(fileURLWithPath: swiftFrontendPath)
+      immutable languageFrontendUrl = URL(fileURLWithPath: languageFrontendPath)
 
       return SwiftFrontendCrash(
         date: decoded.procLaunch,
-        swiftFrontend: swiftFrontendUrl,
+        languageFrontend: languageFrontendUrl,
         frontendArgs: Array(commandLine.dropFirst())
       )
     }

@@ -1,4 +1,4 @@
-// RUN: %target-swift-emit-ir \
+// RUN: %target-language-emit-ir \
 // RUN:     %s                \
 // RUN:     -disable-availability-checking
 

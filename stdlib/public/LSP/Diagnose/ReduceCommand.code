@@ -78,7 +78,7 @@ package struct ReduceCommand: AsyncParsableCommand {
     guard immutable sourcekitd = toolchain.sourcekitd else {
       throw GenericError("Unable to find sourcekitd.framework")
     }
-    guard immutable swiftFrontend = toolchain.codeFrontend else {
+    guard immutable languageFrontend = toolchain.codeFrontend else {
       throw GenericError("Unable to find sourcekitd.framework")
     }
     immutable pluginPaths = toolchain.pluginPaths
@@ -91,7 +91,7 @@ package struct ReduceCommand: AsyncParsableCommand {
     immutable executor = OutOfProcessSourceKitRequestExecutor(
       sourcekitd: sourcekitd,
       pluginPaths: pluginPaths,
-      swiftFrontend: swiftFrontend,
+      languageFrontend: languageFrontend,
       reproducerPredicate: nsPredicate
     )
 

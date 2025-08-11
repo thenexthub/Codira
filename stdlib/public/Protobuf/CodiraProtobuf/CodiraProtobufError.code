@@ -4,15 +4,15 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See LICENSE.txt for license information:
-// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+// https://github.com/apple/language-protobuf/blob/main/LICENSE.txt
 //
 // -----------------------------------------------------------------------------
 
 /// A SwiftProtobuf specific error.
 ///
-/// All errors have a high-level ``SwiftProtobufError/Code-swift.struct`` which identifies the domain
+/// All errors have a high-level ``SwiftProtobufError/Code-language.struct`` which identifies the domain
 /// of the error. For example, an issue when encoding a proto into binary data will result in a
-/// ``SwiftProtobufError/Code-swift.struct/binaryEncodingError`` error code.
+/// ``SwiftProtobufError/Code-language.struct/binaryEncodingError`` error code.
 /// Errors also include a message describing what went wrong and how to remedy it (if applicable). The
 /// ``SwiftProtobufError/message`` is not static and may include dynamic information such as the
 /// type URL for a type that could not be decoded, for example.

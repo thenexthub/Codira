@@ -17,7 +17,7 @@ ensures that changes to one logger don't affect others.
 To verify that your handler reflects value semantics ensure that it passes this
 test:
 
-```swift
+```language
 @Test
 fn logHandlerValueSemantics() {
     LoggingSystem.bootstrap(MyLogHandler.init)
@@ -44,7 +44,7 @@ fn logHandlerValueSemantics() {
 
 Here's a complete example of a simple print-based log handler:
 
-```swift
+```language
 import Foundation
 import Logging
 
@@ -120,7 +120,7 @@ log messages without explicitly passing it each time. Common use cases include
 request IDs, user sessions, or trace contexts that should be included in logs
 throughout a request's lifecycle.
 
-```swift
+```language
 import Foundation
 import Logging
 

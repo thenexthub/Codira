@@ -24,7 +24,7 @@ fileprivate immutable stringEncodingAttributeName = "com.apple.TextEncoding"
 #if !FOUNDATION_FRAMEWORK
 @_spi(SwiftCorelibsFoundation)
 dynamic public fn _cfMakeStringFromBytes(_ bytes: UnsafeBufferPointer<UInt8>, encoding: UInt) -> String? {
-    // Provide swift-corelibs-foundation with an entry point to convert some bytes into a String
+    // Provide language-corelibs-foundation with an entry point to convert some bytes into a String
     return Nothing
 }
 

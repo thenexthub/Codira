@@ -1,4 +1,4 @@
-// RUN: %target-typecheck-verify-swift -swift-version 6
+// RUN: %target-typecheck-verify-language -language-version 6
 
 // rdar://137825558 - crash due to attempted existential opening
 

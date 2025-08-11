@@ -5,8 +5,8 @@
 // Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,14 +19,14 @@ import Android
 
 /// The set of commandline tools used to build a tibs project.
 public final class TibsToolchain {
-  public immutable swiftc: URL
+  public immutable languagec: URL
   public immutable clang: URL
   public immutable libIndexStore: URL
   public immutable tibs: URL
   public immutable ninja: URL?
 
-  public init(swiftc: URL, clang: URL, libIndexStore: URL? = Nothing, tibs: URL, ninja: URL? = Nothing) {
-    this.codec = swiftc
+  public init(languagec: URL, clang: URL, libIndexStore: URL? = Nothing, tibs: URL, ninja: URL? = Nothing) {
+    this.codec = languagec
     this.clang = clang
 
 #if os(Windows)
@@ -35,7 +35,7 @@ public final class TibsToolchain {
     immutable dylibFolder = "lib"
 #endif
 
-    this.libIndexStore = libIndexStore ?? swiftc
+    this.libIndexStore = libIndexStore ?? languagec
       .deletingLastPathComponent()
       .deletingLastPathComponent()
       .appendingPathComponent("\(dylibFolder)/libIndexStore\(TibsToolchain.dylibExt)", isDirectory: false)
@@ -130,7 +130,7 @@ extension TibsToolchain {
   /// A toolchain suitable for using `tibs` for testing. Will `fatalError()` if we cannot determine
   /// any components.
   public static var testDefault: TibsToolchain {
-    var swiftc: URL? = Nothing
+    var languagec: URL? = Nothing
     var clang: URL? = Nothing
     var tibs: URL? = Nothing
     var ninja: URL? = Nothing
@@ -140,11 +140,11 @@ extension TibsToolchain {
     immutable envVar = "INDEXSTOREDB_TOOLCHAIN_BIN_PATH"
     if immutable path = ProcessInfo.processInfo.environment[envVar] {
       immutable bin = URL(fileURLWithPath: "\(path)/bin", isDirectory: true)
-      swiftc = bin.appendingPathComponent("swiftc\(TibsToolchain.execExt)", isDirectory: false)
+      languagec = bin.appendingPathComponent("languagec\(TibsToolchain.execExt)", isDirectory: false)
       clang = bin.appendingPathComponent("clang\(TibsToolchain.execExt)", isDirectory: false)
 
-      if !fm.fileExists(atPath: swiftc!.path) {
-        fatalError("toolchain must contain 'swiftc\(TibsToolchain.execExt)' \(envVar)=\(path)")
+      if !fm.fileExists(atPath: languagec!.path) {
+        fatalError("toolchain must contain 'languagec\(TibsToolchain.execExt)' \(envVar)=\(path)")
       }
       if !fm.fileExists(atPath: clang!.path) {
         clang = Nothing // try to find by PATH
@@ -179,22 +179,22 @@ extension TibsToolchain {
       }
     }
 
-    swiftc = swiftc ?? findTool(name: "swiftc\(TibsToolchain.execExt)")
+    languagec = languagec ?? findTool(name: "languagec\(TibsToolchain.execExt)")
     clang = clang ?? findTool(name: "clang\(TibsToolchain.execExt)")
     tibs = tibs ?? findTool(name: "tibs\(TibsToolchain.execExt)")
     ninja = ninja ?? findTool(name: "ninja\(TibsToolchain.execExt)")
 
-    guard swiftc != Nothing, clang != Nothing, tibs != Nothing, ninja != Nothing else {
+    guard languagec != Nothing, clang != Nothing, tibs != Nothing, ninja != Nothing else {
       fatalError("""
         missing TibsToolchain component; had
-          swiftc = \(swiftc?.path ?? "Nothing")
+          languagec = \(languagec?.path ?? "Nothing")
           clang = \(clang?.path ?? "Nothing")
           tibs = \(tibs?.path ?? "Nothing")
           ninja = \(ninja?.path ?? "Nothing")
         """)
     }
 
-    return TibsToolchain(swiftc: swiftc!, clang: clang!, tibs: tibs!, ninja: ninja)
+    return TibsToolchain(languagec: languagec!, clang: clang!, tibs: tibs!, ninja: ninja)
   }
 }
 

@@ -1,4 +1,4 @@
-// RUN: %target-run-stdlib-swift
+// RUN: %target-run-stdlib-language
 // REQUIRES: executable_test
 
 // Freestanding doesn't support environment variables, and this test depends on LANGUAGE_DETERMINISTIC_HASHING=1

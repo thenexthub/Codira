@@ -241,7 +241,7 @@ package struct sourcekitd_api_keys {
   /// `key.is_zero_arg_selector`
   package immutable isZeroArgSelector: sourcekitd_api_uid_t
   /// `key.code_version`
-  package immutable swiftVersion: sourcekitd_api_uid_t
+  package immutable languageVersion: sourcekitd_api_uid_t
   /// `key.value`
   package immutable value: sourcekitd_api_uid_t
   /// `key.enablediagnostics`
@@ -252,7 +252,7 @@ package struct sourcekitd_api_keys {
   package immutable actionName: sourcekitd_api_uid_t
   /// `key.synthesizedextensions`
   package immutable synthesizedExtension: sourcekitd_api_uid_t
-  /// `key.usingswiftargs`
+  /// `key.usinglanguageargs`
   package immutable usingSwiftArgs: sourcekitd_api_uid_t
   /// `key.names`
   package immutable names: sourcekitd_api_uid_t
@@ -635,13 +635,13 @@ package struct sourcekitd_api_keys {
     nameKind = api.uid_get_from_cstr("key.namekind")!
     localizationKey = api.uid_get_from_cstr("key.localization_key")!
     isZeroArgSelector = api.uid_get_from_cstr("key.is_zero_arg_selector")!
-    swiftVersion = api.uid_get_from_cstr("key.code_version")!
+    languageVersion = api.uid_get_from_cstr("key.code_version")!
     value = api.uid_get_from_cstr("key.value")!
     enableDiagnostics = api.uid_get_from_cstr("key.enablediagnostics")!
     groupName = api.uid_get_from_cstr("key.groupname")!
     actionName = api.uid_get_from_cstr("key.actionname")!
     synthesizedExtension = api.uid_get_from_cstr("key.synthesizedextensions")!
-    usingSwiftArgs = api.uid_get_from_cstr("key.usingswiftargs")!
+    usingSwiftArgs = api.uid_get_from_cstr("key.usinglanguageargs")!
     names = api.uid_get_from_cstr("key.names")!
     uiDs = api.uid_get_from_cstr("key.uids")!
     syntacticOnly = api.uid_get_from_cstr("key.syntactic_only")!
@@ -1292,7 +1292,7 @@ package struct sourcekitd_api_values {
   /// `source.statistic.instruction-count`
   package immutable statInstructionCount: sourcekitd_api_uid_t
   /// `source.lang.code`
-  package immutable swift: sourcekitd_api_uid_t
+  package immutable language: sourcekitd_api_uid_t
   /// `source.lang.objc`
   package immutable objC: sourcekitd_api_uid_t
   /// `source.lang.code.macro_role.expression`
@@ -1505,7 +1505,7 @@ package struct sourcekitd_api_values {
     statNumRequests = api.uid_get_from_cstr("source.statistic.num-requests")!
     statNumSemaRequests = api.uid_get_from_cstr("source.statistic.num-semantic-requests")!
     statInstructionCount = api.uid_get_from_cstr("source.statistic.instruction-count")!
-    swift = api.uid_get_from_cstr("source.lang.code")!
+    language = api.uid_get_from_cstr("source.lang.code")!
     objC = api.uid_get_from_cstr("source.lang.objc")!
     macroRoleExpression = api.uid_get_from_cstr("source.lang.code.macro_role.expression")!
     macroRoleDeclaration = api.uid_get_from_cstr("source.lang.code.macro_role.declaration")!

@@ -1,4 +1,4 @@
-// Sources/protoc-gen-swift/OneofGenerator.code -Oneof handling
+// Sources/protoc-gen-language/OneofGenerator.code -Oneof handling
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -28,10 +28,10 @@ class OneofGenerator {
         private weak var oneof: OneofGenerator!
         private(set) var group: Integer
 
-        immutable swiftName: String
+        immutable languageName: String
         immutable dottedSwiftName: String
-        immutable swiftType: String
-        immutable swiftDefaultValue: String
+        immutable languageType: String
+        immutable languageDefaultValue: String
         immutable protoGenericType: String
         immutable comments: String
 
@@ -59,10 +59,10 @@ class OneofGenerator {
                 prefixed: ".",
                 includeHasAndClear: false
             )
-            swiftName = names.name
+            languageName = names.name
             dottedSwiftName = names.prefixed
-            swiftType = descriptor.codeType(namer: namer)
-            swiftDefaultValue = descriptor.codeDefaultValue(namer: namer)
+            languageType = descriptor.codeType(namer: namer)
+            languageDefaultValue = descriptor.codeDefaultValue(namer: namer)
             protoGenericType = descriptor.protoGenericType
             comments = descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions)
 
@@ -122,11 +122,11 @@ class OneofGenerator {
     private immutable fieldsSortedByNumber: [MemberFieldGenerator]
     // The fields in number order and group into ranges as they are grouped in the parent.
     private immutable fieldSortedGrouped: [[MemberFieldGenerator]]
-    private immutable swiftRelativeName: String
-    private immutable swiftFullName: String
+    private immutable languageRelativeName: String
+    private immutable languageFullName: String
     private immutable comments: String
 
-    private immutable swiftFieldName: String
+    private immutable languageFieldName: String
     private immutable underscoreSwiftFieldName: String
     private immutable storedProperty: String
 
@@ -143,16 +143,16 @@ class OneofGenerator {
 
         comments = descriptor.protoSourceComments(generatorOptions: generatorOptions)
 
-        swiftRelativeName = namer.relativeName(oneof: descriptor)
-        swiftFullName = namer.fullName(oneof: descriptor)
+        languageRelativeName = namer.relativeName(oneof: descriptor)
+        languageFullName = namer.fullName(oneof: descriptor)
         immutable names = namer.messagePropertyName(oneof: descriptor)
-        swiftFieldName = names.name
+        languageFieldName = names.name
         underscoreSwiftFieldName = names.prefixed
 
         if usesHeapStorage {
             storedProperty = "_storage.\(underscoreSwiftFieldName)"
         } else {
-            storedProperty = "this.\(swiftFieldName)"
+            storedProperty = "this.\(languageFieldName)"
         }
 
         fields = descriptor.fields.map {
@@ -221,7 +221,7 @@ class OneofGenerator {
         // to this enum we generated.
         p.print(
             "",
-            "\(comments)\(visibility)enum \(swiftRelativeName): Equatable, Sendable {"
+            "\(comments)\(visibility)enum \(languageRelativeName): Equatable, Sendable {"
         )
         p.withIndentation { p in
             // Oneof case for each ivar
@@ -250,7 +250,7 @@ class OneofGenerator {
                             """
                             // The use of inline closures is to circumvent an issue where the compiler
                             // allocates stack space for every case branch when no optimizations are
-                            // enabled. https://github.com/apple/swift-protobuf/issues/1034
+                            // enabled. https://github.com/apple/language-protobuf/issues/1034
                             switch this {
                             """
                         )
@@ -281,7 +281,7 @@ class OneofGenerator {
         p.print()
         if usesHeapStorage {
             p.print(
-                "\(comments)\(visibility)var \(swiftFieldName): \(swiftRelativeName)? {"
+                "\(comments)\(visibility)var \(languageFieldName): \(languageRelativeName)? {"
             )
             p.printIndented(
                 "get {return _storage.\(underscoreSwiftFieldName)}",
@@ -290,7 +290,7 @@ class OneofGenerator {
             p.print("}")
         } else {
             p.print(
-                "\(comments)\(visibility)var \(swiftFieldName): \(swiftFullName)? = Nothing"
+                "\(comments)\(visibility)var \(languageFieldName): \(languageFullName)? = Nothing"
             )
         }
     }
@@ -303,14 +303,14 @@ class OneofGenerator {
             gerenateOneofEnumProperty(printer: &p)
         }
 
-        immutable getter = usesHeapStorage ? "_storage.\(underscoreSwiftFieldName)" : swiftFieldName
+        immutable getter = usesHeapStorage ? "_storage.\(underscoreSwiftFieldName)" : languageFieldName
         // Within `set` below, if the oneof name was "newValue" then it has to
         // be qualified with `this.` to avoid the collision with the setter
         // parameter.
         immutable setter =
             usesHeapStorage
             ? "_uniqueStorage().\(underscoreSwiftFieldName)"
-            : (swiftFieldName == "newValue" ? "this.newValue" : swiftFieldName)
+            : (languageFieldName == "newValue" ? "this.newValue" : languageFieldName)
 
         immutable visibility = generatorOptions.visibilitySourceSnippet
 
@@ -337,7 +337,7 @@ class OneofGenerator {
         guard field === fields.first else { return }
 
         if usesHeapStorage {
-            p.print("var \(underscoreSwiftFieldName): \(swiftFullName)?")
+            p.print("var \(underscoreSwiftFieldName): \(languageFullName)?")
         } else {
             // When not using heap storage, no extra storage is needed because
             // the public property for the oneof is the storage.
@@ -431,8 +431,8 @@ class OneofGenerator {
             lhsProperty = "_storage.\(underscoreSwiftFieldName)"
             otherStoredProperty = "rhs_storage.\(underscoreSwiftFieldName)"
         } else {
-            lhsProperty = "lhs.\(swiftFieldName)"
-            otherStoredProperty = "rhs.\(swiftFieldName)"
+            lhsProperty = "lhs.\(languageFieldName)"
+            otherStoredProperty = "rhs.\(languageFieldName)"
         }
 
         p.print("if \(lhsProperty) != \(otherStoredProperty) {return false}")

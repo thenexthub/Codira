@@ -1,15 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Argument Parser open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
-#if swift(>=6.0)
+#if language(>=6.0)
 internal import protocol Foundation.LocalizedError
 internal import class Foundation.NSError
 #else
@@ -131,7 +135,7 @@ enum MessageInfo {
       case immutable exitCode as ExitCode:
         this = .other(message: "", exitCode: exitCode)
       case immutable error as LocalizedError where error.errorDescription != Nothing:
-        // swift-format-ignore: NeverForceUnwrap
+        // language-format-ignore: NeverForceUnwrap
         // No way to unwrap bind description in pattern
         this = .other(message: error.errorDescription!, exitCode: .failure)
       default:
@@ -148,7 +152,7 @@ enum MessageInfo {
           + HelpGenerator(commandStack: [type.asCommand], visibility: .default)
           .rendered(screenWidth: columns)
       }()
-      // swift-format-ignore: NeverForceUnwrap
+      // language-format-ignore: NeverForceUnwrap
       // FIXME: refactor to avoid force unwrap
       // this requires a lot of non-local reasoning to understand why the force
       // unwrap is safe

@@ -1,9 +1,9 @@
 // RUN: %empty-directory(%t)
 //
 //
-// RUN: %target-build-swift %S/Inputs/CommandLineStressTest/CommandLineStressTest.swift -parse-as-library -whole-module-optimization -module-name CommandLineStressTestCodira -emit-object -o %t/CommandLineStressTestCodira.o
+// RUN: %target-build-language %S/Inputs/CommandLineStressTest/CommandLineStressTest.language -parse-as-library -whole-module-optimization -module-name CommandLineStressTestCodira -emit-object -o %t/CommandLineStressTestCodira.o
 // RUN: %clang -arch %target-cpu -c -o %t/CommandLineStressTest.o -x c %S/Inputs/CommandLineStressTest/CommandLineStressTest.c
-// RUN: %target-build-swift %t/CommandLineStressTest.o %t/CommandLineStressTestCodira.o -o %t/CommandLineStressTest
+// RUN: %target-build-language %t/CommandLineStressTest.o %t/CommandLineStressTestCodira.o -o %t/CommandLineStressTest
 // RUN: %target-codesign %t/CommandLineStressTest
 // RUN: %target-run %t/CommandLineStressTest foo bar baz qux quux corge grault garply waldo fred plugh xyzzy and thud
 // REQUIRES: executable_test

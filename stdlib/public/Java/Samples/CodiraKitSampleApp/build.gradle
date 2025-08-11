@@ -36,12 +36,12 @@ java {
     }
 }
 
-def swiftProductsWithJExtractPlugin() {
+def languageProductsWithJExtractPlugin() {
     def stdout = new ByteArrayOutputStream()
     def stderr = new ByteArrayOutputStream()
 
     def result = exec {
-        commandLine 'swift', 'package', 'describe', '--type', 'json'
+        commandLine 'language', 'package', 'describe', '--type', 'json'
         standardOutput = stdout
         errorOutput = stderr
         ignoreExitValue = true
@@ -66,14 +66,14 @@ def swiftProductsWithJExtractPlugin() {
 }
 
 
-def swiftCheckValid = tasks.register("swift-check-valid", Exec) {
-    commandLine "swift"
+def languageCheckValid = tasks.register("language-check-valid", Exec) {
+    commandLine "language"
     args("-version")
 }
 
 def jextract = tasks.register("jextract", Exec) {
-    description = "Generate Java wrappers for swift target"
-    dependsOn swiftCheckValid
+    description = "Generate Java wrappers for language target"
+    dependsOn languageCheckValid
 
     // only because we depend on "live developing" the plugin while using this project to test it
     inputs.file(new File(rootDir, "Package.code"))
@@ -83,8 +83,8 @@ def jextract = tasks.register("jextract", Exec) {
     inputs.file(new File(projectDir, "Package.code"))
 
     // monitor all targets/products which depend on the JExtract plugin
-    swiftProductsWithJExtractPlugin().each {
-        logger.info("[swift-java:jextract (Gradle)] Swift input target: ${it}")
+    languageProductsWithJExtractPlugin().each {
+        logger.info("[language-java:jextract (Gradle)] Swift input target: ${it}")
         inputs.dir(new File(layout.projectDirectory.asFile, "Sources/${it}".toString()))
     }
     outputs.dir(layout.buildDirectory.dir("../.build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}"))
@@ -101,20 +101,20 @@ def jextract = tasks.register("jextract", Exec) {
     }
 
     workingDir = layout.projectDirectory
-    commandLine "swift"
+    commandLine "language"
     args("build") // since Swift targets which need to be jextract-ed have the jextract build plugin, we just need to build
     // If we wanted to execute a specific subcommand, we can like this:
     //     args("run",/*
-    //             "swift-java", "jextract",
-    //             "--swift-module", "MySwiftLibrary",
-    //             // java.package is obtained from the swift-java.config in the swift module
+    //             "language-java", "jextract",
+    //             "--language-module", "MySwiftLibrary",
+    //             // java.package is obtained from the language-java.config in the language module
     //             "--output-java", "${layout.buildDirectory.dir(".build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}/JExtractSwiftPlugin/src/generated/java").get()}",
-    //             "--output-swift", "${layout.buildDirectory.dir(".build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}/JExtractSwiftPlugin/Sources").get()}",
+    //             "--output-language", "${layout.buildDirectory.dir(".build/plugins/outputs/${layout.projectDirectory.asFile.getName().toLowerCase()}/JExtractSwiftPlugin/Sources").get()}",
     //             "--log-level", (logging.level <= LogLevel.INFO ? "debug" :  */"info")
     //     )
 }
 
-// Add the java-swift generated Java sources
+// Add the java-language generated Java sources
 sourceSets {
     main {
         java {
@@ -140,7 +140,7 @@ tasks.build {
 
 def cleanSwift = tasks.register("cleanSwift", Exec) {
     workingDir = layout.projectDirectory
-    commandLine "swift"
+    commandLine "language"
     args("package", "clean")
 }
 tasks.clean {

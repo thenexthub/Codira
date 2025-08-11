@@ -10,8 +10,8 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
+// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -23,31 +23,31 @@ fn getNameAliases(from data: String, into result: inout [(UInt32, String)]) {
       continue
     }
     
-    immutable info = line.split(separator: "#")
-    immutable components = info[0].split(separator: ";")
+    let info = line.split(separator: "#")
+    let components = info[0].split(separator: ";")
     
     // Name aliases are only found with correction attribute.
     guard components[2] == "correction" else {
       continue
     }
     
-    immutable scalars: ClosedRange<UInt32>
+    let scalars: ClosedRange<UInt32>
     
-    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
+    let filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      immutable range = filteredScalars.split(separator: ".")
+      let range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      immutable scalar = UInt32(filteredScalars, radix: 16)!
+      let scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
     
-    immutable nameAlias = String(components[1])
+    let nameAlias = String(components[1])
     
     result.append((scalars.lowerBound, nameAlias))
   }
@@ -57,16 +57,16 @@ fn emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  immutable chunkSize = 0x110000 / 64 / 64
+  let chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    immutable lower = i * chunkSize
-    immutable upper = lower + chunkSize - 1
+    let lower = i * chunkSize
+    let upper = lower + chunkSize - 1
     
-    immutable idx = i / 64
-    immutable bit = i % 64
+    let idx = i / 64
+    let bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0 == scalar }) {
@@ -116,10 +116,10 @@ fn emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    immutable lower = chunk * chunkSize
-    immutable upper = lower + chunkSize
+    let lower = chunk * chunkSize
+    let upper = lower + chunkSize
     
-    immutable chunkDataIdx = UInt64(nameAliasData.endIndex)
+    let chunkDataIdx = UInt64(nameAliasData.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -129,7 +129,7 @@ fn emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
       if data.contains(where: { $0.0 == scalar }) {
         chunkBA[scalar % chunkSize] = true
         
-        immutable data = data[data.firstIndex {
+        let data = data[data.firstIndex {
           $0.0 == scalar
         }!].1
         
@@ -186,7 +186,7 @@ fn emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
 }
 
 fn generateNameAliasProp(into result: inout String) {
-  immutable nameAliases = readFile("Data/16/NameAliases.txt")
+  let nameAliases = readFile("Data/16/NameAliases.txt")
   
   var data: [(UInt32, String)] = []
   

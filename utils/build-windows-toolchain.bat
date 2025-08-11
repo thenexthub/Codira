@@ -1,12 +1,12 @@
 :: build-windows-toolchain.bat
 ::
-:: This source file is part of the Codira.org open source project
+:: This source file is part of the Swift.org open source project
 ::
-:: Copyright (c) 2014 - 2021 Apple Inc. and the Codira project authors
+:: Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
 :: Licensed under Apache License v2.0 with Runtime Library Exception
 ::
 :: See https://language.org/LICENSE.txt for license information
-:: See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+:: See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
 
 setlocal enableextensions enabledelayedexpansion
 
@@ -84,6 +84,7 @@ powershell.exe -ExecutionPolicy RemoteSigned -File %~dp0build.ps1 ^
   %WindowsSDKsArg% ^
   %TestArg% ^
   -Stage %PackageRoot% ^
+  -IncludeSBoM ^
   -Summary || (exit /b 1)
 
 :: Clean up the module cache

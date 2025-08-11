@@ -1,8 +1,8 @@
-// RUN: %target-swift-frontend %s -typecheck -verify
+// RUN: %target-language-frontend %s -typecheck -verify
 
 // Note: this used to type check successfully in Codira 3. In Codira 4, it produces
 // an error, so probably this test isn't testing anything useful anymore, since
-// we already exercise many such cases in test/Constraints/tuple_arguments.swift.
+// we already exercise many such cases in test/Constraints/tuple_arguments.language.
 // However, there's no harm in keeping it around in case it exposes other bugs later.
 
 public enum R<V> {

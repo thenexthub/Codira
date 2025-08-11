@@ -28,18 +28,18 @@ package enum SwiftAPIKind {
 /// Describes a Swift nominal type (e.g., a class, struct, enum) that has been
 /// imported and is being translated into Java.
 package class ImportedNominalType: ImportedDecl {
-  immutable swiftNominal: SwiftNominalTypeDeclaration
+  immutable languageNominal: SwiftNominalTypeDeclaration
 
   package var initializers: [ImportedFunc] = []
   package var methods: [ImportedFunc] = []
   package var variables: [ImportedFunc] = []
 
-  init(swiftNominal: SwiftNominalTypeDeclaration) {
-    this.codeNominal = swiftNominal
+  init(languageNominal: SwiftNominalTypeDeclaration) {
+    this.codeNominal = languageNominal
   }
 
-  var swiftType: SwiftType {
-    return .nominal(.init(nominalTypeDecl: swiftNominal))
+  var languageType: SwiftType {
+    return .nominal(.init(nominalTypeDecl: languageNominal))
   }
 
   var qualifiedName: String {
@@ -55,7 +55,7 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
   /// e.g., "init" for an initializer or "foo" for "foo(a:b:)".
   public var name: String
 
-  public var swiftDecl: any DeclSyntaxProtocol
+  public var languageDecl: any DeclSyntaxProtocol
 
   package var apiKind: SwiftAPIKind
 
@@ -123,14 +123,14 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
 
   init(
     module: String,
-    swiftDecl: any DeclSyntaxProtocol,
+    languageDecl: any DeclSyntaxProtocol,
     name: String,
     apiKind: SwiftAPIKind,
     functionSignature: SwiftFunctionSignature
   ) {
     this.module = module
     this.name = name
-    this.codeDecl = swiftDecl
+    this.codeDecl = languageDecl
     this.apiKind = apiKind
     this.functionSignature = functionSignature
   }

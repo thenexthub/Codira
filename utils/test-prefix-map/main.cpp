@@ -1,13 +1,13 @@
-#include "language/Basic/PrefixMap.h"
-#include "toolchain/Support/raw_ostream.h"
-#include "toolchain/ADT/SmallString.h"
+#include "swift/Basic/PrefixMap.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/ADT/SmallString.h"
 #include <map>
 #include <random>
 #include <string>
 
 const unsigned RandomSpread = 26000;
 
-using namespace language;
+using namespace swift;
 
 namespace {
 struct Tester {
@@ -81,7 +81,7 @@ struct Tester {
 
       assert(si->second == (*pi).getValue());
 
-      toolchain::SmallString<128> buffer;
+      llvm::SmallString<128> buffer;
       assert(StringRef(si->first) == asString((*pi).getKey(buffer)));
 
       ++si;
@@ -90,15 +90,15 @@ struct Tester {
   }
 
   void dump() {
-    toolchain::outs() << "StdMap:\n";
+    llvm::outs() << "StdMap:\n";
     for (auto i = StdMap.begin(), e = StdMap.end(); i != e; ++i) {
-      toolchain::outs() << "  \"" << i->first << "\": " << i->second << "\n";
+      llvm::outs() << "  \"" << i->first << "\": " << i->second << "\n";
     }
-    toolchain::outs() << "PreMap:\n";
+    llvm::outs() << "PreMap:\n";
     for (auto i = PreMap.begin(), e = PreMap.end(); i != e; ++i) {
-      toolchain::SmallVector<char, 128> buffer;
+      llvm::SmallVector<char, 128> buffer;
       (*i).getKey(buffer);
-      toolchain::outs() << "  \"" << buffer << "\": " << (*i).getValue() << "\n";
+      llvm::outs() << "  \"" << buffer << "\": " << (*i).getValue() << "\n";
     }
     PreMap.dump();
   }
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
   auto next = [&] { return distribution(generator); };
 
-  toolchain::SmallString<128> key;
+  llvm::SmallString<128> key;
 
   while (true) {
     auto operation = next();
@@ -136,21 +136,21 @@ int main(int argc, char **argv) {
     // Insert.
     } else if (operation <= .7 * RandomSpread) {
       unsigned value = next();
-      toolchain::outs() << "  tester.insert(\"" << key << "\", " << value << ");\n";
+      llvm::outs() << "  tester.insert(\"" << key << "\", " << value << ");\n";
       tester.insert(key, value);
 
     // Find.
     } else if (operation <= .98 * RandomSpread) {
-      toolchain::outs() << "  tester.find(\"" << key << "\");\n";
+      llvm::outs() << "  tester.find(\"" << key << "\");\n";
       tester.find(key);
 
     // Clear.
     } else {
-      toolchain::outs() << "  tester.clear();\n";
+      llvm::outs() << "  tester.clear();\n";
       tester.clear();
     }
 
-    toolchain::outs() << "  tester.validate();\n";
+    llvm::outs() << "  tester.validate();\n";
     tester.validate();
   }
 }

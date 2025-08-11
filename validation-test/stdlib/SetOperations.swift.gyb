@@ -1,7 +1,7 @@
 // RUN: %empty-directory(%t)
-// RUN: %gyb %s -o %t/SetOperations.swift
-// RUN: %line-directive %t/SetOperations.swift -- %target-build-swift %t/SetOperations.swift -o %t/SetOperations -Xfrontend -disable-access-control -swift-version 5
-// RUN: %target-codesign %t/SetOperations && %line-directive %t/SetOperations.swift -- %target-run %t/SetOperations
+// RUN: %gyb %s -o %t/SetOperations.language
+// RUN: %line-directive %t/SetOperations.language -- %target-build-language %t/SetOperations.language -o %t/SetOperations -Xfrontend -disable-access-control -language-version 5
+// RUN: %target-codesign %t/SetOperations && %line-directive %t/SetOperations.language -- %target-run %t/SetOperations
 // REQUIRES: executable_test
 
 import StdlibUnittest
